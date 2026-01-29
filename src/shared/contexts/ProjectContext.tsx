@@ -845,34 +845,34 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const deleteProject = useCallback(async (projectId: string): Promise<boolean> => {
     setIsDeletingProject(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId)
-        .eq('user_id', user.id);
+      // Use edge function for deletion - has longer timeout for large projects
+      const { data, error } = await supabase.functions.invoke('delete-project', {
+        body: { projectId },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setProjects(prevProjects => {
         const updated = prevProjects.filter(p => p.id !== projectId);
         // Choose next project to select (first alphabetically)
         const nextProjectId = determineProjectIdToSelect(updated, null, null);
         setSelectedProjectIdState(nextProjectId);
-        
+
         // Update user preferences with the new selected project
         if (nextProjectId) {
           updateUserPreferences('user', { lastOpenedProjectId: nextProjectId });
         } else {
           updateUserPreferences('user', { lastOpenedProjectId: undefined });
         }
-        
+
         return updated;
       });
 
-      
+
       return true;
     } catch (err: any) {
       console.error('[ProjectContext] Exception during project deletion via API:', err);
