@@ -89,22 +89,20 @@ export const VideoTravelFloatingOverlay: React.FC<VideoTravelFloatingOverlayProp
   // Use larger offset when header is visible (sticky), smaller when it's not (scrolls away on phones)
   const topOffset = hasVisibleHeader ? 114 : 52;
 
+  // Always use pane-based positioning - this ensures the floating header
+  // adjusts correctly when panes lock/unlock
+  const leftOffset = isShotsPaneLocked ? shotsPaneWidth : 0;
+  const rightOffset = isTasksPaneLocked ? tasksPaneWidth : 0;
+
   return (
     <div
       className="fixed z-50 animate-in fade-in slide-in-from-top-2"
       style={{
         top: `${topOffset}px`,
-        left: stickyHeader.stableBounds.width > 0
-          ? `${stickyHeader.stableBounds.left}px`
-          : `${isShotsPaneLocked ? shotsPaneWidth : 0}px`,
-        width: stickyHeader.stableBounds.width > 0
-          ? `${stickyHeader.stableBounds.width}px`
-          : undefined,
-        right: stickyHeader.stableBounds.width > 0
-          ? undefined
-          : `${isTasksPaneLocked ? tasksPaneWidth : 0}px`,
-        transition: 'left 0.2s ease-out, width 0.2s ease-out, right 0.2s ease-out, opacity 0.3s ease-out',
-        willChange: 'left, width, right, opacity',
+        left: `${leftOffset}px`,
+        right: `${rightOffset}px`,
+        transition: 'left 0.2s ease-out, right 0.2s ease-out, opacity 0.3s ease-out',
+        willChange: 'left, right, opacity',
         transform: 'translateZ(0)',
         pointerEvents: 'none'
       }}
