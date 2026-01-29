@@ -1457,6 +1457,47 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
     handleExitVideoTrimMode,
   } = videoEditModeHandlers;
 
+  // Load variant settings for video tasks
+  // Routes to the correct mode (enhance vs regenerate) based on variant type
+  useEffect(() => {
+    if (!variantParamsToLoad || !isVideo) return;
+
+    const taskType = variantParamsToLoad.task_type || variantParamsToLoad.created_from;
+
+    if (taskType === 'video_enhance') {
+      // Video enhance variant - switch to enhance mode and load enhance settings
+      console.log('[LoadVariantSettings] Video enhance variant detected, switching to enhance mode');
+      handleEnterVideoEnhanceMode();
+
+      // Load enhance settings from variant params
+      const enhanceParams = variantParamsToLoad;
+      setEnhanceSettings({
+        enableInterpolation: enhanceParams.enable_interpolation ?? false,
+        enableUpscale: enhanceParams.enable_upscale ?? true,
+        numFrames: enhanceParams.num_frames ?? 1,
+        upscaleFactor: enhanceParams.upscale_factor ?? 2,
+        colorFix: enhanceParams.color_fix ?? true,
+        outputQuality: enhanceParams.output_quality ?? 'high',
+      });
+
+      // Clear after loading
+      setVariantParamsToLoad(null);
+    } else {
+      // Travel segment variant - switch to regenerate mode
+      // The SegmentRegenerateForm will receive variantParamsToLoad via regenerateFormProps
+      console.log('[LoadVariantSettings] Travel segment variant detected, switching to regenerate mode');
+      handleEnterVideoRegenerateMode();
+      // Note: Don't clear variantParamsToLoad here - SegmentRegenerateForm will clear it
+    }
+  }, [
+    variantParamsToLoad,
+    isVideo,
+    handleEnterVideoEnhanceMode,
+    handleEnterVideoRegenerateMode,
+    setEnhanceSettings,
+    setVariantParamsToLoad,
+  ]);
+
   // Track if we're in any video edit sub-mode (trim, replace, or regenerate)
   const isVideoTrimModeActive = isVideo && isVideoTrimMode;
   const isVideoReplaceModeActive = isVideo && videoEditSubMode === 'replace';

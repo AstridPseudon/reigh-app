@@ -17,7 +17,9 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/shared/componen
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { usePrefetchTaskData, usePrefetchTaskById } from '@/shared/hooks/useUnifiedGenerations';
 import { usePublicLoras } from '@/shared/hooks/useResources';
+import { useGetTask } from '@/shared/hooks/useTasks';
 import { SharedTaskDetails } from '@/tools/travel-between-images/components/SharedTaskDetails';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { LineageGifModal } from '@/shared/components/LineageGifModal';
 import { getLineageDepth } from '@/shared/hooks/useLineageChain';
 import type { VariantSelectorProps, GenerationVariant } from '../types';
@@ -76,17 +78,117 @@ const getTimeAgo = (createdAt: string): string => {
   const created = new Date(createdAt).getTime();
   const now = Date.now();
   const diffMs = now - created;
-  
+
   const seconds = Math.floor(diffMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  
+
   if (seconds < 60) return `${seconds}s ago`;
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days === 1) return 'yesterday';
   return `${days}d ago`;
+};
+
+/**
+ * Check if a variant has settings that can be loaded into any form.
+ * - Travel segment variants: have generative settings (prompt, model, loras)
+ * - Video enhance variants: have processing settings (interpolation, upscale)
+ * - Trimmed/clip_join: no loadable settings
+ */
+const hasLoadableSettings = (variant: GenerationVariant): boolean => {
+  // These variant types don't have any settings worth loading
+  const nonLoadableTypes = ['trimmed', 'clip_join', 'join_final_stitch'];
+  if (variant.variant_type && nonLoadableTypes.includes(variant.variant_type)) {
+    return false;
+  }
+
+  const params = variant.params as Record<string, any> | null;
+  if (!params) return false;
+
+  // Video enhance variants have loadable processing settings
+  const taskType = params.task_type || params.created_from;
+  if (taskType === 'video_enhance') {
+    // Has enhance settings to load (interpolation, upscale, etc.)
+    return true;
+  }
+
+  // For travel/regeneration variants, check for generative settings
+  const hasPrompt = !!params.prompt;
+  const hasOrchestratorDetails = !!params.orchestrator_details;
+
+  return hasPrompt || hasOrchestratorDetails;
+};
+
+/**
+ * Get the type of settings a variant has, for routing to the correct form.
+ */
+const getVariantSettingsType = (variant: GenerationVariant): 'enhance' | 'regenerate' | null => {
+  const params = variant.params as Record<string, any> | null;
+  if (!params) return null;
+
+  const taskType = params.task_type || params.created_from;
+  if (taskType === 'video_enhance') {
+    return 'enhance';
+  }
+
+  // Check for travel/regeneration settings
+  if (params.prompt || params.orchestrator_details) {
+    return 'regenerate';
+  }
+
+  return null;
+};
+
+/**
+ * Helper component that fetches real task data for a variant's hover details.
+ * Uses source_task_id from variant params to get the actual task with correct taskType.
+ */
+interface VariantHoverDetailsProps {
+  variant: GenerationVariant;
+  availableLoras?: LoraModel[];
+}
+
+const VariantHoverDetails: React.FC<VariantHoverDetailsProps> = ({ variant, availableLoras }) => {
+  const variantParams = variant.params as Record<string, any> | null;
+
+  // Extract source task ID from variant params (set during task completion)
+  const sourceTaskId = variantParams?.source_task_id ||
+                       variantParams?.orchestrator_task_id ||
+                       variantParams?.task_id;
+
+  // Fetch the real task data from cache (prefetched on hover)
+  const { data: task, isLoading } = useGetTask(sourceTaskId || '');
+
+  // If we have real task data, use it
+  if (task && !isLoading) {
+    return (
+      <SharedTaskDetails
+        task={task}
+        inputImages={[]}
+        variant="hover"
+        isMobile={false}
+        availableLoras={availableLoras}
+        showCopyButtons={true}
+      />
+    );
+  }
+
+  // Fallback: construct minimal task from variant params while loading or if no source_task_id
+  return (
+    <SharedTaskDetails
+      task={{
+        taskType: variantParams?.task_type || variantParams?.created_from || 'video_generation',
+        params: variantParams,
+      }}
+      inputImages={[]}
+      variant="hover"
+      isMobile={false}
+      availableLoras={availableLoras}
+      showCopyButtons={true}
+    />
+  );
 };
 
 export const VariantSelector: React.FC<VariantSelectorProps> = ({
@@ -617,30 +719,32 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
                         )}
                       </div>
                       <div className="flex items-center gap-0.5">
-                        {/* Copy ID button */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigator.clipboard.writeText(variant.id).catch(() => {});
-                                setCopiedVariantId(variant.id);
-                                setTimeout(() => setCopiedVariantId(null), 2000);
-                              }}
-                              className={cn(
-                                "px-1.5 py-0.5 rounded text-[10px] transition-all duration-150",
-                                copiedVariantId === variant.id
-                                  ? "text-green-400 bg-green-400/10"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80 active:scale-95"
-                              )}
-                            >
-                              {copiedVariantId === variant.id ? 'copied' : 'id'}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="text-xs">
-                            Copy ID
-                          </TooltipContent>
-                        </Tooltip>
+                        {/* Copy ID button - hide for trimmed variants */}
+                        {variant.variant_type !== 'trimmed' && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(variant.id).catch(() => {});
+                                  setCopiedVariantId(variant.id);
+                                  setTimeout(() => setCopiedVariantId(null), 2000);
+                                }}
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded text-[10px] transition-all duration-150",
+                                  copiedVariantId === variant.id
+                                    ? "text-green-400 bg-green-400/10"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/80 active:scale-95"
+                                )}
+                              >
+                                {copiedVariantId === variant.id ? 'copied' : 'id'}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">
+                              Copy ID
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         {/* Lineage GIF button - appears with subtle animation when depth >= 5 */}
                         {(variantLineageDepth[variant.id] || 0) >= 5 && (
                           <Tooltip>
@@ -688,39 +792,18 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
                       </div>
                     </div>
 
-                    {/* Full task details using SharedTaskDetails */}
-                    {variant.params && (
+                    {/* Full task details using real task data - skip for trimmed variants */}
+                    {variant.params && variant.variant_type !== 'trimmed' && (
                       <div className="border-t border-border/50 pt-2">
-                        <SharedTaskDetails
-                          task={{
-                            taskType: (variant.params as any)?.task_type || 'video_generation',
-                            params: variant.params,
-                          }}
-                          inputImages={[]}
-                          variant="hover"
-                          isMobile={false}
+                        <VariantHoverDetails
+                          variant={variant}
                           availableLoras={availableLoras}
-                          showCopyButtons={true}
                         />
                       </div>
                     )}
 
-                    {/* Parent variant thumbnail */}
-                    {parentVariant && (
-                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/50">
-                        <span className="text-xs text-muted-foreground">Based on:</span>
-                        <div className="w-8 h-5 rounded overflow-hidden bg-muted flex-shrink-0">
-                          <img
-                            src={parentVariant.thumbnail_url || parentVariant.location}
-                            alt="Parent variant"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </div>
-                    )}
-
                     {/* Action buttons row - Make Primary and/or Load Settings - hidden in readOnly mode */}
-                    {!readOnly && ((!isPrimary && onMakePrimary) || (onLoadVariantSettings && variant.params)) && (
+                    {!readOnly && ((!isPrimary && onMakePrimary) || (onLoadVariantSettings && hasLoadableSettings(variant))) && (
                       <div className="flex gap-1.5">
                         {/* Make Primary button - only for non-primary variants */}
                         {!isPrimary && onMakePrimary && (
@@ -734,15 +817,15 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
                             }}
                             className={cn(
                               "h-6 text-xs gap-1",
-                              onLoadVariantSettings && variant.params ? "flex-1" : "w-full"
+                              onLoadVariantSettings && hasLoadableSettings(variant) ? "flex-1" : "w-full"
                             )}
                           >
                             <Star className="w-3 h-3" />
                             Make Primary
                           </Button>
                         )}
-                        {/* Load Settings button */}
-                        {onLoadVariantSettings && variant.params && (
+                        {/* Load Settings button - only for variants with generative settings */}
+                        {onLoadVariantSettings && hasLoadableSettings(variant) && (
                           <Button
                             size="sm"
                             variant="outline"
