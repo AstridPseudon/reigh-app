@@ -49,39 +49,19 @@ serve(async (req) => {
 
     console.log(`[delete-project] Starting deletion for project ${projectId} by user ${user.id}`)
 
-    // Verify the user owns this project
-    const { data: project, error: projectError } = await supabaseClient
-      .from('projects')
-      .select('id, user_id')
-      .eq('id', projectId)
-      .single()
-
-    if (projectError || !project) {
-      return new Response(
-        JSON.stringify({ error: 'Project not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (project.user_id !== user.id) {
-      return new Response(
-        JSON.stringify({ error: 'Not authorized to delete this project' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Use service role client for deletion (bypasses RLS, has longer timeout)
+    // Use service role client to call the deletion function
+    // The PostgreSQL function handles ownership verification
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Delete the project - CASCADE will handle related records
-    // Edge functions have a longer timeout (up to 60s) than client requests
-    const { error: deleteError } = await supabaseAdmin
-      .from('projects')
-      .delete()
-      .eq('id', projectId)
+    // Call the PostgreSQL function with extended timeout (5 minutes)
+    // This handles large projects that would otherwise timeout due to CASCADE deletes
+    const { error: deleteError } = await supabaseAdmin.rpc(
+      'delete_project_with_extended_timeout',
+      { p_project_id: projectId, p_user_id: user.id }
+    )
 
     if (deleteError) {
       console.error(`[delete-project] Error deleting project ${projectId}:`, deleteError)
