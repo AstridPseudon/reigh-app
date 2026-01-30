@@ -744,13 +744,32 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   } = variantsHook;
 
   // Variant selection with mark-as-viewed behavior
-  const { setActiveVariantId, isViewingNonPrimaryVariant } = useVariantSelection({
+  const { setActiveVariantId: baseSetActiveVariantId, isViewingNonPrimaryVariant } = useVariantSelection({
     media,
     rawSetActiveVariantId,
     activeVariant,
     variants,
     initialVariantId,
   });
+
+  // Ref to track the "intended" active variant ID synchronously
+  // This is updated immediately when a variant is selected, before React state updates
+  // Used by handleDownload to avoid race conditions
+  const intendedActiveVariantIdRef = useRef<string | null>(activeVariant?.id || null);
+
+  // Keep ref in sync when activeVariant changes from external sources
+  // (e.g., initialVariantId prop, new variant auto-selected after creation)
+  useEffect(() => {
+    if (activeVariant?.id && activeVariant.id !== intendedActiveVariantIdRef.current) {
+      intendedActiveVariantIdRef.current = activeVariant.id;
+    }
+  }, [activeVariant?.id]);
+
+  // Wrap setActiveVariantId to also update the ref synchronously
+  const setActiveVariantId = useCallback((variantId: string) => {
+    intendedActiveVariantIdRef.current = variantId;
+    baseSetActiveVariantId(variantId);
+  }, [baseSetActiveVariantId]);
 
   // Variant promotion - create standalone generation from a variant
   const {
@@ -1329,6 +1348,11 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
     projectAspectRatio,
   });
 
+  // Ref to track current download URL - ensures handleDownload always gets the latest URL
+  // even if React hasn't re-rendered yet after a variant selection
+  const currentDownloadUrlRef = useRef<string | undefined>(undefined);
+  currentDownloadUrlRef.current = isVideo ? effectiveVideoUrl : effectiveMediaUrl;
+
   // Trim save hook - handle saving trimmed video
   const trimSaveHook = useTrimSave({
     generationId: media.id,
@@ -1591,8 +1615,30 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   // ========================================
 
   const handleDownload = async () => {
-    // Use the effective media URL (may be a variant)
-    const urlToDownload = isVideo ? effectiveVideoUrl : effectiveMediaUrl;
+    // RACE CONDITION FIX: Look up the variant URL from the variants array
+    // using the synchronously-updated ref, not the computed effective URL.
+    // This ensures we download the correct variant even if user clicks download
+    // immediately after selecting a new variant (before React re-renders).
+    let urlToDownload: string | undefined;
+
+    const intendedVariantId = intendedActiveVariantIdRef.current;
+    if (intendedVariantId && variants.length > 0) {
+      const intendedVariant = variants.find(v => v.id === intendedVariantId);
+      if (intendedVariant?.location) {
+        urlToDownload = intendedVariant.location;
+        console.log('[MediaLightbox] handleDownload: Using variant from ref lookup:', intendedVariantId.substring(0, 8));
+      }
+    }
+
+    // Fall back to the computed effective URL (updated during render)
+    if (!urlToDownload) {
+      urlToDownload = currentDownloadUrlRef.current;
+    }
+
+    if (!urlToDownload) {
+      console.warn('[MediaLightbox] handleDownload: No URL available');
+      return;
+    }
     // Extract prompt from various possible sources for a better filename
     // Use migration utility to read segment overrides (handles new + old format)
     const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, any> | null);
