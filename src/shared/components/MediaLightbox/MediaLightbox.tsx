@@ -353,6 +353,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   // Basic state - only UI state remains here
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [replaceImages, setReplaceImages] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [previewImageDimensions, setPreviewImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const previousPreviewDataRef = useRef<GenerationRow | null>(null);
 
@@ -1639,14 +1640,21 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
       console.warn('[MediaLightbox] handleDownload: No URL available');
       return;
     }
-    // Extract prompt from various possible sources for a better filename
-    // Use migration utility to read segment overrides (handles new + old format)
-    const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, any> | null);
-    const prompt = (media.params as any)?.prompt ||
-                   (media.metadata as any)?.enhanced_prompt ||
-                   segmentOverrides.prompt ||
-                   (media.metadata as any)?.prompt;
-    await downloadMedia(urlToDownload, media.id, isVideo, media.contentType, prompt);
+
+    // Show loading state while downloading
+    setIsDownloading(true);
+    try {
+      // Extract prompt from various possible sources for a better filename
+      // Use migration utility to read segment overrides (handles new + old format)
+      const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, any> | null);
+      const prompt = (media.params as any)?.prompt ||
+                     (media.metadata as any)?.enhanced_prompt ||
+                     segmentOverrides.prompt ||
+                     (media.metadata as any)?.prompt;
+      await downloadMedia(urlToDownload, media.id, isVideo, media.contentType, prompt);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleDelete = () => {
@@ -1672,6 +1680,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
     // TopRight - Download & Delete
     showDownload,
     handleDownload,
+    isDownloading,
     onDelete,
     handleDelete,
     isDeleting,

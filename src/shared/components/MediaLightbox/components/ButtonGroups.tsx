@@ -47,6 +47,7 @@ export const TopLeftControls: React.FC<TopLeftControlsProps> = () => {
 interface TopRightControlsProps extends BaseButtonGroupProps {
   showDownload: boolean;
   handleDownload: () => Promise<void>;
+  isDownloading?: boolean;
   onDelete?: (id: string) => void;
   handleDelete?: () => void;
   isDeleting?: string | null;
@@ -59,6 +60,7 @@ export const TopRightControls: React.FC<TopRightControlsProps> = ({
   isSpecialEditMode,
   showDownload,
   handleDownload,
+  isDownloading,
   onDelete,
   handleDelete,
   isDeleting,
@@ -78,12 +80,19 @@ export const TopRightControls: React.FC<TopRightControlsProps> = ({
                 e.stopPropagation();
                 handleDownload();
               }}
+              disabled={isDownloading}
               className="bg-black/50 hover:bg-black/70 text-white"
             >
-              <Download className="h-4 w-4" />
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent className="z-[100001]">Download {isVideo ? 'video' : 'image'}</TooltipContent>
+          <TooltipContent className="z-[100001]">
+            {isDownloading ? 'Downloading...' : `Download ${isVideo ? 'video' : 'image'}`}
+          </TooltipContent>
         </Tooltip>
       )}
 

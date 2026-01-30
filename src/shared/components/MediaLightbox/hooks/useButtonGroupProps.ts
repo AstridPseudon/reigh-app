@@ -25,6 +25,7 @@ interface UseButtonGroupPropsParams {
   // TopRight - Download & Delete
   showDownload: boolean;
   handleDownload: () => Promise<void>;
+  isDownloading: boolean;
   onDelete?: (id: string) => void;
   handleDelete?: () => void;
   isDeleting?: string | null;
@@ -66,6 +67,7 @@ export function useButtonGroupProps({
   // TopRight
   showDownload,
   handleDownload,
+  isDownloading,
   onDelete,
   handleDelete,
   isDeleting,
@@ -109,6 +111,7 @@ export function useButtonGroupProps({
       isCloudMode,
       showDownload,
       handleDownload,
+      isDownloading,
       onDelete,
       handleDelete,
       isDeleting,
@@ -162,6 +165,7 @@ export function useButtonGroupProps({
     handleEnterMagicEditMode,
     showDownload,
     handleDownload,
+    isDownloading,
     onDelete,
     handleDelete,
     isDeleting,
