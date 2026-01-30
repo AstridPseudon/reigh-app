@@ -197,12 +197,16 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
   const makePrimary = taskData.params?.make_primary_variant ?? true;
   console.log(`[GenHandler] Creating variant with isPrimary=${makePrimary}`);
 
-  // Use centralized helper for single-segment detection
-  const childViewedAt = makePrimary ? await getChildVariantViewedAt(supabase, {
+  // Always check for single-segment case (independent of makePrimary flag)
+  // This determines if we should propagate to the parent generation
+  const singleSegmentViewedAt = await getChildVariantViewedAt(supabase, {
     taskParams: taskData.params,
     childGeneration: childGen,
-  }) : null;
-  const isSingleSegmentChild = childViewedAt !== null;
+  });
+  const isSingleSegmentChild = singleSegmentViewedAt !== null;
+
+  // For the child variant, only auto-view if makePrimary is true
+  const childViewedAt = makePrimary ? singleSegmentViewedAt : null;
 
   await createVariant(
     supabase,
@@ -216,17 +220,28 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
     childViewedAt
   );
 
-  console.log(`[GenHandler] Successfully created variant for child generation ${childGenId}${isSingleSegmentChild ? ' (auto-viewed)' : ''}`);
+  console.log(`[GenHandler] Successfully created variant for child generation ${childGenId}${childViewedAt ? ' (auto-viewed)' : ''}${isSingleSegmentChild ? ' (single-segment)' : ''}`);
 
   // SINGLE-SEGMENT PROPAGATION: If this child is the only child of its parent,
   // also create a variant on the parent so the main generation updates automatically
   if (isSingleSegmentChild && childGen.parent_generation_id) {
-    console.log(`[GenHandler] Single-segment child - also creating variant on parent ${childGen.parent_generation_id}`);
+    // Check if parent already has variants - only make primary if it's the first
+    const { count: existingParentVariants } = await supabase
+      .from('generation_variants')
+      .select('id', { count: 'exact', head: true })
+      .eq('generation_id', childGen.parent_generation_id);
+
+    const isFirstParentVariant = (existingParentVariants || 0) === 0;
+    const makeParentPrimary = isFirstParentVariant || makePrimary;
+
+    console.log(`[GenHandler] Single-segment child - also creating variant on parent ${childGen.parent_generation_id} (isFirst=${isFirstParentVariant}, makePrimary=${makeParentPrimary})`);
     logger?.info("Single-segment propagation to parent", {
       task_id: taskId,
       child_generation_id: childGenId,
       parent_generation_id: childGen.parent_generation_id,
-      action: "propagate_to_parent"
+      action: "propagate_to_parent",
+      is_first_parent_variant: isFirstParentVariant,
+      make_primary: makeParentPrimary
     });
 
     await createVariant(
@@ -239,7 +254,7 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
         propagated_from_child: childGenId,
         created_from: 'single_segment_propagation',
       },
-      true, // is_primary
+      makeParentPrimary,
       VARIANT_TYPES.TRAVEL_SEGMENT,
       null
     );
