@@ -18,7 +18,7 @@
  * so `location` already contains the best available URL.
  */
 
-import { GeneratedImageWithMetadata } from '@/shared/components/ImageGallery';
+import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import { GenerationRow } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
 import { stripQueryParameters } from '@/shared/lib/utils';
@@ -243,7 +243,7 @@ export function transformGeneration(
     prompt,
     metadata: {
       ...(item.params || {}),
-      taskId, // Include task ID in metadata for ImageGalleryItem
+      taskId, // Include task ID in metadata for MediaGalleryItem
       based_on: item.based_on, // Include based_on for lineage tracking
       ...(options.metadata || {}), // Merge any additional metadata
     },

@@ -152,6 +152,20 @@ serve(async (req) => {
           }
         }
 
+        // Idempotency check: Check if this session was already processed
+        const { data: existingEntry } = await supabaseAdmin
+          .from('credits_ledger')
+          .select('id')
+          .eq('type', 'stripe')
+          .filter('metadata->>stripe_session_id', 'eq', session.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingEntry) {
+          console.log('Webhook already processed (idempotency check):', session.id);
+          return jsonResponse({ received: true, duplicate: true });
+        }
+
         // Insert budget purchase into ledger
         const { data: ledgerEntry, error: ledgerError } = await supabaseAdmin
           .from('credits_ledger')
@@ -171,6 +185,11 @@ serve(async (req) => {
           .single();
 
         if (ledgerError) {
+          // Handle duplicate key violation gracefully (race condition with idempotency check)
+          if (ledgerError.code === '23505') {
+            console.log('Webhook duplicate detected via constraint:', session.id);
+            return jsonResponse({ received: true, duplicate: true });
+          }
           console.error('Error creating budget ledger entry:', ledgerError);
           return jsonResponse({ error: 'Failed to create budget ledger entry' }, 500);
         }
@@ -192,8 +211,22 @@ serve(async (req) => {
         
         if (metadata.autoTopup === 'true') {
           const { userId, originalBalance, topupAmount } = metadata;
-          
+
           if (userId && topupAmount) {
+            // Idempotency check: Check if this payment intent was already processed
+            const { data: existingAutoTopup } = await supabaseAdmin
+              .from('credits_ledger')
+              .select('id')
+              .eq('type', 'auto_topup')
+              .filter('metadata->>stripe_payment_intent_id', 'eq', paymentIntent.id)
+              .limit(1)
+              .maybeSingle();
+
+            if (existingAutoTopup) {
+              console.log('Auto-topup webhook already processed (idempotency check):', paymentIntent.id);
+              break;
+            }
+
             // Insert auto-top-up credit into ledger
             const { error: autoTopupLedgerError } = await supabaseAdmin
               .from('credits_ledger')
@@ -212,6 +245,11 @@ serve(async (req) => {
               });
 
             if (autoTopupLedgerError) {
+              // Handle duplicate key violation gracefully
+              if (autoTopupLedgerError.code === '23505') {
+                console.log('Auto-topup duplicate detected via constraint:', paymentIntent.id);
+                break;
+              }
               console.error('Error creating auto-top-up ledger entry:', autoTopupLedgerError);
             } else {
               console.log('Auto-top-up payment processed:', {

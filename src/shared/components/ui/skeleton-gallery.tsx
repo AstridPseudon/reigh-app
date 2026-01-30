@@ -117,7 +117,7 @@ export function SkeletonGallery({
     <div className={cn('space-y-6 pb-8', className)}>
       {showControls && (
         <div className="mt-0 space-y-3">
-          {/* Pagination row - matches ImageGallery pagination section */}
+          {/* Pagination row - matches MediaGallery pagination section */}
           <div className="flex justify-between items-center">
             {/* Left side - Pagination controls skeleton */}
             <div className="flex items-center gap-2">
@@ -133,7 +133,7 @@ export function SkeletonGallery({
             </div>
           </div>
 
-          {/* Filters row - matches ImageGallery filters section */}
+          {/* Filters row - matches MediaGallery filters section */}
           <div className="flex justify-between items-center flex-wrap gap-y-2">
             {/* Left side - Filters skeleton */}
             <div className="flex items-center gap-3">

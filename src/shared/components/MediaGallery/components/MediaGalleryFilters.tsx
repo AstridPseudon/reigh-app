@@ -6,7 +6,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ShotFilter } from "@/shared/components/ShotFilter";
 import { ToolTypeFilter } from "./ToolTypeFilter";
 
-export interface ImageGalleryFiltersProps {
+export interface MediaGalleryFiltersProps {
   // Shot filter props
   showShotFilter?: boolean;
   allShots: Array<{ id: string; name: string }>;
@@ -41,7 +41,7 @@ export interface ImageGalleryFiltersProps {
   isMobile?: boolean;
 }
 
-export const ImageGalleryFilters: React.FC<ImageGalleryFiltersProps> = ({
+export const MediaGalleryFilters: React.FC<MediaGalleryFiltersProps> = ({
   showShotFilter = false,
   allShots,
   shotFilter,

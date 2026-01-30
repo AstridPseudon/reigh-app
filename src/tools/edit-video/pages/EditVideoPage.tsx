@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { storagePaths, getFileExtension, MEDIA_BUCKET } from '@/shared/lib/storagePaths';
 import { InlineEditVideoView } from '../components/InlineEditVideoView';
 import { useGenerations, useDeleteVariant } from '@/shared/hooks/useGenerations';
-import ImageGallery from '@/shared/components/ImageGallery';
+import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -618,7 +618,7 @@ export default function EditVideoPage() {
                 </button>
                 
                 {showResults && (
-                  <ImageGallery
+                  <MediaGallery
                     images={allResults}
                     allShots={shots || []}
                     onImageClick={(media) => {
@@ -703,7 +703,7 @@ export default function EditVideoPage() {
                 </button>
                 
                 {showResults && (
-                  <ImageGallery
+                  <MediaGallery
                     images={allResults}
                     allShots={shots || []}
                     onImageClick={(media) => {
@@ -794,7 +794,7 @@ function VideoSelectionPanel({ onSelect }: { onSelect: (media: GenerationRow) =>
          {isGalleryLoading && !generationsData ? (
             <ReighLoading />
          ) : (
-            <ImageGallery 
+            <MediaGallery 
                images={(generationsData as any)?.items || []}
                onImageClick={(media) => onSelect(media as any)}
                allShots={shots || []}

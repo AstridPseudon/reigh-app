@@ -65,7 +65,7 @@ export interface GeneratedImageWithMetadata {
   child_order?: number;
 }
 
-export interface ImageGalleryProps {
+export interface MediaGalleryProps {
   images: GeneratedImageWithMetadata[];
   onDelete?: (id: string) => void;
   isDeleting?: string | null;

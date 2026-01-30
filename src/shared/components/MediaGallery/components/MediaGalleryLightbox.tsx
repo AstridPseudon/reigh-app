@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
 import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
 
-export interface ImageGalleryLightboxProps {
+export interface MediaGalleryLightboxProps {
   // Lightbox state
   activeLightboxMedia: GenerationRow | null;
   autoEnterEditMode?: boolean;
@@ -74,7 +74,7 @@ export interface ImageGalleryLightboxProps {
   setActiveLightboxIndex?: (index: number) => void;
 }
 
-export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
+export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
   activeLightboxMedia,
   autoEnterEditMode = false,
   onClose,
@@ -127,7 +127,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     const fromMetadata = activeLightboxMedia?.metadata?.__autoEnterEditMode as boolean | undefined;
     const result = fromMetadata ?? autoEnterEditMode ?? false;
     
-    console.log('[EditModeDebug] ImageGalleryLightbox computing effective autoEnterEditMode:', {
+    console.log('[EditModeDebug] MediaGalleryLightbox computing effective autoEnterEditMode:', {
       fromProps: autoEnterEditMode,
       fromMetadata,
       effectiveValue: result,
@@ -143,7 +143,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
   
   // [ShotNavDebug] confirm plumbing into Lightbox
   React.useEffect(() => {
-    console.log('[ShotNavDebug] [ImageGalleryLightbox] props snapshot', {
+    console.log('[ShotNavDebug] [MediaGalleryLightbox] props snapshot', {
       activeLightboxMediaId: activeLightboxMedia?.id,
       selectedShotIdLocal,
       hasOnAddToShot: !!onAddToShot,
@@ -187,7 +187,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
   const starredValue = useMemo(() => {
     const foundImage = filteredImages.find(img => img.id === activeLightboxMedia?.id);
     const starred = foundImage?.starred || false;
-    console.log('[StarDebug:ImageGallery] MediaLightbox starred prop', {
+    console.log('[StarDebug:MediaGallery] MediaLightbox starred prop', {
       mediaId: activeLightboxMedia?.id,
       foundImage: !!foundImage,
       starredValue: starred,
@@ -295,10 +295,10 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     };
   }, [activeLightboxMedia, filteredImages, queryClient, cacheVersion]);
 
-  // Compute positioned/associated state from gallery source record (mirrors ImageGalleryItem logic)
+  // Compute positioned/associated state from gallery source record (mirrors MediaGalleryItem logic)
   const sourceRecord = useMemo(() => {
     const found = filteredImages.find(img => img.id === activeLightboxMedia?.id);
-    console.log('[ShotNavDebug] [ImageGalleryLightbox] sourceRecord lookup', {
+    console.log('[ShotNavDebug] [MediaGalleryLightbox] sourceRecord lookup', {
       mediaId: activeLightboxMedia?.id,
       foundRecord: !!found,
       shot_id: found?.shot_id,
@@ -316,7 +316,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
   
   const positionedInSelectedShot = useMemo(() => {
     if (!sourceRecord || !effectiveShotIdForOverride) {
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] positionedInSelectedShot: early return undefined', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] positionedInSelectedShot: early return undefined', {
         hasSourceRecord: !!sourceRecord,
         effectiveShotIdForOverride,
         timestamp: Date.now()
@@ -327,7 +327,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     let result: boolean;
     if (sourceRecord.shot_id === effectiveShotIdForOverride) {
       result = sourceRecord.position !== null && sourceRecord.position !== undefined;
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] positionedInSelectedShot: direct shot_id match', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] positionedInSelectedShot: direct shot_id match', {
         shot_id: sourceRecord.shot_id,
         position: sourceRecord.position,
         result,
@@ -340,7 +340,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     if (Array.isArray(a)) {
       const m = a.find(x => x.shot_id === effectiveShotIdForOverride);
       result = !!(m && m.position !== null && m.position !== undefined);
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] positionedInSelectedShot: all_shot_associations check', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] positionedInSelectedShot: all_shot_associations check', {
         associationsCount: a.length,
         foundMatch: !!m,
         matchPosition: m?.position,
@@ -351,7 +351,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
       return result;
     }
     
-    console.log('[ShotNavDebug] [ImageGalleryLightbox] positionedInSelectedShot: fallback false', {
+    console.log('[ShotNavDebug] [MediaGalleryLightbox] positionedInSelectedShot: fallback false', {
       timestamp: Date.now()
     });
     return false;
@@ -359,7 +359,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
   
   const associatedWithoutPositionInSelectedShot = useMemo(() => {
     if (!sourceRecord || !effectiveShotIdForOverride) {
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] associatedWithoutPositionInSelectedShot: early return undefined', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] associatedWithoutPositionInSelectedShot: early return undefined', {
         hasSourceRecord: !!sourceRecord,
         effectiveShotIdForOverride,
         timestamp: Date.now()
@@ -370,7 +370,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     let result: boolean;
     if (sourceRecord.shot_id === effectiveShotIdForOverride) {
       result = sourceRecord.position === null || sourceRecord.position === undefined;
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] associatedWithoutPositionInSelectedShot: direct shot_id match', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] associatedWithoutPositionInSelectedShot: direct shot_id match', {
         shot_id: sourceRecord.shot_id,
         position: sourceRecord.position,
         result,
@@ -383,7 +383,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     if (Array.isArray(a)) {
       const m = a.find(x => x.shot_id === effectiveShotIdForOverride);
       result = !!(m && (m.position === null || m.position === undefined));
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] associatedWithoutPositionInSelectedShot: all_shot_associations check', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] associatedWithoutPositionInSelectedShot: all_shot_associations check', {
         associationsCount: a.length,
         foundMatch: !!m,
         matchPosition: m?.position,
@@ -394,7 +394,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
       return result;
     }
     
-    console.log('[ShotNavDebug] [ImageGalleryLightbox] associatedWithoutPositionInSelectedShot: fallback false', {
+    console.log('[ShotNavDebug] [MediaGalleryLightbox] associatedWithoutPositionInSelectedShot: fallback false', {
       timestamp: Date.now()
     });
     return false;
@@ -403,7 +403,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
   // Log what's being passed to MediaLightbox
   useEffect(() => {
     if (activeLightboxMedia) {
-      console.log('[ShotNavDebug] [ImageGalleryLightbox] Passing to MediaLightbox', {
+      console.log('[ShotNavDebug] [MediaGalleryLightbox] Passing to MediaLightbox', {
         mediaId: activeLightboxMedia.id,
         selectedShotIdLocal,
         positionedInSelectedShot,
@@ -620,8 +620,8 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
     if (enhancedMedia) {
       const isVideo = !!(activeLightboxMedia.type || '').includes('video');
       const willShowShotSelector = !!(onAddToShot && simplifiedShotOptions?.length > 0 && !isVideo);
-      console.log('[ShotSelectorDebug] ImageGalleryLightbox -> MediaLightbox props:', {
-        component: 'ImageGalleryLightbox',
+      console.log('[ShotSelectorDebug] MediaGalleryLightbox -> MediaLightbox props:', {
+        component: 'MediaGalleryLightbox',
         mediaId: enhancedMedia.id?.substring(0, 8),
         // Key conditions for shot selector visibility:
         allShotsLength: simplifiedShotOptions?.length || 0,
@@ -662,7 +662,7 @@ export const ImageGalleryLightbox: React.FC<ImageGalleryLightboxProps> = ({
           selectedShotId={lightboxSelectedShotId || (selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined)}
           shotId={selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined}
           onShotChange={(shotId) => {
-            console.log('[ImageGalleryLightbox] Shot selector changed to:', shotId);
+            console.log('[MediaGalleryLightbox] Shot selector changed to:', shotId);
             setLightboxSelectedShotId(shotId);
             onShotChange(shotId);
           }}

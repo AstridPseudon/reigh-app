@@ -2,7 +2,7 @@
  * Shared utilities for drag-and-drop operations involving generations (images/videos)
  * 
  * Used by:
- * - ImageGalleryItem (drag source)
+ * - MediaGalleryItem (drag source)
  * - ShotGroup, SortableShotItem, ShotListDisplay (drop targets)
  * - Timeline components (drop targets)
  * - BatchDropZone (drop target)

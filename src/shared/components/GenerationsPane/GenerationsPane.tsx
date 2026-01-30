@@ -12,9 +12,9 @@ import { Label } from '@/shared/components/ui/label';
 import { LockIcon, UnlockIcon, Square, ChevronLeft, ChevronRight, Star, Sparkles, ExternalLink, Search, X } from 'lucide-react';
 import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ImageGallery } from '@/shared/components/ImageGallery';
-import { useContainerWidth } from '@/shared/components/ImageGallery/hooks';
-import { getLayoutForAspectRatio } from '@/shared/components/ImageGallery/utils';
+import { MediaGallery } from '@/shared/components/MediaGallery';
+import { useContainerWidth } from '@/shared/components/MediaGallery/hooks';
+import { getLayoutForAspectRatio } from '@/shared/components/MediaGallery/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import PaneControlTab from '../PaneControlTab';
 import { Skeleton } from '@/shared/components/ui/skeleton';
@@ -217,7 +217,7 @@ const GenerationsPaneComponent: React.FC = () => {
     currentPrefetchId: string;
   }>({ images: [], currentPrefetchId: '' });
 
-  // Prefetch adjacent pages callback for ImageGallery with cancellation
+  // Prefetch adjacent pages callback for MediaGallery with cancellation
   const handlePrefetchAdjacentPages = useCallback((prevPage: number | null, nextPage: number | null) => {
     const prefetchStartTime = performance.now();
     
@@ -728,17 +728,17 @@ const GenerationsPaneComponent: React.FC = () => {
                 />
             )}
             {error && <p className="text-red-500 text-center">Error: {error.message}</p>}
-            {/* Keep ImageGallery mounted during page transitions to preserve lightbox state */}
+            {/* Keep MediaGallery mounted during page transitions to preserve lightbox state */}
             {paginatedData.items.length > 0 && (
                 <div className={isLoading ? 'opacity-60 pointer-events-none transition-opacity duration-200' : ''}>
-                  {console.log('[GenerationsPane] Rendering ImageGallery with:', {
+                  {console.log('[GenerationsPane] Rendering MediaGallery with:', {
                     selectedShotFilter,
                     currentShotId,
                     itemsCount: paginatedData.items.length,
                     isLoading,
                     timestamp: Date.now()
                   })}
-                  <ImageGallery
+                  <MediaGallery
                     images={paginatedData.items}
                     onDelete={handleDeleteGeneration}
                     isDeleting={isDeleting}
@@ -748,7 +748,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     onShotFilterChange={setSelectedShotFilter}
                     columnsPerRow={paneLayout.columns}
                     onAddToLastShot={(generationId, imageUrl, thumbUrl) => {
-                      console.log('[GenerationsPane] ImageGallery onAddToLastShot called', {
+                      console.log('[GenerationsPane] MediaGallery onAddToLastShot called', {
                         generationId,
                         imageUrl: imageUrl?.substring(0, 50) + '...',
                         thumbUrl: thumbUrl?.substring(0, 50) + '...',
@@ -761,7 +761,7 @@ const GenerationsPaneComponent: React.FC = () => {
                       return handleAddToShot(generationId, imageUrl, thumbUrl);
                     }}
                     onAddToLastShotWithoutPosition={(generationId, imageUrl, thumbUrl) => {
-                      console.log('[GenerationsPane] ImageGallery onAddToLastShotWithoutPosition called', {
+                      console.log('[GenerationsPane] MediaGallery onAddToLastShotWithoutPosition called', {
                         generationId,
                         imageUrl: imageUrl?.substring(0, 50) + '...',
                         thumbUrl: thumbUrl?.substring(0, 50) + '...',

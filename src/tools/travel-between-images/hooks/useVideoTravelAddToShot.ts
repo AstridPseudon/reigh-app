@@ -6,7 +6,7 @@
  * - Handles adding generations to shots with/without timeline position
  * 
  * @see VideoTravelToolPage.tsx - Main page component that uses this hook
- * @see ImageGallery - Component that triggers these handlers
+ * @see MediaGallery - Component that triggers these handlers
  */
 
 import { useCallback, useMemo } from 'react';

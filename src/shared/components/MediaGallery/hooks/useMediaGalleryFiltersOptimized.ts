@@ -3,7 +3,7 @@ import { GeneratedImageWithMetadata } from '../index';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
 
 // Consolidated filters state interface
-export interface ImageGalleryFiltersState {
+export interface MediaGalleryFiltersState {
   // Filter states
   filterByToolType: boolean;
   mediaTypeFilter: 'all' | 'image' | 'video';
@@ -18,7 +18,7 @@ export interface ImageGalleryFiltersState {
 }
 
 // Action types for the filters reducer
-export type ImageGalleryFiltersAction =
+export type MediaGalleryFiltersAction =
   | { type: 'SET_FILTER_BY_TOOL_TYPE'; payload: boolean }
   | { type: 'SET_MEDIA_TYPE_FILTER'; payload: 'all' | 'image' | 'video' }
   | { type: 'SET_SHOT_FILTER'; payload: string }
@@ -30,7 +30,7 @@ export type ImageGalleryFiltersAction =
   | { type: 'TOGGLE_SEARCH' }
   | { type: 'CLEAR_SEARCH' }
   | { type: 'TOGGLE_STARRED_FILTER' }
-  | { type: 'SYNC_EXTERNAL_FILTERS'; payload: Partial<ImageGalleryFiltersState> }
+  | { type: 'SYNC_EXTERNAL_FILTERS'; payload: Partial<MediaGalleryFiltersState> }
   | { type: 'RESET_FILTERS' };
 
 // Initial state factory
@@ -42,7 +42,7 @@ const createInitialFiltersState = (
   initialSearchTerm: string = '',
   initialStarredFilter: boolean = false,
   initialToolTypeFilter: boolean = true
-): ImageGalleryFiltersState => ({
+): MediaGalleryFiltersState => ({
   filterByToolType: initialFilterState,
   mediaTypeFilter: initialMediaTypeFilter,
   shotFilter: initialShotFilter,
@@ -55,9 +55,9 @@ const createInitialFiltersState = (
 
 // Optimized reducer with batched updates
 const imageGalleryFiltersReducer = (
-  state: ImageGalleryFiltersState,
-  action: ImageGalleryFiltersAction
-): ImageGalleryFiltersState => {
+  state: MediaGalleryFiltersState,
+  action: MediaGalleryFiltersAction
+): MediaGalleryFiltersState => {
   switch (action.type) {
     case 'SET_FILTER_BY_TOOL_TYPE':
       return { ...state, filterByToolType: action.payload };
@@ -117,7 +117,7 @@ const imageGalleryFiltersReducer = (
   }
 };
 
-export interface UseImageGalleryFiltersOptimizedProps {
+export interface UseMediaGalleryFiltersOptimizedProps {
   images: GeneratedImageWithMetadata[];
   optimisticDeletedIds: Set<string>;
   currentToolType?: string;
@@ -138,9 +138,9 @@ export interface UseImageGalleryFiltersOptimizedProps {
   onToolTypeFilterChange?: (enabled: boolean) => void;
 }
 
-export interface UseImageGalleryFiltersOptimizedReturn {
+export interface UseMediaGalleryFiltersOptimizedReturn {
   // State
-  filtersState: ImageGalleryFiltersState;
+  filtersState: MediaGalleryFiltersState;
   
   // Individual state getters (for backward compatibility)
   filterByToolType: boolean;
@@ -175,7 +175,7 @@ export interface UseImageGalleryFiltersOptimizedReturn {
   handleStarredFilterToggle: () => void;
 }
 
-export const useImageGalleryFiltersOptimized = ({
+export const useMediaGalleryFiltersOptimized = ({
   images,
   optimisticDeletedIds,
   currentToolType,
@@ -194,7 +194,7 @@ export const useImageGalleryFiltersOptimized = ({
   onMediaTypeFilterChange,
   onStarredFilterChange,
   onToolTypeFilterChange,
-}: UseImageGalleryFiltersOptimizedProps): UseImageGalleryFiltersOptimizedReturn => {
+}: UseMediaGalleryFiltersOptimizedProps): UseMediaGalleryFiltersOptimizedReturn => {
   
   // Initialize state with useReducer instead of multiple useState calls
   const [filtersState, dispatch] = useReducer(
@@ -214,7 +214,7 @@ export const useImageGalleryFiltersOptimized = ({
   
   // Sync external filter changes with internal state (batched)
   useEffect(() => {
-    const externalUpdates: Partial<ImageGalleryFiltersState> = {};
+    const externalUpdates: Partial<MediaGalleryFiltersState> = {};
     let hasUpdates = false;
     
     if (filtersState.shotFilter !== initialShotFilter) {

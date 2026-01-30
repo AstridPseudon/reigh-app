@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { GeneratedImageWithMetadata } from '@/shared/components/ImageGallery';
+import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import { GenerationRow } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from './useSmartPolling';
@@ -310,7 +310,7 @@ async function fetchShotSpecificGenerations({
   return result;
 }
 
-// Project-wide fetch (for ImageGallery) - leverage existing fetchGenerations
+// Project-wide fetch (for MediaGallery) - leverage existing fetchGenerations
 async function fetchProjectWideGenerations({
   projectId,
   offset,
@@ -850,8 +850,8 @@ export function usePrefetchTaskById() {
   return prefetch;
 }
 
-// Utility to migrate ImageGallery to unified system (optional)
-export function useUnifiedGenerationsForImageGallery(options: {
+// Utility to migrate MediaGallery to unified system (optional)
+export function useUnifiedGenerationsForMediaGallery(options: {
   projectId: string | null;
   page?: number;
   limit?: number;

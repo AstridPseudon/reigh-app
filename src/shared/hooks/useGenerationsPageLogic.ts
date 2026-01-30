@@ -8,7 +8,7 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { toast } from 'sonner';
-import { GeneratedImageWithMetadata } from '@/shared/components/ImageGallery';
+import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import { GenerationsPaneSettings } from '@/tools/travel-between-images/components/ShotEditor/state/types';
 
 interface UseGenerationsPageLogicOptions {

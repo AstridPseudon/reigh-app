@@ -3,7 +3,7 @@ import { GenerationRow } from '@/types/shots';
 import { GeneratedImageWithMetadata } from '../index';
 
 // Consolidated state interface
-export interface ImageGalleryState {
+export interface MediaGalleryState {
   // Lightbox state
   activeLightboxMedia: GenerationRow | null;
   autoEnterEditMode: boolean;
@@ -37,7 +37,7 @@ export interface ImageGalleryState {
 }
 
 // Action types for the reducer
-export type ImageGalleryStateAction =
+export type MediaGalleryStateAction =
   | { type: 'SET_LIGHTBOX_MEDIA'; payload: GenerationRow | null }
   | { type: 'SET_AUTO_ENTER_EDIT_MODE'; payload: boolean }
   | { type: 'SET_SELECTED_IMAGE_FOR_DETAILS'; payload: GenerationRow | null }
@@ -67,7 +67,7 @@ const createInitialState = (
   currentShotId?: string,
   lastShotId?: string,
   simplifiedShotOptions: { id: string; name: string }[] = []
-): ImageGalleryState => ({
+): MediaGalleryState => ({
   // Lightbox state
   activeLightboxMedia: null,
   autoEnterEditMode: false,
@@ -102,9 +102,9 @@ const createInitialState = (
 
 // Optimized reducer with batched updates
 const imageGalleryStateReducer = (
-  state: ImageGalleryState,
-  action: ImageGalleryStateAction
-): ImageGalleryState => {
+  state: MediaGalleryState,
+  action: MediaGalleryStateAction
+): MediaGalleryState => {
   switch (action.type) {
     case 'SET_LIGHTBOX_MEDIA':
       return { ...state, activeLightboxMedia: action.payload };
@@ -275,7 +275,7 @@ const imageGalleryStateReducer = (
   }
 };
 
-export interface UseImageGalleryStateOptimizedProps {
+export interface UseMediaGalleryStateOptimizedProps {
   images: GeneratedImageWithMetadata[];
   currentShotId?: string;
   lastShotId?: string;
@@ -284,9 +284,9 @@ export interface UseImageGalleryStateOptimizedProps {
   serverPage?: number;
 }
 
-export interface UseImageGalleryStateOptimizedReturn {
+export interface UseMediaGalleryStateOptimizedReturn {
   // State
-  state: ImageGalleryState;
+  state: MediaGalleryState;
   
   // Actions
   setActiveLightboxMedia: (media: GenerationRow | null) => void;
@@ -322,14 +322,14 @@ export interface UseImageGalleryStateOptimizedReturn {
   safetyTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 }
 
-export const useImageGalleryStateOptimized = ({
+export const useMediaGalleryStateOptimized = ({
   images,
   currentShotId,
   lastShotId,
   simplifiedShotOptions,
   isServerPagination = false,
   serverPage
-}: UseImageGalleryStateOptimizedProps): UseImageGalleryStateOptimizedReturn => {
+}: UseMediaGalleryStateOptimizedProps): UseMediaGalleryStateOptimizedReturn => {
   
   // Initialize state with useReducer instead of multiple useState calls
   const [state, dispatch] = useReducer(

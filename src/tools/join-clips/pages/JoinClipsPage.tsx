@@ -19,11 +19,11 @@ import { JoinClipsSettings } from '../settings';
 import { PageFadeIn } from '@/shared/components/transitions';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { useGenerations, useDeleteGeneration, useCreateGeneration, type GenerationsPaginatedResponse } from '@/shared/hooks/useGenerations';
-import { ImageGallery } from '@/shared/components/ImageGallery';
+import { MediaGallery } from '@/shared/components/MediaGallery';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { SKELETON_COLUMNS } from '@/shared/components/ImageGallery/utils';
+import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { LoraManager } from '@/shared/components/LoraManager';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
@@ -1769,7 +1769,7 @@ const JoinClipsPage: React.FC = () => {
                 <h2 className="text-xl font-medium">
                   Previous Results ({videosData.items.length})
                 </h2>
-                <ImageGallery
+                <MediaGallery
                   images={videosData.items || []}
                   allShots={[]}
                   onAddToLastShot={async () => false}

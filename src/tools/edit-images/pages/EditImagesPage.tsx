@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { InlineEditView } from '../components/InlineEditView';
 import { useGenerations, useDeleteVariant } from '@/shared/hooks/useGenerations';
-import ImageGallery from '@/shared/components/ImageGallery';
+import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
@@ -17,7 +17,7 @@ import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/lib/clientThumbnailGenerator';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { useGetTask } from '@/shared/hooks/useTasks';
-import { deriveInputImages } from '@/shared/components/ImageGallery/utils';
+import { deriveInputImages } from '@/shared/components/MediaGallery/utils';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 
@@ -441,7 +441,7 @@ export default function EditImagesPage() {
         </button>
         
         {showResults && (
-          <ImageGallery
+          <MediaGallery
             images={(resultsData as any)?.items || []}
             allShots={shots || []}
             onImageClick={handleResultClick}
@@ -728,7 +728,7 @@ function ImageSelectionModal({ onSelect }: { onSelect: (media: GenerationRow) =>
          {isGalleryLoading && !generationsData ? (
             <ReighLoading />
          ) : (
-            <ImageGallery 
+            <MediaGallery 
                images={(generationsData as any)?.items || []}
                onImageClick={(media) => onSelect(media as any)}
                allShots={shots || []}

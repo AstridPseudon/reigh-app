@@ -1,4 +1,4 @@
-export { deriveInputImages, formatMetadataForDisplay } from './imageGallery-utils';
+export { deriveInputImages, formatMetadataForDisplay } from './mediaGallery-utils';
 export {
   DEFAULT_ITEMS_PER_PAGE,
   DEFAULT_ROWS_PER_PAGE,
@@ -18,4 +18,4 @@ export {
   getTargetImageWidth,
   calculateDynamicColumns,
   calculateDynamicRows,
-} from './imageGallery-constants';
+} from './mediaGallery-constants';

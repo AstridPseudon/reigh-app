@@ -2,15 +2,15 @@
  * Videos Gallery Component for VideoTravelToolPage
  * 
  * Renders the videos gallery view with skeleton/loading states.
- * Handles the "should show skeleton" decision and ImageGallery wiring.
+ * Handles the "should show skeleton" decision and MediaGallery wiring.
  * 
  * @see VideoTravelToolPage.tsx - Parent page component
  */
 
 import React from 'react';
-import { ImageGallery } from '@/shared/components/ImageGallery';
+import { MediaGallery } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
-import { SKELETON_COLUMNS } from '@/shared/components/ImageGallery/utils';
+import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import { Shot } from '@/types/shots';
 
 // =============================================================================
@@ -173,7 +173,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
   return (
     <div className="px-4 max-w-7xl mx-auto">
       <div className="pb-2">
-        <ImageGallery
+        <MediaGallery
           images={(videosData as any)?.items || []}
           allShots={shots || []}
           // Add to Shot functionality

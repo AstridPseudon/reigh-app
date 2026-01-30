@@ -236,7 +236,7 @@ export interface PromptInputRowProps {
 export type { ActiveLora } from "@/shared/components/ActiveLoRAsDisplay";
 
 // Re-export DisplayableMetadata from shared component
-export type { DisplayableMetadata } from "@/shared/components/ImageGallery";
+export type { DisplayableMetadata } from "@/shared/components/MediaGallery";
 
 // ============================================================================
 // Re-export API types from shared (single source of truth)

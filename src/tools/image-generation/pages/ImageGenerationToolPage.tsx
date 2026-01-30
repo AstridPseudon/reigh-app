@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import ImageGenerationForm, { PromptEntry } from "../components/ImageGenerationForm";
 import { ImageGenerationFormHandles } from "../components/ImageGenerationForm/types";
 import { createBatchImageGenerationTasks, BatchImageGenerationTaskParams } from "@/shared/lib/tasks/imageGeneration";
-import { ImageGallery, GeneratedImageWithMetadata, DisplayableMetadata, MetadataLora } from "@/shared/components/ImageGallery";
-import { useContainerDimensions } from "@/shared/components/ImageGallery/hooks";
-import { getLayoutForAspectRatio } from "@/shared/components/ImageGallery/utils";
+import { MediaGallery, GeneratedImageWithMetadata, DisplayableMetadata, MetadataLora } from "@/shared/components/MediaGallery";
+import { useContainerDimensions } from "@/shared/components/MediaGallery/hooks";
+import { getLayoutForAspectRatio } from "@/shared/components/MediaGallery/utils";
 import SettingsModal from "@/shared/components/SettingsModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -883,7 +883,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
     currentPrefetchId: string;
   }>({ images: [], currentPrefetchId: '' });
 
-  // Prefetch adjacent pages callback for ImageGallery with cancellation
+  // Prefetch adjacent pages callback for MediaGallery with cancellation
   const handlePrefetchAdjacentPages = useCallback((prevPage: number | null, nextPage: number | null) => {
     if (!effectiveProjectId) return;
     // Disable adjacent prefetch on mobile to avoid main thread/contention and slow paints
@@ -1110,7 +1110,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
               />
             ) : (
               <div className={isLoadingGenerations && isFilterChange ? 'opacity-60 pointer-events-none transition-opacity duration-200' : ''}>
-                <ImageGallery
+                <MediaGallery
                 reducedSpacing={true}
                 images={imagesToShow}
                 onDelete={handleDeleteImage}

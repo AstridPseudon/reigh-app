@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback, useMemo, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { LoraSelectorModal, LoraModel } from "@/shared/components/LoraSelectorModal";
-import { DisplayableMetadata } from "@/shared/components/ImageGallery";
+import { DisplayableMetadata } from "@/shared/components/MediaGallery";
 import { ActiveLora } from "@/shared/components/ActiveLoRAsDisplay";
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { toast } from "sonner";

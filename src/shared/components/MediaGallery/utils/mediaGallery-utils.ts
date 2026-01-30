@@ -1,4 +1,4 @@
-import { DisplayableMetadata } from '../ImageGallery';
+import { DisplayableMetadata } from '../index';
 
 /**
  * Derive input images from task params

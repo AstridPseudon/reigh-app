@@ -39,7 +39,7 @@ import { useVideoGalleryPreloader } from '@/shared/hooks/useVideoGalleryPreloade
 import { useGenerations, useDeleteGeneration } from '@/shared/hooks/useGenerations';
 import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { getLayoutForAspectRatio } from '@/shared/components/ImageGallery/utils';
+import { getLayoutForAspectRatio } from '@/shared/components/MediaGallery/utils';
 import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
@@ -145,7 +145,7 @@ const VideoTravelToolPage: React.FC = () => {
   // Mobile detection for mode handling
   const isMobile = useIsMobile();
 
-  // Dynamic itemsPerPage based on aspect ratio layout (same logic as ImageGallery)
+  // Dynamic itemsPerPage based on aspect ratio layout (same logic as MediaGallery)
   // Use window width as estimate since videos view spans full width
   const [windowWidth, setWindowWidth] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1200
@@ -157,7 +157,7 @@ const VideoTravelToolPage: React.FC = () => {
   }, []);
 
   const videoLayoutConfig = useMemo(() => {
-    // Use the same layout calculation as ImageGallery
+    // Use the same layout calculation as MediaGallery
     const layout = getLayoutForAspectRatio(projectAspectRatio, isMobile, windowWidth * 0.95);
 
     // For videos: use fixed 3 columns (videos are larger than images)
@@ -175,7 +175,7 @@ const VideoTravelToolPage: React.FC = () => {
       isMobile,
       windowWidth,
       containerWidthEstimate: windowWidth * 0.95,
-      // Image layout (what ImageGallery would use)
+      // Image layout (what MediaGallery would use)
       imageLayoutColumns: layout.columns,
       imageLayoutRows: layout.rows,
       imageLayoutItemsPerPage: layout.itemsPerPage,
@@ -184,7 +184,7 @@ const VideoTravelToolPage: React.FC = () => {
       videoColumns,
       videoRows,
       videoItemsPerPage: itemsPerPage,
-      // This columnsPerRow will be passed to ImageGallery
+      // This columnsPerRow will be passed to MediaGallery
       passingColumnsPerRow: videoColumns,
     });
 
@@ -853,11 +853,11 @@ const VideoTravelToolPage: React.FC = () => {
     }
   }, [showVideosView, videosViewJustEnabled, videosData]);
   
-  // [VideoThumbnailIssue] Log what data we're passing to ImageGallery
+  // [VideoThumbnailIssue] Log what data we're passing to MediaGallery
   React.useEffect(() => {
     const vd: any = videosData as any;
     if (showVideosView && vd?.items) {
-      console.log('[VideoThumbnailIssue] VideoTravelToolPage passing to ImageGallery:', {
+      console.log('[VideoThumbnailIssue] VideoTravelToolPage passing to MediaGallery:', {
         itemsCount: vd.items.length,
         sampleItems: vd.items.slice(0, 3).map((item: any) => ({
           id: item.id?.substring(0, 8),

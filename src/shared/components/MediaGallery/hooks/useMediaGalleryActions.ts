@@ -5,7 +5,7 @@ import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import { GeneratedImageWithMetadata, DisplayableMetadata } from '../index';
 
-export interface UseImageGalleryActionsProps {
+export interface UseMediaGalleryActionsProps {
   onDelete?: (id: string) => void;
   onApplySettings?: (metadata: DisplayableMetadata) => void;
   onAddToLastShot?: (generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
@@ -32,7 +32,7 @@ export interface UseImageGalleryActionsProps {
   setSelectedShotIdLocal: (shotId: string) => void;
 }
 
-export interface UseImageGalleryActionsReturn {
+export interface UseMediaGalleryActionsReturn {
   handleOptimisticDelete: (imageId: string) => Promise<void>;
   handleOpenLightbox: (image: GeneratedImageWithMetadata) => void;
   handleCloseLightbox: () => void;
@@ -44,7 +44,7 @@ export interface UseImageGalleryActionsReturn {
   handleSkeletonCleared: () => void;
 }
 
-export const useImageGalleryActions = ({
+export const useMediaGalleryActions = ({
   onDelete,
   onApplySettings,
   onAddToLastShot,
@@ -69,7 +69,7 @@ export const useImageGalleryActions = ({
   filteredImages,
   setIsDownloadingStarred,
   setSelectedShotIdLocal,
-}: UseImageGalleryActionsProps): UseImageGalleryActionsReturn => {
+}: UseMediaGalleryActionsProps): UseMediaGalleryActionsReturn => {
   
   const { toast } = useToast();
   const { setLastAffectedShotId } = useLastAffectedShot();

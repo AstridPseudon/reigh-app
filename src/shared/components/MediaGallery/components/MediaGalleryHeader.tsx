@@ -10,11 +10,11 @@ import { Star, Download, Loader2 } from "lucide-react";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { Button } from "@/shared/components/ui/button";
-import { ImageGalleryPagination } from "@/shared/components/ImageGalleryPagination";
+import { MediaGalleryPagination } from "@/shared/components/MediaGalleryPagination";
 import { ShotFilter } from "@/shared/components/ShotFilter";
-import { ImageGalleryFilters } from "./ImageGalleryFilters";
+import { MediaGalleryFilters } from "./MediaGalleryFilters";
 
-export interface ImageGalleryHeaderProps {
+export interface MediaGalleryHeaderProps {
   // Pagination props
   totalPages: number;
   page: number;
@@ -68,7 +68,7 @@ export interface ImageGalleryHeaderProps {
   isMobile?: boolean;
 }
 
-export const ImageGalleryHeader: React.FC<ImageGalleryHeaderProps> = ({
+export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
   // Pagination props
   totalPages,
   page,
@@ -125,7 +125,7 @@ export const ImageGalleryHeader: React.FC<ImageGalleryHeaderProps> = ({
     <div className="mt-0 space-y-3">
       {/* Top Pagination */}
       <div data-pagination-top>
-        <ImageGalleryPagination
+        <MediaGalleryPagination
           totalPages={totalPages}
           currentPage={page}
           isServerPagination={isServerPagination}
@@ -218,7 +218,7 @@ export const ImageGalleryHeader: React.FC<ImageGalleryHeaderProps> = ({
 
       {/* Filters row - hide when star has been moved to pagination row and there's nothing else to show */}
       {(showShotFilter || showSearch || currentToolTypeName || !hideMediaTypeFilter) && (
-        <ImageGalleryFilters
+        <MediaGalleryFilters
           showShotFilter={showShotFilter}
           allShots={allShots}
           shotFilter={shotFilter}

@@ -55,7 +55,7 @@ export const DEFAULT_ITEMS_PER_PAGE = {
 /**
  * Maximum items per page that server pagination should request.
  * This ensures we always have enough items for any column/row combination.
- * ImageGallery will slice to the actual needed amount (columns × rows).
+ * MediaGallery will slice to the actual needed amount (columns × rows).
  *
  * Calculated as MAX_COLUMNS × MAX_ROWS = 24 × 12 = 288
  */

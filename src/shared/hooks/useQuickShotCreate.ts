@@ -55,7 +55,7 @@ export interface UseQuickShotCreateReturn {
  * 
  * Used by:
  * - ShotSelectorWithAdd
- * - ImageGalleryItem
+ * - MediaGalleryItem
  * - MediaLightbox (via useShotCreation wrapper)
  * 
  * This is a thin wrapper that adds:

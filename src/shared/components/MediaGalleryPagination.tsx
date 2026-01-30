@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 
-interface ImageGalleryPaginationProps {
+interface MediaGalleryPaginationProps {
   totalPages: number;
   currentPage: number;
   isServerPagination?: boolean;
@@ -32,7 +32,7 @@ interface ImageGalleryPaginationProps {
   isBottom?: boolean;
 }
 
-export const ImageGalleryPagination: React.FC<ImageGalleryPaginationProps> = ({
+export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
   totalPages,
   currentPage,
   isServerPagination = false,

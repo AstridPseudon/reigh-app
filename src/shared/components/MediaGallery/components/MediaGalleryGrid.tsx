@@ -3,12 +3,12 @@ import { Filter, Sparkles } from "lucide-react";
 import { SkeletonGallery } from "@/shared/components/ui/skeleton-gallery";
 import { ProgressiveLoadingManager } from "@/shared/components/ProgressiveLoadingManager";
 import { ImagePreloadManager } from "@/shared/components/ImagePreloadManager";
-import { ImageGalleryItem } from "@/shared/components/ImageGalleryItem";
+import { MediaGalleryItem } from "@/shared/components/MediaGalleryItem";
 import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { GeneratedImageWithMetadata } from '../index';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 
-export interface ImageGalleryGridProps {
+export interface MediaGalleryGridProps {
   // Data props
   images: GeneratedImageWithMetadata[];
   paginatedImages: GeneratedImageWithMetadata[];
@@ -63,12 +63,12 @@ export interface ImageGalleryGridProps {
   // Pagination display state
   hideBottomPagination?: boolean;
 
-  // ImageGalleryItem props - passing through all the props it needs
+  // MediaGalleryItem props - passing through all the props it needs
   [key: string]: any; // This allows passing through all other props
 }
 
 // Memoized grid component to prevent unnecessary re-renders from parent
-const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
+const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
   // Data props
   images,
   paginatedImages,
@@ -123,7 +123,7 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
   // Pagination display state
   hideBottomPagination = false,
 
-  // Pass through all other props for ImageGalleryItem
+  // Pass through all other props for MediaGalleryItem
   ...itemProps
 }) => {
   
@@ -188,7 +188,7 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
     const signature = `${paginatedImages.length}-${isGalleryLoading}-${isBackfillLoading}`;
     if (debugStateRef.current.lastSignature !== signature) {
       debugStateRef.current.lastSignature = signature;
-      console.log('[VideoSkeletonDebug] ImageGalleryGrid state changed:', {
+      console.log('[VideoSkeletonDebug] MediaGalleryGrid state changed:', {
         paginatedImagesLength: paginatedImages.length,
         isGalleryLoading,
         isBackfillLoading,
@@ -198,7 +198,7 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
     }
   }, [paginatedImages.length, isGalleryLoading, isBackfillLoading, backfillSkeletonCount]);
 
-  // Compute aspect ratio padding to match ImageGalleryItem container
+  // Compute aspect ratio padding to match MediaGalleryItem container
   const aspectRatioPadding = React.useMemo(() => {
     // Default to 16:9 if not provided
     let padding = 56.25; // 9/16 * 100
@@ -338,7 +338,7 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
                     // }
                     
                     return (
-                      <ImageGalleryItem
+                      <MediaGalleryItem
                         key={image.id || `image-${index}`}
                         image={image}
                         index={index}
@@ -352,7 +352,7 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
                     );
                   })}
                   
-                  {/* Backfill skeleton items - matching ImageGalleryItem design */}
+                  {/* Backfill skeleton items - matching MediaGalleryItem design */}
                   {isBackfillLoading && backfillSkeletonCount > 0 && (() => {
                     console.log('[SKELETON_DEBUG] Rendering skeleton items:', {
                       isBackfillLoading,
@@ -364,11 +364,11 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
                       const skeletonIndex = paginatedImages.length + index;
                     return (
                       <div key={`skeleton-${skeletonIndex}`} className="relative group">
-                        {/* Match ImageGalleryItem container: border, rounded, overflow-hidden */}
+                        {/* Match MediaGalleryItem container: border, rounded, overflow-hidden */}
                         <div className="border rounded-lg overflow-hidden hover:shadow-md transition-all duration-300 relative group bg-card">
                           <div className="relative w-full">
                             <div style={{ paddingBottom: aspectRatioPadding }} className="relative bg-muted/50">
-                              {/* Match exact skeleton design from ImageGalleryItem */}
+                              {/* Match exact skeleton design from MediaGalleryItem */}
                               <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
                                 <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
                               </div>
@@ -391,4 +391,4 @@ const ImageGalleryGridInner: React.FC<ImageGalleryGridProps> = ({
 
 // Wrap in React.memo with default shallow comparison
 // This prevents re-renders when parent re-renders but props are referentially equal
-export const ImageGalleryGrid = React.memo(ImageGalleryGridInner);
+export const MediaGalleryGrid = React.memo(MediaGalleryGridInner);

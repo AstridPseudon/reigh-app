@@ -5,7 +5,7 @@
  * - MobileImageItem (batch view mobile)
  * - SortableImageItem (batch view desktop)
  * - TimelineItem (timeline view)
- * - ImageGalleryItem (generations gallery)
+ * - MediaGalleryItem (generations gallery)
  * - VideoItem (video gallery)
  * - ChildGenerationsView (segment cards)
  */

@@ -201,7 +201,7 @@ export const useProgressiveImageLoading = ({
     console.log(`📦 [PAGELOADINGDEBUG] [PROG:${sessionId}] Immediate load: ${images.length} images (${cachedCount}/${images.length} cached)`);
     
     // Notify that images are ready (for skeleton cleanup etc)
-    // NOTE: Navigation clearing is now handled by actual image onLoad events in ImageGalleryGrid
+    // NOTE: Navigation clearing is now handled by actual image onLoad events in MediaGalleryGrid
     if (stableOnImagesReady.current && isSessionActive()) {
       // Use double rAF to wait for React to commit and browser to paint
       const rafId1 = requestAnimationFrame(() => {

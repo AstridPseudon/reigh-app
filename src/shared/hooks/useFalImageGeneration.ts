@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 // Json type definition for params
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
-import { GeneratedImageWithMetadata, DisplayableMetadata, MetadataLora } from '@/shared/components/ImageGallery';
+import { GeneratedImageWithMetadata, DisplayableMetadata, MetadataLora } from '@/shared/components/MediaGallery';
 import { PromptEntry } from '@/tools/image-generation/components/ImageGenerationForm'; // Assuming this path, adjust if needed
 import { nanoid } from 'nanoid';
 

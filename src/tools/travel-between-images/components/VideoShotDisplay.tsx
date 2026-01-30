@@ -76,7 +76,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
   // Handle selecting this shot as the target for adding images in GenerationsPane
   const handleSelectShotForAddition = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Dispatch custom event that ImageGallery listens for to update its shot selector
+    // Dispatch custom event that MediaGallery listens for to update its shot selector
     window.dispatchEvent(new CustomEvent('selectShotForAddition', {
       detail: { shotId: shot.id, shotName: shot.name }
     }));

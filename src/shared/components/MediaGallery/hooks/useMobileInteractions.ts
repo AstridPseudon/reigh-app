@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { GeneratedImageWithMetadata } from '../ImageGallery';
+import { GeneratedImageWithMetadata } from '../MediaGallery';
 
 export interface UseMobileInteractionsProps {
   isMobile: boolean;

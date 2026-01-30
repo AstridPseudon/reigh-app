@@ -16,7 +16,7 @@ import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { TimeStamp } from "@/shared/components/TimeStamp";
 import { useToast } from "@/shared/hooks/use-toast";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { GeneratedImageWithMetadata, DisplayableMetadata } from "./ImageGallery";
+import { GeneratedImageWithMetadata, DisplayableMetadata } from "./MediaGallery";
 import SharedMetadataDetails from "./SharedMetadataDetails";
 import { GenerationDetails } from "@/shared/components/GenerationDetails";
 import { log } from '@/shared/lib/logger';
@@ -35,12 +35,12 @@ import { useTaskFromUnifiedCache, usePrefetchTaskData } from "@/shared/hooks/use
 import { useTaskType } from "@/shared/hooks/useTaskType";
 import { useGetTask } from "@/shared/hooks/useTasks";
 import { useShareGeneration } from "@/shared/hooks/useShareGeneration";
-import { deriveInputImages } from "./ImageGallery/utils";
+import { deriveInputImages } from "./MediaGallery/utils";
 import { isImageEditTaskType } from "@/tools/travel-between-images/components/TaskDetails";
 import { VariantBadge } from "@/shared/components/VariantBadge";
 import { useMarkVariantViewed } from "@/shared/hooks/useMarkVariantViewed";
 
-interface ImageGalleryItemProps {
+interface MediaGalleryItemProps {
   image: GeneratedImageWithMetadata;
   index: number;
   isDeleting: boolean;
@@ -100,7 +100,7 @@ interface ImageGalleryItemProps {
   onImageLoaded?: (imageId: string) => void;
 }
 
-export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
+export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   image,
   index,
   isDeleting,
@@ -210,7 +210,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
   // [VideoThumbnailRender] Debug if this component is rendering for videos
   React.useEffect(() => {
     if (image.isVideo && index < 3) {
-      console.log('[VideoThumbnailRender] ImageGalleryItem mounting for video:', {
+      console.log('[VideoThumbnailRender] MediaGalleryItem mounting for video:', {
         imageId: image.id?.substring(0, 8),
         index,
         isVideo: image.isVideo,
@@ -223,7 +223,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
   // Debug mobile state for first few items (reduced frequency)
   React.useEffect(() => {
     if (index < 3) {
-      console.log(`[MobileDebug] ImageGalleryItem ${index} mounted:`, {
+      console.log(`[MobileDebug] MediaGalleryItem ${index} mounted:`, {
         isMobile,
         imageId: image.id?.substring(0, 8),
         hasOnMobileTap: typeof onMobileTap === 'function',
@@ -307,7 +307,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
       const videoDisplayUrl = getDisplayUrl(image.thumbUrl || image.url);
       
       if (index === 0) { // Only log the first video item in detail
-        console.log('[VideoThumbnailFIXED] ImageGalleryItem video URL selection:', {
+        console.log('[VideoThumbnailFIXED] MediaGalleryItem video URL selection:', {
           imageId: image.id?.substring(0, 8),
           index,
           progressiveEnabled,
@@ -421,20 +421,20 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
   // Handle image load error with retry mechanism
   const handleImageError = useCallback((errorEvent?: React.SyntheticEvent<HTMLImageElement | HTMLVideoElement>) => {
     const failedSrc = (errorEvent?.target as HTMLImageElement | HTMLVideoElement)?.src || displayUrl;
-    console.warn(`[ImageGalleryItem] Image load failed for ${image.id}: ${failedSrc}, retry ${imageRetryCount + 1}/${MAX_RETRIES}`);
+    console.warn(`[MediaGalleryItem] Image load failed for ${image.id}: ${failedSrc}, retry ${imageRetryCount + 1}/${MAX_RETRIES}`);
     
     // Always reset loading state on error
     setImageLoading(false);
     
     // Don't retry placeholder URLs or obviously invalid URLs
     if (failedSrc?.includes('/placeholder.svg') || failedSrc?.includes('undefined') || !failedSrc) {
-      console.warn(`[ImageGalleryItem] Not retrying invalid URL: ${failedSrc}`);
+      console.warn(`[MediaGalleryItem] Not retrying invalid URL: ${failedSrc}`);
       setImageLoadError(true);
       return;
     }
     
     if (imageRetryCount < MAX_RETRIES) {
-      console.log(`[ImageGalleryItem] Auto-retrying image load for ${image.id} in ${1000 * (imageRetryCount + 1)}ms...`);
+      console.log(`[MediaGalleryItem] Auto-retrying image load for ${image.id} in ${1000 * (imageRetryCount + 1)}ms...`);
       // Auto-retry with cache busting after a delay
       setTimeout(() => {
         setImageRetryCount(prev => prev + 1);
@@ -446,7 +446,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
         }, 100);
       }, 1000 * (imageRetryCount + 1)); // Exponential backoff
     } else {
-      console.warn(`[ImageGalleryItem] Max retries exceeded for ${image.id}, showing error state`);
+      console.warn(`[MediaGalleryItem] Max retries exceeded for ${image.id}, showing error state`);
       setImageLoadError(true);
     }
   }, [displayUrl, image.id, imageRetryCount, image.thumbUrl, image.url]);
@@ -455,7 +455,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
   useEffect(() => {
     // Log if image.id is undefined
     if (index < 3 && !image.id) {
-      console.warn(`[ImageGalleryItem-${index}] Image has no ID!`, image);
+      console.warn(`[MediaGalleryItem-${index}] Image has no ID!`, image);
     }
     
     // Check if this is actually a new image
@@ -464,7 +464,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
     }
     
     if (index < 3) {
-      console.log(`[ImageGalleryItem-${index}] Image changed, resetting state`, {
+      console.log(`[MediaGalleryItem-${index}] Image changed, resetting state`, {
         prevId: prevImageIdentifierRef.current,
         newId: imageIdentifier
       });
@@ -1037,7 +1037,7 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
               {/* Show skeleton only while the media is still loading */}
               {/* Only show skeleton if image hasn't loaded yet - never show it for already-loaded images */}
               {!imageLoaded && (
-                index < 3 && console.log(`[ImageGalleryItem-${index}] Showing skeleton`, {
+                index < 3 && console.log(`[MediaGalleryItem-${index}] Showing skeleton`, {
                   imageId: image.id,
                   imageLoaded,
                   imageLoading,
@@ -1738,4 +1738,4 @@ export const ImageGalleryItem: React.FC<ImageGalleryItemProps> = ({
   );
 };
 
-export default React.memo(ImageGalleryItem); 
+export default React.memo(MediaGalleryItem); 

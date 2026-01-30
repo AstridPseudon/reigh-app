@@ -10,24 +10,24 @@ import { useBackgroundThumbnailGenerator } from '@/shared/hooks/useBackgroundThu
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { cn } from "@/shared/lib/utils";
-import { ImageGalleryPagination } from "@/shared/components/ImageGalleryPagination";
+import { MediaGalleryPagination } from "@/shared/components/MediaGalleryPagination";
 
 // Import hooks
 import {
-  useImageGalleryState,
-  useImageGalleryFilters,
-  useImageGalleryPagination,
-  useImageGalleryActions,
+  useMediaGalleryState,
+  useMediaGalleryFilters,
+  useMediaGalleryPagination,
+  useMediaGalleryActions,
   useMobileInteractions,
   useContainerWidth,
 } from './hooks';
 
 // Import components
 import {
-  ImageGalleryHeader,
+  MediaGalleryHeader,
   ShotNotifier,
-  ImageGalleryGrid,
-  ImageGalleryLightbox,
+  MediaGalleryGrid,
+  MediaGalleryLightbox,
 } from './components';
 
 // Import utils
@@ -43,7 +43,7 @@ import type {
   MetadataLora,
   DisplayableMetadata,
   GeneratedImageWithMetadata,
-  ImageGalleryProps
+  MediaGalleryProps
 } from './types';
 
 // Re-export types for convenience
@@ -51,11 +51,11 @@ export type {
   MetadataLora,
   DisplayableMetadata,
   GeneratedImageWithMetadata,
-  ImageGalleryProps
+  MediaGalleryProps
 };
 
 /**
- * ImageGallery Component with consolidated state management
+ * MediaGallery Component with consolidated state management
  * 
  * Key optimizations:
  * - Consolidated state management using useReducer instead of multiple useState calls
@@ -63,7 +63,7 @@ export type {
  * - Memoized expensive computations and callbacks
  * - Reduced hook complexity and state updates
  */
-const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
+const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   const {
     images, 
     onDelete, 
@@ -134,7 +134,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
     const imagesLength = images?.length ?? 0;
     if (videoGalleryDebugRef.current.lastImagesLength !== imagesLength) {
       videoGalleryDebugRef.current.lastImagesLength = imagesLength;
-      console.log('[VideoSkeletonDebug] ImageGallery props:', {
+      console.log('[VideoSkeletonDebug] MediaGallery props:', {
         imagesLength,
         totalCount,
         timestamp: Date.now()
@@ -206,7 +206,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
   const defaultItemsPerPage = aspectRatioLayout.itemsPerPage;
 
   // Debug log for video layout issues
-  console.log('[VideoLayoutFix] ImageGallery computing layout:', {
+  console.log('[VideoLayoutFix] MediaGallery computing layout:', {
     columnsPerRow_prop: columnsPerRow,
     columnsPerRow_is5: columnsPerRow === 5,
     aspectRatioLayout_columns: aspectRatioLayout.columns,
@@ -237,7 +237,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
   }, [effectiveColumnsPerRow, aspectRatioLayout.gridColumnClasses]);
 
   // Core state management hook
-  const stateHook = useImageGalleryState({
+  const stateHook = useMediaGalleryState({
     images,
     currentShotId,
     lastShotId,
@@ -247,7 +247,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
   });
 
   // Filters hook
-  const filtersHook = useImageGalleryFilters({
+  const filtersHook = useMediaGalleryFilters({
     images,
     optimisticDeletedIds: stateHook.state.optimisticDeletedIds,
     currentToolType,
@@ -272,7 +272,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
   const hasFilters = filtersHook.filterByToolType || filtersHook.mediaTypeFilter !== 'all' || !!filtersHook.searchTerm.trim() || filtersHook.showStarredOnly || !filtersHook.toolTypeFilterEnabled;
 
   // Pagination hook
-  const paginationHook = useImageGalleryPagination({
+  const paginationHook = useMediaGalleryPagination({
     filteredImages: filtersHook.filteredImages,
     itemsPerPage: actualItemsPerPage,
     onServerPageChange,
@@ -285,7 +285,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
   });
 
   // Actions hook
-  const actionsHook = useImageGalleryActions({
+  const actionsHook = useMediaGalleryActions({
     onDelete,
     onApplySettings,
     onAddToLastShot,
@@ -388,7 +388,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
 
   // Memoized navigation handler to prevent re-creation
   const handleNavigateToShot = useCallback((shot: Shot) => {
-    console.log('[VisitShotDebug] 6. ImageGallery handleNavigateToShot called', {
+    console.log('[VisitShotDebug] 6. MediaGallery handleNavigateToShot called', {
       shot,
       hasNavigateToShot: !!navigateToShot,
       hasHandleCloseLightbox: !!actionsHook.handleCloseLightbox,
@@ -396,21 +396,21 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
     });
     
     try {
-      console.log('[VisitShotDebug] 7. ImageGallery calling navigateToShot');
+      console.log('[VisitShotDebug] 7. MediaGallery calling navigateToShot');
       navigateToShot(shot);
-      console.log('[VisitShotDebug] 8. ImageGallery navigateToShot completed, now closing lightbox');
+      console.log('[VisitShotDebug] 8. MediaGallery navigateToShot completed, now closing lightbox');
       
       // Now we close the lightbox from the component that owns its state
       actionsHook.handleCloseLightbox();
-      console.log('[VisitShotDebug] 9. ImageGallery handleCloseLightbox completed');
+      console.log('[VisitShotDebug] 9. MediaGallery handleCloseLightbox completed');
     } catch (error) {
-      console.error('[VisitShotDebug] ERROR in ImageGallery handleNavigateToShot:', error);
+      console.error('[VisitShotDebug] ERROR in MediaGallery handleNavigateToShot:', error);
     }
   }, [navigateToShot, actionsHook.handleCloseLightbox]);
 
   // Memoized visit shot handler
   const handleVisitShotFromNotifier = useCallback((shotId: string) => {
-    console.log('[VisitShotDebug] 1. ImageGallery handleVisitShotFromNotifier called', {
+    console.log('[VisitShotDebug] 1. MediaGallery handleVisitShotFromNotifier called', {
       shotId,
       timestamp: Date.now()
     });
@@ -429,16 +429,16 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
       return;
     }
     
-    console.log('[VisitShotDebug] 2. ImageGallery found shot, calling navigateToShot', {
+    console.log('[VisitShotDebug] 2. MediaGallery found shot, calling navigateToShot', {
       shot: fullShot,
       timestamp: Date.now()
     });
     
     try {
       navigateToShot(fullShot);
-      console.log('[VisitShotDebug] 3. ImageGallery navigateToShot completed');
+      console.log('[VisitShotDebug] 3. MediaGallery navigateToShot completed');
     } catch (error) {
-      console.error('[VisitShotDebug] ERROR in ImageGallery handleVisitShotFromNotifier:', error);
+      console.error('[VisitShotDebug] ERROR in MediaGallery handleVisitShotFromNotifier:', error);
     }
   }, [simplifiedShotOptions, allShots, navigateToShot]);
 
@@ -492,7 +492,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
   useEffect(() => {
     const handleSelectShotForAddition = (event: CustomEvent<{ shotId: string; shotName: string }>) => {
       const { shotId, shotName } = event.detail;
-      console.log('[ImageGallery] Selecting shot for addition:', { shotId, shotName });
+      console.log('[MediaGallery] Selecting shot for addition:', { shotId, shotName });
       // Use handleShotChange to update both selectedShotIdLocal AND lastAffectedShotId
       // This ensures handleAddToShot will use the correct target shot
       actionsHook.handleShotChange(shotId);
@@ -658,7 +658,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
     }
   }, [actionsHook.handleOpenLightbox]);
 
-  // Wrapper functions to adapt 3-parameter onAddToLastShot to 4-parameter signature expected by ImageGalleryLightbox
+  // Wrapper functions to adapt 3-parameter onAddToLastShot to 4-parameter signature expected by MediaGalleryLightbox
   // The lightbox passes (targetShotId, generationId, imageUrl, thumbUrl) but parent provides (generationId, imageUrl, thumbUrl)
   // We ignore targetShotId because the parent's handler uses lastAffectedShotId (updated via onShotChange)
   const adaptedOnAddToShot = useMemo(() => {
@@ -689,7 +689,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
 
   // Task details handlers
   const handleShowTaskDetails = useCallback(() => {
-    console.log('[TaskToggle] ImageGallery: handleShowTaskDetails called', { 
+    console.log('[TaskToggle] MediaGallery: handleShowTaskDetails called', { 
       activeLightboxMedia: stateHook.state.activeLightboxMedia?.id,
     });
     if (stateHook.state.activeLightboxMedia) {
@@ -700,14 +700,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
         stateHook.setShowTaskDetailsModal(true);
         // Close lightbox after modal is set to open
         stateHook.setActiveLightboxMedia(null);
-        console.log('[TaskToggle] ImageGallery: State updated for task details modal', {
+        console.log('[TaskToggle] MediaGallery: State updated for task details modal', {
           newSelectedImage: stateHook.state.activeLightboxMedia?.id,
           newShowModal: true,
           closedLightbox: true
         });
       }, 100);
     } else {
-      console.error('[TaskToggle] ImageGallery: No active lightbox media found');
+      console.error('[TaskToggle] MediaGallery: No active lightbox media found');
     }
   }, [stateHook.state.activeLightboxMedia, stateHook.setSelectedImageForDetails, stateHook.setShowTaskDetailsModal, stateHook.setActiveLightboxMedia]);
 
@@ -723,7 +723,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
       >
         {/* Header section with pagination and filters */}
         <div ref={stateHook.galleryTopRef}>
-          <ImageGalleryHeader
+          <MediaGalleryHeader
             // Pagination props
             totalPages={paginationHook.totalPages}
             page={paginationHook.page}
@@ -845,7 +845,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
         )}
 
         {/* Main Gallery Grid */}
-        <ImageGalleryGrid
+        <MediaGalleryGrid
           // Data props
           images={images}
           paginatedImages={paginatedImagesWithBadges}
@@ -891,7 +891,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
           setBackfillSkeletonCount={stateHook.setBackfillSkeletonCount}
           onSkeletonCleared={actionsHook.handleSkeletonCleared}
           
-          // ImageGalleryItem props
+          // MediaGalleryItem props
           isDeleting={isDeleting}
           onDelete={actionsHook.handleOptimisticDelete}
           onApplySettings={onApplySettings}
@@ -938,7 +938,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
         />
         
         {/* Bottom Pagination Controls */}
-        <ImageGalleryPagination
+        <MediaGalleryPagination
           totalPages={paginationHook.totalPages}
           currentPage={paginationHook.page}
           isServerPagination={paginationHook.isServerPagination}
@@ -956,7 +956,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
       </div>
       
       {/* Lightbox and Task Details */}
-      <ImageGalleryLightbox
+      <MediaGalleryLightbox
         activeLightboxMedia={stateHook.state.activeLightboxMedia}
         autoEnterEditMode={stateHook.state.autoEnterEditMode}
         onClose={actionsHook.handleCloseLightbox}
@@ -1004,8 +1004,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = React.memo((props) => {
 });
 
 // Add display name for debugging
-ImageGallery.displayName = 'ImageGallery';
+MediaGallery.displayName = 'MediaGallery';
 
-export { ImageGallery };
-export default ImageGallery;
+export { MediaGallery };
+export default MediaGallery;
 

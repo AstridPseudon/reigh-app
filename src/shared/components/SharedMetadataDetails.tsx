@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { DisplayableMetadata, MetadataLora } from './ImageGallery';
+import { DisplayableMetadata, MetadataLora } from './MediaGallery';
 import { getDisplayNameFromUrl } from '@/tools/travel-between-images/utils/loraDisplayUtils';
 
 // Helper function to map model names to display names
@@ -119,7 +119,7 @@ export const SharedMetadataDetails: React.FC<SharedMetadataDetailsProps> = ({
                                metadata.userProvidedImageUrl;
 
   // Check if this is a qwen_image_edit task with source image
-  // Check both top-level (for ImageGalleryItem) and originalParams (for TasksPane)
+  // Check both top-level (for MediaGalleryItem) and originalParams (for TasksPane)
   const isQwenImageEdit = (metadata as any).tool_type === 'qwen_image_edit' || 
                           (metadata as any).qwen_endpoint === 'qwen-image-edit' ||
                           (metadata as any).originalParams?.qwen_endpoint === 'qwen-image-edit';
@@ -166,7 +166,7 @@ export const SharedMetadataDetails: React.FC<SharedMetadataDetailsProps> = ({
       {(() => {
         // Check multiple possible locations for style reference data
         // metadata.originalParams is the task params (when passed from TaskItem)
-        // metadata itself might have the params directly (from ImageGallery generations.params)
+        // metadata itself might have the params directly (from MediaGallery generations.params)
         const styleImage = (metadata as any).style_reference_image || 
                           (metadata as any).originalParams?.style_reference_image;
         const styleStrength = (metadata as any).style_reference_strength ?? 

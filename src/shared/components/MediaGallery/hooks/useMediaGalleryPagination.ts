@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { GeneratedImageWithMetadata } from '../ImageGallery';
+import { GeneratedImageWithMetadata } from '../MediaGallery';
 
 /**
  * UNIFIED NAVIGATION STATE
@@ -30,7 +30,7 @@ const INITIAL_NAVIGATION_STATE: NavigationState = {
   startedAt: null,
 };
 
-export interface UseImageGalleryPaginationProps {
+export interface UseMediaGalleryPaginationProps {
   filteredImages: GeneratedImageWithMetadata[];
   itemsPerPage: number;
   onServerPageChange?: (page: number, fromBottom?: boolean) => void;
@@ -42,7 +42,7 @@ export interface UseImageGalleryPaginationProps {
   galleryTopRef: React.RefObject<HTMLDivElement>;
 }
 
-export interface UseImageGalleryPaginationReturn {
+export interface UseMediaGalleryPaginationReturn {
   // Pagination state
   page: number;
   setPage: (page: number) => void;
@@ -71,7 +71,7 @@ export interface UseImageGalleryPaginationReturn {
   handlePageChange: (newPage: number, direction: 'prev' | 'next', fromBottom?: boolean) => void;
 }
 
-export const useImageGalleryPagination = ({
+export const useMediaGalleryPagination = ({
   filteredImages,
   itemsPerPage,
   onServerPageChange,
@@ -81,7 +81,7 @@ export const useImageGalleryPagination = ({
   enableAdjacentPagePreloading = true,
   isMobile,
   galleryTopRef,
-}: UseImageGalleryPaginationProps): UseImageGalleryPaginationReturn => {
+}: UseMediaGalleryPaginationProps): UseMediaGalleryPaginationReturn => {
 
   // Pagination state
   const [page, setPage] = useState(0);

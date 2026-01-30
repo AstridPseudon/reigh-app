@@ -16,9 +16,9 @@ import { CharacterAnimateSettings, characterAnimateSettings } from '../settings'
 import { PageFadeIn } from '@/shared/components/transitions';
 import { createCharacterAnimateTask } from '@/shared/lib/tasks/characterAnimate';
 import { useGenerations, useDeleteGeneration, type GenerationsPaginatedResponse } from '@/shared/hooks/useGenerations';
-import { ImageGallery } from '@/shared/components/ImageGallery';
+import { MediaGallery } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
-import { SKELETON_COLUMNS } from '@/shared/components/ImageGallery/utils';
+import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
 import { extractVideoPosterFrame } from '@/shared/utils/videoPosterExtractor';
@@ -937,7 +937,7 @@ const CharacterAnimatePage: React.FC = () => {
                 <h2 className="text-xl font-medium">
                   Previous Results ({videosData.items.length})
                 </h2>
-                <ImageGallery
+                <MediaGallery
                   images={videosData.items || []}
                   allShots={[]}
                   onAddToLastShot={async () => false} // No-op for video gallery

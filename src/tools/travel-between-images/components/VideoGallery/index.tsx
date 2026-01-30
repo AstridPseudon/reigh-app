@@ -33,8 +33,8 @@ import {
   EmptyState
 } from './components';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
-import { useContainerWidth } from '@/shared/components/ImageGallery/hooks';
-import { getLayoutForAspectRatio, GRID_COLUMN_CLASSES, SKELETON_COLUMNS } from '@/shared/components/ImageGallery/utils';
+import { useContainerWidth } from '@/shared/components/MediaGallery/hooks';
+import { getLayoutForAspectRatio, GRID_COLUMN_CLASSES, SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import {
   sortVideoOutputsByDate,
   transformUnifiedGenerationsData,
@@ -183,7 +183,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
   // Mobile detection - must be declared before useMemo that depends on it
   const isMobile = useIsMobile();
 
-  // Use the same layout logic as ImageGallery, then scale down for videos (~50% columns)
+  // Use the same layout logic as MediaGallery, then scale down for videos (~50% columns)
   const imageLayout = React.useMemo(() => {
     return getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth);
   }, [projectAspectRatio, isMobile, containerWidth]);
@@ -194,7 +194,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     const clampedColumns = Math.max(3, Math.min(12, videoColumns)) as keyof typeof GRID_COLUMN_CLASSES;
     const rows = 2; // Show 2 rows of videos per page
 
-    console.log('[VideoGalleryLayout] Using ImageGallery logic scaled to 25%:', {
+    console.log('[VideoGalleryLayout] Using MediaGallery logic scaled to 25%:', {
       containerWidth,
       imageColumns: imageLayout.columns,
       videoColumns,

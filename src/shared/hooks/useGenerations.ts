@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { GeneratedImageWithMetadata } from '@/shared/components/ImageGallery';
+import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 // Removed useResurrectionPolling - replaced by useSmartPolling

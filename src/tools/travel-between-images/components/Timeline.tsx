@@ -52,7 +52,7 @@ import { transformForTimeline, type RawShotGeneration } from "@/shared/lib/gener
 import { isVideoGeneration } from "@/shared/lib/typeGuards";
 import { useTaskFromUnifiedCache } from "@/shared/hooks/useUnifiedGenerations";
 import { useGetTask } from "@/shared/hooks/useTasks";
-import { deriveInputImages } from "@/shared/components/ImageGallery/utils";
+import { deriveInputImages } from "@/shared/components/MediaGallery/utils";
 import type { SegmentSlot } from "../hooks/useSegmentOutputsForShot";
 import type { AdjacentSegmentsData } from "@/shared/components/MediaLightbox/types";
 
