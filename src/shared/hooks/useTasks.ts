@@ -24,17 +24,6 @@ const PAGINATION_CONFIG = {
 // Types for API responses and request bodies
 // Ensure these align with your server-side definitions and Task type in @/types/tasks.ts
 
-interface ListTasksParams {
-  projectId?: string | null;
-  status?: TaskStatus[];
-}
-
-interface CreateTaskParams {
-  projectId: string;
-  taskType: string;
-  params: any;
-}
-
 interface PaginatedTasksParams {
   projectId?: string | null;
   status?: TaskStatus[];
@@ -120,70 +109,6 @@ export const useGetTask = (taskId: string) => {
     enabled: !!taskId,
     // Task data is essentially immutable once created - cache aggressively
     ...QUERY_PRESETS.immutable,
-  });
-};
-
-// DEPRECATED: Hook to list ALL tasks - DO NOT USE with large datasets
-// Use usePaginatedTasks instead for better performance
-export const useListTasks = (params: ListTasksParams) => {
-  const { projectId, status } = params;
-  
-  // Add warning for large datasets
-  console.warn('[PollingBreakageIssue] useListTasks is DEPRECATED for performance reasons. Use usePaginatedTasks instead.');
-  
-  return useQuery<Task[], Error>({
-    queryKey: [TASKS_QUERY_KEY, projectId, status],
-    queryFn: async () => {
-      console.log('[PollingBreakageIssue] useListTasks query executing - DEPRECATED:', {
-        projectId,
-        status,
-        timestamp: Date.now()
-      });
-      
-      if (!projectId) {
-        return []; 
-      }
-      
-      // Build query with LIMIT to prevent massive queries
-      let query = supabase
-        .from('tasks')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-        .limit(100); // CRITICAL: Limit to prevent query storms
-
-      // Apply status filter if provided
-      if (status && status.length > 0) {
-        query = query.in('status', status);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('[PollingBreakageIssue] useListTasks query error:', {
-          projectId,
-          status,
-          error,
-          timestamp: Date.now()
-        });
-        throw error;
-      }
-      
-      const tasks = (data || []).map(mapDbTaskToTask);
-      
-      console.log('[PollingBreakageIssue] useListTasks query completed - LIMITED to 100:', {
-        projectId,
-        status,
-        taskCount: tasks.length,
-        timestamp: Date.now()
-      });
-      
-      return tasks;
-    },
-    enabled: !!projectId,
-    // Use static preset - task list is invalidated by realtime/mutations
-    ...QUERY_PRESETS.static,
-    refetchOnReconnect: false, // Override: realtime handles this
   });
 };
 

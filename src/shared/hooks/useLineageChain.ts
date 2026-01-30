@@ -134,13 +134,4 @@ export async function getLineageDepth(variantId: string): Promise<number> {
   return depth;
 }
 
-/**
- * Check if a variant has lineage (has a source_variant_id in params).
- * @deprecated Use getLineageDepth instead for more control
- */
-export async function checkHasLineage(variantId: string): Promise<boolean> {
-  const depth = await getLineageDepth(variantId);
-  return depth > 0;
-}
-
 export default useLineageChain;
