@@ -14,8 +14,8 @@ import SettingsModal from '@/shared/components/SettingsModal';
 import { useHeaderState } from '@/shared/contexts/ToolPageHeaderContext';
 import { GlobalProcessingWarning } from '@/shared/components/ProcessingWarnings';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
-import { useWelcomeBonus } from '@/shared/hooks/useWelcomeBonus';
-import { WelcomeBonusModal } from '@/shared/components/WelcomeBonusModal';
+import { useOnboarding } from '@/shared/hooks/useOnboarding';
+import { OnboardingModal } from '@/shared/components/OnboardingModal';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePageVisibility } from '@/shared/hooks/usePageVisibility';
 import { useProject } from '@/shared/contexts/ProjectContext';
@@ -214,15 +214,15 @@ const Layout: React.FC = () => {
     prevPathnameRef.current = location.pathname;
   }, [location.pathname, setCurrentShotId]);
 
-  // Check for welcome bonus when user is authenticated
-  const { showWelcomeModal, closeWelcomeModal } = useWelcomeBonus();
+  // Check if user has completed onboarding
+  const { showOnboardingModal, closeOnboardingModal } = useOnboarding();
   const navigate = useNavigate();
   const { selectedProjectId } = useProject();
   const { startTour } = useProductTour();
 
-  // Handle welcome modal close - navigate to Getting Started shot, then start tour
-  const handleWelcomeClose = useCallback(async () => {
-    closeWelcomeModal();
+  // Handle onboarding modal close - navigate to Getting Started shot, then start tour
+  const handleOnboardingClose = useCallback(async () => {
+    closeOnboardingModal();
 
     // Find the Getting Started shot and navigate to it
     if (selectedProjectId) {
@@ -248,7 +248,7 @@ const Layout: React.FC = () => {
         console.error('[Onboarding] Failed to find Getting Started shot:', err);
       }
     }
-  }, [closeWelcomeModal, selectedProjectId, navigate, startTour]);
+  }, [closeOnboardingModal, selectedProjectId, navigate, startTour]);
 
   // Preload user settings to warm the cache for the welcome modal
   // This prevents loading delays when users reach the generation method step
@@ -380,10 +380,10 @@ const Layout: React.FC = () => {
         />
 
 
-        {/* Welcome Bonus Modal */}
-        <WelcomeBonusModal
-          isOpen={showWelcomeModal}
-          onClose={handleWelcomeClose}
+        {/* Onboarding Modal */}
+        <OnboardingModal
+          isOpen={showOnboardingModal}
+          onClose={handleOnboardingClose}
         />
 
         {/* Product Tour */}

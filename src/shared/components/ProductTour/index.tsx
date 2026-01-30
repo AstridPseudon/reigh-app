@@ -34,7 +34,7 @@ const stepIcons = [
   PartyPopper, // Step 10: Final step
 ];
 
-// Custom tooltip component matching WelcomeBonusModal aesthetic
+// Custom tooltip component matching OnboardingModal aesthetic
 function CustomTooltip({
   continuous,
   index,
@@ -216,7 +216,7 @@ export function ProductTour() {
     return () => target.removeEventListener('click', handleClick);
   }, [isRunning, isPaused, stepIndex, setIsTasksPaneLocked]);
 
-  // NOTE: Auto-start is handled by Layout.tsx after WelcomeBonusModal closes
+  // NOTE: Auto-start is handled by Layout.tsx after OnboardingModal closes
   // This prevents the tour from starting on every visit to the shot editor
   // The tour is explicitly started via startTour() after welcome modal closes
 

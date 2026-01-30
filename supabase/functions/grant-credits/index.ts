@@ -1,20 +1,21 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 /**
  * Edge function: grant-credits
- * 
+ *
  * Grants credits to a user (admin only, or welcome bonus)
- * 
+ *
  * POST /functions/v1/grant-credits
  * Headers: Authorization: Bearer <JWT>
- * Body: { 
- *   userId: string, 
- *   amount: number, 
+ * Body: {
+ *   userId: string,
+ *   amount: number,
  *   description?: string,
- *   isWelcomeBonus?: boolean 
+ *   isWelcomeBonus?: boolean
  * }
- * 
+ *
  * Returns:
  * - 200 OK with transaction details
  * - 400 Bad Request if invalid input or welcome bonus already given
@@ -34,7 +35,7 @@ serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { 
+    return new Response("Method not allowed", {
       status: 405,
       headers: corsHeaders,
     });
@@ -45,25 +46,16 @@ serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return new Response("Invalid JSON body", { 
-      status: 400,
-      headers: corsHeaders,
-    });
-  }
-  
-  const { userId, amount, description, isWelcomeBonus = false } = body;
-  if (!userId || !amount || typeof amount !== 'number' || amount <= 0) {
-    return new Response("userId and positive amount are required", { 
+    return new Response("Invalid JSON body", {
       status: 400,
       headers: corsHeaders,
     });
   }
 
-  // ─── 2. Extract authorization header ────────────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response("Missing or invalid Authorization header", { 
-      status: 401,
+  const { userId, amount, description, isWelcomeBonus = false } = body;
+  if (!userId || !amount || typeof amount !== 'number' || amount <= 0) {
+    return new Response("userId and positive amount are required", {
+      status: 400,
       headers: corsHeaders,
     });
   }
@@ -73,54 +65,42 @@ serve(async (req) => {
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error("Missing required environment variables");
-    return new Response("Server configuration error", { 
+    return new Response("Server configuration error", {
       status: 500,
       headers: corsHeaders,
     });
   }
 
-  // ─── 3. Check authorization based on request type ──────────────
-  const isServiceRole = authHeader === `Bearer ${supabaseServiceKey}`;
-  
+  // Admin client (service role) for unrestricted queries
+  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+  // ─── 2. Authenticate request using shared auth module ───────────
+  const auth = await authenticateRequest(req, adminClient, "[GRANT-CREDITS]", { allowJwtUserAuth: true });
+
+  if (!auth.success) {
+    return new Response(auth.error || "Authentication failed", {
+      status: auth.statusCode || 401,
+      headers: corsHeaders,
+    });
+  }
+
+  const isServiceRole = auth.isServiceRole;
+  const currentUserId = auth.userId;
+
   // For welcome bonus, allow authenticated users; for admin grants, require service role
   if (!isWelcomeBonus && !isServiceRole) {
-    return new Response("Service role access required for admin grants", { 
+    return new Response("Service role access required for admin grants", {
       status: 403,
       headers: corsHeaders,
     });
   }
 
-  // ─── 4. Create Supabase client ──────────────────────────────────
-  const supabase = createClient(supabaseUrl, isServiceRole ? supabaseServiceKey : (Deno.env.get("SUPABASE_ANON_KEY") || ""));
-
-  // Admin client (service role) for unrestricted queries
-  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-
   try {
-    // ─── 5. Check and handle welcome bonus ──────────────────────────
+    // ─── 3. Check and handle welcome bonus ──────────────────────────
     if (isWelcomeBonus) {
-      // Get current user from JWT for welcome bonus
-      let currentUserId: string;
-      
-      if (isServiceRole) {
-        currentUserId = userId;
-      } else {
-        // Extract user ID from JWT for authenticated users
-        const jwt = authHeader.replace("Bearer ", "");
-        try {
-          const payload = JSON.parse(atob(jwt.split('.')[1]));
-          currentUserId = payload.sub;
-        } catch (e) {
-          return new Response("Invalid JWT token", { 
-            status: 401,
-            headers: corsHeaders,
-          });
-        }
-      }
-
       // Ensure the user is requesting welcome bonus for themselves (unless service role)
       if (!isServiceRole && currentUserId !== userId) {
-        return new Response("Users can only request welcome bonus for themselves", { 
+        return new Response("Users can only request welcome bonus for themselves", {
           status: 403,
           headers: corsHeaders,
         });

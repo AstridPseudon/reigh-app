@@ -3,17 +3,7 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-// Initialize Supabase client
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  {
-    auth: {
-      persistSession: false,
-    },
-  },
-);
+import { authenticateRequest } from "../_shared/auth.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: any, status = 200) {
@@ -38,6 +28,24 @@ serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
+  // Initialize Supabase admin client
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    {
+      auth: {
+        persistSession: false,
+      },
+    },
+  );
+
+  // Authenticate the request
+  const auth = await authenticateRequest(req, supabaseAdmin, "[TASKS-LIST]", { allowJwtUserAuth: true });
+
+  if (!auth.success) {
+    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
+  }
+
   // Parse body
   let body: any;
   try {
@@ -52,9 +60,26 @@ serve(async (req) => {
     return jsonResponse({ error: "projectId is required" }, 400);
   }
 
+  // For non-service-role requests, verify the user owns the project
+  if (!auth.isServiceRole && auth.userId) {
+    const { data: project, error: projectError } = await supabaseAdmin
+      .from("projects")
+      .select("user_id")
+      .eq("id", projectId)
+      .single();
+
+    if (projectError || !project) {
+      return jsonResponse({ error: "Project not found" }, 404);
+    }
+
+    if (project.user_id !== auth.userId) {
+      return jsonResponse({ error: "Forbidden: You do not own this project" }, 403);
+    }
+  }
+
   try {
     // Build query
-    let query = supabase
+    let query = supabaseAdmin
       .from("tasks")
       .select("*")
       .eq("project_id", projectId)
@@ -68,13 +93,13 @@ serve(async (req) => {
     const { data: tasks, error } = await query;
 
     if (error) {
-      console.error("[tasks-list] Query error:", error);
+      console.error("[TASKS-LIST] Query error:", error);
       return jsonResponse({ error: "Failed to fetch tasks", details: error.message }, 500);
     }
 
     return jsonResponse(tasks || []);
   } catch (err: any) {
-    console.error("[tasks-list] Unexpected error:", err?.message);
+    console.error("[TASKS-LIST] Unexpected error:", err?.message);
     return jsonResponse({ error: "Internal server error", details: err?.message }, 500);
   }
 }); 

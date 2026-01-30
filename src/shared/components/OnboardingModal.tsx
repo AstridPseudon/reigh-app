@@ -1,27 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { Gift, Sparkles, ChevronRight, ChevronLeft, Palette, Users, Monitor, Coins, Settings, Check, Loader2, MoreHorizontal, PartyPopper, Heart, Sun, Moon, Cloud, Globe } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Palette, Users, Monitor, Settings, Loader2, MoreHorizontal, Sun, Moon, Globe } from 'lucide-react';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
 import { PrivacyToggle } from '@/shared/components/ui/privacy-toggle';
 
-import usePersistentState from '@/shared/hooks/usePersistentState';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useDarkMode } from '@/shared/hooks/useDarkMode';
 import { useMediumModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 
-// Extend window interface for confetti flag
-declare global {
-  interface Window {
-    confettiAlreadyTriggered?: boolean;
-  }
-}
-
-interface WelcomeBonusModalProps {
+interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -297,211 +287,9 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   );
 };
 
-// Step 4: Welcome Gambit (Promise Step)
-const WelcomeGambitStep: React.FC<{ onNext: (choice: 'music-video' | 'something-else' | 'no-thanks') => void }> = ({ onNext }) => {
-  const colors = getStepColors(4);
-  return (
-  <>
-    <DialogHeader className="text-center space-y-4 mb-6">
-      <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
-        <Coins className={`w-8 h-8 ${colors.icon}`} />
-      </div>
-      <DialogTitle className="text-2xl font-bold text-center">
-        We'll give you $5 credit if you promise to <span className="text-primary underline decoration-2 underline-offset-2">make something bad</span> with Reigh
-      </DialogTitle>
-    </DialogHeader>
-    
-    <div className="text-center space-y-4">
-      <p className="text-muted-foreground">
-        To understand an art tool, you must try to make art with it - but making good stuff is <strong>hard</strong>.
-      </p>
-      
-      <p className="text-muted-foreground">
-        So let's make a deal: if you promise you'll use it to <em>make something bad</em> (e.g. an experimental &lt;30 sec music video) and share it in the #bad_art channel of our Discord, we'll give you $5 credit. 
-      </p>
-    </div>
-    
-    <div className="flex flex-col space-y-2 pt-5 pb-2">
-      <Button onClick={() => onNext('music-video')} className="w-full hover:opacity-90">
-        I'll do it, gimme the credits 🎵
-      </Button>
-      <Button variant="ghost" onClick={() => onNext('no-thanks')} className="w-full text-foreground/70 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-foreground">
-        Sorry, I only make good stuff
-      </Button>
-    </div>
-  </>
-  );
-};
-
-// Loading Step: Processing Credits
-const ProcessingCreditsStep: React.FC = () => (
-  <div className="flex justify-center items-center py-20 opacity-50">
-    <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-  </div>
-);
-
-// Step 5: Credits Result
-const CreditsResultStep: React.FC<{ choice: 'music-video' | 'something-else' | 'no-thanks', onNext: () => void, shouldShowConfetti?: boolean, onConfettiConsumed?: () => void }> = ({ choice, onNext, shouldShowConfetti = false, onConfettiConsumed }) => {
-  const colors = getStepColors(5);
-  // Trigger confetti when component mounts (only if first time this session)
-  useEffect(() => {
-    // Only run confetti if parent indicates it should run
-    if (!shouldShowConfetti) {
-      return;
-    }
-    // Prevent multiple confetti explosions
-    if (window.confettiAlreadyTriggered) {
-      console.log('[Confetti] Already triggered, skipping');
-      return;
-    }
-    window.confettiAlreadyTriggered = true;
-
-    // Create confetti elements
-    const createConfetti = () => {
-      // Clean up any existing confetti first
-      const existingConfetti = document.querySelectorAll('[data-confetti]');
-      existingConfetti.forEach(el => el.remove());
-      
-      const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'];
-      const confettiCount = 50;
-      
-      // Use a fixed overlay inside the modal for confetti containment
-      const container = document.getElementById('confetti-container');
-      const modal = document.querySelector('[data-radix-dialog-content]') as HTMLElement;
-      const modalRect = modal?.getBoundingClientRect();
-      if (!container || !modalRect) {
-        console.log('[Confetti] No modal/container found; skipping confetti');
-        return;
-      }
-      
-      for (let i = 0; i < confettiCount; i++) {
-        const confetti = document.createElement('div');
-        const leftPosition = Math.random() * 100; // Percentage within container
-        const fallDistance = 400; // Fixed fall distance within container
-        const animationDuration = 2 + Math.random() * 3;
-        
-        // Create individual keyframe for this confetti piece BEFORE applying animation
-        const individualStyle = document.createElement('style');
-        individualStyle.textContent = `
-          @keyframes confetti-fall-modal-${i} {
-            0% {
-              transform: translateY(0px) rotate(0deg);
-              opacity: 1;
-            }
-            100% {
-              transform: translateY(${fallDistance}px) rotate(720deg);
-              opacity: 0;
-            }
-          }
-        `;
-        document.head.appendChild(individualStyle);
-        
-        confetti.setAttribute('data-confetti', 'true');
-        confetti.style.cssText = `
-          position: absolute;
-          width: 10px;
-          height: 10px;
-          background: ${colors[Math.floor(Math.random() * colors.length)]};
-          left: ${leftPosition}%;
-          top: -10px;
-          z-index: 99999;
-          pointer-events: none;
-          border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
-          animation: confetti-fall-modal-${i} ${animationDuration}s linear forwards;
-        `;
-        
-        container.appendChild(confetti);
-        
-        // Remove confetti after its animation completes (+buffer)
-        setTimeout(() => {
-          if (confetti.parentNode) {
-            confetti.parentNode.removeChild(confetti);
-          }
-          if (individualStyle.parentNode) {
-            individualStyle.parentNode.removeChild(individualStyle);
-          }
-        }, (animationDuration * 1000) + 300);
-      }
-    };
-
-    // Add CSS animation if it doesn't exist
-    if (!document.querySelector('#confetti-styles')) {
-      const style = document.createElement('style');
-      style.id = 'confetti-styles';
-      style.textContent = `
-        @keyframes confetti-fall {
-          0% {
-            transform: translateY(-10px) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        
-      `;
-      document.head.appendChild(style);
-    }
-
-    createConfetti();
-    // Notify parent that confetti has been consumed so it won't rerun on re-render
-    onConfettiConsumed?.();
-  }, [shouldShowConfetti]);
-
-  return (
-    <div className="relative">
-      {/* Confetti container overlay covering entire modal content */}
-      <div id="confetti-container" className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 50 }} />
-      
-      <DialogHeader className="text-center space-y-4 mb-6">
-        <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
-          {choice === 'music-video' ? (
-            <PartyPopper className={`w-8 h-8 ${colors.icon}`} />
-          ) : (
-            <Heart className={`w-8 h-8 ${colors.icon}`} />
-          )}
-      </div>
-        <DialogTitle className="text-2xl font-bold text-center">
-          {choice === 'music-video' ? "Great, here's $5!" : "No problem! Here's $5 anyway."}
-        </DialogTitle>
-      </DialogHeader>
-    
-    <div className="text-center space-y-4">
-      {choice === 'music-video' && (
-        <p className="text-muted-foreground">
-          You can join our Discord below to share your creation when you're ready!
-        </p>
-      )}
-      
-      <p className="text-muted-foreground">
-        Remember: what you create doesn't need to be exceptional. You're learning how to use a tool. Take this as an opportunity to have fun learning, start creating, and get over your fear of sharing!
-      </p>
-
-      <p className="text-muted-foreground">
-        We'll never check if you actually made something. We trust you &lt;3
-      </p>
-    </div>
-    
-    <div className="flex flex-col space-y-2 pt-5 pb-2">
-      <Button 
-        onClick={() => window.open('https://discord.gg/D5K2c6kfhy', '_blank')}
-        className="w-full"
-      >
-        <Users className="w-4 h-4 mr-2" />
-        Join Discord
-      </Button>
-      <Button variant="retro-secondary" size="retro-sm" onClick={onNext} className="w-full">
-        Continue Setup
-      </Button>
-    </div>
-    </div>
-);
-};
-
-// Step 6: Theme Selection
+// Step 4: Theme Selection
 const ThemeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
-  const colors = getStepColors(6);
+  const colors = getStepColors(4);
   const { darkMode, setDarkMode } = useDarkMode();
   
   // Also persist to database for cross-device sync
@@ -561,9 +349,9 @@ const ThemeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   );
 };
 
-// Step 7: Privacy Defaults
+// Step 5: Privacy Defaults
 const PrivacyDefaultsStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
-  const colors = getStepColors(7);
+  const colors = getStepColors(5);
   
   // Privacy defaults state using database-backed preferences
   const { 
@@ -642,9 +430,9 @@ const PrivacyDefaultsStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
 );
 };
 
-// Step 8: Setup Complete
+// Step 6: Setup Complete
 const SetupCompleteStep: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const colors = getStepColors(8);
+  const colors = getStepColors(6);
   
   const handleOpenSettings = () => {
     onClose();
@@ -688,126 +476,31 @@ const SetupCompleteStep: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-export const WelcomeBonusModal: React.FC<WelcomeBonusModalProps> = ({
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   isOpen,
   onClose,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [userChoice, setUserChoice] = useState<'music-video' | 'something-else' | 'no-thanks' | null>(null);
-  const [isProcessingCredits, setIsProcessingCredits] = useState(false);
-  const [shouldShowConfetti, setShouldShowConfetti] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
-  const queryClient = useQueryClient();
   const modal = useMediumModal();
-  const { showFade, scrollRef } = useScrollFade({ 
+  const { showFade, scrollRef } = useScrollFade({
     isOpen,
-    preloadFade: modal.isMobile 
+    preloadFade: modal.isMobile
   });
 
   // Reset to step 1 when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(1);
-      setUserChoice(null);
-      setIsProcessingCredits(false);
     }
   }, [isOpen]);
 
   const handleNext = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 8));
+    setCurrentStep(prev => Math.min(prev + 1, 6));
   };
 
   const handleBack = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
-
-  const handleGambitChoice = async (choice: 'music-video' | 'something-else' | 'no-thanks') => {
-    console.log('[GambitChoice] User made choice:', choice);
-    setUserChoice(choice);
-    
-    try {
-      // Check if user has already been given credits
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('[GambitChoice] Checking user credits status...');
-      
-      if (!user) {
-        console.log('[GambitChoice] No user found');
-        setCurrentStep(5);
-        return;
-      }
-
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      console.log('[GambitChoice] User data:', { userData, error });
-      
-      if (error || !userData) {
-        console.log('[GambitChoice] Error fetching user data, skipping to result');
-        setCurrentStep(5);
-        return;
-      }
-
-      const givenCredits = (userData as any).given_credits;
-      console.log('[GambitChoice] given_credits status:', givenCredits);
-      
-      if (!givenCredits) {
-        console.log('[GambitChoice] First time user - showing loading and will grant credits with confetti');
-        // First time user - show loading, grant credits, and show confetti
-        setIsProcessingCredits(true);
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/grant-credits`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              amount: 5,
-              isWelcomeBonus: true,
-            }),
-          });
-          
-          if (response.ok) {
-            console.log('[GambitChoice] Credits granted successfully');
-            queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });
-            queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });
-            // Mark that we should show confetti exactly once after granting credits
-            setShouldShowConfetti(true);
-          } else {
-            console.error('[GambitChoice] Failed to grant credits');
-          }
-        }
-        
-        // Show loading for 1.5 seconds before showing credits result with confetti
-        setTimeout(() => {
-          console.log('[GambitChoice] Timeout completed - transitioning to credits result with confetti');
-          setIsProcessingCredits(false);
-          setCurrentStep(5); // Go to credits result step - confetti will show if shouldShowConfetti
-        }, 1500);
-      } else {
-        console.log('[GambitChoice] User already has credits - skipping directly to result without confetti');
-        // User already has credits - skip directly to result (no loading, no confetti)
-        setCurrentStep(5);
-      }
-    } catch (error) {
-      console.error('[GambitChoice] Error in handleGambitChoice:', error);
-      setCurrentStep(5);
-    }
-  };
-
-  const handleClose = () => {
-    // Do not reset steps here to avoid flashing step 1 during close animation
-    setShouldShowConfetti(false);
-    // Reset confetti guard for future sessions
-    window.confettiAlreadyTriggered = false;
-    onClose();
   };
 
   const handleShake = () => {
@@ -817,11 +510,6 @@ export const WelcomeBonusModal: React.FC<WelcomeBonusModalProps> = ({
 
   // Render current step component conditionally to avoid calling hooks for unused steps
   const renderCurrentStep = () => {
-    // Show loading step if processing credits
-    if (isProcessingCredits) {
-      return <ProcessingCreditsStep />;
-    }
-
     switch (currentStep) {
       case 1:
         return <IntroductionStep onNext={handleNext} />;
@@ -830,21 +518,17 @@ export const WelcomeBonusModal: React.FC<WelcomeBonusModalProps> = ({
       case 3:
         return <GenerationMethodStep onNext={handleNext} />;
       case 4:
-        return <WelcomeGambitStep onNext={handleGambitChoice} />;
-      case 5:
-        return <CreditsResultStep choice={userChoice!} onNext={handleNext} shouldShowConfetti={shouldShowConfetti} onConfettiConsumed={() => setShouldShowConfetti(false)} />;
-      case 6:
         return <ThemeStep onNext={handleNext} />;
-      case 7:
+      case 5:
         return <PrivacyDefaultsStep onNext={handleNext} />;
-      case 8:
-        return <SetupCompleteStep onClose={handleClose} />;
+      case 6:
+        return <SetupCompleteStep onClose={onClose} />;
       default:
         return <IntroductionStep onNext={handleNext} />;
     }
   };
 
-  const stepTitles = ["Welcome", "Community", "Generation", "Promise", "Credits", "Theme", "Privacy", "Complete"];
+  const stepTitles = ["Welcome", "Community", "Generation", "Theme", "Privacy", "Complete"];
   
   return (
     <Dialog open={isOpen} onOpenChange={handleShake}>

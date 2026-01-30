@@ -1,6 +1,6 @@
 import { Step } from 'react-joyride';
 
-// Color progression continuing from WelcomeBonusModal (which ends at step 8)
+// Color progression continuing from OnboardingModal (which ends at step 6)
 export const tourStepColors = [
   { bg: 'bg-cyan-100 dark:bg-cyan-900/20', icon: 'text-cyan-600 dark:text-cyan-400' },
   { bg: 'bg-rose-100 dark:bg-rose-900/20', icon: 'text-rose-600 dark:text-rose-400' },
