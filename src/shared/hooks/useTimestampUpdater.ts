@@ -193,9 +193,3 @@ export function useTimestampVisibility(ref: React.RefObject<HTMLElement>) {
   
   return isVisible;
 }
-
-// Export the manager for debugging
-export const debugTimestampManager = {
-  getActiveIntervals: () => Array.from(timestampManager['intervals'].keys()),
-  getCallbackCount: (interval: number) => timestampManager['intervals'].get(interval)?.size || 0,
-};

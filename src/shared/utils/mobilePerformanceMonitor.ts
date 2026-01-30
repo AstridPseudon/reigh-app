@@ -150,13 +150,6 @@ class MobilePerformanceMonitor {
 // Singleton instance
 export const perfMonitor = new MobilePerformanceMonitor();
 
-// React hook for tracking component renders
-export function useRenderTracking(componentName: string) {
-  if (import.meta.env.DEV) {
-    perfMonitor.trackComponentRender(componentName);
-  }
-}
-
 // Make it available in window for console access
 if (typeof window !== 'undefined') {
   (window as any).__perfMonitor = perfMonitor;

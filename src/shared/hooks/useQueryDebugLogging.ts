@@ -145,21 +145,3 @@ export const QueryDebugConfigs = {
     getTotalCount: (data: any) => data?.total || 0
   })
 };
-
-/**
- * Hook to log when a component consumes hook data.
- * Useful for tracking data flow from hooks to components.
- */
-export function useComponentDataLogging(
-  componentName: string,
-  data: any,
-  context: Record<string, any> = {}
-) {
-  React.useEffect(() => {
-    console.log(`📊 [GalleryPollingDebug:${componentName}] Hook data consumed:`, {
-      ...context,
-      hasData: !!data,
-      timestamp: Date.now()
-    });
-  }, [data, componentName, context]);
-}

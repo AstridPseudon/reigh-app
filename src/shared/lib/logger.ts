@@ -190,22 +190,6 @@ export function log(tag: string, ...args: any[]): void {
   addToBuffer('INFO', tag, args);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function logWarn(tag: string, ...args: any[]): void {
-  if (!shouldLog()) return;
-  // eslint-disable-next-line no-console
-  console.warn(`[${tag}]`, ...args);
-  addToBuffer('WARNING', tag, args);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function logError(tag: string, ...args: any[]): void {
-  // Always log errors, even if debug is off
-  // eslint-disable-next-line no-console
-  console.error(`[${tag}]`, ...args);
-  addToBuffer('ERROR', tag, args);
-}
-
 export function time(tag: string, label: string): void {
   if (!shouldLog()) return;
   // eslint-disable-next-line no-console
@@ -216,21 +200,6 @@ export function timeEnd(tag: string, label: string): void {
   if (!shouldLog()) return;
   // eslint-disable-next-line no-console
   console.timeEnd(`[${tag}] ${label}`);
-}
-
-/**
- * Force flush all buffered logs immediately.
- * Useful for debugging or before critical operations.
- */
-export async function forceFlush(): Promise<void> {
-  await flushLogs();
-}
-
-/**
- * Get current buffer size (for debugging).
- */
-export function getBufferSize(): number {
-  return logBuffer.length;
 }
 
 // Dedicated onRender callback for React Profiler so callers don't need to re-implement it.

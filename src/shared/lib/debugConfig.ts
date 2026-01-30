@@ -161,31 +161,3 @@ if (typeof window !== 'undefined') {
   console.log('🔧 [DebugConfig] Available at window.debugConfig');
   console.log('🔧 [DebugConfig] Try: debugConfig.setQuietMode() or debugConfig.status()');
 }
-
-// Conditional logging helper
-export const conditionalLog = (category: keyof DebugConfig, tag: string, ...args: any[]): void => {
-  if (debugConfig.isEnabled(category)) {
-    console.log(`[${tag}]`, ...args);
-  }
-};
-
-// Throttled logging helper to reduce noise
-const logThrottleMap = new Map<string, number>();
-
-export const throttledLog = (
-  category: keyof DebugConfig, 
-  tag: string, 
-  throttleMs: number = 1000,
-  ...args: any[]
-): void => {
-  if (!debugConfig.isEnabled(category)) return;
-  
-  const key = `${category}-${tag}`;
-  const now = Date.now();
-  const lastLog = logThrottleMap.get(key) || 0;
-  
-  if (now - lastLog >= throttleMs) {
-    logThrottleMap.set(key, now);
-    console.log(`[${tag}]`, ...args);
-  }
-};

@@ -219,21 +219,6 @@ export function flushAll(): void {
   processQueue();
 }
 
-/**
- * Get count of pending writes (for debugging)
- */
-export function getPendingCount(): number {
-  return pendingByTarget.size + flushQueue.length;
-}
-
-/**
- * Check if there are any pending writes for a target
- */
-export function hasPendingWrite(scope: 'user' | 'project' | 'shot', entityId: string, toolId: string): boolean {
-  const key = `${scope}:${entityId}:${toolId}`;
-  return pendingByTarget.has(key) || flushQueue.some(item => item.targetKey === key);
-}
-
 // Best-effort flush on page unload
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {

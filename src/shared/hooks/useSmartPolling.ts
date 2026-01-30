@@ -235,17 +235,3 @@ export function useSmartPollingConfig(queryKey: string[], debug = false) {
     staleTime
   };
 }
-
-/**
- * Hook for debugging - shows current freshness state
- */
-export function useDataFreshnessDiagnostics() {
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
-
-  useEffect(() => {
-    const unsubscribe = dataFreshnessManager.subscribe(forceUpdate);
-    return unsubscribe;
-  }, []);
-
-  return dataFreshnessManager.getDiagnostics();
-}

@@ -62,7 +62,6 @@ export const useModal = (size: ModalSize = 'medium'): ModalStyling => {
 };
 
 // Convenience functions for common sizes
-export const useSmallModal = () => useModal('small');
 export const useMediumModal = () => useModal('medium');
 export const useLargeModal = () => useModal('large');
 export const useExtraLargeModal = (specialCase?: string) => {

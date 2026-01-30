@@ -78,33 +78,3 @@ export const calculateMultiDragOrder = (
 
   return newItems;
 };
-
-/**
- * Calculate new order for mobile move-here operation
- */
-export const calculateMobileMoveOrder = (
-  currentImages: GenerationRow[],
-  mobileSelectedIds: string[],
-  targetIndex: number
-): GenerationRow[] => {
-  // Get selected items and remaining items
-  // img.id is shot_generations.id - unique per entry
-  const selectedItems = currentImages.filter(img => mobileSelectedIds.includes(img.id));
-  const remainingItems = currentImages.filter(img => !mobileSelectedIds.includes(img.id));
-  
-  // Calculate adjusted target index based on selected items before target
-  const selectedIndicesBefore = mobileSelectedIds
-    .map(id => currentImages.findIndex(img => img.id === id))
-    .filter(idx => idx < targetIndex).length;
-  const adjustedTargetIndex = Math.max(0, targetIndex - selectedIndicesBefore);
-  
-  // Insert selected items at target position
-  const newOrder = [
-    ...remainingItems.slice(0, adjustedTargetIndex),
-    ...selectedItems,
-    ...remainingItems.slice(adjustedTargetIndex)
-  ];
-  
-  return newOrder;
-};
-

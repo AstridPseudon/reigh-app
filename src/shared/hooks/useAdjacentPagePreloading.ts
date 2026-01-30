@@ -122,31 +122,6 @@ export const smartPreloadImages = (
 };
 
 /**
- * @deprecated Use preloadImages from @/shared/lib/imagePreloading instead
- */
-export const preloadClientSidePages = (
-  prevPageImages: any[],
-  nextPageImages: any[],
-  pageId: string,
-  operations: { currentPageId: string }
-) => {
-  if (operations.currentPageId !== pageId) return;
-
-  const queue = getLegacyQueue();
-  const config = getPreloadConfig();
-
-  // Preload next page (higher priority)
-  if (nextPageImages.length > 0) {
-    preloadImages(nextPageImages, queue, config, 100);
-  }
-
-  // Preload previous page (lower priority)
-  if (prevPageImages.length > 0) {
-    preloadImages(prevPageImages, queue, config, 50);
-  }
-};
-
-/**
  * @deprecated Use useImagePreloading hook instead
  */
 export const useAdjacentPagePreloading = ({
@@ -252,17 +227,3 @@ export const useAdjacentPagePreloading = ({
 
   return { cancelAllPreloads };
 };
-
-/**
- * @deprecated No longer needed
- */
-export const getPreloadDiagnostics = () => ({
-  config: getPreloadConfig(),
-  performance: { averagePreloadTime: 0, preloadSamples: 0, memorySamples: 0 },
-  device: {
-    isMobile: typeof window !== 'undefined' && window.innerWidth <= 768,
-    memory: 'unknown',
-    cores: 'unknown',
-    connection: 'unknown',
-  },
-});

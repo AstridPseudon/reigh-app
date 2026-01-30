@@ -479,14 +479,6 @@ export async function updateToolSettingsSupabase(
 }
 
 /**
- * Flush pending writes for a specific target.
- * Call this on unmount to ensure pending changes are saved.
- */
-export function flushToolSettingsTarget(scope: SettingsScope, entityId: string, toolId: string): Promise<any> | undefined {
-  return flushQueueTarget(scope, entityId, toolId);
-}
-
-/**
  * Helper to extract settings from cache data (handles wrapper format)
  * Cache stores data as { settings: T, hasShotSettings: boolean }
  */
