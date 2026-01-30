@@ -67,7 +67,7 @@ export const DEFAULT_ENHANCE_SETTINGS: VideoEnhanceSettings = {
   numFrames: 1,
   upscaleFactor: 2,
   colorFix: true,
-  outputQuality: 'high',
+  outputQuality: 'maximum',
 };
 
 /**

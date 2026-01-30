@@ -27,6 +27,7 @@ export const VideoEnhanceDetails: React.FC<TaskDetailsProps> = ({
   const upscale = parsedParams?.upscale;
   const upscaleFactor = upscale?.upscale_factor ?? 2;
   const colorFix = upscale?.color_fix ?? true;
+  const outputQuality = upscale?.output_quality ?? 'high';
 
   return (
     <div className={`p-3 bg-muted/30 rounded-lg border space-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[300px]'}`}>
@@ -53,6 +54,7 @@ export const VideoEnhanceDetails: React.FC<TaskDetailsProps> = ({
               <span className={config.fontWeight}>
                 Upscale {upscaleFactor}x
                 {colorFix && ' + Color Fix'}
+                {' · '}{outputQuality.charAt(0).toUpperCase() + outputQuality.slice(1)} quality
               </span>
             </div>
           )}
