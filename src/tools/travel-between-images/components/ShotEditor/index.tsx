@@ -559,6 +559,21 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
     // Fallback: filter contextImages the same way the selector does
     return contextImages.filter(g => g.type?.includes('video'));
   }, [videoOutputsQuery.data, contextImages]);
+
+  // PERF: Derive initial parent generations from fast videoOutputs cache
+  // This allows FinalVideoSection to show thumbnail immediately while full segment data loads
+  // Parent generations are videos with orchestrator_details (join output parents)
+  const initialParentGenerations = React.useMemo(() => {
+    return videoOutputs.filter(v => {
+      const params = v.params as any;
+      return params?.orchestrator_details != null;
+    }).sort((a, b) => {
+      // Sort by created_at descending (most recent first)
+      const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+      const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [videoOutputs]);
   
   console.log('[SelectorPattern] Shot data from selectors:', {
     shotId: selectedShotId?.substring(0, 8),
@@ -2438,9 +2453,10 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
           }}
           selectedParentId={selectedOutputId}
           onSelectedParentChange={setSelectedOutputId}
-          parentGenerations={parentGenerations}
+          // PERF: Use fast initialParentGenerations for instant thumbnail, then full data when loaded
+          parentGenerations={parentGenerations.length > 0 ? parentGenerations : initialParentGenerations}
           segmentProgress={segmentProgress}
-          isParentLoading={isSegmentOutputsLoading}
+          isParentLoading={isSegmentOutputsLoading && initialParentGenerations.length === 0}
           getFinalVideoCount={getFinalVideoCount}
           onDelete={handleDeleteFinalVideo}
           isDeleting={isClearingFinalVideo}
