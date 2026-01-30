@@ -165,6 +165,17 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
     onApplySettingsFromTask,
   });
 
+  // [ShareDebug] Log task details state
+  console.log('[ShareDebug] FinalVideoSection task details:', {
+    selectedParentId: selectedParentId?.substring(0, 8),
+    taskMappingTaskId: taskMapping?.taskId?.substring(0, 8),
+    hasTask: !!task,
+    taskType: task?.task_type,
+    taskError: taskError?.message,
+    isLoading: taskDetailsData?.isLoading,
+    timestamp: Date.now(),
+  });
+
   // Share functionality - pass shotId to fetch input images and settings for final video shares
   const {
     handleShare,
@@ -172,6 +183,18 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
     shareCopied,
     shareSlug,
   } = useShareGeneration(selectedParentId ?? undefined, taskMapping?.taskId, shotId);
+
+  // [ShareDebug] Log share-related state
+  console.log('[ShareDebug] FinalVideoSection share state:', {
+    selectedParentId: selectedParentId?.substring(0, 8),
+    taskMappingTaskId: taskMapping?.taskId?.substring(0, 8),
+    shotId: shotId?.substring(0, 8),
+    hasFinalOutput,
+    isCreatingShare,
+    shareCopied,
+    shareSlug: shareSlug?.substring(0, 8),
+    timestamp: Date.now(),
+  });
 
   // Check for active join_clips_orchestrator tasks for this shot
   // Include parentGenerations IDs in query key so we can match by parent_generation_id
@@ -365,7 +388,14 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={handleShare}
+                        onClick={(e) => {
+                          console.log('[ShareDebug] Share button clicked', {
+                            selectedParentId: selectedParentId?.substring(0, 8),
+                            taskMappingTaskId: taskMapping?.taskId?.substring(0, 8),
+                            isCreatingShare,
+                          });
+                          handleShare(e);
+                        }}
                         disabled={isCreatingShare}
                         className={shareCopied ? 'bg-green-500/10 border-green-500/50' : ''}
                       >

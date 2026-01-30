@@ -85,18 +85,33 @@ export function useShareGeneration(
 
   const handleShare = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!generationId || !taskId) {
+
+    console.log('[ShareDebug] handleShare called:', {
+      generationId: generationId?.substring(0, 8),
+      taskId: taskId?.substring(0, 8),
+      shotId: shotId?.substring(0, 8),
+      shareSlug: shareSlug?.substring(0, 8),
+      timestamp: Date.now(),
+    });
+
+    if (!generationId) {
+      console.log('[ShareDebug] Missing generationId');
       toast({
         title: "Cannot create share",
-        description: "Generation or Task information not available",
+        description: "Generation information not available",
         variant: "destructive"
       });
       return;
     }
+
+    // taskId is optional - share can work without task details
+    if (!taskId) {
+      console.log('[ShareDebug] No taskId available - share will work but without task details');
+    }
     
     // If share already exists (in local state), copy to clipboard
     if (shareSlug) {
+      console.log('[ShareDebug] Share already exists in local state, copying to clipboard:', shareSlug);
       const shareUrl = `${window.location.origin}/share/${shareSlug}`;
       try {
         await navigator.clipboard.writeText(shareUrl);
@@ -105,12 +120,12 @@ export function useShareGeneration(
           title: "Link copied!",
           description: "Share link copied to clipboard"
         });
-        
+
         setTimeout(() => {
           setShareCopied(false);
         }, 2000);
       } catch (error) {
-        console.error('[Share] Failed to copy to clipboard:', error);
+        console.error('[ShareDebug] Failed to copy to clipboard:', error);
         toast({
           title: "Copy failed",
           description: "Please try again",
@@ -121,12 +136,15 @@ export function useShareGeneration(
     }
     
     // Create new share (client-side) or fetch existing
+    console.log('[ShareDebug] Creating new share or fetching existing...');
     setIsCreatingShare(true);
-    
+
     try {
+      console.log('[ShareDebug] Getting session...');
       const { data: session } = await supabase.auth.getSession();
-      
+
       if (!session?.session?.access_token) {
+        console.log('[ShareDebug] No session/access_token found');
         toast({
           title: "Authentication required",
           description: "Please sign in to create share links",
@@ -135,7 +153,12 @@ export function useShareGeneration(
         setIsCreatingShare(false);
         return;
       }
-      
+
+      console.log('[ShareDebug] Session found, checking for existing share:', {
+        userId: session.session.user.id?.substring(0, 8),
+        generationId: generationId?.substring(0, 8),
+      });
+
       // First, check if share already exists in DB
       const { data: existingShare, error: existingError } = await supabase
         .from('shared_generations')
@@ -143,6 +166,12 @@ export function useShareGeneration(
         .eq('generation_id', generationId)
         .eq('creator_id', session.session.user.id)
         .maybeSingle();
+
+      console.log('[ShareDebug] Existing share check result:', {
+        hasExistingShare: !!existingShare,
+        existingSlug: existingShare?.share_slug?.substring(0, 8),
+        error: existingError?.message,
+      });
 
       if (existingError && existingError.code !== 'PGRST116') { // PGRST116 = no rows
         console.error('[Share] Failed to check existing share:', existingError);
@@ -180,22 +209,19 @@ export function useShareGeneration(
       }
 
       // Share doesn't exist, fetch only the fields needed for display
-      const [generationResult, taskResult] = await Promise.all([
-        supabase.from('generations')
-          .select('id, location, thumbnail_url, type, params, created_at, name')
-          .eq('id', generationId)
-          .single(),
-        supabase.from('tasks')
-          .select('id, task_type, params, status, created_at')
-          .eq('id', taskId)
-          .single()
-      ]);
+      console.log('[ShareDebug] No existing share, fetching generation data:', {
+        generationId: generationId?.substring(0, 8),
+        taskId: taskId?.substring(0, 8),
+      });
 
-      if (generationResult.error || taskResult.error) {
-        console.error('[Share] Failed to fetch data:', {
-          generationError: generationResult.error,
-          taskError: taskResult.error
-        });
+      // Always fetch generation data
+      const generationResult = await supabase.from('generations')
+        .select('id, location, thumbnail_url, type, params, created_at, name')
+        .eq('id', generationId)
+        .single();
+
+      if (generationResult.error) {
+        console.error('[ShareDebug] Failed to fetch generation:', generationResult.error);
         toast({
           title: "Share failed",
           description: "Failed to load generation data",
@@ -205,13 +231,34 @@ export function useShareGeneration(
         return;
       }
 
-      // For join_clips tasks, fetch shot data to cache in a standardized format
+      // Only fetch task data if taskId is available
+      let taskResult: { data: any; error: any } = { data: null, error: null };
+      if (taskId) {
+        taskResult = await supabase.from('tasks')
+          .select('id, task_type, params, status, created_at')
+          .eq('id', taskId)
+          .single();
+
+        if (taskResult.error) {
+          console.warn('[ShareDebug] Failed to fetch task (non-fatal):', taskResult.error);
+          // Don't fail the share - task data is optional
+        }
+      }
+
+      console.log('[ShareDebug] Fetch results:', {
+        hasGenerationData: !!generationResult.data,
+        hasTaskData: !!taskResult.data,
+        taskType: taskResult.data?.task_type,
+      });
+
+      // Fetch shot data if shotId is available (for final video shares)
+      // This provides input images and settings for the share page
       let augmentedTaskData = taskResult.data;
       let cachedShotData: any = null;
       const taskType = taskResult.data?.task_type;
 
-      if (shotId && (taskType === 'join_clips_orchestrator' || taskType === 'join_clips')) {
-        console.log('[Share] Fetching shot data for final video share:', { shotId: shotId.substring(0, 8), taskType });
+      if (shotId) {
+        console.log('[ShareDebug] Fetching shot data for share:', { shotId: shotId.substring(0, 8), taskType });
 
         try {
           // Fetch shot with settings
@@ -291,13 +338,15 @@ export function useShareGeneration(
       }
 
       // Generate unique slug with retry logic
+      console.log('[ShareDebug] Generating unique slug and inserting share...');
       let attempts = 0;
       const maxAttempts = 5;
       let newSlug: string | null = null;
 
       while (attempts < maxAttempts && !newSlug) {
         const candidateSlug = generateShareSlug(10);
-        
+        console.log('[ShareDebug] Attempt', attempts + 1, 'with slug:', candidateSlug.substring(0, 6));
+
         // Fetch creator profile basics
         const { data: creatorRow } = await supabase
           .from('users')
@@ -305,24 +354,46 @@ export function useShareGeneration(
           .eq('id', session.session.user.id)
           .maybeSingle();
 
+        console.log('[ShareDebug] Creator profile fetched:', {
+          hasCreatorRow: !!creatorRow,
+          username: (creatorRow as any)?.username,
+        });
+
         // Try to insert
+        const insertPayload = {
+          share_slug: candidateSlug,
+          task_id: taskId || null,  // Optional - share works without task
+          generation_id: generationId,
+          creator_id: session.session.user.id,
+          creator_username: (creatorRow as any)?.username ?? null,
+          creator_name: (creatorRow as any)?.name ?? null,
+          creator_avatar_url: (creatorRow as any)?.avatar_url ?? null,
+          cached_generation_data: generationResult.data,
+          cached_task_data: sanitizeTaskDataForSharing(augmentedTaskData),
+          shot_id: shotId || null,
+        };
+
+        console.log('[ShareDebug] Inserting share with payload:', {
+          share_slug: insertPayload.share_slug.substring(0, 6),
+          task_id: insertPayload.task_id?.substring(0, 8),
+          generation_id: insertPayload.generation_id?.substring(0, 8),
+          shot_id: insertPayload.shot_id?.substring(0, 8),
+          hasCachedGenData: !!insertPayload.cached_generation_data,
+          hasCachedTaskData: !!insertPayload.cached_task_data,
+        });
+
         const { data: newShare, error: insertError } = await supabase
           .from('shared_generations')
-          .insert({
-            share_slug: candidateSlug,
-            task_id: taskId,
-            generation_id: generationId,
-            creator_id: session.session.user.id,
-            creator_username: (creatorRow as any)?.username ?? null,
-            creator_name: (creatorRow as any)?.name ?? null,
-            creator_avatar_url: (creatorRow as any)?.avatar_url ?? null,
-            cached_generation_data: generationResult.data,
-            cached_task_data: sanitizeTaskDataForSharing(augmentedTaskData),
-            // Store shot_id for live data lookups (enables refreshing share page with current shot data)
-            shot_id: shotId || null,
-          })
+          .insert(insertPayload)
           .select('share_slug')
           .single();
+
+        console.log('[ShareDebug] Insert result:', {
+          success: !!newShare,
+          slug: newShare?.share_slug?.substring(0, 6),
+          error: insertError?.message,
+          errorCode: insertError?.code,
+        });
 
         if (!insertError && newShare) {
           newSlug = newShare.share_slug;
@@ -330,14 +401,14 @@ export function useShareGeneration(
         }
 
         // If error is unique constraint violation, retry with new slug
-        if (insertError?.code === '23505') { 
+        if (insertError?.code === '23505') {
           attempts++;
           continue;
         }
 
         // Other error
         if (insertError) {
-          console.error('[Share] Failed to create share:', insertError);
+          console.error('[ShareDebug] Failed to create share:', insertError);
           toast({
             title: "Share failed",
             description: insertError.message || "Please try again",
@@ -349,6 +420,7 @@ export function useShareGeneration(
       }
 
       if (!newSlug) {
+        console.log('[ShareDebug] Failed to generate unique slug after', maxAttempts, 'attempts');
         toast({
           title: "Share failed",
           description: "Failed to generate unique link. Please try again.",
@@ -358,12 +430,15 @@ export function useShareGeneration(
         return;
       }
 
+      console.log('[ShareDebug] Share created successfully, slug:', newSlug);
       setShareSlug(newSlug);
-      
+
       // Copy to clipboard
       const shareUrl = `${window.location.origin}/share/${newSlug}`;
+      console.log('[ShareDebug] Copying to clipboard:', shareUrl);
       try {
         await navigator.clipboard.writeText(shareUrl);
+        console.log('[ShareDebug] Copied to clipboard successfully');
         toast({
           title: "Share created!",
           description: "Share link copied to clipboard"
@@ -371,19 +446,21 @@ export function useShareGeneration(
         setShareCopied(true);
         setTimeout(() => setShareCopied(false), 2000);
       } catch (clipboardError) {
+        console.log('[ShareDebug] Clipboard copy failed:', clipboardError);
         toast({
           title: "Share created",
           description: "Click the copy button to copy the link",
         });
       }
     } catch (error) {
-      console.error('[Share] Unexpected error:', error);
+      console.error('[ShareDebug] Unexpected error:', error);
       toast({
         title: "Something went wrong",
         description: "Please try again",
         variant: "destructive"
       });
     } finally {
+      console.log('[ShareDebug] handleShare complete, setting isCreatingShare=false');
       setIsCreatingShare(false);
     }
   }, [shareSlug, generationId, taskId, shotId, toast]);
