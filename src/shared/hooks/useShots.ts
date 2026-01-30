@@ -1515,15 +1515,11 @@ export const useRemoveImageFromShot = () => {
         projectId: data.projectId?.substring(0, 8)
       });
 
-      // Invalidate queries to refresh the view
-      // The image is now unpositioned but still in the shot
-      invalidateGenerationsSync(queryClient, data.shotId, {
-        reason: 'unposition-image',
-        scope: 'all',
-        includeShots: true,
-        includeProjectUnified: true,
-        projectId: data.projectId
-      });
+      // NOTE: We intentionally do NOT invalidate queries here.
+      // The caller (handleDeleteImageFromShot) handles invalidation AFTER
+      // any post-delete operations (like shifting remaining items) complete.
+      // Invalidating here would cause a race condition where the UI refetches
+      // before the shift logic runs, showing a temporary gap.
 
       // Invalidate segment queries so videos associated with this shot_generation disappear
       // This ensures that when the original duplicated item is deleted, its video doesn't persist

@@ -30,6 +30,8 @@ import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { useAllShotGenerations, useTimelineImages, useUnpositionedImages, useVideoOutputs } from '@/shared/hooks/useShotGenerations';
 import usePersistentState from '@/shared/hooks/usePersistentState';
 import { useShots } from '@/shared/contexts/ShotsContext';
+import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
+import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import SettingsModal from '@/shared/components/SettingsModal';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -165,6 +167,8 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
 
   // Load complete shot data and images
   const { shots } = useShots(); // Get shots from context for shot metadata
+  const { setCurrentShotId } = useCurrentShot(); // For navigating to shots
+  const { navigateToShot } = useShotNavigation(); // For proper navigation with URL update
   
   // [FlickerFix] Persist the last valid shot object to prevent UI flickering during refetches
   // When duplicating items, the shots list might briefly refetch, causing selectedShot to be undefined
@@ -2232,9 +2236,25 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
   }, []);
 
   const handleShotChange = useCallback((shotId: string) => {
-    console.log('[ShotEditor] Shot change requested to:', shotId);
-    // Shot change will be handled by parent navigation
-  }, []);
+    // Find the shot in the shots array to get full shot data for navigation
+    const shot = shots?.find(s => s.id === shotId);
+    if (shot) {
+      navigateToShot(shot, { scrollToTop: true, isNewlyCreated: true });
+    } else {
+      // Shot not in array yet - try refetching and retry after a short delay
+      queryClient.refetchQueries({ queryKey: ['shots'] }).then(() => {
+        // Check again after refetch
+        const refreshedShots = queryClient.getQueryData<typeof shots>(['shots']);
+        const refreshedShot = refreshedShots?.find((s: any) => s.id === shotId);
+        if (refreshedShot) {
+          navigateToShot(refreshedShot, { scrollToTop: true, isNewlyCreated: true });
+        } else {
+          // Final fallback: just set the ID
+          setCurrentShotId(shotId);
+        }
+      });
+    }
+  }, [shots, navigateToShot, setCurrentShotId, queryClient]);
 
   // 🎯 PERF FIX: Uses refs to prevent callback recreation
   const handleAddToShot = useCallback(async (shotId: string, generationId: string, position?: number) => {
@@ -2293,7 +2313,7 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
   }, []);
 
   // Handler for creating a new shot from selected images
-  const handleNewShotFromSelection = useCallback(async (selectedIds: string[]) => {
+  const handleNewShotFromSelection = useCallback(async (selectedIds: string[]): Promise<string | void> => {
     console.log('[ShotEditor] Creating new shot from selection', { selectedIds });
 
     // Look up the selected images from allShotImages
@@ -2316,21 +2336,35 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
         throw new Error('Failed to create shot');
       }
 
-      // Add each selected image to the new shot, preserving timeline positions
-      for (const img of selectedImages) {
+      // Sort images by their original timeline position to maintain relative order
+      const sortedImages = [...selectedImages].sort((a, b) =>
+        (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0)
+      );
+
+      // Add all images to the new shot in parallel with normalized positions (0, 50, 100, ...)
+      const FRAME_GAP = 50;
+      await Promise.all(sortedImages.map((img, i) => {
         const generationId = (img as any).generation_id || img.id;
-        await addToShotMutationRef.current({
+        const newFrame = i * FRAME_GAP;
+        return addToShotMutationRef.current({
           shot_id: result.shotId,
           generation_id: generationId,
-          timelineFrame: img.timeline_frame ?? undefined,
+          timelineFrame: newFrame,
           project_id: projectIdRef.current
         });
-      }
+      }));
+
+      // Refetch shots query so the new shot appears in the list before we navigate
+      // Using refetchQueries instead of invalidateQueries to ensure data is actually loaded
+      await queryClient.refetchQueries({ queryKey: ['shots'] });
+
+      // Return the new shot ID so caller can offer "Jump to shot"
+      return result.shotId;
     } catch (error) {
       console.error('[ShotEditor] Failed to create shot from selection:', error);
       toast.error('Failed to create shot');
     }
-  }, [selectedShot?.name]);
+  }, [selectedShot?.name, queryClient]);
 
   // Calculate current settings for MotionControl
   const currentMotionSettings = useMemo(() => {

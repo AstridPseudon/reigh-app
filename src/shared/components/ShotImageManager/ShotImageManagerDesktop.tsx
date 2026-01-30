@@ -667,8 +667,10 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
               onDeselect={selection.clearSelection}
               onDelete={() => batchOps.handleBatchDelete(selection.selectedIds)}
               onNewShot={props.onNewShotFromSelection ? async () => {
-                await props.onNewShotFromSelection!(selection.selectedIds);
+                const shotId = await props.onNewShotFromSelection!(selection.selectedIds);
+                return shotId;
               } : undefined}
+              onJumpToShot={props.onShotChange}
             />
           )}
           

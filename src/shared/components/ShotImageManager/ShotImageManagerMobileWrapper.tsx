@@ -270,6 +270,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
         onSegmentClick={onSegmentClick}
         hasPendingTask={hasPendingTask}
         onNewShotFromSelection={props.onNewShotFromSelection}
+        onShotChange={props.onShotChange}
       />
       
       {lightbox.lightboxIndex !== null && lightbox.currentImages[lightbox.lightboxIndex] && (() => {

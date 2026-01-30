@@ -10,6 +10,7 @@ import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidati
 import { calculateNextAvailableFrame, extractExistingFrames, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
 import type { PhaseConfig } from '@/tools/travel-between-images/settings';
 import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { calculateNormalization } from '@/shared/lib/timelineNormalization';
 
 
 export interface ShotGeneration {
@@ -763,6 +764,66 @@ export const useEnhancedShotPositions = (shotId: string | null, isDragInProgress
     }
   }, [shotId, loadPositions, exchangePositionsNoReload, shotGenerations]);
 
+  // Normalize timeline positions to start at 0 and compress large gaps
+  const normalizeTimelineToZero = useCallback(async (): Promise<boolean> => {
+    if (!shotId) return false;
+
+    // Get current positioned items (exclude videos)
+    const positionedItems = shotGenerations.filter(sg => {
+      if (sg.timeline_frame == null) return false;
+      return !isVideoShotGeneration(sg);
+    });
+
+    if (positionedItems.length === 0) return false;
+
+    // Prepare frames for calculation
+    const frames = positionedItems.map(sg => ({
+      shotGenerationId: sg.id,
+      currentFrame: sg.timeline_frame!
+    }));
+
+    // Calculate normalization
+    const result = calculateNormalization(frames);
+
+    if (result.noChangeNeeded) {
+      console.log('[normalizeTimelineToZero] No normalization needed - timeline already starts at 0 with valid gaps');
+      return false;
+    }
+
+    console.log('[normalizeTimelineToZero] Normalizing timeline:', {
+      offset: result.offset,
+      updateCount: result.updates.length,
+      updates: result.updates.map(u => ({
+        id: u.shotGenerationId.substring(0, 8),
+        newFrame: u.newFrame
+      }))
+    });
+
+    try {
+      // Use batch_update_timeline_frames RPC for atomic update
+      const updates = result.updates.map(u => ({
+        shot_generation_id: u.shotGenerationId,
+        timeline_frame: u.newFrame,
+        metadata: { user_positioned: true }
+      }));
+
+      const { error } = await supabase.rpc('batch_update_timeline_frames', {
+        p_updates: updates
+      });
+
+      if (error) throw error;
+
+      // Reload positions to reflect changes
+      await loadPositions({ reason: 'reorder' });
+
+      console.log('[normalizeTimelineToZero] Successfully normalized timeline');
+      return true;
+    } catch (err) {
+      console.error('[normalizeTimelineToZero] Error:', err);
+      return false;
+    }
+  }, [shotId, shotGenerations, loadPositions]);
+
   // Delete item and its positions by shot_generations.id (not generation_id to avoid deleting duplicates)
   const deleteItem = useCallback(async (shotGenerationId: string) => {
     if (!shotId) {
@@ -781,16 +842,19 @@ export const useEnhancedShotPositions = (shotId: string | null, isDragInProgress
 
       // Reload positions to reflect changes
       await loadPositions({ reason: 'reorder' });
-      
+
+      // Normalize timeline after delete (shift to 0, compress large gaps)
+      await normalizeTimelineToZero();
+
       // Item deletion completed successfully - no toast needed for smooth UX
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete item';
       console.error('[deleteItem] Error:', err);
       toast.error(`Failed to delete item: ${errorMessage}`);
       throw err;
     }
-  }, [shotId, loadPositions]);
+  }, [shotId, loadPositions, normalizeTimelineToZero]);
 
   // Add new item with positions
   const addItem = useCallback(async (
@@ -1778,6 +1842,7 @@ export const useEnhancedShotPositions = (shotId: string | null, isDragInProgress
     initializeTimelineFrames,
     applyTimelineFrames,
     loadPositions,
+    normalizeTimelineToZero,
     updatePairPrompts,
     getPairPrompts,
     pairPrompts, // Export reactive pairPrompts value

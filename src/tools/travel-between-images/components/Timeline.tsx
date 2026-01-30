@@ -175,6 +175,8 @@ export interface TimelineProps {
   onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
+  // Multi-select: callback to create a new shot from selected images (returns new shot ID)
+  onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
   // Single image endpoint for setting video duration when there's only one image
   singleImageEndFrame?: number;
   onSingleImageEndFrameChange?: (endFrame: number) => void;
@@ -261,6 +263,7 @@ const Timeline: React.FC<TimelineProps> = ({
   onAddToShot,
   onAddToShotWithoutPosition,
   onCreateShot,
+  onNewShotFromSelection,
   // Single image duration props
   singleImageEndFrame,
   onSingleImageEndFrameChange,
@@ -1100,6 +1103,8 @@ const Timeline: React.FC<TimelineProps> = ({
         onSelectedOutputChange={onSelectedOutputChange}
         onSegmentFrameCountChange={onSegmentFrameCountChange}
         videoOutputs={allGenerationsForReadOnly}
+        onNewShotFromSelection={onNewShotFromSelection}
+        onShotChange={onShotChange}
       />
 
       {/* Lightbox */}

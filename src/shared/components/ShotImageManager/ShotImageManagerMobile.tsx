@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { ArrowDown, Check, Trash2, Loader2, FolderPlus } from 'lucide-react';
+import { ArrowDown, Trash2, Loader2, FolderPlus, ExternalLink } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
@@ -46,6 +46,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   onSegmentClick,
   hasPendingTask,
   onNewShotFromSelection,
+  onShotChange,
 }) => {
   const [mobileSelectedIds, setMobileSelectedIds] = useState<string[]>([]);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
@@ -54,6 +55,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   const currentDialogSkipChoiceRef = useRef(false);
   const [skipConfirmationNextTimeVisual, setSkipConfirmationNextTimeVisual] = useState(false);
   const [newShotState, setNewShotState] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [createdShotId, setCreatedShotId] = useState<string | null>(null);
   
   // State to control when selection bar should be visible (with delay)
   const [showSelectionBar, setShowSelectionBar] = useState(false);
@@ -188,14 +190,33 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   const handleNewShot = useCallback(async () => {
     if (!onNewShotFromSelection || newShotState !== 'idle') return;
     setNewShotState('loading');
+    setCreatedShotId(null);
     try {
-      await onNewShotFromSelection(mobileSelectedIds);
+      const shotId = await onNewShotFromSelection(mobileSelectedIds);
+      if (shotId) {
+        setCreatedShotId(shotId);
+      }
       setNewShotState('success');
-      setTimeout(() => setNewShotState('idle'), 2000);
+      // Auto-reset after 5 seconds if user doesn't click
+      setTimeout(() => {
+        setNewShotState('idle');
+        setCreatedShotId(null);
+      }, 5000);
     } catch {
       setNewShotState('idle');
+      setCreatedShotId(null);
     }
   }, [onNewShotFromSelection, mobileSelectedIds, newShotState]);
+
+  // Handler for jumping to the created shot
+  const handleJumpToShot = useCallback(() => {
+    if (createdShotId && onShotChange) {
+      onShotChange(createdShotId);
+      setNewShotState('idle');
+      setCreatedShotId(null);
+      setMobileSelectedIds([]);
+    }
+  }, [createdShotId, onShotChange]);
 
   // Mobile reordering function
   const handleMobileMoveHere = useCallback(async (targetIndex: number) => {
@@ -689,21 +710,30 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
                   {mobileSelectedIds.length === 1 ? 'Delete' : 'Delete All'}
                 </Button>
                 {onNewShotFromSelection && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleNewShot}
-                    disabled={newShotState === 'loading'}
-                    className={`h-8 w-8 ${newShotState === 'success' ? 'text-green-600' : 'text-muted-foreground'}`}
-                  >
-                    {newShotState === 'loading' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : newShotState === 'success' ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <FolderPlus className="h-4 w-4" />
-                    )}
-                  </Button>
+                  newShotState === 'success' && createdShotId && onShotChange ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleJumpToShot}
+                      className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleNewShot}
+                      disabled={newShotState === 'loading'}
+                      className="h-8 w-8 text-muted-foreground"
+                    >
+                      {newShotState === 'loading' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FolderPlus className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )
                 )}
               </div>
             </div>

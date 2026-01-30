@@ -970,4 +970,93 @@ export const getPairInfo = (
   }
 
   return pairs;
+};
+
+// ---------------------------------------------------------------------------
+// Multi-select bundling helper
+// When multiple items are selected and dragged/moved together, bundle them
+// 5 frames apart starting from the target frame.
+// ---------------------------------------------------------------------------
+
+/** Gap between items when bundling during multi-select drag/move */
+const BUNDLE_GAP = 5;
+
+/**
+ * Bundle multiple selected items together starting at a target frame.
+ * Items are placed 5 frames apart in their original sorted order.
+ *
+ * @param positions - Current frame positions map
+ * @param selectedIds - IDs of selected items to bundle
+ * @param targetFrame - Target frame for the first (lowest) selected item
+ * @returns New positions map with selected items bundled
+ */
+export const applyFluidTimelineMulti = (
+  positions: Map<string, number>,
+  selectedIds: string[],
+  targetFrame: number,
+): Map<string, number> => {
+  if (selectedIds.length === 0) return positions;
+  if (selectedIds.length === 1) {
+    // Single item - use regular fluid timeline
+    return applyFluidTimeline(positions, selectedIds[0], targetFrame);
+  }
+
+  const maxGap = calculateMaxGap();
+  const result = new Map(positions);
+
+  // Sort selected items by their current positions (preserve relative order)
+  const selectedWithPositions = selectedIds
+    .map(id => ({ id, frame: positions.get(id) ?? 0 }))
+    .sort((a, b) => a.frame - b.frame);
+
+  console.log('[FluidTimelineMulti] Bundling selected items:', {
+    selectedCount: selectedIds.length,
+    targetFrame,
+    originalPositions: selectedWithPositions.map(s => ({ id: s.id.substring(0, 8), frame: s.frame })),
+  });
+
+  // Place selected items 5 frames apart starting at target frame
+  selectedWithPositions.forEach((item, index) => {
+    const newFrame = targetFrame + (index * BUNDLE_GAP);
+    result.set(item.id, newFrame);
+    console.log(`[FluidTimelineMulti] Item ${item.id.substring(0, 8)}: ${item.frame} → ${newFrame}`);
+  });
+
+  // Get non-selected items sorted by position
+  const nonSelectedItems = [...positions.entries()]
+    .filter(([id]) => !selectedIds.includes(id))
+    .sort((a, b) => a[1] - b[1]);
+
+  // Calculate the bundle range
+  const bundleStart = targetFrame;
+  const bundleEnd = targetFrame + ((selectedIds.length - 1) * BUNDLE_GAP);
+
+  // Check if any non-selected items are within the bundle range and need to be pushed out
+  nonSelectedItems.forEach(([id, pos]) => {
+    if (pos >= bundleStart && pos <= bundleEnd) {
+      // Item is within bundle range - push it to just after the bundle
+      const newPos = bundleEnd + BUNDLE_GAP;
+      result.set(id, newPos);
+      console.log(`[FluidTimelineMulti] Pushing out item ${id.substring(0, 8)}: ${pos} → ${newPos}`);
+    }
+  });
+
+  // Ensure frame 0 constraint: if we moved away from 0, reassign it
+  const hadFrame0 = selectedWithPositions.some(item => item.frame === 0);
+  const stillHasFrame0 = targetFrame === 0;
+
+  if (hadFrame0 && !stillHasFrame0) {
+    // Find the item closest to 0 that isn't selected and assign it to 0
+    const nearestToZero = nonSelectedItems
+      .filter(([id]) => !selectedIds.includes(id))
+      .sort((a, b) => a[1] - b[1])[0];
+
+    if (nearestToZero) {
+      console.log(`[FluidTimelineMulti] Reassigning frame 0 to ${nearestToZero[0].substring(0, 8)}`);
+      result.set(nearestToZero[0], 0);
+    }
+  }
+
+  // Apply gap constraints to ensure no gaps exceed 81 frames
+  return shrinkOversizedGaps(result);
 }; 

@@ -31,7 +31,7 @@ interface TimelineItemProps {
   originalFramePos: number;
   /** When provided, image src will only be set once this is true */
   shouldLoad?: boolean;
-  
+
   // Action handlers (optional in readOnly mode)
   onDelete?: (imageId: string) => void;
   onDuplicate?: (imageId: string, timeline_frame: number) => void;
@@ -48,6 +48,11 @@ interface TimelineItemProps {
   isJustDropped?: boolean;
   // Prefetch callback for task data (called on hover)
   onPrefetch?: () => void;
+  // Multi-select state
+  isSelected?: boolean;
+  onSelectionClick?: (e: React.MouseEvent) => void;
+  /** Number of selected items (for badge display) */
+  selectedCount?: number;
 }
 
 // TimelineItem component - simplified without dnd-kit
@@ -80,6 +85,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   onTapToMove,
   isJustDropped = false,
   onPrefetch,
+  isSelected = false,
+  onSelectionClick,
+  selectedCount = 0,
 }) => {
   // [ShotNavPerf] Log when TimelineItem mounts/updates
   React.useEffect(() => {
@@ -119,10 +127,13 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   }, [isJustDropped]);
   
   // Combined "elevated" state: actual hover OR just-dropped effect (unless actually hovering takes over)
-  const isElevated = isHovered || showDropEffect || isDragging || isSelectedForMove;
+  const isElevated = isHovered || showDropEffect || isDragging || isSelectedForMove || isSelected;
   
   // Track if we just clicked a button to prevent drag from starting
   const buttonClickedRef = useRef(false);
+
+  // Track mouse down position for drag detection (to prevent onClick after drag)
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   
   // imageKey is the shot_generations.id - unique per entry in the shot
   // (Previously used shotImageEntryId fallback, but now id IS the shot entry ID)
@@ -130,18 +141,24 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
 
   // ===== MOBILE TAP HANDLING =====
   // Use generalized double-tap hook for iPad/mobile interaction
-  // Single tap → toggles selection, Double tap → opens lightbox
+  // Single tap → toggles selection (if multi-select enabled) or tap-to-move, Double tap → opens lightbox
   const { handleTouchStart, handleTouchEnd } = useDoubleTapWithSelection({
     onSingleTap: () => {
       console.log('[DoubleTapFlow] 🎬 SINGLE TAP CALLBACK - TimelineItem:', {
         itemId: imageKey?.substring(0, 8),
+        hasSelectionClick: !!onSelectionClick,
         hasTapToMove: !!onTapToMove,
         hasMobileTap: !!onMobileTap,
         readOnly
       });
-      
-      // Prefer tap-to-move on tablets, fall back to lightbox on phones
-      if (onTapToMove) {
+
+      // If multi-select is enabled, single tap toggles selection
+      // Otherwise fall back to tap-to-move or lightbox
+      if (onSelectionClick) {
+        console.log('[DoubleTapFlow] 🎯 Calling onSelectionClick (multi-select toggle)');
+        // Create a synthetic event for the handler
+        onSelectionClick({ preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent);
+      } else if (onTapToMove) {
         console.log('[DoubleTapFlow] 🎯 Calling onTapToMove (tablet selection)');
         onTapToMove();
       } else if (onMobileTap) {
@@ -299,9 +316,11 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
         transition: isDragging ? 'none' : 'transform 0.2s ease-out, opacity 0.2s ease-out, box-shadow 0.2s ease-out',
         opacity: isDragging ? 0.8 : 1,
         zIndex: isElevated ? 20 : 1,
-        cursor: isSelectedForMove ? 'pointer' : 'move',
-        boxShadow: isSelectedForMove 
-          ? '0 0 0 3px rgba(59, 130, 246, 0.5), 0 8px 25px rgba(59, 130, 246, 0.3)' 
+        cursor: isSelectedForMove || isSelected ? 'pointer' : 'move',
+        boxShadow: isSelected
+          ? '0 0 0 4px rgba(249, 115, 22, 1), 0 0 0 6px rgba(249, 115, 22, 0.3)'
+          : isSelectedForMove
+          ? '0 0 0 3px rgba(249, 115, 22, 0.6), 0 8px 25px rgba(249, 115, 22, 0.3)'
           : (isElevated ? '0 8px 25px rgba(0, 0, 0, 0.15)' : 'none'),
         // Prevent clicks from reaching items underneath when not hovered
         pointerEvents: isElevated ? 'auto' : 'auto',
@@ -317,10 +336,13 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           timestamp: Date.now()
         });
 
+        // Track mouse down position for drag detection
+        mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+
         // If clicking on a button area while hovered, don't start drag
         const target = e.target as HTMLElement;
         const isClickingButton = target.closest('button') || target.closest('[data-click-blocker]');
-        
+
         console.log('[TimelineItem] 🖱️ MOUSEDOWN on timeline item:', {
           imageId: imageKey?.substring(0, 8),
           framePosition,
@@ -330,7 +352,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           buttonClickedRecently: buttonClickedRef.current,
           timestamp: Date.now()
         });
-        
+
         // Check both the DOM and the recent click flag
         if (isClickingButton || buttonClickedRef.current) {
           console.log('[TimelineItem] 🛑 BLOCKED by button/blocker:', {
@@ -341,7 +363,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           e.stopPropagation();
           return;
         }
-        
+
         if (onMouseDown) {
           console.log('[TimelineItem] ✅ CALLING onMouseDown handler:', {
             itemId: imageKey?.substring(0, 8),
@@ -356,6 +378,23 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
       }}
       onMouseLeave={() => {
         setIsHovered(false);
+      }}
+      onClick={(e) => {
+        // Handle selection on click (desktop)
+        const target = e.target as HTMLElement;
+        if (target.closest('button') || target.closest('[data-click-blocker]')) return;
+
+        // Check if this was a drag (mouse moved significantly)
+        if (mouseDownPosRef.current) {
+          const dx = Math.abs(e.clientX - mouseDownPosRef.current.x);
+          const dy = Math.abs(e.clientY - mouseDownPosRef.current.y);
+          mouseDownPosRef.current = null;
+          if (dx > 5 || dy > 5) return; // Was a drag, not a click
+        }
+
+        if (onSelectionClick) {
+          onSelectionClick(e);
+        }
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -422,7 +461,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           {/* Selected for move indicator (tablet tap-to-move) */}
           {isSelectedForMove && (
             <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <div className="bg-blue-500 text-white px-2 py-0.5 rounded text-[10px] font-medium shadow-md">
+              <div className="bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-medium shadow-md">
                 Tap timeline to place
               </div>
             </div>

@@ -17,6 +17,7 @@ import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/sett
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { calculateAverageSpacing, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
 import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { MAX_FRAME_GAP } from '@/shared/lib/timelineNormalization';
 
 // Re-export types for convenience
 export type { ShotGeneration, PositionMetadata };
@@ -333,6 +334,77 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
         uniqueUpdates.set(entry.id, { newFrame: entry.newFrame, reason: entry.reason });
       }
     });
+
+    // Build complete picture of final positions (updated + unchanged items)
+    // Then normalize: start at 0, compress gaps > MAX_FRAME_GAP
+    const allFinalPositions: Array<{ id: string; frame: number }> = [];
+
+    // Add all positioned items with their final frames
+    for (const sg of shotGenerations) {
+      if (sg.timeline_frame == null || sg.timeline_frame < 0) continue; // Skip unpositioned
+
+      const update = uniqueUpdates.get(sg.id);
+      const finalFrame = update ? update.newFrame : sg.timeline_frame;
+      allFinalPositions.push({ id: sg.id, frame: finalFrame });
+    }
+
+    // Sort by frame position
+    allFinalPositions.sort((a, b) => a.frame - b.frame);
+
+    // Normalize: shift to start at 0, compress gaps > MAX_FRAME_GAP
+    if (allFinalPositions.length > 0) {
+      let currentFrame = 0;
+      const normalizedUpdates = new Map<string, { newFrame: number; reason: string }>();
+
+      for (let i = 0; i < allFinalPositions.length; i++) {
+        const item = allFinalPositions[i];
+
+        if (i === 0) {
+          // First item always at 0
+          if (item.frame !== 0) {
+            normalizedUpdates.set(item.id, { newFrame: 0, reason: 'Normalized to start at 0' });
+          }
+          currentFrame = 0;
+        } else {
+          const prevItem = allFinalPositions[i - 1];
+          const originalGap = item.frame - prevItem.frame;
+          const normalizedGap = Math.min(originalGap, MAX_FRAME_GAP);
+          const normalizedFrame = currentFrame + normalizedGap;
+
+          if (normalizedFrame !== item.frame) {
+            normalizedUpdates.set(item.id, {
+              newFrame: normalizedFrame,
+              reason: originalGap > MAX_FRAME_GAP
+                ? `Gap compressed from ${originalGap} to ${normalizedGap}`
+                : 'Shifted to maintain sequence'
+            });
+          }
+          currentFrame = normalizedFrame;
+        }
+      }
+
+      // Merge normalized updates into uniqueUpdates
+      for (const [id, payload] of normalizedUpdates) {
+        const existing = uniqueUpdates.get(id);
+        if (existing) {
+          // Update existing entry with normalized frame
+          uniqueUpdates.set(id, { newFrame: payload.newFrame, reason: `${existing.reason} → ${payload.reason}` });
+        } else {
+          // Add new normalization update
+          uniqueUpdates.set(id, payload);
+        }
+      }
+
+      console.log('[DataTrace] 🔧 Normalization applied:', {
+        totalItems: allFinalPositions.length,
+        normalizedCount: normalizedUpdates.size,
+        updates: Array.from(normalizedUpdates.entries()).map(([id, p]) => ({
+          id: id.substring(0, 8),
+          newFrame: p.newFrame,
+          reason: p.reason
+        }))
+      });
+    }
 
     // Execute all updates in parallel
     const updatePromises = Array.from(uniqueUpdates.entries()).map(async ([id, payload]) => {

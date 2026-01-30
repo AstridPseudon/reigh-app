@@ -92,7 +92,9 @@ import { useUnifiedDrop } from './hooks/useUnifiedDrop';
 import { useTimelineDrag } from './hooks/useTimelineDrag';
 import { useGlobalEvents } from './hooks/useGlobalEvents';
 import { useTapToMove } from './hooks/useTapToMove';
-import { applyFluidTimeline } from './utils/timeline-utils';
+import { useTimelineSelection } from './hooks/useTimelineSelection';
+import { applyFluidTimeline, applyFluidTimelineMulti } from './utils/timeline-utils';
+import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
 
 /** Shared pair data structure for SegmentSettingsModal and MediaLightbox */
 export interface PairData {
@@ -194,6 +196,10 @@ interface TimelineContainerProps {
   onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
   // Preloaded video outputs for readOnly mode (bypasses database query)
   videoOutputs?: GenerationRow[];
+  // Multi-select: callback to create a new shot from selected images (returns new shot ID)
+  onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
+  // Callback to navigate to a different shot (used for "Jump to shot" after creation)
+  onShotChange?: (shotId: string) => void;
 }
 
 const TimelineContainer: React.FC<TimelineContainerProps> = ({
@@ -248,6 +254,8 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onSelectedOutputChange,
   onSegmentFrameCountChange,
   videoOutputs,
+  onNewShotFromSelection,
+  onShotChange,
 }) => {
   // [ZoomDebug] Track component mounts to detect unwanted remounts
   const mountCountRef = useRef(0);
@@ -533,6 +541,19 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   // Only show tap-to-move on tablets (not phones or desktop)
   const enableTapToMove = isTablet && !readOnly;
 
+  // Multi-select state for selecting multiple timeline items
+  const {
+    selectedIds,
+    showSelectionBar,
+    isSelected,
+    toggleSelection,
+    clearSelection,
+    lockSelection,
+    unlockSelection,
+  } = useTimelineSelection({
+    isEnabled: !readOnly,
+  });
+
   // Track dimensions at drag start to prevent view jumping when reducing duration
   const dragStartDimensionsRef = useRef<{ fullMin: number; fullMax: number; fullRange: number } | null>(null);
   const isEndpointDraggingRef = useRef(false);
@@ -578,6 +599,9 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     fullRange: rawDimensions.fullRange,
     containerRect,
     setIsDragInProgress,
+    selectedIds,
+    onDragStart: lockSelection,
+    onDragEnd: unlockSelection,
   });
 
   // Set/clear frozen dimensions when image drag starts/ends
@@ -735,17 +759,46 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     
     // Update positions via setFramePositions which handles database update
     await setFramePositions(finalPositions);
-    
+
     console.log('[TapToMove] Position update completed');
   }, [framePositions, setFramePositions, fullMin, fullMax]);
-  
+
+  // Multi-item tap-to-move handler (for tablets with multiple items selected)
+  const handleTapToMoveMultiAction = React.useCallback(async (imageIds: string[], targetFrame: number) => {
+    console.log('[TapToMoveMulti] Moving multiple items:', {
+      count: imageIds.length,
+      imageIds: imageIds.map(id => id.substring(0, 8)),
+      targetFrame,
+    });
+
+    // Apply fluid timeline multi to bundle items
+    const finalPositions = applyFluidTimelineMulti(framePositions, imageIds, targetFrame);
+
+    console.log('[TapToMoveMulti] Final positions after bundling:', {
+      positions: [...finalPositions.entries()].map(([id, frame]) => ({
+        id: id.substring(0, 8),
+        frame,
+      })),
+    });
+
+    // Update positions
+    await setFramePositions(finalPositions);
+
+    // Clear selection after moving
+    clearSelection();
+
+    console.log('[TapToMoveMulti] Multi-item move completed');
+  }, [framePositions, setFramePositions, clearSelection]);
+
   const tapToMove = useTapToMove({
     isEnabled: enableTapToMove,
     onMove: handleTapToMoveAction,
+    onMoveMultiple: handleTapToMoveMultiAction,
     framePositions,
     fullMin,
     fullRange,
-    timelineWidth: containerWidth
+    timelineWidth: containerWidth,
+    selectedIds,
   });
 
   // Global events hook
@@ -1481,17 +1534,24 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
             }
           }}
           onClick={(e) => {
-            // On tablets, handle tap-to-place for selected items
-            if (enableTapToMove && tapToMove.selectedItemId) {
-              // Only handle clicks on the timeline background, not on items or buttons
-              const target = e.target as HTMLElement;
-              const isClickingItem = target.closest('[data-item-id]');
-              const isClickingButton = target.closest('button');
-              
-              if (!isClickingItem && !isClickingButton) {
+            // Only handle clicks on the timeline background, not on items or buttons
+            const target = e.target as HTMLElement;
+            const isClickingItem = target.closest('[data-item-id]');
+            const isClickingButton = target.closest('button');
+
+            if (!isClickingItem && !isClickingButton) {
+              // On tablets, handle tap-to-place for selected items
+              if (enableTapToMove && (tapToMove.selectedItemId || selectedIds.length > 0)) {
                 e.preventDefault();
                 e.stopPropagation();
                 tapToMove.handleTimelineTap(e.clientX, containerRef);
+                return;
+              }
+
+              // Clear multi-selection when clicking on empty timeline background
+              if (selectedIds.length > 0) {
+                console.log('[TimelineSelection] Clearing selection on background click');
+                clearSelection();
               }
             }
           }}
@@ -1922,6 +1982,11 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                   const generationId = (image as any).generation_id || image.id;
                   if (generationId) prefetchTaskData(generationId);
                 } : undefined}
+                isSelected={isSelected(imageKey)}
+                onSelectionClick={readOnly ? undefined : () => {
+                  toggleSelection(imageKey);
+                }}
+                selectedCount={selectedIds.length}
               />
             );
           })}
@@ -2135,6 +2200,25 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
           setShowVideoBrowser(false);
         }}
       />
+
+      {/* Multi-select action bar */}
+      {showSelectionBar && selectedIds.length > 0 && !readOnly && (
+        <SelectionActionBar
+          selectedCount={selectedIds.length}
+          onDeselect={clearSelection}
+          onDelete={() => {
+            // Delete all selected items
+            console.log('[TimelineSelection] Deleting selected items:', selectedIds.map(id => id.substring(0, 8)));
+            selectedIds.forEach(id => onImageDelete(id));
+            clearSelection();
+          }}
+          onNewShot={onNewShotFromSelection ? async () => {
+            const shotId = await onNewShotFromSelection(selectedIds);
+            return shotId;
+          } : undefined}
+          onJumpToShot={onShotChange}
+        />
+      )}
     </div>
   );
 };

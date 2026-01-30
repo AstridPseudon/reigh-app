@@ -145,7 +145,7 @@ interface ShotImagesEditorProps {
   onAddToShot?: (shotId: string, generationId: string, position: number) => Promise<void>;
   onAddToShotWithoutPosition?: (shotId: string, generationId: string) => Promise<boolean>;
   onCreateShot?: (name: string) => Promise<string>;
-  onNewShotFromSelection?: (selectedIds: string[]) => Promise<void>;
+  onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
   /** Callback to notify parent of drag state changes - used to suppress query refetches during drag */
   onDragStateChange?: (isDragging: boolean) => void;
   /** Callback when single-image duration changes (for single-image video generation) */
@@ -2547,6 +2547,8 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
                   showTransitionOverlay();
                   document.body.classList.add('lightbox-transitioning');
                 }}
+                // Multi-select: create new shot from selected images
+                onNewShotFromSelection={onNewShotFromSelection}
               />
 
               {/* Helper for un-positioned generations - in timeline mode, show after timeline */}

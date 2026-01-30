@@ -5,6 +5,7 @@ import {
   findClosestValidPosition,
   pixelToFrame,
   applyFluidTimeline,
+  applyFluidTimelineMulti,
 } from "../utils/timeline-utils";
 import { log } from "@/shared/lib/logger";
 import { TIMELINE_PADDING_OFFSET } from "../constants";
@@ -37,6 +38,12 @@ interface UseTimelineDragProps {
   fullRange: number;
   containerRect: DOMRect | null;
   setIsDragInProgress?: (isDragging: boolean) => void;
+  /** IDs of currently selected items for multi-select drag */
+  selectedIds?: string[];
+  /** Callback when drag starts on a selected item */
+  onDragStart?: () => void;
+  /** Callback when drag ends */
+  onDragEnd?: () => void;
 }
 
 export const useTimelineDrag = ({
@@ -49,10 +56,13 @@ export const useTimelineDrag = ({
   fullRange,
   containerRect,
   setIsDragInProgress,
+  selectedIds = [],
+  onDragStart,
+  onDragEnd,
 }: UseTimelineDragProps) => {
-  
+
   // Debug: Log if setIsDragInProgress is available
-  console.log('[TimelineMovementDebug] 🔧 useTimelineDrag initialized with setIsDragInProgress:', !!setIsDragInProgress);
+  console.log('[TimelineMovementDebug] 🔧 useTimelineDrag initialized with setIsDragInProgress:', !!setIsDragInProgress, 'selectedIds:', selectedIds.length);
   // Drag threshold in pixels - must move this far before drag starts
   const DRAG_THRESHOLD = 5;
 
@@ -189,16 +199,30 @@ export const useTimelineDrag = ({
     const targetFrame = calculateTargetFrame(currentMousePosRef.current.x, containerRect);
     const finalPosition = calculateFinalPosition(targetFrame);
 
+    // Check if this is a multi-select drag (dragged item is in selection with >1 items)
+    const isMultiSelectDrag = selectedIds.length > 1 && selectedIds.includes(dragState.activeId);
+
     console.log('[FluidTimelineDebug] 🚀 CALCULATE DRAG PREVIEW - Starting preview calculation:', {
       itemId: dragState.activeId.substring(0, 8),
       targetFrame,
       finalPosition,
       originalPos: framePositions.get(dragState.activeId) ?? 0,
-      contextFrames: 0,
+      isMultiSelectDrag,
+      selectedCount: selectedIds.length,
       coordinate_source: 'currentMousePosRef.current.x',
       timestamp: new Date().toISOString()
     });
 
+    // MULTI-SELECT DRAG: Bundle all selected items together
+    if (isMultiSelectDrag) {
+      console.log('[FluidTimelineMulti] 🎯 Multi-select drag preview:', {
+        selectedIds: selectedIds.map(id => id.substring(0, 8)),
+        targetFrame: finalPosition,
+      });
+      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition);
+    }
+
+    // SINGLE ITEM DRAG: Original behavior
     const newPositions = new Map(framePositions);
     const originalPos = framePositions.get(dragState.activeId) ?? 0;
 
@@ -221,35 +245,35 @@ export const useTimelineDrag = ({
         const sortedItems = [...framePositions.entries()]
           .filter(([id]) => id !== dragState.activeId && id !== conflictingItem[0])
           .sort((a, b) => a[1] - b[1]);
-        
+
         // Find the next item after position 0
         const nextItem = sortedItems.find(([_, pos]) => pos > 0);
         const nextItemPos = nextItem ? nextItem[1] : 50; // Default to 50 if no next item
-        
+
         // Move the conflicting item to the midpoint
         const midpoint = Math.floor(nextItemPos / 2);
-        
+
         console.log('[FluidTimelineDebug] 📍 POSITION 0 INSERT:', {
           draggedItem: dragState.activeId.substring(0, 8),
           displacedItem: conflictingItem[0].substring(0, 8),
           displacedNewPos: midpoint,
           nextItemPos
         });
-        
+
         newPositions.set(conflictingItem[0], midpoint);
         newPositions.set(dragState.activeId, 0);
       } else {
         // Normal case: dropping at an occupied position (not 0)
         // Just move the dragged item to 1 frame higher than the target
         const adjustedPosition = finalPosition + 1;
-        
+
         console.log('[FluidTimelineDebug] 📍 INSERT (not swap):', {
           draggedItem: dragState.activeId.substring(0, 8),
           originalTarget: finalPosition,
           adjustedPosition,
           occupiedBy: conflictingItem[0].substring(0, 8)
         });
-        
+
         newPositions.set(dragState.activeId, adjustedPosition);
       }
     } else {
@@ -310,7 +334,7 @@ export const useTimelineDrag = ({
     dragState.currentX,
     dragState.hasMovedPastThreshold,
     framePositions,
-    0,
+    selectedIds,
     calculateTargetFrame,
     calculateFinalPosition,
   ]);
@@ -324,6 +348,19 @@ export const useTimelineDrag = ({
     const targetFrame = calculateTargetFrame(clientX, containerRect);
     const finalPosition = calculateFinalPosition(targetFrame);
 
+    // Check if this is a multi-select drag
+    const isMultiSelectDrag = selectedIds.length > 1 && selectedIds.includes(dragState.activeId);
+
+    // MULTI-SELECT DRAG: Bundle all selected items together
+    if (isMultiSelectDrag) {
+      console.log('[FluidTimelineMulti] 🎯 Multi-select final drop:', {
+        selectedIds: selectedIds.map(id => id.substring(0, 8)),
+        targetFrame: finalPosition,
+      });
+      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition);
+    }
+
+    // SINGLE ITEM DRAG: Original behavior
     console.log('[GroundTruthDrop] 🎯 DOM-BASED FINAL DROP CALCULATION:', {
       clientX,
       containerRect: containerRect ? {
@@ -452,7 +489,7 @@ export const useTimelineDrag = ({
     dragState.activeId,
     dragState.hasMovedPastThreshold,
     framePositions,
-    0,
+    selectedIds,
     calculateTargetFrame,
     calculateFinalPosition,
   ]);
@@ -643,11 +680,14 @@ export const useTimelineDrag = ({
       hasMovedPastThreshold: false, // Not yet moved past threshold
     });
 
+    // Notify selection system that drag started (to lock selection)
+    onDragStart?.();
+
     log('TimelineDragDebug', 'start', {
       id: imageId,
       framePos,
     });
-  }, [framePositions, dragState.isDragging]);
+  }, [framePositions, dragState.isDragging, onDragStart]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!dragState.isDragging) return;
@@ -834,6 +874,9 @@ export const useTimelineDrag = ({
         console.log('[TimelineMovementDebug] 🏁 DRAG CANCELLED (below threshold) - Setting isDragInProgress = false');
         setIsDragInProgress(false);
       }
+
+      // Notify selection system that drag ended (unlock selection)
+      onDragEnd?.();
 
       return;
     }
@@ -1169,17 +1212,21 @@ export const useTimelineDrag = ({
       hasMovedPastThreshold: false,
     });
 
+    // Notify selection system that drag ended (to unlock selection)
+    onDragEnd?.();
+
     // Clear the mouse position ref at the end of a drag to avoid stale values on next drag
     currentMousePosRef.current = null;
   }, [
-    dragState, 
-    images, 
-    onImageReorder, 
-    calculateDragPreviewWithPosition, 
+    dragState,
+    images,
+    onImageReorder,
+    calculateDragPreviewWithPosition,
     setFramePositions,
     framePositions,
     containerRect,
-    calculateTargetFrame
+    calculateTargetFrame,
+    onDragEnd
   ]);
 
   // Calculate current values for rendering
