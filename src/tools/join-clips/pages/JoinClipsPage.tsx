@@ -74,6 +74,8 @@ interface VideoClip {
   // Duration/frame info for validation
   durationSeconds?: number;
   metadataLoading?: boolean;
+  // Source generation ID (when added via "Add to Join" from lightbox)
+  generationId?: string;
 }
 
 interface TransitionPrompt {
@@ -541,6 +543,7 @@ const JoinClipsPage: React.FC = () => {
                       durationSeconds,
                       loaded: false,
                       playing: false,
+                      generationId, // Track source generation for variant creation
                     }
                   : clip
               );
@@ -556,6 +559,7 @@ const JoinClipsPage: React.FC = () => {
                   durationSeconds,
                   loaded: false,
                   playing: false,
+                  generationId, // Track source generation for variant creation
                 },
               ];
             }
@@ -1410,6 +1414,8 @@ const JoinClipsPage: React.FC = () => {
         ...(resolutionTuple && { resolution: resolutionTuple }),
         ...(noisedInputVideo > 0 && { vid2vid_init_strength: noisedInputVideo }),
         ...(isLooping && { loop_first_clip: true }),
+        // When looping a clip from "Add to Join", create variant on source generation
+        ...(isLooping && validClips[0].generationId && { based_on: validClips[0].generationId }),
         // Motion settings for UI state restoration
         motion_mode: motionMode,
         selected_phase_preset_id: selectedPhasePresetId,

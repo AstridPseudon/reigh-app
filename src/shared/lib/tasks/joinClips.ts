@@ -90,7 +90,8 @@ export interface JoinClipsTaskParams {
   use_input_video_fps?: boolean; // Use first input video's FPS instead of downsampling to 16fps (default: false)
   vid2vid_init_strength?: number; // Adds noise to input video frames (0 = disabled, higher = more noise/creative freedom)
   loop_first_clip?: boolean; // Loop first clip - use first clip as both start and end
-  
+  based_on?: string; // Source generation ID for variant creation (when looping from "Add to Join")
+
   // Video edit mode - for regenerating portions of a single video
   video_edit_mode?: boolean;
   source_video_url?: string;
@@ -327,6 +328,11 @@ function buildJoinClipsPayload(
 
   if (params.loop_first_clip) {
     orchestratorDetails.loop_first_clip = true;
+  }
+
+  // Pass based_on for variant creation when looping a clip from "Add to Join"
+  if (params.based_on) {
+    orchestratorDetails.based_on = params.based_on;
   }
 
   // Keep additional_loras for backward compatibility, but LoRAs are now primarily in phase_config

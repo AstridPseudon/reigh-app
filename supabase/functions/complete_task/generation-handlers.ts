@@ -100,6 +100,48 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
     }
   );
 
+  // For loop tasks with based_on (e.g., "Add to Join" loop), also create variant on source generation
+  const orchDetails = taskData.params?.orchestrator_details || taskData.params?.full_orchestrator_payload || {};
+  const isLoop = orchDetails.loop_first_clip === true;
+  const basedOnId = orchDetails.based_on || taskData.params?.based_on;
+
+  if (isLoop && basedOnId) {
+    console.log(`[GenHandler] Loop with based_on detected - also creating variant on source generation ${basedOnId}`);
+    logger?.info(`${taskData.task_type}: creating loop variant on source`, {
+      task_id: taskId,
+      based_on: basedOnId,
+      action: "create_loop_variant_on_source"
+    });
+
+    // Verify the source generation exists before creating variant
+    const { data: sourceGen, error: sourceError } = await supabase
+      .from('generations')
+      .select('id')
+      .eq('id', basedOnId)
+      .maybeSingle();
+
+    if (sourceGen && !sourceError) {
+      await createVariant(
+        supabase,
+        basedOnId,
+        publicUrl,
+        thumbnailUrl,
+        {
+          ...taskData.params,
+          source_task_id: taskId,
+          tool_type: config.toolType,
+          created_from: 'loop_variant',
+        },
+        true, // is_primary - make this the new primary variant
+        'clip_join', // variant_type
+        null
+      );
+      console.log(`[GenHandler] Successfully created loop variant on source generation ${basedOnId}`);
+    } else {
+      console.warn(`[GenHandler] Source generation ${basedOnId} not found, skipping loop variant`);
+    }
+  }
+
   return result;
 }
 
