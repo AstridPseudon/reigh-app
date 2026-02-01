@@ -409,19 +409,21 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
       {/* Content container - positioned above backdrop */}
       <div className="relative w-full h-full flex items-center justify-center p-4 pointer-events-none">
         {/* Wrapper to position navigation arrows closer to the form */}
-        <div className="relative max-w-2xl w-full flex items-center justify-center pointer-events-auto">
+        <div className="relative max-w-2xl w-full flex items-center justify-center">
         {/* Floating Navigation Arrows - positioned relative to this wrapper */}
-        <NavigationArrows
-          showNavigation={true}
-          readOnly={readOnly}
-          onPrevious={onNavPrev}
-          onNext={onNavNext}
-          hasPrevious={hasPrevious}
-          hasNext={hasNext}
-          variant="desktop"
-        />
+        <div className="pointer-events-auto">
+          <NavigationArrows
+            showNavigation={true}
+            readOnly={readOnly}
+            onPrevious={onNavPrev}
+            onNext={onNavNext}
+            hasPrevious={hasPrevious}
+            hasNext={hasNext}
+            variant="desktop"
+          />
+        </div>
 
-        <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+        <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto relative pointer-events-auto">
         {/* Header */}
         <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-center z-10">
           <div className="text-center">
