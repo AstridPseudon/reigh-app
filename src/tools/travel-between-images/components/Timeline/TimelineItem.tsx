@@ -9,6 +9,7 @@ import { framesToSeconds } from "./utils/time-utils";
 import { TIMELINE_PADDING_OFFSET } from "./constants";
 import { VariantBadge } from "@/shared/components/VariantBadge";
 import { useMarkVariantViewed } from "@/shared/hooks/useMarkVariantViewed";
+import { useDeviceDetection } from "@/shared/hooks/useDeviceDetection";
 
 // Props for individual timeline items
 interface TimelineItemProps {
@@ -98,6 +99,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
 
   // Hook for marking variants as viewed
   const { markAllViewed } = useMarkVariantViewed();
+
+  // Device detection for touch-specific UI
+  const { isTouchDevice } = useDeviceDetection();
 
   // Callback to mark all variants for this generation as viewed
   const handleMarkAllVariantsViewed = useCallback(() => {
@@ -443,9 +447,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
             loading="lazy"
           />
 
-          {/* Selected state: show "Tap timeline to place" hint and Open button */}
+          {/* Selected state: show "Tap timeline to place" hint and Open button (touch devices only) */}
           {/* This replaces the old double-tap pattern with explicit buttons (like ShotBatchItemMobile) */}
-          {isSelected && (
+          {isSelected && isTouchDevice && (
             <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none gap-1">
               {/* "Tap timeline to place" hint */}
               <div className="bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-medium shadow-md">

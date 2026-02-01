@@ -68,6 +68,8 @@ export const validateGaps = (
 export const shrinkOversizedGaps = (
   positions: Map<string, number>,
   excludeId?: string,
+  /** Skip quantization during drag preview to avoid jitter */
+  skipQuantization: boolean = false,
 ): Map<string, number> => {
   const maxGap = calculateMaxGap();
 
@@ -82,29 +84,35 @@ export const shrinkOversizedGaps = (
 
   entries.sort((a, b) => a[1] - b[1]);
 
-  let prev = 0;
   const result = new Map<string, number>();
 
+  // CONSTRAINT: First item must always be at position 0
+  // This ensures the timeline always starts at frame 0
   for (let i = 0; i < entries.length; i++) {
     const [id, originalPos] = entries[i];
-    
-    // Special case: preserve frame 0 exactly
-    if (originalPos === 0) {
+
+    if (i === 0) {
+      // First item is always at position 0
       result.set(id, 0);
-      prev = 0;
     } else {
-      // Calculate the desired gap and quantize it to 4N+1 format
-      const desiredGap = Math.max(originalPos - prev, MIN_GAP);
-      const quantizedDesiredGap = quantizeGap(desiredGap, MIN_GAP);
-      
+      // Calculate gap from previous item
+      const prevPos = result.get(entries[i - 1][0]) ?? 0;
+      const prevOriginalPos = entries[i - 1][1];
+
+      // Preserve the original gap between items, but constrain it
+      const originalGap = originalPos - prevOriginalPos;
+      const desiredGap = Math.max(originalGap, MIN_GAP);
+
+      // Only quantize on final drop, not during drag preview (to avoid jitter)
+      const quantizedDesiredGap = skipQuantization ? desiredGap : quantizeGap(desiredGap, MIN_GAP);
+
       // Constrain gap to max and quantize the result
       const constrainedGap = Math.min(quantizedDesiredGap, maxGap);
-      const quantizedGapValue = quantizeGap(constrainedGap, MIN_GAP);
-      
-      const allowedPos = prev + quantizedGapValue;
-      
+      const finalGap = skipQuantization ? constrainedGap : quantizeGap(constrainedGap, MIN_GAP);
+
+      const allowedPos = prevPos + finalGap;
+
       result.set(id, allowedPos);
-      prev = allowedPos;
     }
   }
 
@@ -214,7 +222,9 @@ export const applyFluidTimeline = (
   targetFrame: number,
   excludeId?: string,
   fullMin: number = 0,
-  fullMax: number = Number.MAX_SAFE_INTEGER
+  fullMax: number = Number.MAX_SAFE_INTEGER,
+  /** Skip quantization during drag preview to avoid jitter */
+  skipQuantization: boolean = false,
 ): Map<string, number> => {
   const maxGap = calculateMaxGap();
   const originalPos = positions.get(draggedId) ?? 0;
@@ -265,7 +275,7 @@ export const applyFluidTimeline = (
   const originalDraggedIndex = originalSorted.findIndex(([id, _]) => id === draggedId);
   if (originalDraggedIndex === -1) {
     console.log('[FluidTimelineCore] ⚠️ DRAGGED ITEM NOT FOUND - Falling back to shrinkOversizedGaps');
-    return shrinkOversizedGaps(result, excludeId);
+    return shrinkOversizedGaps(result, excludeId, skipQuantization);
   }
 
   // Get adjacent items based on ORIGINAL positions, not the moved position
@@ -480,7 +490,7 @@ export const applyFluidTimeline = (
 
   if (!needsShift) {
     console.log('[FluidTimelineCore] ✅ NO MOVEMENT - Using standard gap enforcement');
-    return shrinkOversizedGaps(result, excludeId);
+    return shrinkOversizedGaps(result, excludeId, skipQuantization);
   }
 
   // SIMPLIFIED: Don't shift other items during drag
@@ -494,7 +504,7 @@ export const applyFluidTimeline = (
   });
   
   // Just apply gap constraints without shifting other items
-  return shrinkOversizedGaps(result, excludeId);
+  return shrinkOversizedGaps(result, excludeId, skipQuantization);
 
   /* DISABLED: Complex shifting logic that was causing issues
   // Apply shifting to handle violations (both gap violations and boundary collisions)
@@ -994,11 +1004,13 @@ export const applyFluidTimelineMulti = (
   positions: Map<string, number>,
   selectedIds: string[],
   targetFrame: number,
+  /** Skip quantization during drag preview to avoid jitter */
+  skipQuantization: boolean = false,
 ): Map<string, number> => {
   if (selectedIds.length === 0) return positions;
   if (selectedIds.length === 1) {
     // Single item - use regular fluid timeline
-    return applyFluidTimeline(positions, selectedIds[0], targetFrame);
+    return applyFluidTimeline(positions, selectedIds[0], targetFrame, undefined, 0, Number.MAX_SAFE_INTEGER, skipQuantization);
   }
 
   const maxGap = calculateMaxGap();
@@ -1058,5 +1070,5 @@ export const applyFluidTimelineMulti = (
   }
 
   // Apply gap constraints to ensure no gaps exceed 81 frames
-  return shrinkOversizedGaps(result);
+  return shrinkOversizedGaps(result, undefined, skipQuantization);
 }; 

@@ -219,7 +219,8 @@ export const useTimelineDrag = ({
         selectedIds: selectedIds.map(id => id.substring(0, 8)),
         targetFrame: finalPosition,
       });
-      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition);
+      // Skip quantization during preview for smooth dragging
+      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition, true);
     }
 
     // SINGLE ITEM DRAG: Original behavior
@@ -303,7 +304,8 @@ export const useTimelineDrag = ({
       }))
     });
 
-    const result = applyFluidTimeline(newPositions, dragState.activeId, finalPosition, 0, undefined, fullMin, fullMax);
+    // Skip quantization during preview for smooth dragging
+    const result = applyFluidTimeline(newPositions, dragState.activeId, finalPosition, undefined, fullMin, fullMax, true);
 
     console.log('[FluidTimelineDebug] ✅ FLUID TIMELINE RESULT - After fluid timeline:', {
       itemId: dragState.activeId.substring(0, 8),
@@ -357,7 +359,8 @@ export const useTimelineDrag = ({
         selectedIds: selectedIds.map(id => id.substring(0, 8)),
         targetFrame: finalPosition,
       });
-      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition);
+      // Apply quantization on final drop (skipQuantization = false)
+      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition, false);
     }
 
     // SINGLE ITEM DRAG: Original behavior
@@ -459,7 +462,8 @@ export const useTimelineDrag = ({
       }))
     });
 
-    const result = applyFluidTimeline(newPositions, dragState.activeId, finalPosition, 0, undefined, fullMin, fullMax);
+    // Apply quantization on final drop (skipQuantization = false, which is the default)
+    const result = applyFluidTimeline(newPositions, dragState.activeId, finalPosition, undefined, fullMin, fullMax, false);
 
     console.log('[FinalDropDebug] ✅ FINAL DROP RESULT - After fluid timeline:', {
       itemId: dragState.activeId.substring(0, 8),
