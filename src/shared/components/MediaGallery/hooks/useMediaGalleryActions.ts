@@ -85,21 +85,27 @@ export const useMediaGalleryActions = ({
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
-   * Optimistic delete with skeleton placeholder.
+   * Optimistic delete with skeleton placeholder at end of grid.
    *
    * Flow:
-   * 1. Mark item as deleted (MediaGalleryItem renders skeleton in place)
-   * 2. Call server delete
-   * 3. On success: trigger immediate refetch (debounced 100ms for rapid deletes)
-   * 4. On failure: revert optimistic state, show error
-   * 5. Check page bounds after refetch
+   * 1. Mark item as deleted (item disappears, others shift)
+   * 2. Show skeleton at end of grid while waiting for backfill
+   * 3. Call server delete
+   * 4. On success: trigger immediate refetch (debounced 100ms for rapid deletes)
+   * 5. On failure: revert optimistic state, hide skeleton, show error
+   * 6. Check page bounds after refetch
    */
   const handleOptimisticDelete = useCallback(async (imageId: string) => {
-    // 1. Mark item as deleted - MediaGalleryItem will render skeleton in place
+    // 1. Mark item as deleted - it will be filtered out and others shift
     markOptimisticDeleted(imageId);
     pendingDeletesRef.current.add(imageId);
 
-    // 2. Close lightbox if this image is open
+    // 2. Show skeleton at end of grid while waiting for backfill data
+    if (isServerPagination) {
+      setIsBackfillLoading(true);
+    }
+
+    // 3. Close lightbox if this image is open
     if (activeLightboxMedia?.id === imageId) {
       setActiveLightboxMedia(null);
     }

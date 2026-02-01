@@ -337,9 +337,9 @@ export const useMediaGalleryFiltersOptimized = ({
     // Start with all images
     let currentFiltered = images;
 
-    // NOTE: We do NOT filter out optimistically deleted items here.
-    // Instead, MediaGalleryItem renders them as skeleton placeholders.
-    // This keeps the item in position until new data arrives to replace it.
+    // 0. Filter out optimistically deleted items so they disappear immediately
+    // and remaining items shift to fill the gap
+    currentFiltered = currentFiltered.filter(image => !optimisticDeletedIds.has(image.id));
 
     // 1. Apply tool_type filter (only in client pagination mode)
     const isServerPagination = !!(onServerPageChange && serverPage);

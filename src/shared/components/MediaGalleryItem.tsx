@@ -922,30 +922,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     }
   };
 
-  // Render skeleton placeholder when item is being optimistically deleted
-  // This keeps the item in position until new data arrives to replace it
-  if (isOptimisticallyDeleted) {
-    return (
-      <div className="relative group">
-        <div className="border rounded-lg overflow-hidden transition-all duration-200 relative bg-card">
-          <div className="relative w-full">
-            <div
-              style={{
-                paddingBottom: aspectRatioPadding,
-                minHeight: minHeight
-              }}
-              className="relative bg-muted/50"
-            >
-              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
-                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Conditionally wrap with DraggableImage only on desktop to avoid interfering with mobile scrolling
   const imageContent = (
     <div

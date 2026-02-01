@@ -6,6 +6,7 @@ import { ImagePreloadManager } from "@/shared/components/ImagePreloadManager";
 import { MediaGalleryItem } from "@/shared/components/MediaGalleryItem";
 import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { GeneratedImageWithMetadata } from '../index';
+import { parseRatio } from '@/shared/lib/aspectRatios';
 
 export interface MediaGalleryGridProps {
   // Data props
@@ -169,6 +170,39 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
     prevSignatureForBackfillRef.current = pageSignature;
   }, [pageSignature, isBackfillLoading, setIsBackfillLoading]);
 
+  // Compute how many skeletons to show at the end of the grid during backfill
+  const computedSkeletonCount = React.useMemo(() => {
+    if (!isBackfillLoading || !isServerPagination) return 0;
+
+    // Calculate optimistic total (server total minus pending deletes)
+    const optimisticTotal = Math.max(0, totalCount - optimisticDeletedCount);
+
+    // How many items should be on this page?
+    const itemsAfterOffset = Math.max(0, optimisticTotal - offset);
+    const expectedItems = Math.min(itemsPerPage, itemsAfterOffset);
+
+    // How many items do we actually have?
+    const actualItems = paginatedImages.length;
+
+    // Skeleton count is the gap
+    return Math.max(0, expectedItems - actualItems);
+  }, [isBackfillLoading, isServerPagination, totalCount, optimisticDeletedCount, offset, itemsPerPage, paginatedImages.length]);
+
+  // Calculate aspect ratio to match MediaGalleryItem exactly
+  const skeletonAspectRatio = React.useMemo(() => {
+    let padding = '100%'; // Default 1:1
+    if (projectAspectRatio) {
+      const ratio = parseRatio(projectAspectRatio);
+      if (!isNaN(ratio)) {
+        const calculated = (1 / ratio) * 100;
+        const minPadding = 60;
+        const maxPadding = 200;
+        padding = `${Math.min(Math.max(calculated, minPadding), maxPadding)}%`;
+      }
+    }
+    return padding;
+  }, [projectAspectRatio]);
+
   // Show full skeleton gallery when loading new data
   if (isLoading) {
     // Match the gap classes used in the actual grid
@@ -293,7 +327,24 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
                       />
                     );
                   })}
-                  
+
+                  {/* Backfill skeletons at end of grid - match MediaGalleryItem structure exactly */}
+                  {computedSkeletonCount > 0 && Array.from({ length: computedSkeletonCount }).map((_, idx) => (
+                    <div key={`skeleton-${idx}`} className="relative group">
+                      <div className="border rounded-lg overflow-hidden transition-all duration-200 relative bg-card">
+                        <div className="relative w-full">
+                          <div
+                            style={{ paddingBottom: skeletonAspectRatio, minHeight: '120px' }}
+                            className="relative bg-muted/50"
+                          >
+                            <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
+                              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
