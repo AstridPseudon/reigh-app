@@ -153,12 +153,11 @@ export const useMediaGalleryActions = ({
             }
           } catch (error) {
             console.error('[BackfillV2] Refetch failed:', error);
-          } finally {
-            // Clear skeleton - new data should have arrived
+            // Only clear on error - success case is handled by Grid when new data renders
             setIsBackfillLoading(false);
-            // Clear pending deletes
-            pendingDeletesRef.current.clear();
           }
+          // Clear pending deletes after refetch attempt
+          pendingDeletesRef.current.clear();
         }, 100); // 100ms debounce - fast but batches rapid clicks
       }
 
