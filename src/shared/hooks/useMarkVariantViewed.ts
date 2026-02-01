@@ -16,6 +16,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DerivedCountsResult } from '@/shared/lib/generationTransformers';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface MarkViewedParams {
   variantId: string;
@@ -49,7 +50,7 @@ export function useMarkVariantViewed() {
       if (generationId) {
         // Find and update any variant-badges queries that include this generation
         queryClient.setQueriesData(
-          { queryKey: ['variant-badges'], exact: false },
+          { queryKey: queryKeys.generations.variantBadges, exact: false },
           (oldData: DerivedCountsResult | undefined) => {
             if (!oldData) return oldData;
 
@@ -75,13 +76,15 @@ export function useMarkVariantViewed() {
       console.log('[useMarkVariantViewed] Marked as viewed:', variantId.substring(0, 8));
 
       // Invalidate variant-level queries (VariantSelector)
+      // Note: Using partial keys for broad invalidation (matches all variants)
       queryClient.invalidateQueries({ queryKey: ['generation-variants'] });
-      queryClient.invalidateQueries({ queryKey: ['derived-items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedAll });
 
       // Invalidate generation-level queries (gallery, timeline, batch)
-      queryClient.invalidateQueries({ queryKey: ['all-shot-generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShotAll });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+      // Note: 'shot-positions' is not in queryKeys yet - leaving as-is for partial match
       queryClient.invalidateQueries({ queryKey: ['shot-positions'] });
 
       // NOTE: We intentionally do NOT invalidate variant-badges here.
@@ -113,7 +116,7 @@ export function useMarkVariantViewed() {
     onMutate: async ({ generationId }) => {
       // Optimistic update: immediately set unviewed count to 0 for this generation
       queryClient.setQueriesData(
-        { queryKey: ['variant-badges'], exact: false },
+        { queryKey: queryKeys.generations.variantBadges, exact: false },
         (oldData: DerivedCountsResult | undefined) => {
           if (!oldData) return oldData;
 
@@ -135,13 +138,15 @@ export function useMarkVariantViewed() {
       console.log('[useMarkVariantViewed] Marked all viewed for:', generationId.substring(0, 8));
 
       // Invalidate variant-level queries
+      // Note: Using partial keys for broad invalidation (matches all variants)
       queryClient.invalidateQueries({ queryKey: ['generation-variants'] });
-      queryClient.invalidateQueries({ queryKey: ['derived-items'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedAll });
 
       // Invalidate generation-level queries
-      queryClient.invalidateQueries({ queryKey: ['all-shot-generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShotAll });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+      // Note: 'shot-positions' is not in queryKeys yet - leaving as-is for partial match
       queryClient.invalidateQueries({ queryKey: ['shot-positions'] });
     },
     onError: (error) => {

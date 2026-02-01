@@ -6,6 +6,7 @@ import { PhaseConfig } from '@/tools/travel-between-images/settings';
 import { supabase } from '@/integrations/supabase/client';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 export interface PhaseConfigMetadata {
     name: string;
@@ -86,7 +87,7 @@ export interface Resource {
 // List public resources (available to all users)
 export const useListPublicResources = (type: ResourceType) => {
     return useQuery<Resource[], Error>({
-        queryKey: ['public-resources', type, 'v2'],
+        queryKey: [...queryKeys.resources.public(type), 'v2'],
         queryFn: async () => {
             console.log('[PublicResources] Fetching public resources (v2 - paginated):', { type, timestamp: Date.now() });
             
@@ -145,7 +146,8 @@ export const useListPublicResources = (type: ResourceType) => {
 // List resources
 export const useListResources = (type: ResourceType) => {
     return useQuery<Resource[], Error>({
-        queryKey: ['resources', type, 'v2'],
+        // Note: Using ['resources', type] pattern for user resources (no projectId needed)
+        queryKey: [...queryKeys.resources.all, type, 'v2'],
         queryFn: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
@@ -219,8 +221,8 @@ export const useCreateResource = () => {
             return data;
         },
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['resources', data.type] });
-            queryClient.invalidateQueries({ queryKey: ['public-resources', data.type] });
+            queryClient.invalidateQueries({ queryKey: [...queryKeys.resources.all, data.type] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.resources.public(data.type) });
         },
         onError: (error) => {
             toast.error(error.message);
@@ -341,11 +343,11 @@ export const useUpdateResource = () => {
         onSuccess: (data) => {
             console.log('[useUpdateResource] onSuccess - invalidating queries for type:', data.type, 'id:', data.id);
             // Invalidate both v2 query keys to ensure fresh data
-            queryClient.invalidateQueries({ queryKey: ['resources', data.type, 'v2'] });
-            queryClient.invalidateQueries({ queryKey: ['public-resources', data.type, 'v2'] });
+            queryClient.invalidateQueries({ queryKey: [...queryKeys.resources.all, data.type, 'v2'] });
+            queryClient.invalidateQueries({ queryKey: [...queryKeys.resources.public(data.type), 'v2'] });
             // Also invalidate without v2 for backwards compatibility
-            queryClient.invalidateQueries({ queryKey: ['resources', data.type] });
-            queryClient.invalidateQueries({ queryKey: ['public-resources', data.type] });
+            queryClient.invalidateQueries({ queryKey: [...queryKeys.resources.all, data.type] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.resources.public(data.type) });
             // Invalidate specific-resources queries that include this resource ID
             // Using predicate to find any query that contains this resource ID
             queryClient.invalidateQueries({
@@ -385,8 +387,8 @@ export const useDeleteResource = () => {
             // Remove the individual resource cache entry
             queryClient.removeQueries({ queryKey: ['resource', variables.id] });
             // Also invalidate the list queries
-            queryClient.invalidateQueries({ queryKey: ['resources', variables.type] });
-            queryClient.invalidateQueries({ queryKey: ['public-resources', variables.type] });
+            queryClient.invalidateQueries({ queryKey: [...queryKeys.resources.all, variables.type] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.resources.public(variables.type) });
         },
         onError: (error) => {
             toast.error(error.message);

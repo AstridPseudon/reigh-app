@@ -34,6 +34,7 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import SettingsModal from '@/shared/components/SettingsModal';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
 // Import modular components and hooks
@@ -478,7 +479,7 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
 
   // Query for the most recent video generation for this shot (for preset sample)
   const { data: lastVideoGeneration } = useQuery({
-    queryKey: ['last-video-generation', selectedShotId],
+    queryKey: queryKeys.generations.lastVideo(selectedShotId!),
     queryFn: async () => {
       if (!selectedShotId) return null;
       
@@ -1595,7 +1596,7 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
 
       setJoinClipsSuccess(true);
       setTimeout(() => setJoinClipsSuccess(false), 3000);
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
     } catch (error: any) {
       console.error('[JoinSegments] Error creating join task:', error);
       toast.error(error.message || 'Failed to create join task');
@@ -1830,9 +1831,10 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
       console.log('[FinalVideoDelete] Clear output SUCCESS - invalidating queries');
 
       // Invalidate queries to refresh the UI
+      // Note: Full key with shotId and projectId for specific parent generation invalidation
       queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', selectedShot?.id, projectId] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['project-video-counts', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectStats.videos(projectId!) });
 
       // Note: Don't clear selection - the generation still exists, just without an output
     } catch (error) {
@@ -2104,8 +2106,9 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
           // Invalidate segment-parent-generations so the auto-select effect picks up the new parent
           // This is the proper fix - the pendingMainParentRef is just a fallback for rapid submissions
           console.log('[ParentReuseDebug] Invalidating segment-parent-generations query');
+          // Partial key match for all segment parents
           queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[0] === 'segment-parent-generations'
+            predicate: (query) => query.queryKey[0] === queryKeys.segments.parentsAll[0]
           });
         } else {
           console.log('[ParentReuseDebug] NOT storing pending parent:', {
@@ -2126,7 +2129,9 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
         toast.error('Failed to create video task. Please try again.');
       } finally {
         // Wait for task queries to refetch, then remove placeholder
+        // Partial key match (no projectId) for broad invalidation across all projects
         await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
+        // Partial key match for all task status counts
         await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
         console.log('[handleGenerateBatch] Removing incoming task placeholder:', incomingTaskId);
         removeIncomingTask(incomingTaskId);
@@ -2251,9 +2256,11 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
       navigateToShot(shot, { scrollToTop: true, isNewlyCreated: true });
     } else {
       // Shot not in array yet - try refetching and retry after a short delay
-      queryClient.refetchQueries({ queryKey: ['shots'] }).then(() => {
+      // Partial key match for all shots queries across projects
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.all }).then(() => {
         // Check again after refetch
-        const refreshedShots = queryClient.getQueryData<typeof shots>(['shots']);
+        // Partial key match to get any shots data
+        const refreshedShots = queryClient.getQueryData<typeof shots>(queryKeys.shots.all);
         const refreshedShot = refreshedShots?.find((s: any) => s.id === shotId);
         if (refreshedShot) {
           navigateToShot(refreshedShot, { scrollToTop: true, isNewlyCreated: true });
@@ -2365,7 +2372,8 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
 
       // Refetch shots query so the new shot appears in the list before we navigate
       // Using refetchQueries instead of invalidateQueries to ensure data is actually loaded
-      await queryClient.refetchQueries({ queryKey: ['shots'] });
+      // Partial key match for all shots queries across projects
+      await queryClient.refetchQueries({ queryKey: queryKeys.shots.all });
 
       // Return the new shot ID so caller can offer "Jump to shot"
       return result.shotId;

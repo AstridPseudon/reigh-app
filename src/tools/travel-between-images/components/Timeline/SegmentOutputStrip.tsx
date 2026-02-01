@@ -9,6 +9,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom';
 import { Play, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { useSegmentOutputsForShot } from '../../hooks/useSegmentOutputsForShot';
 import { InlineSegmentVideo } from './InlineSegmentVideo';
@@ -252,7 +253,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
       } else {
         console.log('[SegmentOutputStrip] Marked variant as viewed, invalidating queries');
         // Invalidate variant badges to refresh NEW state
-        queryClient.invalidateQueries({ queryKey: ['variant-badges'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantBadges });
       }
     } catch (error) {
       console.error('[SegmentOutputStrip] Failed to mark as viewed:', error);
@@ -395,8 +396,9 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
       console.log('[SegmentDelete] Applying optimistic cache update...');
       
       // Find and update the segment-child-generations cache
+      // Partial key match for all segment children
       queryClient.setQueriesData(
-        { predicate: (query) => query.queryKey[0] === 'segment-child-generations' },
+        { predicate: (query) => query.queryKey[0] === queryKeys.segments.childrenAll[0] },
         (oldData: any) => {
           if (!oldData || !Array.isArray(oldData)) return oldData;
           const filtered = oldData.filter((item: any) => !idsToDelete.includes(item.id));
@@ -411,16 +413,18 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
       
       // Then invalidate and refetch to get fresh data from server
       console.log('[SegmentDelete] Invalidating and refetching caches...');
-      await queryClient.invalidateQueries({ 
-        predicate: (query) => query.queryKey[0] === 'segment-child-generations',
+      // Partial key match for all segment children
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === queryKeys.segments.childrenAll[0],
         refetchType: 'all'
       });
-      await queryClient.invalidateQueries({ 
-        predicate: (query) => query.queryKey[0] === 'segment-parent-generations',
+      // Partial key match for all segment parents
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === queryKeys.segments.parentsAll[0],
         refetchType: 'all'
       });
-      await queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
-      await queryClient.invalidateQueries({ queryKey: ['generations'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
       
       console.log('[SegmentDelete] Delete complete');
     } catch (error) {

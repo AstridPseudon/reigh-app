@@ -23,6 +23,7 @@ import { useGenerations, useDeleteGeneration, useUpdateGenerationLocation, useCr
 
 import { useApiKeys } from '@/shared/hooks/useApiKeys';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { usePublicLoras, usePublicStyleReferences, useMyStyleReferences } from '@/shared/hooks/useResources';
 
 // Removed useListTasks import - was causing performance issues with 1000+ tasks
@@ -468,10 +469,13 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       createdTaskIds = createdTasks.map((t: any) => t.id);
 
       // Invalidate generations to ensure they refresh when tasks complete
+      // Partial key match for project-scoped unified generations
       queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });
 
       // Invalidate tasks query so TasksPane count updates promptly
+      // Partial key match (no projectId) for broad invalidation
       queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });
+      // Partial key match for all task status counts
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
 
       const generateDuration = Date.now() - generateStartTime;
@@ -566,10 +570,11 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
         // Debug logging removed for performance
       }
       setLastAffectedShotId(targetShotInfo.targetShotIdForButton);
-      
+
       // Force refresh of generations data to show updated positioning
+      // Partial key match for project-scoped unified generations
       queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });
-      
+
       return true;
     } catch (error) {
       console.error("Error adding image to target shot:", error);
@@ -603,10 +608,11 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       });
       
       setLastAffectedShotId(targetShotInfo.targetShotIdForButton);
-      
+
       // Force refresh of generations data to show updated association
+      // Partial key match for project-scoped unified generations
       queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });
-      
+
       return true;
     } catch (error) {
       console.error("Error adding image to target shot without position:", error);
@@ -679,11 +685,13 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       });
 
       // Invalidate queries for this project - this marks data as stale
+      // Partial key match for project-scoped unified generations
       await queryClient.invalidateQueries({
         queryKey: ['unified-generations', 'project', effectiveProjectId]
       });
 
       // Refetch the current page - server will return items with natural shift from next page
+      // Full key with all pagination parameters for exact page refetch
       await queryClient.refetchQueries({
         queryKey: ['unified-generations', 'project', effectiveProjectId, currentPage, itemsPerPage, generationsFilters]
       });
@@ -705,8 +713,8 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       dispatchSkeletonEvents: files.length > 0,
       onSuccess: () => {
         // Invalidate and refetch shots to update the list
-        queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });
-        queryClient.refetchQueries({ queryKey: ['shots', selectedProjectId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(selectedProjectId!) });
+        queryClient.refetchQueries({ queryKey: queryKeys.shots.list(selectedProjectId!) });
       },
     });
 
@@ -911,6 +919,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
     // Using centralized preload function from shared hooks
 
     // Prefetch next page first (higher priority)
+    // Note: Uses full dynamic key with pagination params (matches queryKeys.unified.byProject pattern)
     if (nextPage) {
       queryClient.prefetchQuery({
         queryKey: ['unified-generations', 'project', effectiveProjectId, nextPage, itemsPerPage, filters],
@@ -923,6 +932,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
     }
 
     // Prefetch previous page second (lower priority)
+    // Note: Uses full dynamic key with pagination params (matches queryKeys.unified.byProject pattern)
     if (prevPage) {
       queryClient.prefetchQuery({
         queryKey: ['unified-generations', 'project', effectiveProjectId, prevPage, itemsPerPage, filters],

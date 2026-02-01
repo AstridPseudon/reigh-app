@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface ApiToken {
   id: string;
@@ -65,7 +66,7 @@ export const useApiTokens = () => {
     isLoading,
     error
   } = useQuery({
-    queryKey: ['apiTokens'],
+    queryKey: queryKeys.api.tokens,
     queryFn: fetchApiTokens,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -78,7 +79,7 @@ export const useApiTokens = () => {
     },
     onSuccess: (data) => {
       setGeneratedToken(data.token);
-      queryClient.invalidateQueries({ queryKey: ['apiTokens'] });      
+      queryClient.invalidateQueries({ queryKey: queryKeys.api.tokens });      
     },
     onError: (error: Error) => {
       console.error('Error generating API token:', error);
@@ -93,7 +94,7 @@ export const useApiTokens = () => {
   const revokeMutation = useMutation({
     mutationFn: revokeApiToken,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['apiTokens'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.api.tokens });
       
     },
     onError: (error: Error) => {
@@ -111,7 +112,7 @@ export const useApiTokens = () => {
     },
     onSuccess: (data) => {
       setGeneratedToken(data.token);
-      queryClient.invalidateQueries({ queryKey: ['apiTokens'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.api.tokens });
       
     },
     onError: (error: Error) => {

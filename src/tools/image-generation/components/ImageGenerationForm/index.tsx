@@ -20,6 +20,7 @@ import { useListShots } from "@/shared/hooks/useShots";
 import { useShotCreation } from "@/shared/hooks/useShotCreation";
 import CreateShotModal from "@/shared/components/CreateShotModal";
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { useShotNavigation } from "@/shared/hooks/useShotNavigation";
 import { BatchImageGenerationTaskParams } from "@/shared/lib/tasks/imageGeneration";
 import { processStyleReferenceForAspectRatioString } from "@/shared/lib/styleReferenceProcessor";
@@ -2699,7 +2700,9 @@ export const ImageGenerationForm = forwardRef<ImageGenerationFormHandles, ImageG
           toast.error("Failed to generate prompts. Please try again.");
         } finally {
           // Wait for task queries to refetch, then do a clean swap
+          // Partial key match (no projectId) for broad refetch
           await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
+          // Partial key match for all task status counts
           await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
           const newCount = queryClient.getQueryData<{ processing: number }>(['task-status-counts', selectedProjectId])?.processing ?? 0;
           completeIncomingTask(incomingTaskId, newCount);
@@ -2741,7 +2744,9 @@ export const ImageGenerationForm = forwardRef<ImageGenerationFormHandles, ImageG
         toast.error("Failed to create tasks. Please try again.");
       } finally {
         // Wait for task queries to refetch, then do a clean swap
+        // Partial key match (no projectId) for broad refetch
         await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
+        // Partial key match for all task status counts
         await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
         const newCount = queryClient.getQueryData<{ processing: number }>(['task-status-counts', selectedProjectId])?.processing ?? 0;
         completeIncomingTask(incomingTaskId, newCount);
@@ -2758,8 +2763,8 @@ export const ImageGenerationForm = forwardRef<ImageGenerationFormHandles, ImageG
       dispatchSkeletonEvents: false, // No skeleton needed in form context
       onSuccess: () => {
         // Invalidate and refetch shots to update the list
-        queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });
-        queryClient.refetchQueries({ queryKey: ['shots', selectedProjectId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(selectedProjectId!) });
+        queryClient.refetchQueries({ queryKey: queryKeys.shots.list(selectedProjectId!) });
       },
     });
 

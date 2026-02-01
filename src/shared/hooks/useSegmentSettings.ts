@@ -34,6 +34,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import {
   type SegmentSettings,
   type PairMetadata,
@@ -187,7 +189,7 @@ export function useSegmentSettings({
 
   // Fetch pair metadata from shot_generations
   const { data: pairMetadata, isLoading: isLoadingPair } = useQuery({
-    queryKey: ['pair-metadata', pairShotGenerationId],
+    queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId || ''),
     queryFn: async () => {
       if (!pairShotGenerationId) return null;
       console.log('[useSegmentSettings] 📥 Fetching pair metadata for:', pairShotGenerationId.substring(0, 8));
@@ -230,7 +232,7 @@ export function useSegmentSettings({
 
   // Fetch shot batch settings using migration utility
   const { data: shotVideoSettings, isLoading: isLoadingBatch } = useQuery({
-    queryKey: ['shot-batch-settings', shotId],
+    queryKey: queryKeys.shots.batchSettings(shotId || ''),
     queryFn: async (): Promise<ShotVideoSettings | null> => {
       if (!shotId) return null;
       console.log('[useSegmentSettings] 📥 Fetching shot batch settings for:', shotId.substring(0, 8));
@@ -631,14 +633,14 @@ export function useSegmentSettings({
       // Using refetchQueries (not invalidateQueries) ensures the data is actually fetched before continuing
       // This is critical for resetSettings which clears localSettings and relies on fresh mergedSettings
       console.log(`[SegmentSaveDebug] 🔄 Refetching pair-metadata cache for:`, pairShotGenerationId.substring(0, 8));
-      await queryClient.refetchQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });
+      await queryClient.refetchQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
       console.log(`[SegmentSaveDebug] ✅ pair-metadata cache refetched`);
 
       // Refetch (not just invalidate) shot generations so timeline/pairDataByIndex updates immediately
       // Using refetchQueries ensures the query is actively refetched and events are reliably emitted
       if (shotId) {
         console.log(`[SegmentSaveDebug] 🔄 Refetching all-shot-generations for:`, shotId.substring(0, 8));
-        queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
+        queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
         console.log(`[SegmentSaveDebug] ✅ all-shot-generations refetch queued`);
       }
 
@@ -751,9 +753,10 @@ export function useSegmentSettings({
       // Refetch query caches so changes are visible everywhere:
       console.log(`[SetAsShotDefaults] 🔄 Refetching query caches...`);
       // 1. useSegmentSettings uses this key - refetch to update placeholders immediately
-      await queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });
+      await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });
       // 2. useToolSettings / useShotSettings uses 'toolSettings' (not 'tool-settings')
       //    Key format: ['toolSettings', toolId, projectId, shotId]
+      // Note: Using partial match to invalidate all travel-between-images settings
       await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });
       console.log(`[SetAsShotDefaults] ✅ Query caches refetched`);
 
@@ -838,7 +841,8 @@ export function useSegmentSettings({
       }, undefined, 'immediate');
 
       // Refetch query caches so changes are visible everywhere
-      await queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });
+      await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });
+      // Note: Using partial match to invalidate all travel-between-images settings
       await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });
 
       console.log(`[useSegmentSettings:${instanceId}] ✅ Field saved as shot default:`, field);
@@ -1013,7 +1017,7 @@ export function useSegmentSettings({
       }
 
       // Invalidate cache
-      await queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
 
       console.log(`[useSegmentSettings:${instanceId}] ✅ Enhanced prompt cleared`);
       return true;
@@ -1065,7 +1069,7 @@ export function useSegmentSettings({
       }
 
       // Invalidate cache so next read gets the new value
-      await queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
 
       console.log(`[useSegmentSettings:${instanceId}] ✅ Enhance prompt preference saved`);
       return true;

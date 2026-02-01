@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/types/shots';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import { handleError } from '@/shared/lib/errorHandler';
 
 // ================================================================
 // CENTRALIZED GENERATION ↔ TASK INTEGRATION PATTERNS
@@ -98,7 +100,7 @@ export async function getGenerationForTask(taskId: string, outputLocation: strin
     .maybeSingle();
 
   if (error) {
-    console.error('[GenerationTaskBridge] Error fetching generation for task:', error);
+    handleError(error, { context: 'GenerationTaskBridge', showToast: false });
     return null;
   }
 
@@ -114,7 +116,7 @@ export async function getGenerationForTask(taskId: string, outputLocation: strin
  */
 export function useGenerationTaskMapping(generationId: string | null) {
   return useQuery({
-    queryKey: ['generation-task-mapping', generationId],
+    queryKey: queryKeys.tasks.generationMapping(generationId || ''),
     queryFn: () => getTaskIdForGeneration(generationId!),
     enabled: !!generationId,
     staleTime: 5 * 60 * 1000, // 5 minutes - task associations rarely change
@@ -127,7 +129,7 @@ export function useGenerationTaskMapping(generationId: string | null) {
  */
 export function useTaskGenerationMapping(taskId: string, outputLocation: string | null, projectId: string) {
   return useQuery({
-    queryKey: ['task-generation-mapping', taskId, outputLocation],
+    queryKey: [...queryKeys.tasks.taskMapping(taskId), outputLocation],
     queryFn: () => getGenerationForTask(taskId, outputLocation!, projectId),
     enabled: !!taskId && !!outputLocation && !!projectId,
     staleTime: 10 * 60 * 1000, // 10 minutes - generated content is immutable
@@ -142,7 +144,7 @@ export function useGetTaskIdForGeneration() {
   return useMutation({
     mutationFn: getTaskIdForGeneration,
     onError: (error: Error) => {
-      console.error('[GenerationTaskBridge] Error getting task ID for generation:', error);
+      handleError(error, { context: 'GenerationTaskBridge', showToast: false });
     },
   });
 }
@@ -152,7 +154,7 @@ export function useGetTaskIdForGeneration() {
  */
 export function useTaskData(taskId: string | null) {
   return useQuery({
-    queryKey: ['tasks', 'single', taskId],
+    queryKey: [...queryKeys.tasks.all, 'single', taskId],
     queryFn: async () => {
       if (!taskId) return null;
       
@@ -203,12 +205,12 @@ export async function preloadGenerationTaskMappings(
       
       // Cache the mappings
       mappings.forEach((taskId, generationId) => {
-        queryClient.setQueryData(['generation-task-mapping', generationId], { taskId });
-        
+        queryClient.setQueryData(queryKeys.tasks.generationMapping(generationId), { taskId });
+
         // Optionally preload full task data
         if (preloadFullTaskData && taskId) {
           queryClient.prefetchQuery({
-            queryKey: ['tasks', 'single', taskId],
+            queryKey: [...queryKeys.tasks.all, 'single', taskId],
             queryFn: async () => {
               const { data, error } = await supabase
                 .from('tasks')
@@ -223,9 +225,9 @@ export async function preloadGenerationTaskMappings(
           });
         }
       });
-      
+
     } catch (error) {
-      console.warn('[GenerationTaskBridge] Preload batch failed:', batch, error);
+      handleError(error, { context: 'GenerationTaskBridge', showToast: false });
     }
     
     // Throttle between batches
@@ -240,13 +242,13 @@ export async function preloadGenerationTaskMappings(
  */
 export function invalidateGenerationTaskCaches(queryClient: any, generationId: string, taskId?: string) {
   // Invalidate the mapping
-  queryClient.invalidateQueries({ queryKey: ['generation-task-mapping', generationId] });
-  
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks.generationMapping(generationId) });
+
   if (taskId) {
     // Invalidate task data
-    queryClient.invalidateQueries({ queryKey: ['tasks', 'single', taskId] });
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.tasks.all, 'single', taskId] });
     // Invalidate reverse mapping
-    queryClient.invalidateQueries({ queryKey: ['task-generation-mapping', taskId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.taskMapping(taskId) });
   }
 }
 
@@ -274,16 +276,16 @@ export function extractTaskIds(generations: (GenerationRow | { tasks?: string[] 
  * Enhance generations with task data from cache
  */
 export function enhanceGenerationsWithTaskData(
-  generations: GenerationRow[], 
+  generations: GenerationRow[],
   queryClient: any
 ): (GenerationRow & { taskId?: string | null; taskData?: any })[] {
   return generations.map(generation => {
     // Try to get cached task mapping
-    const cachedMapping = queryClient.getQueryData(['generation-task-mapping', generation.id]);
+    const cachedMapping = queryClient.getQueryData(queryKeys.tasks.generationMapping(generation.id));
     const taskId = cachedMapping?.taskId || null;
-    
+
     // Try to get cached task data
-    const taskData = taskId ? queryClient.getQueryData(['tasks', 'single', taskId]) : null;
+    const taskData = taskId ? queryClient.getQueryData([...queryKeys.tasks.all, 'single', taskId]) : null;
     
     return {
       ...generation,

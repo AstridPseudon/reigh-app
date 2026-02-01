@@ -9,6 +9,8 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 export function useDemoteOrphanedVariants() {
   const queryClient = useQueryClient();
@@ -128,12 +130,14 @@ export function useDemoteOrphanedVariants() {
 
         // Invalidate relevant queries to refresh UI
         console.log('[DemoteOrphaned] 🔄 Invalidating queries...');
-        queryClient.invalidateQueries({ queryKey: ['segment-child-generations'] });
-        queryClient.invalidateQueries({ queryKey: ['all-shot-generations', shotId] });
-        queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', shotId] });
+        // Partial key match for all segment children (predicate invalidation)
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.childrenAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.parents(shotId) });
         // Invalidate source image change detection for video warning indicators
         console.log('[SourceChange] 🔄 Invalidating source-slot-generations query (orphan demotion)');
-        queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'source-slot-generations' });
+        // Partial key match for all source slots (predicate invalidation)
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.sourceSlotAll });
       } else {
         console.log('[DemoteOrphaned] ℹ️ No orphaned variants found', {
           shotId: shotId.substring(0, 8),
@@ -143,7 +147,7 @@ export function useDemoteOrphanedVariants() {
 
       return demotedCount;
     } catch (error) {
-      console.error('[DemoteOrphaned] ❌ Unexpected error:', error);
+      handleError(error, { context: 'useDemoteOrphanedVariants', showToast: false });
       return 0;
     }
   }, [queryClient]);

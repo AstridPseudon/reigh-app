@@ -8,6 +8,7 @@ import { filterVisibleTasks, isTaskVisible, getTaskDisplayName, getTaskConfig, g
 // Removed invalidationRouter - DataFreshnessManager handles all invalidation logic
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 const TASKS_QUERY_KEY = 'tasks';
 
@@ -426,7 +427,8 @@ export const useCancelTask = (projectId: string | null) => {
     onSuccess: (_, taskId) => {
       console.log(`[${Date.now()}] [useCancelTask] Task cancelled, invalidating queries for projectId:`, projectId);
       // Immediately invalidate tasks queries so cancelled task disappears
-      queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });
+      // Note: Using partial keys for broad invalidation
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.tasks.all, 'paginated'] });
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
     },
     onError: (error: Error) => {
@@ -520,7 +522,8 @@ export const useCancelPendingTasks = () => {
     onSuccess: (data, projectId) => {
       console.log(`[${Date.now()}] [useCancelPendingTasks] Tasks cancelled, invalidating queries for projectId:`, projectId);
       // Immediately invalidate tasks queries so cancelled tasks disappear
-      queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });
+      // Note: Using partial keys for broad invalidation
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.tasks.all, 'paginated'] });
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
     },
     onError: (error: Error) => {
@@ -536,10 +539,10 @@ export const useCancelAllPendingTasks = useCancelPendingTasks;
 // Hook to get status counts for indicators
 export const useTaskStatusCounts = (projectId: string | null) => {
   // 🎯 SMART POLLING: Use DataFreshnessManager for intelligent polling decisions
-  const smartPollingConfig = useSmartPollingConfig(['task-status-counts', projectId]);
+  const smartPollingConfig = useSmartPollingConfig(projectId ? queryKeys.tasks.statusCounts(projectId) : ['task-status-counts', null]);
 
   return useQuery({
-    queryKey: ['task-status-counts', projectId],
+    queryKey: projectId ? queryKeys.tasks.statusCounts(projectId) : ['task-status-counts', null],
     queryFn: async () => {
       // [TasksPaneCountMismatch] Note on counting rules for correlation with list visibility
       console.log('[TasksPaneCountMismatch]', {
@@ -719,7 +722,7 @@ export const useTaskStatusCounts = (projectId: string | null) => {
  */
 export const useAllTaskTypes = (_projectId: string | null) => {
   return useQuery({
-    queryKey: ['all-task-types'],
+    queryKey: queryKeys.tasks.allTypes,
     queryFn: () => {
       // Just use the hardcoded allowlist from taskConfig
       const visibleTypes = getVisibleTaskTypes();

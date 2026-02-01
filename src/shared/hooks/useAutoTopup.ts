@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 export interface AutoTopupPreferences {
   enabled: boolean;
@@ -116,7 +117,7 @@ export function useAutoTopup() {
     isLoading: isLoadingPreferences,
     error: preferencesError,
   } = useQuery<AutoTopupPreferences>({
-    queryKey: ['autoTopup', 'preferences'],
+    queryKey: queryKeys.credits.autoTopupPreferences,
     queryFn: fetchAutoTopupPreferences,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
@@ -127,8 +128,8 @@ export function useAutoTopup() {
     mutationFn: updateAutoTopupPreferences,
     onSuccess: (data, variables) => {
       console.log('[AutoTopup:Hook] Save successful:', variables);
-      queryClient.invalidateQueries({ queryKey: ['autoTopup', 'preferences'] });
-      queryClient.invalidateQueries({ queryKey: ['credits'] }); // Refresh credits info
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.autoTopupPreferences });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.all }); // Refresh credits info
       // Removed toast notification for smoother UX
     },
     onError: (error, variables) => {
@@ -141,8 +142,8 @@ export function useAutoTopup() {
   const disableMutation = useMutation<void, Error>({
     mutationFn: disableAutoTopup,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['autoTopup', 'preferences'] });
-      queryClient.invalidateQueries({ queryKey: ['credits'] }); // Refresh credits info
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.autoTopupPreferences });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.all }); // Refresh credits info
       // Removed toast notification for smoother UX
     },
     onError: (error) => {
