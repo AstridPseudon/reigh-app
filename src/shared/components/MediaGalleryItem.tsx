@@ -922,12 +922,36 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     }
   };
 
+  // Render skeleton placeholder when item is being optimistically deleted
+  // This keeps the item in position until new data arrives to replace it
+  if (isOptimisticallyDeleted) {
+    return (
+      <div className="relative group">
+        <div className="border rounded-lg overflow-hidden transition-all duration-200 relative bg-card">
+          <div className="relative w-full">
+            <div
+              style={{
+                paddingBottom: aspectRatioPadding,
+                minHeight: minHeight
+              }}
+              className="relative bg-muted/50"
+            >
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Conditionally wrap with DraggableImage only on desktop to avoid interfering with mobile scrolling
   const imageContent = (
     <div
         className={`border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 relative group bg-card ${
-          isOptimisticallyDeleted ? 'opacity-50 scale-95 pointer-events-none' : ''
-        } ${isDragging ? 'opacity-50 scale-75' : ''} ${!isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          isDragging ? 'opacity-50 scale-75' : ''
+        } ${!isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
         draggable={!isMobile}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -948,11 +972,11 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
         onTouchEnd={isMobile && !enableSingleClick && !isVideoContent ? handleInteraction : undefined}
     >
       <div className="relative w-full">
-      <div 
-        style={{ 
+      <div
+        style={{
           paddingBottom: aspectRatioPadding,
-          minHeight: minHeight 
-        }} 
+          minHeight: minHeight
+        }}
         className="relative bg-muted/50"
       >
           {isVideoContent ? (
@@ -1473,16 +1497,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             className="z-30"
           />
 
-          {/* Optimistic delete overlay */}
-          {isOptimisticallyDeleted && (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-lg">
-              <div className="bg-card/90 dark:bg-gray-800/90 px-3 py-2 rounded-md flex items-center gap-2 text-sm font-medium text-foreground">
-                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-gray-600"></div>
-                Deleting...
-              </div>
-            </div>
-          )}
-          
           {/* Action buttons - Top Right (Info & Variants) - below shot selector on mobile */}
           <div className={cn(
             "absolute right-1.5 flex flex-col items-end gap-1.5 z-20",

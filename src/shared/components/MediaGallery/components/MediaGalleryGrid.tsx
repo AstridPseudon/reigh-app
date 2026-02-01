@@ -6,7 +6,6 @@ import { ImagePreloadManager } from "@/shared/components/ImagePreloadManager";
 import { MediaGalleryItem } from "@/shared/components/MediaGalleryItem";
 import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { GeneratedImageWithMetadata } from '../index';
-import { parseRatio } from '@/shared/lib/aspectRatios';
 
 export interface MediaGalleryGridProps {
   // Data props
@@ -170,59 +169,6 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
     prevSignatureForBackfillRef.current = pageSignature;
   }, [pageSignature, isBackfillLoading, setIsBackfillLoading]);
 
-  /**
-   * Compute skeleton count dynamically based on:
-   * - How many items we expect on this page (itemsPerPage or remaining if last page)
-   * - How many items we actually have (after optimistic deletes)
-   * - Whether there are more items to backfill from
-   */
-  const computedSkeletonCount = React.useMemo(() => {
-    if (!isBackfillLoading || !isServerPagination) return 0;
-
-    // Calculate optimistic total (server total minus pending deletes)
-    const optimisticTotal = Math.max(0, totalCount - optimisticDeletedCount);
-
-    // How many items should be on this page?
-    // Either itemsPerPage, or the remainder if this is the last page
-    const itemsAfterOffset = Math.max(0, optimisticTotal - offset);
-    const expectedItems = Math.min(itemsPerPage, itemsAfterOffset);
-
-    // How many items do we actually have?
-    const actualItems = paginatedImages.length;
-
-    // Skeleton count is the gap
-    const skeletonCount = Math.max(0, expectedItems - actualItems);
-
-    console.log('[BackfillV2] Computing skeleton count:', {
-      totalCount,
-      optimisticDeletedCount,
-      optimisticTotal,
-      offset,
-      itemsPerPage,
-      expectedItems,
-      actualItems,
-      skeletonCount
-    });
-
-    return skeletonCount;
-  }, [isBackfillLoading, isServerPagination, totalCount, optimisticDeletedCount, offset, itemsPerPage, paginatedImages.length]);
-
-  // Compute aspect ratio padding to match MediaGalleryItem container
-  const aspectRatioPadding = React.useMemo(() => {
-    // Default to 16:9 if not provided
-    let padding = 56.25; // 9/16 * 100
-    if (projectAspectRatio) {
-      const ratio = parseRatio(projectAspectRatio);
-      if (!Number.isNaN(ratio) && ratio > 0) {
-        const calculated = (1 / ratio) * 100; // height/width * 100
-        const minPadding = 60; // Minimum 60% height (for very wide images)
-        const maxPadding = 200; // Maximum 200% height (for very tall images)
-        padding = Math.min(Math.max(calculated, minPadding), maxPadding);
-      }
-    }
-    return `${padding}%`;
-  }, [projectAspectRatio]);
-
   // Show full skeleton gallery when loading new data
   if (isLoading) {
     // Match the gap classes used in the actual grid
@@ -348,24 +294,6 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
                     );
                   })}
                   
-                  {/* Backfill skeleton items - fill gaps when items are deleted */}
-                  {computedSkeletonCount > 0 && Array.from({ length: computedSkeletonCount }).map((_, index) => {
-                    const skeletonIndex = paginatedImages.length + index;
-                    return (
-                      <div key={`skeleton-${skeletonIndex}`} className="relative group">
-                        {/* Match MediaGalleryItem container styling */}
-                        <div className="border rounded-lg overflow-hidden hover:shadow-md transition-all duration-300 relative group bg-card">
-                          <div className="relative w-full">
-                            <div style={{ paddingBottom: aspectRatioPadding }} className="relative bg-muted/50">
-                              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
-                                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             )}

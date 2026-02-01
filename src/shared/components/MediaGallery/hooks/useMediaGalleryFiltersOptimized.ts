@@ -337,8 +337,9 @@ export const useMediaGalleryFiltersOptimized = ({
     // Start with all images
     let currentFiltered = images;
 
-    // 0. Apply optimistic deletion filter first
-    currentFiltered = currentFiltered.filter(image => !optimisticDeletedIds.has(image.id));
+    // NOTE: We do NOT filter out optimistically deleted items here.
+    // Instead, MediaGalleryItem renders them as skeleton placeholders.
+    // This keeps the item in position until new data arrives to replace it.
 
     // 1. Apply tool_type filter (only in client pagination mode)
     const isServerPagination = !!(onServerPageChange && serverPage);
