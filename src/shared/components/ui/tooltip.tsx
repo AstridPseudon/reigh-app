@@ -31,4 +31,68 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+/**
+ * Touch-aware tooltip that works on both desktop (hover) and touch devices (tap).
+ * On touch devices, tapping the trigger toggles the tooltip open/closed.
+ * Tapping outside closes it.
+ *
+ * Usage:
+ * <TouchableTooltip content={<p>Tooltip text</p>}>
+ *   <button>Trigger</button>
+ * </TouchableTooltip>
+ */
+interface TouchableTooltipProps {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  className?: string;
+  contentClassName?: string;
+}
+
+const TouchableTooltip: React.FC<TouchableTooltipProps> = ({
+  children,
+  content,
+  side = 'bottom',
+  className,
+  contentClassName,
+}) => {
+  const [open, setOpen] = React.useState(false);
+
+  const handleTouchEnd = React.useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent mouse events from firing
+    e.stopPropagation();
+    setOpen(prev => !prev);
+  }, []);
+
+  // Clone child to add touch handler without wrapping in a span
+  // This preserves the child's positioning (e.g., position: absolute)
+  const child = React.Children.only(children) as React.ReactElement;
+  const triggerElement = React.cloneElement(child, {
+    onTouchEnd: (e: React.TouchEvent) => {
+      handleTouchEnd(e);
+      // Call original handler if it exists
+      child.props.onTouchEnd?.(e);
+    },
+    className: cn(child.props.className, className),
+  });
+
+  return (
+    <TooltipProvider>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          {triggerElement}
+        </TooltipTrigger>
+        <TooltipContent
+          side={side}
+          className={contentClassName}
+          // Radix handles outside clicks correctly (excludes tooltip content)
+          onPointerDownOutside={() => setOpen(false)}
+        >
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, TouchableTooltip }

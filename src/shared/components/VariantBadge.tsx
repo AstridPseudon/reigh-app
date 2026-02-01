@@ -10,15 +10,10 @@
  * - ChildGenerationsView (segment cards)
  */
 
-import React, { useState, useRef, useCallback } from 'react';
-import { X } from 'lucide-react';
+import React from 'react';
 import { cn } from '@/shared/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/shared/components/ui/tooltip';
+import { TouchableTooltip } from '@/shared/components/ui/tooltip';
+import { StatusBadge } from '@/shared/components/StatusBadge';
 
 export interface VariantBadgeProps {
   /** Number of total variants (including primary) */
@@ -29,8 +24,8 @@ export interface VariantBadgeProps {
   hasUnviewedVariants?: boolean;
   /**
    * Display variant:
-   * - "overlay": Absolute positioned badge for image overlays (uses title attr)
-   * - "inline": Inline badge with Tooltip wrappers
+   * - "overlay": Absolute positioned badge for image overlays
+   * - "inline": Inline badge
    */
   variant?: 'overlay' | 'inline';
   /**
@@ -52,9 +47,9 @@ export interface VariantBadgeProps {
   tooltipSide?: 'top' | 'right' | 'bottom' | 'left';
   /** Additional class names */
   className?: string;
-  /** Callback to mark all variants as viewed (enables hover-to-dismiss) */
+  /** Callback to mark all variants as viewed */
   onMarkAllViewed?: () => void;
-  /** Hover delay in ms before showing dismiss button (default: 1500) */
+  /** @deprecated No longer used - dismiss action is in tooltip */
   dismissHoverDelay?: number;
   /** Optional click handler for the badge (e.g., to scroll to variants section) */
   onClick?: () => void;
@@ -77,37 +72,10 @@ export const VariantBadge: React.FC<VariantBadgeProps> = ({
   tooltipSide = 'left',
   className,
   onMarkAllViewed,
-  dismissHoverDelay = 1500,
   onClick,
 }) => {
-  const [showDismiss, setShowDismiss] = useState(false);
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const hasNew = showNewBadge && hasUnviewedVariants && unviewedVariantCount && unviewedVariantCount > 0;
   const showCountBadge = derivedCount && derivedCount > 1;
-  const canDismiss = hasNew && onMarkAllViewed;
-
-  const handleMouseEnter = useCallback(() => {
-    if (!canDismiss) return;
-    hoverTimerRef.current = setTimeout(() => {
-      setShowDismiss(true);
-    }, dismissHoverDelay);
-  }, [canDismiss, dismissHoverDelay]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-    setShowDismiss(false);
-  }, []);
-
-  const handleDismissClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    onMarkAllViewed?.();
-    setShowDismiss(false);
-  }, [onMarkAllViewed]);
 
   // Don't render if no variants/only 1, unless alwaysShowNew is set and there's something new
   if (!showCountBadge && !(alwaysShowNew && hasNew)) {
@@ -115,49 +83,15 @@ export const VariantBadge: React.FC<VariantBadgeProps> = ({
   }
 
   // Size classes for the count badge
-  const sizeClasses = {
+  const countSizeClasses = {
     sm: 'h-5 w-5 text-[9px]',
     md: 'h-6 w-6 text-[9px]',
     lg: 'h-6 w-6 sm:h-7 sm:w-7 text-[10px]',
   }[size];
 
-  // "New" badge component (shared between variants)
-  const NewBadge = hasNew ? (
-    <div
-      className={cn(
-        'bg-yellow-500 text-black text-[7px] font-bold px-1 py-0.5 rounded flex items-center gap-0.5 transition-all',
-        canDismiss && 'cursor-pointer hover:bg-yellow-400'
-      )}
-      title={variant === 'overlay' && !showDismiss ? `${unviewedVariantCount} unviewed variant${unviewedVariantCount !== 1 ? 's' : ''}` : undefined}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={showDismiss ? handleDismissClick : undefined}
-    >
-      {showDismiss ? (
-        <>
-          <X className="h-2.5 w-2.5" strokeWidth={3} />
-          <span>clear</span>
-        </>
-      ) : (
-        <>{unviewedVariantCount} new</>
-      )}
-    </div>
-  ) : null;
+  const effectiveTooltipSide = variant === 'overlay' ? 'bottom' : tooltipSide;
 
-  // Count badge component (shared between variants)
-  const CountBadge = (
-    <div
-      className={cn(
-        'rounded-full bg-black/60 text-white font-medium flex items-center justify-center backdrop-blur-sm',
-        sizeClasses
-      )}
-      title={variant === 'overlay' ? `${derivedCount} variants` : undefined}
-    >
-      {derivedCount}
-    </div>
-  );
-
-  // Overlay variant: absolute positioned, with Tooltip wrappers
+  // Overlay variant: absolute positioned
   if (variant === 'overlay') {
     return (
       <div
@@ -169,120 +103,72 @@ export const VariantBadge: React.FC<VariantBadgeProps> = ({
         style={{ zIndex }}
       >
         {hasNew && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={onClick}
-                  className={cn(
-                    "bg-yellow-500 text-black text-[7px] font-bold px-1 py-0.5 rounded",
-                    onClick ? "cursor-pointer hover:bg-yellow-400" : "cursor-help"
-                  )}
-                >
-                  {unviewedVariantCount} new
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="flex flex-col gap-1">
-                <p>{unviewedVariantCount} unviewed variant{unviewedVariantCount !== 1 ? 's' : ''}</p>
-                {onMarkAllViewed && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      onMarkAllViewed();
-                    }}
-                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                  >
-                    Mark all as viewed
-                  </button>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <StatusBadge
+            label={`${unviewedVariantCount} new`}
+            color="yellow"
+            tooltipText={`${unviewedVariantCount} unviewed variant${unviewedVariantCount !== 1 ? 's' : ''}`}
+            tooltipSide={effectiveTooltipSide}
+            size="sm"
+            onClick={onClick}
+            action={onMarkAllViewed ? {
+              label: 'Mark all as viewed',
+              onClick: onMarkAllViewed,
+            } : undefined}
+          />
         )}
         {showCountBadge && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    'rounded-full bg-black/60 text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
-                    sizeClasses
-                  )}
-                >
-                  {derivedCount}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p>{derivedCount} variant{derivedCount !== 1 ? 's' : ''}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <TouchableTooltip
+            side={effectiveTooltipSide}
+            content={<p>{derivedCount} variant{derivedCount !== 1 ? 's' : ''}</p>}
+          >
+            <div
+              className={cn(
+                'rounded-full bg-black/60 text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
+                countSizeClasses
+              )}
+            >
+              {derivedCount}
+            </div>
+          </TouchableTooltip>
         )}
       </div>
     );
   }
 
-  // Inline variant: uses Tooltip wrappers
+  // Inline variant
   return (
     <div className={cn('flex items-center gap-1', className)}>
       {hasNew && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className={cn(
-                  'bg-yellow-500 text-black text-[8px] font-bold px-1 py-0.5 rounded flex items-center gap-0.5 transition-all',
-                  (canDismiss || onClick) ? 'cursor-pointer hover:bg-yellow-400' : 'cursor-help'
-                )}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                onClick={showDismiss ? handleDismissClick : onClick}
-              >
-                {showDismiss ? (
-                  <>
-                    <X className="h-2.5 w-2.5" strokeWidth={3} />
-                    <span>clear</span>
-                  </>
-                ) : (
-                  <>{unviewedVariantCount} new</>
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side={tooltipSide}>
-              <p>
-                {showDismiss
-                  ? 'Click to mark all as viewed'
-                  : `${unviewedVariantCount} unviewed variant${unviewedVariantCount !== 1 ? 's' : ''}`}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <StatusBadge
+          label={`${unviewedVariantCount} new`}
+          color="yellow"
+          tooltipText={`${unviewedVariantCount} unviewed variant${unviewedVariantCount !== 1 ? 's' : ''}`}
+          tooltipSide={effectiveTooltipSide}
+          size="md"
+          onClick={onClick}
+          action={onMarkAllViewed ? {
+            label: 'Mark all as viewed',
+            onClick: onMarkAllViewed,
+          } : undefined}
+        />
       )}
       {showCountBadge && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div
-                className={cn(
-                  'rounded-full bg-black/50 text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
-                  sizeClasses
-                )}
-              >
-                {derivedCount}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side={tooltipSide}>
-              <p>{derivedCount} variant{derivedCount !== 1 ? 's' : ''}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <TouchableTooltip
+          side={effectiveTooltipSide}
+          content={<p>{derivedCount} variant{derivedCount !== 1 ? 's' : ''}</p>}
+        >
+          <div
+            className={cn(
+              'rounded-full bg-black/50 text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
+              countSizeClasses
+            )}
+          >
+            {derivedCount}
+          </div>
+        </TouchableTooltip>
       )}
     </div>
   );
 };
 
 export default VariantBadge;
-
-
-

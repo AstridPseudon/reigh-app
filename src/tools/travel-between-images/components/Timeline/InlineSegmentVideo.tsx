@@ -126,7 +126,11 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
   }, [slot]);
 
   // Show NEW badge if: has unviewed variants OR is recently created with no variants yet
-  const showNewBadge = badgeData?.hasUnviewedVariants || (isRecentlyCreated && (badgeData?.derivedCount || 0) === 0);
+  const hasUnviewedFromBadge = badgeData?.hasUnviewedVariants && (badgeData?.unviewedVariantCount || 0) > 0;
+  const isNewWithNoVariants = isRecentlyCreated && (badgeData?.derivedCount || 0) === 0;
+  const showNewBadge = hasUnviewedFromBadge || isNewWithNoVariants;
+  // Use actual count from badge data, or 1 for "recently created with no variants" case
+  const unviewedCount = hasUnviewedFromBadge ? (badgeData?.unviewedVariantCount || 0) : (isNewWithNoVariants ? 1 : 0);
   
   // Calculate preview width and aspect ratio (let height be determined by aspect ratio)
   const previewStyle = useMemo(() => {
@@ -441,9 +445,9 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
         {(badgeData || showNewBadge) && (
           <VariantBadge
             derivedCount={badgeData?.derivedCount || 0}
-            unviewedVariantCount={showNewBadge ? 1 : (badgeData?.unviewedVariantCount || 0)}
+            unviewedVariantCount={unviewedCount}
             hasUnviewedVariants={showNewBadge}
-            alwaysShowNew={showNewBadge}
+            alwaysShowNew={isNewWithNoVariants}
             variant="overlay"
             size="lg"
             position={layout === 'flow' && compact ? "top-1.5 left-1.5" : "top-2 left-2"}
@@ -593,9 +597,9 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
                 {(badgeData || showNewBadge) && (
                   <VariantBadge
                     derivedCount={badgeData?.derivedCount || 0}
-                    unviewedVariantCount={showNewBadge ? 1 : (badgeData?.unviewedVariantCount || 0)}
+                    unviewedVariantCount={unviewedCount}
                     hasUnviewedVariants={showNewBadge}
-                    alwaysShowNew={showNewBadge}
+                    alwaysShowNew={isNewWithNoVariants}
                     variant="inline"
                     size="md"
                     tooltipSide="top"

@@ -527,20 +527,39 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
           enhanced_prompt: '',
         };
 
+        // Optimistic update: immediately update the cache
+        queryClient.setQueryData<GenerationRow[]>(
+          ['all-shot-generations', shotId],
+          (oldData) => {
+            if (!oldData) return oldData;
+            return oldData.map((row) =>
+              row.id === shotGenerationId
+                ? { ...row, metadata: updatedMetadata }
+                : row
+            );
+          }
+        );
+
+        // Then persist to database
         const { error } = await supabase
           .from('shot_generations')
           .update({ metadata: updatedMetadata })
           .eq('id', shotGenerationId);
 
-        if (error) throw error;
+        if (error) {
+          // Revert optimistic update on error
+          invalidateGenerations(shotId, { reason: 'clear-enhanced-prompt-error', scope: 'metadata' });
+          throw error;
+        }
 
+        // Background refetch to ensure consistency
         invalidateGenerations(shotId, { reason: 'clear-enhanced-prompt', scope: 'metadata' });
       } catch (err) {
         console.error('[useTimelineCore.clearEnhancedPrompt] Error:', err);
         throw err;
       }
     },
-    [shotId, positionedItems, invalidateGenerations]
+    [shotId, positionedItems, invalidateGenerations, queryClient]
   );
 
   // Clear all enhanced prompts for the shot

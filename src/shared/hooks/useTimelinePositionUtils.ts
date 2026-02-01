@@ -795,6 +795,20 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
 
     console.log('[PairPromptFlow] 💾 Clearing enhanced_prompt from metadata...');
 
+    // Optimistic update: immediately update the cache
+    queryClient.setQueryData<any[]>(
+      ['all-shot-generations', shotId],
+      (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.map((row) =>
+          row.id === shotGenerationId
+            ? { ...row, metadata: restMetadata }
+            : row
+        );
+      }
+    );
+
+    // Persist to database
     const { error } = await supabase
       .from('shot_generations')
       .update({ metadata: restMetadata as any })
@@ -802,10 +816,13 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
 
     if (error) {
       console.error('[PairPromptFlow] ❌ Failed to clear enhanced prompt:', error);
+      // Revert by refetching
+      queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
       throw error;
     }
 
-    console.log('[PairPromptFlow] ✅ Enhanced prompt cleared, refetching caches...');
+    console.log('[PairPromptFlow] ✅ Enhanced prompt cleared, background refetch...');
+    // Background refetch for consistency
     queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
     queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
     if (projectId) {
@@ -816,7 +833,7 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });
 
     console.log('[PairPromptFlow] ✅ Refetch queued');
-  }, [shotId, shotGenerations, loadPositions]);
+  }, [shotId, shotGenerations, queryClient, projectId]);
 
   return {
     // Data (backward compatibility)

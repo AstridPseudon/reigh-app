@@ -34,7 +34,7 @@ import { LoraSelectorModal } from '@/shared/components/LoraSelectorModal';
 import { DefaultableTextarea } from '@/shared/components/DefaultableTextarea';
 import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/shared/components/ui/tooltip';
+import { StatusBadge } from '@/shared/components/StatusBadge';
 import { usePublicLoras, useCreateResource, type LoraModel, type Resource, type StructureVideoMetadata } from '@/shared/hooks/useResources';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { uploadVideoToStorage, extractVideoMetadata } from '@/shared/lib/videoUploader';
@@ -242,7 +242,7 @@ const FieldDefaultControls: React.FC<{
 
 /**
  * Shows "Enhanced" badge with tooltip containing the original prompt and clear action.
- * Matches the VariantBadge UX pattern for consistency.
+ * Uses StatusBadge for consistent styling with other status indicators.
  */
 const EnhancedPromptBadge: React.FC<{
   onClear: () => void;
@@ -255,35 +255,23 @@ const EnhancedPromptBadge: React.FC<{
     ? basePrompt.substring(0, 50) + '...'
     : basePrompt;
 
+  const tooltipText = basePrompt
+    ? `Enhanced from: "${truncatedBase}"`
+    : 'AI-enhanced prompt';
+
   return (
     <div className="flex items-center gap-1">
-      {/* Enhanced badge with tooltip - matches VariantBadge pattern */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded cursor-help">
-              Enhanced
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="flex flex-col gap-1 max-w-xs">
-            {basePrompt ? (
-              <p className="text-xs">Enhanced from: <span className="italic">"{truncatedBase}"</span></p>
-            ) : (
-              <p>AI-enhanced prompt</p>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onClear();
-              }}
-              className="text-xs text-muted-foreground hover:text-foreground underline"
-            >
-              Clear enhanced prompt
-            </button>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <StatusBadge
+        label="Enhanced"
+        color="green"
+        tooltipText={tooltipText}
+        tooltipSide="bottom"
+        size="md"
+        action={{
+          label: 'Clear enhanced prompt',
+          onClick: onClear,
+        }}
+      />
       {/* Set as Default button */}
       {onSetAsDefault && (
         <button

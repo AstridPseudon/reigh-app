@@ -1,6 +1,6 @@
 import React from "react";
 import { MessageSquare, X } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/shared/components/ui/tooltip";
 import { Button } from "@/shared/components/ui/button";
 import { framesToSeconds } from "./utils/time-utils";
 
@@ -124,63 +124,50 @@ const PairRegion: React.FC<PairRegionProps> = ({
 
       {/* Pair label - only show if there's enough space and not hidden */}
       {showLabel && !hidePairLabel && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className={`absolute top-1/2 text-[11px] font-light ${colorScheme.text} bg-card/90 dark:bg-gray-800/90 px-2.5 py-1 rounded-full border ${colorScheme.border} z-20 shadow-sm ${
-                readOnly
-                  ? 'cursor-default'
-                  : 'cursor-pointer hover:bg-card dark:hover:bg-gray-800 hover:shadow-md'
-              } transition-all duration-200`}
-              style={{
-                left: `${(startPercent + endPercent) / 2}%`,
-                transform: 'translate(-50%, -50%)',
-                // Only animate hover effects, NOT position (left) to prevent jitter
-                transition: 'background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
-              }}
-              onClick={readOnly ? undefined : (e) => {
-                e.stopPropagation();
-                onPairClick?.(index, {
-                  index,
-                  frames: actualFrames,
-                  startFrame: startFrame,
-                  endFrame: endFrame,
-                });
-              }}
-              onTouchEnd={readOnly ? undefined : (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onPairClick?.(index, {
-                  index,
-                  frames: actualFrames,
-                  startFrame: startFrame,
-                  endFrame: endFrame,
-                });
-              }}
-            >
-              <div className="flex items-center gap-1">
-                <span className="whitespace-nowrap">Pair {index + 1} • {framesToSeconds(actualFrames)}</span>
-                <MessageSquare 
-                  className={`h-2.5 w-2.5 ${hasCustomPrompt ? 'opacity-100' : 'text-gray-400 dark:text-gray-500 opacity-60'}`}
-                />
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className={`absolute top-1/2 text-[11px] font-light ${colorScheme.text} bg-card/90 dark:bg-gray-800/90 px-2.5 py-1 rounded-full border ${colorScheme.border} z-20 shadow-sm ${
+                  readOnly
+                    ? 'cursor-default'
+                    : 'cursor-pointer hover:bg-card dark:hover:bg-gray-800 hover:shadow-md'
+                } transition-all duration-200`}
+                style={{
+                  left: `${(startPercent + endPercent) / 2}%`,
+                  transform: 'translate(-50%, -50%)',
+                  // Only animate hover effects, NOT position (left) to prevent jitter
+                  transition: 'background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                }}
+                onClick={readOnly ? undefined : (e) => {
+                  e.stopPropagation();
+                  onPairClick?.(index, {
+                    index,
+                    frames: actualFrames,
+                    startFrame: startFrame,
+                    endFrame: endFrame,
+                  });
+                }}
+                onTouchEnd={readOnly ? undefined : (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPairClick?.(index, {
+                    index,
+                    frames: actualFrames,
+                    startFrame: startFrame,
+                    endFrame: endFrame,
+                  });
+                }}
+              >
+                <div className="flex items-center gap-1">
+                  <span className="whitespace-nowrap">Pair {index + 1} • {framesToSeconds(actualFrames)}</span>
+                  <MessageSquare
+                    className={`h-2.5 w-2.5 ${hasCustomPrompt ? 'opacity-100' : 'text-gray-400 dark:text-gray-500 opacity-60'}`}
+                  />
+                </div>
               </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div
-              className={`max-w-xs p-2 -m-2 rounded transition-colors ${
-                readOnly ? '' : 'cursor-pointer hover:bg-accent/50'
-              }`}
-              onClick={readOnly ? undefined : (e) => {
-                e.stopPropagation();
-                onPairClick?.(index, {
-                  index,
-                  frames: actualFrames,
-                  startFrame: startFrame,
-                  endFrame: endFrame,
-                });
-              }}
-            >
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
               <div className="space-y-2">
                 <div>
                   <span className="font-medium">Prompt:</span>
@@ -219,9 +206,9 @@ const PairRegion: React.FC<PairRegionProps> = ({
                   </div>
                 )}
               </div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
       {/* Generation boundary lines - COMMENTED OUT */}
