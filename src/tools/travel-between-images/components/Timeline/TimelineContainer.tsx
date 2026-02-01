@@ -1383,11 +1383,12 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
             localShotGenPositions={localShotGenPositions}
             pairDataByIndex={pairDataByIndex}
             onOpenPairSettings={onPairClick ? (pairIndex: number, passedFrameData?: { frames: number; startFrame: number; endFrame: number }) => {
-              console.log('[FrameSyncDebug] 🔄 TimelineContainer.onOpenPairSettings RECEIVED:', {
+              console.log('[SegmentClick] 3️⃣ TimelineContainer.onOpenPairSettings called:', {
                 pairIndex,
                 passedFrameData,
                 localPairInfo: pairInfo[pairIndex],
                 imagesLength: images.length,
+                hasOnPairClick: !!onPairClick,
               });
 
               // Handle single-image mode
@@ -1441,10 +1442,21 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                   startImage: pairData?.startImage,
                   endImage: pairData?.endImage,
                 };
+                console.log('[SegmentClick] 4️⃣ TimelineContainer calling onPairClick with mergedPairData:', { pairIndex, frames: mergedPairData.frames });
                 onPairClick(pairIndex, mergedPairData);
               } else if (pairData) {
-                console.warn('[SegmentClickDebug] No frame data available, falling back to pairDataByIndex');
+                console.log('[SegmentClick] 4️⃣ TimelineContainer calling onPairClick with pairData fallback:', { pairIndex, frames: pairData.frames });
                 onPairClick(pairIndex, pairData);
+              } else {
+                // No data available - still call onPairClick so the lightbox can open
+                // The lightbox will need to fetch/compute the data itself
+                console.warn('[SegmentClick] 4️⃣ TimelineContainer calling onPairClick with NO DATA:', {
+                  pairIndex,
+                  pairInfoLength: pairInfo.length,
+                  pairDataByIndexSize: pairDataByIndex.size,
+                  pairInfoIndices: pairInfo.map(p => p.index),
+                });
+                onPairClick(pairIndex, undefined);
               }
             } : undefined}
             selectedParentId={selectedOutputId}

@@ -264,7 +264,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   // Otherwise fall back to the local MediaLightbox
   // NOTE: We pass the slot directly to avoid array index mismatches between displaySlots and segmentSlots
   const handleSegmentClick = useCallback((slot: typeof segmentSlots[number], slotIndex: number) => {
-    console.log('[SegmentClickDebug] handleSegmentClick called:', {
+    console.log('[SegmentClick] 2️⃣ SegmentOutputStrip.handleSegmentClick called:', {
       slotIndex,
       slotType: slot?.type,
       slotPairIndex: slot?.index,
@@ -702,7 +702,10 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
                     key={slot.type === 'child' ? slot.child.id : `placeholder-${index}`}
                     slot={slot}
                     pairIndex={slot.index}
-                    onClick={() => handleSegmentClick(slot, index)}
+                    onClick={() => {
+                      console.log('[SegmentClick] 1.5️⃣ SegmentOutputStrip onClick wrapper called, about to call handleSegmentClick', { slotIndex: index, pairIndex: slot.index });
+                      handleSegmentClick(slot, index);
+                    }}
                     projectAspectRatio={projectAspectRatio}
                     isMobile={isMobile}
                     leftPercent={position.leftPercent}

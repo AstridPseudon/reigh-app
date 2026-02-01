@@ -1,5 +1,34 @@
 import { quantizeGap, isValidFrameCount } from "./time-utils";
 
+// Minimum gap between frames (4N+1 format, starting at 5)
+const QUANTIZE_MIN_GAP = 5;
+
+/**
+ * Quantize all positions to ensure gaps between adjacent items are in 4N+1 format.
+ * First item remains at position 0, subsequent items are adjusted to have quantized gaps.
+ */
+export const quantizePositions = (positions: Map<string, number>): Map<string, number> => {
+  const entries = [...positions.entries()].sort((a, b) => a[1] - b[1]);
+
+  if (entries.length === 0) return new Map();
+
+  const result = new Map<string, number>();
+
+  // First item always at 0
+  result.set(entries[0][0], 0);
+
+  // Subsequent items: quantize the gap from previous
+  for (let i = 1; i < entries.length; i++) {
+    const [id, pos] = entries[i];
+    const prevPos = result.get(entries[i - 1][0]) ?? 0;
+    const originalGap = pos - entries[i - 1][1];
+    const quantizedGap = quantizeGap(Math.max(originalGap, QUANTIZE_MIN_GAP), QUANTIZE_MIN_GAP);
+    result.set(id, prevPos + quantizedGap);
+  }
+
+  return result;
+};
+
 // Calculate max gap based on context frames (81 frames default)
 export const calculateMaxGap = (contextFrames: number = 0, baseMax: number = 81): number => {
   return Math.max(1, baseMax - (contextFrames * 2));

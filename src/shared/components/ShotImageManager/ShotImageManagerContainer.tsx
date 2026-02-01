@@ -124,11 +124,20 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
   const handleSegmentClick = useCallback((slotIndex: number) => {
     const slot = segmentSlots[slotIndex];
 
+    console.log('[SegmentClick] 🔵 ShotImageManagerContainer.handleSegmentClick:', {
+      slotIndex,
+      slotPairIndex: slot?.index,
+      hasOnPairClick: !!props.onPairClick,
+      segmentSlotsLength: segmentSlots.length,
+    });
+
     // Use unified segment slot lightbox when available (enables navigation to slots without videos)
     if (props.onPairClick && slot) {
+      console.log('[SegmentClick] 🔵 Calling props.onPairClick with pairIndex:', slot.index);
       props.onPairClick(slot.index);
     } else {
       // Fallback to local lightbox
+      console.log('[SegmentClick] 🔵 Fallback: using local lightbox with slotIndex:', slotIndex);
       setSegmentLightboxIndex(slotIndex);
     }
   }, [segmentSlots, props.onPairClick]);

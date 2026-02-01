@@ -1,0 +1,1362 @@
+/**
+ * ImageLightbox
+ *
+ * Specialized lightbox for image media. Handles all image-specific functionality:
+ * - Upscale
+ * - Inpainting/magic edit
+ * - Reposition mode
+ * - Img2Img mode
+ *
+ * Uses useSharedLightboxState for shared functionality (variants, navigation, etc.)
+ *
+ * This is part of the split architecture where MediaLightbox dispatches to
+ * ImageLightbox or VideoLightbox based on media type.
+ */
+
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import type { GenerationRow, Shot } from '@/types/shots';
+import type { SegmentSlotModeData, AdjacentSegmentsData, ShotOption } from './types';
+import { ASPECT_RATIO_TO_RESOLUTION, findClosestAspectRatio, parseRatio } from '@/shared/lib/aspectRatios';
+import { useProject } from '@/shared/contexts/ProjectContext';
+import { usePanes } from '@/shared/contexts/PanesContext';
+import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
+import { useUserUIState } from '@/shared/hooks/useUserUIState';
+import { usePublicLoras } from '@/shared/hooks/useResources';
+import { useLoraManager } from '@/shared/hooks/useLoraManager';
+import { usePendingGenerationTasks } from '@/shared/hooks/usePendingGenerationTasks';
+import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
+import { LightboxVariantProvider } from './contexts/LightboxVariantContext';
+import { LightboxStateProvider } from './contexts/LightboxStateContext';
+import { useIsMobile } from '@/shared/hooks/use-mobile';
+
+// Import hooks
+import {
+  useUpscale,
+  useInpainting,
+  useMagicEditMode,
+  useRepositionMode,
+  useImg2ImgMode,
+  useEditSettingsPersistence,
+  useEditSettingsSync,
+  usePanelModeRestore,
+  useAdjustedTaskDetails,
+  useSharedLightboxState,
+  useLightboxStateValue,
+} from './hooks';
+
+// Import components
+import { LightboxShell } from './components';
+import {
+  DesktopSidePanelLayout,
+  MobileStackedLayout,
+  CenteredLayout,
+} from './components/layouts';
+
+// Import utils
+import { downloadMedia } from './utils';
+import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+
+// ============================================================================
+// Props Interface
+// ============================================================================
+
+export interface ImageLightboxProps {
+  media: GenerationRow;
+  onClose: () => void;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  readOnly?: boolean;
+  showNavigation?: boolean;
+  showImageEditTools?: boolean;
+  showDownload?: boolean;
+  showMagicEdit?: boolean;
+  autoEnterInpaint?: boolean;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
+  allShots?: ShotOption[];
+  selectedShotId?: string;
+  onShotChange?: (shotId: string) => void;
+  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  onDelete?: (id: string) => void;
+  isDeleting?: string | null;
+  onApplySettings?: (metadata: any) => void;
+  showTickForImageId?: string | null;
+  onShowTick?: (imageId: string) => void;
+  showTickForSecondaryImageId?: string | null;
+  onShowSecondaryTick?: (imageId: string) => void;
+  starred?: boolean;
+  onToggleStar?: (id: string, starred: boolean) => void;
+  showTaskDetails?: boolean;
+  taskDetailsData?: {
+    task: any;
+    isLoading: boolean;
+    error: any;
+    inputImages: string[];
+    taskId: string | null;
+    onApplySettingsFromTask?: (taskId: string, replaceImages: boolean, inputImages: string[]) => void;
+    onClose?: () => void;
+  };
+  onShowTaskDetails?: () => void;
+  onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
+  onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
+  toolTypeOverride?: string;
+  optimisticPositionedIds?: Set<string>;
+  optimisticUnpositionedIds?: Set<string>;
+  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
+  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
+  positionedInSelectedShot?: boolean;
+  associatedWithoutPositionInSelectedShot?: boolean;
+  onNavigateToGeneration?: (generationId: string) => void;
+  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
+  shotId?: string;
+  tasksPaneOpen?: boolean;
+  tasksPaneWidth?: number;
+  initialVariantId?: string;
+  adjacentSegments?: AdjacentSegmentsData;
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
+  const {
+    media,
+    onClose,
+    onNext,
+    onPrevious,
+    readOnly = false,
+    showNavigation = true,
+    showImageEditTools = true,
+    showDownload = true,
+    showMagicEdit = true,
+    autoEnterInpaint = false,
+    hasNext = false,
+    hasPrevious = false,
+    allShots,
+    selectedShotId,
+    onShotChange,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onDelete,
+    isDeleting,
+    onApplySettings,
+    showTickForImageId,
+    onShowTick,
+    showTickForSecondaryImageId,
+    onShowSecondaryTick,
+    starred,
+    showTaskDetails = false,
+    taskDetailsData,
+    onShowTaskDetails,
+    onCreateShot,
+    onNavigateToShot,
+    toolTypeOverride,
+    optimisticPositionedIds,
+    optimisticUnpositionedIds,
+    onOptimisticPositioned,
+    onOptimisticUnpositioned,
+    positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot,
+    onOpenExternalGeneration,
+    shotId,
+    tasksPaneOpen,
+    tasksPaneWidth,
+    initialVariantId,
+    adjacentSegments,
+  } = props;
+
+  // ========================================
+  // CORE SETUP
+  // ========================================
+
+  const isMobile = useIsMobile();
+  const { project, selectedProjectId } = useProject();
+  const projectAspectRatio = project?.aspect_ratio;
+  const { value: generationMethods } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
+  const isCloudMode = generationMethods.inCloud;
+  const isLocalGeneration = generationMethods.onComputer && !generationMethods.inCloud;
+
+  // Panes context for tasks pane
+  const {
+    isTasksPaneOpen: tasksPaneOpenContext,
+    setIsTasksPaneOpen: setTasksPaneOpenContext,
+    tasksPaneWidth: tasksPaneWidthContext,
+    isTasksPaneLocked,
+    setIsTasksPaneLocked,
+  } = usePanes();
+
+  // Use prop values if provided, else fall back to context
+  const effectiveTasksPaneOpen = tasksPaneOpen ?? tasksPaneOpenContext;
+  const effectiveTasksPaneWidth = tasksPaneWidth ?? tasksPaneWidthContext;
+
+  // Count cancellable tasks
+  const { data: statusCounts } = useTaskStatusCounts(selectedProjectId);
+  const cancellableTaskCount = statusCounts?.processing || 0;
+
+  // Refs
+  const contentRef = useRef<HTMLDivElement>(null);
+  const displayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const variantsSectionRef = useRef<HTMLDivElement>(null);
+
+  // State
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [replaceImages, setReplaceImages] = useState(true);
+  const [variantParamsToLoad, setVariantParamsToLoad] = useState<any>(null);
+
+  // Compute actual generation ID
+  // For timeline images, media.id is shot_generations.id, not the generation ID
+  // So we need to prefer media.generation_id for variant fetching
+  const actualGenerationId = media.generation_id || media.id;
+  const variantFetchGenerationId = media.parent_generation_id || actualGenerationId;
+
+  // ========================================
+  // IMAGE DIMENSIONS
+  // ========================================
+
+  const resolutionToDimensions = (resolution: string): { width: number; height: number } | null => {
+    if (!resolution || typeof resolution !== 'string' || !resolution.includes('x')) return null;
+    const [w, h] = resolution.split('x').map(Number);
+    if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+      return { width: w, height: h };
+    }
+    return null;
+  };
+
+  const aspectRatioToDimensions = (aspectRatio: string): { width: number; height: number } | null => {
+    if (!aspectRatio) return null;
+    const directResolution = ASPECT_RATIO_TO_RESOLUTION[aspectRatio];
+    if (directResolution) return resolutionToDimensions(directResolution);
+    const ratio = parseRatio(aspectRatio);
+    if (!isNaN(ratio)) {
+      const closestAspectRatio = findClosestAspectRatio(ratio);
+      const closestResolution = ASPECT_RATIO_TO_RESOLUTION[closestAspectRatio];
+      if (closestResolution) return resolutionToDimensions(closestResolution);
+    }
+    return null;
+  };
+
+  const extractDimensionsFromMedia = useCallback((mediaObj: typeof media): { width: number; height: number } | null => {
+    if (!mediaObj) return null;
+    const params = (mediaObj as any)?.params;
+    const metadata = mediaObj?.metadata as any;
+
+    if ((mediaObj as any)?.width && (mediaObj as any)?.height) {
+      return { width: (mediaObj as any).width, height: (mediaObj as any).height };
+    }
+    if (metadata?.width && metadata?.height) {
+      return { width: metadata.width, height: metadata.height };
+    }
+
+    const resolutionSources = [
+      params?.resolution,
+      params?.originalParams?.resolution,
+      params?.orchestrator_details?.resolution,
+      metadata?.resolution,
+      metadata?.originalParams?.resolution,
+      metadata?.originalParams?.orchestrator_details?.resolution,
+    ];
+    for (const res of resolutionSources) {
+      const dims = resolutionToDimensions(res);
+      if (dims) return dims;
+    }
+
+    const aspectRatioSources = [
+      params?.aspect_ratio,
+      params?.custom_aspect_ratio,
+      params?.originalParams?.aspect_ratio,
+      params?.orchestrator_details?.aspect_ratio,
+      metadata?.aspect_ratio,
+      metadata?.originalParams?.aspect_ratio,
+      metadata?.originalParams?.orchestrator_details?.aspect_ratio,
+    ];
+    for (const ar of aspectRatioSources) {
+      if (ar) {
+        const dims = aspectRatioToDimensions(ar);
+        if (dims) return dims;
+      }
+    }
+
+    return null;
+  }, []);
+
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(() => {
+    return extractDimensionsFromMedia(media);
+  });
+
+  React.useLayoutEffect(() => {
+    const dims = extractDimensionsFromMedia(media);
+    if (dims) setImageDimensions(dims);
+  }, [media?.id, extractDimensionsFromMedia]);
+
+  // ========================================
+  // UPSCALE HOOK
+  // ========================================
+
+  const upscaleHook = useUpscale({ media, selectedProjectId, isVideo: false });
+  const {
+    effectiveImageUrl,
+    sourceUrlForTasks,
+    isUpscaling,
+    showingUpscaled,
+    isPendingUpscale,
+    hasUpscaledVersion,
+    handleUpscale,
+    handleToggleUpscaled,
+  } = upscaleHook;
+
+  // ========================================
+  // EDIT SETTINGS PERSISTENCE
+  // ========================================
+
+  const editSettingsPersistence = useEditSettingsPersistence({
+    generationId: actualGenerationId,
+    projectId: selectedProjectId,
+    enabled: true,
+  });
+  const {
+    loraMode,
+    setLoraMode,
+    customLoraUrl,
+    setCustomLoraUrl,
+    prompt: persistedPrompt,
+    setPrompt: setPersistedPrompt,
+    numGenerations: persistedNumGenerations,
+    setNumGenerations: setPersistedNumGenerations,
+    img2imgStrength: persistedImg2imgStrength,
+    setImg2imgStrength: setPersistedImg2imgStrength,
+    img2imgEnablePromptExpansion: persistedImg2imgEnablePromptExpansion,
+    setImg2imgEnablePromptExpansion: setPersistedImg2imgEnablePromptExpansion,
+    img2imgPrompt: persistedImg2imgPrompt,
+    setImg2imgPrompt: setPersistedImg2imgPrompt,
+    img2imgPromptHasBeenSet: persistedImg2imgPromptHasBeenSet,
+    editModeLoRAs,
+    setEditModeLoRAs,
+    createAsGeneration,
+    setCreateAsGeneration,
+    advancedSettings,
+    setAdvancedSettings,
+    qwenEditModel,
+    setQwenEditModel,
+    editMode: persistedEditMode,
+    setEditMode: setPersistedEditMode,
+    panelMode: persistedPanelMode,
+    setPanelMode: setPersistedPanelMode,
+    isReady: isEditSettingsReady,
+    hasPersistedSettings,
+  } = editSettingsPersistence;
+
+  // ========================================
+  // SHARED LIGHTBOX STATE
+  // ========================================
+
+  // Navigation handlers (for slot-based navigation in segment mode)
+  const handleSlotNavNext = useCallback(() => {
+    if (onNext) onNext();
+  }, [onNext]);
+
+  const handleSlotNavPrev = useCallback(() => {
+    if (onPrevious) onPrevious();
+  }, [onPrevious]);
+
+  // STATE SYNC PATTERN NOTE:
+  // useSharedLightboxState needs isInpaintMode/isMagicEditMode for layout calculations,
+  // but these come from hooks called AFTER useSharedLightboxState.
+  // We use local state as a proxy, updated via useEffect after the hooks run.
+  // This causes a one-frame delay but is acceptable for swipe/layout calculations.
+  // TODO (Phase 5): Consider restructuring to avoid this sync pattern.
+  const [isInpaintModeLocal, setIsInpaintModeLocal] = useState(false);
+  const [isMagicEditModeLocal, setIsMagicEditModeLocal] = useState(false);
+
+  const sharedState = useSharedLightboxState({
+    media,
+    isVideo: false,
+    selectedProjectId,
+    isMobile,
+    isFormOnlyMode: false,
+    onClose,
+    readOnly,
+    variantFetchGenerationId,
+    initialVariantId,
+    showNavigation,
+    hasNext,
+    hasPrevious,
+    handleSlotNavNext,
+    handleSlotNavPrev,
+    shotId,
+    selectedShotId,
+    allShots,
+    onShotChange,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onNavigateToShot,
+    onShowTick,
+    onShowSecondaryTick,
+    onOptimisticPositioned,
+    onOptimisticUnpositioned,
+    optimisticPositionedIds,
+    optimisticUnpositionedIds,
+    positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot,
+    starred,
+    onOpenExternalGeneration,
+    showTaskDetails,
+    isSpecialEditMode: isMagicEditModeLocal,
+    isInpaintMode: isInpaintModeLocal,
+    isMagicEditMode: isMagicEditModeLocal,
+    isCloudMode,
+    showDownload,
+    isDownloading,
+    setIsDownloading,
+    onDelete,
+    isDeleting,
+    isUpscaling,
+    isPendingUpscale,
+    hasUpscaledVersion,
+    showingUpscaled,
+    handleUpscale,
+    handleToggleUpscaled,
+    handleEnterMagicEditMode: () => {}, // Will be replaced after hook
+    effectiveImageUrl,
+    imageDimensions: imageDimensions || { width: 1024, height: 1024 },
+    projectAspectRatio,
+    swipeDisabled: isMagicEditModeLocal || readOnly,
+  });
+
+  // Extract shared state
+  const {
+    variants,
+    intendedActiveVariantIdRef,
+    navigation,
+    star,
+    references,
+    lineage,
+    shots,
+    sourceGeneration,
+    makeMainVariant,
+    effectiveMedia,
+    layout,
+    buttonGroupProps,
+  } = sharedState;
+
+  // ========================================
+  // LORA MANAGEMENT
+  // ========================================
+
+  const { data: availableLoras } = usePublicLoras();
+
+  const editLoraManager = useLoraManager(availableLoras, {
+    projectId: selectedProjectId || undefined,
+    persistenceScope: 'none',
+    enableProjectPersistence: false,
+    disableAutoLoad: true,
+  });
+
+  const effectiveEditModeLoRAs = useMemo(() => {
+    if (editLoraManager.selectedLoras.length > 0) {
+      return editLoraManager.selectedLoras.map(lora => ({
+        url: lora.path,
+        strength: lora.strength,
+      }));
+    }
+    return editModeLoRAs;
+  }, [editLoraManager.selectedLoras, editModeLoRAs]);
+
+  // ========================================
+  // INPAINTING HOOK
+  // ========================================
+
+  const inpaintingHook = useInpainting({
+    media,
+    selectedProjectId,
+    shotId,
+    toolTypeOverride,
+    isVideo: false,
+    displayCanvasRef,
+    maskCanvasRef,
+    imageContainerRef,
+    imageDimensions,
+    handleExitInpaintMode: () => {},
+    loras: effectiveEditModeLoRAs,
+    activeVariantId: variants.activeVariant?.id,
+    activeVariantLocation: variants.activeVariant?.location,
+    createAsGeneration,
+    advancedSettings,
+    qwenEditModel,
+    imageUrl: variants.activeVariant?.location || effectiveImageUrl,
+    thumbnailUrl: variants.activeVariant?.thumbnail_url || media.thumbUrl,
+    initialEditMode: persistedEditMode,
+  });
+
+  const {
+    isInpaintMode,
+    brushStrokes,
+    isEraseMode,
+    inpaintPrompt,
+    inpaintNumGenerations,
+    brushSize,
+    isGeneratingInpaint,
+    inpaintGenerateSuccess,
+    isAnnotateMode,
+    editMode,
+    annotationMode,
+    selectedShapeId,
+    showTextModeHint,
+    setIsInpaintMode,
+    setIsEraseMode,
+    setInpaintPrompt,
+    setInpaintNumGenerations,
+    setBrushSize,
+    setIsAnnotateMode,
+    setEditMode,
+    setAnnotationMode,
+    handleKonvaPointerDown,
+    handleKonvaPointerMove,
+    handleKonvaPointerUp,
+    handleShapeClick,
+    handleUndo,
+    handleClearMask,
+    handleEnterInpaintMode,
+    handleGenerateInpaint,
+    handleGenerateAnnotatedEdit,
+    handleDeleteSelected,
+    handleToggleFreeForm,
+    getDeleteButtonPosition,
+    strokeOverlayRef,
+    isImageLoaded: isInpaintImageLoaded,
+    imageLoadError: inpaintImageLoadError,
+    isDrawing,
+    currentStroke,
+  } = inpaintingHook;
+
+  // ========================================
+  // EDIT SETTINGS SYNC
+  // ========================================
+
+  useEditSettingsSync({
+    actualGenerationId,
+    isEditSettingsReady,
+    hasPersistedSettings,
+    persistedEditMode,
+    persistedNumGenerations,
+    persistedPrompt,
+    editMode,
+    inpaintNumGenerations,
+    inpaintPrompt,
+    setEditMode,
+    setInpaintNumGenerations,
+    setInpaintPrompt,
+    setPersistedEditMode,
+    setPersistedNumGenerations,
+    setPersistedPrompt,
+  });
+
+  const handleExitInpaintMode = () => {
+    setIsInpaintMode(false);
+  };
+
+  // ========================================
+  // MAGIC EDIT MODE HOOK
+  // ========================================
+
+  const magicEditHook = useMagicEditMode({
+    media,
+    selectedProjectId,
+    autoEnterInpaint,
+    isVideo: false,
+    isInpaintMode,
+    setIsInpaintMode,
+    handleEnterInpaintMode,
+    handleGenerateInpaint,
+    brushStrokes,
+    inpaintPrompt,
+    setInpaintPrompt,
+    inpaintNumGenerations,
+    setInpaintNumGenerations,
+    editModeLoRAs: effectiveEditModeLoRAs,
+    sourceUrlForTasks,
+    imageDimensions,
+    toolTypeOverride,
+    isInSceneBoostEnabled: false,
+    setIsInSceneBoostEnabled: () => {},
+    activeVariantId: variants.activeVariant?.id,
+    activeVariantLocation: variants.activeVariant?.location,
+    createAsGeneration,
+    advancedSettings,
+    qwenEditModel,
+    enabled: true,
+  });
+
+  const {
+    isMagicEditMode,
+    setIsMagicEditMode,
+    magicEditPrompt,
+    setMagicEditPrompt,
+    magicEditNumImages,
+    setMagicEditNumImages,
+    isCreatingMagicEditTasks,
+    magicEditTasksCreated,
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
+    handleEnterMagicEditMode,
+    handleExitMagicEditMode,
+    handleUnifiedGenerate,
+    isSpecialEditMode,
+  } = magicEditHook;
+
+  // Sync edit mode state to shared state hook (see STATE SYNC PATTERN NOTE above)
+  // This runs after useMagicEditMode provides the real values
+  useEffect(() => {
+    setIsInpaintModeLocal(isInpaintMode);
+    setIsMagicEditModeLocal(isMagicEditMode);
+  }, [isInpaintMode, isMagicEditMode]);
+
+  // ========================================
+  // REPOSITION MODE HOOK
+  // ========================================
+
+  const repositionHook = useRepositionMode({
+    media,
+    selectedProjectId,
+    imageDimensions,
+    imageContainerRef,
+    loras: effectiveEditModeLoRAs,
+    inpaintPrompt,
+    inpaintNumGenerations,
+    handleExitInpaintMode: handleExitMagicEditMode,
+    toolTypeOverride,
+    shotId,
+    onVariantCreated: variants.setActiveVariantId,
+    refetchVariants: variants.refetch,
+    createAsGeneration,
+    advancedSettings,
+    activeVariantLocation: variants.activeVariant?.location,
+    activeVariantId: variants.activeVariant?.id,
+    activeVariantParams: variants.activeVariant?.params as Record<string, any> | null,
+    qwenEditModel,
+  });
+
+  const {
+    transform: repositionTransform,
+    hasTransformChanges,
+    isGeneratingReposition,
+    repositionGenerateSuccess,
+    isSavingAsVariant,
+    saveAsVariantSuccess,
+    setTranslateX,
+    setTranslateY,
+    setScale,
+    setRotation,
+    toggleFlipH,
+    toggleFlipV,
+    resetTransform,
+    handleGenerateReposition,
+    handleSaveAsVariant,
+    getTransformStyle,
+    isDragging: isRepositionDragging,
+    dragHandlers: repositionDragHandlers,
+  } = repositionHook;
+
+  // ========================================
+  // IMG2IMG MODE HOOK
+  // ========================================
+
+  const img2imgHook = useImg2ImgMode({
+    media,
+    selectedProjectId,
+    isVideo: false,
+    sourceUrlForTasks,
+    toolTypeOverride,
+    createAsGeneration,
+    availableLoras,
+    img2imgStrength: persistedImg2imgStrength,
+    setImg2imgStrength: setPersistedImg2imgStrength,
+    enablePromptExpansion: persistedImg2imgEnablePromptExpansion,
+    setEnablePromptExpansion: setPersistedImg2imgEnablePromptExpansion,
+    img2imgPrompt: persistedImg2imgPrompt,
+    setImg2imgPrompt: setPersistedImg2imgPrompt,
+    img2imgPromptHasBeenSet: persistedImg2imgPromptHasBeenSet,
+    numGenerations: persistedNumGenerations,
+    activeVariantLocation: variants.activeVariant?.location,
+    activeVariantId: variants.activeVariant?.id,
+  });
+
+  const {
+    img2imgPrompt,
+    img2imgStrength,
+    enablePromptExpansion,
+    isGeneratingImg2Img,
+    img2imgGenerateSuccess,
+    setImg2imgPrompt,
+    setImg2imgStrength,
+    setEnablePromptExpansion,
+    handleGenerateImg2Img,
+    loraManager: img2imgLoraManager,
+  } = img2imgHook;
+
+  // ========================================
+  // ADJUSTED TASK DETAILS
+  // ========================================
+
+  const { adjustedTaskDetailsData } = useAdjustedTaskDetails({
+    activeVariant: variants.activeVariant,
+    taskDetailsData,
+    isLoadingVariants: variants.isLoading,
+    initialVariantId,
+  });
+
+  // ========================================
+  // PANEL MODE RESTORE
+  // ========================================
+
+  usePanelModeRestore({
+    mediaId: media.id,
+    persistedPanelMode,
+    isVideo: false,
+    isSpecialEditMode,
+    isInVideoEditMode: false,
+    initialVideoTrimMode: false,
+    autoEnterInpaint,
+    handleEnterVideoEditMode: () => {},
+    handleEnterMagicEditMode,
+  });
+
+  // ========================================
+  // PENDING TASKS
+  // ========================================
+
+  const { pendingCount: pendingTaskCount } = usePendingGenerationTasks(actualGenerationId, selectedProjectId);
+
+  const unviewedVariantCount = useMemo(() => {
+    if (!variants.list || variants.list.length === 0) return 0;
+    return variants.list.filter((v: any) => v.viewed_at === null).length;
+  }, [variants.list]);
+
+  const { markAllViewed: markAllViewedMutation } = useMarkVariantViewed();
+  const handleMarkAllViewed = useCallback(() => {
+    if (variantFetchGenerationId) {
+      markAllViewedMutation(variantFetchGenerationId);
+    }
+  }, [markAllViewedMutation, variantFetchGenerationId]);
+
+  // ========================================
+  // CONTEXT VALUES
+  // ========================================
+
+  const lightboxVariantContextValue = useMemo(() => ({
+    pendingTaskCount,
+    unviewedVariantCount,
+    onMarkAllViewed: handleMarkAllViewed,
+    variantsSectionRef,
+  }), [pendingTaskCount, unviewedVariantCount, handleMarkAllViewed]);
+
+  const lightboxStateValue = useLightboxStateValue({
+    onClose,
+    readOnly,
+    isMobile,
+    isTabletOrLarger: layout.isTabletOrLarger,
+    selectedProjectId,
+    actualGenerationId,
+    media,
+    isVideo: false,
+    effectiveMediaUrl: effectiveMedia.mediaUrl,
+    effectiveVideoUrl: '',
+    effectiveImageDimensions: effectiveMedia.imageDimensions,
+    imageDimensions,
+    setImageDimensions,
+    variants: variants.list,
+    activeVariant: variants.activeVariant,
+    primaryVariant: variants.primaryVariant,
+    isLoadingVariants: variants.isLoading,
+    setActiveVariantId: variants.setActiveVariantId,
+    setPrimaryVariant: variants.setPrimaryVariant,
+    deleteVariant: variants.deleteVariant,
+    promoteSuccess: variants.promoteSuccess,
+    isPromoting: variants.isPromoting,
+    handlePromoteToGeneration: variants.handlePromoteToGeneration,
+    isMakingMainVariant: makeMainVariant.isMaking,
+    canMakeMainVariant: makeMainVariant.canMake,
+    handleMakeMainVariant: makeMainVariant.handle,
+    pendingTaskCount,
+    unviewedVariantCount,
+    onMarkAllViewed: handleMarkAllViewed,
+    variantsSectionRef,
+    showNavigation,
+    hasNext,
+    hasPrevious,
+    handleSlotNavNext,
+    handleSlotNavPrev,
+    swipeNavigation: navigation.swipeNavigation,
+    isInpaintMode,
+    isSpecialEditMode,
+    isInVideoEditMode: false,
+    editMode,
+    setEditMode,
+    setIsInpaintMode,
+  });
+
+  // ========================================
+  // DOWNLOAD HANDLER
+  // ========================================
+
+  const handleDownload = async () => {
+    let urlToDownload: string | undefined;
+    const intendedVariantId = intendedActiveVariantIdRef.current;
+
+    if (intendedVariantId && variants.list.length > 0) {
+      const intendedVariant = variants.list.find((v: any) => v.id === intendedVariantId);
+      if (intendedVariant?.location) {
+        urlToDownload = intendedVariant.location;
+      }
+    }
+
+    if (!urlToDownload) {
+      urlToDownload = effectiveMedia.mediaUrl;
+    }
+
+    if (!urlToDownload) return;
+
+    setIsDownloading(true);
+    try {
+      const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, any> | null);
+      const prompt = (media.params as any)?.prompt ||
+                     (media.metadata as any)?.enhanced_prompt ||
+                     segmentOverrides.prompt ||
+                     (media.metadata as any)?.prompt;
+      await downloadMedia(urlToDownload, media.id, false, media.contentType, prompt);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) onDelete(media.id);
+  };
+
+  const handleApplySettings = () => {
+    if (onApplySettings) onApplySettings(media.metadata);
+  };
+
+  const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
+    if (onNavigateToShot) {
+      const minimalShot = { id: shot.id, name: shot.name, images: [], position: 0 };
+      onClose();
+      onNavigateToShot(minimalShot);
+    }
+  }, [onNavigateToShot, onClose]);
+
+  // ========================================
+  // LAYOUT DECISIONS
+  // ========================================
+
+  const needsFullscreenLayout = isMobile || layout.shouldShowSidePanel;
+  const needsTasksPaneOffset = needsFullscreenLayout && effectiveTasksPaneOpen && !layout.isPortraitMode && layout.isTabletOrLarger;
+
+  const accessibilityTitle = `Image Lightbox - ${media?.id?.substring(0, 8)}`;
+  const accessibilityDescription = 'View and interact with image in full screen. Use arrow keys to navigate, Escape to close.';
+
+  // Generation name (stubbed)
+  const generationName = media?.name || '';
+  const isEditingGenerationName = false;
+  const setIsEditingGenerationName = (_: boolean) => {};
+  const handleGenerationNameChange = (_: string) => {};
+
+  // Flip functionality removed
+  const isFlippedHorizontally = false;
+  const isSaving = false;
+
+  // ========================================
+  // BUILD LAYOUT PROPS
+  // ========================================
+
+  // For now, build minimal props for layout components
+  // This will be expanded as we complete the split
+
+  const sidePanelLayoutProps = useMemo(() => ({
+    // Core
+    onClose,
+    readOnly,
+    isMobile,
+    selectedProjectId,
+    actualGenerationId,
+    contentRef,
+
+    // Media
+    media,
+    isVideo: false,
+    effectiveMediaUrl: effectiveMedia.mediaUrl,
+    effectiveVideoUrl: '',
+    imageDimensions,
+    setImageDimensions,
+    effectiveImageDimensions: effectiveMedia.imageDimensions,
+
+    // Variants
+    variants: variants.list,
+    activeVariant: variants.activeVariant,
+    primaryVariant: variants.primaryVariant,
+    isLoadingVariants: variants.isLoading,
+    setActiveVariantId: variants.setActiveVariantId,
+    setPrimaryVariant: variants.setPrimaryVariant,
+    deleteVariant: variants.deleteVariant,
+    promoteSuccess: variants.promoteSuccess,
+    isPromoting: variants.isPromoting,
+    handlePromoteToGeneration: variants.handlePromoteToGeneration,
+    isMakingMainVariant: makeMainVariant.isMaking,
+    canMakeMainVariant: makeMainVariant.canMake,
+    handleMakeMainVariant: makeMainVariant.handle,
+    variantParamsToLoad,
+    setVariantParamsToLoad,
+    variantsSectionRef,
+
+    // Video edit (stub for images)
+    isVideoTrimModeActive: false,
+    isVideoEditModeActive: false,
+    isInVideoEditMode: false,
+    videoEditSubMode: null,
+    trimVideoRef: { current: null },
+    trimState: { startTrim: 0, endTrim: 0, videoDuration: 0 },
+    setStartTrim: () => {},
+    setEndTrim: () => {},
+    resetTrim: () => {},
+    trimmedDuration: 0,
+    hasTrimChanges: false,
+    saveTrimmedVideo: async () => {},
+    isSavingTrim: false,
+    trimSaveProgress: 0,
+    trimSaveError: null,
+    trimSaveSuccess: false,
+    setVideoDuration: () => {},
+    setTrimCurrentTime: () => {},
+    trimCurrentTime: 0,
+    videoEditing: null,
+    handleEnterVideoTrimMode: () => {},
+    handleEnterVideoReplaceMode: () => {},
+    handleEnterVideoRegenerateMode: () => {},
+    handleEnterVideoEnhanceMode: () => {},
+    handleExitVideoEditMode: () => {},
+    handleEnterVideoEditMode: () => {},
+    regenerateFormProps: null,
+    isCloudMode,
+    enhanceSettings: { enableInterpolation: false, enableUpscale: true, numFrames: 1, upscaleFactor: 2, colorFix: true, outputQuality: 'high' as const },
+    onUpdateEnhanceSetting: () => {},
+    onEnhanceGenerate: () => {},
+    isEnhancing: false,
+    enhanceSuccess: false,
+    canEnhance: false,
+
+    // Edit mode
+    isInpaintMode,
+    isAnnotateMode,
+    isSpecialEditMode,
+    editMode,
+    setEditMode,
+    setIsInpaintMode,
+    brushStrokes,
+    currentStroke,
+    isDrawing,
+    isEraseMode,
+    setIsEraseMode,
+    brushSize,
+    setBrushSize,
+    annotationMode,
+    setAnnotationMode,
+    selectedShapeId,
+    handleKonvaPointerDown,
+    handleKonvaPointerMove,
+    handleKonvaPointerUp,
+    handleShapeClick,
+    strokeOverlayRef,
+    handleUndo,
+    handleClearMask,
+    getDeleteButtonPosition,
+    handleToggleFreeForm,
+    handleDeleteSelected,
+    isRepositionDragging,
+    repositionDragHandlers,
+    getTransformStyle,
+    repositionTransform,
+    setTranslateX,
+    setTranslateY,
+    setScale,
+    setRotation,
+    toggleFlipH,
+    toggleFlipV,
+    resetTransform,
+    imageContainerRef,
+    canvasRef: displayCanvasRef,
+    maskCanvasRef,
+    isFlippedHorizontally,
+    isSaving,
+    handleExitInpaintMode,
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
+
+    // Edit form props
+    inpaintPrompt,
+    setInpaintPrompt,
+    inpaintNumGenerations,
+    setInpaintNumGenerations,
+    loraMode,
+    setLoraMode,
+    customLoraUrl,
+    setCustomLoraUrl,
+    isGeneratingInpaint,
+    inpaintGenerateSuccess,
+    isCreatingMagicEditTasks,
+    magicEditTasksCreated,
+    handleExitMagicEditMode,
+    handleUnifiedGenerate,
+    handleGenerateAnnotatedEdit,
+    handleGenerateReposition,
+    isGeneratingReposition,
+    repositionGenerateSuccess,
+    hasTransformChanges,
+    handleSaveAsVariant,
+    isSavingAsVariant,
+    saveAsVariantSuccess,
+    createAsGeneration,
+    onCreateAsGenerationChange: setCreateAsGeneration,
+
+    // Img2Img props
+    img2imgPrompt,
+    setImg2imgPrompt,
+    img2imgStrength,
+    setImg2imgStrength,
+    enablePromptExpansion,
+    setEnablePromptExpansion,
+    isGeneratingImg2Img,
+    img2imgGenerateSuccess,
+    handleGenerateImg2Img,
+    img2imgLoraManager,
+    availableLoras,
+    editLoraManager,
+    advancedSettings,
+    setAdvancedSettings,
+    isLocalGeneration,
+    qwenEditModel,
+    setQwenEditModel,
+
+    // Info panel props
+    showImageEditTools,
+    adjustedTaskDetailsData,
+    generationName,
+    handleGenerationNameChange,
+    isEditingGenerationName,
+    setIsEditingGenerationName,
+    derivedItems: lineage.derivedItems,
+    derivedGenerations: lineage.derivedGenerations,
+    paginatedDerived: lineage.paginatedDerived,
+    derivedPage: lineage.derivedPage,
+    derivedTotalPages: lineage.derivedTotalPages,
+    setDerivedPage: lineage.setDerivedPage,
+    replaceImages,
+    setReplaceImages,
+    sourceGenerationData: sourceGeneration.data,
+    sourcePrimaryVariant: sourceGeneration.primaryVariant,
+    onOpenExternalGeneration,
+
+    // Navigation
+    showNavigation,
+    hasNext,
+    hasPrevious,
+    handleSlotNavNext,
+    handleSlotNavPrev,
+    swipeNavigation: navigation.swipeNavigation,
+
+    // Panel
+    effectiveTasksPaneOpen,
+    effectiveTasksPaneWidth,
+
+    // Floating tool props (for edit mode controls)
+    floatingToolProps: {
+      editMode,
+      setEditMode,
+      brushSize,
+      isEraseMode,
+      setBrushSize,
+      setIsEraseMode,
+      annotationMode,
+      setAnnotationMode,
+      repositionTransform,
+      setTranslateX,
+      setTranslateY,
+      setScale,
+      setRotation,
+      toggleFlipH,
+      toggleFlipV,
+      resetTransform,
+      effectiveImageDimensions: effectiveMedia.imageDimensions,
+      brushStrokes,
+      handleUndo,
+      handleClearMask,
+      inpaintPanelPosition,
+      setInpaintPanelPosition,
+    },
+
+    // Controls panel props (for ControlsPanel component)
+    controlsPanelProps: {
+      // Video edit mode (stubs for images)
+      isInVideoEditMode: false,
+      isSpecialEditMode,
+      videoEditSubMode: null,
+      onEnterTrimMode: () => {},
+      onEnterReplaceMode: () => {},
+      onEnterRegenerateMode: () => {},
+      onEnterEnhanceMode: () => {},
+      onExitVideoEditMode: () => {},
+      enhanceSettings: { enableInterpolation: false, enableUpscale: true, numFrames: 1, upscaleFactor: 2, colorFix: true, outputQuality: 'high' as const },
+      onUpdateEnhanceSetting: () => {},
+      onEnhanceGenerate: () => {},
+      isEnhancing: false,
+      enhanceSuccess: false,
+      canEnhance: false,
+      trimState: { startTrim: 0, endTrim: 0, videoDuration: 0 },
+      onStartTrimChange: () => {},
+      onEndTrimChange: () => {},
+      onResetTrim: () => {},
+      trimmedDuration: 0,
+      hasTrimChanges: false,
+      onSaveTrim: async () => {},
+      isSavingTrim: false,
+      trimSaveProgress: 0,
+      trimSaveError: null,
+      trimSaveSuccess: false,
+      videoUrl: '',
+      trimCurrentTime: 0,
+      trimVideoRef: { current: null },
+      videoEditing: null,
+      projectId: selectedProjectId,
+      regenerateFormProps: null,
+      // EditModePanel props
+      sourceGenerationData: sourceGeneration.data,
+      onOpenExternalGeneration,
+      allShots: allShots || [],
+      isCurrentMediaPositioned: shots.isAlreadyPositionedInSelectedShot,
+      onReplaceInShot: async () => {},
+      sourcePrimaryVariant: sourceGeneration.primaryVariant,
+      onMakeMainVariant: makeMainVariant.handle,
+      canMakeMainVariant: makeMainVariant.canMake,
+      editMode,
+      setEditMode,
+      setIsInpaintMode,
+      inpaintPrompt,
+      setInpaintPrompt,
+      inpaintNumGenerations,
+      setInpaintNumGenerations,
+      loraMode,
+      setLoraMode,
+      customLoraUrl,
+      setCustomLoraUrl,
+      isGeneratingInpaint,
+      inpaintGenerateSuccess,
+      isCreatingMagicEditTasks,
+      magicEditTasksCreated,
+      brushStrokes,
+      handleExitMagicEditMode,
+      handleUnifiedGenerate,
+      handleGenerateAnnotatedEdit,
+      handleGenerateReposition,
+      isGeneratingReposition,
+      repositionGenerateSuccess,
+      hasTransformChanges,
+      handleSaveAsVariant,
+      isSavingAsVariant,
+      saveAsVariantSuccess,
+      createAsGeneration,
+      onCreateAsGenerationChange: setCreateAsGeneration,
+      // Img2Img props
+      img2imgPrompt,
+      setImg2imgPrompt,
+      img2imgStrength,
+      setImg2imgStrength,
+      enablePromptExpansion,
+      setEnablePromptExpansion,
+      isGeneratingImg2Img,
+      img2imgGenerateSuccess,
+      handleGenerateImg2Img,
+      img2imgLoraManager,
+      availableLoras,
+      editLoraManager,
+      advancedSettings,
+      setAdvancedSettings,
+      isLocalGeneration,
+      qwenEditModel,
+      setQwenEditModel,
+      // InfoPanel props
+      isVideo: false,
+      showImageEditTools,
+      readOnly,
+      isInpaintMode,
+      onExitInpaintMode: handleExitInpaintMode,
+      onEnterInpaintMode: () => {
+        setIsInpaintMode(true);
+        setEditMode('inpaint');
+      },
+      onEnterVideoEditMode: () => {},
+      onClose,
+      taskDetailsData: adjustedTaskDetailsData,
+      taskId: adjustedTaskDetailsData?.taskId || (media as any)?.source_task_id || null,
+      generationName,
+      onGenerationNameChange: handleGenerationNameChange,
+      isEditingGenerationName,
+      onEditingGenerationNameChange: setIsEditingGenerationName,
+      derivedItems: lineage.derivedItems,
+      replaceImages,
+      onReplaceImagesChange: setReplaceImages,
+      onSwitchToPrimary: variants.primaryVariant ? () => variants.setActiveVariantId(variants.primaryVariant!.id) : undefined,
+      variantsSectionRef,
+      // Shared props
+      currentMediaId: media.id,
+      currentShotId: selectedShotId || shotId,
+      derivedGenerations: lineage.derivedGenerations,
+      paginatedDerived: lineage.paginatedDerived,
+      derivedPage: lineage.derivedPage,
+      derivedTotalPages: lineage.derivedTotalPages,
+      onSetDerivedPage: lineage.setDerivedPage,
+      variants: variants.list,
+      activeVariant: variants.activeVariant,
+      primaryVariant: variants.primaryVariant,
+      onVariantSelect: variants.setActiveVariantId,
+      onMakePrimary: variants.setPrimaryVariant,
+      isLoadingVariants: variants.isLoading,
+      onPromoteToGeneration: variants.handlePromoteToGeneration,
+      isPromoting: variants.isPromoting,
+      onDeleteVariant: variants.deleteVariant,
+      onLoadVariantSettings: setVariantParamsToLoad,
+    },
+
+    // Button group props
+    buttonGroupProps: {
+      ...buttonGroupProps,
+      handleDownload,
+      handleDelete,
+    },
+
+    // Workflow bar props (bundled for layout components)
+    workflowBarProps: {
+      onAddToShot,
+      onDelete,
+      onApplySettings,
+      allShots: allShots || [],
+      selectedShotId,
+      onShotChange,
+      onCreateShot,
+      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
+      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
+      showTickForImageId,
+      showTickForSecondaryImageId,
+      onAddToShotWithoutPosition,
+      onShowTick,
+      onShowSecondaryTick,
+      onOptimisticPositioned,
+      onOptimisticUnpositioned,
+      contentRef,
+      handleApplySettings,
+      handleNavigateToShotFromSelector,
+      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
+    },
+
+    // Workflow controls props (for CenteredLayout - includes isDeleting + handleDelete)
+    workflowControlsProps: {
+      onAddToShot,
+      onDelete,
+      onApplySettings,
+      allShots: allShots || [],
+      selectedShotId,
+      onShotChange,
+      onCreateShot,
+      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
+      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
+      showTickForImageId,
+      showTickForSecondaryImageId,
+      onAddToShotWithoutPosition,
+      onShowTick,
+      onShowSecondaryTick,
+      onOptimisticPositioned,
+      onOptimisticUnpositioned,
+      contentRef,
+      handleApplySettings,
+      handleNavigateToShotFromSelector,
+      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
+      isDeleting,
+      handleDelete,
+    },
+
+    // Other workflow props needed directly
+    shotId,
+    handleReplaceInShot: async () => {},
+
+    // Adjacent segments (for image-to-video navigation)
+    adjacentSegments,
+
+    // Segment slot mode
+    segmentSlotMode: undefined,
+  }), [
+    // Dependencies - list key ones
+    media,
+    variants,
+    effectiveMedia,
+    imageDimensions,
+    isInpaintMode,
+    isSpecialEditMode,
+    editMode,
+    brushStrokes,
+    inpaintPrompt,
+    inpaintNumGenerations,
+    buttonGroupProps,
+    lineage,
+    shots,
+    sourceGeneration,
+    makeMainVariant,
+    navigation,
+  ]);
+
+  const centeredLayoutProps = useMemo(() => ({
+    ...sidePanelLayoutProps,
+    // CenteredLayout specific overrides
+  }), [sidePanelLayoutProps]);
+
+  // ========================================
+  // RENDER
+  // ========================================
+
+  return (
+    <LightboxStateProvider value={lightboxStateValue}>
+      <LightboxVariantProvider value={lightboxVariantContextValue}>
+        <LightboxShell
+          onClose={onClose}
+          isInpaintMode={isInpaintMode}
+          isSelectOpen={isSelectOpen}
+          shouldShowSidePanel={layout.shouldShowSidePanel}
+          isMobile={isMobile}
+          isTabletOrLarger={layout.isTabletOrLarger}
+          effectiveTasksPaneOpen={effectiveTasksPaneOpen}
+          effectiveTasksPaneWidth={effectiveTasksPaneWidth}
+          cancellableTaskCount={cancellableTaskCount}
+          isTasksPaneLocked={isTasksPaneLocked}
+          setIsTasksPaneLocked={setIsTasksPaneLocked}
+          setTasksPaneOpenContext={setTasksPaneOpenContext}
+          needsFullscreenLayout={needsFullscreenLayout}
+          needsTasksPaneOffset={needsTasksPaneOffset}
+          contentRef={contentRef}
+          accessibilityTitle={accessibilityTitle}
+          accessibilityDescription={accessibilityDescription}
+        >
+          {layout.shouldShowSidePanel ? (
+            <DesktopSidePanelLayout {...sidePanelLayoutProps} />
+          ) : (showTaskDetails || isSpecialEditMode) && isMobile ? (
+            <MobileStackedLayout {...sidePanelLayoutProps} />
+          ) : (
+            <CenteredLayout {...centeredLayoutProps} />
+          )}
+        </LightboxShell>
+      </LightboxVariantProvider>
+    </LightboxStateProvider>
+  );
+};
+
+export default ImageLightbox;

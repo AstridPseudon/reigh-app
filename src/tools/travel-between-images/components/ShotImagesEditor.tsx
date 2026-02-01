@@ -12,6 +12,7 @@ import { useEnhancedShotImageReorder } from "@/shared/hooks/useEnhancedShotImage
 import { useTimelinePositionUtils } from "@/shared/hooks/useTimelinePositionUtils";
 import { supabase } from "@/integrations/supabase/client";
 import MediaLightbox from "@/shared/components/MediaLightbox";
+import { SegmentEditorModal } from "@/shared/components/MediaLightbox/components";
 import type { SegmentSlotModeData } from "@/shared/components/MediaLightbox/types";
 import type { PairData } from "./Timeline/TimelineContainer";
 import { Download, Loader2, Play, Pause, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
@@ -1016,18 +1017,21 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
 
     // Find the pair where startImage.id matches the openSegmentSlot
     let targetPairIndex: number | null = null;
+    let targetPairData: PairData | null = null;
     for (const [pairIndex, pairData] of pairDataByIndex.entries()) {
       if (pairData.startImage.id === state.openSegmentSlot) {
         targetPairIndex = pairIndex;
+        targetPairData = pairData;
         break;
       }
     }
 
-    if (targetPairIndex !== null) {
+    if (targetPairIndex !== null && targetPairData) {
       console.log('[SegmentSlotNav] Opening segment slot from navigation state:', {
         openSegmentSlot: state.openSegmentSlot,
         targetPairIndex,
       });
+      setActivePairData(targetPairData);
       setSegmentSlotLightboxIndex(targetPairIndex);
 
       // Clear the navigation state so it doesn't re-trigger
@@ -1112,8 +1116,10 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
           segmentSlotsCount: segmentSlots.length,
           segmentSlotIndices: segmentSlots.map(s => s.index),
         });
-        if (pairDataByIndex.has(index)) {
-          console.log('[SegmentSlotNav] Setting segmentSlotLightboxIndex to:', index);
+        const targetPairData = pairDataByIndex.get(index);
+        if (targetPairData) {
+          console.log('[SegmentSlotNav] Setting activePairData and segmentSlotLightboxIndex to:', index);
+          setActivePairData(targetPairData);
           setSegmentSlotLightboxIndex(index);
         } else {
           console.log('[SegmentSlotNav] ❌ pairDataByIndex does NOT have index:', index);
@@ -2311,20 +2317,25 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
     const { pairDataByIndex, setSegmentSlotLightboxIndex, setActivePairData } = stableCallbackDepsRef.current;
     const fallbackData = pairDataByIndex.get(pairIndex);
 
-    console.log('[FrameSyncDebug] 📥 ShotImagesEditor.handlePairClick RECEIVED:', {
+    console.log('[SegmentClick] 5️⃣ ShotImagesEditor.handlePairClick RECEIVED:', {
       pairIndex,
       passedFrames: passedPairData?.frames,
       fallbackFrames: fallbackData?.frames,
       usingPassed: !!passedPairData,
+      pairDataByIndexSize: pairDataByIndex.size,
     });
 
     // Use passed data (real-time from Timeline) or fall back to pairDataByIndex
     const pairData = passedPairData || fallbackData;
     if (pairData) {
-      console.log('[FrameSyncDebug] 💾 STORING activePairData with frames:', pairData.frames);
+      console.log('[SegmentClick] 5️⃣ STORING activePairData with frames:', pairData.frames);
       setActivePairData(pairData);
-      setSegmentSlotLightboxIndex(pairIndex);
+    } else {
+      console.warn('[SegmentClick] 5️⃣ ⚠️ No pair data available for pairIndex:', pairIndex);
     }
+    // Always open the lightbox - it will compute/fetch data if needed
+    console.log('[SegmentClick] 6️⃣ Calling setSegmentSlotLightboxIndex:', pairIndex);
+    setSegmentSlotLightboxIndex(pairIndex);
   }, []);
 
   // Stable callback: onClearEnhancedPrompt
@@ -2580,7 +2591,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
                 onSegmentFrameCountChange={handleSegmentFrameCountChange}
                 // Segment slots for adjacent segment navigation in lightbox
                 segmentSlots={segmentSlots}
-                onOpenSegmentSlot={(pairIndex) => setSegmentSlotLightboxIndex(pairIndex)}
+                onOpenSegmentSlot={(pairIndex) => handlePairClick(pairIndex)}
                 // Constituent image navigation support (from segment back to image)
                 pendingImageToOpen={pendingImageToOpen}
                 onClearPendingImageToOpen={() => {
@@ -2673,14 +2684,8 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
                     return { shotId, shotName };
                   } : undefined}
                   onNewShotFromSelection={onNewShotFromSelection}
-                  // Pair prompt props - lookup from pairDataByIndex (single source of truth)
-                  onPairClick={(pairIndex, passedPairData) => {
-                    // Open MediaLightbox in segment slot mode for this pair
-                    console.log('[PairIndicatorDebug] ShotImagesEditor onPairClick called', { pairIndex });
-                    if (passedPairData || pairDataByIndex.has(pairIndex)) {
-                      setSegmentSlotLightboxIndex(pairIndex);
-                    }
-                  }}
+                  // Pair prompt props - use unified handlePairClick for consistent state management
+                  onPairClick={handlePairClick}
                   pairPrompts={pairPrompts}
                   enhancedPrompts={(() => {
                     // Convert enhanced prompts to index-based format
@@ -2879,16 +2884,26 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
         style={{ opacity: 0, display: 'none' }}
       />
 
-      {/* Segment Slot Lightbox - Unified segment editor (handles both video and no-video cases) */}
+      {/* Segment Slot Editor - Uses lightweight modal for form-only, full MediaLightbox for video */}
       {segmentSlotModeData && (
-        <MediaLightbox
-          media={segmentSlotModeData.segmentVideo ?? undefined}
-          segmentSlotMode={segmentSlotModeData}
-          onClose={() => setSegmentSlotLightboxIndex(null)}
-          shotId={selectedShotId}
-          readOnly={readOnly}
-          fetchVariantsForSelf={true}
-        />
+        segmentSlotModeData.segmentVideo ? (
+          // Has video - use full MediaLightbox with video playback, variants, etc.
+          <MediaLightbox
+            media={segmentSlotModeData.segmentVideo}
+            segmentSlotMode={segmentSlotModeData}
+            onClose={() => setSegmentSlotLightboxIndex(null)}
+            shotId={selectedShotId}
+            readOnly={readOnly}
+            fetchVariantsForSelf={true}
+          />
+        ) : (
+          // No video yet - use lightweight SegmentEditorModal (avoids MediaLightbox overhead)
+          <SegmentEditorModal
+            segmentSlotMode={segmentSlotModeData}
+            onClose={() => setSegmentSlotLightboxIndex(null)}
+            readOnly={readOnly}
+          />
+        )
       )}
 
       {/* DEPRECATED: SegmentSettingsModal - Replaced by MediaLightbox segment slot mode above

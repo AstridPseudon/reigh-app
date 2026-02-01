@@ -164,3 +164,23 @@ export type {
   UseLightboxLayoutPropsReturn,
 } from './useLightboxLayoutProps';
 
+// Lightbox state context value hook
+export { useLightboxStateValue } from './useLightboxStateValue';
+export type {
+  UseLightboxStateValueInput,
+} from './useLightboxStateValue';
+
+// Lightbox video mode hook (consolidates video-related hooks)
+export { useLightboxVideoMode } from './useLightboxVideoMode';
+export type {
+  UseLightboxVideoModeProps,
+  UseLightboxVideoModeReturn,
+} from './useLightboxVideoMode';
+
+// Shared lightbox state hook (consolidates hooks shared between image/video)
+export { useSharedLightboxState } from './useSharedLightboxState';
+export type {
+  UseSharedLightboxStateProps,
+  UseSharedLightboxStateReturn,
+} from './useSharedLightboxState';
+

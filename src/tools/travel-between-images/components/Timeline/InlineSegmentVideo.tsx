@@ -415,7 +415,20 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
           flowContainerClasses
         )}
         style={adjustedPositionStyle}
-        onClick={onClick}
+        onClick={() => {
+          console.log('[SegmentClick] 1️⃣ InlineSegmentVideo onClick fired', {
+            pairIndex,
+            slotType: slot.type,
+            hasOnClick: !!onClick,
+            onClickType: typeof onClick,
+          });
+          try {
+            onClick();
+            console.log('[SegmentClick] 1️⃣ onClick() completed successfully');
+          } catch (err) {
+            console.error('[SegmentClick] 1️⃣ ❌ onClick() threw error:', err);
+          }
+        }}
         onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}

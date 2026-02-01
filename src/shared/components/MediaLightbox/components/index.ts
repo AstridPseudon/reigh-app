@@ -62,3 +62,9 @@ export type { SegmentRegenerateFormProps } from './SegmentRegenerateForm';
 
 export { SegmentSlotFormView } from './SegmentSlotFormView';
 export type { SegmentSlotFormViewProps } from './SegmentSlotFormView';
+
+export { SegmentEditorModal } from './SegmentEditorModal';
+export type { SegmentEditorModalProps } from './SegmentEditorModal';
+
+export { LightboxShell } from './LightboxShell';
+export type { LightboxShellProps } from './LightboxShell';
