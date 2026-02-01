@@ -1350,7 +1350,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                       </div>
                       {/* Upload/Browse buttons - right half */}
                       {onAddSegmentStructureVideo && (
-                        <div className="flex-1">
+                        <div className="flex-1 @container">
                           <Label className="text-xs font-medium">Replace:</Label>
                           <div className="flex gap-1 mt-1">
                             <input
@@ -1373,13 +1373,13 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                                 <span>
                                   {isUploadingVideo ? (
                                     <>
-                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                      {Math.round(uploadProgress)}%
+                                      <Loader2 className="w-3 h-3 @[120px]:mr-1 animate-spin" />
+                                      <span className="hidden @[120px]:inline">{Math.round(uploadProgress)}%</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Video className="w-3 h-3 mr-1" />
-                                      Upload
+                                      <Video className="w-3 h-3 @[120px]:mr-1" />
+                                      <span className="hidden @[120px]:inline">Upload</span>
                                     </>
                                   )}
                                 </span>
@@ -1392,8 +1392,8 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                               onClick={() => setShowVideoBrowser(true)}
                               className="flex-1 h-8"
                             >
-                              <Images className="w-3 h-3 mr-1" />
-                              Browse
+                              <Images className="w-3 h-3 @[120px]:mr-1" />
+                              <span className="hidden @[120px]:inline">Browse</span>
                             </Button>
                           </div>
                         </div>

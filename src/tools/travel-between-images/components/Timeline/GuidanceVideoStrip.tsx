@@ -7,6 +7,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Slider } from '@/shared/components/ui/slider';
 import { X } from 'lucide-react';
+import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
 
 interface GuidanceVideoStripProps {
   videoUrl: string;
@@ -153,6 +154,12 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   const [dragPreviewRange, setDragPreviewRange] = useState<{ start: number; end: number } | null>(null);
   const dragStartRef = useRef<{ mouseX: number; startFrame: number; endFrame: number } | null>(null);
   const outerContainerRef = useRef<HTMLDivElement>(null);
+
+  // Tablet tap-to-select state for endpoints (iPad-friendly interaction)
+  const { isTablet } = useDeviceDetection();
+  const [selectedEndpoint, setSelectedEndpoint] = useState<'left' | 'right' | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const SCROLL_THRESHOLD = 10; // Pixels of movement before considering it a scroll
   
   // Use drag preview range during drag, otherwise use actual props
   const displayOutputStart = dragPreviewRange?.start ?? effectiveOutputStart;
@@ -795,7 +802,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
     if (readOnly || !onRangeChange) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     setIsDragging(type);
     dragStartRef.current = {
       mouseX: e.clientX,
@@ -803,6 +810,149 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
       endFrame: effectiveOutputEnd,
     };
   }, [readOnly, onRangeChange, effectiveOutputStart, effectiveOutputEnd]);
+
+  // ===== TABLET TAP-TO-SELECT ENDPOINT HANDLERS =====
+  // On iPad: tap endpoint to select it, then tap timeline to set its position
+  const enableTapToSelect = isTablet && !readOnly && onRangeChange;
+
+  // Handle touch start on resize handles (track position for scroll detection)
+  const handleEndpointTouchStart = useCallback((endpoint: 'left' | 'right', e: React.TouchEvent) => {
+    if (!enableTapToSelect) return;
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+  }, [enableTapToSelect]);
+
+  // Handle touch end on resize handles (toggle selection if not scrolling)
+  const handleEndpointTouchEnd = useCallback((endpoint: 'left' | 'right', e: React.TouchEvent) => {
+    if (!enableTapToSelect || !touchStartPosRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
+    touchStartPosRef.current = null;
+
+    // Ignore if user scrolled
+    if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Toggle selection: tap same endpoint again to deselect
+    setSelectedEndpoint(prev => prev === endpoint ? null : endpoint);
+  }, [enableTapToSelect]);
+
+  // Handle tap on strip area to place the selected endpoint
+  // This can be called from the strip itself OR from the full-width overlay
+  const handleStripTapToPlace = useCallback((e: React.TouchEvent) => {
+    if (!enableTapToSelect || !selectedEndpoint || !outerContainerRef.current || !onRangeChange) return;
+
+    const touch = e.changedTouches[0];
+    const rect = outerContainerRef.current.getBoundingClientRect();
+
+    // Check if tap is outside current strip bounds - if so, snap to timeline edge
+    const tapX = touch.clientX;
+    const stripLeft = rect.left;
+    const stripRight = rect.right;
+
+    const MIN_DURATION_FRAMES = 10;
+
+    // Find sibling boundaries
+    let leftLimit = 0;
+    let rightLimit = fullMax;
+    for (const sibling of siblingRanges) {
+      if (sibling.end <= effectiveOutputStart && sibling.end > leftLimit) {
+        leftLimit = sibling.end;
+      }
+      if (sibling.start >= effectiveOutputEnd && sibling.start < rightLimit) {
+        rightLimit = sibling.start;
+      }
+    }
+
+    if (selectedEndpoint === 'left') {
+      if (tapX < stripLeft) {
+        // Tapped to the LEFT of strip - extend to start (or sibling boundary)
+        console.log('[GuidanceVideoStrip] Tap outside left edge - extending to start');
+        onRangeChange(leftLimit, effectiveOutputEnd);
+      } else {
+        // Tapped within strip - calculate precise position
+        const relativeX = tapX - stripLeft;
+        const normalizedX = Math.max(0, Math.min(1, relativeX / rect.width));
+        const targetFrame = Math.round(effectiveOutputStart + (normalizedX * (effectiveOutputEnd - effectiveOutputStart)));
+        let newStart = Math.max(leftLimit, targetFrame);
+        newStart = Math.min(newStart, effectiveOutputEnd - MIN_DURATION_FRAMES);
+        console.log('[GuidanceVideoStrip] Tap-to-place left endpoint:', { targetFrame, newStart });
+        onRangeChange(newStart, effectiveOutputEnd);
+      }
+    } else {
+      if (tapX > stripRight) {
+        // Tapped to the RIGHT of strip - extend to end (or sibling boundary)
+        console.log('[GuidanceVideoStrip] Tap outside right edge - extending to end');
+        onRangeChange(effectiveOutputStart, rightLimit);
+      } else {
+        // Tapped within strip - calculate precise position
+        const relativeX = tapX - stripLeft;
+        const normalizedX = Math.max(0, Math.min(1, relativeX / rect.width));
+        const targetFrame = Math.round(effectiveOutputStart + (normalizedX * (effectiveOutputEnd - effectiveOutputStart)));
+        let newEnd = Math.min(rightLimit, targetFrame);
+        newEnd = Math.max(newEnd, effectiveOutputStart + MIN_DURATION_FRAMES);
+        console.log('[GuidanceVideoStrip] Tap-to-place right endpoint:', { targetFrame, newEnd });
+        onRangeChange(effectiveOutputStart, newEnd);
+      }
+    }
+
+    // Clear selection after placing
+    setSelectedEndpoint(null);
+  }, [enableTapToSelect, selectedEndpoint, stripLeftPercent, stripWidthPercent, fullMin, fullMax, fullRange, effectiveOutputStart, effectiveOutputEnd, siblingRanges, onRangeChange]);
+
+  // Track touch start for tap detection on strip area
+  const handleStripTouchStart = useCallback((e: React.TouchEvent) => {
+    console.log('[GuidanceVideoStrip] handleStripTouchStart', { enableTapToSelect, selectedEndpoint });
+    if (!enableTapToSelect) return;
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+  }, [enableTapToSelect, selectedEndpoint]);
+
+  const handleStripTouchEnd = useCallback((e: React.TouchEvent) => {
+    console.log('[GuidanceVideoStrip] handleStripTouchEnd called', {
+      enableTapToSelect,
+      hasTouchStart: !!touchStartPosRef.current,
+      selectedEndpoint,
+    });
+
+    if (!enableTapToSelect || !touchStartPosRef.current) {
+      console.log('[GuidanceVideoStrip] Early return - no enableTapToSelect or touchStart');
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
+    touchStartPosRef.current = null;
+
+    // Ignore if user scrolled
+    if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) {
+      console.log('[GuidanceVideoStrip] Ignored - scroll detected', { deltaX, deltaY });
+      return;
+    }
+
+    // Check if tapping on a button or handle
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[data-resize-handle]')) {
+      console.log('[GuidanceVideoStrip] Ignored - tapped on button or handle');
+      return;
+    }
+
+    // If we have a selected endpoint, place it
+    if (selectedEndpoint) {
+      console.log('[GuidanceVideoStrip] Calling handleStripTapToPlace');
+      handleStripTapToPlace(e);
+      return;
+    }
+
+    console.log('[GuidanceVideoStrip] No selected endpoint');
+  }, [enableTapToSelect, selectedEndpoint, handleStripTapToPlace]);
 
   // Handle drag move and end via document events
   useEffect(() => {
@@ -1042,25 +1192,68 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
           cursor: isDragging === 'move' ? 'grabbing' : undefined,
         }}
       >
+        {/* Full-width tap overlay when endpoint is selected (for extending the strip) */}
+        {selectedEndpoint && enableTapToSelect && useAbsolutePosition && (
+          <div
+            className="absolute top-0 bottom-0 z-20 cursor-crosshair"
+            style={{
+              // Extend to cover the full timeline width by going beyond strip bounds
+              // Strip is at stripLeftPercent%, width stripWidthPercent%
+              // To cover 0% to 100%, calculate the offset from current strip position
+              left: `${(-stripLeftPercent / stripWidthPercent) * 100}%`,
+              right: `${(-(100 - stripLeftPercent - stripWidthPercent) / stripWidthPercent) * 100}%`,
+            }}
+            onTouchStart={handleStripTouchStart}
+            onTouchEnd={handleStripTouchEnd}
+          />
+        )}
+
         {/* Left resize handle */}
         {!readOnly && onRangeChange && (
           <div
-            className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            data-resize-handle="left"
+            className={`absolute left-0 top-0 bottom-0 w-6 cursor-ew-resize z-40 flex items-center justify-center transition-opacity ${
+              selectedEndpoint === 'left' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
             onMouseDown={(e) => handleDragStart('left', e)}
+            onTouchStart={(e) => handleEndpointTouchStart('left', e)}
+            onTouchEnd={(e) => handleEndpointTouchEnd('left', e)}
             style={{ marginLeft: useAbsolutePosition ? '0px' : `${TIMELINE_HORIZONTAL_PADDING - 6}px` }}
           >
-            <div className="w-1 h-12 bg-primary/60 rounded-full hover:bg-primary" />
+            <div className={`w-1.5 h-14 rounded-full transition-all ${
+              selectedEndpoint === 'left'
+                ? 'bg-orange-500 shadow-[0_0_0_4px_rgba(249,115,22,0.3)]'
+                : 'bg-primary/60 hover:bg-primary'
+            }`} />
           </div>
         )}
-        
+
         {/* Right resize handle */}
         {!readOnly && onRangeChange && (
           <div
-            className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            data-resize-handle="right"
+            className={`absolute right-0 top-0 bottom-0 w-6 cursor-ew-resize z-40 flex items-center justify-center transition-opacity ${
+              selectedEndpoint === 'right' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
             onMouseDown={(e) => handleDragStart('right', e)}
+            onTouchStart={(e) => handleEndpointTouchStart('right', e)}
+            onTouchEnd={(e) => handleEndpointTouchEnd('right', e)}
             style={{ marginRight: useAbsolutePosition ? '0px' : `${TIMELINE_HORIZONTAL_PADDING - 6}px` }}
           >
-            <div className="w-1 h-12 bg-primary/60 rounded-full hover:bg-primary" />
+            <div className={`w-1.5 h-14 rounded-full transition-all ${
+              selectedEndpoint === 'right'
+                ? 'bg-orange-500 shadow-[0_0_0_4px_rgba(249,115,22,0.3)]'
+                : 'bg-primary/60 hover:bg-primary'
+            }`} />
+          </div>
+        )}
+
+        {/* Tap-to-place hint for selected endpoint (iPad only) */}
+        {selectedEndpoint && enableTapToSelect && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full z-50 pointer-events-none">
+            <div className="bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-medium shadow-md whitespace-nowrap mb-1">
+              Tap to set {selectedEndpoint} edge
+            </div>
           </div>
         )}
         {/* Inner container for video content - shortened in clip mode when source < output */}
@@ -1110,7 +1303,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
           <div
             className={`absolute top-5 bottom-1 flex border-2 rounded overflow-hidden shadow-md ${
               isDragging === 'move' ? 'border-primary cursor-grabbing' : 'border-primary/40 cursor-grab'
-            } ${!readOnly && onRangeChange ? 'hover:border-primary/70' : ''}`}
+            } ${!readOnly && onRangeChange ? 'hover:border-primary/70' : ''} ${selectedEndpoint ? 'cursor-crosshair' : ''}`}
             style={{
               left: useAbsolutePosition ? '2px' : '16px',
               right: useAbsolutePosition ? '2px' : '16px',
@@ -1120,6 +1313,8 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
               if ((e.target as HTMLElement).closest('button, select, [role="listbox"]')) return;
               handleDragStart('move', e);
             }}
+            onTouchStart={handleStripTouchStart}
+            onTouchEnd={handleStripTouchEnd}
           >
             {/* Blur overlay when extracting new frames - only show if strip is wide enough and NOT dragging */}
             {isExtractingFrames && !isDragging && videoCoverageRatio > 0.3 && (
@@ -1145,12 +1340,14 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
           <div
             className={`absolute top-5 bottom-1 flex items-center justify-center bg-muted/50 dark:bg-muted-foreground/15 border rounded-sm ${
               !readOnly && onRangeChange ? 'cursor-grab hover:border-primary/50' : 'border-border/30'
-            }`}
+            } ${selectedEndpoint ? 'cursor-crosshair' : ''}`}
             style={{
               left: useAbsolutePosition ? '2px' : '16px',
               right: useAbsolutePosition ? '2px' : '16px',
             }}
             onMouseDown={(e) => handleDragStart('move', e)}
+            onTouchStart={handleStripTouchStart}
+            onTouchEnd={handleStripTouchEnd}
           >
             <span className="text-xs text-muted-foreground font-medium">
               {isVideoReady ? 'Loading frames...' : 'Loading video...'}

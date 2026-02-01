@@ -1,11 +1,11 @@
 /**
  * LineageGifModal
  *
- * Modal component that displays a generated GIF showing the lineage
- * progression from oldest ancestor to newest generation.
+ * Modal component that displays the lineage chain as a grid of images
+ * (4 across, scrollable) with a Download GIF button at the bottom.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Download, Loader2, AlertCircle } from 'lucide-react';
 import {
   Dialog,
@@ -28,11 +28,9 @@ interface LineageGifModalProps {
   variantId: string | null;
 }
 
-type ModalState =
+type DownloadState =
   | { status: 'idle' }
-  | { status: 'loading-chain' }
   | { status: 'generating'; progress: CreateGifProgress }
-  | { status: 'complete'; gifUrl: string; blob: Blob }
   | { status: 'error'; message: string };
 
 export const LineageGifModal: React.FC<LineageGifModalProps> = ({
@@ -40,163 +38,135 @@ export const LineageGifModal: React.FC<LineageGifModalProps> = ({
   onClose,
   variantId,
 }) => {
-  const [state, setState] = useState<ModalState>({ status: 'idle' });
-  const gifUrlRef = useRef<string | null>(null);
-  const isGeneratingRef = useRef(false);
+  const [downloadState, setDownloadState] = useState<DownloadState>({ status: 'idle' });
 
   // Fetch the lineage chain
   const { chain, isLoading: isChainLoading, hasLineage, error: chainError } = useLineageChain(
     open ? variantId : null
   );
 
-  // Clean up object URL on unmount
-  useEffect(() => {
-    return () => {
-      if (gifUrlRef.current) {
-        URL.revokeObjectURL(gifUrlRef.current);
-        gifUrlRef.current = null;
-      }
-    };
-  }, []);
+  const handleDownloadGif = async () => {
+    if (chain.length === 0) return;
 
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!open) {
-      setState({ status: 'idle' });
-      isGeneratingRef.current = false;
-      if (gifUrlRef.current) {
-        URL.revokeObjectURL(gifUrlRef.current);
-        gifUrlRef.current = null;
-      }
-    }
-  }, [open]);
+    setDownloadState({ status: 'generating', progress: { stage: 'loading', current: 0, total: chain.length, message: 'Starting...' } });
 
-  // Generate GIF when chain is loaded
-  useEffect(() => {
-    if (!open) return;
+    try {
+      const imageUrls = chain.map((item) => item.imageUrl);
 
-    if (isChainLoading) {
-      setState({ status: 'loading-chain' });
-      return;
-    }
+      const blob = await createLineageGif(imageUrls, { frameDelay: 800 }, (progress) => {
+        setDownloadState({ status: 'generating', progress });
+      });
 
-    if (chainError) {
-      setState({ status: 'error', message: chainError.message });
-      return;
-    }
-
-    if (!hasLineage || chain.length < 2) {
-      setState({ status: 'error', message: 'No lineage found for this image' });
-      return;
-    }
-
-    // Prevent duplicate generation
-    if (isGeneratingRef.current) return;
-    isGeneratingRef.current = true;
-
-    // Start generating GIF
-    const generateGif = async () => {
-      try {
-        const imageUrls = chain.map((item) => item.imageUrl);
-
-        const blob = await createLineageGif(imageUrls, { frameDelay: 800 }, (progress) => {
-          setState({ status: 'generating', progress });
-        });
-
-        // Create object URL for display
-        const url = URL.createObjectURL(blob);
-        if (gifUrlRef.current) {
-          URL.revokeObjectURL(gifUrlRef.current);
-        }
-        gifUrlRef.current = url;
-
-        setState({ status: 'complete', gifUrl: url, blob });
-      } catch (err) {
-        console.error('[LineageGifModal] Error generating GIF:', err);
-        setState({
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Failed to generate GIF',
-        });
-        isGeneratingRef.current = false;
-      }
-    };
-
-    generateGif();
-  }, [open, chain, isChainLoading, chainError, hasLineage]);
-
-  const handleDownload = () => {
-    if (state.status === 'complete') {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      downloadBlob(state.blob, `lineage-${timestamp}.gif`);
+      downloadBlob(blob, `lineage-${timestamp}.gif`);
+      setDownloadState({ status: 'idle' });
+    } catch (err) {
+      console.error('[LineageGifModal] Error generating GIF:', err);
+      setDownloadState({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Failed to generate GIF',
+      });
     }
   };
 
   const renderContent = () => {
-    switch (state.status) {
-      case 'idle':
-      case 'loading-chain':
-        return (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading lineage...</p>
+    if (isChainLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading lineage...</p>
+        </div>
+      );
+    }
+
+    if (chainError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+          <p className="text-sm text-muted-foreground text-center">{chainError.message}</p>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      );
+    }
+
+    if (!hasLineage || chain.length < 2) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+          <p className="text-sm text-muted-foreground text-center">No lineage found for this image</p>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      );
+    }
+
+    const isGenerating = downloadState.status === 'generating';
+    const progress = isGenerating ? downloadState.progress : null;
+    const percentage = progress && progress.total > 0
+      ? Math.round((progress.current / progress.total) * 100)
+      : 0;
+
+    return (
+      <div className="flex flex-col gap-4">
+        {/* Image grid - 4 across, scrollable */}
+        <div className="max-h-[60vh] overflow-y-auto">
+          <div className="grid grid-cols-4 gap-2">
+            {chain.map((item, index) => (
+              <div
+                key={item.id}
+                className="relative aspect-square rounded-md overflow-hidden bg-muted border border-border"
+              >
+                <img
+                  src={item.thumbnailUrl || item.imageUrl}
+                  alt={`Lineage ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {/* Generation number badge */}
+                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 text-xs font-medium bg-background/80 rounded">
+                  {index + 1}
+                </div>
+              </div>
+            ))}
           </div>
-        );
+        </div>
 
-      case 'generating':
-        const { progress } = state;
-        const percentage =
-          progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+        {/* Info text */}
+        <p className="text-xs text-muted-foreground text-center">
+          {chain.length} images · Oldest to newest (left to right, top to bottom)
+        </p>
 
-        return (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        {/* Download button with progress */}
+        {isGenerating ? (
+          <div className="flex flex-col items-center gap-2">
             <div className="w-full max-w-xs space-y-2">
               <Progress value={percentage} className="h-2" />
-              <p className="text-sm text-muted-foreground text-center">{progress.message}</p>
+              <p className="text-sm text-muted-foreground text-center">{progress?.message}</p>
             </div>
           </div>
-        );
+        ) : (
+          <Button onClick={handleDownloadGif} className="gap-2 self-center">
+            <Download className="w-4 h-4" />
+            Download GIF
+          </Button>
+        )}
 
-      case 'complete':
-        return (
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative rounded-lg overflow-hidden bg-black/20 border border-border">
-              <img
-                src={state.gifUrl}
-                alt="Lineage progression"
-                className="max-w-full max-h-[60vh] object-contain"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              {chain.length} images · Showing progression from oldest to newest
-            </p>
-            <Button onClick={handleDownload} className="gap-2">
-              <Download className="w-4 h-4" />
-              Download GIF
-            </Button>
-          </div>
-        );
-
-      case 'error':
-        return (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <AlertCircle className="w-8 h-8 text-destructive" />
-            <p className="text-sm text-muted-foreground text-center">{state.message}</p>
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-        );
-    }
+        {/* Error message */}
+        {downloadState.status === 'error' && (
+          <p className="text-sm text-destructive text-center">{downloadState.message}</p>
+        )}
+      </div>
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Lineage GIF
-          </DialogTitle>
+          <DialogTitle>Evolution</DialogTitle>
         </DialogHeader>
         {renderContent()}
       </DialogContent>
