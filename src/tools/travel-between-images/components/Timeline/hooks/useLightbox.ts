@@ -113,25 +113,11 @@ export function useLightbox({ images, shotId, isMobile = false }: LightboxProps)
     setAutoEnterInpaint(false); // Reset auto-enter flag when closing
   }, [shotId, lightboxIndex]);
 
-  // Handle mobile tap - now called by useDoubleTapWithSelection hook
+  // Handle mobile tap - called by the "Open" button in TimelineItem when selected
   const handleMobileTap = useCallback((idx: number) => {
-    console.log('[DoubleTapFlow] 🎭 useLightbox handleMobileTap called:', {
-      shotId: shotId?.substring(0, 8) ?? 'none',
-      imageIndex: idx,
-      isMobile,
-      imagesCount: images.length
-    });
-    
-    if (!isMobile) {
-      console.log('[DoubleTapFlow] ⚠️ Not mobile - ignoring tap');
-      return;
-    }
-
-    // Since this is now called by useDoubleTapWithSelection, we don't need
-    // double-tap detection here anymore - just open the lightbox
-    console.log('[DoubleTapFlow] ✅ Opening lightbox at index:', idx);
+    if (!isMobile) return;
     openLightbox(idx);
-  }, [isMobile, shotId, openLightbox, images.length]);
+  }, [isMobile, openLightbox]);
 
   // Desktop double-click handler
   const handleDesktopDoubleClick = useCallback((idx: number) => {

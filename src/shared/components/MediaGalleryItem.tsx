@@ -917,6 +917,10 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             onOpenLightbox(image);
           }
         } : undefined}
+        // Mobile touch handlers on outer div as fallback for iPad Safari
+        // This ensures touch events are captured even if inner elements don't receive them
+        onTouchStart={isMobile && !enableSingleClick && !isVideoContent ? handleTouchStart : undefined}
+        onTouchEnd={isMobile && !enableSingleClick && !isVideoContent ? handleInteraction : undefined}
     >
       <div className="relative w-full">
       <div 
@@ -998,8 +1002,8 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
           ) : (
             <>
               {/* Show image once it's loaded, regardless of shouldLoad state */}
-              {actualSrc && imageLoaded && (() => {
-                return (
+              {/* Touch handlers are on outer div for mobile - prevents issues with inner element targeting */}
+              {actualSrc && imageLoaded && (
                 <img
                   ref={progressiveRef}
                   src={actualSrc}
@@ -1011,13 +1015,10 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
                     progressiveEnabled && isFullLoaded && "opacity-100"
                   )}
                   onDoubleClick={isMobile ? undefined : () => onOpenLightbox(image)}
-                  onTouchStart={isMobile && !enableSingleClick ? handleTouchStart : undefined}
-                  onTouchEnd={isMobile && !enableSingleClick ? handleInteraction : undefined}
                   draggable={false}
                   style={{ cursor: 'pointer' }}
                 />
-                );
-              })()}
+              )}
               
               {/* Hidden image for background loading - only when image hasn't loaded yet */}
               {actualSrc && !imageLoaded && (
@@ -1036,6 +1037,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
               
               {/* Show skeleton only while the media is still loading */}
               {/* Only show skeleton if image hasn't loaded yet - never show it for already-loaded images */}
+              {/* pointer-events-none ensures touches can pass through to any cached image behind */}
               {!imageLoaded && (
                 index < 3 && console.log(`[MediaGalleryItem-${index}] Showing skeleton`, {
                   imageId: image.id,
@@ -1043,7 +1045,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
                   imageLoading,
                   actualSrc
                 }),
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse pointer-events-none">
                   <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
                 </div>
               )}
