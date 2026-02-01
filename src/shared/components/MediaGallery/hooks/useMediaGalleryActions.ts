@@ -89,14 +89,19 @@ export const useMediaGalleryActions = ({
    *
    * Flow:
    * 1. Hide item immediately (optimistic)
-   * 2. Show skeleton placeholder if there are more items to backfill
+   * 2. Show skeleton placeholder immediately (Grid will compute if actually needed)
    * 3. Call server delete
    * 4. On success: trigger immediate refetch (debounced 100ms for rapid deletes)
    * 5. On failure: revert optimistic state, hide skeleton, show error
    * 6. Check page bounds after refetch
    */
   const handleOptimisticDelete = useCallback(async (imageId: string) => {
-    // 1. Hide item immediately
+    // 1. Hide item immediately AND show skeleton in the same state update
+    // Setting isBackfillLoading before markOptimisticDeleted ensures skeleton shows
+    // in the same render where the item disappears
+    if (isServerPagination) {
+      setIsBackfillLoading(true);
+    }
     markOptimisticDeleted(imageId);
     pendingDeletesRef.current.add(imageId);
 
@@ -105,22 +110,12 @@ export const useMediaGalleryActions = ({
       setActiveLightboxMedia(null);
     }
 
-    // 3. Determine if we should show skeleton
-    // Show skeleton if there are more items in the database beyond current page
-    const currentTotal = totalCount ?? 0;
-    const optimisticTotal = currentTotal - optimisticDeletedCount - 1; // -1 for current delete
-    const hasMoreItemsToBackfill = optimisticTotal > offset + filteredImages.length - 1;
-
-    if (isServerPagination && hasMoreItemsToBackfill) {
-      setIsBackfillLoading(true);
-      console.log('[BackfillV2] Showing skeleton - more items available:', {
-        currentTotal,
-        optimisticTotal,
-        offset,
-        currentPageItems: filteredImages.length,
-        hasMore: hasMoreItemsToBackfill
-      });
-    }
+    console.log('[BackfillV2] Delete initiated - skeleton enabled:', {
+      imageId: imageId.substring(0, 8),
+      isServerPagination,
+      totalCount,
+      offset
+    });
 
     try {
       // 4. Delete on server
@@ -201,8 +196,6 @@ export const useMediaGalleryActions = ({
     setIsBackfillLoading,
     totalCount,
     offset,
-    optimisticDeletedCount,
-    filteredImages.length,
     onPageBoundsExceeded
   ]);
 
