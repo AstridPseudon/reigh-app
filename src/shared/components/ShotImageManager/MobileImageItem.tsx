@@ -142,6 +142,9 @@ export const MobileImageItem: React.FC<MobileImageItemProps> = ({
                 e.stopPropagation();
                 onOpenLightbox();
               }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+              }}
               title="Open lightbox"
             >
               <Maximize2 className="h-4 w-4" />
@@ -191,6 +194,9 @@ export const MobileImageItem: React.FC<MobileImageItemProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
+            }}
+            onTouchEnd={(e) => {
+              e.stopPropagation();
             }}
             disabled={image.id?.startsWith('temp-')}
             title={image.id?.startsWith('temp-') ? "Please wait..." : "Delete"}
