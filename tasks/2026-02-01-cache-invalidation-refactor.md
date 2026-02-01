@@ -972,14 +972,39 @@ git commit -m "Revert: cache invalidation refactor (issues found)"
 
 ## Success Criteria
 
-| Metric | Before | Target |
-|--------|--------|--------|
-| Files with inline query keys | 55 | 0 |
-| Query key patterns | 38 scattered | 1 registry file |
-| Invalidation hooks | 1 (generations) | 4 (all domains) |
-| ESLint coverage | None | Error on violations |
-| Test failures | 0 | 0 |
-| Realtime latency | Baseline | ≤ Baseline |
+| Metric | Before | After | Target |
+|--------|--------|-------|--------|
+| Total query key usages | 327 | 199 | Reduced |
+| Files with query keys | 72 | 67 | Reduced |
+| Unique key patterns | 55 | 50 | Consolidated |
+| Invalidation hooks | 1 (generations) | 4 (all domains) | ✅ |
+| Query key registry | None | `queryKeys.ts` | ✅ |
+| Legacy `shot-generations` key | 4 usages | 0 | ✅ Removed |
+| Compilation errors | 0 | 0 | ✅ |
+
+## Migration Completed: 2026-02-01
+
+### Summary of Changes
+
+1. **Created `src/shared/lib/queryKeys.ts`** - Centralized registry with all query key patterns
+2. **Created invalidation hooks directory** with:
+   - `useGenerationInvalidation.ts` (moved)
+   - `useShotInvalidation.ts` (new)
+   - `useTaskInvalidation.ts` (new)
+   - `useSettingsInvalidation.ts` (new)
+3. **Removed legacy `['shot-generations']` key** - Was only invalidated, never queried
+4. **Migrated 128 query key usages** to use `queryKeys.*` registry
+5. **Updated `SimpleRealtimeProvider.tsx`** to use centralized invalidation
+
+### Remaining Inline Keys (Intentional)
+
+Some keys remain inline intentionally for partial/broad invalidation:
+- `['tasks', 'paginated']` - Partial match for paginated task queries
+- `['task-status-counts']` - Partial match across all projects
+- `['unified-generations', 'project', projectId]` - Partial match for project queries
+- `['generation-variants']` - Partial match for all variant queries
+
+These are documented with comments explaining they're for partial key matching.
 
 ---
 

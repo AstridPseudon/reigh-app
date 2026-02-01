@@ -17,7 +17,8 @@ import type { ShotGeneration, PositionMetadata } from './useTimelineCore';
 import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/settingsMigration';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { calculateAverageSpacing, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
-import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { useInvalidateGenerations } from '@/shared/hooks/invalidation';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { MAX_FRAME_GAP } from '@/shared/lib/timelineNormalization';
 
 // Re-export types for convenience
@@ -120,7 +121,7 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
 
     try {
       // Use refetchQueries to WAIT for fresh data (not just invalidate)
-      await queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
+      await queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
       
       // Invalidate other related caches (these can be background)
       invalidateGenerations(shotId, {
@@ -430,12 +431,12 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     await Promise.all(updatePromises);
 
     console.log('[DataTrace] ✅ All distribution updates complete, refetching in background');
-    queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
-    queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) });
     // CRITICAL: Also refetch segment-live-timeline so segment videos update positions
-    queryClient.refetchQueries({ queryKey: ['segment-live-timeline', shotId] });
+    queryClient.refetchQueries({ queryKey: queryKeys.segments.liveTimeline(shotId) });
     if (projectId) {
-      queryClient.refetchQueries({ queryKey: ['shots', projectId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.list(projectId!) });
     }
   }, [shotId, shotGenerations, loadPositions, queryClient, projectId]);
 
@@ -492,10 +493,10 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     }
 
     // Refetch instead of invalidate to preserve data
-    queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
-    queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) });
     if (projectId) {
-      queryClient.refetchQueries({ queryKey: ['shots', projectId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.list(projectId!) });
     }
   }, [shotId, shotGenerations, loadPositions, queryClient, projectId, syncShotData]);
 
@@ -587,10 +588,10 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
       console.log('[TimelinePositionUtils] All swaps complete, refetching in background');
       
       // Use refetchQueries instead of invalidate to preserve data during sync
-      queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
-      queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+      queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) });
       if (projectId) {
-        queryClient.refetchQueries({ queryKey: ['shots', projectId] });
+        queryClient.refetchQueries({ queryKey: queryKeys.shots.list(projectId!) });
       }
       return;
     }
@@ -639,10 +640,10 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
 
     // Refetch instead of invalidate to preserve data
     console.log('[TimelinePositionUtils] All absolute updates complete, refetching in background');
-    queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
-    queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) });
     if (projectId) {
-      queryClient.refetchQueries({ queryKey: ['shots', projectId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.list(projectId!) });
     }
   }, [shotId, shotGenerations, loadPositions, queryClient, projectId, syncShotData]);
 
@@ -757,14 +758,14 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     console.log('[PairPromptFlow] 🔄 Refetching query caches in background...');
 
     // Refetch instead of invalidate
-    queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
-    queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) });
     if (projectId) {
-      queryClient.refetchQueries({ queryKey: ['shots', projectId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.list(projectId!) });
     }
 
     // Also invalidate pair-metadata cache used by useSegmentSettings modal
-    queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGen.id] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(shotGen.id) });
 
     console.log('[PairPromptFlow] ✅ Refetch queued - UI should refresh with new data');
   }, [shotId, shotGenerations, loadPositions, queryClient, projectId]);
@@ -817,20 +818,20 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     if (error) {
       console.error('[PairPromptFlow] ❌ Failed to clear enhanced prompt:', error);
       // Revert by refetching
-      queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
       throw error;
     }
 
     console.log('[PairPromptFlow] ✅ Enhanced prompt cleared, background refetch...');
     // Background refetch for consistency
-    queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });
-    queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) });
     if (projectId) {
-      queryClient.refetchQueries({ queryKey: ['shots', projectId] });
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.list(projectId!) });
     }
 
     // Also invalidate pair-metadata cache used by useSegmentSettings modal
-    queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(shotGenerationId) });
 
     console.log('[PairPromptFlow] ✅ Refetch queued');
   }, [shotId, shotGenerations, queryClient, projectId]);

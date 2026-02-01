@@ -1,0 +1,82 @@
+/**
+ * useShotInvalidation.ts
+ *
+ * Centralized hook for invalidating shot-related React Query caches.
+ *
+ * Scopes:
+ * - 'list': Just the shots list for a project
+ * - 'detail': A specific shot's detail data
+ * - 'all': List + all related generation caches
+ */
+
+import { useQueryClient, QueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { queryKeys } from '../../lib/queryKeys';
+import { debugConfig } from '../../lib/debugConfig';
+
+export type ShotInvalidationScope = 'list' | 'detail' | 'all';
+
+export interface ShotInvalidationOptions {
+  /** Which queries to invalidate */
+  scope?: ShotInvalidationScope;
+  /** Debug reason for logging. Required for traceability. */
+  reason: string;
+  /** Shot ID - required for 'detail' and 'all' scopes */
+  shotId?: string;
+  /** Project ID - required for 'list' and 'all' scopes */
+  projectId?: string;
+}
+
+/**
+ * Internal helper that performs the actual invalidation.
+ */
+function performShotInvalidation(
+  queryClient: QueryClient,
+  options: ShotInvalidationOptions
+): void {
+  const { scope = 'all', reason, shotId, projectId } = options;
+
+  if (debugConfig.isEnabled('invalidation')) {
+    console.log(`[Invalidation] Shots: ${reason}`, {
+      scope,
+      shotId: shotId?.substring(0, 8),
+      projectId: projectId?.substring(0, 8),
+      timestamp: Date.now(),
+    });
+  }
+
+  if ((scope === 'list' || scope === 'all') && projectId) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
+  }
+
+  if ((scope === 'detail' || scope === 'all') && shotId) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.shots.detail(shotId) });
+    // Also invalidate generation caches for this shot
+    queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.generations.meta(shotId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimeline(shotId) });
+  }
+}
+
+/**
+ * Hook that returns a stable shot invalidation function.
+ * Use this in React components/hooks.
+ */
+export function useInvalidateShots() {
+  const queryClient = useQueryClient();
+
+  return useCallback((options: ShotInvalidationOptions) => {
+    performShotInvalidation(queryClient, options);
+  }, [queryClient]);
+}
+
+/**
+ * Non-hook version for use outside React components.
+ * Requires passing in the queryClient.
+ */
+export function invalidateShotsSync(
+  queryClient: QueryClient,
+  options: ShotInvalidationOptions
+): void {
+  performShotInvalidation(queryClient, options);
+}

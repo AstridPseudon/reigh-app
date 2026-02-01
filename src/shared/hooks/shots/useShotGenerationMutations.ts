@@ -7,7 +7,8 @@ import { useMutation, useQueryClient, QueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client';
 import { Shot, GenerationRow } from '@/types/shots';
 import { toast } from 'sonner';
-import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateGenerationsSync } from '@/shared/hooks/invalidation';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import {
   calculateNextAvailableFrame,
   ensureUniqueFrame,
@@ -444,8 +445,8 @@ export const useAddImageToShot = () => {
       }
 
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['shots', project_id] });
-      queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', shot_id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(project_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.meta(shot_id) });
       queryClient.invalidateQueries({
         queryKey: ['unified-generations', 'project', project_id],
       });
@@ -577,7 +578,7 @@ export const useRemoveImageFromShot = () => {
       shotDebug('remove', 'onSuccess', { shotId: data.shotId, shotGenerationId: data.shotGenerationId });
 
       // Invalidate segment queries
-      queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', data.shotId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimeline(data.shotId) });
       queryClient.invalidateQueries({
         queryKey: ['segment-parent-generations', data.shotId, data.projectId],
       });
@@ -662,7 +663,7 @@ export const useUpdateShotImageOrder = () => {
     onSuccess: (data) => {
       shotDebug('reorder', 'onSuccess', { shotId: data.shotId });
 
-      queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', data.shotId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.meta(data.shotId) });
       queryClient.invalidateQueries({
         predicate: query => query.queryKey[0] === 'source-slot-generations',
       });
@@ -901,16 +902,16 @@ export const useDuplicateAsNewGeneration = () => {
 
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shots', data.project_id] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['project-generations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: ['project-generations'] }); // Broad invalidation
       invalidateGenerationsSync(queryClient, data.shot_id, {
         reason: 'duplicate-as-new-generation',
         scope: 'all',
       });
       queryClient.invalidateQueries({
-        queryKey: ['derived-generations', data.original_generation_id],
+        queryKey: queryKeys.generations.derivedGenerations(data.original_generation_id),
       });
-      queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', data.shot_id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimeline(data.shot_id) });
       queryClient.invalidateQueries({
         queryKey: ['segment-parent-generations', data.shot_id, data.project_id],
       });

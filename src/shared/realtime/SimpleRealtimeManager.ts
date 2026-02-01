@@ -373,9 +373,8 @@ export class SimpleRealtimeManager {
       ['tasks'],
       ['task-status-counts'],
       ['unified-generations'],
-      ['shot-generations'], // 🚀 Invalidate shot-specific generation queries (e.g., for upscale in Timeline)
-      ['all-shot-generations'], // 🚀 Single query approach
-      ['generations'], // 🚀 Invalidate all generation queries (including useGenerations)
+      ['all-shot-generations'],
+      ['generations'],
       ['tasks', 'paginated', this.projectId].filter(Boolean)
     ]);
 
@@ -451,7 +450,6 @@ export class SimpleRealtimeManager {
     // Report consolidated event to freshness manager for all affected shots
     const queryKeys = Array.from(affectedShotIds).flatMap(shotId => [
       ['unified-generations', 'shot', shotId],
-      ['shot-generations', shotId],
       ['all-shot-generations', shotId],
       ['unpositioned-count', shotId],
       ['segment-live-timeline', shotId],  // For video slot positioning in useSegmentOutputsForShot
@@ -535,7 +533,6 @@ export class SimpleRealtimeManager {
     const queryKeys = [
       ['unified-generations'],
       ['generations'],
-      ['shot-generations'],
       ['all-shot-generations']
     ];
     

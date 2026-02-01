@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { simpleRealtimeManager } from '@/shared/realtime/SimpleRealtimeManager';
 import { dataFreshnessManager } from '@/shared/realtime/DataFreshnessManager';
-import { invalidateGenerationsSync, invalidateAllShotGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateGenerationsSync, invalidateAllShotGenerations } from '@/shared/hooks/invalidation';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface SimpleRealtimeContextType {
   isConnected: boolean;
@@ -131,7 +132,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
           .filter((id: any): id is string => typeof id === 'string')
       );
 
-      // ALWAYS invalidate list queries
+      // ALWAYS invalidate list queries (broad invalidation - matches all projects)
       queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
 
@@ -159,8 +160,8 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
         });
 
         // Invalidate derived generations (edits based on source images)
-        queryClient.invalidateQueries({ queryKey: ['derived-generations'] });
-        queryClient.invalidateQueries({ queryKey: ['derived-items'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedGenerationsAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedAll });
         
         // 🎯 ALWAYS invalidate project-level unified-generations queries
         // This ensures ChildGenerationsView and other project-wide queries update immediately
@@ -199,8 +200,8 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
                      newItem?.params?.originalParams?.orchestrator_details?.shot_id ||
                      newItem?.params?.full_orchestrator_payload?.shot_id;
       
-      // Reduced invalidation scope
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Reduced invalidation scope (broad invalidation - matches all projects)
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
       
       if (isComplete) {
@@ -247,7 +248,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       });
       
       // ONLY invalidate task queries (most new tasks are just queued, not complete)
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
       
       // Note: We don't invalidate generation queries here because new tasks
@@ -268,8 +269,8 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       // Removed state update for lastNewTask
       
       // Simplified invalidation - just tasks
-          queryClient.invalidateQueries({ queryKey: ['tasks'] });
-          queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
     };
 
     // NEW: Handle batched shot generation changes more efficiently
@@ -324,7 +325,6 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
               reason: 'shot-generation-change-batch-insert-only',
               scope: 'counts'
             });
-            queryClient.invalidateQueries({ queryKey: ['shot-generations', shotId] });
           } else {
             invalidateGenerationsSync(queryClient, shotId, {
               reason: 'shot-generation-change-batch',
@@ -370,13 +370,13 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       });
 
       // Invalidate generation queries to show new URLs/locations
-      queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generation'] }); // For single generation queries (e.g. parent generation in ChildGenerationsView)
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: ['generation'] }); // Partial match for all single generation queries
       // Also invalidate shot-generations as they contain generation data
       invalidateAllShotGenerations(queryClient, 'generation-update-batch');
       // Invalidate shots as they might contain generation data (thumbnails etc)
-      queryClient.invalidateQueries({ queryKey: ['shots'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.all });
     };
 
     // NEW: Handle batched generation inserts (new child generations/segments)
@@ -397,9 +397,9 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
 
       // Invalidate generation queries to show new generations
       // This is especially important for ChildGenerationsView which queries by parentGenerationId
-      queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generation'] }); // For single generation queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: ['generation'] }); // Partial match for all single generation queries
       // Also invalidate shot-generations as they may contain generation data
       invalidateAllShotGenerations(queryClient, 'generation-insert-batch');
     };
@@ -415,16 +415,16 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
 
       // Invalidate generation-variants queries for affected generations
       affectedGenerationIds?.forEach((generationId: string) => {
-        queryClient.invalidateQueries({ queryKey: ['generation-variants', generationId] });
-        queryClient.invalidateQueries({ queryKey: ['generation', generationId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.generations.variants(generationId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.generations.detail(generationId) });
       });
       // Also invalidate variant-badges so the "X new" badges update
-      queryClient.invalidateQueries({ queryKey: ['variant-badges'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantBadges });
 
       // IMPORTANT: When a variant becomes primary, the generation's location changes
       // This affects Timeline/Batch mode displays, so invalidate shot-generations
-      queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
       invalidateAllShotGenerations(queryClient, 'variant-change-batch');
     };
 
