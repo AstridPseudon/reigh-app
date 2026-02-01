@@ -121,6 +121,8 @@ export interface SegmentSlotModeData {
   onFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
   /** Callback when generate is initiated (for optimistic UI updates) */
   onGenerateStarted?: (pairShotGenerationId: string | null | undefined) => void;
+  /** Maximum frames allowed (77 with smooth continuations, 81 otherwise) */
+  maxFrameLimit?: number;
 
   // Per-segment structure video management (Timeline Mode only)
   /** Whether in timeline mode (shows structure video upload) vs batch mode (preview only) */

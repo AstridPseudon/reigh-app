@@ -1051,6 +1051,12 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   const pairInfo = getPairInfo(currentPositions);
   const numPairs = Math.max(0, images.length - 1);
   const maxAllowedGap = 81;
+
+  // [FrameSyncDebug] Log the DISPLAYED frame values (source of truth) - only when there's data
+  if (pairInfo.length > 0) {
+    const pair0 = pairInfo[0];
+    console.log('[FrameSyncDebug] 📊 TIMELINE DISPLAY - pair0 frames:', pair0?.frames, 'start:', pair0?.startFrame, 'end:', pair0?.endFrame);
+  }
   
   // Compute shot_generation_id → position index map for instant video slot updates
   // This allows videos to move instantly during drag (without waiting for DB refetch)
@@ -1376,25 +1382,30 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
             zoomLevel={zoomLevel}
             localShotGenPositions={localShotGenPositions}
             pairDataByIndex={pairDataByIndex}
-            onOpenPairSettings={onPairClick ? (pairIndex: number) => {
-              console.log('[SegmentClickDebug] TimelineContainer onOpenPairSettings called:', {
+            onOpenPairSettings={onPairClick ? (pairIndex: number, passedFrameData?: { frames: number; startFrame: number; endFrame: number }) => {
+              console.log('[FrameSyncDebug] 🔄 TimelineContainer.onOpenPairSettings RECEIVED:', {
                 pairIndex,
+                passedFrameData,
+                localPairInfo: pairInfo[pairIndex],
                 imagesLength: images.length,
-                singleImageEndFrame,
-                pairDataByIndexKeys: [...pairDataByIndex.keys()],
               });
+
               // Handle single-image mode
               if (images.length === 1 && singleImageEndFrame !== undefined) {
                 const entry = [...currentPositions.entries()][0];
                 if (entry) {
                   const [imageId, imageFrame] = entry;
                   const image = images[0];
-                  console.log('[SegmentClickDebug] Single-image mode, calling onPairClick');
+                  // Use passed frame data if available, otherwise compute from positions
+                  const frames = passedFrameData?.frames ?? (singleImageEndFrame - imageFrame);
+                  const startFrame = passedFrameData?.startFrame ?? imageFrame;
+                  const endFrame = passedFrameData?.endFrame ?? singleImageEndFrame;
+                  console.log('[SegmentClickDebug] Single-image mode, calling onPairClick with frames:', frames);
                   onPairClick(pairIndex, {
                     index: 0,
-                    frames: singleImageEndFrame - imageFrame,
-                    startFrame: imageFrame,
-                    endFrame: singleImageEndFrame,
+                    frames,
+                    startFrame,
+                    endFrame,
                     startImage: {
                       id: imageId,
                       generationId: image.generation_id,
@@ -1402,37 +1413,37 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                       thumbUrl: image.thumbUrl,
                       position: 1,
                     },
-                    // No end image in single-image mode
                     endImage: undefined,
                   });
                 }
                 return;
               }
-              // Use pairInfo as source of truth for frames (computed from currentPositions)
-              // pairDataByIndex provides image URLs and other metadata
-              const pairInfoEntry = pairInfo[pairIndex]; // Direct index access - pairInfo is 0-indexed
+
+              // Use passed frame data if available (from SegmentOutputStrip's pairInfo)
+              // Otherwise fall back to local pairInfo lookup
               const pairData = pairDataByIndex.get(pairIndex);
+              const frameData = passedFrameData ?? pairInfo[pairIndex];
+
               console.log('[SegmentClickDebug] Normal mode:', {
                 pairIndex,
-                pairInfoFrames: pairInfoEntry?.frames,
-                pairDataFrames: pairData?.frames,
-                usingPairInfo: !!pairInfoEntry,
+                passedFrames: passedFrameData?.frames,
+                localPairInfoFrames: pairInfo[pairIndex]?.frames,
+                usingPassedData: !!passedFrameData,
               });
 
-              if (pairInfoEntry) {
-                // Always use pairInfo for frame data - it's the displayed source of truth
+              if (frameData) {
+                // Merge frame data with image URLs from pairDataByIndex
                 const mergedPairData = {
                   index: pairIndex,
-                  frames: pairInfoEntry.frames,
-                  startFrame: pairInfoEntry.startFrame,
-                  endFrame: pairInfoEntry.endFrame,
+                  frames: frameData.frames,
+                  startFrame: frameData.startFrame,
+                  endFrame: frameData.endFrame,
                   startImage: pairData?.startImage,
                   endImage: pairData?.endImage,
                 };
                 onPairClick(pairIndex, mergedPairData);
               } else if (pairData) {
-                // Fallback only if pairInfo doesn't have this entry (shouldn't happen)
-                console.warn('[SegmentClickDebug] No pairInfo entry, falling back to pairDataByIndex');
+                console.warn('[SegmentClickDebug] No frame data available, falling back to pairDataByIndex');
                 onPairClick(pairIndex, pairData);
               }
             } : undefined}

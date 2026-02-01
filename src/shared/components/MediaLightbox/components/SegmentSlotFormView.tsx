@@ -52,6 +52,14 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
   const startImageUrl = segmentSlotMode.pairData.startImage?.url ?? segmentSlotMode.pairData.startImage?.thumbUrl;
   const endImageUrl = segmentSlotMode.pairData.endImage?.url ?? segmentSlotMode.pairData.endImage?.thumbUrl;
 
+  // [FrameSyncDebug] Log the frame count received by the modal
+  console.log('[FrameSyncDebug] 🖼️ SegmentSlotFormView DISPLAYING:', {
+    frames: segmentSlotMode.pairData.frames,
+    startFrame: segmentSlotMode.pairData.startFrame,
+    endFrame: segmentSlotMode.pairData.endFrame,
+    pairIndex: segmentSlotMode.currentIndex,
+  });
+
   // [SegmentNavDebug] Log what we're getting for constituent image navigation
   console.log('[SegmentNavDebug] SegmentSlotFormView image data:', {
     hasOnNavigateToImage: !!segmentSlotMode.onNavigateToImage,
@@ -95,6 +103,8 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     startImageShotGenerationId: pairShotGenerationId,
     endImageShotGenerationId: segmentSlotMode.pairData.endImage?.id,
     onNavigateToImage: segmentSlotMode.onNavigateToImage,
+    // Frame limit
+    maxFrames: segmentSlotMode.maxFrameLimit,
   });
 
   // Extract enhanced prompt from form props

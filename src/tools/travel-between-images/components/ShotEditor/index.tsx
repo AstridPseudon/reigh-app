@@ -2543,8 +2543,8 @@ const ShotEditor: React.FC<ShotEditorProps> = ({
             onDragStateChange={handleDragStateChange}
             // Single image duration - updates batchVideoFrames when endpoint is dragged
             onSingleImageDurationChange={onBatchVideoFramesChange}
-            // Frame limit (77 with smooth continuations, 81 otherwise)
-            maxFrameLimit={smoothContinuations ? 77 : 81}
+            // Frame limit - hardcoded to 81 (smoothContinuations feature is hidden)
+            maxFrameLimit={81}
             // Pass smoothContinuations to trigger timeline gap compaction when enabled
             smoothContinuations={smoothContinuations}
             // Shared output selection (syncs FinalVideoSection with SegmentOutputStrip)

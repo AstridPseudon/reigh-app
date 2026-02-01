@@ -44,8 +44,8 @@ interface SegmentOutputStripProps {
   zoomLevel: number;
   /** Map from shot_generation_id to position index (0, 1, 2...) - for instant updates during drag */
   localShotGenPositions?: Map<string, number>;
-  /** Callback to open pair settings modal for a specific pair index */
-  onOpenPairSettings?: (pairIndex: number) => void;
+  /** Callback to open pair settings modal for a specific pair index, with frame data from pairInfo */
+  onOpenPairSettings?: (pairIndex: number, pairFrameData?: { frames: number; startFrame: number; endFrame: number }) => void;
   /** Optional controlled selected parent ID (shared with FinalVideoSection) */
   selectedParentId?: string | null;
   /** Optional callback when selected parent changes (for controlled mode) */
@@ -284,8 +284,20 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
 
     // Use unified segment slot lightbox when available (enables navigation to slots without videos)
     if (onOpenPairSettings && slot) {
-      console.log('[SegmentClickDebug] Calling onOpenPairSettings with pairIndex:', slot.index);
-      onOpenPairSettings(slot.index);
+      // Pass frame data directly from pairInfo - this is the displayed source of truth
+      const pairFrameData = pairInfo.find(p => p.index === slot.index);
+      console.log('[FrameSyncDebug] 🎯 SegmentOutputStrip.handleSegmentClick:', {
+        slotIndex: slot.index,
+        pairInfoLength: pairInfo.length,
+        foundPairFrameData: !!pairFrameData,
+        frames: pairFrameData?.frames,
+        allPairInfo: pairInfo.map(p => ({ idx: p.index, frames: p.frames })),
+      });
+      onOpenPairSettings(slot.index, pairFrameData ? {
+        frames: pairFrameData.frames,
+        startFrame: pairFrameData.startFrame,
+        endFrame: pairFrameData.endFrame,
+      } : undefined);
     } else {
       // Fallback to local lightbox
       console.log('[SegmentClickDebug] Using local lightbox with slotIndex:', slotIndex);
@@ -695,7 +707,20 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
                     isMobile={isMobile}
                     leftPercent={position.leftPercent}
                     widthPercent={position.widthPercent}
-                    onOpenPairSettings={onOpenPairSettings}
+                    onOpenPairSettings={onOpenPairSettings ? (pairIdx: number) => {
+                      // Pass frame data from pairInfo - the displayed source of truth
+                      const pairFrameData = pairInfo.find(p => p.index === pairIdx);
+                      console.log('[FrameSyncDebug] 🎯 InlineSegmentVideo.onOpenPairSettings (wrapped):', {
+                        pairIdx,
+                        foundFrameData: !!pairFrameData,
+                        frames: pairFrameData?.frames,
+                      });
+                      onOpenPairSettings(pairIdx, pairFrameData ? {
+                        frames: pairFrameData.frames,
+                        startFrame: pairFrameData.startFrame,
+                        endFrame: pairFrameData.endFrame,
+                      } : undefined);
+                    } : undefined}
                     onDelete={handleDeleteSegment}
                     isDeleting={slot.type === 'child' && slot.child.id === deletingSegmentId}
                     isPending={hasPendingTask(slot.pairShotGenerationId)}

@@ -393,6 +393,10 @@ export function useVideoRegenerateMode({
     const structureVideoDefaults = segmentSlotMode?.structureVideoDefaults ?? shotStructureVideoDefaults;
     const structureVideoUrl = segmentSlotMode?.structureVideoUrl ?? shotStructureVideoUrl;
 
+    // Get frame count from segmentSlotMode.pairData (source of truth for timeline)
+    // Fall back to currentFrameCount prop for non-slot-mode usage
+    const effectiveFrameCount = segmentSlotMode?.pairData?.frames ?? currentFrameCount;
+
     return {
       params: taskParams as Record<string, any>,
       projectId: selectedProjectId || null,
@@ -407,7 +411,7 @@ export function useVideoRegenerateMode({
       projectResolution: effectiveRegenerateResolution,
       pairShotGenerationId,
       onFrameCountChange: onSegmentFrameCountChange,
-      currentFrameCount,
+      currentFrameCount: effectiveFrameCount,
       variantParamsToLoad: variantParamsToLoad as Record<string, any> | null,
       onVariantParamsLoaded: () => setVariantParamsToLoad(null),
       structureVideoType,
@@ -425,6 +429,8 @@ export function useVideoRegenerateMode({
       // Navigation to constituent images
       endImageShotGenerationId: segmentSlotMode?.pairData?.endImage?.id || currentSegmentImages?.endShotGenerationId,
       onNavigateToImage: segmentSlotMode?.onNavigateToImage,
+      // Frame limit (from segmentSlotMode)
+      maxFrames: segmentSlotMode?.maxFrameLimit,
     };
   }, [
     canRegenerate,

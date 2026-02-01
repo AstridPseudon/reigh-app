@@ -1056,19 +1056,14 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
     const pairSlot = segmentSlots.find(slot => slot.index === segmentSlotLightboxIndex);
     const segmentVideo = pairSlot?.type === 'child' ? pairSlot.child : null;
 
-    console.log('[SegmentClickDebug] Building segmentSlotModeData:', {
+    console.log('[FrameSyncDebug] 🏗️ Building segmentSlotModeData with activePairData:', {
       segmentSlotLightboxIndex,
+      activePairDataFrames: pairData.frames,
+      activePairDataStartFrame: pairData.startFrame,
+      activePairDataEndFrame: pairData.endFrame,
       pairDataIndex: pairData.index,
-      segmentSlotsCount: segmentSlots.length,
-      segmentSlotIndices: segmentSlots.map(s => s.index),
       foundPairSlot: !!pairSlot,
-      pairSlotType: pairSlot?.type,
-      pairSlotIndex: pairSlot?.index,
       segmentVideoId: segmentVideo?.id?.substring(0, 8),
-      segmentVideoLocation: segmentVideo?.location?.substring(0, 50),
-      segmentVideoType: segmentVideo?.type,
-      // Check if this might be a parent generation
-      segmentVideoParentId: (segmentVideo as any)?.parent_generation_id?.substring(0, 8),
     });
 
     // Get structure video info for this segment
@@ -1163,6 +1158,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
       onGenerateStarted: (pairShotGenerationId) => {
         addOptimisticPending(pairShotGenerationId);
       },
+      maxFrameLimit,
 
       // Per-segment structure video management (Timeline Mode only)
       isTimelineMode: effectiveGenerationMode === 'timeline',
@@ -1313,6 +1309,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
     propOnUpdateStructureVideo,
     propOnRemoveStructureVideo,
     propOnSetStructureVideos,
+    maxFrameLimit,
   ]);
 
   // Unified frame count update handler - called from MediaLightbox segment slot mode
@@ -2312,18 +2309,19 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
   // Stores the passed pair data (from Timeline's real-time pairInfo) as the source of truth
   const handlePairClick = React.useCallback((pairIndex: number, passedPairData?: PairData) => {
     const { pairDataByIndex, setSegmentSlotLightboxIndex, setActivePairData } = stableCallbackDepsRef.current;
-    console.log('[SegmentClickDebug] onPairClick (Timeline) called:', {
+    const fallbackData = pairDataByIndex.get(pairIndex);
+
+    console.log('[FrameSyncDebug] 📥 ShotImagesEditor.handlePairClick RECEIVED:', {
       pairIndex,
-      passedPairDataIndex: passedPairData?.index,
-      passedPairDataFrames: passedPairData?.frames,
-      hasPairDataInMap: pairDataByIndex.has(pairIndex),
-      pairDataByIndexKeys: [...pairDataByIndex.keys()],
+      passedFrames: passedPairData?.frames,
+      fallbackFrames: fallbackData?.frames,
+      usingPassed: !!passedPairData,
     });
 
     // Use passed data (real-time from Timeline) or fall back to pairDataByIndex
-    const pairData = passedPairData || pairDataByIndex.get(pairIndex);
+    const pairData = passedPairData || fallbackData;
     if (pairData) {
-      console.log('[SegmentClickDebug] Setting segmentSlotLightboxIndex to:', pairIndex, 'frames:', pairData.frames);
+      console.log('[FrameSyncDebug] 💾 STORING activePairData with frames:', pairData.frames);
       setActivePairData(pairData);
       setSegmentSlotLightboxIndex(pairIndex);
     }

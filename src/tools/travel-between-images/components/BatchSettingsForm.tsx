@@ -476,7 +476,7 @@ const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
               <Slider
                 id="batchVideoFrames"
                 min={9}
-                max={smoothContinuations ? 77 : 81}
+                max={81}
                 step={4}
                 value={[quantizeFrameCount(batchVideoFrames, 9)]}
                 onValueChange={(value) => onBatchVideoFramesChange(quantizeFrameCount(value[0], 9))}

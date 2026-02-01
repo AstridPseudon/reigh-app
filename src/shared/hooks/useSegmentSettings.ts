@@ -182,6 +182,9 @@ export function useSegmentSettings({
     });
   }, [pairShotGenerationId, shotId, instanceId]);
 
+  // [FrameSyncDebug] Log what numFrames defaults we receive
+  console.log('[FrameSyncDebug] 🎛️ useSegmentSettings defaults.numFrames:', defaults.numFrames);
+
   // Fetch pair metadata from shot_generations
   const { data: pairMetadata, isLoading: isLoadingPair } = useQuery({
     queryKey: ['pair-metadata', pairShotGenerationId],
@@ -427,6 +430,8 @@ export function useSegmentSettings({
   const saveSettingsRef = useRef<() => Promise<boolean>>(() => Promise.resolve(false));
   // Track dirty state in a ref for unmount flush (state won't be captured correctly)
   const isDirtyRef = useRef(false);
+  // Track if user explicitly edited numFrames (vs inherited from stale localSettings)
+  const userEditedNumFrames = useRef(false);
 
   // Reset local state only when switching to a different pair
   useEffect(() => {
@@ -443,12 +448,31 @@ export function useSegmentSettings({
       setLocalSettings(null);
       setIsDirty(false);
       hasUserEdited.current = false;
+      userEditedNumFrames.current = false;
       prevPairIdRef.current = pairShotGenerationId;
     }
   }, [pairShotGenerationId, instanceId]);
 
   // Current settings = local edits or merged
-  const settings = localSettings ?? mergedSettings;
+  // IMPORTANT: For numFrames specifically:
+  // - If user explicitly changed it (userEditedNumFrames=true), use their value from localSettings
+  // - Otherwise, use defaults.numFrames from timeline (source of truth) to avoid stale values
+  const settings = localSettings
+    ? {
+        ...localSettings,
+        numFrames: userEditedNumFrames.current
+          ? localSettings.numFrames  // User explicitly changed it - use their value
+          : (defaults.numFrames ?? 25),  // Not user-edited - use timeline value
+      }
+    : mergedSettings;
+
+  // [FrameSyncDebug] Log what numFrames the form will actually use
+  console.log('[FrameSyncDebug] 🎛️ useSegmentSettings FINAL numFrames:', settings.numFrames,
+    'source:', localSettings
+      ? (userEditedNumFrames.current ? 'localSettings (user edited)' : 'defaults (timeline)')
+      : 'mergedSettings',
+    'defaults.numFrames:', defaults.numFrames,
+    'userEditedNumFrames:', userEditedNumFrames.current);
 
   // Update settings (local state only)
   const updateSettings = useCallback((updates: Partial<SegmentSettings>) => {
@@ -459,6 +483,12 @@ export function useSegmentSettings({
       negPromptUpdate: updates.negativePrompt?.substring(0, 30) || '(undefined or empty)',
       lorasUpdate: updates.loras?.length,
     });
+
+    // Track if user explicitly edited numFrames
+    if ('numFrames' in updates) {
+      userEditedNumFrames.current = true;
+    }
+
     setLocalSettings(prev => {
       const current = prev ?? mergedSettings;
       const next = { ...current, ...updates };
@@ -1098,6 +1128,7 @@ export function useSegmentSettings({
     // Clear local state so form falls back to mergedSettings (which shows shot defaults)
     setLocalSettings(null);
     setIsDirty(false);
+    userEditedNumFrames.current = false;
   }, [instanceId, shotId, settings.numFrames, clearEnhancedPrompt, pairShotGenerationId, saveSettings, defaults.makePrimaryVariant]);
 
   // Extract enhanced prompt and base prompt from pair metadata (AI-generated, stored separately)

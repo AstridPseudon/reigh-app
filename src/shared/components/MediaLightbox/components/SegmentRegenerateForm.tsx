@@ -46,6 +46,8 @@ export interface SegmentRegenerateFormProps {
   onFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
   /** Current frame count from timeline positions (source of truth) */
   currentFrameCount?: number;
+  /** Maximum frames allowed (77 with smooth continuations, 81 otherwise) */
+  maxFrames?: number;
   /** Variant params to load into the form (set externally, e.g., from VariantSelector hover) */
   variantParamsToLoad?: Record<string, any> | null;
   /** Callback when variant params have been loaded (to clear the trigger) */
@@ -109,6 +111,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
   projectResolution,
   onFrameCountChange,
   currentFrameCount,
+  maxFrames,
   variantParamsToLoad,
   onVariantParamsLoaded,
   structureVideoType,
@@ -179,6 +182,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     startImageShotGenerationId: pairShotGenerationId,
     endImageShotGenerationId,
     onNavigateToImage,
+    // Frame limit
+    maxFrames,
   });
 
   // Extract enhanced prompt from form props
