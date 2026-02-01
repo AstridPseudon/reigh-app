@@ -508,37 +508,37 @@
   
   /* Primary gradient for collapsed form buttons */
   .gradient-primary-collapsed {
-    background: linear-gradient(to right, 
-      hsl(var(--primary) / 0.6), 
-      hsl(var(--wes-pink) / 0.6), 
-      hsl(var(--wes-vintage-gold) / 0.6)
+    background: linear-gradient(to right,
+      hsl(var(--primary) / 0.9),
+      hsl(var(--wes-pink) / 0.9),
+      hsl(var(--wes-vintage-gold) / 0.9)
+    );
+    border: 1px solid hsl(var(--primary) / 0.9);
+  }
+
+  .gradient-primary-collapsed:hover {
+    background: linear-gradient(to right,
+      hsl(var(--primary) / 1),
+      hsl(var(--wes-pink) / 1),
+      hsl(var(--wes-vintage-gold) / 1)
+    );
+  }
+
+  /* Dark mode: more visible */
+  .dark .gradient-primary-collapsed {
+    background: linear-gradient(to right,
+      hsl(var(--primary) / 0.85),
+      hsl(var(--wes-coral) / 0.8),
+      hsl(var(--wes-vintage-gold) / 0.85)
     );
     border: 1px solid hsl(var(--primary) / 0.8);
   }
-  
-  .gradient-primary-collapsed:hover {
-    background: linear-gradient(to right, 
-      hsl(var(--primary) / 0.7), 
-      hsl(var(--wes-pink) / 0.7), 
-      hsl(var(--wes-vintage-gold) / 0.7)
-    );
-  }
-  
-  /* Dark mode: toned down for subtlety */
-  .dark .gradient-primary-collapsed {
-    background: linear-gradient(to right, 
-      hsl(var(--primary) / 0.45), 
-      hsl(var(--wes-coral) / 0.4), 
-      hsl(var(--wes-vintage-gold) / 0.45)
-    );
-    border: 1px solid hsl(var(--primary) / 0.5);
-  }
-  
+
   .dark .gradient-primary-collapsed:hover {
-    background: linear-gradient(to right, 
-      hsl(var(--primary) / 0.55), 
-      hsl(var(--wes-coral) / 0.5), 
-      hsl(var(--wes-vintage-gold) / 0.55)
+    background: linear-gradient(to right,
+      hsl(var(--primary) / 0.95),
+      hsl(var(--wes-coral) / 0.9),
+      hsl(var(--wes-vintage-gold) / 0.95)
     );
   }
   
