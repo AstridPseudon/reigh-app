@@ -1108,21 +1108,44 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
       segmentVideo,
       activeChildGenerationId: pairSlot?.type === 'child' ? pairSlot.child.id : undefined,
       onNavigateToPair: (index: number) => {
+        const targetPairData = pairDataByIndex.get(index);
+        if (!targetPairData) {
+          console.log('[SegmentSlotNav] ❌ pairDataByIndex does NOT have index:', index);
+          return;
+        }
+
+        // Check if component type will change (video ↔ no-video)
+        const currentHasVideo = !!segmentVideo;
+        const targetSlot = segmentSlots.find(slot => slot.index === index);
+        const targetHasVideo = targetSlot?.type === 'child';
+        const componentTypeChanges = currentHasVideo !== targetHasVideo;
+
         console.log('[SegmentSlotNav] onNavigateToPair called:', {
           targetIndex: index,
-          hasPairData: pairDataByIndex.has(index),
-          pairDataSize: pairDataByIndex.size,
-          pairDataIndices: [...pairDataByIndex.keys()],
-          segmentSlotsCount: segmentSlots.length,
-          segmentSlotIndices: segmentSlots.map(s => s.index),
+          currentHasVideo,
+          targetHasVideo,
+          componentTypeChanges,
         });
-        const targetPairData = pairDataByIndex.get(index);
-        if (targetPairData) {
-          console.log('[SegmentSlotNav] Setting activePairData and segmentSlotLightboxIndex to:', index);
+
+        if (componentTypeChanges) {
+          // Component type changes - use transition overlay to prevent flash
+          console.log('[LightboxTransition] Segment nav: component type changes, showing overlay');
+          showTransitionOverlay();
+          document.body.classList.add('lightbox-transitioning');
+
+          // Use double-rAF to ensure overlay is painted before state changes
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              console.log('[LightboxTransition] Overlay painted, now navigating');
+              setActivePairData(targetPairData);
+              setSegmentSlotLightboxIndex(index);
+            });
+          });
+        } else {
+          // Same component type - navigate directly (no flash)
+          console.log('[SegmentSlotNav] Same component type, navigating directly');
           setActivePairData(targetPairData);
           setSegmentSlotLightboxIndex(index);
-        } else {
-          console.log('[SegmentSlotNav] ❌ pairDataByIndex does NOT have index:', index);
         }
       },
       projectId: projectId || null,
@@ -1301,6 +1324,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
     segmentSlotLightboxIndex,
     activePairData,
     segmentSlots,
+    pairDataByIndex,
     propStructureVideos,
     effectiveGenerationMode,
     shotGenerations,
@@ -1316,6 +1340,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
     propOnRemoveStructureVideo,
     propOnSetStructureVideos,
     maxFrameLimit,
+    showTransitionOverlay,
   ]);
 
   // Unified frame count update handler - called from MediaLightbox segment slot mode
