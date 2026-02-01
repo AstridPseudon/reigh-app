@@ -96,14 +96,15 @@ export const useMediaGalleryActions = ({
    * 6. Check page bounds after refetch
    */
   const handleOptimisticDelete = useCallback(async (imageId: string) => {
-    // 1. Mark item as deleted - it will be filtered out and others shift
-    markOptimisticDeleted(imageId);
-    pendingDeletesRef.current.add(imageId);
-
-    // 2. Show skeleton at end of grid while waiting for backfill data
+    // 1. Show skeleton FIRST so it's ready when item disappears
+    // Both state updates will be batched by React
     if (isServerPagination) {
       setIsBackfillLoading(true);
     }
+
+    // 2. Mark item as deleted - it will be filtered out and others shift
+    markOptimisticDeleted(imageId);
+    pendingDeletesRef.current.add(imageId);
 
     // 3. Close lightbox if this image is open
     if (activeLightboxMedia?.id === imageId) {
