@@ -1319,7 +1319,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              className="absolute top-1 right-1 z-30 h-6 w-6 p-0 opacity-90 hover:opacity-100 shadow-lg rounded-full"
+              className="absolute top-1 right-3 z-30 h-6 w-6 p-0 opacity-90 hover:opacity-100 shadow-lg rounded-full"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove();
