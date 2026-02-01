@@ -933,6 +933,27 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
       .filter((img: any) => img.timeline_frame != null && img.timeline_frame >= 0 && !isVideoAny(img))
       .sort((a: any, b: any) => a.timeline_frame - b.timeline_frame);
 
+    // Handle single-image mode: create a pseudo-pair with just the start image
+    if (sortedImages.length === 1 && singleImageEndFrame !== undefined) {
+      const startImage = sortedImages[0];
+      const startFrame = startImage.timeline_frame ?? 0;
+      dataMap.set(0, {
+        index: 0,
+        frames: singleImageEndFrame - startFrame,
+        startFrame,
+        endFrame: singleImageEndFrame,
+        startImage: {
+          id: startImage.id,
+          generationId: startImage.generation_id,
+          url: startImage.imageUrl || startImage.location,
+          thumbUrl: startImage.thumbUrl || startImage.location,
+          position: 1,
+        },
+        endImage: undefined,
+      });
+      return dataMap;
+    }
+
     for (let pairIndex = 0; pairIndex < sortedImages.length - 1; pairIndex++) {
       const startImage = sortedImages[pairIndex];
       const endImage = sortedImages[pairIndex + 1];
@@ -984,7 +1005,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = ({
       dataMap.set(pairIndex, pairDataEntry);
     }
     return dataMap;
-  }, [shotGenerations, effectiveGenerationMode, batchVideoFrames]);
+  }, [shotGenerations, effectiveGenerationMode, batchVideoFrames, singleImageEndFrame]);
 
   // Handle deep-linking to segment slot from TasksPane navigation
   // When navigating from a segment video task, openSegmentSlot contains the pair_shot_generation_id
