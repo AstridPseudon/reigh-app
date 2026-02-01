@@ -119,25 +119,7 @@ export const useInpainting = ({
   }, [editMode, setAnnotationStrokes, setInpaintStrokes]);
 
   // ============================================
-  // Stroke Rendering
-  // ============================================
-  const {
-    redrawStrokes,
-    canvasSize,
-    imageToCanvas,
-  } = useStrokeRendering({
-    isInpaintMode,
-    editMode,
-    inpaintStrokes,
-    annotationStrokes,
-    selectedShapeId: null, // Will be set by pointer handlers
-    imageDimensions,
-    displayCanvasRef,
-    maskCanvasRef,
-  });
-
-  // ============================================
-  // Pointer Handlers
+  // Pointer Handlers (before rendering so we have selectedShapeId)
   // ============================================
   const {
     isDrawing,
@@ -160,6 +142,24 @@ export const useInpainting = ({
     setBrushStrokes,
     setAnnotationStrokes,
     setShowTextModeHint,
+  });
+
+  // ============================================
+  // Stroke Rendering (after pointer handlers so we have selectedShapeId)
+  // ============================================
+  const {
+    redrawStrokes,
+    canvasSize,
+    imageToCanvas,
+  } = useStrokeRendering({
+    isInpaintMode,
+    editMode,
+    inpaintStrokes,
+    annotationStrokes,
+    selectedShapeId,
+    imageDimensions,
+    displayCanvasRef,
+    maskCanvasRef,
   });
 
   // ============================================

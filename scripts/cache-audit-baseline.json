@@ -1,0 +1,4796 @@
+{
+  "timestamp": "2026-02-01T19:07:46.880Z",
+  "totalFiles": 733,
+  "filesWithQueryKeys": 72,
+  "uniqueKeyPatterns": [
+    "[VARIANTS_QUERY_KEY, <generationId>]",
+    "[queryKeyPrefix, 'featured', featuredPresetIds]",
+    "[queryKeyPrefix, 'preset', presetId]",
+    "active-join-clips-task",
+    "all-shot-generations",
+    "all-task-types",
+    "apiKeys",
+    "apiTokens",
+    "autoTopup",
+    "cascaded-task-error",
+    "credits",
+    "derived-generations",
+    "derived-items",
+    "featured-presets",
+    "generation",
+    "generation-task-mapping",
+    "generation-variants",
+    "generations",
+    "image-generation-for-task",
+    "last-video-generation",
+    "lineage-chain",
+    "my-query",
+    "pair-metadata",
+    "pending-generation-tasks",
+    "pending-segment-tasks",
+    "preset-details",
+    "project-generations",
+    "project-image-stats",
+    "project-video-counts",
+    "public-resources",
+    "resources",
+    "segment-child-generations",
+    "segment-live-timeline",
+    "segment-parent-generations",
+    "shot",
+    "shot-batch-settings",
+    "shot-generations",
+    "shot-generations-meta",
+    "shot-positions",
+    "shot-regen-data",
+    "shots",
+    "source-slot-generations",
+    "task-generation-mapping",
+    "task-result",
+    "task-status-counts",
+    "task-type",
+    "task-types",
+    "task-types-config",
+    "tasks",
+    "toolSettings",
+    "unified-generations",
+    "unpositioned-count",
+    "user-settings",
+    "variant-badges",
+    "video-generations-for-task"
+  ],
+  "usageByType": {
+    "invalidate": 190,
+    "getQueryData": 13,
+    "refetch": 50,
+    "query": 41,
+    "setQueryData": 28,
+    "cancel": 5
+  },
+  "usageByFile": {
+    "src/pages/PaymentSuccessPage.tsx": [
+      {
+        "file": "src/pages/PaymentSuccessPage.tsx",
+        "line": 39,
+        "type": "invalidate",
+        "keyPattern": "['credits', 'balance']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });"
+      },
+      {
+        "file": "src/pages/PaymentSuccessPage.tsx",
+        "line": 40,
+        "type": "invalidate",
+        "keyPattern": "['credits', 'ledger']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });"
+      }
+    ],
+    "src/pages/ShotsPage.tsx": [
+      {
+        "file": "src/pages/ShotsPage.tsx",
+        "line": 78,
+        "type": "invalidate",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+      }
+    ],
+    "src/shared/components/GenerationsPane/GenerationsPane.tsx": [
+      {
+        "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
+        "line": 167,
+        "type": "invalidate",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+      },
+      {
+        "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
+        "line": 283,
+        "type": "getQueryData",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId, nextPage, GENERATIONS_PER_PAGE, filters]",
+        "rawLine": "const cached = queryClient.getQueryData(['unified-generations', 'project', selectedProjectId, nextPage, GENERATIONS_PER_"
+      },
+      {
+        "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
+        "line": 304,
+        "type": "getQueryData",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId, prevPage, GENERATIONS_PER_PAGE, filters]",
+        "rawLine": "const cached = queryClient.getQueryData(['unified-generations', 'project', selectedProjectId, prevPage, GENERATIONS_PER_"
+      }
+    ],
+    "src/shared/components/ImageGenerationModal.tsx": [
+      {
+        "file": "src/shared/components/ImageGenerationModal.tsx",
+        "line": 69,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });"
+      }
+    ],
+    "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx": [
+      {
+        "file": "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx",
+        "line": 418,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx",
+        "line": 462,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx",
+        "line": 463,
+        "type": "refetch",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+      }
+    ],
+    "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx": [
+      {
+        "file": "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx",
+        "line": 289,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx",
+        "line": 333,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx",
+        "line": 334,
+        "type": "refetch",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+      }
+    ],
+    "src/shared/components/MediaLightbox/hooks/useAdjustedTaskDetails.ts": [
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useAdjustedTaskDetails.ts",
+        "line": 99,
+        "type": "query",
+        "keyPattern": "['tasks', 'single', variantSourceTaskId]",
+        "rawLine": "const { data: variantSourceTask, isLoading: isLoadingVariantTask } = useQuery({"
+      }
+    ],
+    "src/shared/components/MediaLightbox/hooks/useGenerationEditSettings.ts": [
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useGenerationEditSettings.ts",
+        "line": 313,
+        "type": "invalidate",
+        "keyPattern": "['generation', genId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/shared/components/MediaLightbox/hooks/useVideoEditing.ts": [
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useVideoEditing.ts",
+        "line": 509,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useVideoEditing.ts",
+        "line": 510,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts": [
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts",
+        "line": 93,
+        "type": "query",
+        "keyPattern": "['shot-regen-data', <shotId>]",
+        "rawLine": "const { data: shotDataForRegen, isLoading: isLoadingShotData } = useQuery({"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts",
+        "line": 172,
+        "type": "refetch",
+        "keyPattern": "['shot-regen-data', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-regen-data', shotId] }),"
+      },
+      {
+        "file": "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts",
+        "line": 173,
+        "type": "refetch",
+        "keyPattern": "['toolSettings', 'travel-structure-video']",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-structure-video'] }),"
+      }
+    ],
+    "src/shared/components/MotionPresetSelector/SelectedPresetCard.tsx": [
+      {
+        "file": "src/shared/components/MotionPresetSelector/SelectedPresetCard.tsx",
+        "line": 29,
+        "type": "query",
+        "keyPattern": "[queryKeyPrefix, 'preset', presetId]",
+        "rawLine": "const { data: preset, isLoading } = useQuery({"
+      }
+    ],
+    "src/shared/components/MotionPresetSelector/useMotionPresets.ts": [
+      {
+        "file": "src/shared/components/MotionPresetSelector/useMotionPresets.ts",
+        "line": 25,
+        "type": "query",
+        "keyPattern": "[queryKeyPrefix, 'featured', featuredPresetIds]",
+        "rawLine": "const { data: additionalPresets, isLoading } = useQuery({"
+      }
+    ],
+    "src/shared/components/TasksPane/TaskItem.tsx": [
+      {
+        "file": "src/shared/components/TasksPane/TaskItem.tsx",
+        "line": 149,
+        "type": "query",
+        "keyPattern": "['cascaded-task-error', cascadedTaskId]",
+        "rawLine": "const { data: cascadedTask, isLoading: isCascadedTaskLoading } = useQuery({"
+      },
+      {
+        "file": "src/shared/components/TasksPane/TaskItem.tsx",
+        "line": 205,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'paginated', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });"
+      }
+    ],
+    "src/shared/components/TasksPane/TasksPane.tsx": [
+      {
+        "file": "src/shared/components/TasksPane/TasksPane.tsx",
+        "line": 287,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'paginated', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });"
+      },
+      {
+        "file": "src/shared/components/TasksPane/TasksPane.tsx",
+        "line": 288,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated', selectedProjectId]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });"
+      }
+    ],
+    "src/shared/components/TasksPane/hooks/useImageGeneration.ts": [
+      {
+        "file": "src/shared/components/TasksPane/hooks/useImageGeneration.ts",
+        "line": 29,
+        "type": "query",
+        "keyPattern": "['image-generation-for-task', task.id, task.outputLocation]",
+        "rawLine": "const { data: generationResult, isLoading: isLoadingGeneration, error: generationError } = useQuery({"
+      }
+    ],
+    "src/shared/components/TasksPane/hooks/useVideoGenerations.ts": [
+      {
+        "file": "src/shared/components/TasksPane/hooks/useVideoGenerations.ts",
+        "line": 56,
+        "type": "query",
+        "keyPattern": "['video-generations-for-task', task.id, task.outputLocation]",
+        "rawLine": "const { data: videoGenerations, isLoading: isLoadingVideoGen } = useQuery({"
+      }
+    ],
+    "src/shared/hooks/shots/cacheUtils.ts": [
+      {
+        "file": "src/shared/hooks/shots/cacheUtils.ts",
+        "line": 111,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.setQueryData(['all-shot-generations', shotId], previous);"
+      },
+      {
+        "file": "src/shared/hooks/shots/cacheUtils.ts",
+        "line": 121,
+        "type": "cancel",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "await queryClient.cancelQueries({ queryKey: ['all-shot-generations', shotId] });"
+      }
+    ],
+    "src/shared/hooks/shots/useShotCreation.ts": [
+      {
+        "file": "src/shared/hooks/shots/useShotCreation.ts",
+        "line": 129,
+        "type": "invalidate",
+        "keyPattern": "['shots', variables.<projectId>]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotCreation.ts",
+        "line": 133,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', variables.<projectId>]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/shared/hooks/shots/useShotGenerations.ts": [
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 368,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', context.project_id]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 447,
+        "type": "invalidate",
+        "keyPattern": "['shots', project_id]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', project_id] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 448,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations-meta', shot_id]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', shot_id] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 449,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', project_id]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 575,
+        "type": "invalidate",
+        "keyPattern": "['segment-live-timeline', data.<shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', data.shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 576,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', data.<shotId>, data.<projectId>]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 660,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations-meta', data.<shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', data.shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 898,
+        "type": "invalidate",
+        "keyPattern": "['shots', data.project_id]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', data.project_id] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 899,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 900,
+        "type": "invalidate",
+        "keyPattern": "['project-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['project-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 905,
+        "type": "invalidate",
+        "keyPattern": "['derived-generations', data.original_generation_id]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 908,
+        "type": "invalidate",
+        "keyPattern": "['segment-live-timeline', data.shot_id]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', data.shot_id] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 909,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', data.shot_id, data.project_id]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 303,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', shot_id]",
+        "rawLine": "queryClient.setQueryData("
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 417,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', shot_id]",
+        "rawLine": "queryClient.setQueryData(['all-shot-generations', shot_id], updateCache);"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 528,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.setQueryData("
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 641,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.setQueryData(['all-shot-generations', shotId], updatedGens);"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotGenerations.ts",
+        "line": 661,
+        "type": "invalidate",
+        "keyPattern": "['source-slot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/shared/hooks/shots/useShotUpdates.ts": [
+      {
+        "file": "src/shared/hooks/shots/useShotUpdates.ts",
+        "line": 45,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotUpdates.ts",
+        "line": 93,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotUpdates.ts",
+        "line": 129,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      }
+    ],
+    "src/shared/hooks/shots/useShotsCrud.ts": [
+      {
+        "file": "src/shared/hooks/shots/useShotsCrud.ts",
+        "line": 293,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotsCrud.ts",
+        "line": 374,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotsCrud.ts",
+        "line": 202,
+        "type": "setQueryData",
+        "keyPattern": "['shot', newShot.id]",
+        "rawLine": "queryClient.setQueryData(['shot', newShot.id], newShot);"
+      }
+    ],
+    "src/shared/hooks/shots/useShotsQueries.ts": [
+      {
+        "file": "src/shared/hooks/shots/useShotsQueries.ts",
+        "line": 25,
+        "type": "query",
+        "keyPattern": "['shots', <projectId>, maxImagesPerShot]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/shots/useShotsQueries.ts",
+        "line": 163,
+        "type": "query",
+        "keyPattern": "['project-image-stats', <projectId>]",
+        "rawLine": "return useQuery({"
+      }
+    ],
+    "src/shared/hooks/useApiKeys.ts": [
+      {
+        "file": "src/shared/hooks/useApiKeys.ts",
+        "line": 81,
+        "type": "query",
+        "keyPattern": "['apiKeys']",
+        "rawLine": "} = useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useApiKeys.ts",
+        "line": 91,
+        "type": "setQueryData",
+        "keyPattern": "['apiKeys']",
+        "rawLine": "queryClient.setQueryData(['apiKeys'], updatedKeys);"
+      }
+    ],
+    "src/shared/hooks/useApiTokens.ts": [
+      {
+        "file": "src/shared/hooks/useApiTokens.ts",
+        "line": 67,
+        "type": "query",
+        "keyPattern": "['apiTokens']",
+        "rawLine": "} = useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useApiTokens.ts",
+        "line": 81,
+        "type": "invalidate",
+        "keyPattern": "['apiTokens']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['apiTokens'] });"
+      },
+      {
+        "file": "src/shared/hooks/useApiTokens.ts",
+        "line": 96,
+        "type": "invalidate",
+        "keyPattern": "['apiTokens']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['apiTokens'] });"
+      },
+      {
+        "file": "src/shared/hooks/useApiTokens.ts",
+        "line": 114,
+        "type": "invalidate",
+        "keyPattern": "['apiTokens']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['apiTokens'] });"
+      }
+    ],
+    "src/shared/hooks/useAutoSaveSettings.ts": [
+      {
+        "file": "src/shared/hooks/useAutoSaveSettings.ts",
+        "line": 263,
+        "type": "refetch",
+        "keyPattern": "['shot-batch-settings', pendingForEntity]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-batch-settings', pendingForEntity] });"
+      }
+    ],
+    "src/shared/hooks/useAutoTopup.ts": [
+      {
+        "file": "src/shared/hooks/useAutoTopup.ts",
+        "line": 130,
+        "type": "invalidate",
+        "keyPattern": "['autoTopup', 'preferences']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['autoTopup', 'preferences'] });"
+      },
+      {
+        "file": "src/shared/hooks/useAutoTopup.ts",
+        "line": 131,
+        "type": "invalidate",
+        "keyPattern": "['credits']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits'] }); // Refresh credits info"
+      },
+      {
+        "file": "src/shared/hooks/useAutoTopup.ts",
+        "line": 144,
+        "type": "invalidate",
+        "keyPattern": "['autoTopup', 'preferences']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['autoTopup', 'preferences'] });"
+      },
+      {
+        "file": "src/shared/hooks/useAutoTopup.ts",
+        "line": 145,
+        "type": "invalidate",
+        "keyPattern": "['credits']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits'] }); // Refresh credits info"
+      }
+    ],
+    "src/shared/hooks/useBackgroundThumbnailGenerator.ts": [
+      {
+        "file": "src/shared/hooks/useBackgroundThumbnailGenerator.ts",
+        "line": 188,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      }
+    ],
+    "src/shared/hooks/useCredits.ts": [
+      {
+        "file": "src/shared/hooks/useCredits.ts",
+        "line": 211,
+        "type": "invalidate",
+        "keyPattern": "['credits', 'balance']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });"
+      },
+      {
+        "file": "src/shared/hooks/useCredits.ts",
+        "line": 212,
+        "type": "invalidate",
+        "keyPattern": "['credits', 'ledger']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });"
+      }
+    ],
+    "src/shared/hooks/useDemoteOrphanedVariants.ts": [
+      {
+        "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+        "line": 131,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-child-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+        "line": 132,
+        "type": "invalidate",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+        "line": 133,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+        "line": 136,
+        "type": "invalidate",
+        "keyPattern": "['source-slot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'source-slot-generations' });"
+      }
+    ],
+    "src/shared/hooks/useGenerationInvalidation.ts": [
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 112,
+        "type": "invalidate",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 113,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 115,
+        "type": "invalidate",
+        "keyPattern": "['segment-live-timeline', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 119,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'shot', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'shot', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 123,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 127,
+        "type": "invalidate",
+        "keyPattern": "['unpositioned-count', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unpositioned-count', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 132,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 137,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 249,
+        "type": "invalidate",
+        "keyPattern": "['generation-variants', <generationId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants', generationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 250,
+        "type": "invalidate",
+        "keyPattern": "['generation', <generationId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation', generationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 252,
+        "type": "invalidate",
+        "keyPattern": "['variant-badges']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['variant-badges'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 268,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] }); // Legacy"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 269,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 271,
+        "type": "invalidate",
+        "keyPattern": "['derived-items']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 275,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 322,
+        "type": "invalidate",
+        "keyPattern": "['generation', <generationId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation', generationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 325,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] }); // Legacy"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 326,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 330,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 334,
+        "type": "invalidate",
+        "keyPattern": "['derived-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 335,
+        "type": "invalidate",
+        "keyPattern": "['derived-items']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 256,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 208,
+        "type": "invalidate",
+        "keyPattern": "['all-shot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 211,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 260,
+        "type": "invalidate",
+        "keyPattern": "['all-shot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 263,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 280,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 287,
+        "type": "invalidate",
+        "keyPattern": "['source-slot-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 339,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useGenerationInvalidation.ts",
+        "line": 342,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/shared/hooks/useGenerations.ts": [
+      {
+        "file": "src/shared/hooks/useGenerations.ts",
+        "line": 809,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerations.ts",
+        "line": 780,
+        "type": "cancel",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "await queryClient.cancelQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useGenerations.ts",
+        "line": 1199,
+        "type": "cancel",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.cancelQueries({ queryKey: ['unified-generations'] }),"
+      },
+      {
+        "file": "src/shared/hooks/useGenerations.ts",
+        "line": 1200,
+        "type": "cancel",
+        "keyPattern": "['shots']",
+        "rawLine": "queryClient.cancelQueries({ queryKey: ['shots'] }),"
+      },
+      {
+        "file": "src/shared/hooks/useGenerations.ts",
+        "line": 1201,
+        "type": "cancel",
+        "keyPattern": "['all-shot-generations']",
+        "rawLine": "queryClient.cancelQueries({ queryKey: ['all-shot-generations'] }),"
+      }
+    ],
+    "src/shared/hooks/useLineageChain.ts": [
+      {
+        "file": "src/shared/hooks/useLineageChain.ts",
+        "line": 86,
+        "type": "query",
+        "keyPattern": "['lineage-chain', variantId]",
+        "rawLine": "const { data: chain = [], isLoading, error } = useQuery({"
+      }
+    ],
+    "src/shared/hooks/useMarkVariantViewed.ts": [
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 78,
+        "type": "invalidate",
+        "keyPattern": "['generation-variants']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 79,
+        "type": "invalidate",
+        "keyPattern": "['derived-items']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 82,
+        "type": "invalidate",
+        "keyPattern": "['all-shot-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 83,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 84,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 85,
+        "type": "invalidate",
+        "keyPattern": "['shot-positions']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-positions'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 138,
+        "type": "invalidate",
+        "keyPattern": "['generation-variants']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 139,
+        "type": "invalidate",
+        "keyPattern": "['derived-items']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 142,
+        "type": "invalidate",
+        "keyPattern": "['all-shot-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 143,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 144,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/useMarkVariantViewed.ts",
+        "line": 145,
+        "type": "invalidate",
+        "keyPattern": "['shot-positions']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-positions'] });"
+      }
+    ],
+    "src/shared/hooks/usePendingGenerationTasks.ts": [
+      {
+        "file": "src/shared/hooks/usePendingGenerationTasks.ts",
+        "line": 80,
+        "type": "query",
+        "keyPattern": "['pending-generation-tasks', <generationId>, <projectId>]",
+        "rawLine": "const { data: pendingTasks, isLoading } = useQuery({"
+      }
+    ],
+    "src/shared/hooks/usePendingSegmentTasks.ts": [
+      {
+        "file": "src/shared/hooks/usePendingSegmentTasks.ts",
+        "line": 68,
+        "type": "query",
+        "keyPattern": "['pending-segment-tasks', <shotId>, <projectId>]",
+        "rawLine": "const { data: pendingTasks, isLoading } = useQuery({"
+      }
+    ],
+    "src/shared/hooks/usePromoteVariantToGeneration.ts": [
+      {
+        "file": "src/shared/hooks/usePromoteVariantToGeneration.ts",
+        "line": 142,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/usePromoteVariantToGeneration.ts",
+        "line": 143,
+        "type": "invalidate",
+        "keyPattern": "['project-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['project-generations'] });"
+      },
+      {
+        "file": "src/shared/hooks/usePromoteVariantToGeneration.ts",
+        "line": 146,
+        "type": "invalidate",
+        "keyPattern": "['derived-generations', variables.sourceGenerationId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/shared/hooks/useResources.ts": [
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 222,
+        "type": "invalidate",
+        "keyPattern": "['resources', data.type]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', data.type] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 223,
+        "type": "invalidate",
+        "keyPattern": "['public-resources', data.type]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', data.type] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 344,
+        "type": "invalidate",
+        "keyPattern": "['resources', data.type, 'v2']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', data.type, 'v2'] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 345,
+        "type": "invalidate",
+        "keyPattern": "['public-resources', data.type, 'v2']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', data.type, 'v2'] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 347,
+        "type": "invalidate",
+        "keyPattern": "['resources', data.type]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', data.type] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 348,
+        "type": "invalidate",
+        "keyPattern": "['public-resources', data.type]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', data.type] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 388,
+        "type": "invalidate",
+        "keyPattern": "['resources', variables.type]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', variables.type] });"
+      },
+      {
+        "file": "src/shared/hooks/useResources.ts",
+        "line": 389,
+        "type": "invalidate",
+        "keyPattern": "['public-resources', variables.type]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', variables.type] });"
+      }
+    ],
+    "src/shared/hooks/useSegmentSettings.ts": [
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 189,
+        "type": "query",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "const { data: pairMetadata, isLoading: isLoadingPair } = useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 232,
+        "type": "query",
+        "keyPattern": "['shot-batch-settings', <shotId>]",
+        "rawLine": "const { data: shotVideoSettings, isLoading: isLoadingBatch } = useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 1016,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 1068,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 634,
+        "type": "refetch",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 641,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 754,
+        "type": "refetch",
+        "keyPattern": "['shot-batch-settings', <shotId>]",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 757,
+        "type": "refetch",
+        "keyPattern": "['toolSettings', 'travel-between-images']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 841,
+        "type": "refetch",
+        "keyPattern": "['shot-batch-settings', <shotId>]",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useSegmentSettings.ts",
+        "line": 842,
+        "type": "refetch",
+        "keyPattern": "['toolSettings', 'travel-between-images']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });"
+      }
+    ],
+    "src/shared/hooks/useShotCreation.ts": [
+      {
+        "file": "src/shared/hooks/useShotCreation.ts",
+        "line": 330,
+        "type": "setQueryData",
+        "keyPattern": "['shot', newShotId]",
+        "rawLine": "queryClient.setQueryData(['shot', newShotId], (old: Shot | undefined) => old ?? ({"
+      }
+    ],
+    "src/shared/hooks/useShotGenerations.ts": [
+      {
+        "file": "src/shared/hooks/useShotGenerations.ts",
+        "line": 79,
+        "type": "query",
+        "keyPattern": "['unpositioned-count', <shotId>]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useShotGenerations.ts",
+        "line": 544,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.setQueryData(['all-shot-generations', shotId], contextImages);"
+      }
+    ],
+    "src/shared/hooks/useSourceImageChanges.ts": [
+      {
+        "file": "src/shared/hooks/useSourceImageChanges.ts",
+        "line": 79,
+        "type": "query",
+        "keyPattern": "['source-slot-generations', ...startGenIds.sort()]",
+        "rawLine": "const { data: slotData, isLoading } = useQuery({"
+      }
+    ],
+    "src/shared/hooks/useTaskCost.ts": [
+      {
+        "file": "src/shared/hooks/useTaskCost.ts",
+        "line": 51,
+        "type": "invalidate",
+        "keyPattern": "['credits', 'balance']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });"
+      },
+      {
+        "file": "src/shared/hooks/useTaskCost.ts",
+        "line": 52,
+        "type": "invalidate",
+        "keyPattern": "['credits', 'ledger']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });"
+      }
+    ],
+    "src/shared/hooks/useTaskType.ts": [
+      {
+        "file": "src/shared/hooks/useTaskType.ts",
+        "line": 21,
+        "type": "query",
+        "keyPattern": "['task-type', taskType]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useTaskType.ts",
+        "line": 49,
+        "type": "query",
+        "keyPattern": "['task-types', taskTypes.sort()]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useTaskType.ts",
+        "line": 134,
+        "type": "query",
+        "keyPattern": "['task-types-config', 'all']",
+        "rawLine": "return useQuery({"
+      }
+    ],
+    "src/shared/hooks/useTasks.ts": [
+      {
+        "file": "src/shared/hooks/useTasks.ts",
+        "line": 541,
+        "type": "query",
+        "keyPattern": "['task-status-counts', <projectId>]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useTasks.ts",
+        "line": 721,
+        "type": "query",
+        "keyPattern": "['all-task-types']",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useTasks.ts",
+        "line": 429,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/shared/hooks/useTasks.ts",
+        "line": 430,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/shared/hooks/useTasks.ts",
+        "line": 523,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/shared/hooks/useTasks.ts",
+        "line": 524,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      }
+    ],
+    "src/shared/hooks/useTimelineCore.ts": [
+      {
+        "file": "src/shared/hooks/useTimelineCore.ts",
+        "line": 422,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', shotGenerationId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });"
+      }
+    ],
+    "src/shared/hooks/useTimelinePositionUtils.ts": [
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 767,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', shotGen.id]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGen.id] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 833,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', shotGenerationId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 123,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 433,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 434,
+        "type": "refetch",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 436,
+        "type": "refetch",
+        "keyPattern": "['segment-live-timeline', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['segment-live-timeline', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 438,
+        "type": "refetch",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 495,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 496,
+        "type": "refetch",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 498,
+        "type": "refetch",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 590,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 591,
+        "type": "refetch",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 593,
+        "type": "refetch",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 642,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 643,
+        "type": "refetch",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 645,
+        "type": "refetch",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 760,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 761,
+        "type": "refetch",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 763,
+        "type": "refetch",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 820,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 826,
+        "type": "refetch",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 827,
+        "type": "refetch",
+        "keyPattern": "['shot-generations-meta', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+      },
+      {
+        "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+        "line": 829,
+        "type": "refetch",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+      }
+    ],
+    "src/shared/hooks/useToolSettings.ts": [
+      {
+        "file": "src/shared/hooks/useToolSettings.ts",
+        "line": 559,
+        "type": "query",
+        "keyPattern": "['toolSettings', toolId, <projectId>, <shotId>]",
+        "rawLine": "const { data: queryResult, isLoading, error, fetchStatus, dataUpdatedAt } = useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useToolSettings.ts",
+        "line": 752,
+        "type": "invalidate",
+        "keyPattern": "['toolSettings', toolId, <projectId>, <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/hooks/useToolSettings.ts",
+        "line": 706,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', toolId, <projectId>, <shotId>]",
+        "rawLine": "queryClient.setQueryData("
+      },
+      {
+        "file": "src/shared/hooks/useToolSettings.ts",
+        "line": 725,
+        "type": "refetch",
+        "keyPattern": "['shot-batch-settings', <shotId>]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });"
+      }
+    ],
+    "src/shared/hooks/useUnifiedGenerations.ts": [
+      {
+        "file": "src/shared/hooks/useUnifiedGenerations.ts",
+        "line": 703,
+        "type": "query",
+        "keyPattern": "['tasks', '<taskId>', <generationId>]",
+        "rawLine": "const result = useQuery({"
+      },
+      {
+        "file": "src/shared/hooks/useUnifiedGenerations.ts",
+        "line": 669,
+        "type": "setQueryData",
+        "keyPattern": "['tasks', '<taskId>', item.id]",
+        "rawLine": "queryClient.setQueryData(['tasks', 'taskId', item.id], { taskId });"
+      },
+      {
+        "file": "src/shared/hooks/useUnifiedGenerations.ts",
+        "line": 655,
+        "type": "getQueryData",
+        "keyPattern": "['tasks', '<taskId>', item.id]",
+        "rawLine": "const existingData = queryClient.getQueryData(['tasks', 'taskId', item.id]);"
+      },
+      {
+        "file": "src/shared/hooks/useUnifiedGenerations.ts",
+        "line": 751,
+        "type": "getQueryData",
+        "keyPattern": "['tasks', '<taskId>', <generationId>]",
+        "rawLine": "const cachedMapping = queryClient.getQueryData(['tasks', 'taskId', generationId]) as { taskId: string | null } | undefin"
+      },
+      {
+        "file": "src/shared/hooks/useUnifiedGenerations.ts",
+        "line": 784,
+        "type": "getQueryData",
+        "keyPattern": "['tasks', 'single', <taskId>]",
+        "rawLine": "const cachedTask = queryClient.getQueryData(['tasks', 'single', taskId]);"
+      },
+      {
+        "file": "src/shared/hooks/useUnifiedGenerations.ts",
+        "line": 823,
+        "type": "getQueryData",
+        "keyPattern": "['tasks', 'single', <taskId>]",
+        "rawLine": "const cached = queryClient.getQueryData(['tasks', 'single', taskId]);"
+      }
+    ],
+    "src/shared/hooks/useVariants.ts": [
+      {
+        "file": "src/shared/hooks/useVariants.ts",
+        "line": 74,
+        "type": "query",
+        "keyPattern": "[VARIANTS_QUERY_KEY, <generationId>]",
+        "rawLine": "} = useQuery({"
+      }
+    ],
+    "src/shared/lib/generationTaskBridge.ts": [
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 116,
+        "type": "query",
+        "keyPattern": "['generation-task-mapping', <generationId>]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 129,
+        "type": "query",
+        "keyPattern": "['task-generation-mapping', <taskId>, outputLocation]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 154,
+        "type": "query",
+        "keyPattern": "['tasks', 'single', <taskId>]",
+        "rawLine": "return useQuery({"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 243,
+        "type": "invalidate",
+        "keyPattern": "['generation-task-mapping', <generationId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-task-mapping', generationId] });"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 247,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'single', <taskId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'single', taskId] });"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 249,
+        "type": "invalidate",
+        "keyPattern": "['task-generation-mapping', <taskId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-generation-mapping', taskId] });"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 206,
+        "type": "setQueryData",
+        "keyPattern": "['generation-task-mapping', <generationId>]",
+        "rawLine": "queryClient.setQueryData(['generation-task-mapping', generationId], { taskId });"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 282,
+        "type": "getQueryData",
+        "keyPattern": "['generation-task-mapping', generation.id]",
+        "rawLine": "const cachedMapping = queryClient.getQueryData(['generation-task-mapping', generation.id]);"
+      },
+      {
+        "file": "src/shared/lib/generationTaskBridge.ts",
+        "line": 286,
+        "type": "getQueryData",
+        "keyPattern": "['tasks', 'single', <taskId>]",
+        "rawLine": "const taskData = taskId ? queryClient.getQueryData(['tasks', 'single', taskId]) : null;"
+      }
+    ],
+    "src/shared/lib/queryDefaults.ts": [
+      {
+        "file": "src/shared/lib/queryDefaults.ts",
+        "line": 31,
+        "type": "query",
+        "keyPattern": "['all-shot-generations', <shotId>]",
+        "rawLine": "* useQuery({"
+      },
+      {
+        "file": "src/shared/lib/queryDefaults.ts",
+        "line": 55,
+        "type": "query",
+        "keyPattern": "['resources', <projectId>]",
+        "rawLine": "* useQuery({"
+      },
+      {
+        "file": "src/shared/lib/queryDefaults.ts",
+        "line": 73,
+        "type": "query",
+        "keyPattern": "['task-result', <taskId>]",
+        "rawLine": "* useQuery({"
+      },
+      {
+        "file": "src/shared/lib/queryDefaults.ts",
+        "line": 94,
+        "type": "query",
+        "keyPattern": "['user-settings']",
+        "rawLine": "* useQuery({"
+      },
+      {
+        "file": "src/shared/lib/queryDefaults.ts",
+        "line": 112,
+        "type": "query",
+        "keyPattern": "['my-query']",
+        "rawLine": "* useQuery({"
+      }
+    ],
+    "src/shared/providers/SimpleRealtimeProvider.tsx": [
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 135,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 136,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 142,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'single', <taskId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'single', taskId] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 162,
+        "type": "invalidate",
+        "keyPattern": "['derived-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 163,
+        "type": "invalidate",
+        "keyPattern": "['derived-items']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 203,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 204,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 224,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'shot', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'shot', shotId] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 250,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 251,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 271,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 272,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 327,
+        "type": "invalidate",
+        "keyPattern": "['shot-generations', <shotId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations', shotId] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 373,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 374,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 375,
+        "type": "invalidate",
+        "keyPattern": "['generation']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation'] }); // For single generation queries (e.g. parent generation in"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 379,
+        "type": "invalidate",
+        "keyPattern": "['shots']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 400,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 401,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 402,
+        "type": "invalidate",
+        "keyPattern": "['generation']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation'] }); // For single generation queries"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 418,
+        "type": "invalidate",
+        "keyPattern": "['generation-variants', <generationId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants', generationId] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 419,
+        "type": "invalidate",
+        "keyPattern": "['generation', <generationId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation', generationId] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 422,
+        "type": "invalidate",
+        "keyPattern": "['variant-badges']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['variant-badges'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 426,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 427,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 151,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 154,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 157,
+        "type": "invalidate",
+        "keyPattern": "['segment-live-timeline', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 168,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 208,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 211,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 214,
+        "type": "invalidate",
+        "keyPattern": "['segment-live-timeline', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 219,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+        "line": 306,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/character-animate/components/CharacterEditor.tsx": [
+      {
+        "file": "src/tools/character-animate/components/CharacterEditor.tsx",
+        "line": 164,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/tools/character-animate/components/CharacterEditor.tsx",
+        "line": 238,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      }
+    ],
+    "src/tools/character-animate/pages/CharacterAnimatePage.tsx": [
+      {
+        "file": "src/tools/character-animate/pages/CharacterAnimatePage.tsx",
+        "line": 141,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/tools/character-animate/pages/CharacterAnimatePage.tsx",
+        "line": 381,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/tools/character-animate/pages/CharacterAnimatePage.tsx",
+        "line": 382,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/edit-video/components/InlineEditVideoView.tsx": [
+      {
+        "file": "src/tools/edit-video/components/InlineEditVideoView.tsx",
+        "line": 667,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/tools/edit-video/components/InlineEditVideoView.tsx",
+        "line": 668,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/image-generation/components/ImageGenerationForm/index.tsx": [
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2761,
+        "type": "invalidate",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1829,
+        "type": "setQueryData",
+        "keyPattern": "['resources', 'style-reference']",
+        "rawLine": "queryClient.setQueryData(['resources', 'style-reference'], (prev: any) => {"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1836,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1909,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1953,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1999,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2051,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2186,
+        "type": "setQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2702,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2703,
+        "type": "refetch",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2744,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2745,
+        "type": "refetch",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 2762,
+        "type": "refetch",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', selectedProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 349,
+        "type": "getQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.getQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined])"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1851,
+        "type": "getQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.getQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined])"
+      },
+      {
+        "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+        "line": 1968,
+        "type": "getQueryData",
+        "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+        "rawLine": "queryClient.getQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined])"
+      }
+    ],
+    "src/tools/image-generation/pages/ImageGenerationToolPage.tsx": [
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 471,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 474,
+        "type": "invalidate",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 475,
+        "type": "invalidate",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 571,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 608,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 682,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+        "rawLine": "await queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 708,
+        "type": "invalidate",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 687,
+        "type": "refetch",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId, currentPage, itemsPerPage, generationsFilters]",
+        "rawLine": "await queryClient.refetchQueries({"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 709,
+        "type": "refetch",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', selectedProjectId] });"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 920,
+        "type": "getQueryData",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId, nextPage, itemsPerPage, filters]",
+        "rawLine": "const cached = queryClient.getQueryData(['unified-generations', 'project', effectiveProjectId, nextPage, itemsPerPage, f"
+      },
+      {
+        "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+        "line": 932,
+        "type": "getQueryData",
+        "keyPattern": "['unified-generations', 'project', effectiveProjectId, prevPage, itemsPerPage, filters]",
+        "rawLine": "const cachedPrev = queryClient.getQueryData(['unified-generations', 'project', effectiveProjectId, prevPage, itemsPerPag"
+      }
+    ],
+    "src/tools/join-clips/pages/JoinClipsPage.tsx": [
+      {
+        "file": "src/tools/join-clips/pages/JoinClipsPage.tsx",
+        "line": 697,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/tools/join-clips/pages/JoinClipsPage.tsx",
+        "line": 1442,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/tools/join-clips/pages/JoinClipsPage.tsx",
+        "line": 1443,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/travel-between-images/components/FinalVideoSection.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/FinalVideoSection.tsx",
+        "line": 181,
+        "type": "query",
+        "keyPattern": "['active-join-clips-task', <shotId>, <projectId>, parentGenIdsForQuery]",
+        "rawLine": "const { data: activeJoinTask } = useQuery({"
+      }
+    ],
+    "src/tools/travel-between-images/components/MotionControl.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/MotionControl.tsx",
+        "line": 181,
+        "type": "query",
+        "keyPattern": "['featured-presets', featuredPresetIds]",
+        "rawLine": "const { data: additionalPresets } = useQuery({"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/MotionControl.tsx",
+        "line": 609,
+        "type": "query",
+        "keyPattern": "['preset-details', presetId]",
+        "rawLine": "const { data: preset, isLoading, isError } = useQuery({"
+      }
+    ],
+    "src/tools/travel-between-images/components/PresetsSelector.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/PresetsSelector.tsx",
+        "line": 24,
+        "type": "query",
+        "keyPattern": "['preset-details', presetId]",
+        "rawLine": "const { data: preset, isLoading } = useQuery({"
+      }
+    ],
+    "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts": [
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+        "line": 555,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', currentShot.id]",
+        "rawLine": "queryClientRef.current.setQueryData("
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+        "line": 579,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', currentShot.id]",
+        "rawLine": "queryClientRef.current.setQueryData(['all-shot-generations', currentShot.id], previousGens);"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+        "line": 1071,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', currentShot.id]",
+        "rawLine": "queryClientRef.current.setQueryData("
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+        "line": 1130,
+        "type": "setQueryData",
+        "keyPattern": "['all-shot-generations', currentShot.id]",
+        "rawLine": "queryClientRef.current.setQueryData("
+      }
+    ],
+    "src/tools/travel-between-images/components/ShotEditor/index.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 480,
+        "type": "query",
+        "keyPattern": "['last-video-generation', selectedShotId]",
+        "rawLine": "const { data: lastVideoGeneration } = useQuery({"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 1598,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 1833,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', selectedShot?.id, <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', selectedShot?.id, projectId] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 1834,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 1835,
+        "type": "invalidate",
+        "keyPattern": "['project-video-counts', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['project-video-counts', projectId] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 2129,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 2130,
+        "type": "refetch",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 2254,
+        "type": "refetch",
+        "keyPattern": "['shots']",
+        "rawLine": "queryClient.refetchQueries({ queryKey: ['shots'] }).then(() => {"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 2368,
+        "type": "refetch",
+        "keyPattern": "['shots']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['shots'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+        "line": 2107,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', ...] (predicate)",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+        "line": 118,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+        "line": 122,
+        "type": "invalidate",
+        "keyPattern": "['toolSettings', 'travel-between-images', 'shot', selectedShot.id]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['toolSettings', 'travel-between-images', 'shot', selectedShot.id] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+        "line": 126,
+        "type": "invalidate",
+        "keyPattern": "['shots', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+        "line": 66,
+        "type": "setQueryData",
+        "keyPattern": "['shots', <projectId>, maxImages]",
+        "rawLine": "queryClient.setQueryData(['shots', projectId, maxImages], (oldData: any) => {"
+      }
+    ],
+    "src/tools/travel-between-images/components/ShotImagesEditor.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+        "line": 379,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+        "line": 380,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+        "line": 371,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations', ...] (predicate)",
+        "rawLine": "await queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+        "line": 375,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', ...] (predicate)",
+        "rawLine": "await queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/travel-between-images/components/ShotListDisplay.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/ShotListDisplay.tsx",
+        "line": 319,
+        "type": "setQueryData",
+        "keyPattern": "['shots', currentProjectId, 0]",
+        "rawLine": "queryClient.setQueryData(['shots', currentProjectId, 0], shotsWithNewPositions);"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotListDisplay.tsx",
+        "line": 345,
+        "type": "setQueryData",
+        "keyPattern": "['shots', currentProjectId]",
+        "rawLine": "queryClient.setQueryData(['shots', currentProjectId], shots);"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/ShotListDisplay.tsx",
+        "line": 346,
+        "type": "setQueryData",
+        "keyPattern": "['shots', currentProjectId, 5]",
+        "rawLine": "queryClient.setQueryData(['shots', currentProjectId, 5], shots);"
+      }
+    ],
+    "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+        "line": 255,
+        "type": "invalidate",
+        "keyPattern": "['variant-badges']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['variant-badges'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+        "line": 422,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations']",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+        "line": 423,
+        "type": "invalidate",
+        "keyPattern": "['generations']",
+        "rawLine": "await queryClient.invalidateQueries({ queryKey: ['generations'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+        "line": 414,
+        "type": "invalidate",
+        "keyPattern": "['segment-child-generations', ...] (predicate)",
+        "rawLine": "await queryClient.invalidateQueries({"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+        "line": 418,
+        "type": "invalidate",
+        "keyPattern": "['segment-parent-generations', ...] (predicate)",
+        "rawLine": "await queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+        "line": 370,
+        "type": "invalidate",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+        "line": 173,
+        "type": "setQueryData",
+        "keyPattern": "['pair-metadata', pairShotGenerationId]",
+        "rawLine": "queryClient.setQueryData(['pair-metadata', pairShotGenerationId], (old: any) => {"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+        "line": 413,
+        "type": "refetch",
+        "keyPattern": "['tasks', 'paginated']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+        "line": 414,
+        "type": "refetch",
+        "keyPattern": "['task-status-counts']",
+        "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+      }
+    ],
+    "src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx": [
+      {
+        "file": "src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx",
+        "line": 343,
+        "type": "invalidate",
+        "keyPattern": "['tasks']",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx",
+        "line": 344,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', <projectId>]",
+        "rawLine": "queryClient.invalidateQueries({"
+      }
+    ],
+    "src/tools/travel-between-images/hooks/useSegmentOutputsForShot.ts": [
+      {
+        "file": "src/tools/travel-between-images/hooks/useSegmentOutputsForShot.ts",
+        "line": 237,
+        "type": "query",
+        "keyPattern": "['segment-parent-generations', <shotId>, <projectId>]",
+        "rawLine": "} = useQuery({"
+      },
+      {
+        "file": "src/tools/travel-between-images/hooks/useSegmentOutputsForShot.ts",
+        "line": 445,
+        "type": "query",
+        "keyPattern": "['segment-live-timeline', <shotId>]",
+        "rawLine": "} = useQuery({"
+      }
+    ],
+    "src/tools/travel-between-images/hooks/useVideoTravelAddToShot.ts": [
+      {
+        "file": "src/tools/travel-between-images/hooks/useVideoTravelAddToShot.ts",
+        "line": 136,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });"
+      },
+      {
+        "file": "src/tools/travel-between-images/hooks/useVideoTravelAddToShot.ts",
+        "line": 184,
+        "type": "invalidate",
+        "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+        "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });"
+      }
+    ],
+    "src/tools/travel-between-images/pages/VideoTravelToolPage.tsx": [
+      {
+        "file": "src/tools/travel-between-images/pages/VideoTravelToolPage.tsx",
+        "line": 1566,
+        "type": "invalidate",
+        "keyPattern": "['shots', selectedProjectId]",
+        "rawLine": "//     queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+      }
+    ]
+  },
+  "allUsages": [
+    {
+      "file": "src/pages/PaymentSuccessPage.tsx",
+      "line": 39,
+      "type": "invalidate",
+      "keyPattern": "['credits', 'balance']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });"
+    },
+    {
+      "file": "src/pages/PaymentSuccessPage.tsx",
+      "line": 40,
+      "type": "invalidate",
+      "keyPattern": "['credits', 'ledger']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });"
+    },
+    {
+      "file": "src/pages/ShotsPage.tsx",
+      "line": 78,
+      "type": "invalidate",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+    },
+    {
+      "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
+      "line": 167,
+      "type": "invalidate",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+    },
+    {
+      "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
+      "line": 283,
+      "type": "getQueryData",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId, nextPage, GENERATIONS_PER_PAGE, filters]",
+      "rawLine": "const cached = queryClient.getQueryData(['unified-generations', 'project', selectedProjectId, nextPage, GENERATIONS_PER_"
+    },
+    {
+      "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
+      "line": 304,
+      "type": "getQueryData",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId, prevPage, GENERATIONS_PER_PAGE, filters]",
+      "rawLine": "const cached = queryClient.getQueryData(['unified-generations', 'project', selectedProjectId, prevPage, GENERATIONS_PER_"
+    },
+    {
+      "file": "src/shared/components/ImageGenerationModal.tsx",
+      "line": 69,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx",
+      "line": 418,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx",
+      "line": 462,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx",
+      "line": 463,
+      "type": "refetch",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx",
+      "line": 289,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx",
+      "line": 333,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx",
+      "line": 334,
+      "type": "refetch",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useAdjustedTaskDetails.ts",
+      "line": 99,
+      "type": "query",
+      "keyPattern": "['tasks', 'single', variantSourceTaskId]",
+      "rawLine": "const { data: variantSourceTask, isLoading: isLoadingVariantTask } = useQuery({"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useGenerationEditSettings.ts",
+      "line": 313,
+      "type": "invalidate",
+      "keyPattern": "['generation', genId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useVideoEditing.ts",
+      "line": 509,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useVideoEditing.ts",
+      "line": 510,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts",
+      "line": 93,
+      "type": "query",
+      "keyPattern": "['shot-regen-data', <shotId>]",
+      "rawLine": "const { data: shotDataForRegen, isLoading: isLoadingShotData } = useQuery({"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts",
+      "line": 172,
+      "type": "refetch",
+      "keyPattern": "['shot-regen-data', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-regen-data', shotId] }),"
+    },
+    {
+      "file": "src/shared/components/MediaLightbox/hooks/useVideoRegenerateMode.ts",
+      "line": 173,
+      "type": "refetch",
+      "keyPattern": "['toolSettings', 'travel-structure-video']",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-structure-video'] }),"
+    },
+    {
+      "file": "src/shared/components/MotionPresetSelector/SelectedPresetCard.tsx",
+      "line": 29,
+      "type": "query",
+      "keyPattern": "[queryKeyPrefix, 'preset', presetId]",
+      "rawLine": "const { data: preset, isLoading } = useQuery({"
+    },
+    {
+      "file": "src/shared/components/MotionPresetSelector/useMotionPresets.ts",
+      "line": 25,
+      "type": "query",
+      "keyPattern": "[queryKeyPrefix, 'featured', featuredPresetIds]",
+      "rawLine": "const { data: additionalPresets, isLoading } = useQuery({"
+    },
+    {
+      "file": "src/shared/components/TasksPane/TaskItem.tsx",
+      "line": 149,
+      "type": "query",
+      "keyPattern": "['cascaded-task-error', cascadedTaskId]",
+      "rawLine": "const { data: cascadedTask, isLoading: isCascadedTaskLoading } = useQuery({"
+    },
+    {
+      "file": "src/shared/components/TasksPane/TaskItem.tsx",
+      "line": 205,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'paginated', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });"
+    },
+    {
+      "file": "src/shared/components/TasksPane/TasksPane.tsx",
+      "line": 287,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'paginated', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });"
+    },
+    {
+      "file": "src/shared/components/TasksPane/TasksPane.tsx",
+      "line": 288,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated', selectedProjectId]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });"
+    },
+    {
+      "file": "src/shared/components/TasksPane/hooks/useImageGeneration.ts",
+      "line": 29,
+      "type": "query",
+      "keyPattern": "['image-generation-for-task', task.id, task.outputLocation]",
+      "rawLine": "const { data: generationResult, isLoading: isLoadingGeneration, error: generationError } = useQuery({"
+    },
+    {
+      "file": "src/shared/components/TasksPane/hooks/useVideoGenerations.ts",
+      "line": 56,
+      "type": "query",
+      "keyPattern": "['video-generations-for-task', task.id, task.outputLocation]",
+      "rawLine": "const { data: videoGenerations, isLoading: isLoadingVideoGen } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/shots/cacheUtils.ts",
+      "line": 111,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.setQueryData(['all-shot-generations', shotId], previous);"
+    },
+    {
+      "file": "src/shared/hooks/shots/cacheUtils.ts",
+      "line": 121,
+      "type": "cancel",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "await queryClient.cancelQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotCreation.ts",
+      "line": 129,
+      "type": "invalidate",
+      "keyPattern": "['shots', variables.<projectId>]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotCreation.ts",
+      "line": 133,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', variables.<projectId>]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 368,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', context.project_id]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 447,
+      "type": "invalidate",
+      "keyPattern": "['shots', project_id]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', project_id] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 448,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations-meta', shot_id]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', shot_id] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 449,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', project_id]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 575,
+      "type": "invalidate",
+      "keyPattern": "['segment-live-timeline', data.<shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', data.shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 576,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', data.<shotId>, data.<projectId>]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 660,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations-meta', data.<shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', data.shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 898,
+      "type": "invalidate",
+      "keyPattern": "['shots', data.project_id]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', data.project_id] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 899,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 900,
+      "type": "invalidate",
+      "keyPattern": "['project-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['project-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 905,
+      "type": "invalidate",
+      "keyPattern": "['derived-generations', data.original_generation_id]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 908,
+      "type": "invalidate",
+      "keyPattern": "['segment-live-timeline', data.shot_id]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', data.shot_id] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 909,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', data.shot_id, data.project_id]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 303,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', shot_id]",
+      "rawLine": "queryClient.setQueryData("
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 417,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', shot_id]",
+      "rawLine": "queryClient.setQueryData(['all-shot-generations', shot_id], updateCache);"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 528,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.setQueryData("
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 641,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.setQueryData(['all-shot-generations', shotId], updatedGens);"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotGenerations.ts",
+      "line": 661,
+      "type": "invalidate",
+      "keyPattern": "['source-slot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotUpdates.ts",
+      "line": 45,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotUpdates.ts",
+      "line": 93,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotUpdates.ts",
+      "line": 129,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotsCrud.ts",
+      "line": 293,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotsCrud.ts",
+      "line": 374,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotsCrud.ts",
+      "line": 202,
+      "type": "setQueryData",
+      "keyPattern": "['shot', newShot.id]",
+      "rawLine": "queryClient.setQueryData(['shot', newShot.id], newShot);"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotsQueries.ts",
+      "line": 25,
+      "type": "query",
+      "keyPattern": "['shots', <projectId>, maxImagesPerShot]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/shots/useShotsQueries.ts",
+      "line": 163,
+      "type": "query",
+      "keyPattern": "['project-image-stats', <projectId>]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useApiKeys.ts",
+      "line": 81,
+      "type": "query",
+      "keyPattern": "['apiKeys']",
+      "rawLine": "} = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useApiKeys.ts",
+      "line": 91,
+      "type": "setQueryData",
+      "keyPattern": "['apiKeys']",
+      "rawLine": "queryClient.setQueryData(['apiKeys'], updatedKeys);"
+    },
+    {
+      "file": "src/shared/hooks/useApiTokens.ts",
+      "line": 67,
+      "type": "query",
+      "keyPattern": "['apiTokens']",
+      "rawLine": "} = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useApiTokens.ts",
+      "line": 81,
+      "type": "invalidate",
+      "keyPattern": "['apiTokens']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['apiTokens'] });"
+    },
+    {
+      "file": "src/shared/hooks/useApiTokens.ts",
+      "line": 96,
+      "type": "invalidate",
+      "keyPattern": "['apiTokens']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['apiTokens'] });"
+    },
+    {
+      "file": "src/shared/hooks/useApiTokens.ts",
+      "line": 114,
+      "type": "invalidate",
+      "keyPattern": "['apiTokens']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['apiTokens'] });"
+    },
+    {
+      "file": "src/shared/hooks/useAutoSaveSettings.ts",
+      "line": 263,
+      "type": "refetch",
+      "keyPattern": "['shot-batch-settings', pendingForEntity]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-batch-settings', pendingForEntity] });"
+    },
+    {
+      "file": "src/shared/hooks/useAutoTopup.ts",
+      "line": 130,
+      "type": "invalidate",
+      "keyPattern": "['autoTopup', 'preferences']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['autoTopup', 'preferences'] });"
+    },
+    {
+      "file": "src/shared/hooks/useAutoTopup.ts",
+      "line": 131,
+      "type": "invalidate",
+      "keyPattern": "['credits']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits'] }); // Refresh credits info"
+    },
+    {
+      "file": "src/shared/hooks/useAutoTopup.ts",
+      "line": 144,
+      "type": "invalidate",
+      "keyPattern": "['autoTopup', 'preferences']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['autoTopup', 'preferences'] });"
+    },
+    {
+      "file": "src/shared/hooks/useAutoTopup.ts",
+      "line": 145,
+      "type": "invalidate",
+      "keyPattern": "['credits']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits'] }); // Refresh credits info"
+    },
+    {
+      "file": "src/shared/hooks/useBackgroundThumbnailGenerator.ts",
+      "line": 188,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useCredits.ts",
+      "line": 211,
+      "type": "invalidate",
+      "keyPattern": "['credits', 'balance']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });"
+    },
+    {
+      "file": "src/shared/hooks/useCredits.ts",
+      "line": 212,
+      "type": "invalidate",
+      "keyPattern": "['credits', 'ledger']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });"
+    },
+    {
+      "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+      "line": 131,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-child-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+      "line": 132,
+      "type": "invalidate",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+      "line": 133,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useDemoteOrphanedVariants.ts",
+      "line": 136,
+      "type": "invalidate",
+      "keyPattern": "['source-slot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'source-slot-generations' });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 112,
+      "type": "invalidate",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 113,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 115,
+      "type": "invalidate",
+      "keyPattern": "['segment-live-timeline', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-live-timeline', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 119,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'shot', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'shot', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 123,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 127,
+      "type": "invalidate",
+      "keyPattern": "['unpositioned-count', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unpositioned-count', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 132,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 137,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 249,
+      "type": "invalidate",
+      "keyPattern": "['generation-variants', <generationId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants', generationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 250,
+      "type": "invalidate",
+      "keyPattern": "['generation', <generationId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation', generationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 252,
+      "type": "invalidate",
+      "keyPattern": "['variant-badges']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['variant-badges'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 268,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] }); // Legacy"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 269,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 271,
+      "type": "invalidate",
+      "keyPattern": "['derived-items']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 275,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 322,
+      "type": "invalidate",
+      "keyPattern": "['generation', <generationId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation', generationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 325,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] }); // Legacy"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 326,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 330,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 334,
+      "type": "invalidate",
+      "keyPattern": "['derived-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 335,
+      "type": "invalidate",
+      "keyPattern": "['derived-items']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 256,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 208,
+      "type": "invalidate",
+      "keyPattern": "['all-shot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 211,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 260,
+      "type": "invalidate",
+      "keyPattern": "['all-shot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 263,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 280,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 287,
+      "type": "invalidate",
+      "keyPattern": "['source-slot-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 339,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerationInvalidation.ts",
+      "line": 342,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useGenerations.ts",
+      "line": 809,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerations.ts",
+      "line": 780,
+      "type": "cancel",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "await queryClient.cancelQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useGenerations.ts",
+      "line": 1199,
+      "type": "cancel",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.cancelQueries({ queryKey: ['unified-generations'] }),"
+    },
+    {
+      "file": "src/shared/hooks/useGenerations.ts",
+      "line": 1200,
+      "type": "cancel",
+      "keyPattern": "['shots']",
+      "rawLine": "queryClient.cancelQueries({ queryKey: ['shots'] }),"
+    },
+    {
+      "file": "src/shared/hooks/useGenerations.ts",
+      "line": 1201,
+      "type": "cancel",
+      "keyPattern": "['all-shot-generations']",
+      "rawLine": "queryClient.cancelQueries({ queryKey: ['all-shot-generations'] }),"
+    },
+    {
+      "file": "src/shared/hooks/useLineageChain.ts",
+      "line": 86,
+      "type": "query",
+      "keyPattern": "['lineage-chain', variantId]",
+      "rawLine": "const { data: chain = [], isLoading, error } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 78,
+      "type": "invalidate",
+      "keyPattern": "['generation-variants']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 79,
+      "type": "invalidate",
+      "keyPattern": "['derived-items']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 82,
+      "type": "invalidate",
+      "keyPattern": "['all-shot-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 83,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 84,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 85,
+      "type": "invalidate",
+      "keyPattern": "['shot-positions']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-positions'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 138,
+      "type": "invalidate",
+      "keyPattern": "['generation-variants']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 139,
+      "type": "invalidate",
+      "keyPattern": "['derived-items']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 142,
+      "type": "invalidate",
+      "keyPattern": "['all-shot-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['all-shot-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 143,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 144,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/useMarkVariantViewed.ts",
+      "line": 145,
+      "type": "invalidate",
+      "keyPattern": "['shot-positions']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-positions'] });"
+    },
+    {
+      "file": "src/shared/hooks/usePendingGenerationTasks.ts",
+      "line": 80,
+      "type": "query",
+      "keyPattern": "['pending-generation-tasks', <generationId>, <projectId>]",
+      "rawLine": "const { data: pendingTasks, isLoading } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/usePendingSegmentTasks.ts",
+      "line": 68,
+      "type": "query",
+      "keyPattern": "['pending-segment-tasks', <shotId>, <projectId>]",
+      "rawLine": "const { data: pendingTasks, isLoading } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/usePromoteVariantToGeneration.ts",
+      "line": 142,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/usePromoteVariantToGeneration.ts",
+      "line": 143,
+      "type": "invalidate",
+      "keyPattern": "['project-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['project-generations'] });"
+    },
+    {
+      "file": "src/shared/hooks/usePromoteVariantToGeneration.ts",
+      "line": 146,
+      "type": "invalidate",
+      "keyPattern": "['derived-generations', variables.sourceGenerationId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 222,
+      "type": "invalidate",
+      "keyPattern": "['resources', data.type]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', data.type] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 223,
+      "type": "invalidate",
+      "keyPattern": "['public-resources', data.type]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', data.type] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 344,
+      "type": "invalidate",
+      "keyPattern": "['resources', data.type, 'v2']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', data.type, 'v2'] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 345,
+      "type": "invalidate",
+      "keyPattern": "['public-resources', data.type, 'v2']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', data.type, 'v2'] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 347,
+      "type": "invalidate",
+      "keyPattern": "['resources', data.type]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', data.type] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 348,
+      "type": "invalidate",
+      "keyPattern": "['public-resources', data.type]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', data.type] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 388,
+      "type": "invalidate",
+      "keyPattern": "['resources', variables.type]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['resources', variables.type] });"
+    },
+    {
+      "file": "src/shared/hooks/useResources.ts",
+      "line": 389,
+      "type": "invalidate",
+      "keyPattern": "['public-resources', variables.type]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['public-resources', variables.type] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 189,
+      "type": "query",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "const { data: pairMetadata, isLoading: isLoadingPair } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 232,
+      "type": "query",
+      "keyPattern": "['shot-batch-settings', <shotId>]",
+      "rawLine": "const { data: shotVideoSettings, isLoading: isLoadingBatch } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 1016,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 1068,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 634,
+      "type": "refetch",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 641,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 754,
+      "type": "refetch",
+      "keyPattern": "['shot-batch-settings', <shotId>]",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 757,
+      "type": "refetch",
+      "keyPattern": "['toolSettings', 'travel-between-images']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 841,
+      "type": "refetch",
+      "keyPattern": "['shot-batch-settings', <shotId>]",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useSegmentSettings.ts",
+      "line": 842,
+      "type": "refetch",
+      "keyPattern": "['toolSettings', 'travel-between-images']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });"
+    },
+    {
+      "file": "src/shared/hooks/useShotCreation.ts",
+      "line": 330,
+      "type": "setQueryData",
+      "keyPattern": "['shot', newShotId]",
+      "rawLine": "queryClient.setQueryData(['shot', newShotId], (old: Shot | undefined) => old ?? ({"
+    },
+    {
+      "file": "src/shared/hooks/useShotGenerations.ts",
+      "line": 79,
+      "type": "query",
+      "keyPattern": "['unpositioned-count', <shotId>]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useShotGenerations.ts",
+      "line": 544,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.setQueryData(['all-shot-generations', shotId], contextImages);"
+    },
+    {
+      "file": "src/shared/hooks/useSourceImageChanges.ts",
+      "line": 79,
+      "type": "query",
+      "keyPattern": "['source-slot-generations', ...startGenIds.sort()]",
+      "rawLine": "const { data: slotData, isLoading } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useTaskCost.ts",
+      "line": 51,
+      "type": "invalidate",
+      "keyPattern": "['credits', 'balance']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });"
+    },
+    {
+      "file": "src/shared/hooks/useTaskCost.ts",
+      "line": 52,
+      "type": "invalidate",
+      "keyPattern": "['credits', 'ledger']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });"
+    },
+    {
+      "file": "src/shared/hooks/useTaskType.ts",
+      "line": 21,
+      "type": "query",
+      "keyPattern": "['task-type', taskType]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useTaskType.ts",
+      "line": 49,
+      "type": "query",
+      "keyPattern": "['task-types', taskTypes.sort()]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useTaskType.ts",
+      "line": 134,
+      "type": "query",
+      "keyPattern": "['task-types-config', 'all']",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useTasks.ts",
+      "line": 541,
+      "type": "query",
+      "keyPattern": "['task-status-counts', <projectId>]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useTasks.ts",
+      "line": 721,
+      "type": "query",
+      "keyPattern": "['all-task-types']",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useTasks.ts",
+      "line": 429,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/shared/hooks/useTasks.ts",
+      "line": 430,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/hooks/useTasks.ts",
+      "line": 523,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/shared/hooks/useTasks.ts",
+      "line": 524,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelineCore.ts",
+      "line": 422,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', shotGenerationId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 767,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', shotGen.id]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGen.id] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 833,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', shotGenerationId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 123,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 433,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 434,
+      "type": "refetch",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 436,
+      "type": "refetch",
+      "keyPattern": "['segment-live-timeline', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['segment-live-timeline', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 438,
+      "type": "refetch",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 495,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 496,
+      "type": "refetch",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 498,
+      "type": "refetch",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 590,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 591,
+      "type": "refetch",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 593,
+      "type": "refetch",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 642,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 643,
+      "type": "refetch",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 645,
+      "type": "refetch",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 760,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 761,
+      "type": "refetch",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 763,
+      "type": "refetch",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 820,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 826,
+      "type": "refetch",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['all-shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 827,
+      "type": "refetch",
+      "keyPattern": "['shot-generations-meta', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-generations-meta', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useTimelinePositionUtils.ts",
+      "line": 829,
+      "type": "refetch",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/shared/hooks/useToolSettings.ts",
+      "line": 559,
+      "type": "query",
+      "keyPattern": "['toolSettings', toolId, <projectId>, <shotId>]",
+      "rawLine": "const { data: queryResult, isLoading, error, fetchStatus, dataUpdatedAt } = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useToolSettings.ts",
+      "line": 752,
+      "type": "invalidate",
+      "keyPattern": "['toolSettings', toolId, <projectId>, <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/hooks/useToolSettings.ts",
+      "line": 706,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', toolId, <projectId>, <shotId>]",
+      "rawLine": "queryClient.setQueryData("
+    },
+    {
+      "file": "src/shared/hooks/useToolSettings.ts",
+      "line": 725,
+      "type": "refetch",
+      "keyPattern": "['shot-batch-settings', <shotId>]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shot-batch-settings', shotId] });"
+    },
+    {
+      "file": "src/shared/hooks/useUnifiedGenerations.ts",
+      "line": 703,
+      "type": "query",
+      "keyPattern": "['tasks', '<taskId>', <generationId>]",
+      "rawLine": "const result = useQuery({"
+    },
+    {
+      "file": "src/shared/hooks/useUnifiedGenerations.ts",
+      "line": 669,
+      "type": "setQueryData",
+      "keyPattern": "['tasks', '<taskId>', item.id]",
+      "rawLine": "queryClient.setQueryData(['tasks', 'taskId', item.id], { taskId });"
+    },
+    {
+      "file": "src/shared/hooks/useUnifiedGenerations.ts",
+      "line": 655,
+      "type": "getQueryData",
+      "keyPattern": "['tasks', '<taskId>', item.id]",
+      "rawLine": "const existingData = queryClient.getQueryData(['tasks', 'taskId', item.id]);"
+    },
+    {
+      "file": "src/shared/hooks/useUnifiedGenerations.ts",
+      "line": 751,
+      "type": "getQueryData",
+      "keyPattern": "['tasks', '<taskId>', <generationId>]",
+      "rawLine": "const cachedMapping = queryClient.getQueryData(['tasks', 'taskId', generationId]) as { taskId: string | null } | undefin"
+    },
+    {
+      "file": "src/shared/hooks/useUnifiedGenerations.ts",
+      "line": 784,
+      "type": "getQueryData",
+      "keyPattern": "['tasks', 'single', <taskId>]",
+      "rawLine": "const cachedTask = queryClient.getQueryData(['tasks', 'single', taskId]);"
+    },
+    {
+      "file": "src/shared/hooks/useUnifiedGenerations.ts",
+      "line": 823,
+      "type": "getQueryData",
+      "keyPattern": "['tasks', 'single', <taskId>]",
+      "rawLine": "const cached = queryClient.getQueryData(['tasks', 'single', taskId]);"
+    },
+    {
+      "file": "src/shared/hooks/useVariants.ts",
+      "line": 74,
+      "type": "query",
+      "keyPattern": "[VARIANTS_QUERY_KEY, <generationId>]",
+      "rawLine": "} = useQuery({"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 116,
+      "type": "query",
+      "keyPattern": "['generation-task-mapping', <generationId>]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 129,
+      "type": "query",
+      "keyPattern": "['task-generation-mapping', <taskId>, outputLocation]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 154,
+      "type": "query",
+      "keyPattern": "['tasks', 'single', <taskId>]",
+      "rawLine": "return useQuery({"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 243,
+      "type": "invalidate",
+      "keyPattern": "['generation-task-mapping', <generationId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-task-mapping', generationId] });"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 247,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'single', <taskId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'single', taskId] });"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 249,
+      "type": "invalidate",
+      "keyPattern": "['task-generation-mapping', <taskId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-generation-mapping', taskId] });"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 206,
+      "type": "setQueryData",
+      "keyPattern": "['generation-task-mapping', <generationId>]",
+      "rawLine": "queryClient.setQueryData(['generation-task-mapping', generationId], { taskId });"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 282,
+      "type": "getQueryData",
+      "keyPattern": "['generation-task-mapping', generation.id]",
+      "rawLine": "const cachedMapping = queryClient.getQueryData(['generation-task-mapping', generation.id]);"
+    },
+    {
+      "file": "src/shared/lib/generationTaskBridge.ts",
+      "line": 286,
+      "type": "getQueryData",
+      "keyPattern": "['tasks', 'single', <taskId>]",
+      "rawLine": "const taskData = taskId ? queryClient.getQueryData(['tasks', 'single', taskId]) : null;"
+    },
+    {
+      "file": "src/shared/lib/queryDefaults.ts",
+      "line": 31,
+      "type": "query",
+      "keyPattern": "['all-shot-generations', <shotId>]",
+      "rawLine": "* useQuery({"
+    },
+    {
+      "file": "src/shared/lib/queryDefaults.ts",
+      "line": 55,
+      "type": "query",
+      "keyPattern": "['resources', <projectId>]",
+      "rawLine": "* useQuery({"
+    },
+    {
+      "file": "src/shared/lib/queryDefaults.ts",
+      "line": 73,
+      "type": "query",
+      "keyPattern": "['task-result', <taskId>]",
+      "rawLine": "* useQuery({"
+    },
+    {
+      "file": "src/shared/lib/queryDefaults.ts",
+      "line": 94,
+      "type": "query",
+      "keyPattern": "['user-settings']",
+      "rawLine": "* useQuery({"
+    },
+    {
+      "file": "src/shared/lib/queryDefaults.ts",
+      "line": 112,
+      "type": "query",
+      "keyPattern": "['my-query']",
+      "rawLine": "* useQuery({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 135,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 136,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 142,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'single', <taskId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'single', taskId] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 162,
+      "type": "invalidate",
+      "keyPattern": "['derived-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 163,
+      "type": "invalidate",
+      "keyPattern": "['derived-items']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['derived-items'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 203,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 204,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 224,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'shot', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'shot', shotId] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 250,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 251,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 271,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 272,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 327,
+      "type": "invalidate",
+      "keyPattern": "['shot-generations', <shotId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shot-generations', shotId] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 373,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 374,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 375,
+      "type": "invalidate",
+      "keyPattern": "['generation']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation'] }); // For single generation queries (e.g. parent generation in"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 379,
+      "type": "invalidate",
+      "keyPattern": "['shots']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 400,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 401,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 402,
+      "type": "invalidate",
+      "keyPattern": "['generation']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation'] }); // For single generation queries"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 418,
+      "type": "invalidate",
+      "keyPattern": "['generation-variants', <generationId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation-variants', generationId] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 419,
+      "type": "invalidate",
+      "keyPattern": "['generation', <generationId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generation', generationId] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 422,
+      "type": "invalidate",
+      "keyPattern": "['variant-badges']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['variant-badges'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 426,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 427,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 151,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 154,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 157,
+      "type": "invalidate",
+      "keyPattern": "['segment-live-timeline', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 168,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 208,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 211,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 214,
+      "type": "invalidate",
+      "keyPattern": "['segment-live-timeline', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 219,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/shared/providers/SimpleRealtimeProvider.tsx",
+      "line": 306,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/character-animate/components/CharacterEditor.tsx",
+      "line": 164,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/tools/character-animate/components/CharacterEditor.tsx",
+      "line": 238,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/tools/character-animate/pages/CharacterAnimatePage.tsx",
+      "line": 141,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/character-animate/pages/CharacterAnimatePage.tsx",
+      "line": 381,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/tools/character-animate/pages/CharacterAnimatePage.tsx",
+      "line": 382,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/edit-video/components/InlineEditVideoView.tsx",
+      "line": 667,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/tools/edit-video/components/InlineEditVideoView.tsx",
+      "line": 668,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2761,
+      "type": "invalidate",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1829,
+      "type": "setQueryData",
+      "keyPattern": "['resources', 'style-reference']",
+      "rawLine": "queryClient.setQueryData(['resources', 'style-reference'], (prev: any) => {"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1836,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1909,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1953,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1999,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2051,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2186,
+      "type": "setQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.setQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined], (prev: any) =>"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2702,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2703,
+      "type": "refetch",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2744,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2745,
+      "type": "refetch",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 2762,
+      "type": "refetch",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', selectedProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 349,
+      "type": "getQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.getQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined])"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1851,
+      "type": "getQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.getQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined])"
+    },
+    {
+      "file": "src/tools/image-generation/components/ImageGenerationForm/index.tsx",
+      "line": 1968,
+      "type": "getQueryData",
+      "keyPattern": "['toolSettings', 'project-image-settings', selectedProjectId, undefined]",
+      "rawLine": "queryClient.getQueryData(['toolSettings', 'project-image-settings', selectedProjectId, undefined])"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 471,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 474,
+      "type": "invalidate",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 475,
+      "type": "invalidate",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 571,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 608,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', effectiveProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 682,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId]",
+      "rawLine": "await queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 708,
+      "type": "invalidate",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 687,
+      "type": "refetch",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId, currentPage, itemsPerPage, generationsFilters]",
+      "rawLine": "await queryClient.refetchQueries({"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 709,
+      "type": "refetch",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots', selectedProjectId] });"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 920,
+      "type": "getQueryData",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId, nextPage, itemsPerPage, filters]",
+      "rawLine": "const cached = queryClient.getQueryData(['unified-generations', 'project', effectiveProjectId, nextPage, itemsPerPage, f"
+    },
+    {
+      "file": "src/tools/image-generation/pages/ImageGenerationToolPage.tsx",
+      "line": 932,
+      "type": "getQueryData",
+      "keyPattern": "['unified-generations', 'project', effectiveProjectId, prevPage, itemsPerPage, filters]",
+      "rawLine": "const cachedPrev = queryClient.getQueryData(['unified-generations', 'project', effectiveProjectId, prevPage, itemsPerPag"
+    },
+    {
+      "file": "src/tools/join-clips/pages/JoinClipsPage.tsx",
+      "line": 697,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/join-clips/pages/JoinClipsPage.tsx",
+      "line": 1442,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/tools/join-clips/pages/JoinClipsPage.tsx",
+      "line": 1443,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/FinalVideoSection.tsx",
+      "line": 181,
+      "type": "query",
+      "keyPattern": "['active-join-clips-task', <shotId>, <projectId>, parentGenIdsForQuery]",
+      "rawLine": "const { data: activeJoinTask } = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/MotionControl.tsx",
+      "line": 181,
+      "type": "query",
+      "keyPattern": "['featured-presets', featuredPresetIds]",
+      "rawLine": "const { data: additionalPresets } = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/MotionControl.tsx",
+      "line": 609,
+      "type": "query",
+      "keyPattern": "['preset-details', presetId]",
+      "rawLine": "const { data: preset, isLoading, isError } = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/PresetsSelector.tsx",
+      "line": 24,
+      "type": "query",
+      "keyPattern": "['preset-details', presetId]",
+      "rawLine": "const { data: preset, isLoading } = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+      "line": 555,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', currentShot.id]",
+      "rawLine": "queryClientRef.current.setQueryData("
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+      "line": 579,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', currentShot.id]",
+      "rawLine": "queryClientRef.current.setQueryData(['all-shot-generations', currentShot.id], previousGens);"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+      "line": 1071,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', currentShot.id]",
+      "rawLine": "queryClientRef.current.setQueryData("
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/hooks/useGenerationActions.ts",
+      "line": 1130,
+      "type": "setQueryData",
+      "keyPattern": "['all-shot-generations', currentShot.id]",
+      "rawLine": "queryClientRef.current.setQueryData("
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 480,
+      "type": "query",
+      "keyPattern": "['last-video-generation', selectedShotId]",
+      "rawLine": "const { data: lastVideoGeneration } = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 1598,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 1833,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', selectedShot?.id, <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', selectedShot?.id, projectId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 1834,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 1835,
+      "type": "invalidate",
+      "keyPattern": "['project-video-counts', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['project-video-counts', projectId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 2129,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 2130,
+      "type": "refetch",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 2254,
+      "type": "refetch",
+      "keyPattern": "['shots']",
+      "rawLine": "queryClient.refetchQueries({ queryKey: ['shots'] }).then(() => {"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 2368,
+      "type": "refetch",
+      "keyPattern": "['shots']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['shots'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/index.tsx",
+      "line": 2107,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', ...] (predicate)",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+      "line": 118,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+      "line": 122,
+      "type": "invalidate",
+      "keyPattern": "['toolSettings', 'travel-between-images', 'shot', selectedShot.id]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['toolSettings', 'travel-between-images', 'shot', selectedShot.id] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+      "line": 126,
+      "type": "invalidate",
+      "keyPattern": "['shots', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['shots', projectId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotEditor/ui/Header.tsx",
+      "line": 66,
+      "type": "setQueryData",
+      "keyPattern": "['shots', <projectId>, maxImages]",
+      "rawLine": "queryClient.setQueryData(['shots', projectId, maxImages], (oldData: any) => {"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+      "line": 379,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+      "line": 380,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+      "line": 371,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations', ...] (predicate)",
+      "rawLine": "await queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotImagesEditor.tsx",
+      "line": 375,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', ...] (predicate)",
+      "rawLine": "await queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotListDisplay.tsx",
+      "line": 319,
+      "type": "setQueryData",
+      "keyPattern": "['shots', currentProjectId, 0]",
+      "rawLine": "queryClient.setQueryData(['shots', currentProjectId, 0], shotsWithNewPositions);"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotListDisplay.tsx",
+      "line": 345,
+      "type": "setQueryData",
+      "keyPattern": "['shots', currentProjectId]",
+      "rawLine": "queryClient.setQueryData(['shots', currentProjectId], shots);"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/ShotListDisplay.tsx",
+      "line": 346,
+      "type": "setQueryData",
+      "keyPattern": "['shots', currentProjectId, 5]",
+      "rawLine": "queryClient.setQueryData(['shots', currentProjectId, 5], shots);"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+      "line": 255,
+      "type": "invalidate",
+      "keyPattern": "['variant-badges']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['variant-badges'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+      "line": 422,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations']",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['unified-generations'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+      "line": 423,
+      "type": "invalidate",
+      "keyPattern": "['generations']",
+      "rawLine": "await queryClient.invalidateQueries({ queryKey: ['generations'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+      "line": 414,
+      "type": "invalidate",
+      "keyPattern": "['segment-child-generations', ...] (predicate)",
+      "rawLine": "await queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx",
+      "line": 418,
+      "type": "invalidate",
+      "keyPattern": "['segment-parent-generations', ...] (predicate)",
+      "rawLine": "await queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+      "line": 370,
+      "type": "invalidate",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+      "line": 173,
+      "type": "setQueryData",
+      "keyPattern": "['pair-metadata', pairShotGenerationId]",
+      "rawLine": "queryClient.setQueryData(['pair-metadata', pairShotGenerationId], (old: any) => {"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+      "line": 413,
+      "type": "refetch",
+      "keyPattern": "['tasks', 'paginated']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/Timeline/SegmentSettingsModal.tsx",
+      "line": 414,
+      "type": "refetch",
+      "keyPattern": "['task-status-counts']",
+      "rawLine": "await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx",
+      "line": 343,
+      "type": "invalidate",
+      "keyPattern": "['tasks']",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['tasks'] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx",
+      "line": 344,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', <projectId>]",
+      "rawLine": "queryClient.invalidateQueries({"
+    },
+    {
+      "file": "src/tools/travel-between-images/hooks/useSegmentOutputsForShot.ts",
+      "line": 237,
+      "type": "query",
+      "keyPattern": "['segment-parent-generations', <shotId>, <projectId>]",
+      "rawLine": "} = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/hooks/useSegmentOutputsForShot.ts",
+      "line": 445,
+      "type": "query",
+      "keyPattern": "['segment-live-timeline', <shotId>]",
+      "rawLine": "} = useQuery({"
+    },
+    {
+      "file": "src/tools/travel-between-images/hooks/useVideoTravelAddToShot.ts",
+      "line": 136,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/hooks/useVideoTravelAddToShot.ts",
+      "line": 184,
+      "type": "invalidate",
+      "keyPattern": "['unified-generations', 'project', selectedProjectId]",
+      "rawLine": "queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });"
+    },
+    {
+      "file": "src/tools/travel-between-images/pages/VideoTravelToolPage.tsx",
+      "line": 1566,
+      "type": "invalidate",
+      "keyPattern": "['shots', selectedProjectId]",
+      "rawLine": "//     queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });"
+    }
+  ]
+}

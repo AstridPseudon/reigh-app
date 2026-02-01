@@ -172,13 +172,6 @@ const BrowsePresetsTab: React.FC<BrowsePresetsTabProps> = ({
 
   // Combine all presets (my presets + public presets)
   const allPresets = useMemo(() => {
-    console.log('[PhaseConfigModal] Combining presets:', {
-      myPresetsCount: myPresetsResource.data?.length || 0,
-      publicPresetsCount: publicPresetsResource.data?.length || 0,
-      myPresetIds: myPresetIds.map(id => id.substring(0, 8)),
-      timestamp: Date.now()
-    });
-    
     const myPresets = (myPresetsResource.data || []).map(r => ({
       ...r,
       metadata: r.metadata as PhaseConfigMetadata,
@@ -189,41 +182,13 @@ const BrowsePresetsTab: React.FC<BrowsePresetsTabProps> = ({
       metadata: r.metadata as PhaseConfigMetadata,
       _isMyPreset: myPresetIds.includes(r.id)
     }));
-    
-    console.log('[PhaseConfigModal] Preset details:', {
-      myPresets: myPresets.map(p => ({
-        id: p.id.substring(0, 8),
-        name: p.metadata.name,
-        isPublic: p.metadata.is_public,
-        userId: p.userId?.substring(0, 8)
-      })),
-      publicPresets: publicPresets.map(p => ({
-        id: p.id.substring(0, 8),
-        name: p.metadata.name,
-        isPublic: p.metadata.is_public,
-        userId: p.userId?.substring(0, 8),
-        _isMyPreset: p._isMyPreset
-      })),
-      timestamp: Date.now()
-    });
-    
+
     // Deduplicate by ID, prioritizing my presets
     const presetMap = new Map<string, typeof myPresets[0]>();
     publicPresets.forEach(preset => presetMap.set(preset.id, preset));
     myPresets.forEach(preset => presetMap.set(preset.id, preset));
     
     const combined = Array.from(presetMap.values());
-    console.log('[PhaseConfigModal] Combined presets:', {
-      totalCount: combined.length,
-      presets: combined.map(p => ({
-        id: p.id.substring(0, 8),
-        name: p.metadata.name,
-        isPublic: p.metadata.is_public,
-        _isMyPreset: p._isMyPreset
-      })),
-      timestamp: Date.now()
-    });
-    
     return combined;
   }, [myPresetsResource.data, publicPresetsResource.data, myPresetIds]);
 
@@ -850,9 +815,7 @@ const AddNewTab: React.FC<AddNewTabProps> = ({ createResource, updateResource, o
     }
     return initialGenerationTypeMode;
   });
-  
-  console.log('[PresetAutoPopulate] AddNewTab received currentSettings:', currentSettings);
-  
+
   const [addForm, setAddForm] = useState(() => {
     const generatedName = generatePresetName(
       currentPhaseConfig,
@@ -873,7 +836,6 @@ const AddNewTab: React.FC<AddNewTabProps> = ({ createResource, updateResource, o
       enhancePrompt: currentSettings?.enhancePrompt ?? true,
       durationFrames: currentSettings?.durationFrames || 60,
     };
-    console.log('[PresetAutoPopulate] AddNewTab initializing form state:', initialForm);
     return initialForm;
   });
   const [sampleFiles, setSampleFiles] = useState<File[]>([]);
@@ -927,12 +889,6 @@ const AddNewTab: React.FC<AddNewTabProps> = ({ createResource, updateResource, o
   
   // Update form from current settings when they change (and not editing)
   useEffect(() => {
-    console.log('[PresetAutoPopulate] AddNewTab useEffect triggered:', {
-      editingPreset: !!editingPreset,
-      currentSettings,
-      willUpdate: !editingPreset && !!currentSettings
-    });
-    
     if (!editingPreset && currentSettings) {
       const generatedName = generatePresetName(
         currentPhaseConfig,
@@ -949,8 +905,7 @@ const AddNewTab: React.FC<AddNewTabProps> = ({ createResource, updateResource, o
         enhancePrompt: currentSettings.enhancePrompt ?? true,
         durationFrames: currentSettings.durationFrames || 60,
       };
-      console.log('[PresetAutoPopulate] AddNewTab updating form with:', newFields);
-      
+
       setAddForm(prev => ({
         ...prev,
         ...newFields
@@ -960,7 +915,6 @@ const AddNewTab: React.FC<AddNewTabProps> = ({ createResource, updateResource, o
       if (currentSettings.lastGeneratedVideoUrl) {
         setInitialVideoSample(currentSettings.lastGeneratedVideoUrl);
         setInitialVideoDeleted(false); // Reset deletion flag
-        console.log('[PresetAutoPopulate] Set initial video sample:', currentSettings.lastGeneratedVideoUrl);
       }
     }
   }, [currentSettings, editingPreset, currentPhaseConfig]);
@@ -1035,7 +989,6 @@ const AddNewTab: React.FC<AddNewTabProps> = ({ createResource, updateResource, o
         // This fixes Task 25: Phase Config Editor Pre-Populates Last Generated Video Incorrectly
         setInitialVideoSample(null);
         setInitialVideoDeleted(false);
-        console.log('[PhaseConfigPrePopulate] Cleared initialVideoSample for normal edit mode');
       }
     }
   }, [editingPreset, isOverwriting, currentSettings]);

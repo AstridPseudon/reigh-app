@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { BrushStroke, EditMode, AnnotationMode } from './types';
 import { isPointOnShape, getClickedCornerIndex, getRectangleClickType, getRectangleCorners } from './shapeHelpers';
+import { useDragState } from './useDragState';
 
 interface UsePointerHandlersProps {
   // Mode state
@@ -58,17 +59,24 @@ export function usePointerHandlers({
   const [currentStroke, setCurrentStroke] = useState<Array<{ x: number; y: number }>>([]);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
 
-  // Drag state
-  const [isDraggingShape, setIsDraggingShape] = useState(false);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
-  const [dragMode, setDragMode] = useState<'move' | 'resize'>('resize');
-  const [draggingCornerIndex, setDraggingCornerIndex] = useState<number | null>(null);
+  // Drag state (encapsulated in useDragState hook)
+  const {
+    isDragging: isDraggingShape,
+    dragOffset,
+    dragMode,
+    draggingCornerIndex,
+    draggedShapeRef,
+    startMoveDrag,
+    startResizeDrag,
+    startCornerDrag,
+    endDrag,
+    updateDraggedShape,
+  } = useDragState();
 
   // Refs for tracking
   const lastClickTimeRef = useRef<number>(0);
   const lastClickPositionRef = useRef<{ x: number; y: number } | null>(null);
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  const selectedShapeRef = useRef<BrushStroke | null>(null);
   const hintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedCanvasRef = useRef<boolean>(false);
   const lastDrawnPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -128,9 +136,7 @@ export function usePointerHandlers({
 
           // Free-form corner dragging
           if (stroke.isFreeForm && cornerIndex !== null) {
-            setDraggingCornerIndex(cornerIndex);
-            setIsDraggingShape(true);
-            selectedShapeRef.current = stroke;
+            startCornerDrag(stroke, cornerIndex);
             return;
           }
 
@@ -144,9 +150,7 @@ export function usePointerHandlers({
             };
             const newStrokes = brushStrokes.map(s => s.id === stroke.id ? updatedStroke : s);
             setBrushStrokes(newStrokes);
-            selectedShapeRef.current = updatedStroke;
-            setDraggingCornerIndex(cornerIndex);
-            setIsDraggingShape(true);
+            startCornerDrag(updatedStroke, cornerIndex);
             return;
           }
 
@@ -154,18 +158,10 @@ export function usePointerHandlers({
           const clickType = getRectangleClickType(x, y, stroke);
 
           if (clickType === 'edge') {
-            setDragMode('move');
-            setIsDraggingShape(true);
-            selectedShapeRef.current = stroke;
-            const startPoint = stroke.points[0];
-            setDragOffset({ x: x - startPoint.x, y: y - startPoint.y });
+            startMoveDrag(stroke, x, y);
             return;
           } else if (clickType === 'corner' && !stroke.isFreeForm) {
-            setDragMode('resize');
-            setIsDraggingShape(true);
-            selectedShapeRef.current = stroke;
-            const startPoint = stroke.points[0];
-            setDragOffset({ x: x - startPoint.x, y: y - startPoint.y });
+            startResizeDrag(stroke, x, y);
             return;
           }
 
@@ -185,7 +181,7 @@ export function usePointerHandlers({
     hasInitializedCanvasRef.current = false;
     lastDrawnPointRef.current = null;
     setCurrentStroke([{ x, y }]);
-  }, [isInpaintMode, isAnnotateMode, annotationMode, brushStrokes, selectedShapeId, editMode, setBrushStrokes, setShowTextModeHint]);
+  }, [isInpaintMode, isAnnotateMode, annotationMode, brushStrokes, selectedShapeId, editMode, setBrushStrokes, setShowTextModeHint, startCornerDrag, startMoveDrag, startResizeDrag]);
 
   /**
    * Handle pointer move - continue drawing or dragging
@@ -205,10 +201,7 @@ export function usePointerHandlers({
         setCurrentStroke([]);
       }
       if (isDraggingShape) {
-        setIsDraggingShape(false);
-        setDragOffset(null);
-        setDraggingCornerIndex(null);
-        selectedShapeRef.current = null;
+        endDrag();
       }
       return;
     }
@@ -216,8 +209,8 @@ export function usePointerHandlers({
     const { x, y } = point;
 
     // Handle dragging selected shape
-    if (isDraggingShape && selectedShapeRef.current) {
-      const shape = selectedShapeRef.current;
+    if (isDraggingShape && draggedShapeRef.current) {
+      const shape = draggedShapeRef.current;
 
       // Free-form corner dragging
       if (draggingCornerIndex !== null && shape.isFreeForm && shape.points.length === 4) {
@@ -232,7 +225,7 @@ export function usePointerHandlers({
 
         const newStrokes = brushStrokes.map(s => s.id === shape.id ? updatedShape : s);
         setBrushStrokes(newStrokes);
-        selectedShapeRef.current = updatedShape;
+        updateDraggedShape(updatedShape);
         return;
       }
 
@@ -257,7 +250,7 @@ export function usePointerHandlers({
 
         const newStrokes = brushStrokes.map(s => s.id === shape.id ? updatedShape : s);
         setBrushStrokes(newStrokes);
-        selectedShapeRef.current = updatedShape;
+        updateDraggedShape(updatedShape);
         return;
       }
 
@@ -271,7 +264,7 @@ export function usePointerHandlers({
 
         const newStrokes = brushStrokes.map(s => s.id === shape.id ? updatedShape : s);
         setBrushStrokes(newStrokes);
-        selectedShapeRef.current = updatedShape;
+        updateDraggedShape(updatedShape);
         return;
       }
     }
@@ -280,7 +273,7 @@ export function usePointerHandlers({
     if (!isDrawing) return;
 
     setCurrentStroke(prev => [...prev, { x, y }]);
-  }, [isInpaintMode, isAnnotateMode, editMode, isDrawing, isDraggingShape, dragMode, dragOffset, draggingCornerIndex, brushStrokes, setBrushStrokes]);
+  }, [isInpaintMode, isAnnotateMode, editMode, isDrawing, isDraggingShape, dragMode, dragOffset, draggingCornerIndex, brushStrokes, setBrushStrokes, endDrag, updateDraggedShape]);
 
   /**
    * Handle pointer up - finish drawing or dragging
@@ -288,10 +281,7 @@ export function usePointerHandlers({
   const handleKonvaPointerUp = useCallback((e: KonvaEventObject<PointerEvent>) => {
     // Handle finishing drag operation
     if (isDraggingShape) {
-      setIsDraggingShape(false);
-      setDragOffset(null);
-      setDraggingCornerIndex(null);
-      selectedShapeRef.current = null;
+      endDrag();
       return;
     }
 
@@ -356,7 +346,7 @@ export function usePointerHandlers({
     }
 
     setCurrentStroke([]);
-  }, [isInpaintMode, isDrawing, currentStroke, isEraseMode, brushSize, isAnnotateMode, annotationMode, isDraggingShape, editMode, annotationStrokes.length, setBrushStrokes, setAnnotationStrokes]);
+  }, [isInpaintMode, isDrawing, currentStroke, isEraseMode, brushSize, isAnnotateMode, annotationMode, isDraggingShape, editMode, annotationStrokes.length, setBrushStrokes, setAnnotationStrokes, endDrag]);
 
   /**
    * Handle shape click (from StrokeOverlay)
@@ -369,25 +359,17 @@ export function usePointerHandlers({
   /**
    * Global pointerup listener to catch pointer release outside canvas
    * Prevents "stuck" drawing state when dragging off the edge of the screen
+   * Note: Drag cleanup is handled by useDragState's own effect
    */
   useEffect(() => {
-    if (!isDrawing && !isDraggingShape) return;
+    if (!isDrawing) return;
 
     const handleGlobalPointerUp = () => {
-      if (isDrawing) {
-        console.log('[Inpaint] Global pointerup - releasing stuck drawing state');
-        setIsDrawing(false);
-        hasInitializedCanvasRef.current = false;
-        lastDrawnPointRef.current = null;
-        setCurrentStroke([]);
-      }
-      if (isDraggingShape) {
-        console.log('[Inpaint] Global pointerup - releasing stuck drag state');
-        setIsDraggingShape(false);
-        setDragOffset(null);
-        setDraggingCornerIndex(null);
-        selectedShapeRef.current = null;
-      }
+      console.log('[Inpaint] Global pointerup - releasing stuck drawing state');
+      setIsDrawing(false);
+      hasInitializedCanvasRef.current = false;
+      lastDrawnPointRef.current = null;
+      setCurrentStroke([]);
     };
 
     window.addEventListener('pointerup', handleGlobalPointerUp);
@@ -397,7 +379,7 @@ export function usePointerHandlers({
       window.removeEventListener('pointerup', handleGlobalPointerUp);
       window.removeEventListener('pointercancel', handleGlobalPointerUp);
     };
-  }, [isDrawing, isDraggingShape]);
+  }, [isDrawing]);
 
   return {
     isDrawing,

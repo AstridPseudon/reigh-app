@@ -30,3 +30,5 @@ export { useStrokeRendering } from './useStrokeRendering';
 export { usePointerHandlers } from './usePointerHandlers';
 export { useInpaintActions } from './useInpaintActions';
 export { useTaskGeneration } from './useTaskGeneration';
+export { useDragState } from './useDragState';
+export type { DragMode } from './useDragState';

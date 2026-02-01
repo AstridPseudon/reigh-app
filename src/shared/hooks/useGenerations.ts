@@ -8,6 +8,75 @@ import { toast } from 'sonner';
 import { useSmartPollingConfig } from './useSmartPolling';
 import { useQueryDebugLogging, QueryDebugConfigs } from './useQueryDebugLogging';
 import { transformGeneration, type RawGeneration, type TransformOptions, calculateDerivedCounts } from '@/shared/lib/generationTransformers';
+import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+
+/** Common filter options for generation queries */
+interface GenerationFilters {
+  toolType?: string;
+  mediaType?: 'all' | 'image' | 'video';
+  shotId?: string;
+  excludePositioned?: boolean;
+  starredOnly?: boolean;
+  searchTerm?: string;
+  editsOnly?: boolean;
+}
+
+/**
+ * Apply common filters to a generations query.
+ * Used by both count and data queries to ensure consistency.
+ */
+function applyGenerationFilters<T extends PostgrestFilterBuilder<any, any, any>>(
+  query: T,
+  filters: GenerationFilters | undefined
+): T {
+  if (!filters) return query;
+
+  // Tool type filter (skip when shot filter is active - shot filter takes precedence)
+  if (filters.toolType && !filters.shotId) {
+    if (filters.toolType === 'image-generation') {
+      query = query.eq('params->>tool_type', 'image-generation') as T;
+    } else {
+      query = query.or(`params->>tool_type.eq.${filters.toolType},params->>tool_type.eq.${filters.toolType}-reconstructed-client`) as T;
+    }
+  }
+
+  // Media type filter
+  if (filters.mediaType && filters.mediaType !== 'all') {
+    if (filters.mediaType === 'video') {
+      query = query.like('type', '%video%') as T;
+    } else if (filters.mediaType === 'image') {
+      query = query.not('type', 'like', '%video%') as T;
+    }
+  }
+
+  // Starred filter
+  if (filters.starredOnly) {
+    query = query.eq('starred', true) as T;
+  }
+
+  // Edits only filter (generations derived from another)
+  if (filters.editsOnly) {
+    query = query.not('based_on', 'is', null) as T;
+  }
+
+  // Search filter
+  if (filters.searchTerm?.trim()) {
+    const searchPattern = `%${filters.searchTerm.trim()}%`;
+    query = query.ilike('params->originalParams->orchestrator_details->>prompt', searchPattern) as T;
+  }
+
+  // Shot filter
+  if (filters.shotId === 'no-shot') {
+    query = query.or('shot_data.is.null,shot_data.eq.{}') as T;
+  } else if (filters.shotId) {
+    query = query.not(`shot_data->${filters.shotId}`, 'is', null) as T;
+    if (filters.excludePositioned) {
+      query = query.or(`shot_data->${filters.shotId}.eq.null,shot_data->${filters.shotId}.eq.-1,shot_data->${filters.shotId}.cs.[null],shot_data->${filters.shotId}.cs.[-1]`) as T;
+    }
+  }
+
+  return query;
+}
 
 /**
  * Fetch edit variants from generation_variants table for a project
@@ -31,11 +100,10 @@ async function fetchEditVariants(
   total: number;
   hasMore: boolean;
 }> {
-  const toolType = filters?.toolType; // Optional - if not provided, fetch all variants
+  const toolType = filters?.toolType;
   const sort = filters?.sort || 'newest';
   const mediaType = filters?.mediaType || 'all';
-  const parentsOnly = filters?.parentsOnly ?? true; // Default to parents only
-  console.log('[EditVariants] Fetching variants for project', { projectId: projectId.substring(0, 8), toolType: toolType || 'all', mediaType, parentsOnly, limit, offset });
+  const parentsOnly = filters?.parentsOnly ?? true;
 
   // Build count query
   let countQuery = supabase
@@ -63,12 +131,10 @@ async function fetchEditVariants(
   const { count, error: countError } = await countQuery;
 
   if (countError) {
-    console.error('[EditVariants] Count query error:', countError);
     throw countError;
   }
 
   const totalCount = count || 0;
-  console.log('[EditVariants] Total variants count:', totalCount, 'mediaType:', mediaType);
 
   if (totalCount === 0) {
     return { items: [], total: 0, hasMore: false };
@@ -114,11 +180,8 @@ async function fetchEditVariants(
   const { data, error } = await dataQuery;
 
   if (error) {
-    console.error('[EditVariants] Data query error:', error);
     throw error;
   }
-
-  console.log('[EditVariants] Fetched', data?.length || 0, 'variants');
 
   // Helper to detect if a variant is a video based on URL
   const isVideoUrl = (url: string | null | undefined): boolean => {
@@ -225,84 +288,18 @@ export async function fetchGenerations(
     countQuery = countQuery.not('location', 'is', null);
   }
 
-  // Apply server-side filters to count query
-
-  // Parent/Child filtering
+  // Parent/Child filtering (count query specific)
   if (filters?.parentGenerationId) {
-    // Fetch specific children of a parent
     countQuery = countQuery.eq('parent_generation_id', filters.parentGenerationId);
   } else if (!filters?.includeChildren) {
-    // Default: Exclude child generations (show only parents/standalone)
-    // is_child is boolean NOT NULL DEFAULT false, so we can just check for false
     countQuery = countQuery.eq('is_child', false);
   }
 
-  // NOTE: Skip tool type filter when shot filter is active - shot filter takes precedence
-  // Users want to see ALL generations in a shot, not just ones from the current tool
-  if (filters?.toolType && !filters?.shotId) {
-    // Filter by tool type in metadata
-    if (filters.toolType === 'image-generation') {
-      // Filter by tool_type in params for image-generation
-      countQuery = countQuery.eq('params->>tool_type', 'image-generation');
-    } else {
-      countQuery = countQuery.or(`params->>tool_type.eq.${filters.toolType},params->>tool_type.eq.${filters.toolType}-reconstructed-client`);
-    }
-  }
+  // Apply common filters (toolType, mediaType, starred, edits, search, shot)
+  countQuery = applyGenerationFilters(countQuery, filters);
 
-  if (filters?.mediaType && filters.mediaType !== 'all') {
-    if (filters.mediaType === 'video') {
-      countQuery = countQuery.like('type', '%video%');
-    } else if (filters.mediaType === 'image') {
-      countQuery = countQuery.not('type', 'like', '%video%');
-    }
-  }
-
-  // Apply starred filter if provided
-  if (filters?.starredOnly) {
-    countQuery = countQuery.eq('starred', true);
-  }
-
-  // Apply edits only filter - show generations that are derived from another (based_on is set)
-  if (filters?.editsOnly) {
-    countQuery = countQuery.not('based_on', 'is', null);
-  }
-
-  // Apply search filter to count query
-  if (filters?.searchTerm?.trim()) {
-    // Search in the main prompt location first (most common)
-    const searchPattern = `%${filters.searchTerm.trim()}%`;
-    countQuery = countQuery.ilike('params->originalParams->orchestrator_details->>prompt', searchPattern);
-  }
-
-  // 🚀 NEW APPROACH: Use denormalized shot_id column for fast filtering
-  // No more multi-step fetching from shot_generations!
-  let totalCount = 0; // Total count of matching items
-
-  // Apply shot filter if provided - using JSONB shot_data column
-  // shot_data format: { shot_id: [frame1, frame2, ...] } (array of timeline_frames)
-  if (filters?.shotId === 'no-shot') {
-    // Special filter: only show generations that don't belong to ANY shot
-    // shot_data will be null or empty {} for these generations
-    countQuery = countQuery.or('shot_data.is.null,shot_data.eq.{}');
-  } else if (filters?.shotId) {
-    // Check if generation is in this shot (uses GIN index: idx_generations_shot_data_gin)
-    // shot_data format: { shot_id: [frame1, frame2, ...] } (array of timeline_frames)
-    // Check that the key exists (generation is in this shot)
-    countQuery = countQuery.not(`shot_data->${filters.shotId}`, 'is', null);
-    
-    // Add positioned filter if needed
-    if (filters.excludePositioned) {
-      // Show only unpositioned items: value is null or -1 (sentinel for unpositioned)
-      // Handle both data formats:
-      // - Single-value format: { "shot_id": null } or { "shot_id": -1 }
-      // - Array format: { "shot_id": [null] } or { "shot_id": [-1] }
-      countQuery = countQuery.or(`shot_data->${filters.shotId}.eq.null,shot_data->${filters.shotId}.eq.-1,shot_data->${filters.shotId}.cs.[null],shot_data->${filters.shotId}.cs.[-1]`);
-    }
-  }
-
-  // 🚀 PERFORMANCE FIX: Skip expensive count query for small pages
-  // DISABLED: Enable full count for accurate pagination
-  const shouldSkipCount = false; // limit <= 100 && !filters?.searchTerm?.trim();
+  let totalCount = 0;
+  const shouldSkipCount = false;
 
   if (!shouldSkipCount) {
     const { count, error: countError } = await countQuery;
@@ -335,78 +332,21 @@ export async function fetchGenerations(
     .eq('project_id', projectId);
 
   // Parent/Child filtering - apply BEFORE location filter since parentGenerationId affects whether we filter by location
+  // Parent/Child filtering (data query specific - has ordering)
   if (filters?.parentGenerationId) {
     dataQuery = dataQuery.eq('parent_generation_id', filters.parentGenerationId);
-    // Order children by child_order
     dataQuery = dataQuery.order('child_order', { ascending: true });
-    // Don't filter by location - we want to see ALL children including ones still processing
   } else {
-    // Only include generations with valid output URLs (when NOT fetching specific parent's children)
     dataQuery = dataQuery.not('location', 'is', null);
     if (!filters?.includeChildren) {
       dataQuery = dataQuery.eq('is_child', false);
     }
   }
 
+  // Apply common filters (toolType, mediaType, starred, edits, search, shot)
+  dataQuery = applyGenerationFilters(dataQuery, filters);
 
-  // Apply same filters to data query
-  // NOTE: Skip tool type filter when shot filter is active - shot filter takes precedence
-  if (filters?.toolType && !filters?.shotId) {
-    if (filters.toolType === 'image-generation') {
-      // Filter by tool_type in params for image-generation
-      dataQuery = dataQuery.eq('params->>tool_type', 'image-generation');
-    } else {
-      dataQuery = dataQuery.or(`params->>tool_type.eq.${filters.toolType},params->>tool_type.eq.${filters.toolType}-reconstructed-client`);
-    }
-  }
-
-  if (filters?.mediaType && filters.mediaType !== 'all') {
-    if (filters.mediaType === 'video') {
-      dataQuery = dataQuery.like('type', '%video%');
-    } else if (filters.mediaType === 'image') {
-      dataQuery = dataQuery.not('type', 'like', '%video%');
-    }
-  }
-
-  // Apply starred filter to data query
-  if (filters?.starredOnly) {
-    dataQuery = dataQuery.eq('starred', true);
-  }
-
-  // Apply edits only filter to data query - show generations that are derived from another (based_on is set)
-  if (filters?.editsOnly) {
-    dataQuery = dataQuery.not('based_on', 'is', null);
-  }
-
-  // Apply search filter to data query
-  if (filters?.searchTerm?.trim()) {
-    // Search in the main prompt location first (most common)
-    const searchPattern = `%${filters.searchTerm.trim()}%`;
-    dataQuery = dataQuery.ilike('params->originalParams->orchestrator_details->>prompt', searchPattern);
-  }
-
-  // Apply shot filter to data query - using JSONB shot_data column
-  // shot_data format: { shot_id: [frame1, frame2, ...] } (array of timeline_frames)
-  if (filters?.shotId === 'no-shot') {
-    // Special filter: only show generations that don't belong to ANY shot
-    dataQuery = dataQuery.or('shot_data.is.null,shot_data.eq.{}');
-  } else if (filters?.shotId) {
-    // Check if generation is in this shot (uses GIN index: idx_generations_shot_data_gin)
-    // shot_data format: { shot_id: [frame1, frame2, ...] } (array of timeline_frames)
-    // Check that the key exists (generation is in this shot)
-    dataQuery = dataQuery.not(`shot_data->${filters.shotId}`, 'is', null);
-
-    // Add positioned filter if needed
-    if (filters.excludePositioned) {
-      // Show only unpositioned items: value is null or -1 (sentinel for unpositioned)
-      // Handle both data formats:
-      // - Single-value format: { "shot_id": null } or { "shot_id": -1 }
-      // - Array format: { "shot_id": [null] } or { "shot_id": [-1] }
-      dataQuery = dataQuery.or(`shot_data->${filters.shotId}.eq.null,shot_data->${filters.shotId}.eq.-1,shot_data->${filters.shotId}.cs.[null],shot_data->${filters.shotId}.cs.[-1]`);
-    }
-  }
-
-  // 🚀 PERFORMANCE FIX: Use limit+1 pattern for fast pagination when count is skipped
+  // Use limit+1 pattern for fast pagination when count is skipped
   const fetchLimit = shouldSkipCount ? limit + 1 : limit;
 
   // Determine sort order
@@ -551,78 +491,19 @@ async function createGeneration(params: {
  * Star/unstar a generation using direct Supabase call
  */
 async function toggleGenerationStar(id: string, starred: boolean): Promise<void> {
-  console.log('[StarPersist] 🚀 Starting database UPDATE', {
-    id,
-    starred,
-    timestamp: Date.now()
-  });
-
   const { data, error } = await supabase
     .from('generations')
     .update({ starred })
     .eq('id', id)
-    .select('id, starred'); // Select to verify update
-
-  console.log('[StarPersist] 📊 Database UPDATE response', {
-    id,
-    starred,
-    responseData: data,
-    hasData: !!data,
-    dataLength: data?.length,
-    error: error?.message,
-    timestamp: Date.now()
-  });
+    .select('id, starred');
 
   if (error) {
-    console.error('[StarPersist] ❌ Database UPDATE failed', { id, starred, error: error.message });
     throw new Error(`Failed to ${starred ? 'star' : 'unstar'} generation: ${error.message}`);
   }
 
   if (!data || data.length === 0) {
-    console.error('[StarPersist] ⚠️ Database UPDATE returned no rows - possible RLS block', {
-      id,
-      starred,
-      hint: 'Check Row Level Security policies on generations table'
-    });
     throw new Error(`Failed to update generation: No rows updated (possible RLS policy issue)`);
   }
-
-  console.log('[StarPersist] ✅ Database UPDATE successful', {
-    id,
-    starred,
-    updatedData: data[0],
-    timestamp: Date.now()
-  });
-}
-
-/**
- * Update generation name using direct Supabase call
- */
-async function updateGenerationName(id: string, name: string): Promise<void> {
-  console.log('[GenerationUpdate] 🚀 Starting generation name UPDATE', {
-    id,
-    name,
-    timestamp: Date.now()
-  });
-
-  // Update the 'name' column directly
-  const { data, error } = await supabase
-    .from('generations')
-    .update({ name })
-    .eq('id', id)
-    .select('id, name');
-
-  if (error) {
-    console.error('[GenerationUpdate] ❌ Database UPDATE failed', { id, name, error: error.message });
-    throw new Error(`Failed to update generation name: ${error.message}`);
-  }
-
-  console.log('[GenerationUpdate] ✅ Database UPDATE successful', {
-    id,
-    name,
-    updatedData: data?.[0],
-    timestamp: Date.now()
-  });
 }
 
 export type GenerationsPaginatedResponse = {
@@ -768,91 +649,6 @@ export function useUpdateGenerationLocation() {
   });
 }
 
-export function useUpdateGenerationName() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => {
-      return updateGenerationName(id, name);
-    },
-    onMutate: async ({ id, name }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['unified-generations'] });
-
-      // Snapshot previous values
-      const previousGenerationsQueries = queryClient.getQueriesData({ queryKey: ['unified-generations'] });
-
-      // Optimistically update
-      queryClient.setQueriesData({ queryKey: ['unified-generations'] }, (old: any) => {
-        if (!old?.items) return old;
-        return {
-          ...old,
-          items: old.items.map((item: any) =>
-            item.id === id ? { ...item, name } : item
-          )
-        };
-      });
-
-      return { previousGenerationsQueries };
-    },
-    onError: (error: Error, variables, context) => {
-      // Rollback on error
-      if (context?.previousGenerationsQueries) {
-        context.previousGenerationsQueries.forEach(([key, data]) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-      console.error('Error updating generation name:', error);
-      toast.error(error.message || 'Failed to update generation name');
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
-    }
-  });
-}
-
-/**
- * Update generation params using direct Supabase call.
- * Used for persisting user overrides on segment regeneration controls.
- */
-export function useUpdateGenerationParams() {
-  return useMutation({
-    mutationFn: async ({ id, params }: { id: string; params: Record<string, any> }) => {
-      console.log('[GenerationUpdate] Updating generation params', {
-        id: id.substring(0, 8),
-        paramsKeys: Object.keys(params),
-        timestamp: Date.now()
-      });
-
-      const { data, error } = await supabase
-        .from('generations')
-        .update({ params })
-        .eq('id', id)
-        .select('id');
-
-      if (error) {
-        console.error('[GenerationUpdate] Failed to update params', { id, error: error.message });
-        throw new Error(`Failed to update generation params: ${error.message}`);
-      }
-
-      console.log('[GenerationUpdate] Successfully updated params', {
-        id: id.substring(0, 8),
-        timestamp: Date.now()
-      });
-
-      return data;
-    },
-    onSuccess: () => {
-      // Don't invalidate queries - the local state in the component is the source of truth
-      // while editing. Refetching could cause race conditions where user input is lost
-      // if they continue typing after a save completes.
-    },
-    onError: (error: Error) => {
-      console.error('Error updating generation params:', error);
-      // Don't show toast for params updates - they're auto-saved in background
-    },
-  });
-}
 
 // NOTE: useGetTaskIdForGeneration moved to generationTaskBridge.ts for centralization
 
@@ -914,10 +710,7 @@ export interface DerivedItem {
 export async function fetchDerivedItems(
   sourceGenerationId: string | null
 ): Promise<DerivedItem[]> {
-  console.log('[DerivedItems] fetchDerivedItems called', { sourceGenerationId });
-
   if (!sourceGenerationId) {
-    console.log('[DerivedItems] returning empty - no sourceGenerationId');
     return [];
   }
 
@@ -963,12 +756,6 @@ export async function fetchDerivedItems(
 
   const childGenerations = generationsResult.data || [];
   const editVariants = variantsResult.data || [];
-
-  console.log('[DerivedItems] Fetched', {
-    childGenerationsCount: childGenerations.length,
-    editVariantsCount: editVariants.length,
-    sourceGenerationId: sourceGenerationId.substring(0, 8)
-  });
 
   // Use centralized function to count variants from both generations and generation_variants tables
   const generationIds = childGenerations.map(d => d.id);
@@ -1032,12 +819,6 @@ export async function fetchDerivedItems(
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  console.log('[DerivedItems] Merged result', {
-    totalCount: allItems.length,
-    generations: generationItems.length,
-    variants: variantItems.length,
-  });
-
   return allItems;
 }
 
@@ -1066,134 +847,14 @@ export function useDerivedItems(
   });
 }
 
-/**
- * Fetch a single source generation by ID (for "based on" display)
- */
-export async function fetchSourceGeneration(
-  sourceGenerationId: string | null
-): Promise<GeneratedImageWithMetadata | null> {
-  console.log('[BasedOnDebug] fetchSourceGeneration called', { sourceGenerationId });
-
-  if (!sourceGenerationId) {
-    console.log('[BasedOnDebug] fetchSourceGeneration returning null - no sourceGenerationId');
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from('generations')
-    .select(`
-      id,
-      location,
-      thumbnail_url,
-      type,
-      created_at,
-      params,
-      starred,
-      tasks,
-      based_on,
-      shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-    `)
-    .eq('id', sourceGenerationId)
-    .single();
-
-  if (error || !data) {
-    console.error('[BasedOnDebug] fetchSourceGeneration error or no data', { error, hasData: !!data });
-    return null;
-  }
-
-  console.log('[BasedOnDebug] fetchSourceGeneration found generation', {
-    id: data.id,
-    hasLocation: !!data.location,
-    hasThumbnail: !!data.thumbnail_url
-  });
-
-  const item = data;
-  const mainUrl = item.location;
-  const thumbnailUrl = item.thumbnail_url || mainUrl;
-  const taskId = Array.isArray(item.tasks) && item.tasks.length > 0 ? item.tasks[0] : null;
-
-  const baseItem: GeneratedImageWithMetadata = {
-    id: item.id,
-    url: mainUrl,
-    thumbUrl: thumbnailUrl,
-    prompt: item.params?.originalParams?.orchestrator_details?.prompt ||
-      item.params?.prompt ||
-      'No prompt',
-    metadata: {
-      ...(item.params || {}),
-      taskId
-    },
-    createdAt: item.created_at,
-    isVideo: item.type?.includes('video'),
-    starred: item.starred || false,
-    position: null,
-    timeline_frame: null,
-  };
-
-  // Include shot association data
-  const shotGenerations = item.shot_generations || [];
-  const normalizePosition = (timelineFrame: number | null | undefined) => {
-    if (timelineFrame === null || timelineFrame === undefined) return null;
-    return Math.floor(timelineFrame / 50);
-  };
-
-  if (shotGenerations.length > 0) {
-    if (shotGenerations.length === 1) {
-      const singleShot = shotGenerations[0];
-      return {
-        ...baseItem,
-        shot_id: singleShot.shot_id,
-        position: normalizePosition(singleShot.timeline_frame),
-        timeline_frame: singleShot.timeline_frame,
-      };
-    }
-
-    const allAssociations = shotGenerations.map((sg: any) => ({
-      shot_id: sg.shot_id,
-      timeline_frame: sg.timeline_frame,
-      position: normalizePosition(sg.timeline_frame),
-    }));
-
-    const primaryShot = shotGenerations[0];
-    return {
-      ...baseItem,
-      shot_id: primaryShot.shot_id,
-      position: normalizePosition(primaryShot.timeline_frame),
-      timeline_frame: primaryShot.timeline_frame,
-      all_shot_associations: allAssociations,
-    };
-  }
-
-  return baseItem;
-}
-
-/**
- * Hook to fetch the source generation (for "based on" display)
- */
-export function useSourceGeneration(
-  sourceGenerationId: string | null,
-  enabled: boolean = true
-) {
-  return useQuery<GeneratedImageWithMetadata | null, Error>({
-    queryKey: ['source-generation', sourceGenerationId],
-    queryFn: () => fetchSourceGeneration(sourceGenerationId),
-    enabled: !!sourceGenerationId && enabled,
-    staleTime: 60 * 1000, // 1 minute (source doesn't change often)
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-}
-
 export function useToggleGenerationStar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, starred, shotId }: { id: string; starred: boolean; shotId?: string }) => {
-      console.log('[StarPersist] 🔵 Mutation function called', { id, starred, shotId });
+    mutationFn: ({ id, starred }: { id: string; starred: boolean; shotId?: string }) => {
       return toggleGenerationStar(id, starred);
     },
     onMutate: async ({ id, starred, shotId }) => {
-      console.log('[StarPersist] 🟡 onMutate: Optimistically updating caches', { id, starred, shotId });
-
       // Cancel outgoing refetches so they don't overwrite our optimistic update
       await Promise.all([
         queryClient.cancelQueries({ queryKey: ['unified-generations'] }),
@@ -1208,56 +869,27 @@ export function useToggleGenerationStar() {
 
       // 1) Optimistically update all generations-list caches
       const generationsQueries = queryClient.getQueriesData({ queryKey: ['unified-generations'] });
-      console.log('[StarPersist] 📊 Found generations queries to update:', {
-        queriesCount: generationsQueries.length,
-        generationId: id,
-        newStarred: starred,
-        queryKeys: generationsQueries.map(([key]) => key)
-      });
-
       generationsQueries.forEach(([queryKey, data]) => {
         if (data && typeof data === 'object' && 'items' in data) {
           previousGenerationsQueries.set(queryKey, data);
-
-          const oldItem = (data as any).items.find((g: any) => g.id === id);
           const updated = {
             ...data,
             items: (data as any).items.map((g: any) => (g.id === id ? { ...g, starred } : g)),
           };
-
-          console.log('[StarPersist] 🎨 Updating generations cache:', {
-            queryKey,
-            itemsCount: updated.items.length,
-            foundItem: !!oldItem,
-            oldStarred: oldItem?.starred,
-            newStarred: starred,
-            updatedItem: updated.items.find((g: any) => g.id === id)
-          });
-
           queryClient.setQueryData(queryKey, updated);
-        } else {
-          console.log('[StarPersist] ⚠️ Skipping query (no items):', { queryKey, hasData: !!data, dataKeys: data ? Object.keys(data) : [] });
         }
       });
 
       // 2) Optimistically update all shots caches so star reflects in Shot views / timelines
       const shotsQueries = queryClient.getQueriesData({ queryKey: ['shots'] });
-      console.log('[StarDebug:useToggleGenerationStar] Found shots queries:', shotsQueries.length);
-
       shotsQueries.forEach(([queryKey, data]) => {
         if (Array.isArray(data)) {
           previousShotsQueries.set(queryKey, data);
-
           const updatedShots = (data as any).map((shot: any) => {
             if (!shot.images) return shot;
-            const updatedImages = shot.images.map((img: any) => (img.id === id ? { ...img, starred } : img));
-            const hasUpdates = updatedImages.some((img: any, idx: number) => img.starred !== shot.images[idx].starred);
-            if (hasUpdates) {
-              console.log('[StarDebug:useToggleGenerationStar] Updating shot images for shot', shot.id, { updatedCount: updatedImages.filter((img: any) => img.starred).length });
-            }
             return {
               ...shot,
-              images: updatedImages,
+              images: shot.images.map((img: any) => (img.id === id ? { ...img, starred } : img)),
             };
           });
           queryClient.setQueryData(queryKey, updatedShots);
@@ -1268,45 +900,18 @@ export function useToggleGenerationStar() {
       if (shotId) {
         const queryKey = ['all-shot-generations', shotId];
         const previousData = queryClient.getQueryData(queryKey);
-
         if (previousData && Array.isArray(previousData)) {
-          console.log('[StarPersist] 🎯 Found EXACT all-shot-generations query:', { queryKey });
           previousAllShotGenerationsQueries.set(queryKey, previousData);
-
-          const updatedGenerations = previousData.map((gen: any) => {
-            if (gen.id === id) {
-              console.log('[StarPersist] 🎨 Optimistically updating all-shot-generations cache', {
-                queryKey,
-                generationId: id,
-                oldStarred: gen.starred,
-                newStarred: starred
-              });
-              return { ...gen, starred };
-            }
-            return gen;
-          });
+          const updatedGenerations = previousData.map((gen: any) =>
+            gen.id === id ? { ...gen, starred } : gen
+          );
           queryClient.setQueryData(queryKey, updatedGenerations);
-        } else {
-          console.log('[StarPersist] ⚠️ Could not find EXACT all-shot-generations query in cache for key:', { queryKey, hasPreviousData: !!previousData, isArray: Array.isArray(previousData) });
         }
-      } else {
-        console.log('[StarPersist] ⚠️ No shotId provided, skipping all-shot-generations cache update.');
       }
-
-      console.log('[StarDebug:useToggleGenerationStar] onMutate complete', {
-        generationsQueriesUpdated: previousGenerationsQueries.size,
-        shotsQueriesUpdated: previousShotsQueries.size,
-        allShotGenerationsQueriesUpdated: previousAllShotGenerationsQueries.size
-      });
 
       return { previousGenerationsQueries, previousShotsQueries, previousAllShotGenerationsQueries };
     },
     onError: (error: Error, _variables, context) => {
-      console.error('[StarPersist] ❌ onError: Mutation failed, rolling back', {
-        error: error.message,
-        variables: _variables
-      });
-
       // Rollback optimistic updates
       if (context?.previousGenerationsQueries) {
         context.previousGenerationsQueries.forEach((data, key) => {
@@ -1323,31 +928,15 @@ export function useToggleGenerationStar() {
           queryClient.setQueryData(key, data);
         });
       }
-
-      console.error('Error toggling generation star:', error);
       toast.error(error.message || 'Failed to toggle star');
     },
-    onSuccess: (data, variables) => {
-      console.log('[StarPersist] ✅ onSuccess: Mutation completed successfully', {
-        variables,
-        data,
-        willWaitForRealtime: true
-      });
-      // Emit domain event for generation star toggle
-      // Generation star toggle events are now handled by DataFreshnessManager via realtime events
-
+    onSuccess: (_data, variables) => {
       // Emit custom event so Timeline knows to refetch star data
       if (variables.shotId) {
-        console.log('[StarPersist] 📢 Emitting star-updated event for shot:', variables.shotId);
         window.dispatchEvent(new CustomEvent('generation-star-updated', {
           detail: { generationId: variables.id, shotId: variables.shotId, starred: variables.starred }
         }));
       }
-
-      console.log('[StarPersist] ✨ Optimistic updates complete - all caches updated');
-    },
-    onSettled: () => {
-      console.log('[StarPersist] 🏁 onSettled: Mutation lifecycle complete');
     },
   });
 }

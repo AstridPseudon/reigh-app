@@ -183,7 +183,6 @@ export interface UseSharedLightboxStateReturn {
 
   // Lineage
   lineage: {
-    sourceGeneration: any;
     derivedItems: any[];
     derivedGenerations: any[];
     derivedPage: number;
@@ -413,7 +412,6 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
 
   const lineageHook = useGenerationLineage({ media, enabled: !isFormOnlyMode });
   const {
-    sourceGeneration,
     derivedItems,
     derivedGenerations,
     derivedPage,
@@ -630,7 +628,6 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
     },
 
     lineage: {
-      sourceGeneration,
       derivedItems: derivedItems || [],
       derivedGenerations: derivedGenerations || [],
       derivedPage,

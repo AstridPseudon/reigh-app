@@ -15,6 +15,39 @@ import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
 // Import the converter function
 import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
 
+/**
+ * Task type configuration - captures the differences between inpaint and annotate modes
+ */
+type TaskType = 'inpaint' | 'annotate';
+
+interface TaskTypeConfig {
+  logPrefix: string;
+  emptyStrokesError: string;
+  overlayNotReadyError: string;
+  fileNamePrefix: string;
+  taskCreationError: string;
+  createTask: typeof createImageInpaintTask | typeof createAnnotatedImageEditTask;
+}
+
+const TASK_CONFIGS: Record<TaskType, TaskTypeConfig> = {
+  inpaint: {
+    logPrefix: '[Inpaint]',
+    emptyStrokesError: 'Please paint on the image first',
+    overlayNotReadyError: 'Paint overlay not ready',
+    fileNamePrefix: 'inpaint_mask',
+    taskCreationError: 'Failed to create inpaint task',
+    createTask: createImageInpaintTask,
+  },
+  annotate: {
+    logPrefix: '[AnnotateEdit]',
+    emptyStrokesError: 'Please draw an annotation rectangle',
+    overlayNotReadyError: 'Annotation overlay not ready',
+    fileNamePrefix: 'annotated_edit_mask',
+    taskCreationError: 'Failed to create annotated edit task',
+    createTask: createAnnotatedImageEditTask,
+  },
+};
+
 interface UseTaskGenerationProps {
   media: GenerationRow;
   selectedProjectId: string | null;
@@ -65,23 +98,27 @@ export function useTaskGeneration({
   const actualGenerationId = (media as any).generation_id || media.id;
 
   /**
-   * Generate inpaint task using Konva's native export
+   * Unified task generation function
+   * Handles both inpaint and annotate modes with mode-specific configuration
    */
-  const handleGenerateInpaint = useCallback(async () => {
-    console.log('[Inpaint] handleGenerateInpaint called', {
+  const handleGenerateTask = useCallback(async (taskType: TaskType) => {
+    const config = TASK_CONFIGS[taskType];
+    const strokes = taskType === 'inpaint' ? inpaintStrokes : annotationStrokes;
+
+    console.log(`${config.logPrefix} handleGenerate called`, {
       selectedProjectId: selectedProjectId?.substring(0, 8),
-      inpaintStrokesLength: inpaintStrokes.length,
+      strokesLength: strokes.length,
       hasStrokeOverlayRef: !!strokeOverlayRef.current,
     });
 
     // Validation
     if (!selectedProjectId || isVideo) {
-      toast.error('Cannot generate inpaint');
+      toast.error(`Cannot generate ${taskType === 'inpaint' ? 'inpaint' : 'annotated edit'}`);
       return;
     }
 
-    if (inpaintStrokes.length === 0) {
-      toast.error('Please paint on the image first');
+    if (strokes.length === 0) {
+      toast.error(config.emptyStrokesError);
       return;
     }
 
@@ -91,7 +128,7 @@ export function useTaskGeneration({
     }
 
     if (!strokeOverlayRef.current) {
-      toast.error('Paint overlay not ready');
+      toast.error(config.overlayNotReadyError);
       return;
     }
 
@@ -104,26 +141,26 @@ export function useTaskGeneration({
         throw new Error('Failed to export mask from overlay');
       }
 
-      console.log('[Inpaint] Mask exported from Konva');
+      console.log(`${config.logPrefix} Mask exported from Konva`);
 
       // Upload mask to storage
       const maskFile = await fetch(maskImageData)
         .then(res => res.blob())
-        .then(blob => new File([blob], `inpaint_mask_${media.id}_${Date.now()}.png`, { type: 'image/png' }));
+        .then(blob => new File([blob], `${config.fileNamePrefix}_${media.id}_${Date.now()}.png`, { type: 'image/png' }));
 
       const maskUrl = await uploadImageToStorage(maskFile);
-      console.log('[Inpaint] Mask uploaded:', maskUrl);
+      console.log(`${config.logPrefix} Mask uploaded:`, maskUrl);
 
       // Get source image URL
       const mediaUrl = (media as any).url || media.location || media.imageUrl;
       const sourceUrl = activeVariantLocation || mediaUrl;
 
-      console.log('[Inpaint] Creating task', {
+      console.log(`${config.logPrefix} Creating task`, {
         generation_id: actualGenerationId.substring(0, 8),
         prompt: inpaintPrompt.substring(0, 30),
       });
 
-      await createImageInpaintTask({
+      await config.createTask({
         project_id: selectedProjectId,
         image_url: sourceUrl,
         mask_url: maskUrl,
@@ -139,7 +176,7 @@ export function useTaskGeneration({
         qwen_edit_model: qwenEditModel,
       });
 
-      console.log('[Inpaint] Task created successfully');
+      console.log(`${config.logPrefix} Task created successfully`);
 
       // Show success state
       setInpaintGenerateSuccess(true);
@@ -151,118 +188,27 @@ export function useTaskGeneration({
       }, 1000);
 
     } catch (error) {
-      console.error('[Inpaint] Error creating inpaint task:', error);
-      toast.error('Failed to create inpaint task');
+      console.error(`${config.logPrefix} Error creating task:`, error);
+      toast.error(config.taskCreationError);
     } finally {
       setIsGeneratingInpaint(false);
     }
   }, [
-    selectedProjectId, isVideo, inpaintStrokes, inpaintPrompt, inpaintNumGenerations,
+    selectedProjectId, isVideo, inpaintStrokes, annotationStrokes, inpaintPrompt, inpaintNumGenerations,
     media, handleExitInpaintMode, shotId, toolTypeOverride, loras,
     activeVariantLocation, activeVariantId, createAsGeneration, advancedSettings,
     qwenEditModel, strokeOverlayRef, actualGenerationId,
     setIsGeneratingInpaint, setInpaintGenerateSuccess
   ]);
 
-  /**
-   * Generate annotated edit task using Konva's native export
-   */
-  const handleGenerateAnnotatedEdit = useCallback(async () => {
-    console.log('[AnnotateEdit] handleGenerateAnnotatedEdit called', {
-      selectedProjectId: selectedProjectId?.substring(0, 8),
-      annotationStrokesLength: annotationStrokes.length,
-      hasStrokeOverlayRef: !!strokeOverlayRef.current,
-    });
+  // Stable callbacks that preserve the original API
+  const handleGenerateInpaint = useCallback(() => {
+    return handleGenerateTask('inpaint');
+  }, [handleGenerateTask]);
 
-    // Validation
-    if (!selectedProjectId || isVideo) {
-      toast.error('Cannot generate annotated edit');
-      return;
-    }
-
-    if (annotationStrokes.length === 0) {
-      toast.error('Please draw an annotation rectangle');
-      return;
-    }
-
-    if (!inpaintPrompt.trim()) {
-      toast.error('Please enter a prompt');
-      return;
-    }
-
-    if (!strokeOverlayRef.current) {
-      toast.error('Annotation overlay not ready');
-      return;
-    }
-
-    setIsGeneratingInpaint(true);
-    try {
-      // Export mask directly from Konva
-      const maskImageData = strokeOverlayRef.current.exportMask({ pixelRatio: 1.5 });
-
-      if (!maskImageData) {
-        throw new Error('Failed to export mask from overlay');
-      }
-
-      console.log('[AnnotateEdit] Mask exported from Konva');
-
-      // Upload mask to storage
-      const maskFile = await fetch(maskImageData)
-        .then(res => res.blob())
-        .then(blob => new File([blob], `annotated_edit_mask_${media.id}_${Date.now()}.png`, { type: 'image/png' }));
-
-      const maskUrl = await uploadImageToStorage(maskFile);
-      console.log('[AnnotateEdit] Mask uploaded:', maskUrl);
-
-      // Get source image URL
-      const mediaUrl = (media as any).url || media.location || media.imageUrl;
-      const sourceUrl = activeVariantLocation || mediaUrl;
-
-      console.log('[AnnotateEdit] Creating task', {
-        generation_id: actualGenerationId.substring(0, 8),
-        prompt: inpaintPrompt.substring(0, 30),
-      });
-
-      await createAnnotatedImageEditTask({
-        project_id: selectedProjectId,
-        image_url: sourceUrl,
-        mask_url: maskUrl,
-        prompt: inpaintPrompt,
-        num_generations: inpaintNumGenerations,
-        generation_id: actualGenerationId,
-        shot_id: shotId,
-        tool_type: toolTypeOverride,
-        loras: loras,
-        create_as_generation: createAsGeneration,
-        source_variant_id: activeVariantId || undefined,
-        hires_fix: convertToHiresFixApiParams(advancedSettings),
-        qwen_edit_model: qwenEditModel,
-      });
-
-      console.log('[AnnotateEdit] Task created successfully');
-
-      // Show success state
-      setInpaintGenerateSuccess(true);
-
-      // Wait 1 second to show success, then exit
-      setTimeout(() => {
-        setInpaintGenerateSuccess(false);
-        handleExitInpaintMode();
-      }, 1000);
-
-    } catch (error) {
-      console.error('[AnnotateEdit] Error creating annotated edit task:', error);
-      toast.error('Failed to create annotated edit task');
-    } finally {
-      setIsGeneratingInpaint(false);
-    }
-  }, [
-    selectedProjectId, isVideo, annotationStrokes, inpaintPrompt, inpaintNumGenerations,
-    media, handleExitInpaintMode, shotId, toolTypeOverride, loras,
-    activeVariantLocation, activeVariantId, createAsGeneration, advancedSettings,
-    qwenEditModel, strokeOverlayRef, actualGenerationId,
-    setIsGeneratingInpaint, setInpaintGenerateSuccess
-  ]);
+  const handleGenerateAnnotatedEdit = useCallback(() => {
+    return handleGenerateTask('annotate');
+  }, [handleGenerateTask]);
 
   return {
     handleGenerateInpaint,
