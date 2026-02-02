@@ -268,6 +268,9 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
         onClick={handleContainerClick}
       >
         {/* Video Element */}
+        {/* Note: fullscreen is only accessible via the dedicated button in the controls bar.
+            Double-click on video was removed to prevent accidental fullscreen when rapidly
+            clicking (e.g., triple-click from gallery opening lightbox). */}
         <video
           ref={videoRef}
           src={src}
@@ -278,7 +281,6 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
           playsInline={playsInline}
           preload={preload}
           className="block max-w-full max-h-full object-contain rounded-lg bg-black cursor-pointer"
-          onDoubleClick={isMobile ? undefined : toggleFullscreen}
           onLoadedMetadata={onLoadedMetadata}
         >
           Your browser does not support the video tag.
