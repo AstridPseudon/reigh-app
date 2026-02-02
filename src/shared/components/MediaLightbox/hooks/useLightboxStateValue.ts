@@ -113,15 +113,13 @@ export function useLightboxStateValue(
   ]);
 
   // Build variants state
+  // Maps internal hook names (set*) to UI component names (handle*)
   const variants = useMemo(() => ({
     variants: input.variants,
     activeVariant: input.activeVariant,
     primaryVariant: input.primaryVariant,
     isLoadingVariants: input.isLoadingVariants,
-    setActiveVariantId: input.setActiveVariantId,
-    setPrimaryVariant: input.setPrimaryVariant,
-    deleteVariant: input.deleteVariant,
-    // Aliases expected by consumer components (InfoPanel, EditModePanel, VideoEditPanel)
+    // Transform set* inputs to handle* outputs for UI components
     handleVariantSelect: input.setActiveVariantId,
     handleMakePrimary: async (id: string) => input.setPrimaryVariant(id),
     handleDeleteVariant: async (id: string) => input.deleteVariant(id),

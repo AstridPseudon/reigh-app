@@ -107,6 +107,8 @@ export interface UseSegmentSettingsReturn {
   saveAsShotDefaults: () => Promise<boolean>;
   /** Save a single field's current value as shot default */
   saveFieldAsDefault: (field: keyof SegmentSettings, value: unknown) => Promise<boolean>;
+  /** Get effective settings for task creation (settings merged with shot defaults) */
+  getSettingsForTaskCreation: () => SegmentSettings;
   /** Whether data is still loading */
   isLoading: boolean;
   /** Whether user has made local edits */
@@ -312,7 +314,30 @@ export function useSegmentSettings({
     form.reset();
   }, [form, mutations, defaults]);
 
-  // 8. Save as shot defaults with structure video handling
+  // 8. Get effective settings for task creation (merges with shot defaults)
+  const getSettingsForTaskCreation = useCallback((): SegmentSettings => {
+    const currentSettings = form.data;
+    return {
+      prompt: currentSettings.prompt ?? shotDefaults.prompt,
+      negativePrompt: currentSettings.negativePrompt ?? shotDefaults.negativePrompt,
+      textBeforePrompts: currentSettings.textBeforePrompts ?? shotDefaults.textBeforePrompts,
+      textAfterPrompts: currentSettings.textAfterPrompts ?? shotDefaults.textAfterPrompts,
+      motionMode: currentSettings.motionMode ?? shotDefaults.motionMode,
+      amountOfMotion: currentSettings.amountOfMotion ?? shotDefaults.amountOfMotion,
+      phaseConfig: currentSettings.phaseConfig ?? shotDefaults.phaseConfig,
+      selectedPhasePresetId: currentSettings.selectedPhasePresetId ?? shotDefaults.selectedPhasePresetId,
+      loras: currentSettings.loras ?? shotDefaults.loras,
+      numFrames: currentSettings.numFrames,
+      randomSeed: currentSettings.randomSeed,
+      seed: currentSettings.seed,
+      makePrimaryVariant: currentSettings.makePrimaryVariant,
+      structureMotionStrength: currentSettings.structureMotionStrength,
+      structureTreatment: currentSettings.structureTreatment,
+      structureUni3cEndPercent: currentSettings.structureUni3cEndPercent,
+    };
+  }, [form.data, shotDefaults]);
+
+  // 9. Save as shot defaults with structure video handling
   const saveAsShotDefaults = useCallback(async (): Promise<boolean> => {
     const result = await mutations.saveAsShotDefaults(form.data, shotDefaults);
 
@@ -382,6 +407,9 @@ export function useSegmentSettings({
     // Shot-level operations
     saveAsShotDefaults,
     saveFieldAsDefault: mutations.saveFieldAsDefault,
+
+    // Task creation
+    getSettingsForTaskCreation,
 
     // Enhanced prompt
     enhancedPrompt,

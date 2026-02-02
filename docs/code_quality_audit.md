@@ -177,8 +177,15 @@ src/shared/components/MediaLightbox/
     ImageEditContext.tsx        # Image edit state (198 lines)
     VideoEditContext.tsx        # Video edit state (197 lines)
   components/               # 40+ modular UI components
+    LightboxShell.tsx           # Dialog container (removed duplicate pane handle)
   hooks/                    # 30+ focused hooks
 ```
+
+**Follow-up fix (2026-02-02):** Fixed state sync between MediaLightbox and TasksPane:
+- `PanesContext.tsx`: Sync `isTasksPaneOpen` with `isTasksPaneLocked` on hydration and lock
+- `LightboxShell.tsx`: Removed duplicate task pane handle (70+ lines), existing `PaneControlTab` now sole control
+- `ImageLightbox.tsx` / `VideoLightbox.tsx`: Defensive check `(effectiveTasksPaneOpen || isTasksPaneLocked)`
+- Fixed inconsistent lightbox positioning when pane was locked but `isTasksPaneOpen` was stale
 
 `useSegmentSettings/` (1,160 → 29 lines re-export):
 ```
@@ -940,7 +947,7 @@ Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScr
 |----------|--------|-------|
 | `useShots.ts` → `shots/` | ✅ **COMPLETE** | 2,350 → 10 files. Note: `useShotGenerationMutations.ts` now 924 lines (split candidate). |
 | `useGenerations.ts` cleanup | ⏳ **IN PROGRESS** | 1,353 → 942 lines. Dead code removed. Further split pending. |
-| `MediaLightbox.tsx` | ✅ **COMPLETE** | 2,617 → 189 lines (split into 90+ modular files) |
+| `MediaLightbox.tsx` | ✅ **COMPLETE** | 2,617 → 189 lines (split into 90+ modular files). Follow-up: fixed pane state sync, removed duplicate handle. |
 | `ShotImagesEditor.tsx` | ✅ **COMPLETE** | 3,775 → 32 lines. Split to `ShotImagesEditor/` with 13 files (2,806 total lines). |
 | `ImageGenerationForm/index.tsx` | ✅ **COMPLETE** | 3,081 → 1,164 lines. Added context + hooks + components (7,706 total lines). |
 | `ShotEditor/index.tsx` | ✅ **COMPLETE** | 3,034 → 1,190 lines. Added `ShotSettingsContext`, sections, hooks, services (12,293 total). |
@@ -1005,6 +1012,7 @@ Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScr
 - `ShotEditor/index.tsx` refactored → 1,190 lines + sections/hooks/services/context
 - `TimelineContainer.tsx` refactored → 714 lines + `TimelineContainer/` (10 files)
 - MediaLightbox contexts added (`EditFormContext`, `ImageEditContext`, `VideoEditContext`)
+- MediaLightbox/PanesContext state sync fixed (removed duplicate handle, defensive offset checks)
 - `useSegmentSettings.ts` refactored → 29 lines + `segments/` (5 files) + `useServerForm` pattern
 - Cache invalidation centralized (`queryKeys.ts` + invalidation hooks)
 - Error handling standardized (107 files migrated to `handleError()`)
@@ -1066,4 +1074,4 @@ Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScr
 
 ---
 
-*Last audit: 2026-02-02 (added useSegmentSettings refactor → segments/ + useServerForm pattern)*
+*Last audit: 2026-02-02 (MediaLightbox/PanesContext state sync fix - removed duplicate pane handle, defensive offset checks)*

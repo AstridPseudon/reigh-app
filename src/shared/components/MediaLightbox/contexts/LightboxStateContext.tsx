@@ -51,10 +51,7 @@ interface LightboxVariantState {
   activeVariant: any;
   primaryVariant: any;
   isLoadingVariants: boolean;
-  setActiveVariantId: (id: string) => void;
-  setPrimaryVariant: (id: string) => void;
-  deleteVariant: (id: string) => void;
-  // Aliases expected by consumer components (InfoPanel, EditModePanel, VideoEditPanel)
+  // Handler-style names for UI components
   handleVariantSelect: (id: string) => void;
   handleMakePrimary: (id: string) => Promise<void>;
   handleDeleteVariant: (id: string) => Promise<void>;
@@ -67,7 +64,7 @@ interface LightboxVariantState {
   isMakingMainVariant: boolean;
   canMakeMainVariant: boolean;
   handleMakeMainVariant: () => Promise<void>;
-  // Pending/unviewed counts (from existing LightboxVariantContext)
+  // Pending/unviewed counts
   pendingTaskCount: number;
   unviewedVariantCount: number;
   onMarkAllViewed: () => void;
@@ -223,10 +220,6 @@ const EMPTY_VARIANTS: LightboxVariantState = {
   activeVariant: null,
   primaryVariant: null,
   isLoadingVariants: false,
-  setActiveVariantId: () => {},
-  setPrimaryVariant: () => {},
-  deleteVariant: () => {},
-  // Aliases expected by consumer components
   handleVariantSelect: () => {},
   handleMakePrimary: async () => {},
   handleDeleteVariant: async () => {},
