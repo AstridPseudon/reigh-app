@@ -83,21 +83,26 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (!isLoading) {
       // Hydrating pane locks from server (desktop and tablet)
       // On tablets, only keep one lock if multiple are saved
+      let newLocks = paneLocks;
       if (isTablet) {
         const activeLocks = Object.entries(paneLocks).filter(([_, locked]) => locked);
         if (activeLocks.length > 1) {
           // Keep only the first locked pane on tablets
           const firstLocked = activeLocks[0][0] as 'shots' | 'tasks' | 'gens';
-          setLocks({
+          newLocks = {
             shots: firstLocked === 'shots',
             tasks: firstLocked === 'tasks',
             gens: firstLocked === 'gens',
-          });
-        } else {
-          setLocks(paneLocks);
+          };
         }
-      } else {
-        setLocks(paneLocks);
+      }
+      setLocks(newLocks);
+
+      // IMPORTANT: Sync isTasksPaneOpen with isTasksPaneLocked on hydration
+      // This ensures lightboxes (which read isTasksPaneOpen from context) correctly
+      // account for a locked pane even after page refresh
+      if (newLocks.tasks) {
+        setIsTasksPaneOpenState(true);
       }
     }
   }, [isLoading, paneLocks, isSmallMobile, isTablet]);
@@ -160,19 +165,25 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const setIsTasksPaneLocked = useCallback((isLocked: boolean) => {
     setLocks(prev => {
       if (prev.tasks === isLocked) return prev;
-      
+
       // On mobile/tablets, unlock other panes when locking this one (only one pane can be locked at a time)
       const newLocks = (isMobile || isTablet) && isLocked
         ? { shots: false, tasks: isLocked, gens: false }
         : { ...prev, tasks: isLocked };
-      
+
       // Save to database (desktop and tablet only, not small phones)
       if (!isSmallMobile) {
         savePaneLocks((isMobile || isTablet) && isLocked ? newLocks : { tasks: isLocked });
       }
-      
+
       return newLocks;
     });
+
+    // IMPORTANT: Sync isTasksPaneOpen with isTasksPaneLocked
+    // This ensures lightboxes correctly account for locked pane state
+    if (isLocked) {
+      setIsTasksPaneOpenState(true);
+    }
   }, [savePaneLocks, isSmallMobile, isMobile, isTablet]);
 
   // Open state setters

@@ -764,6 +764,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     setActiveVariantId: variants.setActiveVariantId,
     setPrimaryVariant: variants.setPrimaryVariant,
     deleteVariant: variants.deleteVariant,
+    onLoadVariantSettings: undefined, // TODO: Implement loading variant params into edit form
     promoteSuccess: variants.promoteSuccess,
     isPromoting: variants.isPromoting,
     handlePromoteToGeneration: variants.handlePromoteToGeneration,
@@ -1014,7 +1015,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   // ========================================
 
   const needsFullscreenLayout = isMobile || layout.shouldShowSidePanel;
-  const needsTasksPaneOffset = needsFullscreenLayout && effectiveTasksPaneOpen && !layout.isPortraitMode && layout.isTabletOrLarger;
+  // Check both effectiveTasksPaneOpen AND isTasksPaneLocked as a defensive measure
+  // in case they're temporarily out of sync (e.g., during hydration)
+  const needsTasksPaneOffset = needsFullscreenLayout && (effectiveTasksPaneOpen || isTasksPaneLocked) && !layout.isPortraitMode && layout.isTabletOrLarger;
 
   const accessibilityTitle = `Image Lightbox - ${media?.id?.substring(0, 8)}`;
   const accessibilityDescription = 'View and interact with image in full screen. Use arrow keys to navigate, Escape to close.';

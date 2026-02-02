@@ -54,6 +54,11 @@ interface LightboxVariantState {
   setActiveVariantId: (id: string) => void;
   setPrimaryVariant: (id: string) => void;
   deleteVariant: (id: string) => void;
+  // Aliases expected by consumer components (InfoPanel, EditModePanel, VideoEditPanel)
+  handleVariantSelect: (id: string) => void;
+  handleMakePrimary: (id: string) => Promise<void>;
+  handleDeleteVariant: (id: string) => Promise<void>;
+  onLoadVariantSettings?: (variantParams: Record<string, any>) => void;
   // Promotion
   promoteSuccess: boolean;
   isPromoting: boolean;
@@ -221,6 +226,11 @@ const EMPTY_VARIANTS: LightboxVariantState = {
   setActiveVariantId: () => {},
   setPrimaryVariant: () => {},
   deleteVariant: () => {},
+  // Aliases expected by consumer components
+  handleVariantSelect: () => {},
+  handleMakePrimary: async () => {},
+  handleDeleteVariant: async () => {},
+  onLoadVariantSettings: undefined,
   promoteSuccess: false,
   isPromoting: false,
   handlePromoteToGeneration: async () => {},

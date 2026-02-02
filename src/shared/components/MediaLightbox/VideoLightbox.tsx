@@ -633,6 +633,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     setActiveVariantId: variants.setActiveVariantId,
     setPrimaryVariant: variants.setPrimaryVariant,
     deleteVariant: variants.deleteVariant,
+    onLoadVariantSettings: undefined, // TODO: Implement loading variant params into edit form
     promoteSuccess: variants.promoteSuccess,
     isPromoting: variants.isPromoting,
     handlePromoteToGeneration: variants.handlePromoteToGeneration,
@@ -779,7 +780,9 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   const isAnyVideoEditMode = isVideoTrimModeActive || isVideoEditModeActive;
   const shouldShowSidePanelWithTrim = layout.shouldShowSidePanel || ((!layout.isPortraitMode && layout.isTabletOrLarger) && isAnyVideoEditMode);
   const needsFullscreenLayout = isMobile || isFormOnlyMode || layout.shouldShowSidePanel || shouldShowSidePanelWithTrim;
-  const needsTasksPaneOffset = needsFullscreenLayout && effectiveTasksPaneOpen && !layout.isPortraitMode && layout.isTabletOrLarger;
+  // Check both effectiveTasksPaneOpen AND isTasksPaneLocked as a defensive measure
+  // in case they're temporarily out of sync (e.g., during hydration)
+  const needsTasksPaneOffset = needsFullscreenLayout && (effectiveTasksPaneOpen || isTasksPaneLocked) && !layout.isPortraitMode && layout.isTabletOrLarger;
 
   const accessibilityTitle = isFormOnlyMode
     ? `Segment ${(segmentSlotMode?.currentIndex ?? 0) + 1} Settings`

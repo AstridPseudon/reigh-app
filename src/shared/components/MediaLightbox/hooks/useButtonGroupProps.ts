@@ -23,8 +23,11 @@ interface UseButtonGroupPropsParams {
   handleEnterMagicEditMode: () => void;
 
   // TopRight - Download & Delete
+  // NOTE: handleDownload is optional here because it requires media-specific logic
+  // (variant selection, content type). Parent components (ImageLightbox/VideoLightbox)
+  // MUST provide it when building the final buttonGroupProps.
   showDownload: boolean;
-  handleDownload: () => Promise<void>;
+  handleDownload?: () => Promise<void>;
   isDownloading: boolean;
   onDelete?: (id: string) => void;
   handleDelete?: () => void;

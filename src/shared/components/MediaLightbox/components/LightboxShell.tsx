@@ -5,18 +5,19 @@
  * - Dialog root/portal/overlay
  * - Pointer/touch/click event handling with z-index awareness
  * - Double-tap to close on mobile
- * - Tasks pane handle and toggle
  * - Body scroll locking
  * - Accessibility elements
+ *
+ * Note: Tasks pane controls are handled by the existing PaneControlTab from TasksPane,
+ * which is visible above the lightbox at z-[100001]. The overlay adjusts its size
+ * to account for the pane when it's open or locked.
  *
  * This allows the main MediaLightbox to focus on content orchestration.
  */
 
 import React, { useRef, useEffect } from 'react';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Button } from '@/shared/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/shared/components/ui/tooltip';
-import { LockIcon, UnlockIcon } from 'lucide-react';
+import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { cn } from '@/shared/lib/utils';
 
 const DOUBLE_TAP_DELAY = 300; // ms
@@ -421,6 +422,10 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   // OVERLAY STYLES
   // ========================================
 
+  // Check both effectiveTasksPaneOpen AND isTasksPaneLocked to handle edge cases
+  // where they might be temporarily out of sync (e.g., during hydration)
+  const shouldAccountForTasksPane = (effectiveTasksPaneOpen || isTasksPaneLocked) && isTabletOrLarger;
+
   const overlayStyle: React.CSSProperties = {
     pointerEvents: 'all',
     touchAction: 'none',
@@ -429,11 +434,11 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     position: 'fixed',
     top: 0,
     left: 0,
-    right: effectiveTasksPaneOpen && isTabletOrLarger ? `${effectiveTasksPaneWidth}px` : 0,
+    right: shouldAccountForTasksPane ? `${effectiveTasksPaneWidth}px` : 0,
     bottom: 0,
     height: '100dvh',
     transition: 'right 300ms cubic-bezier(0.22, 1, 0.36, 1), width 300ms cubic-bezier(0.22, 1, 0.36, 1)',
-    ...(effectiveTasksPaneOpen && isTabletOrLarger
+    ...(shouldAccountForTasksPane
       ? { width: `calc(100vw - ${effectiveTasksPaneWidth}px)` }
       : {}),
   };
@@ -484,80 +489,9 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
             style={overlayStyle}
           />
 
-          {/* Task pane handle - visible above lightbox overlay */}
-          {!isMobile && (
-            <div
-              className="fixed top-1/2 -translate-y-1/2 flex flex-col items-center p-1 bg-zinc-800/90 backdrop-blur-sm border border-zinc-700 rounded-l-md gap-1 touch-none"
-              style={{
-                zIndex: 100001,
-                pointerEvents: 'auto',
-                right: effectiveTasksPaneOpen ? `${effectiveTasksPaneWidth}px` : 0,
-                transition: 'right 300ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-            >
-              <TooltipProvider delayDuration={300}>
-                {/* Task pane toggle */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onPointerUp={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setTasksPaneOpenContext(!effectiveTasksPaneOpen);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-8 w-8 text-zinc-300 hover:text-white hover:bg-zinc-700"
-                      aria-label={`${cancellableTaskCount} tasks - click to ${effectiveTasksPaneOpen ? 'close' : 'open'}`}
-                    >
-                      <span className="text-xs font-light">{cancellableTaskCount}</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="text-xs">
-                    {`${cancellableTaskCount} task${cancellableTaskCount === 1 ? '' : 's'} - click to ${effectiveTasksPaneOpen ? 'close' : 'open'}`}
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* Lock/Unlock button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onPointerUp={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        const willBeLocked = !isTasksPaneLocked;
-                        setIsTasksPaneLocked(willBeLocked);
-                        setTasksPaneOpenContext(willBeLocked);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-8 w-8 text-zinc-300 hover:text-white hover:bg-zinc-700"
-                      aria-label={isTasksPaneLocked ? "Unlock tasks pane" : "Lock tasks pane open"}
-                    >
-                      {isTasksPaneLocked ? (
-                        <UnlockIcon className="h-4 w-4" />
-                      ) : (
-                        <LockIcon className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="text-xs">
-                    {isTasksPaneLocked ? "Unlock tasks pane" : "Lock tasks pane open"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
+          {/* Task pane handle removed - the existing PaneControlTab from TasksPane
+              is now visible above the lightbox at z-[100001] and handles all pane controls.
+              The overlay correctly accounts for the pane via shouldAccountForTasksPane. */}
 
           <DialogPrimitive.Content
             ref={contentRef}

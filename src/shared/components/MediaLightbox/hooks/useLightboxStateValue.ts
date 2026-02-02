@@ -36,6 +36,7 @@ export interface UseLightboxStateValueInput {
   setActiveVariantId: (id: string) => void;
   setPrimaryVariant: (id: string) => void;
   deleteVariant: (id: string) => void;
+  onLoadVariantSettings?: (variantParams: Record<string, any>) => void;
   promoteSuccess: boolean;
   isPromoting: boolean;
   handlePromoteToGeneration: (variantId: string) => Promise<void>;
@@ -120,6 +121,11 @@ export function useLightboxStateValue(
     setActiveVariantId: input.setActiveVariantId,
     setPrimaryVariant: input.setPrimaryVariant,
     deleteVariant: input.deleteVariant,
+    // Aliases expected by consumer components (InfoPanel, EditModePanel, VideoEditPanel)
+    handleVariantSelect: input.setActiveVariantId,
+    handleMakePrimary: async (id: string) => input.setPrimaryVariant(id),
+    handleDeleteVariant: async (id: string) => input.deleteVariant(id),
+    onLoadVariantSettings: input.onLoadVariantSettings,
     promoteSuccess: input.promoteSuccess,
     isPromoting: input.isPromoting,
     handlePromoteToGeneration: input.handlePromoteToGeneration,
@@ -138,6 +144,7 @@ export function useLightboxStateValue(
     input.setActiveVariantId,
     input.setPrimaryVariant,
     input.deleteVariant,
+    input.onLoadVariantSettings,
     input.promoteSuccess,
     input.isPromoting,
     input.handlePromoteToGeneration,

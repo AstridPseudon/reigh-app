@@ -23,7 +23,7 @@ import { useImageEditSafe } from '../contexts/ImageEditContext';
 
 interface TopRightControlsProps {
   showDownload: boolean;
-  handleDownload: () => Promise<void>;
+  handleDownload?: () => Promise<void>;
   isDownloading?: boolean;
   onDelete?: (id: string) => void;
   handleDelete?: () => void;
@@ -45,7 +45,8 @@ export const TopRightControls: React.FC<TopRightControlsProps> = ({
   return (
     <div className="absolute top-4 right-4 flex items-center space-x-2 z-[70]">
       {/* Download Button - Keep visible in edit mode */}
-      {showDownload && !readOnly && (
+      {/* Guard: only render if handleDownload is provided (parent must supply it) */}
+      {showDownload && !readOnly && handleDownload && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

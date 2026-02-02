@@ -536,18 +536,13 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
   // BUTTON GROUP PROPS
   // ========================================
 
-  // IMPORTANT: handleDownload is a placeholder that does nothing.
-  // The parent component (ImageLightbox/VideoLightbox) MUST override this
-  // in their layout props: { ...buttonGroupProps, handleDownload, handleDelete }
-  // This is because download needs media-type-specific logic and setIsDownloading state.
-  const handleDownload = useCallback(async () => {
-    console.warn('[useSharedLightboxState] handleDownload placeholder called - parent should override this');
-  }, []);
-
   const handleDelete = useCallback(() => {
     if (onDelete) onDelete(media.id);
   }, [onDelete, media.id]);
 
+  // NOTE: handleDownload is NOT provided here - it requires media-specific logic
+  // (variant selection, content type, etc.) that only ImageLightbox/VideoLightbox have.
+  // Parent components MUST add handleDownload to buttonGroupProps.topRight.
   const buttonGroupProps = useButtonGroupProps({
     isVideo,
     readOnly,
@@ -557,7 +552,7 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
     mediaId: media.id,
     handleEnterMagicEditMode,
     showDownload,
-    handleDownload,
+    // handleDownload intentionally omitted - parent must provide
     isDownloading,
     onDelete,
     handleDelete,
