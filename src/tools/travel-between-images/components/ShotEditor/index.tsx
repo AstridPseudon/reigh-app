@@ -837,9 +837,8 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
     pendingFramePositions: state.pendingFramePositions,
   });
 
-  // Image upload handler (wraps generationActions for file input events)
-  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  // Image upload handler (accepts File[] from ImageUploadActions)
+  const handleImageUpload = useCallback(async (files: File[]) => {
     if (files.length > 0) {
       await generationActions.handleBatchImageDrop(files);
     }
