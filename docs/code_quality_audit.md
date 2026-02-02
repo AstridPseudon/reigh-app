@@ -6,82 +6,95 @@ Present state of the codebase. Last updated: 2026-02-02.
 
 ## Summary
 
-| Category | Status | Details |
+| Category | Status | Verdict |
 |----------|--------|---------|
-| Giant components (>2000 LOC) | ✅ None | All critical components refactored |
-| Components 1000-2000 LOC | ⚠️ 4 remain | Gallery/item components |
-| Double-casts (`as unknown as`) | ✅ None | All 8 fixed with proper types |
-| Type safety (`any` usage) | ⚠️ ~1,980 instances | Across ~411 files |
-| Cache invalidation | ✅ Centralized | `queryKeys.ts` + domain hooks |
-| Error handling | ✅ Standardized | `handleError()` throughout |
-| Console logging | ✅ Production-safe | Suppressed via logger system |
+| Double-casts | ✅ None | All fixed |
+| Cache/error handling | ✅ Good | Centralized patterns |
+| Hardcoded colors | ✅ Intentional | Brand/retro theme, not bugs |
+| Page hook counts | ✅ Appropriate | Complex orchestration, not a problem |
+| Large components | ⚠️ 4 files | Worth decomposing when touched |
+| Large hooks | ⚠️ 8 files | Split candidates identified |
+| `any` usage | ⚠️ ~1,900 | Mix of fixable and intentional |
 
 ---
 
-## Large Files
+## What's Actually Fine
 
-### Components (1000-2000 lines)
+### Hardcoded Colors (181 instances)
+**Verdict: Leave as-is.** These are intentional brand colors for the retro/vintage aesthetic.
 
-| File | Lines | Notes |
-|------|-------|-------|
-| `MediaGalleryItem.tsx` | 1,696 | Rendering + interactions + drag/drop |
-| `VideoItem.tsx` | 1,504 | Video item + interactions |
-| `SettingsModal.tsx` | 1,320 | Modal + multiple tabs |
-| `VideoGallery/index.tsx` | 1,202 | Gallery + filtering + actions |
+- `GlobalHeader.tsx` (40): Retro dark palette (`#6a8a8a`, `#3a4a4a`, etc.) - forms cohesive system
+- `HeroSection.tsx` (23): Marketing landing page - performance-critical, uses inline styles intentionally
+- `select.tsx` (11): CVA component variants - part of retro UI system
 
-**Orchestrators (intentionally larger, coordinate subsystems):**
-- `ImageLightbox.tsx` (1,303), `ShotEditor/index.tsx` (1,190), `VideoLightbox.tsx` (1,071)
+If the retro palette becomes system-wide, extract to CSS variables. Not urgent.
 
-### Hooks (>800 lines)
+### Page Hook Counts
+**Verdict: Appropriate complexity.**
 
-| Hook | Lines |
-|------|-------|
-| `useGenerations.ts` | 938 |
-| `useShotGenerationMutations.ts` | 925 |
-| `useReferenceManagement.ts` | 909 |
-| `useGenerationActions.ts` | 906 |
-| `useUnifiedGenerations.ts` | 870 |
-| `useRepositionMode.ts` | 859 |
-| `useTimelinePositionUtils.ts` | 856 |
-| `useGenerationsPageLogic.ts` | 855 |
+| Page | Hooks | Assessment |
+|------|-------|------------|
+| `VideoTravelToolPage` | 12 | ✅ Clean router/orchestrator |
+| `JoinClipsPage` | 18 | ✅ Well-factored, justified by video editor complexity |
+| `ImageGenerationToolPage` | 25+ | ⚠️ Could extract 3 utility hooks for readability |
 
-### Page Components
+The hook counts reflect legitimate feature complexity (gallery + form + filtering + pagination). Not a performance issue.
 
-| File | Lines | Hooks |
-|------|-------|-------|
-| `JoinClipsPage.tsx` | 1,824 | 40 |
-| `VideoTravelToolPage.tsx` | 1,823 | 106 |
-| `ImageGenerationToolPage.tsx` | 1,174 | 62 |
+**Optional cleanup for ImageGenerationToolPage:**
+- Extract `useStickyHeaderPosition()` (~60 lines)
+- Extract `useGalleryFiltering()` (9 filter state vars)
+- Extract `useAdjacentPagePrefetch()` (~100 lines)
 
-High hook counts reflect complex orchestration. Not necessarily a problem if the page performs well.
+### SimpleRealtimeManager.ts (39 `any`)
+**Verdict: Leave as-is.** The `any` types here are justified:
 
----
+- TypeScript types are compile-time only; Supabase websocket payloads need runtime validation for real safety
+- Handlers already use defensive `payload?.new?.id` optional chaining
+- Supabase's `old` record is unreliable (partial data) — types would give false confidence
+- The channel `.on()` API doesn't type cleanly anyway
 
-## Type Safety
-
-**~1,980 `any` usages** across ~411 files. Top files:
-
-| File | Count |
-|------|-------|
-| `useLightboxLayoutProps.ts` | 41 |
-| `SimpleRealtimeManager.ts` | 39 |
-| `SharedMetadataDetails.tsx` | 28 |
-| `useSegmentOutputsForShot.ts` | 26 |
-| `VideoGallery/index.tsx` | 26 |
+Type this file only if actively debugging realtime issues or making significant changes.
 
 ---
 
-## Hardcoded Colors
+## What Needs Attention
 
-**181 instances** of hex/rgb/hsl literals:
+### 1. `any` Usage (~1,900 instances)
 
-| File | Count |
-|------|-------|
-| `GlobalHeader.tsx` | 40 |
-| `HeroSection.tsx` | 23 |
-| `select.tsx` | 11 |
+**Medium effort (20-30 hours):**
 
-These are mostly in marketing/landing pages and UI primitives.
+| File | Count | Issue | Fix |
+|------|-------|-------|-----|
+| `useLightboxLayoutProps.ts` | 41 | Props aggregation hook | Create domain interfaces (video editing, annotation, transform) |
+| `useSegmentOutputsForShot.ts` | 26 | Defensive casts for `parent_generation_id` | Extend `GenerationRow` with optional parent/child fields |
+| `VideoGallery/index.tsx` | 26 | Generic type constraints | Extract hook return types, define `VideoItemData` |
+
+**Leave alone:**
+- `Record<string, any>` for dynamic settings objects is intentional
+- `SimpleRealtimeManager.ts` — defensive coding approach is correct (see above)
+
+### 2. Large Hooks (>800 lines)
+
+| Hook | Lines | Split Strategy |
+|------|-------|----------------|
+| `useGenerationActions.ts` | 906 | Extract deletion, duplication, drop handlers into separate hooks |
+| `useGenerations.ts` | ~920 | Extract filter logic, edit variants, star toggle |
+| `useShotGenerationMutations.ts` | 925 | Extract frame position calculator, batch updater |
+| `useReferenceManagement.ts` | 909 | Extract upload pipeline, mode switching, sync effects |
+
+**Dead code to investigate:**
+- `useGenerationActions.ts` lines 71-120: 50-line ref stabilization block suggests parent component issues
+
+### 3. Large Components (1000-1700 lines)
+
+| Component | Lines | Decomposition Strategy | Effort |
+|-----------|-------|------------------------|--------|
+| `MediaGalleryItem.tsx` | 1,696 | Extract `useImageLoader`, `ShotAddButton`, `ProgressiveImage` | 40-60h |
+| `VideoItem.tsx` | 1,504 | Extract `JoinClipsModal`, `useMobileVideoPreload`, `ShareButton` | 35-50h |
+| `SettingsModal.tsx` | 1,320 | Extract `InstallTab`, `RunTab`, `ConfigOptions`, command generators | 25-35h |
+| `VideoGallery/index.tsx` | 1,202 | Extract pagination, skeleton, navigation hooks | 30-40h |
+
+**Recommended order:** SettingsModal → VideoItem → VideoGallery → MediaGalleryItem (least tangled first)
 
 ---
 
@@ -90,25 +103,23 @@ These are mostly in marketing/landing pages and UI primitives.
 | Area | Location | Pattern |
 |------|----------|---------|
 | Hook decomposition | `src/shared/hooks/shots/` | 10 focused files from monolith |
-| Query/mutation separation | `src/shared/hooks/segments/` | Clean split + `useServerForm` |
 | Component decomposition | `ShotImagesEditor/` | 32 line index + 13 files |
 | Context for state | `ImageGenerationFormContext` | Eliminates prop drilling |
 | Cache keys | `src/shared/lib/queryKeys.ts` | Centralized registry |
 | Error handling | `src/shared/lib/errorHandler.ts` | `handleError()` with context |
 | Lightbox architecture | `MediaLightbox/` | Shell + orchestrators + contexts |
-| Dead code detection | `useGenerationActions.ts` cleanup | Grep for unused exports in return objects |
 
 ---
 
-## Cleanup Patterns
+## Action Items
 
-**Dead code in hooks** — Check for:
-- Exports in return object that nothing consumes (grep `hookName.exportName`)
-- Refs declared but only assigned, never read
-- Mutations/hooks called but result never used
-- Vestigial stubs from removed features (empty functions, hardcoded `false`)
+### Next Up
+1. Decompose `SettingsModal.tsx` - extract Install/Run tabs and command generators
 
-Example: `useGenerationActions.ts` had 6 unused exports, ~320 lines removed (26%).
+### When Touched
+2. Split large hooks when modifying them
+3. Decompose large components when adding features to them
+4. Type `any`-heavy files when working in that area
 
 ---
 
@@ -116,11 +127,12 @@ Example: `useGenerationActions.ts` had 6 unused exports, ~320 lines removed (26%
 
 | Before | After |
 |--------|-------|
-| `ShotImagesEditor.tsx` (3,775 lines) | `ShotImagesEditor/` (32 line index) |
-| `useShots.ts` (2,350 lines) | `hooks/shots/` (10 files) |
-| `MediaLightbox.tsx` (2,617 lines) | `MediaLightbox/` (189 line shell) |
+| `ShotImagesEditor.tsx` (3,775 lines) | 32 line index |
+| `MediaLightbox.tsx` (2,617 lines) | 189 line shell |
 | `PhaseConfigSelectorModal.tsx` (1,973 lines) | 287 lines |
 | `GuidanceVideoStrip.tsx` (1,456 lines) | 683 lines |
 | `ImageGenerationForm/index.tsx` (1,164 lines) | 52 lines |
-| `useGenerationActions.ts` (1,222 lines) | 906 lines (dead code removal) |
+| `useGenerationActions.ts` (1,222 lines) | 906 lines |
 | Double-casts (8 files) | 0 files |
+| `SharedMetadataDetails.tsx` (28 `as any`) | 0 casts (interface extended) |
+| `useGenerations.ts` dead code | Removed `shouldSkipCount` branches |

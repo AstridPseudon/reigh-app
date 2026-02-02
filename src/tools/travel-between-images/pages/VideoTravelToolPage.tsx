@@ -7,6 +7,7 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import {
   useVideoTravelData,
   useHashDeepLink,
+  useUrlSync,
   useSelectedShotResolution,
   useStableSkeletonVisibility,
 } from '../hooks';
@@ -27,7 +28,7 @@ const VideoTravelToolPage: React.FC = () => {
   const shotFromState = location.state?.shotData;
   const isNewlyCreatedShot = location.state?.isNewlyCreated === true;
 
-  const { selectedProjectId, setSelectedProjectId, projects, isLoadingProjects } = useProject();
+  const { selectedProjectId, setSelectedProjectId, projects } = useProject();
   const { currentShotId, setCurrentShotId } = useCurrentShot();
 
   // Get current project's aspect ratio
@@ -65,7 +66,6 @@ const VideoTravelToolPage: React.FC = () => {
     projectUISettings?.shotSortMode || 'ordered'
   );
 
-  // Setter that also persists to project settings
   const setShotSortMode = useCallback((mode: 'ordered' | 'newest' | 'oldest') => {
     setShotSortModeState(mode);
     updateProjectUISettings?.('project', { shotSortMode: mode });
@@ -76,22 +76,10 @@ const VideoTravelToolPage: React.FC = () => {
     if (projectUISettings?.shotSortMode && projectUISettings.shotSortMode !== shotSortMode) {
       setShotSortModeState(projectUISettings.shotSortMode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync on external changes, not local state
   }, [projectUISettings?.shotSortMode]);
 
-  // Derive selectedShot for hash deep link (needed before useSelectedShotResolution)
-  const tempSelectedShot = React.useMemo(() => {
-    if (!currentShotId) return null;
-    if (shots) {
-      const found = shots.find(s => s.id === currentShotId);
-      if (found) return found;
-    }
-    if (shotFromState && shotFromState.id === currentShotId) {
-      return shotFromState;
-    }
-    return null;
-  }, [currentShotId, shots, shotFromState]);
-
-  // Hash-based deep linking
+  // Hash-based deep linking (extracts hash, resolves project, manages grace period)
   const { hashShotId, hashLoadingGrace, initializingFromHash } = useHashDeepLink({
     currentShotId,
     setCurrentShotId,
@@ -101,8 +89,6 @@ const VideoTravelToolPage: React.FC = () => {
     shotsLoading,
     shotFromState,
     isNewlyCreatedShot,
-    viaShotClick,
-    selectedShot: tempSelectedShot,
   });
 
   // Shot resolution (selectedShot, shotToEdit, shouldShowEditor)
@@ -116,6 +102,16 @@ const VideoTravelToolPage: React.FC = () => {
     viaShotClick,
   });
 
+  // URL sync (keeps hash in sync with selection - called after we have selectedShot)
+  useUrlSync({
+    selectedShot,
+    shotsLoading,
+    shots,
+    shotFromState,
+    viaShotClick,
+    setCurrentShotId,
+  });
+
   // Loading state
   const isLoading = shotsLoading || initializingFromHash;
   const showStableSkeleton = useStableSkeletonVisibility(isLoading);
@@ -127,7 +123,7 @@ const VideoTravelToolPage: React.FC = () => {
   }, []);
 
   // Handle no project selected
-  const [showProjectError, setShowProjectError] = React.useState(false);
+  const [showProjectError, setShowProjectError] = useState(false);
   useEffect(() => {
     if (!selectedProjectId) {
       const t = setTimeout(() => setShowProjectError(true), 1500);
@@ -188,7 +184,6 @@ const VideoTravelToolPage: React.FC = () => {
             selectedProjectId={selectedProjectId}
             isNewlyCreatedShot={isNewlyCreatedShot}
             shotFromState={shotFromState}
-            hashLoadingGrace={hashLoadingGrace}
             shots={shots}
             availableLoras={availableLoras}
             shotSortMode={shotSortMode}

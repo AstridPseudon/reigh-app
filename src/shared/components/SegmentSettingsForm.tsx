@@ -306,6 +306,10 @@ interface StructureVideoPreviewProps {
     videoTotalFrames: number;
     videoFps: number;
   };
+  /** Treatment mode determines how frames are sampled:
+   * - 'adjust' (fit to range): samples throughout entire video
+   * - 'clip' (1:1): samples from segment's specific frame range */
+  treatment: 'adjust' | 'clip';
   /** Called when all frames have been captured and displayed */
   onLoadComplete?: () => void;
 }
@@ -322,31 +326,51 @@ interface StructureVideoPreviewProps {
 const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
   videoUrl,
   frameRange,
+  treatment,
   onLoadComplete,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   // Stable refs array - doesn't change between renders
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([null, null, null]);
   const [capturedCount, setCapturedCount] = useState(0);
-  // Track which URL the captures are for - prevents showing stale frames when URL changes
-  const [capturedForUrl, setCapturedForUrl] = useState<string | null>(null);
+  // Track which URL + treatment the captures are for - prevents showing stale frames
+  const [capturedFor, setCapturedFor] = useState<{ url: string; treatment: string } | null>(null);
+  // Track if we're currently extracting (to show loading state without clearing frames)
+  const [isExtracting, setIsExtracting] = useState(false);
 
-  // Calculate the 3 frame positions (start, middle, end of segment's portion)
-  // segmentStart/segmentEnd are already the frame indices in the structure video for this segment
+  // Calculate the 3 frame positions (start, middle, end)
+  // For 'adjust' (fit to range): sample throughout entire video
+  // For 'clip' (1:1): sample from segment's specific frame range
   const framePositions = useMemo(() => {
     const { segmentStart, segmentEnd, videoTotalFrames, videoFps } = frameRange;
 
-    // Use segment frame indices directly (clamped to video bounds)
-    const videoFrameStart = Math.max(0, Math.min(segmentStart, videoTotalFrames - 1));
-    const videoFrameEnd = Math.max(0, Math.min(segmentEnd, videoTotalFrames - 1));
-    const videoFrameMid = Math.floor((videoFrameStart + videoFrameEnd) / 2);
+    let videoFrameStart: number;
+    let videoFrameEnd: number;
+    let videoFrameMid: number;
+
+    if (treatment === 'adjust') {
+      // "Fit to range" mode: the entire video is stretched/compressed to fit the segment
+      // So the preview should show frames from throughout the entire video
+      videoFrameStart = 0;
+      videoFrameEnd = Math.max(0, videoTotalFrames - 1);
+      videoFrameMid = Math.floor(videoFrameEnd / 2);
+    } else {
+      // "1:1 mapping" mode: specific video frames map to specific output frames
+      // Show the actual frame range being used
+      videoFrameStart = Math.max(0, Math.min(segmentStart, videoTotalFrames - 1));
+      videoFrameEnd = Math.max(0, Math.min(segmentEnd, videoTotalFrames - 1));
+      videoFrameMid = Math.floor((videoFrameStart + videoFrameEnd) / 2);
+    }
 
     return [
       { frame: videoFrameStart, time: videoFrameStart / videoFps, label: 'Start' },
       { frame: videoFrameMid, time: videoFrameMid / videoFps, label: 'Mid' },
       { frame: videoFrameEnd, time: videoFrameEnd / videoFps, label: 'End' },
     ];
-  }, [frameRange]);
+  }, [frameRange, treatment]);
+
+  // Track previous URL to detect URL changes without adding capturedFor to effect deps
+  const prevUrlRef = useRef<string | null>(null);
 
   // Single effect to handle entire capture flow with proper cancellation
   useEffect(() => {
@@ -354,8 +378,17 @@ const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
     if (!video) return;
 
     let cancelled = false;
-    setCapturedCount(0);
-    setCapturedForUrl(null); // Clear immediately so stale frames don't show
+
+    // Only clear frames immediately if URL changed (completely different video)
+    // For treatment changes, keep showing old frames until new ones are ready
+    const urlChanged = prevUrlRef.current !== null && prevUrlRef.current !== videoUrl;
+    if (urlChanged) {
+      setCapturedCount(0);
+      setCapturedFor(null);
+    }
+    prevUrlRef.current = videoUrl;
+
+    setIsExtracting(true);
 
     const captureAllFrames = async () => {
       // Wait for video metadata to load
@@ -393,9 +426,9 @@ const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
           }
         }
 
-        // Mark which URL these captures are for (on first frame)
+        // Mark which URL + treatment these captures are for (on first frame)
         if (i === 0) {
-          setCapturedForUrl(videoUrl);
+          setCapturedFor({ url: videoUrl, treatment });
         }
         // Update count to reveal this frame
         setCapturedCount(i + 1);
@@ -403,6 +436,7 @@ const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
 
       // All frames captured - notify parent
       if (!cancelled) {
+        setIsExtracting(false);
         onLoadComplete?.();
       }
     };
@@ -410,26 +444,46 @@ const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
     captureAllFrames().catch(err => {
       if (!cancelled) {
         console.error('[StructureVideoPreview] Failed to capture frames:', err);
+        setIsExtracting(false);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [videoUrl, framePositions, onLoadComplete]);
+  }, [videoUrl, framePositions, treatment, onLoadComplete]);
 
-  // Only show as loaded if captures are for current URL
-  const isFullyLoaded = capturedCount >= 3 && capturedForUrl === videoUrl;
-  // Helper to check if a specific frame should be visible
-  const isFrameCaptured = (i: number) => capturedForUrl === videoUrl && capturedCount > i;
+  // Track last successfully captured frame positions for stable display
+  const lastCapturedPositionsRef = useRef<typeof framePositions | null>(null);
+
+  // Check if current captures match current URL + treatment
+  const capturesMatch = capturedFor?.url === videoUrl && capturedFor?.treatment === treatment;
+  // Only show as fully loaded if captures match current state
+  const isFullyLoaded = capturedCount >= 3 && capturesMatch;
+  // Helper to check if a specific frame should be visible (show old frames while re-extracting)
+  const isFrameCaptured = (i: number) => capturedFor !== null && capturedCount > i;
+
+  // Show frames if we have any captured (even if for different treatment)
+  const hasFramesToShow = capturedFor !== null && capturedCount >= 3;
+
+  // Update last captured positions when fully loaded
+  if (isFullyLoaded) {
+    lastCapturedPositionsRef.current = framePositions;
+  }
+
+  // Use last captured positions for display (prevents text flicker during updates)
+  const displayPositions = lastCapturedPositionsRef.current ?? framePositions;
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2 text-[10px]">
-        {isFullyLoaded ? (
+        {hasFramesToShow ? (
           <>
+            {isExtracting && !isFullyLoaded && (
+              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+            )}
             <span className="text-muted-foreground">
-              Frames {framePositions[0].frame} - {framePositions[2].frame} of structure video
+              Frames {displayPositions[0].frame} - {displayPositions[2].frame} of structure video
             </span>
             <span className="text-primary/70 italic">Make changes on the timeline</span>
           </>
@@ -1291,6 +1345,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                       <StructureVideoPreview
                         videoUrl={structureVideoUrl}
                         frameRange={structureVideoFrameRange}
+                        treatment={settings.structureTreatment ?? structureVideoDefaults?.treatment ?? 'adjust'}
                         onLoadComplete={handleVideoPreviewLoaded}
                       />
                     )}

@@ -35,8 +35,6 @@ interface ShotEditorViewProps {
   isNewlyCreatedShot: boolean;
   /** Shot data from navigation state (for optimistic updates) */
   shotFromState: Shot | undefined;
-  /** Whether we're in hash loading grace period */
-  hashLoadingGrace: boolean;
   /** Array of all shots (for navigation) */
   shots: Shot[] | undefined;
   /** Available LoRAs */
@@ -54,7 +52,6 @@ export function ShotEditorView({
   selectedProjectId,
   isNewlyCreatedShot,
   shotFromState,
-  hashLoadingGrace,
   shots,
   availableLoras,
   shotSortMode = 'ordered',

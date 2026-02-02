@@ -50,45 +50,6 @@ interface GuidanceVideoStripProps {
   siblingRanges?: Array<{ start: number; end: number }>;
 }
 
-/**
- * Calculate which video frame to display based on cursor position and treatment mode
- */
-const calculateAdjustModeFrame = (
-  cursorPixelX: number,
-  containerWidth: number,
-  fullMin: number,
-  fullMax: number,
-  videoMetadata: VideoMetadata | null
-): number => {
-  if (!videoMetadata) return 0;
-
-  const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-  const normalizedX = Math.max(0, Math.min(1, (cursorPixelX - TIMELINE_PADDING_OFFSET) / effectiveWidth));
-  const videoFrame = Math.floor(normalizedX * videoMetadata.total_frames);
-
-  return Math.max(0, Math.min(videoFrame, videoMetadata.total_frames - 1));
-};
-
-const calculateClipModeFrame = (
-  cursorPixelX: number,
-  containerWidth: number,
-  fullMin: number,
-  fullMax: number,
-  videoMetadata: VideoMetadata | null
-): number => {
-  if (!videoMetadata) return 0;
-
-  const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-  const normalizedX = Math.max(0, Math.min(1, (cursorPixelX - TIMELINE_PADDING_OFFSET) / effectiveWidth));
-  const timelineFrame = fullMin + (normalizedX * (fullMax - fullMin));
-  const videoFrame = Math.floor(timelineFrame);
-
-  if (videoFrame < 0) return 0;
-  if (videoFrame >= videoMetadata.total_frames) return videoMetadata.total_frames - 1;
-
-  return videoFrame;
-};
-
 export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   videoUrl,
   videoMetadata,
@@ -239,23 +200,37 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isDragging) return;
     if (!isVideoReady) return;
+    if (!effectiveMetadata) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const cursorX = e.clientX - rect.left;
+    const stripWidth = rect.width;
 
-    // Calculate timeline frame
-    const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-    const normalizedX = Math.max(0, Math.min(1, (cursorX - TIMELINE_PADDING_OFFSET) / effectiveWidth));
-    const timelineFrame = Math.round(fullMin + (normalizedX * (fullMax - fullMin)));
+    // Normalize cursor position within the strip (0 to 1)
+    const normalizedPosition = Math.max(0, Math.min(1, cursorX / stripWidth));
+
+    // Calculate timeline frame based on output range
+    const timelineFrame = Math.round(displayOutputStart + (normalizedPosition * displayOutputFrameCount));
     setCurrentTimelineFrame(timelineFrame);
 
-    // Calculate video frame
-    const videoFrame = treatment === 'adjust'
-      ? calculateAdjustModeFrame(cursorX, containerWidth, fullMin, fullMax, effectiveMetadata)
-      : calculateClipModeFrame(cursorX, containerWidth, fullMin, fullMax, effectiveMetadata);
+    // Calculate video frame based on treatment mode
+    let videoFrame: number;
+    if (treatment === 'adjust') {
+      // For "fit to range": sample throughout the entire source video
+      // Cursor position maps to a proportional frame in the source video
+      videoFrame = Math.floor(normalizedPosition * (effectiveMetadata.total_frames - 1));
+      videoFrame = Math.max(0, Math.min(videoFrame, effectiveMetadata.total_frames - 1));
+    } else {
+      // For "1:1 mapping": video frame N maps to output frame N
+      // Hovering at output frame X shows video frame (sourceStart + X)
+      const outputOffset = Math.floor(normalizedPosition * displayOutputFrameCount);
+      videoFrame = effectiveSourceStart + outputOffset;
+      // Clamp to source range (video may be shorter than output range)
+      videoFrame = Math.max(effectiveSourceStart, Math.min(videoFrame, effectiveSourceEnd - 1));
+    }
 
     hoverPreview.updateHoverPosition(e.clientX, e.clientY - 140, videoFrame);
-  }, [treatment, containerWidth, fullMin, fullMax, effectiveMetadata, hoverPreview.updateHoverPosition, isDragging, isVideoReady]);
+  }, [treatment, effectiveMetadata, displayOutputStart, displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd, sourceFrameCount, hoverPreview.updateHoverPosition, isDragging, isVideoReady]);
 
   // Desktop: click on strip to toggle handles visibility
   const handleStripClick = useCallback((e: React.MouseEvent) => {
@@ -390,20 +365,34 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
       const rect = stripContainerRef.current?.getBoundingClientRect();
       if (rect && effectiveMetadata) {
         const cursorX = touch.clientX - rect.left;
-        const videoFrame = treatment === 'adjust'
-          ? calculateAdjustModeFrame(cursorX, containerWidth, fullMin, fullMax, effectiveMetadata)
-          : calculateClipModeFrame(cursorX, containerWidth, fullMin, fullMax, effectiveMetadata);
+        const stripWidth = rect.width;
 
-        const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-        const normalizedX = Math.max(0, Math.min(1, (cursorX - TIMELINE_PADDING_OFFSET) / effectiveWidth));
-        const timelineFrame = Math.round(fullMin + (normalizedX * (fullMax - fullMin)));
+        // Normalize cursor position within the strip (0 to 1)
+        const normalizedPosition = Math.max(0, Math.min(1, cursorX / stripWidth));
 
+        // Calculate timeline frame based on output range
+        const timelineFrame = Math.round(displayOutputStart + (normalizedPosition * displayOutputFrameCount));
         setCurrentTimelineFrame(timelineFrame);
+
+        // Calculate video frame based on treatment mode
+        let videoFrame: number;
+        if (treatment === 'adjust') {
+          // For "fit to range": sample throughout the entire source video
+          videoFrame = Math.floor(normalizedPosition * (effectiveMetadata.total_frames - 1));
+          videoFrame = Math.max(0, Math.min(videoFrame, effectiveMetadata.total_frames - 1));
+        } else {
+          // For "1:1 mapping": video frame N maps to output frame N
+          const outputOffset = Math.floor(normalizedPosition * displayOutputFrameCount);
+          videoFrame = effectiveSourceStart + outputOffset;
+          // Clamp to source range (video may be shorter than output range)
+          videoFrame = Math.max(effectiveSourceStart, Math.min(videoFrame, effectiveSourceEnd - 1));
+        }
+
         hoverPreview.updateHoverPosition(touch.clientX, touch.clientY - 140, videoFrame);
         tapPreview.show();
       }
     }
-  }, [enableTapToSelect, selectedEndpoint, handleStripTapToPlace, isTablet, isStripActive, treatment, containerWidth, fullMin, fullMax, effectiveMetadata, hoverPreview.updateHoverPosition, tapPreview.show, tapPreview.hide]);
+  }, [enableTapToSelect, selectedEndpoint, handleStripTapToPlace, isTablet, isStripActive, treatment, effectiveMetadata, displayOutputStart, displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd, hoverPreview.updateHoverPosition, tapPreview.show, tapPreview.hide]);
 
   // Close hover state when treatment changes
   useEffect(() => {

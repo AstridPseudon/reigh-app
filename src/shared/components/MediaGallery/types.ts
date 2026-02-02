@@ -9,6 +9,35 @@ export interface MetadataLora {
   previewImageUrl?: string;
 }
 
+/** Orchestrator details nested within originalParams */
+interface OrchestratorDetails {
+  prompt?: string;
+  negative_prompt?: string;
+  model?: string;
+  seed?: number;
+  resolution?: string;
+  additional_loras?: Record<string, number>;
+}
+
+/** Original params from task creation, nested within metadata */
+interface OriginalParams {
+  orchestrator_details?: OrchestratorDetails;
+  model?: string;
+  steps?: number;
+  hires_scale?: number;
+  hires_steps?: number;
+  hires_denoise?: number;
+  lightning_lora_strength_phase_1?: number;
+  lightning_lora_strength_phase_2?: number;
+  qwen_endpoint?: string;
+  image?: string;
+  style_reference_image?: string;
+  style_reference_strength?: number;
+  subject_strength?: number;
+  scene_reference_strength?: number;
+  resolution?: string;
+}
+
 export interface DisplayableMetadata extends Record<string, any> {
   prompt?: string;
   imagesPerPrompt?: number;
@@ -28,6 +57,23 @@ export interface DisplayableMetadata extends Record<string, any> {
   original_frame_timestamp?: number;
   source_frames?: number;
   original_duration?: number;
+  // Properties accessed in SharedMetadataDetails
+  originalParams?: OriginalParams;
+  model?: string;
+  negative_prompt?: string;
+  resolution?: string;
+  steps?: number;
+  hires_scale?: number;
+  hires_steps?: number;
+  hires_denoise?: number;
+  lightning_lora_strength_phase_1?: number;
+  lightning_lora_strength_phase_2?: number;
+  qwen_endpoint?: string;
+  image?: string;
+  style_reference_image?: string;
+  style_reference_strength?: number;
+  subject_strength?: number;
+  scene_reference_strength?: number;
 }
 
 export interface GeneratedImageWithMetadata {

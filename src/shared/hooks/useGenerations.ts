@@ -298,16 +298,11 @@ export async function fetchGenerations(
   // Apply common filters (toolType, mediaType, starred, edits, search, shot)
   countQuery = applyGenerationFilters(countQuery, filters);
 
-  let totalCount = 0;
-  const shouldSkipCount = false;
-
-  if (!shouldSkipCount) {
-    const { count, error: countError } = await countQuery;
-    if (countError) {
-      throw countError;
-    }
-    totalCount = count || 0;
+  const { count, error: countError } = await countQuery;
+  if (countError) {
+    throw countError;
   }
+  const totalCount = count || 0;
 
   // 🚀 PERFORMANCE FIX: Optimize query - select only needed fields
   let dataQuery = supabase
@@ -346,8 +341,6 @@ export async function fetchGenerations(
   // Apply common filters (toolType, mediaType, starred, edits, search, shot)
   dataQuery = applyGenerationFilters(dataQuery, filters);
 
-  // Use limit+1 pattern for fast pagination when count is skipped
-  const fetchLimit = shouldSkipCount ? limit + 1 : limit;
 
   // Determine sort order
   const sort = filters?.sort || 'newest';
@@ -356,7 +349,7 @@ export async function fetchGenerations(
   // Execute query with standard server-side pagination
   const { data, error } = await dataQuery
     .order('created_at', { ascending })
-    .range(offset, offset + fetchLimit - 1);
+    .range(offset, offset + limit - 1);
 
   if (error) {
     throw error;
@@ -367,20 +360,8 @@ export async function fetchGenerations(
   }
 
 
-  // Calculate hasMore and process results based on count strategy
-  let finalData = data || [];
-  let hasMore = false;
-
-  if (shouldSkipCount) {
-    // Fast pagination: detect hasMore by checking if we got limit+1 items
-    hasMore = finalData.length > limit;
-    if (hasMore) {
-      finalData = finalData.slice(0, limit); // Remove the extra item
-    }
-    totalCount = offset + finalData.length + (hasMore ? 1 : 0); // Approximate total
-  } else {
-    hasMore = (offset + limit) < totalCount;
-  }
+  const finalData = data || [];
+  const hasMore = (offset + limit) < totalCount;
 
   // Badge data (derivedCount, hasUnviewedVariants, unviewedVariantCount) is now loaded
   // lazily via useVariantBadges hook to avoid blocking gallery display

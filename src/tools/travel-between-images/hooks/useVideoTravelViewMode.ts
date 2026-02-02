@@ -102,24 +102,10 @@ export const useVideoTravelViewMode = ({
   // =============================================================================
   const [showVideosViewRaw, setShowVideosViewRaw] = useState<boolean>(false);
   
-  // Wrapper with debug logging
-  const setShowVideosView = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
-    console.log('[ViewToggleDebug] setShowVideosView called', { 
-      newValue: typeof value === 'function' ? 'function' : value,
-      stack: new Error().stack?.split('\n').slice(1, 4).join(' <- '),
-    });
-    setShowVideosViewRaw(value);
-  }, []);
-  
   const showVideosView = showVideosViewRaw;
-  
+
   // Track when we've just switched to videos view to prevent empty state flash
   const [videosViewJustEnabled, setVideosViewJustEnabled] = useState<boolean>(false);
-  
-  // Debug: log whenever showVideosView actually changes
-  useEffect(() => {
-    console.log('[ViewToggleDebug] showVideosView STATE CHANGED to:', showVideosView);
-  }, [showVideosView]);
   
   // =============================================================================
   // VIDEO GALLERY FILTER STATE
@@ -193,10 +179,9 @@ export const useVideoTravelViewMode = ({
     if (isActualNavigation && !hasHash) {
       // Always scroll to top when clicking logo/nav to tool root
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      
+
       // Reset videos view to shots if currently in videos
       if (showVideosViewRaw) {
-        console.log('[ViewToggleDebug] Resetting to Shots view (navigated to tool root)');
         setShowVideosViewRaw(false);
       }
     }
@@ -216,16 +201,8 @@ export const useVideoTravelViewMode = ({
   const setViewMode = useCallback((mode: 'shots' | 'videos', opts?: { blurTarget?: HTMLElement | null }) => {
     const willShowVideos = mode === 'videos';
 
-    console.log('[ViewToggleDebug] setViewMode called', {
-      requestedMode: mode,
-      currentShowVideosView: showVideosView,
-      willShowVideos,
-      isNoOp: willShowVideos === showVideosView,
-      timestamp: Date.now()
-    });
-
     // Set the view mode
-    setShowVideosView(willShowVideos);
+    setShowVideosViewRaw(willShowVideos);
 
     // Clear search state when switching views
     setIsSearchOpen(false);
@@ -233,7 +210,6 @@ export const useVideoTravelViewMode = ({
     if (willShowVideos) {
       // Prevent empty state flash while the gallery query spins up
       setVideosViewJustEnabled(true);
-      console.log('[VideoSkeletonDebug] Setting videosViewJustEnabled=true to show skeletons during transition');
 
       // Reset video filters when entering videos view
       setVideoPage(1);
@@ -249,7 +225,7 @@ export const useVideoTravelViewMode = ({
     }
 
     opts?.blurTarget?.blur?.();
-  }, [showVideosView, setShowVideosView]);
+  }, []);
 
   // Toggle helper for callers that want toggle semantics
   const handleToggleVideosView = useCallback((e?: React.MouseEvent<HTMLElement>) => {

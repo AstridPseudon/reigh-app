@@ -77,33 +77,33 @@ export const SharedMetadataDetails: React.FC<SharedMetadataDetailsProps> = ({
   }[variant];
 
   // Extract data from metadata
-  const prompt = metadata.prompt || 
-                 (metadata as any).originalParams?.orchestrator_details?.prompt;
-  
-  const negativePrompt = (metadata as any).originalParams?.orchestrator_details?.negative_prompt || 
+  const prompt = metadata.prompt ||
+                 metadata.originalParams?.orchestrator_details?.prompt;
+
+  const negativePrompt = metadata.originalParams?.orchestrator_details?.negative_prompt ||
                         metadata.negative_prompt;
-  
-  const model = metadata.model || (metadata as any).originalParams?.model || (metadata as any).originalParams?.orchestrator_details?.model;
-  const seed = metadata.seed || (metadata as any).originalParams?.orchestrator_details?.seed;
-  const resolution = (metadata as any).originalParams?.orchestrator_details?.resolution || metadata.resolution;
+
+  const model = metadata.model || metadata.originalParams?.model || metadata.originalParams?.orchestrator_details?.model;
+  const seed = metadata.seed || metadata.originalParams?.orchestrator_details?.seed;
+  const resolution = metadata.originalParams?.orchestrator_details?.resolution || metadata.resolution;
   const dimensions = metadata.width && metadata.height ? `${metadata.width}×${metadata.height}` : resolution;
 
   // Additional generation settings
-  const steps = (metadata as any).steps || (metadata as any).originalParams?.steps;
-  const hiresScale = (metadata as any).hires_scale || (metadata as any).originalParams?.hires_scale;
-  const hiresSteps = (metadata as any).hires_steps || (metadata as any).originalParams?.hires_steps;
-  const hiresDenoise = (metadata as any).hires_denoise || (metadata as any).originalParams?.hires_denoise;
-  const lightningPhase1 = (metadata as any).lightning_lora_strength_phase_1 || (metadata as any).originalParams?.lightning_lora_strength_phase_1;
-  const lightningPhase2 = (metadata as any).lightning_lora_strength_phase_2 || (metadata as any).originalParams?.lightning_lora_strength_phase_2;
+  const steps = metadata.steps || metadata.originalParams?.steps;
+  const hiresScale = metadata.hires_scale || metadata.originalParams?.hires_scale;
+  const hiresSteps = metadata.hires_steps || metadata.originalParams?.hires_steps;
+  const hiresDenoise = metadata.hires_denoise || metadata.originalParams?.hires_denoise;
+  const lightningPhase1 = metadata.lightning_lora_strength_phase_1 || metadata.originalParams?.lightning_lora_strength_phase_1;
+  const lightningPhase2 = metadata.lightning_lora_strength_phase_2 || metadata.originalParams?.lightning_lora_strength_phase_2;
 
   // Get LoRAs from multiple possible locations
-  const additionalLoras = (metadata as any).originalParams?.orchestrator_details?.additional_loras;
+  const additionalLoras = metadata.originalParams?.orchestrator_details?.additional_loras;
   const activeLoras = metadata.activeLoras;
 
   // Determine which LoRAs to display - use getDisplayNameFromUrl for consistent naming
   const lorasToDisplay = activeLoras && activeLoras.length > 0
     ? activeLoras.map(lora => ({
-        name: getDisplayNameFromUrl((lora as any).path, undefined, lora.name || lora.id) || 'Unknown',
+        name: getDisplayNameFromUrl(lora.path, undefined, lora.name || lora.id) || 'Unknown',
         strength: `${lora.strength}%`
       }))
     : additionalLoras && Object.keys(additionalLoras).length > 0
@@ -120,11 +120,11 @@ export const SharedMetadataDetails: React.FC<SharedMetadataDetailsProps> = ({
 
   // Check if this is a qwen_image_edit task with source image
   // Check both top-level (for MediaGalleryItem) and originalParams (for TasksPane)
-  const isQwenImageEdit = (metadata as any).tool_type === 'qwen_image_edit' || 
-                          (metadata as any).qwen_endpoint === 'qwen-image-edit' ||
-                          (metadata as any).originalParams?.qwen_endpoint === 'qwen-image-edit';
-  const qwenSourceImage = (metadata as any).image || 
-                          (metadata as any).originalParams?.image;
+  const isQwenImageEdit = metadata.tool_type === 'qwen_image_edit' ||
+                          metadata.qwen_endpoint === 'qwen-image-edit' ||
+                          metadata.originalParams?.qwen_endpoint === 'qwen-image-edit';
+  const qwenSourceImage = metadata.image ||
+                          metadata.originalParams?.image;
 
   return (
     <div className={`space-y-3 p-3 bg-muted/30 rounded-lg border ${variant === 'panel' ? '' : 'w-[360px]'}`}>
@@ -167,25 +167,25 @@ export const SharedMetadataDetails: React.FC<SharedMetadataDetailsProps> = ({
         // Check multiple possible locations for style reference data
         // metadata.originalParams is the task params (when passed from TaskItem)
         // metadata itself might have the params directly (from MediaGallery generations.params)
-        const styleImage = (metadata as any).style_reference_image || 
-                          (metadata as any).originalParams?.style_reference_image;
-        const styleStrength = (metadata as any).style_reference_strength ?? 
-                             (metadata as any).originalParams?.style_reference_strength;
-        const subjectStrength = (metadata as any).subject_strength ?? 
-                               (metadata as any).originalParams?.subject_strength;
-        const sceneStrength = (metadata as any).scene_reference_strength ?? 
-                             (metadata as any).originalParams?.scene_reference_strength;
-        
+        const styleImage = metadata.style_reference_image ||
+                          metadata.originalParams?.style_reference_image;
+        const styleStrength = metadata.style_reference_strength ??
+                             metadata.originalParams?.style_reference_strength;
+        const subjectStrength = metadata.subject_strength ??
+                               metadata.originalParams?.subject_strength;
+        const sceneStrength = metadata.scene_reference_strength ??
+                             metadata.originalParams?.scene_reference_strength;
+
         const hasStyleReference = styleImage && styleImage !== '';
-        
+
         if (!hasStyleReference) return null;
-        
+
         // Calculate aspect ratio from dimensions - check multiple sources
         let aspectRatio = 1; // Default to square
-        
+
         // Try to get resolution from metadata.resolution field first (for image generation tasks)
-        const metadataResolution = (metadata as any).resolution || 
-                                   (metadata as any).originalParams?.resolution;
+        const metadataResolution = metadata.resolution ||
+                                   metadata.originalParams?.resolution;
         
         if (metadata.width && metadata.height) {
           aspectRatio = metadata.width / metadata.height;
