@@ -6,7 +6,7 @@ import ShotListDisplay from '../components/ShotListDisplay';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
-import { useGenerations, useDeleteGeneration } from '@/shared/hooks/useGenerations';
+import { useProjectGenerations, useDeleteGeneration } from '@/shared/hooks/useProjectGenerations';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { handleError } from '@/shared/lib/errorHandler';
 import {
@@ -166,7 +166,7 @@ export function ShotListView({
     data: videosData,
     isLoading: videosLoading,
     isFetching: videosFetching,
-  } = useGenerations(
+  } = useProjectGenerations(
     selectedProjectId,
     videoPage,
     itemsPerPage,

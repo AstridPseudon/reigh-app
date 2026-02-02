@@ -1,4 +1,41 @@
-import { useInfiniteQuery, useQuery, useQueryClient, UseInfiniteQueryResult, UseQueryResult } from '@tanstack/react-query';
+/**
+ * Shot-Specific Image Queries (useShotImages)
+ * ============================================
+ *
+ * This module provides hooks for querying images within a SPECIFIC SHOT.
+ * Use these hooks when working with the timeline, shot editor, or any shot-scoped view.
+ *
+ * ## When to Use
+ * - Displaying images in a shot's timeline or image grid
+ * - You need timeline_frame positioning data
+ * - You need pair_prompt or other shot-specific metadata
+ * - Working in ShotImageManager, Timeline, or shot editors
+ *
+ * ## When NOT to Use
+ * - Project-wide gallery views → use `useProjectGenerations` from `useGenerations.ts`
+ * - Filtering across all shots → use `useProjectGenerations` with shotId filter
+ * - Page-level state management → use `useGalleryPageState.ts`
+ *
+ * ## Key Exports
+ * - `useShotImages(shotId)` - All images in a shot (the base query)
+ *   (alias: `useAllShotGenerations` for backwards compatibility)
+ * - `useTimelineImages(shotId)` - Positioned, non-video images only
+ * - `useUnpositionedImages(shotId)` - Unpositioned images only
+ * - `useVideoOutputs(shotId)` - Video generations only
+ *
+ * ## Data Source
+ * Queries `shot_generations` JOIN `generations` (shot-scoped, includes positioning data)
+ *
+ * ## Data Shape
+ * Returns `GenerationRow` which includes:
+ * - `timeline_frame: number | null` - Position on timeline (null if unpositioned)
+ * - `shotImageEntryId: string` - The shot_generations.id (needed for mutations)
+ * - `metadata: { pair_prompt, enhanced_prompt, ... }` - Shot-specific metadata
+ *
+ * @module useShotImages
+ */
+
+import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { GenerationRow, TimelineGenerationRow, Shot } from '@/types/shots';
@@ -7,69 +44,6 @@ import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/li
 import React from 'react';
 
 import { mapShotGenerationToRow } from '@/shared/hooks/useShots';
-
-interface ShotGenerationsPage {
-  items: GenerationRow[];
-  nextCursor: number | null;
-}
-
-const PAGE_SIZE = 100; // Reasonable page size for UI performance
-
-// Hook for paginated shot generations
-export const useShotGenerations = (
-  shotId: string | null
-): UseInfiniteQueryResult<ShotGenerationsPage> => {
-  return useInfiniteQuery({
-    queryKey: ['unified-generations', 'shot', shotId],
-    enabled: !!shotId,
-    initialPageParam: 0,
-    queryFn: async ({ pageParam, signal }: { pageParam: number; signal?: AbortSignal }) => {
-      // Don't throw immediately on abort - let the fetch fail naturally
-
-      // Fetch with primary variant for correct display URLs
-      const { data, error } = await supabase
-        .from('shot_generations')
-        .select(`
-          *,
-          generation:generations!shot_generations_generation_id_generations_id_fk(
-            *,
-            primary_variant:generation_variants!generations_primary_variant_id_fkey (
-              location,
-              thumbnail_url
-            )
-          )
-        `)
-        .eq('shot_id', shotId!)
-        .order('timeline_frame', { ascending: true })
-        .range(pageParam, pageParam + PAGE_SIZE - 1)
-        .abortSignal(signal);
-
-      if (error) {
-        // Handle 400 errors gracefully
-        if ((error as any).code === 'PGRST116' || error.message?.includes('Invalid')) {
-          console.warn('[useShotGenerations] Invalid shot ID or query parameters:', { shotId, error });
-          return { items: [], nextCursor: null };
-        }
-        throw error;
-      }
-
-      // Transform using shared mapper to ensure consistency
-      const items: GenerationRow[] = (data || [])
-        .map(mapShotGenerationToRow)
-        .filter(Boolean) as GenerationRow[];
-
-      return {
-        items,
-        nextCursor: data?.length === PAGE_SIZE ? pageParam + PAGE_SIZE : null,
-      };
-    },
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    // Use realtimeBacked preset - data freshness from realtime + mutations
-    ...QUERY_PRESETS.realtimeBacked,
-    staleTime: 0, // CRITICAL: Always refetch from DB when opening shot, even if primed
-    retryDelay: STANDARD_RETRY_DELAY,
-  });
-};
 
 // Hook for getting unpositioned count
 export const useUnpositionedGenerationsCount = (
@@ -105,7 +79,7 @@ export const useUnpositionedGenerationsCount = (
         .is('timeline_frame', null);
 
       const nonVideoCount = (unpositioned || []).filter(
-        sg => !(sg.generation as any)?.type?.includes('video')
+        shotGen => !(shotGen.generation as any)?.type?.includes('video')
       ).length;
 
       return nonVideoCount;
@@ -144,11 +118,11 @@ export const useUnpositionedGenerationsCount = (
  * 
  * @example
  * ```typescript
- * // General use
- * const { data: allImages } = useAllShotGenerations(shotId);
- * 
+ * // General use (preferred new name)
+ * const { data: allImages } = useShotImages(shotId);
+ *
  * // With refetch disabled during sensitive operations
- * const { data: images } = useAllShotGenerations(shotId, { disableRefetch: isDragging });
+ * const { data: images } = useShotImages(shotId, { disableRefetch: isDragging });
  * ```
  */
 export const useAllShotGenerations = (
@@ -295,23 +269,23 @@ export const useAllShotGenerations = (
 /**
  * Specialized hook for timeline-specific shot generations
  * Returns only positioned images with metadata (required for pair prompts)
- * 
- * This is a typed wrapper around useAllShotGenerations that:
+ *
+ * @deprecated Use `useTimelineImages` instead - it has the same functionality
+ * with a clearer name. This export is kept for backwards compatibility.
+ *
+ * This is a typed wrapper around useShotImages that:
  * 1. Filters to only positioned images (timeline_frame != null)
  * 2. Filters to only images with metadata (required for pair prompts)
  * 3. Returns TimelineGenerationRow type (guarantees metadata exists)
- * 
+ *
  * @param shotId - The shot ID to load generations for
  * @param options - Query options (disableRefetch, etc.)
  * @returns Query result with TimelineGenerationRow[] data
- * 
+ *
  * @example
  * ```typescript
- * const { data: timelineImages } = useTimelineShotGenerations(shotId);
- * // TypeScript knows timelineImages have metadata
- * timelineImages?.forEach(img => {
- *   console.log(img.metadata.pair_prompt); // No type error!
- * });
+ * // Preferred: use useTimelineImages instead
+ * const { data: timelineImages } = useTimelineImages(shotId);
  * ```
  */
 export const useTimelineShotGenerations = (
@@ -550,3 +524,32 @@ export const usePrimeShotGenerationsCache = (
     });
   }, [shotId, contextImages, queryClient]);
 };
+
+// ============================================================================
+// NEW NAMES (preferred) - Use these in new code
+// ============================================================================
+
+/**
+ * All images in a shot (positioned + unpositioned).
+ * This is the preferred name - use this in new code.
+ * @see useAllShotGenerations for documentation
+ */
+export const useShotImages = useAllShotGenerations;
+
+/**
+ * Primes the shot images cache with data from context.
+ * This is the preferred name - use this in new code.
+ * @see usePrimeShotGenerationsCache for documentation
+ */
+export const usePrimeShotImagesCache = usePrimeShotGenerationsCache;
+
+// ============================================================================
+// BACKWARDS COMPATIBILITY ALIASES
+// These are deprecated - use the new names above in new code
+// ============================================================================
+
+/** @deprecated Use `useShotImages` instead */
+// useAllShotGenerations is exported above as the implementation
+
+/** @deprecated Use `useTimelineImages` instead (same function, clearer name) */
+export const useTimelineShotGenerations_DEPRECATED = useTimelineShotGenerations;

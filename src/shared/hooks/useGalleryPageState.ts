@@ -1,7 +1,39 @@
+/**
+ * Gallery Page State & Orchestration (useGalleryPageState)
+ * =========================================================
+ *
+ * This is a PAGE-LEVEL CONTROLLER, not a data fetching hook.
+ * It manages filter state, pagination, and action handlers for gallery pages.
+ *
+ * ## When to Use
+ * - Building a tool page with the standard GenerationsPane
+ * - You need filter state (shot filter, starred, search) with persistence
+ * - You need "add to shot" or "delete" action handlers
+ * - You want automatic filter persistence per-shot
+ *
+ * ## When NOT to Use
+ * - You just need to fetch generations → use `useProjectGenerations` directly
+ * - You're inside a shot editor → use hooks from `useShotImages.ts`
+ * - You're building a custom gallery without standard filters
+ *
+ * ## What This Hook Provides
+ * - **State**: selectedShotFilter, excludePositioned, searchTerm, starredOnly, page
+ * - **Data**: paginatedData, totalCount, expectedItemCount (for skeletons)
+ * - **Handlers**: handleAddToShot, handleDeleteGeneration, handleToggleStar
+ * - **Loading**: isLoading, isFetching, isError
+ *
+ * ## Internal Dependencies
+ * - Calls `useProjectGenerations` for data fetching
+ * - Calls `useShots` for shot list and counts
+ * - Calls `useToolSettings` for filter persistence
+ *
+ * @module useGalleryPageState
+ */
+
 import { useState, useEffect, useMemo, useContext, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { useGenerations, useDeleteGeneration, useToggleGenerationStar, type GenerationsPaginatedResponse } from '@/shared/hooks/useGenerations';
+import { useProjectGenerations, useDeleteGeneration, useToggleGenerationStar, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/useShots';
 import { LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
@@ -10,7 +42,8 @@ import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
-import { GenerationsPaneSettings } from '@/tools/travel-between-images/components/ShotEditor/state/types';
+import { GenerationsPaneSettings } from '@/shared/types/steerableMotion';
+import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants';
 
 interface UseGenerationsPageLogicOptions {
   itemsPerPage?: number;
@@ -24,7 +57,7 @@ interface UseGenerationsPageLogicOptions {
  * Tracks both the current filter and whether it was explicitly set by the user.
  */
 interface ShotFilterState {
-  filter: string; // 'all' or the shotId
+  filter: string; // SHOT_FILTER.ALL, SHOT_FILTER.NO_SHOT, or a shotId UUID
   isUserOverride: boolean; // true if user explicitly set this, false if it's the computed default
 }
 
@@ -51,7 +84,7 @@ export function useGenerationsPageLogic({
   const [page, setPage] = useState(1);
   
   // Use regular state for the current filter values
-  const [selectedShotFilter, setSelectedShotFilter] = useState<string>('all');
+  const [selectedShotFilter, setSelectedShotFilter] = useState<string>(SHOT_FILTER.ALL);
   const [excludePositioned, setExcludePositioned] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -104,7 +137,7 @@ export function useGenerationsPageLogic({
   }, []);
   
   // Track the filter that was applied for the last shot (to preserve "all" during navigation)
-  const lastAppliedFilterRef = useRef<string>('all');
+  const lastAppliedFilterRef = useRef<string>(SHOT_FILTER.ALL);
   
   // Track the last known unpositioned count for each shot (to detect when images are added/removed)
   const lastUnpositionedCountsRef = useRef<Map<string, number>>(new Map());
@@ -123,9 +156,9 @@ export function useGenerationsPageLogic({
     // No existing state - compute default from pre-computed stats
     const shot = shotsData?.find(s => s.id === shotId);
     const hasUnpositioned = shot?.hasUnpositionedImages ?? false;
-    
+
     // Default: show shot's images if it has unpositioned ones, otherwise show all
-    const defaultFilter = hasUnpositioned ? shotId : 'all';
+    const defaultFilter = hasUnpositioned ? shotId : SHOT_FILTER.ALL;
     
     return {
       filter: defaultFilter,
@@ -224,7 +257,7 @@ export function useGenerationsPageLogic({
     if (!currentShotId) {
       // No shot selected - check for user override, otherwise default to 'no-shot'
       const noShotViewState = filterStateMapRef.current.get(NO_SHOT_VIEW_KEY);
-      
+
       let filterToApply: string;
       if (noShotViewState?.isUserOverride) {
         // User has explicitly changed the filter in the overall view - respect it
@@ -232,7 +265,7 @@ export function useGenerationsPageLogic({
         console.log('[StableFilter] No current shot, using user override:', filterToApply);
       } else {
         // Default to 'no-shot' (items without shots) for the overall view
-        filterToApply = 'no-shot';
+        filterToApply = SHOT_FILTER.NO_SHOT;
         console.log('[StableFilter] No current shot, defaulting to "no-shot"');
       }
       
@@ -252,7 +285,7 @@ export function useGenerationsPageLogic({
     // This prevents the dropdown from briefly flashing to the specific shot
     // when shotsData stats are stale.
     const isNavigatingBetweenShots = previousShotId !== null && currentShotId !== null;
-    const previousWasAll = lastAppliedFilterRef.current === 'all';
+    const previousWasAll = lastAppliedFilterRef.current === SHOT_FILTER.ALL;
     
     let filterToApply = filterState.filter;
     
@@ -262,14 +295,14 @@ export function useGenerationsPageLogic({
       console.log('[StableFilter] Preserving "all" filter during shot-to-shot navigation:', {
         from: previousShotId?.substring(0, 8),
         to: currentShotId?.substring(0, 8),
-        computedDefault: filterState.filter === 'all' ? 'all' : filterState.filter?.substring(0, 8),
+        computedDefault: filterState.filter === SHOT_FILTER.ALL ? 'all' : filterState.filter?.substring(0, 8),
         preserving: 'all'
       });
-      filterToApply = 'all';
+      filterToApply = SHOT_FILTER.ALL;
     } else {
       console.log('[StableFilter] Applying filter for shot:', {
         shotId: currentShotId?.substring(0, 8),
-        filter: filterState.filter === 'all' ? 'all' : filterState.filter?.substring(0, 8),
+        filter: filterState.filter === SHOT_FILTER.ALL ? 'all' : filterState.filter?.substring(0, 8),
         isUserOverride: filterState.isUserOverride
       });
     }
@@ -322,7 +355,7 @@ export function useGenerationsPageLogic({
         
         // Only update if NOT a user override
         if (!existingState?.isUserOverride) {
-          const newDefault = currentCount > 0 ? shot.id : 'all';
+          const newDefault = currentCount > 0 ? shot.id : SHOT_FILTER.ALL;
           
           console.log('[StableFilter] Unpositioned count changed, updating default:', {
             shotId: shot.id?.substring(0, 8),
@@ -371,7 +404,7 @@ export function useGenerationsPageLogic({
       
       console.log('[StableFilter] User changed filter (override):', {
         shotId: currentShotId?.substring(0, 8),
-        newFilter: newShotFilter === 'all' ? 'all' : newShotFilter?.substring(0, 8)
+        newFilter: newShotFilter === SHOT_FILTER.ALL ? 'all' : newShotFilter?.substring(0, 8)
       });
     } else {
       // No current shot - track override for the "overall view" (e.g., /tools/travel-between-images)
@@ -379,13 +412,13 @@ export function useGenerationsPageLogic({
       filterStateMapRef.current.set(NO_SHOT_VIEW_KEY, { filter: newShotFilter, isUserOverride: true });
       
       console.log('[StableFilter] User changed filter in overall view (override):', {
-        newFilter: newShotFilter === 'all' ? 'all' : (newShotFilter === 'no-shot' ? 'no-shot' : newShotFilter?.substring(0, 8))
+        newFilter: newShotFilter === SHOT_FILTER.ALL ? 'all' : (newShotFilter === SHOT_FILTER.NO_SHOT ? 'no-shot' : newShotFilter?.substring(0, 8))
       });
     }
-    
+
     // Also track user override keyed by the selected shot itself (for query fallback to check)
     // This ensures if user explicitly selects an empty shot, we don't auto-switch away
-    if (newShotFilter !== 'all' && newShotFilter !== 'no-shot') {
+    if (!isSpecialFilter(newShotFilter)) {
       filterStateMapRef.current.set(newShotFilter, { filter: newShotFilter, isUserOverride: true });
     }
   }, [currentShotId, excludePositioned, setFilterStateForShot, updateShotSettings]);
@@ -426,9 +459,9 @@ export function useGenerationsPageLogic({
     const computedFilters = {
     mediaType,
     toolType,
-    shotId: selectedShotFilter === 'all' ? undefined : selectedShotFilter,
+    shotId: selectedShotFilter === SHOT_FILTER.ALL ? undefined : selectedShotFilter,
     // Only apply excludePositioned for specific shots (not 'all' or 'no-shot')
-    excludePositioned: (selectedShotFilter !== 'all' && selectedShotFilter !== 'no-shot') ? excludePositioned : undefined,
+    excludePositioned: !isSpecialFilter(selectedShotFilter) ? excludePositioned : undefined,
     starredOnly,
     searchTerm: searchTerm.trim() || undefined
     };
@@ -445,10 +478,10 @@ export function useGenerationsPageLogic({
     return computedFilters;
   }, [mediaType, toolType, selectedShotFilter, excludePositioned, starredOnly, searchTerm]);
 
-  const generationsQuery = useGenerations(
-    shouldLoadData ? selectedProjectId : null, 
-    page, 
-    itemsPerPage, 
+  const generationsQuery = useProjectGenerations(
+    shouldLoadData ? selectedProjectId : null,
+    page,
+    itemsPerPage,
     shouldLoadData,
     filters
   );
@@ -481,7 +514,7 @@ export function useGenerationsPageLogic({
     });
     
     // [SkeletonCountDebug] When data arrives, log what we got vs what we expected
-    if (!isLoading && generationsResponse?.items && selectedShotFilter !== 'all') {
+    if (!isLoading && generationsResponse?.items && selectedShotFilter !== SHOT_FILTER.ALL) {
       const shot = shotsData?.find(s => s.id === selectedShotFilter);
       console.log('[SkeletonCountDebug] 🔍 Data comparison:', {
         shotId: selectedShotFilter?.substring(0, 8),
@@ -534,10 +567,10 @@ export function useGenerationsPageLogic({
     }
     
     // Fall back to pre-computed stats from shotsData
-    if (selectedShotFilter === 'all') {
+    if (selectedShotFilter === SHOT_FILTER.ALL) {
       return Math.min(allImagesCount ?? 12, 60);
     }
-    if (selectedShotFilter === 'no-shot') {
+    if (selectedShotFilter === SHOT_FILTER.NO_SHOT) {
       return Math.min(noShotImagesCount ?? 12, 60);
     }
     const shot = shotsData?.find(s => s.id === selectedShotFilter);
@@ -585,7 +618,7 @@ export function useGenerationsPageLogic({
 
     // Only check when query has completed and we're filtering by a specific shot
     // IMPORTANT: Also check that generationsResponse exists - undefined means query hasn't run yet
-    if (isLoading || isFetching || selectedShotFilter === 'all' || page !== 1 || generationsResponse === undefined) {
+    if (isLoading || isFetching || selectedShotFilter === SHOT_FILTER.ALL || page !== 1 || generationsResponse === undefined) {
       console.log('[StableFilter] Query fallback - skipping (not ready or already all)', {
         isLoading, isFetching, selectedShotFilter, page, hasResponse: generationsResponse !== undefined
       });
@@ -624,11 +657,11 @@ export function useGenerationsPageLogic({
       
       // Update the filter state map (NOT as user override - this is auto-fallback)
       if (currentShotId) {
-        setFilterStateForShot(currentShotId, 'all', false);
+        setFilterStateForShot(currentShotId, SHOT_FILTER.ALL, false);
       }
-      
-      setSelectedShotFilter('all');
-      lastAppliedFilterRef.current = 'all';
+
+      setSelectedShotFilter(SHOT_FILTER.ALL);
+      lastAppliedFilterRef.current = SHOT_FILTER.ALL;
     } else {
       console.log('[StableFilter] Query fallback - has results, keeping filter:', {
         filter: selectedShotFilter,
@@ -845,7 +878,7 @@ export function useGenerationsPageLogic({
     
     // For skeleton display when filter changes
     expectedItemCount, // Pre-computed count from shot stats (or undefined for "all")
-    
+
     // Handlers
     handleServerPageChange,
     handleDeleteGeneration,
@@ -853,4 +886,20 @@ export function useGenerationsPageLogic({
     handleAddToShotWithoutPosition,
     handleToggleStar,
   };
-} 
+}
+
+// ============================================================================
+// NEW NAME (preferred) - Use this in new code
+// ============================================================================
+
+/**
+ * Gallery page state & orchestration hook.
+ * This is the preferred name - use this in new code.
+ * @see useGenerationsPageLogic for documentation
+ */
+export const useGalleryPageState = useGenerationsPageLogic;
+
+// ============================================================================
+// BACKWARDS COMPATIBILITY
+// useGenerationsPageLogic is exported above as the implementation
+// ============================================================================ 

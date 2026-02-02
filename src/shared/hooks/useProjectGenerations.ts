@@ -1,3 +1,34 @@
+/**
+ * Project-Wide Generation Queries & Mutations
+ * ============================================
+ *
+ * This module provides hooks for querying and mutating generations at the PROJECT level.
+ * Use these hooks when you need to display or modify generations across the entire project,
+ * typically in gallery views.
+ *
+ * ## When to Use
+ * - Displaying a gallery of generations across the project (GenerationsPane, MediaGallery)
+ * - Filtering by tool type, media type, starred, search term
+ * - CRUD operations (create, delete, update, star/unstar)
+ * - Fetching derived items (edits based on a generation)
+ *
+ * ## When NOT to Use
+ * - Querying images within a specific shot → use `useShotImages.ts` instead
+ * - Timeline-specific data (frame positions, pair prompts) → use `useShotImages.ts`
+ * - Page-level state management (filters, pagination) → use `useGalleryPageState.ts`
+ *
+ * ## Key Exports
+ * - `useProjectGenerations(projectId, page, limit, filters)` - Paginated gallery data
+ * - `useDerivedItems(generationId)` - Child generations + edit variants
+ * - `useDeleteGeneration`, `useCreateGeneration` - Mutations
+ * - `useToggleGenerationStar` - Star/unstar with optimistic updates
+ *
+ * ## Data Source
+ * Queries `generations` table directly (project-scoped, not shot-scoped)
+ *
+ * @module useGenerations
+ */
+
 import React from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
@@ -9,6 +40,8 @@ import { useSmartPollingConfig } from './useSmartPolling';
 import { useQueryDebugLogging, QueryDebugConfigs } from './useQueryDebugLogging';
 import { transformGeneration, type RawGeneration, type TransformOptions, calculateDerivedCounts } from '@/shared/lib/generationTransformers';
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+import { SHOT_FILTER } from '@/shared/constants/filterConstants';
+import { VARIANT_TYPE, EDIT_VARIANT_TYPES } from '@/shared/constants/variantTypes';
 
 /** Common filter options for generation queries */
 interface GenerationFilters {
@@ -66,7 +99,7 @@ function applyGenerationFilters<T extends PostgrestFilterBuilder<any, any, any>>
   }
 
   // Shot filter
-  if (filters.shotId === 'no-shot') {
+  if (filters.shotId === SHOT_FILTER.NO_SHOT) {
     query = query.or('shot_data.is.null,shot_data.eq.{}') as T;
   } else if (filters.shotId) {
     query = query.not(`shot_data->${filters.shotId}`, 'is', null) as T;
@@ -456,7 +489,7 @@ async function createGeneration(params: {
       location: params.imageUrl,
       thumbnail_url: params.thumbnailUrl || params.imageUrl,
       is_primary: true,
-      variant_type: 'original',
+      variant_type: VARIANT_TYPE.ORIGINAL,
       name: 'Original',
       params: generationParams,
     });
@@ -493,7 +526,7 @@ export type GenerationsPaginatedResponse = {
   hasMore: boolean;
 };
 
-export function useGenerations(
+export function useProjectGenerations(
   projectId: string | null,
   page: number = 1,
   limit: number = 100,
@@ -560,6 +593,9 @@ export function useGenerations(
 
   return result;
 }
+
+/** @deprecated Use useProjectGenerations instead */
+export const useGenerations = useProjectGenerations;
 
 export function useDeleteGeneration() {
   const queryClient = useQueryClient();
@@ -647,10 +683,8 @@ export function useCreateGeneration() {
 
 // ===== UNIFIED DERIVED ITEMS (Generations + Variants) =====
 
-/**
- * Variant types that represent edits (should appear in "Based on this")
- */
-export const EDIT_VARIANT_TYPES = ['inpaint', 'magic_edit', 'annotated_edit', 'edit'] as const;
+// Re-export EDIT_VARIANT_TYPES from centralized location for backwards compatibility
+export { EDIT_VARIANT_TYPES } from '@/shared/constants/variantTypes';
 
 /**
  * A derived item can be either a generation (old mode) or a variant (new mode)

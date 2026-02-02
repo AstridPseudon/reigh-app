@@ -8,7 +8,7 @@ import { PageFadeIn } from '@/shared/components/transitions';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useUpdateShotName } from '@/shared/hooks/useShots';
-import { useAllShotGenerations, usePrimeShotGenerationsCache } from '@/shared/hooks/useShotGenerations';
+import { useShotImages, usePrimeShotImagesCache } from '@/shared/hooks/useShotImages';
 import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
 import { useProjectVideoCountsCache } from '@/shared/hooks/useProjectVideoCountsCache';
 import { useProjectGenerationModesCache } from '@/shared/hooks/useProjectGenerationModesCache';
@@ -158,9 +158,9 @@ export function ShotEditorView({
 
   // Full image data for editor
   const contextImages = shotToEdit.images || [];
-  usePrimeShotGenerationsCache(shotToEdit.id, contextImages);
+  usePrimeShotImagesCache(shotToEdit.id, contextImages);
 
-  const fullImagesQuery = useAllShotGenerations(
+  const fullImagesQuery = useShotImages(
     shotToEdit.id,
     { disableRefetch: isShotOperationInProgress || isDraggingInTimeline }
   );

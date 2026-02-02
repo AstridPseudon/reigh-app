@@ -190,7 +190,7 @@ The `ShotsContext` provides a **single source of truth** for shots data across a
 
 **Two-Tier Data Loading:**
 - **List Views** (`ShotsPane`, `VideoTravelToolPage`): Use `useShots()` → 5 thumbnails per shot
-- **Detail Views** (`ShotEditor`): Use `useAllShotGenerations(shotId)` → complete data for selected shot
+- **Detail Views** (`ShotEditor`): Use `useShotImages(shotId)` → complete data for selected shot
 
 **Key Benefits:**
 - **Fast Browsing**: List views load minimal data for quick navigation

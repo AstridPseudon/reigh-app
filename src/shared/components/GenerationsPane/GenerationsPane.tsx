@@ -5,7 +5,8 @@ import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { cn, getDisplayUrl } from '@/shared/lib/utils';
 import { smartPreloadImages, initializePrefetchOperations, smartCleanupOldPages, triggerImageGarbageCollection } from '@/shared/hooks/useAdjacentPagePreloading';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchGenerations } from '@/shared/hooks/useGenerations';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import { fetchGenerations } from '@/shared/hooks/useProjectGenerations';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
@@ -21,7 +22,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { ShotFilter } from '@/shared/components/ShotFilter';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { useGenerationsPageLogic } from '@/shared/hooks/useGenerationsPageLogic';
+import { useGalleryPageState } from '@/shared/hooks/useGalleryPageState';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { performanceMonitoredTimeout, measureAsync } from '@/shared/lib/performanceUtils';
@@ -30,7 +31,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { toast } from 'sonner';
 
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -38,6 +39,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { PANE_CONFIG } from '@/shared/config/panes';
+import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants';
 
 // Fallback rows for pane (smaller than full page galleries)
 const PANE_ROWS = 3;
@@ -139,7 +141,7 @@ const GenerationsPaneComponent: React.FC = () => {
     handleAddToShot,
     handleAddToShotWithoutPosition,
     expectedItemCount, // Pre-computed count for instant skeleton display
-  } = useGenerationsPageLogic({
+  } = useGalleryPageState({
     itemsPerPage: GENERATIONS_PER_PAGE,
     mediaType: mediaTypeFilter,
     enableDataLoading: shouldEnableDataLoading
@@ -164,7 +166,7 @@ const GenerationsPaneComponent: React.FC = () => {
       dispatchSkeletonEvents: files.length > 0,
       onSuccess: () => {
         // Invalidate and refetch shots to update the list
-        queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(selectedProjectId) });
       },
     });
 
@@ -189,7 +191,7 @@ const GenerationsPaneComponent: React.FC = () => {
       generationsCount: paginatedData.items.length,
       hasPositionedItems: paginatedData.items.filter(item => {
         // Check if any item has positioned associations with the selected shot
-        if (selectedShotFilter === 'all') return false;
+        if (selectedShotFilter === SHOT_FILTER.ALL) return false;
         if (item.shot_id === selectedShotFilter) {
           return item.position !== null && item.position !== undefined;
         }
@@ -258,10 +260,10 @@ const GenerationsPaneComponent: React.FC = () => {
       }
     }
 
-    const filters = { 
+    const filters = {
       mediaType: mediaTypeFilter,
-      shotId: selectedShotFilter === 'all' ? undefined : selectedShotFilter,
-      excludePositioned: selectedShotFilter !== 'all' ? excludePositioned : undefined,
+      shotId: selectedShotFilter === SHOT_FILTER.ALL ? undefined : selectedShotFilter,
+      excludePositioned: selectedShotFilter !== SHOT_FILTER.ALL ? excludePositioned : undefined,
       starredOnly
     };
 
@@ -604,7 +606,7 @@ const GenerationsPaneComponent: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setSelectedShotFilter('all')}
+                        onClick={() => setSelectedShotFilter(SHOT_FILTER.ALL)}
                         className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 whitespace-nowrap hidden sm:flex"
                       >
                         <ChevronLeft className="h-3 w-3 -mr-0.5" />
@@ -692,7 +694,7 @@ const GenerationsPaneComponent: React.FC = () => {
             </div>
 
             {/* Row 3: Exclude positioned checkbox - only when a specific shot is selected */}
-            {selectedShotFilter !== 'all' && selectedShotFilter !== 'no-shot' && (
+            {!isSpecialFilter(selectedShotFilter) && (
               <div className="flex items-center space-x-2 mx-2">
                 <Checkbox
                   id="exclude-positioned-generations-pane"

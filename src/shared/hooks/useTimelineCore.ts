@@ -8,7 +8,7 @@
  * - useBatchReorder (reordering)
  *
  * Architecture:
- * - Data: Uses useAllShotGenerations for the canonical data source
+ * - Data: Uses useShotImages for the canonical data source
  * - Derived: Provides filtered/sorted positioned items via useMemo
  * - Operations: Uses atomic RPCs (delete_and_normalize, unposition_and_normalize, reorder_normalized)
  * - Pair Data: Includes pair prompt access with migration from old format
@@ -17,14 +17,15 @@
 import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { GenerationRow } from '@/types/shots';
 import { handleError } from '@/shared/lib/errorHandler';
-import { useAllShotGenerations } from '@/shared/hooks/useShotGenerations';
+import { useShotImages } from '@/shared/hooks/useShotImages';
 import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/settingsMigration';
 import { calculateNextAvailableFrame, extractExistingFrames, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
-import type { PhaseConfig } from '@/tools/travel-between-images/settings';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
 
 // ============================================================================
 // Types
@@ -142,7 +143,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
     isLoading,
     error,
     refetch,
-  } = useAllShotGenerations(shotId);
+  } = useShotImages(shotId);
 
   // Derived: Positioned items (on timeline, non-video, valid location)
   const positionedItems = useMemo(() => {
@@ -413,7 +414,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
 
         // Invalidate to refresh data
         invalidateGenerations(shotId, { reason: 'update-pair-prompts', scope: 'metadata' });
-        queryClient.invalidateQueries({ queryKey: ['pair-metadata', shotGenerationId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(shotGenerationId) });
       } catch (err) {
         console.error('[useTimelineCore.updatePairPrompts] Error:', err);
         throw err;

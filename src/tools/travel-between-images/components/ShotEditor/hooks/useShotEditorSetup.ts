@@ -13,7 +13,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useShots } from '@/shared/contexts/ShotsContext';
-import { useAllShotGenerations, useTimelineImages, useUnpositionedImages, useVideoOutputs } from '@/shared/hooks/useShotGenerations';
+import { useShotImages, useTimelineImages, useUnpositionedImages, useVideoOutputs } from '@/shared/hooks/useShotImages';
 import { Shot, GenerationRow } from '@/types/shots';
 
 export interface UseShotEditorSetupProps {
@@ -156,9 +156,9 @@ export function useShotEditorSetup({
     timestamp: Date.now(),
   });
 
-  // CRITICAL: Only call useAllShotGenerations when we genuinely need detailed data
+  // CRITICAL: Only call useShotImages when we genuinely need detailed data
   // Using disabled query when context data is available
-  console.log('[ShotNavPerf] 🎬 ShotEditor calling useAllShotGenerations', {
+  console.log('[ShotNavPerf] 🎬 ShotEditor calling useShotImages', {
     queryKey: queryKey?.substring(0, 8) || 'null',
     selectedShotId: selectedShotId?.substring(0, 8),
     hasContextImages: contextImages.length > 0,
@@ -167,14 +167,14 @@ export function useShotEditorSetup({
 
   // [ShotNavPerf] CRITICAL FIX: Pass disableRefetch during initial load to prevent query storm
   // The query will still run once, but won't refetch on every render
-  const fullImagesQueryResult = useAllShotGenerations(queryKey, {
+  const fullImagesQueryResult = useShotImages(queryKey, {
     disableRefetch: false, // Let it fetch normally, we'll use context images as placeholder
   });
 
   const fullShotImages = fullImagesQueryResult.data || [];
   const isLoadingFullImages = fullImagesQueryResult.isLoading;
 
-  console.log('[ShotNavPerf] ✅ ShotEditor useAllShotGenerations result:', {
+  console.log('[ShotNavPerf] ✅ ShotEditor useShotImages result:', {
     imagesCount: fullShotImages.length,
     isLoading: fullImagesQueryResult.isLoading,
     isFetching: fullImagesQueryResult.isFetching,

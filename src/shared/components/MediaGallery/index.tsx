@@ -3,7 +3,7 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import { useToggleGenerationStar } from '@/shared/hooks/useGenerations';
+import { useToggleGenerationStar } from '@/shared/hooks/useProjectGenerations';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
 import { useBackgroundThumbnailGenerator } from '@/shared/hooks/useBackgroundThumbnailGenerator';
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
@@ -39,11 +39,12 @@ import {
 
 // Import types
 import type { Shot, GenerationRow } from "@/types/shots";
-import type { 
+import type {
   MetadataLora,
   DisplayableMetadata,
   GeneratedImageWithMetadata,
-  MediaGalleryProps
+  MediaGalleryProps,
+  ColumnsPerRow,
 } from './types';
 
 // Re-export types for convenience
@@ -51,7 +52,8 @@ export type {
   MetadataLora,
   DisplayableMetadata,
   GeneratedImageWithMetadata,
-  MediaGalleryProps
+  MediaGalleryProps,
+  ColumnsPerRow,
 };
 
 /**
@@ -76,10 +78,10 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     currentToolType, 
     initialFilterState = true, 
     currentViewingShotId,
-    offset = 0, 
-    totalCount, 
-    whiteText = false, 
-    columnsPerRow = 5, 
+    offset = 0,
+    totalCount,
+    whiteText = false,
+    columnsPerRow = 'auto',
     itemsPerPage, 
     initialMediaTypeFilter = 'all', 
     onServerPageChange, 
@@ -169,7 +171,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // Global debug function for mobile testing - reads fresh values when called
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).debugMobile = () => {
+      window.debugMobile = () => {
         const freshIsMobile = window.innerWidth < 768;
         const debugInfo = {
           isMobile: freshIsMobile,
@@ -199,15 +201,14 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   }, [projectAspectRatio, isMobile, containerWidth]);
 
   // Use aspect-ratio-aware defaults, but allow explicit override via props
-  // NOTE: columnsPerRow=5 is the "magic" default that means "use dynamic calculation"
-  // Any other value (including undefined!) will be used directly - BE CAREFUL
-  const effectiveColumnsPerRow = columnsPerRow !== 5 ? columnsPerRow : aspectRatioLayout.columns;
+  // 'auto' means dynamic calculation based on aspect ratio, any number is a fixed column count
+  const effectiveColumnsPerRow = columnsPerRow === 'auto' ? aspectRatioLayout.columns : columnsPerRow;
   const defaultItemsPerPage = aspectRatioLayout.itemsPerPage;
 
   // Debug log for video layout issues
   console.log('[VideoLayoutFix] MediaGallery computing layout:', {
     columnsPerRow_prop: columnsPerRow,
-    columnsPerRow_is5: columnsPerRow === 5,
+    columnsPerRow_isAuto: columnsPerRow === 'auto',
     aspectRatioLayout_columns: aspectRatioLayout.columns,
     effectiveColumnsPerRow,
     willUseGridClass: GRID_COLUMN_CLASSES[effectiveColumnsPerRow as keyof typeof GRID_COLUMN_CLASSES] ? 'YES' : 'NO - FALLBACK',

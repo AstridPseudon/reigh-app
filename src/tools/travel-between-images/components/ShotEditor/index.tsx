@@ -267,7 +267,7 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
     shotId: selectedShot?.id,
   });
 
-  // Note: Image queries (useAllShotGenerations, useTimelineImages, etc.) are now
+  // Note: Image queries (useShotImages, useTimelineImages, etc.) are now
   // handled by useShotEditorSetup. Values available: allShotImages, timelineImages,
   // unpositionedImages, videoOutputs, contextImages, isLoadingFullImages, initialParentGenerations
 
@@ -297,7 +297,7 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
       
       // Filter to video types and sort by created_at in JS
       const videos = (data || [])
-        .filter(sg => (sg.generation as any)?.type?.includes('video'))
+        .filter(shotGen => (shotGen.generation as any)?.type?.includes('video'))
         .sort((a, b) => {
           const dateA = new Date((a.generation as any)?.created_at || 0).getTime();
           const dateB = new Date((b.generation as any)?.created_at || 0).getTime();

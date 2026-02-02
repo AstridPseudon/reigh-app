@@ -18,7 +18,7 @@ export interface ShotGenerationRow {
  * Maps a raw Supabase response from shot_generations (with joined generations)
  * to the standardized GenerationRow format used throughout the app.
  *
- * IMPORTANT: This must be used by ALL hooks (useListShots, useAllShotGenerations, etc.)
+ * IMPORTANT: This must be used by ALL hooks (useListShots, useShotImages, etc.)
  * to ensure selectors and filters work consistently across the Sidebar and Editor.
  */
 export const mapShotGenerationToRow = (sg: any): GenerationRow | null => {

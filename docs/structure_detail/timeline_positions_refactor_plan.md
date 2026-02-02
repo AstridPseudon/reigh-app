@@ -86,7 +86,7 @@ reorder_normalized(p_shot_id uuid, p_new_order uuid[])
 // src/shared/hooks/useTimelineCore.ts
 export function useTimelineCore(shotId: string | null) {
   // Single source of truth for position data
-  const { data: generations } = useAllShotGenerations(shotId);
+  const { data: generations } = useShotImages(shotId);
 
   // Derived: positioned items only, sorted, videos excluded
   const positionedItems = useMemo(() =>
@@ -176,8 +176,8 @@ export function useBatchMode(shotId: string | null) {
 - All consumers now use `useTimelineCore` (no direct calls to `useEnhancedShotPositions` remain)
 
 **Phase 4: Consolidate Query Keys** ✅ COMPLETE
-- Already using `all-shot-generations` as primary key via `useShotGenerations.ts`
-- `useTimelineCore` uses `useAllShotGenerations` which uses this key
+- Already using `all-shot-generations` as primary key via `useShotImages.ts`
+- `useTimelineCore` uses `useShotImages` which uses this key
 
 **Phase 5: Remove Old Hooks** ✅ COMPLETE
 - ✅ Deleted `useEnhancedShotPositions.ts` (1800+ lines removed)

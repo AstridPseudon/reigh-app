@@ -2,7 +2,7 @@
  * Utility functions for transforming share page data to match component expectations.
  *
  * These transformers ensure the RPC response data is shaped correctly for
- * components that normally receive data from hooks like useAllShotGenerations.
+ * components that normally receive data from hooks like useShotImages.
  *
  * IMPORTANT: If hook return shapes change, update these transformers.
  */

@@ -3,7 +3,7 @@
  *
  * Provides utilities for managing timeline frame positions without fetching data.
  * This is the "enrichment layer" that adds position management capabilities
- * to already-fetched generation data from useAllShotGenerations.
+ * to already-fetched generation data from useShotImages.
  *
  * Used primarily for the preloaded images path (share views, etc.)
  * For the main path, use useTimelineCore instead.
@@ -74,15 +74,15 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
   console.log('[TimelinePositionUtils] Converted shotGenerations:', {
     shotId: shotId?.substring(0, 8),
     total: shotGenerations.length,
-    positioned: shotGenerations.filter(sg => sg.timeline_frame >= 0).length,
-    unpositioned: shotGenerations.filter(sg => sg.timeline_frame === -1).length,
+    positioned: shotGenerations.filter(shotGen => shotGen.timeline_frame >= 0).length,
+    unpositioned: shotGenerations.filter(shotGen => shotGen.timeline_frame === -1).length,
   });
 
   // Extract pair prompts from metadata using migration utility
   // CRITICAL: Filter and sort to match getImagesForMode output (indices must align with displayed images)
   const pairPrompts: Record<number, { prompt: string; negativePrompt: string }> = {};
   const sortedPositionedGenerations = shotGenerations
-    .filter(sg => sg.timeline_frame >= 0) // Filter out unpositioned (sentinel value -1)
+    .filter(shotGen => shotGen.timeline_frame >= 0) // Filter out unpositioned (sentinel value -1)
     .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
 
   // Each pair is represented by its first item (index in the sorted array)
@@ -162,7 +162,7 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
 
     const findGeneration = (key?: string | null) => {
       if (!key) return undefined;
-      return shotGenerations.find(sg => sg.id === key || sg.generation_id === key);
+      return shotGenerations.find(shotGen => shotGen.id === key || shotGen.generation_id === key);
     };
 
     // Find shot_generation records for all dragged items
@@ -456,11 +456,11 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     });
 
     // Find the shot_generation record - try multiple lookup strategies
-    let shotGen = shotGenerations.find(sg => sg.generation_id === generationId);
+    let shotGen = shotGenerations.find(shotGen => shotGen.generation_id === generationId);
     
     // Fallback: maybe the passed ID is actually the shot_generation ID
     if (!shotGen) {
-      shotGen = shotGenerations.find(sg => sg.id === generationId);
+      shotGen = shotGenerations.find(shotGen => shotGen.id === generationId);
       if (shotGen) {
         console.log('[TimelinePositionUtils] ⚠️ Used fallback lookup by shot_generation ID (should not happen with allGenerations prop)');
       }
@@ -470,8 +470,8 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     if (!shotGen?.id) {
       console.error('[TimelinePositionUtils] ❌ Generation not found in provided data:', {
         lookingFor: generationId.substring(0, 8),
-        availableGenIds: shotGenerations.map(sg => sg.generation_id?.substring(0, 8)),
-        availableShotGenIds: shotGenerations.map(sg => sg.id?.substring(0, 8)),
+        availableGenIds: shotGenerations.map(shotGen => shotGen.generation_id?.substring(0, 8)),
+        availableShotGenIds: shotGenerations.map(shotGen => shotGen.id?.substring(0, 8)),
       });
       throw new Error(`Shot generation not found for generation ${generationId} - this indicates a data flow issue`);
     }
@@ -528,14 +528,14 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
       // Get current frames for all involved items and perform swaps
       const swapUpdates = pairSwaps.map(async (swap) => {
         // Try multiple lookup strategies for both items
-        let sgA = shotGenerations.find(sg => sg.id === swap.shotGenerationIdA);
+        let sgA = shotGenerations.find(shotGen => shotGen.id === swap.shotGenerationIdA);
         if (!sgA) {
-          sgA = shotGenerations.find(sg => sg.generation_id === swap.shotGenerationIdA);
+          sgA = shotGenerations.find(shotGen => shotGen.generation_id === swap.shotGenerationIdA);
         }
         
-        let sgB = shotGenerations.find(sg => sg.id === swap.shotGenerationIdB);
+        let sgB = shotGenerations.find(shotGen => shotGen.id === swap.shotGenerationIdB);
         if (!sgB) {
-          sgB = shotGenerations.find(sg => sg.generation_id === swap.shotGenerationIdB);
+          sgB = shotGenerations.find(shotGen => shotGen.generation_id === swap.shotGenerationIdB);
         }
         
         if (!sgA || !sgB) {
@@ -600,11 +600,11 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     const absoluteUpdates = exchanges as Array<{ id: string; newFrame: number }>;
     const updates = absoluteUpdates.map(async ({ id, newFrame }) => {
       // Try multiple lookup strategies
-      let shotGen = shotGenerations.find(sg => sg.generation_id === id);
+      let shotGen = shotGenerations.find(shotGen => shotGen.generation_id === id);
       
       // Fallback: maybe the passed ID is the shot_generation ID
       if (!shotGen) {
-        shotGen = shotGenerations.find(sg => sg.id === id);
+        shotGen = shotGenerations.find(shotGen => shotGen.id === id);
         if (shotGen) {
           console.log('[TimelinePositionUtils] ⚠️ Used fallback lookup for batch update');
         }
@@ -663,7 +663,7 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     });
 
     // Find unpositioned generations
-    const unpositioned = shotGenerations.filter(sg => sg.timeline_frame === null);
+    const unpositioned = shotGenerations.filter(shotGen => shotGen.timeline_frame === null);
 
     if (unpositioned.length === 0) {
       console.log('[TimelinePositionUtils] No unpositioned generations to initialize');
@@ -702,12 +702,12 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     });
 
     // Look up by shot_generation.id (which is sg.id in our data structure)
-    const shotGen = shotGenerations.find(sg => sg.id === shotGenerationId);
+    const shotGen = shotGenerations.find(shotGen => shotGen.id === shotGenerationId);
     if (!shotGen?.id) {
       console.error('[PairPromptFlow] ❌ Shot generation not found:', {
         lookingForShotGenId: shotGenerationId.substring(0, 8),
-        availableShotGenIds: shotGenerations.map(sg => sg.id?.substring(0, 8)),
-        availableGenerationIds: shotGenerations.map(sg => sg.generation_id?.substring(0, 8)),
+        availableShotGenIds: shotGenerations.map(shotGen => shotGen.id?.substring(0, 8)),
+        availableGenerationIds: shotGenerations.map(shotGen => shotGen.generation_id?.substring(0, 8)),
       });
       throw new Error(`Shot generation not found for shot_generation.id ${shotGenerationId}`);
     }
@@ -782,11 +782,11 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
     console.log('[PairPromptFlow] 🧹 Clearing enhanced prompt for shot_generation:', shotGenerationId.substring(0, 8));
 
     // Look up by shot_generation.id
-    const shotGen = shotGenerations.find(sg => sg.id === shotGenerationId);
+    const shotGen = shotGenerations.find(shotGen => shotGen.id === shotGenerationId);
     if (!shotGen?.id) {
       console.error('[PairPromptFlow] ❌ Shot generation not found for clear:', {
         lookingForShotGenId: shotGenerationId.substring(0, 8),
-        availableShotGenIds: shotGenerations.map(sg => sg.id?.substring(0, 8)),
+        availableShotGenIds: shotGenerations.map(shotGen => shotGen.id?.substring(0, 8)),
       });
       throw new Error(`Shot generation not found for shot_generation.id ${shotGenerationId}`);
     }

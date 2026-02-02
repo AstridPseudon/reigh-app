@@ -1,13 +1,13 @@
 # 📊 Shot Generation Data Flow
 
-> **Purpose**: How shot image data flows from database to UI — types, hooks, caching, and mutation patterns.  
-> **Source of Truth**: `src/types/shots.ts`, `src/shared/hooks/useShotGenerations.ts`, `src/shared/hooks/useGenerationInvalidation.ts`
+> **Purpose**: How shot image data flows from database to UI — types, hooks, caching, and mutation patterns.
+> **Source of Truth**: `src/types/shots.ts`, `src/shared/hooks/useShotImages.ts`, `src/shared/hooks/useGenerationInvalidation.ts`
 
 ---
 
 ## Key Invariants
 
-1. **`useAllShotGenerations` is the single source of truth** for shot images
+1. **`useShotImages` is the single source of truth** for shot images
 2. **Two-phase loading**: Phase 1 (fast, no joins) for display; Phase 2 (lazy) for mutations
 3. **Centralized invalidation** via `useInvalidateGenerations` with explicit reasons
 4. **Replace, don't refetch** — update optimistic items in `onSuccess` before invalidating
@@ -37,7 +37,9 @@
 
 ## Data Loading Hooks
 
-### `useAllShotGenerations(shotId, options?)`
+### `useShotImages(shotId, options?)`
+
+> Note: Also exported as `useAllShotGenerations` for backwards compatibility.
 
 **Primary data source** for shot images. Two-phase loading architecture:
 
@@ -49,9 +51,11 @@
 - Returns `GenerationRow[]` with progressive enhancement
 - Options: `disableRefetch: boolean` — prevents refetching during drag/persist
 
-### `useTimelineShotGenerations(shotId, options?)`
+### `useTimelineImages(shotId, options?)`
 
-Timeline-specific wrapper around `useAllShotGenerations`:
+> Note: Also exported as `useTimelineShotGenerations` for backwards compatibility.
+
+Timeline-specific wrapper around `useShotImages`:
 - Filters to positioned images with metadata only
 - Returns `TimelineGenerationRow[]` (stronger type guarantees)
 - Automatically excludes `timeline_frame == null` and `metadata == null`
@@ -91,12 +95,12 @@ Database
   └─→ Phase 2: shot_generations table (metadata join)
       ↓
       Lazy query → Mutation IDs + Metadata
-      
-useAllShotGenerations (two-phase loading + merge)
+
+useShotImages (two-phase loading + merge)
   ↓
   ├─→ Galleries / Lightboxes (GenerationRow[])
   ├─→ Shot Image Manager (GenerationRow[])
-  └─→ useTimelineShotGenerations (filters + types)
+  └─→ useTimelineImages (filters + types)
        ↓
        Timeline Components (TimelineGenerationRow[])
          ↓
@@ -222,13 +226,13 @@ const handleAdd = useCallback(() => {
 
 **Reading pair prompts in Timeline:**
 ```typescript
-const { data: timelineImages } = useTimelineShotGenerations(shotId);
+const { data: timelineImages } = useTimelineImages(shotId);
 const pairPrompt = timelineImages?.[0]?.metadata.pair_prompt || '';
 ```
 
 **Filtering positioned images:**
 ```typescript
-const { data: allImages } = useAllShotGenerations(shotId);
+const { data: allImages } = useShotImages(shotId);
 const timelineImages = allImages?.filter(isTimelineGeneration) || [];
 ```
 

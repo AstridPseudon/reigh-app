@@ -29,7 +29,7 @@ interface SharedGenerationViewProps {
     shot_id: string;
     shot_name: string;
     generation: any;
-    images: GenerationRow[];  // Same format as useAllShotGenerations
+    images: GenerationRow[];  // Same format as useShotImages
     settings: VideoTravelSettings;  // Same format as useShotSettings
     creator_id: string | null;
     view_count: number;
@@ -44,7 +44,7 @@ interface SharedGenerationViewProps {
  * SharedGenerationView - Displays a shared generation
  *
  * Uses the SAME data format as the real page:
- * - images: GenerationRow[] (same as useAllShotGenerations)
+ * - images: GenerationRow[] (same as useShotImages)
  * - settings: VideoTravelSettings (same as useShotSettings)
  */
 export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
@@ -282,7 +282,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                   onImageReorder={() => {}}
                   onContextFramesChange={() => {}}
                   onFramePositionsChange={() => {}}
-                  onImageDrop={async () => {}}
+                  onFileDrop={async () => {}}
                   pendingPositions={new Map()}
                   onPendingPositionApplied={() => {}}
                   onImageDelete={() => {}}

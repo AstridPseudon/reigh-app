@@ -80,7 +80,7 @@ Tools live in `/src/tools/{tool-name}/` following a consistent structure. See [a
 - **Generations** = gallery items (images/videos produced by AI tasks)
 - **Shots** = containers that organize generations into a timeline
 - **`shot_generations`** = join table with position + metadata (pair prompts, timeline frame)
-- Data access: `useAllShotGenerations(shotId)` → see [shot_generation_data_flow.md](docs/structure_detail/shot_generation_data_flow.md)
+- Data access: `useShotImages(shotId)` → see [shot_generation_data_flow.md](docs/structure_detail/shot_generation_data_flow.md)
 
 ### Settings Resolution
 Priority: **shot → project → user → defaults**. See [settings_system.md](docs/structure_detail/settings_system.md).

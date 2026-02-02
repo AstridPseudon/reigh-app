@@ -628,7 +628,7 @@ const SwipeableLightbox = withSwipeNavigation({
 |--------------|-----------|
 | Settings | `useAutoSaveSettings.ts`, `usePersistentToolState.ts` |
 | Modals | `useModal.ts`, `SettingsModal.tsx`, `LoraSelectorModal` |
-| Data | `useGenerations.ts`, `useTasks.ts`, `useShots.ts` |
+| Data | `useProjectGenerations.ts`, `useTasks.ts`, `useShots.ts` |
 | Context | `LightboxStateContext.tsx`, `ShotSettingsContext.tsx` |
 | Layout | `MobileStackedLayout.tsx`, `DesktopSidePanelLayout.tsx` |
 | Loading | `useProgressiveImage.ts`, `useBatchImageLoading.ts` |

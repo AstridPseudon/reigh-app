@@ -36,7 +36,7 @@
 
 ## Key concepts / correctness
 - Generations vs variants: generations are gallery items; variants are per-generation alternates; use `based_on` for lineage.
-- Shots data: use `ShotsContext` via `useShots()`; shot images via `useAllShotGenerations(shotId)`.
+- Shots data: use `ShotsContext` via `useShots()`; shot images via `useShotImages(shotId)`.
 - React Query: invalidate after mutations; scope invalidations where possible.
 
 ## Review discipline

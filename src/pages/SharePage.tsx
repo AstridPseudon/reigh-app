@@ -152,7 +152,7 @@ const SharePage: React.FC = () => {
         firstImage: data.images?.[0],
       });
 
-      // RPC returns same format as useAllShotGenerations
+      // RPC returns same format as useShotImages
       setShareData({
         shot_id: data.shot_id,
         shot_name: data.shot_name,

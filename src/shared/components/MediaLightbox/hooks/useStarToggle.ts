@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useToggleGenerationStar } from '@/shared/hooks/useGenerations';
+import { useToggleGenerationStar } from '@/shared/hooks/useProjectGenerations';
 import { GenerationRow } from '@/types/shots';
 
 export interface UseStarToggleProps {

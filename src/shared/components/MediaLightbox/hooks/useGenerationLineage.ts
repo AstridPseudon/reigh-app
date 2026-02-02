@@ -3,7 +3,7 @@ import { GenerationRow } from '@/types/shots';
 import {
   useDerivedItems,
   DerivedItem
-} from '@/shared/hooks/useGenerations';
+} from '@/shared/hooks/useProjectGenerations';
 
 export interface UseGenerationLineageProps {
   media: GenerationRow;
