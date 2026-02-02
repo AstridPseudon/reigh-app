@@ -1013,11 +1013,12 @@ export const useGenerationActions = ({
         .filter(g => g.timeline_frame != null && g.timeline_frame !== -1)
         .map(g => g.timeline_frame as number);
       
-      // Calculate unique positions for each file
+      // Calculate unique positions for each file (50 frames apart)
+      const FRAME_SPACING = 50;
       const positions: number[] = [];
       const allUsedFrames = [...existingFrames];
       for (let i = 0; i < files.length; i++) {
-        let targetFrame = startFrame + i;
+        let targetFrame = startFrame + (i * FRAME_SPACING);
         // Ensure this frame is unique (not in existing or already assigned)
         while (allUsedFrames.includes(targetFrame)) {
           targetFrame += 1;
