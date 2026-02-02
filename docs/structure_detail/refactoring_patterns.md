@@ -24,14 +24,16 @@ Principles and checklists for splitting monolithic components and hooks.
 
 ## When to Split
 
+**The real test:** Can you quickly answer "what does this hook/component own?" If yes, size doesn't matter. If no, it needs work — but maybe cleanup, not splitting.
+
 | Signal | Hook Threshold | Component Threshold |
 |--------|----------------|---------------------|
-| Total lines | > 1000 | > 600 |
+| Mixed concerns | Can't answer "what does this own?" | Multiple unrelated branches |
+| Total lines | > 1000 (after dead code removal) | > 600 |
 | Exports / Props | > 8 hooks | > 12 props |
 | Repeated patterns | 3+ identical blocks | 3+ similar JSX |
-| Mixed concerns | Queries + mutations + utilities | Multiple conditional branches |
 
-These are guidelines, not rules. Split when navigation becomes painful.
+**Important:** A 900-line hook doing one thing well is fine. A 500-line hook mixing concerns needs splitting. Line count alone is not the signal.
 
 ---
 
@@ -51,6 +53,13 @@ hooks/domain/
 ```
 
 ### Checklist
+
+#### 0. Clean First (before considering structural changes)
+- [ ] Find unused exports: grep `hookName.exportName` — if no hits, it's dead
+- [ ] Find orphaned refs: declared and assigned but `.current` never read
+- [ ] Find unused mutations: hook called but result never used
+- [ ] Find vestigial stubs: empty functions, hardcoded `false`, commented "REMOVED"
+- [ ] Remove dead code, then reassess — you may not need to split
 
 #### 1. Preparation
 - [ ] Count lines, exports, repeated patterns
@@ -129,10 +138,26 @@ export default function MediaLightbox(props: MediaLightboxProps) {
 
 ---
 
+## Splitting Tradeoffs
+
+Splitting adds complexity for whoever sets it up (wiring, types, imports) and removes complexity for everyone who reads it afterward. Consider:
+
+| Splitting helps when... | Splitting hurts when... |
+|-------------------------|-------------------------|
+| Readers need to understand one piece in isolation | You need to see how pieces interact |
+| Multiple people work on different parts | One person owns the whole thing |
+| Handlers are truly independent | Handlers share setup/teardown logic |
+| You're adding more handlers over time | The file is stable |
+
+If a file is cohesive (one clear purpose) and stable (rarely changing), splitting just moves code around.
+
+---
+
 ## Anti-Patterns
 
 | Don't | Why | Do Instead |
 |-------|-----|------------|
+| Split before cleaning | Dead code inflates size artificially | Remove unused code first |
 | Split < 500 line files | Unnecessary fragmentation | Wait until it hurts |
 | Utilities with 1 call site | Over-abstraction | Keep inline |
 | Rename exports in barrel | Breaks IDE go-to-definition | Keep original names |
@@ -182,7 +207,7 @@ ComponentName/
 
 ## Refactoring Discipline
 
-Lessons from large refactors:
+Lessons from large refactors (see `useGenerationActions.ts`: 1,222 → 906 lines from dead code removal alone):
 
 | Do | Why |
 |----|-----|
