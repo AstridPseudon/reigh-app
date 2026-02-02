@@ -196,28 +196,38 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
   // Handlers
   const handleCancel = () => {
     const taskId = task.id;
-    
+    const queryKey = ['tasks', 'paginated', selectedProjectId];
+
+    // Snapshot previous data for rollback
+    const previousData = queryClient.getQueryData(queryKey);
+
+    // Optimistic update - immediately show as cancelled
     queryClient.setQueriesData(
-      { queryKey: ['tasks', 'paginated', selectedProjectId] },
+      { queryKey },
       (oldData: any) => {
         if (!oldData?.tasks) return oldData;
         return {
           ...oldData,
-          tasks: oldData.tasks.map((t: any) => 
+          tasks: oldData.tasks.map((t: any) =>
             t.id === taskId ? { ...t, status: 'Cancelled' } : t
           ),
         };
       }
     );
-    
-    cancelTaskMutation.mutate(task.id, {
+
+    cancelTaskMutation.mutate(taskId, {
       onError: (error) => {
-        queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });
+        // Rollback optimistic update on failure
+        queryClient.setQueryData(queryKey, previousData);
         toast({
           title: 'Cancellation Failed',
           description: error.message || 'Could not cancel the task.',
           variant: 'destructive',
         });
+      },
+      onSettled: () => {
+        // Always invalidate to ensure consistency with DB
+        queryClient.invalidateQueries({ queryKey });
       },
     });
   };

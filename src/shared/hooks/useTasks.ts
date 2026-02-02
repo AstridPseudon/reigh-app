@@ -370,18 +370,35 @@ async function cancelTask(taskId: string): Promise<void> {
     throw new Error(`Failed to fetch task: ${fetchError.message}`);
   }
 
-  // Cancel the main task
-  const { error: cancelError } = await supabase
+  // Check if task can be cancelled (only Queued tasks can be cancelled from UI)
+  if (task.status !== 'Queued' && task.status !== 'In Progress') {
+    console.warn(`[cancelTask] Task ${taskId} is already ${task.status}, cannot cancel`);
+    throw new Error(`Task is already ${task.status}`);
+  }
+
+  // Cancel the main task - use .select() to verify the update happened
+  const { data: updatedTask, error: cancelError } = await supabase
     .from('tasks')
-    .update({ 
+    .update({
       status: 'Cancelled',
       updated_at: new Date().toISOString()
     })
-    .eq('id', taskId);
+    .eq('id', taskId)
+    .select('id, status')
+    .single();
 
   if (cancelError) {
     throw new Error(`Failed to cancel task: ${cancelError.message}`);
   }
+
+  // Verify the update actually happened
+  if (!updatedTask || updatedTask.status !== 'Cancelled') {
+    console.error('[cancelTask] Update returned but status not Cancelled:', updatedTask);
+    throw new Error('Task cancellation failed - status not updated');
+  }
+
+  console.log(`[cancelTask] Successfully cancelled task ${taskId}`);
+
 
   // If it's an orchestrator task, cancel all subtasks
   if (task && task.task_type?.includes('orchestrator')) {
