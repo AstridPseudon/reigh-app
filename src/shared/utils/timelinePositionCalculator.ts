@@ -13,7 +13,7 @@
  */
 
 /** Default/max spacing when no existing items to calculate average from */
-export const DEFAULT_FRAME_SPACING = 81;
+export const DEFAULT_FRAME_SPACING = 50;
 
 /** Minimum spacing to use even if average is lower (prevents overly tight timelines) */
 export const MIN_FRAME_SPACING = 10;

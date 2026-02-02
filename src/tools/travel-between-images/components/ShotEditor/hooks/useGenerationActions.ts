@@ -4,31 +4,23 @@ import { toast } from "sonner";
 import { handleError } from "@/shared/lib/errorHandler";
 import { GenerationRow, Shot } from "@/types/shots";
 import { useProject } from "@/shared/contexts/ProjectContext";
-import { uploadImageToStorage } from "@/shared/lib/imageUploader";
-import { generateClientThumbnail, uploadImageWithThumbnail } from "@/shared/lib/clientThumbnailGenerator";
 import {
   useAddImageToShot,
   useRemoveImageFromShot,
-  useUpdateShotImageOrder,
   useHandleExternalImageDrop,
   useDuplicateAsNewGeneration
 } from "@/shared/hooks/useShots";
-import { useDeleteGeneration, useCreateGeneration, useUpdateGenerationLocation } from "@/shared/hooks/useGenerations";
-import { useApiKeys } from '@/shared/hooks/useApiKeys';
-import { cropImageToProjectAspectRatio } from '@/shared/lib/imageCropper';
-import { parseRatio, findClosestAspectRatio } from '@/shared/lib/aspectRatios';
-import { getDisplayUrl } from '@/shared/lib/utils';
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from '@tanstack/react-query';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { ShotEditorState } from '../state/types';
-import { isGenerationVideo, getNonVideoImages } from '../utils/generation-utils';
-import { 
+import { isGenerationVideo } from '../utils/generation-utils';
+import {
   cropImagesToShotAspectRatio,
   calculateNextAvailableFrame,
-  createPositionMap,
   persistTimelinePositions
 } from './timelineDropHelpers';
+import { DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
 import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
 import { useDemoteOrphanedVariants } from '@/shared/hooks/useDemoteOrphanedVariants';
 
@@ -62,26 +54,16 @@ export const useGenerationActions = ({
   skipNextSyncRef,
 }: UseGenerationActionsProps) => {
   const { projects } = useProject();
-  const { getApiKey } = useApiKeys();
   const queryClient = useQueryClient();
-  
+
   // Mutations
   const addImageToShotMutation = useAddImageToShot();
   const removeImageFromShotMutation = useRemoveImageFromShot();
-  const updateShotImageOrderMutation = useUpdateShotImageOrder();
-  const deleteGenerationMutation = useDeleteGeneration();
-  const createGenerationMutation = useCreateGeneration();
-  const updateGenerationLocationMutation = useUpdateGenerationLocation();
   const duplicateAsNewGenerationMutation = useDuplicateAsNewGeneration();
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
 
   // Orphaned variant detection
   const { demoteOrphanedVariants } = useDemoteOrphanedVariants();
-
-  // REMOVED: useTaskQueueNotifier was interfering with RealtimeProvider
-  const enqueueTasks = async () => {};
-  const isEnqueuing = false;
-  const justQueued = false;
 
   // Upload settings
   const { settings: uploadSettings } = useToolSettings<{ cropToProjectSize?: boolean }>('upload', { projectId });
@@ -119,22 +101,13 @@ export const useGenerationActions = ({
   
   const removeImageFromShotMutationRef = useRef(removeImageFromShotMutation);
   removeImageFromShotMutationRef.current = removeImageFromShotMutation;
-  
-  const deleteGenerationMutationRef = useRef(deleteGenerationMutation);
-  deleteGenerationMutationRef.current = deleteGenerationMutation;
-  
-  const createGenerationMutationRef = useRef(createGenerationMutation);
-  createGenerationMutationRef.current = createGenerationMutation;
-  
+
   const duplicateAsNewGenerationMutationRef = useRef(duplicateAsNewGenerationMutation);
   duplicateAsNewGenerationMutationRef.current = duplicateAsNewGenerationMutation;
   
   const handleExternalImageDropMutationRef = useRef(handleExternalImageDropMutation);
   handleExternalImageDropMutationRef.current = handleExternalImageDropMutation;
-  
-  const updateGenerationLocationMutationRef = useRef(updateGenerationLocationMutation);
-  updateGenerationLocationMutationRef.current = updateGenerationLocationMutation;
-  
+
   const queryClientRef = useRef(queryClient);
   queryClientRef.current = queryClient;
 
@@ -145,274 +118,6 @@ export const useGenerationActions = ({
   // use a ref to be absolutely certain callbacks won't recreate
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
-
-  const handleImageUploadToShot = useCallback(async (files: File[]) => {
-    console.log('[AddDebug] 📤 handleImageUploadToShot CALLED:', {
-      filesCount: files?.length || 0,
-      timestamp: Date.now(),
-    });
-    
-    if (!files || files.length === 0) return;
-
-    // 🎯 STABILITY FIX: Use refs to access latest values without causing callback recreation
-    const currentProjectId = projectIdRef.current;
-    const currentShot = selectedShotRef.current;
-    
-    console.log('[AddDebug] 📤 handleImageUploadToShot refs:', {
-      currentProjectId: currentProjectId?.substring(0, 8),
-      currentShotId: currentShot?.id?.substring(0, 8),
-      timestamp: Date.now(),
-    });
-    
-    if (!currentProjectId || !currentShot?.id) {
-      toast.error("Cannot upload image: Project or Shot ID is missing.");
-      return;
-    }
-
-    actionsRef.current.setUploadingImage(true);
-
-    // Determine if cropping is enabled via project settings (toolSettings)
-    // 🎯 STABILITY FIX: Use refs to access latest data without causing callback recreation
-    const currentUploadSettings = uploadSettingsRef.current;
-    const currentProjects = projectsRef.current;
-    const cropToProjectSize = (currentUploadSettings?.cropToProjectSize ?? true);
-    let projectAspectRatio: number | null = null;
-    if (cropToProjectSize) {
-      // Prioritize shot aspect ratio over project aspect ratio
-      const currentProject = currentProjects.find(p => p.id === currentProjectId);
-      const aspectRatioStr = currentShot?.aspect_ratio || currentProject?.aspectRatio || (currentProject as any)?.settings?.aspectRatio;
-      if (aspectRatioStr) {
-        projectAspectRatio = parseRatio(aspectRatioStr);
-        if (isNaN(projectAspectRatio)) {
-          toast.error(`Invalid aspect ratio: ${aspectRatioStr}`);
-          actionsRef.current.setUploadingImage(false);
-          return;
-        }
-      } else {
-        toast.error("Cannot crop: No aspect ratio found for shot or project.");
-        actionsRef.current.setUploadingImage(false);
-        return;
-      }
-    }
-
-    const optimisticImages: GenerationRow[] = [];
-    for (const file of files) {
-      const tempId = nanoid();
-      const optimisticImage: GenerationRow = {
-        shotImageEntryId: tempId,
-        id: tempId,
-        imageUrl: URL.createObjectURL(file),
-        thumbUrl: URL.createObjectURL(file),
-        type: 'image',
-        isOptimistic: true,
-      };
-      optimisticImages.push(optimisticImage);
-    }
-
-    // REMOVED: Optimistic local state update - two-phase loading handles updates fast enough
-
-    const uploadPromises = files.map(async (file, i) => {
-      const optimisticImage = optimisticImages[i];
-      try {
-        let fileToUpload = file;
-        let croppedImageUrl: string | undefined;
-
-        if (cropToProjectSize && projectAspectRatio) {
-          const cropResult = await cropImageToProjectAspectRatio(file, projectAspectRatio);
-          if (cropResult) {
-            fileToUpload = cropResult.croppedFile;
-            croppedImageUrl = cropResult.croppedImageUrl;
-          } else {
-            toast.warning(`Failed to crop image: ${file.name}. Using original image.`);
-          }
-        }
-
-        // Generate client-side thumbnail
-        console.log(`[ThumbnailGenDebug] Starting client-side thumbnail generation for ${file.name}`);
-        let thumbnailUrl = '';
-        let finalImageUrl = '';
-        let imageDimensions: { width: number; height: number } | null = null;
-
-        try {
-          // Get current user ID for storage path
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user?.id) {
-            throw new Error('User not authenticated');
-          }
-          const userId = session.user.id;
-
-          // Generate thumbnail client-side
-          const thumbnailResult = await generateClientThumbnail(fileToUpload, 300, 0.8);
-          console.log(`[ThumbnailGenDebug] Generated thumbnail: ${thumbnailResult.thumbnailWidth}x${thumbnailResult.thumbnailHeight} (original: ${thumbnailResult.originalWidth}x${thumbnailResult.originalHeight})`);
-
-          // Capture original image dimensions
-          imageDimensions = {
-            width: thumbnailResult.originalWidth,
-            height: thumbnailResult.originalHeight
-          };
-
-          // Upload both main image and thumbnail
-          const uploadResult = await uploadImageWithThumbnail(fileToUpload, thumbnailResult.thumbnailBlob, userId);
-          finalImageUrl = croppedImageUrl ? getDisplayUrl(uploadResult.imageUrl) : uploadResult.imageUrl;
-          thumbnailUrl = uploadResult.thumbnailUrl;
-
-          console.log(`[ThumbnailGenDebug] Upload complete - Image: ${finalImageUrl}, Thumbnail: ${thumbnailUrl}`);
-        } catch (thumbnailError) {
-          console.warn(`[ThumbnailGenDebug] Client-side thumbnail generation failed for ${file.name}:`, thumbnailError);
-          // Fallback to original upload flow without thumbnail
-          const imageUrl = await uploadImageToStorage(fileToUpload);
-          finalImageUrl = croppedImageUrl ? getDisplayUrl(imageUrl) : imageUrl;
-          thumbnailUrl = finalImageUrl; // Use main image as fallback
-          // Note: dimensions remain null in fallback case
-        }
-
-        const promptForGeneration = `External image: ${file.name || 'untitled'}`;
-
-        // Support environments without API server (e.g., static web build)
-        const currentEnv = import.meta.env.VITE_APP_ENV?.toLowerCase() || 'web';
-        let newGeneration: any;
-
-        if (currentEnv === 'web') {
-          // Directly insert into Supabase instead of hitting the API server
-          // Build dimension params if we have them
-          const dimensionParams: Record<string, string> = {};
-          if (imageDimensions) {
-            dimensionParams.resolution = `${imageDimensions.width}x${imageDimensions.height}`;
-            const aspectRatioValue = imageDimensions.width / imageDimensions.height;
-            dimensionParams.aspect_ratio = findClosestAspectRatio(aspectRatioValue);
-          }
-
-          const generationParams = {
-            prompt: promptForGeneration,
-            source: 'external_upload',
-            original_filename: file.name,
-            file_type: file.type,
-            file_size: file.size,
-            ...dimensionParams,
-          };
-
-          const { data: inserted, error } = await supabase
-            .from('generations')
-            .insert({
-              location: finalImageUrl,
-              thumbnail_url: thumbnailUrl,
-              type: file.type || 'image',
-              project_id: projectId,
-              params: generationParams,
-            })
-            .select()
-            .single();
-
-          if (error || !inserted) throw error || new Error('Failed to create generation');
-
-          // Create the original variant
-          await supabase.from('generation_variants').insert({
-            generation_id: inserted.id,
-            location: finalImageUrl,
-            thumbnail_url: thumbnailUrl,
-            is_primary: true,
-            variant_type: 'original',
-            name: 'Original',
-            params: generationParams,
-          });
-
-          newGeneration = inserted;
-        } else {
-          // Use the new Supabase-based hook for all environments
-          // Build dimension params if we have them
-          const dimensionMutationParams: { resolution?: string; aspectRatio?: string } = {};
-          if (imageDimensions) {
-            dimensionMutationParams.resolution = `${imageDimensions.width}x${imageDimensions.height}`;
-            const aspectRatioValue = imageDimensions.width / imageDimensions.height;
-            dimensionMutationParams.aspectRatio = findClosestAspectRatio(aspectRatioValue);
-          }
-
-          newGeneration = await createGenerationMutation.mutateAsync({
-            imageUrl: finalImageUrl,
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-            projectId: projectId,
-            prompt: promptForGeneration,
-            ...dimensionMutationParams,
-          });
-        }
-
-        // Save link in DB (ignore returned shotImageEntryId for UI key stability)
-        console.log('[AddDebug] 🔗 CALLING addImageToShotMutation.mutateAsync:', {
-          shot_id: currentShot.id?.substring(0, 8),
-          generation_id: newGeneration.id?.substring(0, 8),
-          project_id: currentProjectId?.substring(0, 8),
-          timestamp: Date.now(),
-        });
-        const addResult = await addImageToShotMutationRef.current.mutateAsync({
-          shot_id: currentShot.id,
-          generation_id: newGeneration.id,
-          project_id: currentProjectId,
-          imageUrl: finalImageUrl,
-          thumbUrl: thumbnailUrl, // Use the generated thumbnail URL
-        });
-        console.log('[AddDebug] ✅ addImageToShotMutation COMPLETED:', {
-          result: addResult?.id?.substring(0, 8),
-          timeline_frame: addResult?.timeline_frame,
-          timestamp: Date.now(),
-        });
-
-        const finalImage: GenerationRow = {
-          ...(newGeneration as Omit<GenerationRow, 'id' | 'generation_id'>),
-          // Preserve the optimistic id (shot_generations.id) so React key stays stable
-          id: optimisticImage.id,
-          generation_id: newGeneration.id, // actual generation ID
-          // Deprecated (backwards compat)
-          shotImageEntryId: optimisticImage.id,
-          isOptimistic: false,
-          imageUrl: finalImageUrl, // Ensure final URL is used
-          thumbUrl: thumbnailUrl, // Use the generated thumbnail URL
-        };
-        
-        return { optimisticId: optimisticImage.id, finalImage, success: true };
-      } catch (error: any) {
-        handleError(error, { context: 'ShotEditor', toastTitle: `Failed to upload ${file.name}` });
-        return { optimisticId: optimisticImage.id, success: false };
-      }
-    });
-
-    const results = await Promise.all(uploadPromises);
-
-    // REMOVED: Local state updates - two-phase loading will refetch automatically
-    
-    actionsRef.current.setFileInputKey(Date.now());
-    actionsRef.current.setUploadingImage(false);
-  }, [
-    // actions, mutations, projectId, selectedShot, projects, uploadSettings accessed via refs
-  ]);
-
-  const handleDeleteVideoOutput = useCallback(async (generationId: string) => {
-    // 🎯 STABILITY FIX: Use refs to access latest values without causing callback recreation
-    const currentShot = selectedShotRef.current;
-    const currentProjectId = projectIdRef.current;
-    
-    if (!currentShot || !currentProjectId) {
-      toast.error("No shot or project selected.");
-      return;
-    }
-    actionsRef.current.setDeletingVideoId(generationId);
-    
-    try {
-      // REMOVED: Optimistic local state - two-phase loading handles updates
-      
-      // Delete the generation (this will show success/error toasts automatically)
-      await deleteGenerationMutationRef.current.mutateAsync(generationId);
-      
-      // Refresh the shot data
-      // 🎯 STABILITY FIX: Use ref to access latest callback without causing callback recreation
-      onShotImagesUpdateRef.current(); 
-    } catch (error) {
-      // Error handled by mutation
-    } finally {
-      actionsRef.current.setDeletingVideoId(null);
-    }
-  }, []); // actions, mutations, selectedShot, projectId, onShotImagesUpdate accessed via refs
 
   const handleDeleteImageFromShot = useCallback(async (shotImageEntryId: string) => {
     // 🎯 STABILITY FIX: Use refs to access latest values without causing callback recreation
@@ -1013,12 +718,11 @@ export const useGenerationActions = ({
         .filter(g => g.timeline_frame != null && g.timeline_frame !== -1)
         .map(g => g.timeline_frame as number);
       
-      // Calculate unique positions for each file (50 frames apart)
-      const FRAME_SPACING = 50;
+      // Calculate unique positions for each file (DEFAULT_FRAME_SPACING frames apart)
       const positions: number[] = [];
       const allUsedFrames = [...existingFrames];
       for (let i = 0; i < files.length; i++) {
-        let targetFrame = startFrame + (i * FRAME_SPACING);
+        let targetFrame = startFrame + (i * DEFAULT_FRAME_SPACING);
         // Ensure this frame is unique (not in existing or already assigned)
         while (allUsedFrames.includes(targetFrame)) {
           targetFrame += 1;
@@ -1181,15 +885,9 @@ export const useGenerationActions = ({
     }
   }, []); // mutations, selectedShot, projectId accessed via refs
 
-  // 🎯 FIX #3: Memoize the return object to prevent callback instability in parent components
-  // Without this, every render creates a new object, causing ShotImagesEditor to rerender
-  // even when the individual callbacks haven't changed
-  // 
-  // CRITICAL: All callbacks have empty dependency arrays and use refs internally.
-  // The mutation is accessed via ref to prevent the useMemo from recreating on mutation state changes.
+  // Memoize the return object to prevent callback instability in parent components.
+  // All callbacks have empty dependency arrays and use refs internally.
   return useMemo(() => ({
-    handleImageUploadToShot,
-    handleDeleteVideoOutput,
     handleDeleteImageFromShot,
     handleBatchDeleteImages,
     handleDuplicateImage,
@@ -1197,17 +895,7 @@ export const useGenerationActions = ({
     handleTimelineGenerationDrop,
     handleBatchImageDrop,
     handleBatchGenerationDrop,
-    isEnqueuing,
-    justQueued,
-    enqueueTasks,
-    // Expose mutation via ref getter - prevents useMemo recreation on mutation state changes
-    get updateGenerationLocationMutation() {
-      return updateGenerationLocationMutationRef.current;
-    },
   }), [
-    // All callbacks use refs internally and have empty deps, so they're stable
-    handleImageUploadToShot,
-    handleDeleteVideoOutput,
     handleDeleteImageFromShot,
     handleBatchDeleteImages,
     handleDuplicateImage,
@@ -1215,10 +903,5 @@ export const useGenerationActions = ({
     handleTimelineGenerationDrop,
     handleBatchImageDrop,
     handleBatchGenerationDrop,
-    // Static values that never change
-    isEnqueuing,
-    justQueued,
-    enqueueTasks,
-    // updateGenerationLocationMutation removed - accessed via getter from ref
   ]);
 }; 
