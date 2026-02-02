@@ -76,110 +76,75 @@ export interface ShotSettings {
   textAfterPrompts?: string;
 }
 
+/**
+ * ShotEditorProps - Cleaned up props interface
+ *
+ * All video generation settings now come from VideoTravelSettingsProvider context.
+ * This component MUST be wrapped in VideoTravelSettingsProvider.
+ *
+ * These props are only for:
+ * - Core identifiers (shotId, projectId)
+ * - Navigation callbacks (onBack, onPreviousShot, etc.)
+ * - Parent refs (for floating UI coordination)
+ * - Dimension settings (not in context yet)
+ * - Non-settings callbacks (onShotImagesUpdate, etc.)
+ *
+ * @see providers/VideoTravelSettingsProvider.tsx for settings context
+ */
 export interface ShotEditorProps {
+  // ============================================================================
+  // CORE IDENTIFIERS
+  // ============================================================================
   selectedShotId: string;
   projectId: string;
   /** Optimistic shot data for newly created shots that aren't in the cache yet */
   optimisticShotData?: any;
-  videoPairConfigs?: VideoPairConfig[]; // DEPRECATED - pair prompts now in shot_generations.metadata.pair_prompt
-  
-  // NEW: Settings bundle (preferred way)
-  settings?: ShotSettings;
-  onUpdateSetting?: <K extends keyof ShotSettings>(key: K, value: ShotSettings[K]) => void;
-  settingsStatus?: 'idle' | 'loading' | 'ready' | 'saving' | 'error';
-  
-  // OLD: Individual props (kept for backward compatibility)
-  videoControlMode?: 'individual' | 'batch';
-  batchVideoPrompt?: string;
-  negativePrompt?: string;
-  onNegativePromptChange?: (prompt: string) => void;
-  batchVideoFrames?: number;
+
+  // ============================================================================
+  // CALLBACKS
+  // ============================================================================
   onShotImagesUpdate: () => void;
   onBack: () => void;
-  onVideoControlModeChange?: (mode: 'individual' | 'batch') => void;
   onPairConfigChange: (pairId: string, field: 'prompt' | 'frames' | 'context', value: string | number) => void;
-  onBatchVideoPromptChange?: (prompt: string) => void;
-  onBatchVideoFramesChange?: (frames: number) => void;
-  batchVideoSteps?: number;
-  onBatchVideoStepsChange?: (steps: number) => void;
+  onGenerateAllSegments: () => void;
+
+  // ============================================================================
+  // DIMENSION SETTINGS (not in context yet)
+  // ============================================================================
   dimensionSource?: 'project' | 'firstImage' | 'custom';
   onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
   customWidth?: number;
   onCustomWidthChange?: (width?: number) => void;
   customHeight?: number;
   onCustomHeightChange?: (height?: number) => void;
-  steerableMotionSettings?: SteerableMotionSettings;
-  onSteerableMotionSettingsChange?: (settings: Partial<SteerableMotionSettings>) => void;
-  onGenerateAllSegments: () => void;
-  availableLoras: LoraModel[];
-  
-  // LoRAs - now unified with shot settings
-  selectedLoras?: ShotLora[];
-  onSelectedLorasChange?: (loras: ShotLora[]) => void;
-  
-  // Text before/after prompts
-  textBeforePrompts?: string;
-  onTextBeforePromptsChange?: (text: string) => void;
-  textAfterPrompts?: string;
-  onTextAfterPromptsChange?: (text: string) => void;
 
-  generationMode?: 'batch' | 'timeline';
-  onGenerationModeChange?: (mode: 'batch' | 'timeline') => void;
-  enhancePrompt?: boolean;
-  onEnhancePromptChange?: (enhance: boolean) => void;
-  turboMode?: boolean;
-  onTurboModeChange?: (turbo: boolean) => void;
-  smoothContinuations?: boolean;
-  onSmoothContinuationsChange?: (smooth: boolean) => void;
-  amountOfMotion?: number;
-  onAmountOfMotionChange?: (motion: number) => void;
-  // Motion mode
-  motionMode?: 'basic' | 'advanced';
-  onMotionModeChange?: (mode: 'basic' | 'advanced') => void;
-  // Generation type mode (I2V vs VACE)
-  generationTypeMode?: 'i2v' | 'vace';
-  onGenerationTypeModeChange?: (mode: 'i2v' | 'vace') => void;
-  // Advanced mode (derived from motionMode, no longer passed as prop)
-  phaseConfig?: any; // PhaseConfig type from settings
-  onPhaseConfigChange?: (config: any) => void;
-  // Phase preset props
-  selectedPhasePresetId?: string | null;
-  onPhasePresetSelect?: (presetId: string, config: any) => void;
-  onPhasePresetRemove?: () => void;
-  // Blur save - triggers immediate save when user clicks away from field
-  onBlurSave?: () => void;
-  // Restore defaults - respects current I2V/VACE mode (Task 2)
-  onRestoreDefaults?: () => void;
-  // Mode selection removed - now hardcoded to use specific model
-  // Navigation props
+  // ============================================================================
+  // NAVIGATION
+  // ============================================================================
   onPreviousShot?: () => void;
   onNextShot?: () => void;
   onPreviousShotNoScroll?: () => void;
   onNextShotNoScroll?: () => void;
   hasPrevious?: boolean;
   hasNext?: boolean;
-  // Shot name editing
   onUpdateShotName?: (newName: string) => void;
 
-  // Indicates if parent is still loading settings. Manage Shot Images should wait until this is false.
-  settingsLoading?: boolean;
-  
-  // Project-wide video count lookup function for instant skeleton display
+  // ============================================================================
+  // CACHE & VIDEO COUNTS
+  // ============================================================================
   getShotVideoCount?: (shotId: string | null) => number | null;
-
-  // Project-wide final video count lookup function for FinalVideoSection skeleton
   getFinalVideoCount?: (shotId: string | null) => number | null;
-
-  // Function to invalidate video counts cache when videos are added/deleted
   invalidateVideoCountsCache?: () => void;
-  
-  // Callback refs for parent-level floating UI elements (notify parent when attached)
+
+  // ============================================================================
+  // PARENT REFS (for floating UI coordination)
+  // ============================================================================
   headerContainerRef?: (node: HTMLDivElement | null) => void;
   timelineSectionRef?: (node: HTMLDivElement | null) => void;
   ctaContainerRef?: (node: HTMLDivElement | null) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
-  
-  // Mutable ref to expose shot-specific generation data to parent
+
+  /** Mutable ref to expose shot-specific generation data to parent */
   getGenerationDataRef?: React.MutableRefObject<(() => {
     structureVideo: {
       path: string | null;
@@ -191,23 +156,26 @@ export interface ShotEditorProps {
     loras: Array<{ id: string; path: string; strength: number; name: string }>;
     clearEnhancedPrompts: () => Promise<void>;
   }) | null>;
-  
-  // Mutable ref to expose generate video function to parent
+
+  /** Mutable ref to expose generate video function to parent */
   generateVideoRef?: React.MutableRefObject<((variantName: string) => Promise<void>) | null>;
-  
-  // Mutable ref to expose name click handler to parent (for floating header)
+
+  /** Mutable ref to expose name click handler to parent (for floating header) */
   nameClickRef?: React.MutableRefObject<(() => void) | null>;
 
-  // Whether the floating sticky header is visible (hide main header when true)
+  // ============================================================================
+  // UI STATE
+  // ============================================================================
+  /** Whether the floating sticky header is visible (hide main header when true) */
   isSticky?: boolean;
-  
-  // CTA state from parent (for rendering CTA in both positions)
+
+  /** CTA state from parent (for rendering CTA in both positions) */
   variantName?: string;
   onVariantNameChange?: (name: string) => void;
   isGeneratingVideo?: boolean;
   videoJustQueued?: boolean;
 
-  // Drag state callback - used to suppress query refetches during drag operations
+  /** Drag state callback - used to suppress query refetches during drag operations */
   onDragStateChange?: (isDragging: boolean) => void;
 }
 

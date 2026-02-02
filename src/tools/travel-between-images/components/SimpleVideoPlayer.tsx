@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { getDisplayUrl } from '@/shared/lib/utils';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { Play, Pause } from 'lucide-react';
 
 interface SimpleVideoPlayerProps {

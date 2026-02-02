@@ -24,8 +24,7 @@ import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePendingGenerationTasks } from '@/shared/hooks/usePendingGenerationTasks';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
-import { LightboxVariantProvider } from './contexts/LightboxVariantContext';
-import { LightboxStateProvider } from './contexts/LightboxStateContext';
+import { LightboxProviders } from './components';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 
 // Import hooks
@@ -37,11 +36,13 @@ import {
   useLightboxVideoMode,
   useSharedLightboxState,
   useLightboxStateValue,
+  useLightboxLayoutProps,
   useReplaceInShot,
 } from './hooks';
 
 // Import components
 import { LightboxShell, SegmentSlotFormView } from './components';
+import { VideoEditProvider, type VideoEditState } from './contexts/VideoEditContext';
 import {
   DesktopSidePanelLayout,
   MobileStackedLayout,
@@ -613,15 +614,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   }, [markAllViewedMutation, variantFetchGenerationId]);
 
   // ========================================
-  // CONTEXT VALUES
+  // CONTEXT VALUE
   // ========================================
-
-  const lightboxVariantContextValue = useMemo(() => ({
-    pendingTaskCount,
-    unviewedVariantCount,
-    onMarkAllViewed: handleMarkAllViewed,
-    variantsSectionRef,
-  }), [pendingTaskCount, unviewedVariantCount, handleMarkAllViewed]);
 
   const lightboxStateValue = useLightboxStateValue({
     onClose,
@@ -667,6 +661,69 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     setEditMode: () => {},
     setIsInpaintMode: () => {},
   });
+
+  // Build VideoEditContext value
+  const videoEditValue = useMemo<VideoEditState>(() => ({
+    // Mode state
+    isInVideoEditMode,
+    videoEditSubMode,
+
+    // Mode setters
+    setVideoEditSubMode,
+
+    // Mode entry/exit handlers
+    handleEnterVideoEditMode,
+    handleExitVideoEditMode,
+    handleEnterVideoTrimMode,
+    handleEnterVideoReplaceMode,
+    handleEnterVideoRegenerateMode,
+    handleEnterVideoEnhanceMode,
+
+    // Trim state
+    trimState,
+    setStartTrim,
+    setEndTrim,
+    resetTrim,
+    trimmedDuration,
+    hasTrimChanges,
+
+    // Video duration/playback
+    videoDuration: trimState.videoDuration,
+    setVideoDuration,
+    trimCurrentTime,
+    setTrimCurrentTime,
+
+    // Enhance settings
+    enhanceSettings: videoEnhance.settings,
+    updateEnhanceSetting: videoEnhance.updateSetting,
+  }), [
+    // Mode state
+    isInVideoEditMode,
+    videoEditSubMode,
+    // Mode setters
+    setVideoEditSubMode,
+    // Mode handlers
+    handleEnterVideoEditMode,
+    handleExitVideoEditMode,
+    handleEnterVideoTrimMode,
+    handleEnterVideoReplaceMode,
+    handleEnterVideoRegenerateMode,
+    handleEnterVideoEnhanceMode,
+    // Trim state
+    trimState,
+    setStartTrim,
+    setEndTrim,
+    resetTrim,
+    trimmedDuration,
+    hasTrimChanges,
+    // Duration/playback
+    setVideoDuration,
+    trimCurrentTime,
+    setTrimCurrentTime,
+    // Enhance
+    videoEnhance.settings,
+    videoEnhance.updateSetting,
+  ]);
 
   // ========================================
   // HANDLERS
@@ -744,18 +801,16 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   const handleGenerationNameChange = (_: string) => {};
 
   // ========================================
-  // BUILD LAYOUT PROPS
+  // BUILD LAYOUT PROPS (via hook)
   // ========================================
 
-  const sidePanelLayoutProps = useMemo(() => ({
+  const { sidePanelLayoutProps, centeredLayoutProps } = useLightboxLayoutProps({
     // Core
     onClose,
     readOnly,
-    isMobile,
     selectedProjectId,
-    actualGenerationId,
-    contentRef,
-
+    isMobile,
+    actualGenerationId: actualGenerationId || '',
     // Media
     media: media || ({} as GenerationRow),
     isVideo: true,
@@ -764,7 +819,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     imageDimensions,
     setImageDimensions,
     effectiveImageDimensions: effectiveMedia.imageDimensions,
-
     // Variants
     variants: variants.list,
     activeVariant: variants.activeVariant,
@@ -782,7 +836,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     variantParamsToLoad,
     setVariantParamsToLoad,
     variantsSectionRef,
-
     // Video edit
     isVideoTrimModeActive,
     isVideoEditModeActive,
@@ -818,11 +871,10 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     isEnhancing: videoEnhance.isGenerating,
     enhanceSuccess: videoEnhance.generateSuccess,
     canEnhance: videoEnhance.canSubmit,
-
-    // Edit mode (stubs for video - using video edit instead)
+    // Edit mode (stubs for video)
     isInpaintMode: false,
     isAnnotateMode: false,
-    isSpecialEditMode: false, // Videos don't have image edit modes
+    isSpecialEditMode: false,
     editMode: 'text',
     setEditMode: () => {},
     setIsInpaintMode: () => {},
@@ -865,7 +917,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     handleExitInpaintMode: () => {},
     inpaintPanelPosition: 'right',
     setInpaintPanelPosition: () => {},
-
     // Edit form props (stubs for video)
     inpaintPrompt: '',
     setInpaintPrompt: () => {},
@@ -890,8 +941,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     isSavingAsVariant: false,
     saveAsVariantSuccess: false,
     createAsGeneration: false,
-    onCreateAsGenerationChange: () => {},
-
+    setCreateAsGeneration: () => {},
     // Img2Img props (stubs for video)
     img2imgPrompt: '',
     setImg2imgPrompt: () => {},
@@ -910,7 +960,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     isLocalGeneration: false,
     qwenEditModel: 'qwen',
     setQwenEditModel: () => {},
-
     // Info panel props
     showImageEditTools: false,
     adjustedTaskDetailsData,
@@ -929,7 +978,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     sourceGenerationData: sourceGeneration.data,
     sourcePrimaryVariant: sourceGeneration.primaryVariant,
     onOpenExternalGeneration,
-
     // Navigation
     showNavigation,
     hasNext,
@@ -937,264 +985,53 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     handleSlotNavNext,
     handleSlotNavPrev,
     swipeNavigation: navigation.swipeNavigation,
-
     // Panel
     effectiveTasksPaneOpen,
     effectiveTasksPaneWidth,
-
-    // Floating tool props (stubs for video - no edit modes)
-    floatingToolProps: {
-      editMode: 'text' as const,
-      setEditMode: () => {},
-      brushSize: 20,
-      isEraseMode: false,
-      setBrushSize: () => {},
-      setIsEraseMode: () => {},
-      annotationMode: null,
-      setAnnotationMode: () => {},
-      repositionTransform: null,
-      setTranslateX: () => {},
-      setTranslateY: () => {},
-      setScale: () => {},
-      setRotation: () => {},
-      toggleFlipH: () => {},
-      toggleFlipV: () => {},
-      resetTransform: () => {},
-      effectiveImageDimensions: effectiveMedia.imageDimensions,
-      brushStrokes: [],
-      handleUndo: () => {},
-      handleClearMask: () => {},
-      inpaintPanelPosition: 'right' as const,
-      setInpaintPanelPosition: () => {},
-    },
-
-    // Controls panel props (for ControlsPanel component)
-    controlsPanelProps: {
-      // Video edit mode
-      isInVideoEditMode,
-      isSpecialEditMode: false, // Videos don't have image edit modes (inpaint/annotate/reposition)
-      videoEditSubMode,
-      onEnterTrimMode: handleEnterVideoTrimMode,
-      onEnterReplaceMode: handleEnterVideoReplaceMode,
-      onEnterRegenerateMode: handleEnterVideoRegenerateMode,
-      onEnterEnhanceMode: handleEnterVideoEnhanceMode,
-      onExitVideoEditMode: handleExitVideoEditMode,
-      isCloudMode, // Required for showing Enhance mode option
-      enhanceSettings: videoEnhance.settings,
-      onUpdateEnhanceSetting: videoEnhance.updateSetting,
-      onEnhanceGenerate: videoEnhance.handleGenerate,
-      isEnhancing: videoEnhance.isGenerating,
-      enhanceSuccess: videoEnhance.generateSuccess,
-      canEnhance: videoEnhance.canSubmit,
-      trimState,
-      onStartTrimChange: setStartTrim,
-      onEndTrimChange: setEndTrim,
-      onResetTrim: resetTrim,
-      trimmedDuration,
-      hasTrimChanges,
-      onSaveTrim: saveTrimmedVideo,
-      isSavingTrim,
-      trimSaveProgress,
-      trimSaveError,
-      trimSaveSuccess,
-      videoUrl: effectiveMedia.videoUrl,
-      trimCurrentTime,
-      trimVideoRef,
-      videoEditing,
-      projectId: selectedProjectId,
-      regenerateFormProps,
-      // EditModePanel props (stubs for video)
-      sourceGenerationData: sourceGeneration.data,
-      onOpenExternalGeneration,
-      allShots: allShots || [],
-      isCurrentMediaPositioned: shots.isAlreadyPositionedInSelectedShot,
-      onReplaceInShot: handleReplaceInShot,
-      sourcePrimaryVariant: sourceGeneration.primaryVariant,
-      onMakeMainVariant: makeMainVariant.handle,
-      canMakeMainVariant: makeMainVariant.canMake,
-      editMode: 'text' as const,
-      setEditMode: () => {},
-      setIsInpaintMode: () => {},
-      inpaintPrompt: '',
-      setInpaintPrompt: () => {},
-      inpaintNumGenerations: 1,
-      setInpaintNumGenerations: () => {},
-      loraMode: 'none' as const,
-      setLoraMode: () => {},
-      customLoraUrl: '',
-      setCustomLoraUrl: () => {},
-      isGeneratingInpaint: false,
-      inpaintGenerateSuccess: false,
-      isCreatingMagicEditTasks: false,
-      magicEditTasksCreated: false,
-      brushStrokes: [],
-      handleExitMagicEditMode: () => {},
-      handleUnifiedGenerate: async () => {},
-      handleGenerateAnnotatedEdit: async () => {},
-      handleGenerateReposition: async () => {},
-      isGeneratingReposition: false,
-      repositionGenerateSuccess: false,
-      hasTransformChanges: false,
-      handleSaveAsVariant: async () => {},
-      isSavingAsVariant: false,
-      saveAsVariantSuccess: false,
-      createAsGeneration: false,
-      onCreateAsGenerationChange: () => {},
-      // Img2Img props (stubs)
-      img2imgPrompt: '',
-      setImg2imgPrompt: () => {},
-      img2imgStrength: 0.5,
-      setImg2imgStrength: () => {},
-      enablePromptExpansion: false,
-      setEnablePromptExpansion: () => {},
-      isGeneratingImg2Img: false,
-      img2imgGenerateSuccess: false,
-      handleGenerateImg2Img: async () => {},
-      img2imgLoraManager: null,
-      availableLoras: [],
-      editLoraManager: null,
-      advancedSettings: {},
-      setAdvancedSettings: () => {},
-      isLocalGeneration: false,
-      qwenEditModel: 'qwen' as const,
-      setQwenEditModel: () => {},
-      // InfoPanel props
-      isVideo: true,
-      showImageEditTools: false,
-      readOnly,
-      isInpaintMode: false,
-      onExitInpaintMode: () => {},
-      onEnterInpaintMode: () => {},
-      onEnterVideoEditMode: handleEnterVideoEditMode,
-      onClose,
-      taskDetailsData: adjustedTaskDetailsData,
-      taskId: adjustedTaskDetailsData?.taskId || (media as any)?.source_task_id || null,
-      generationName,
-      onGenerationNameChange: handleGenerationNameChange,
-      isEditingGenerationName,
-      onEditingGenerationNameChange: setIsEditingGenerationName,
-      derivedItems: lineage.derivedItems,
-      replaceImages,
-      onReplaceImagesChange: setReplaceImages,
-      onSwitchToPrimary: variants.primaryVariant ? () => variants.setActiveVariantId(variants.primaryVariant!.id) : undefined,
-      variantsSectionRef,
-      // Shared props
-      currentMediaId: media?.id || '',
-      currentShotId: selectedShotId || shotId,
-      derivedGenerations: lineage.derivedGenerations,
-      paginatedDerived: lineage.paginatedDerived,
-      derivedPage: lineage.derivedPage,
-      derivedTotalPages: lineage.derivedTotalPages,
-      onSetDerivedPage: lineage.setDerivedPage,
-      variants: variants.list,
-      activeVariant: variants.activeVariant,
-      primaryVariant: variants.primaryVariant,
-      onVariantSelect: variants.setActiveVariantId,
-      onMakePrimary: variants.setPrimaryVariant,
-      isLoadingVariants: variants.isLoading,
-      onPromoteToGeneration: undefined, // Video doesn't support variant promotion
-      isPromoting: variants.isPromoting,
-      onDeleteVariant: variants.deleteVariant,
-      onLoadVariantSettings: setVariantParamsToLoad,
-    },
-
     // Button group props
     buttonGroupProps: {
       ...buttonGroupProps,
       handleDownload,
       handleDelete,
     },
-
-    // Workflow bar props (bundled for layout components)
-    workflowBarProps: {
-      onAddToShot,
-      onDelete,
-      onApplySettings,
-      allShots: allShots || [],
-      selectedShotId,
-      onShotChange,
-      onCreateShot,
-      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
-      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
-      showTickForImageId,
-      showTickForSecondaryImageId,
-      onAddToShotWithoutPosition,
-      onShowTick,
-      onShowSecondaryTick,
-      onOptimisticPositioned,
-      onOptimisticUnpositioned,
-      contentRef,
-      handleApplySettings,
-      handleNavigateToShotFromSelector,
-      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-    },
-
-    // Workflow controls props (for CenteredLayout - includes isDeleting + handleDelete)
-    workflowControlsProps: {
-      onAddToShot,
-      onDelete,
-      onApplySettings,
-      allShots: allShots || [],
-      selectedShotId,
-      onShotChange,
-      onCreateShot,
-      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
-      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
-      showTickForImageId,
-      showTickForSecondaryImageId,
-      onAddToShotWithoutPosition,
-      onShowTick,
-      onShowSecondaryTick,
-      onOptimisticPositioned,
-      onOptimisticUnpositioned,
-      contentRef,
-      handleApplySettings,
-      handleNavigateToShotFromSelector,
-      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-      isDeleting,
-      handleDelete,
-    },
-
-    // Other workflow props needed directly
+    // Workflow props
+    allShots: allShots || [],
+    selectedShotId,
     shotId,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onDelete,
+    onApplySettings,
+    onShotChange,
+    onCreateShot,
+    showTickForImageId,
+    showTickForSecondaryImageId,
+    onShowTick,
+    onShowSecondaryTick,
+    onOptimisticPositioned,
+    onOptimisticUnpositioned,
+    isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
+    isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
+    contentRef,
+    handleApplySettings,
+    handleNavigateToShotFromSelector,
+    handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
     handleReplaceInShot,
-
+    isDeleting,
+    handleDelete,
     // Adjacent segments
     adjacentSegments,
-
     // Segment slot mode
     segmentSlotMode: hasSegmentVideo ? segmentSlotMode : undefined,
-  }), [
-    media,
-    variants,
-    effectiveMedia,
-    imageDimensions,
-    videoEditSubMode,
-    trimState,
-    videoEnhance,
-    regenerateFormProps,
-    buttonGroupProps,
-    lineage,
-    shots,
-    sourceGeneration,
-    makeMainVariant,
-    navigation,
-    isVideoTrimModeActive,
-    isVideoEditModeActive,
-    isInVideoEditMode,
-  ]);
-
-  const centeredLayoutProps = useMemo(() => ({
-    ...sidePanelLayoutProps,
-  }), [sidePanelLayoutProps]);
+  });
 
   // ========================================
   // RENDER
   // ========================================
 
   return (
-    <LightboxStateProvider value={lightboxStateValue}>
-      <LightboxVariantProvider value={lightboxVariantContextValue}>
+    <LightboxProviders stateValue={lightboxStateValue}>
+      <VideoEditProvider value={videoEditValue}>
         <LightboxShell
           onClose={onClose}
           isInpaintMode={false}
@@ -1232,8 +1069,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
             <CenteredLayout {...centeredLayoutProps} />
           )}
         </LightboxShell>
-      </LightboxVariantProvider>
-    </LightboxStateProvider>
+      </VideoEditProvider>
+    </LightboxProviders>
   );
 };
 

@@ -13,7 +13,12 @@ src/tools/travel-between-images/
 ├── pages/
 │   └── VideoTravelToolPage.tsx        # Main tool UI
 ├── components/
-│   ├── ShotEditor.tsx                 # Core editing environment
+│   ├── ShotEditor/                    # Core editing environment (modular)
+│   │   ├── index.tsx                  # ShotSettingsEditor component
+│   │   ├── state/                     # State management (reducer)
+│   │   ├── hooks/                     # Extracted hooks
+│   │   ├── ui/                        # Sub-components
+│   │   └── services/                  # Video generation service
 │   ├── Timeline/                      # Frame-accurate timeline (refactored)
 │   │   ├── index.tsx                  # Main Timeline component
 │   │   ├── TimelineItem.tsx           # Individual timeline items
@@ -51,7 +56,7 @@ src/tools/travel-between-images/
 **Main tool interface**
 - Lists project shots with `ShotListDisplay`
 - Creates new shots via Supabase
-- Hosts the main `ShotEditor`
+- Hosts the main `ShotSettingsEditor`
 - Manages LoRA state filtering for "Wan 2.1 14b" models
 - Handles shot selection and navigation
 
@@ -72,14 +77,20 @@ src/tools/travel-between-images/
 - **Loading States**: Skeleton animations with spinning indicators during image loading
 - **Staggered Animations**: Images reveal with 0.1s delays for smooth visual progression
 
-### `ShotEditor.tsx`
-**Core editing environment**
-- Positions `VideoOutputsGallery` above for visibility
-- Orchestrates all editing components
-- Includes LoRA selector with strength controls
+### `ShotSettingsEditor` (ShotEditor/)
+**Core editing environment (modular architecture)**
+- Positions `FinalVideoSection` above for selected output visibility
+- Orchestrates all editing components via extracted hooks
+- Includes LoRA selector with strength controls and project presets
 - Validates OpenAI API key when *Enhance Prompt* enabled
 - Offers "Crop to project size" helper
-- Manages shot state and updates
+- Manages shot state via reducer pattern (`useShotEditorState`)
+- **Extracted Hooks**:
+  - `useOutputSelection`: Persisted output selection state
+  - `useModeReadiness`: Mode loading and transitions
+  - `useNameEditing`: Inline shot name editing
+  - `useLoraSync`: LoRA management with project presets
+  - `useGenerationActions`: Timeline mutations
 
 ### `Timeline/` (Modular Timeline System)
 **Frame-accurate timeline component (refactored into modular architecture)**

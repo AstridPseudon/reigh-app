@@ -298,3 +298,51 @@ export const applyFluidTimelineMulti = (
   // Apply gap constraints (handles frame 0 enforcement)
   return shrinkOversizedGaps(result, undefined, skipQuantization);
 };
+
+/**
+ * Calculate placement for a new structure video on the timeline.
+ * Places after the last existing video, clipping the last video if needed to make space.
+ *
+ * @returns Object with start_frame, end_frame, and optional lastVideoUpdate if clipping is needed
+ */
+export interface VideoPlacementResult {
+  start_frame: number;
+  end_frame: number;
+  lastVideoUpdate?: { index: number; newEndFrame: number };
+}
+
+export const calculateNewVideoPlacement = (
+  videoFrameCount: number,
+  existingVideos: Array<{ path: string; start_frame: number; end_frame: number }> | undefined,
+  fullMax: number
+): VideoPlacementResult => {
+  let start_frame = 0;
+  let end_frame = videoFrameCount;
+  let lastVideoUpdate: { index: number; newEndFrame: number } | undefined;
+
+  if (existingVideos && existingVideos.length > 0) {
+    const sorted = [...existingVideos].sort((a, b) => a.start_frame - b.start_frame);
+    const lastVideo = sorted[sorted.length - 1];
+    const lastVideoIndex = existingVideos.findIndex(
+      v => v.path === lastVideo.path && v.start_frame === lastVideo.start_frame
+    );
+
+    start_frame = lastVideo.end_frame;
+    end_frame = start_frame + videoFrameCount;
+
+    // If no space on timeline, clip 1/5 of the last video's range
+    if (start_frame >= fullMax && lastVideoIndex >= 0) {
+      const lastVideoRange = lastVideo.end_frame - lastVideo.start_frame;
+      const clipAmount = Math.max(10, Math.floor(lastVideoRange / 5));
+      const newLastVideoEnd = lastVideo.end_frame - clipAmount;
+
+      if (newLastVideoEnd > lastVideo.start_frame + 10) {
+        lastVideoUpdate = { index: lastVideoIndex, newEndFrame: newLastVideoEnd };
+        start_frame = newLastVideoEnd;
+        end_frame = start_frame + videoFrameCount;
+      }
+    }
+  }
+
+  return { start_frame, end_frame, lastVideoUpdate };
+};

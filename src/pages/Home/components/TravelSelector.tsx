@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { AUTO_ADVANCE_ANIMATION_DURATION } from './useTravelAutoAdvance';
 
 // Skeleton component for loading states

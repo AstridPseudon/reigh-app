@@ -1,0 +1,182 @@
+/**
+ * useImageManagement - Image reorder and final video management hooks
+ *
+ * Extracted from ShotEditor to reduce component size.
+ * Handles:
+ * - Image reorder within shot timeline
+ * - Final video deletion/clearing
+ * - Pending position tracking
+ */
+
+import { useState, useCallback, useRef } from 'react';
+import { QueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import { handleError } from '@/shared/lib/errorHandler';
+import type { GenerationRow } from '@/types/shots';
+
+interface UseImageManagementOptions {
+  queryClient: QueryClient;
+  selectedShotRef: React.MutableRefObject<any>;
+  projectIdRef: React.MutableRefObject<string>;
+  allShotImagesRef: React.MutableRefObject<GenerationRow[]>;
+  batchVideoFramesRef: React.MutableRefObject<number>;
+  updateShotImageOrderMutation: any;
+  demoteOrphanedVariants: (shotId: string, reason: string) => void;
+  actionsRef: React.MutableRefObject<any>;
+  pendingFramePositions: Map<string, number>;
+}
+
+interface UseImageManagementReturn {
+  // Final video
+  isClearingFinalVideo: boolean;
+  handleDeleteFinalVideo: (generationId: string) => Promise<void>;
+  // Image reorder
+  handleReorderImagesInShot: (orderedShotGenerationIds: string[], draggedItemId?: string) => void;
+  // Pending positions
+  handlePendingPositionApplied: (generationId: string) => void;
+}
+
+export function useImageManagement({
+  queryClient,
+  selectedShotRef,
+  projectIdRef,
+  allShotImagesRef,
+  batchVideoFramesRef,
+  updateShotImageOrderMutation,
+  demoteOrphanedVariants,
+  actionsRef,
+  pendingFramePositions,
+}: UseImageManagementOptions): UseImageManagementReturn {
+  // State for final video clearing
+  const [isClearingFinalVideo, setIsClearingFinalVideo] = useState(false);
+
+  // Refs for stable callbacks
+  const updateShotImageOrderMutationRef = useRef(updateShotImageOrderMutation);
+  updateShotImageOrderMutationRef.current = updateShotImageOrderMutation;
+
+  const demoteOrphanedVariantsRef = useRef(demoteOrphanedVariants);
+  demoteOrphanedVariantsRef.current = demoteOrphanedVariants;
+
+  const pendingFramePositionsRef = useRef(pendingFramePositions);
+  pendingFramePositionsRef.current = pendingFramePositions;
+
+  // Handler for clearing the final video output (not deleting the entire generation)
+  const handleDeleteFinalVideo = useCallback(async (generationId: string) => {
+    const selectedShot = selectedShotRef.current;
+    const projectId = projectIdRef.current;
+
+    console.log('[FinalVideoDelete] handleDeleteFinalVideo (clear output) called', {
+      generationId: generationId?.substring(0, 8),
+      selectedShotId: selectedShot?.id?.substring(0, 8),
+      projectId: projectId?.substring(0, 8),
+    });
+
+    setIsClearingFinalVideo(true);
+
+    try {
+      // 1. Clear the generation's location and thumbnail_url (keeps the generation record)
+      const { error: updateError } = await supabase
+        .from('generations')
+        .update({
+          location: null,
+          thumbnail_url: null
+        })
+        .eq('id', generationId);
+
+      if (updateError) {
+        handleError(updateError, { context: 'FinalVideoDelete', toastTitle: 'Failed to clear final video output' });
+        return;
+      }
+
+      console.log('[FinalVideoDelete] Cleared generation location');
+
+      // 2. Delete ALL variants of this generation (not just primary)
+      const { data: deletedVariants, error: deleteVariantError } = await supabase
+        .from('generation_variants')
+        .delete()
+        .eq('generation_id', generationId)
+        .select('id');
+
+      if (deleteVariantError) {
+        handleError(deleteVariantError, { context: 'FinalVideoDelete', showToast: false });
+      } else {
+        console.log('[FinalVideoDelete] Deleted all variants:', deletedVariants?.length || 0);
+      }
+
+      console.log('[FinalVideoDelete] Clear output SUCCESS - invalidating queries');
+
+      // Invalidate queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', selectedShot?.id, projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectStats.videos(projectId!) });
+    } catch (error) {
+      handleError(error, { context: 'FinalVideoDelete', toastTitle: 'Failed to clear final video output' });
+    } finally {
+      setIsClearingFinalVideo(false);
+    }
+  }, [queryClient, selectedShotRef, projectIdRef]);
+
+  // Handler for reordering images in shot timeline
+  const handleReorderImagesInShot = useCallback((orderedShotGenerationIds: string[], draggedItemId?: string) => {
+    const shot = selectedShotRef.current;
+    const projId = projectIdRef.current;
+
+    if (!shot || !projId) {
+      handleError(new Error('Cannot reorder images: No shot or project selected.'), { context: 'ShotEditor', showToast: false });
+      return;
+    }
+
+    console.log('[ShotEditor] Reordering images in shot', {
+      shotId: shot.id,
+      projectId: projId,
+      orderedShotGenerationIds: orderedShotGenerationIds,
+      timestamp: Date.now()
+    });
+
+    // Convert ordered IDs into timeline_frame updates
+    const updates = orderedShotGenerationIds.map((shotGenerationId, index) => ({
+      shot_id: shot.id,
+      generation_id: (() => {
+        const img = allShotImagesRef.current?.find((i: any) => i.id === shotGenerationId);
+        return (img as any)?.generation_id ?? (img as any)?.generationId ?? shotGenerationId;
+      })(),
+      timeline_frame: index * batchVideoFramesRef.current,
+    }));
+
+    updateShotImageOrderMutationRef.current.mutate({
+      shotId: shot.id,
+      projectId: projId,
+      updates,
+    }, {
+      onSuccess: () => {
+        console.log('[DemoteOrphaned] 🎯 Triggering from handleReorderImagesInShot', {
+          shotId: shot.id.substring(0, 8),
+          newOrderCount: orderedShotGenerationIds.length,
+          newOrder: orderedShotGenerationIds.map(id => id.substring(0, 8)),
+        });
+        demoteOrphanedVariantsRef.current(shot.id, 'image-reorder');
+      },
+      onError: (error: any) => {
+        handleError(error, { context: 'ShotEditor', showToast: false });
+      }
+    });
+  }, [selectedShotRef, projectIdRef, allShotImagesRef, batchVideoFramesRef]);
+
+  // Handler for clearing applied pending positions
+  const handlePendingPositionApplied = useCallback((generationId: string) => {
+    const newMap = new Map(pendingFramePositionsRef.current);
+    if (newMap.has(generationId)) {
+      newMap.delete(generationId);
+      console.log(`[ShotEditor] Cleared pending position for gen ${generationId}`);
+    }
+    actionsRef.current.setPendingFramePositions(newMap);
+  }, [actionsRef]);
+
+  return {
+    isClearingFinalVideo,
+    handleDeleteFinalVideo,
+    handleReorderImagesInShot,
+    handlePendingPositionApplied,
+  };
+}

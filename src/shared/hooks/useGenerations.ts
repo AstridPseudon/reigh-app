@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { handleError } from '@/shared/lib/errorHandler';
 // Removed useResurrectionPolling - replaced by useSmartPolling
 // Removed invalidationRouter - DataFreshnessManager handles all invalidation logic
 import { useSmartPollingConfig } from './useSmartPolling';
@@ -598,8 +598,7 @@ export function useDeleteGeneration() {
       // Generation location update events are now handled by DataFreshnessManager via realtime events
     },
     onError: (error: Error) => {
-      console.error('Error deleting generation:', error);
-      toast.error(error.message || 'Failed to delete generation');
+      handleError(error, { context: 'useDeleteGeneration', toastTitle: 'Failed to delete generation' });
     },
   });
 }
@@ -626,8 +625,7 @@ export function useDeleteVariant() {
       // Variant deletion events are handled by DataFreshnessManager via realtime events
     },
     onError: (error: Error) => {
-      console.error('Error deleting variant:', error);
-      toast.error(error.message || 'Failed to delete variant');
+      handleError(error, { context: 'useDeleteVariant', toastTitle: 'Failed to delete variant' });
     },
   });
 }
@@ -643,8 +641,7 @@ export function useUpdateGenerationLocation() {
       // Generation location update events are now handled by DataFreshnessManager via realtime events
     },
     onError: (error: Error) => {
-      console.error('Error updating generation location:', error);
-      toast.error(error.message || 'Failed to update generation');
+      handleError(error, { context: 'useUpdateGenerationLocation', toastTitle: 'Failed to update generation' });
     },
   });
 }
@@ -662,8 +659,7 @@ export function useCreateGeneration() {
       // Generation insertion events are now handled by DataFreshnessManager via realtime events
     },
     onError: (error: Error) => {
-      console.error('Error creating generation:', error);
-      toast.error(error.message || 'Failed to create generation');
+      handleError(error, { context: 'useCreateGeneration', toastTitle: 'Failed to create generation' });
     },
   });
 }
@@ -928,7 +924,7 @@ export function useToggleGenerationStar() {
           queryClient.setQueryData(key, data);
         });
       }
-      toast.error(error.message || 'Failed to toggle star');
+      handleError(error, { context: 'useToggleGenerationStar', toastTitle: 'Failed to toggle star' });
     },
     onSuccess: (_data, variables) => {
       // Emit custom event so Timeline knows to refetch star data

@@ -6,7 +6,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Shot } from '@/types/shots';
-import { toast } from 'sonner';
+import { handleError } from '@/shared/lib/errorHandler';
 import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
 import {
   cancelShotsQueries,
@@ -90,7 +90,7 @@ export const useDeleteShot = () => {
         rollbackShotsCaches(queryClient, context.projectId, context.previousShots);
       }
 
-      toast.error(`Failed to delete shot: ${error.message}`);
+      handleError(error, { context: 'useDeleteShot', toastTitle: 'Failed to delete shot' });
     },
   });
 };
@@ -158,7 +158,7 @@ export const useCreateShot = () => {
           .eq('id', result.shot_id);
 
         if (updateError) {
-          console.error('Error updating shot aspect ratio:', updateError);
+          handleError(updateError, { context: 'useCreateShot', showToast: false });
         }
       }
 
@@ -206,8 +206,7 @@ export const useCreateShot = () => {
     },
 
     onError: (error: Error) => {
-      console.error('Error creating shot:', error);
-      toast.error(`Failed to create shot: ${error.message}`);
+      handleError(error, { context: 'useCreateShot', toastTitle: 'Failed to create shot' });
     },
   });
 };
@@ -297,8 +296,7 @@ export const useDuplicateShot = () => {
       if (context?.previousShots && context.projectId) {
         rollbackShotsCaches(queryClient, context.projectId, context.previousShots);
       }
-      console.error('Error duplicating shot:', error);
-      toast.error(`Failed to duplicate shot: ${error.message}`);
+      handleError(error, { context: 'useDuplicateShot', toastTitle: 'Failed to duplicate shot' });
     },
   });
 };
@@ -366,8 +364,7 @@ export const useReorderShots = () => {
       if (context?.previousShots && context.projectId) {
         rollbackShotsCaches(queryClient, context.projectId, context.previousShots);
       }
-      console.error('Error reordering shots:', error);
-      toast.error(`Failed to reorder shots: ${error.message}`);
+      handleError(error, { context: 'useReorderShots', toastTitle: 'Failed to reorder shots' });
     },
 
     onSuccess: ({ projectId }) => {

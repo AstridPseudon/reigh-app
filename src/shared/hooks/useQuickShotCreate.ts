@@ -74,7 +74,6 @@ export const useQuickShotCreate = ({
   onLoadingStart,
   onLoadingEnd,
 }: UseQuickShotCreateProps): UseQuickShotCreateReturn => {
-  const { toast } = useToast();
   const { navigateToShot } = useShotNavigation();
   const { createShot, isCreating } = useShotCreation();
 
@@ -159,7 +158,6 @@ export const useQuickShotCreate = ({
     onShotChange,
     onLoadingStart,
     onLoadingEnd,
-    toast,
     clearQuickCreateSuccess,
   ]);
 

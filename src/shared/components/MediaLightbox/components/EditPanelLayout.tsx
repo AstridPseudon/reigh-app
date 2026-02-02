@@ -11,7 +11,7 @@ import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
 import { VariantBadge } from '@/shared/components/VariantBadge';
-import { useLightboxVariantContext } from '../contexts/LightboxVariantContext';
+import { useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
 import { VariantSelector } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor/components/VariantSelector';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 
@@ -82,7 +82,7 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
   const variantsSectionRef = useRef<HTMLDivElement>(null);
 
   // Get variant state from context (avoids prop drilling)
-  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed } = useLightboxVariantContext();
+  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed } = useLightboxVariantsSafe();
 
   // Handle ID copy with simple approach that works on all devices
   const handleCopyId = () => {

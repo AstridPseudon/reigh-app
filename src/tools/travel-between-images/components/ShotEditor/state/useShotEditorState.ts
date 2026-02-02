@@ -94,8 +94,29 @@ const shotEditorReducer = (state: ShotEditorState, action: ShotEditorAction): Sh
   }
 };
 
+// Action creators type - exported for use in extracted hooks
+export interface ShotEditorActions {
+  setUploadingImage: (value: boolean) => void;
+  setUploadProgress: (value: number) => void;
+  setFileInputKey: (value: number) => void;
+  setDeletingVideoId: (value: string | null) => void;
+  setDuplicatingImageId: (value: string | null) => void;
+  setDuplicateSuccessImageId: (value: string | null) => void;
+  setPendingFramePositions: (value: Map<string, number>) => void;
+  setCreatingTaskId: (value: string | null) => void;
+  setSettingsModalOpen: (value: boolean) => void;
+  setModeReady: (value: boolean) => void;
+  setSettingsError: (value: string | null) => void;
+  setEditingName: (value: boolean) => void;
+  setEditingNameValue: (value: string) => void;
+  setTransitioningFromNameEdit: (value: boolean) => void;
+  setShowStepsNotification: (value: boolean) => void;
+  setHasInitializedShot: (value: string | null) => void;
+  setHasInitializedUISettings: (value: string | null) => void;
+}
+
 // Custom hook for state management
-export const useShotEditorState = () => {
+export const useShotEditorState = (): { state: ShotEditorState; actions: ShotEditorActions } => {
   const [state, dispatch] = useReducer(shotEditorReducer, createInitialState());
 
   // Action creators

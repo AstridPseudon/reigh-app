@@ -8,7 +8,7 @@ import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { LoraCardProps } from '../types';
 
-export const LoraCard: React.FC<LoraCardProps> = ({
+const LoraCardComponent: React.FC<LoraCardProps> = ({
   lora,
   isSelectedOnGenerator,
   strength,
@@ -180,6 +180,19 @@ interface ThumbnailRendererProps {
   lora: LoraCardProps['lora'];
   isMobile: boolean;
 }
+
+// Memoize to prevent re-renders when parent grid updates but this card hasn't changed
+export const LoraCard = React.memo(LoraCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.lora['Model ID'] === nextProps.lora['Model ID'] &&
+    prevProps.isSelectedOnGenerator === nextProps.isSelectedOnGenerator &&
+    prevProps.strength === nextProps.strength &&
+    prevProps.isMyLora === nextProps.isMyLora &&
+    prevProps.isInSavedLoras === nextProps.isInSavedLoras &&
+    prevProps.isSaving === nextProps.isSaving &&
+    prevProps.isDeleting === nextProps.isDeleting
+  );
+});
 
 const ThumbnailRenderer: React.FC<ThumbnailRendererProps> = ({ lora, isMobile }) => {
   if (lora.main_generation) {

@@ -25,8 +25,6 @@ import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePendingGenerationTasks } from '@/shared/hooks/usePendingGenerationTasks';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
-import { LightboxVariantProvider } from './contexts/LightboxVariantContext';
-import { LightboxStateProvider } from './contexts/LightboxStateContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 
 // Import hooks
@@ -42,10 +40,13 @@ import {
   useAdjustedTaskDetails,
   useSharedLightboxState,
   useLightboxStateValue,
+  useLightboxLayoutProps,
 } from './hooks';
 
 // Import components
-import { LightboxShell } from './components';
+import { LightboxShell, LightboxProviders } from './components';
+import { ImageEditProvider, type ImageEditState } from './contexts/ImageEditContext';
+import { EditFormProvider, type EditFormState } from './contexts/EditFormContext';
 import {
   DesktopSidePanelLayout,
   MobileStackedLayout,
@@ -744,15 +745,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   }, [markAllViewedMutation, variantFetchGenerationId]);
 
   // ========================================
-  // CONTEXT VALUES
+  // CONTEXT VALUE
   // ========================================
-
-  const lightboxVariantContextValue = useMemo(() => ({
-    pendingTaskCount,
-    unviewedVariantCount,
-    onMarkAllViewed: handleMarkAllViewed,
-    variantsSectionRef,
-  }), [pendingTaskCount, unviewedVariantCount, handleMarkAllViewed]);
 
   const lightboxStateValue = useLightboxStateValue({
     onClose,
@@ -798,6 +792,177 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     setEditMode,
     setIsInpaintMode,
   });
+
+  // Build ImageEditContext value
+  const imageEditValue = useMemo<ImageEditState>(() => ({
+    // Mode state
+    isInpaintMode,
+    isMagicEditMode,
+    isSpecialEditMode,
+    editMode: editMode as ImageEditState['editMode'],
+
+    // Mode setters
+    setIsInpaintMode,
+    setIsMagicEditMode,
+    setEditMode: setEditMode as ImageEditState['setEditMode'],
+
+    // Mode entry/exit handlers
+    handleEnterInpaintMode,
+    handleExitInpaintMode,
+    handleEnterMagicEditMode,
+    handleExitMagicEditMode,
+
+    // Brush/Inpaint state
+    brushSize,
+    setBrushSize,
+    isEraseMode,
+    setIsEraseMode,
+    brushStrokes,
+    currentStroke,
+    isDrawing,
+
+    // Annotation state
+    isAnnotateMode,
+    setIsAnnotateMode,
+    annotationMode,
+    setAnnotationMode,
+    selectedShapeId,
+
+    // Undo/Clear
+    handleUndo,
+    handleClearMask,
+
+    // Reposition state (read-only values)
+    repositionTransform,
+    hasTransformChanges,
+
+    // Panel UI state
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
+  }), [
+    // Mode state
+    isInpaintMode,
+    isMagicEditMode,
+    isSpecialEditMode,
+    editMode,
+    // Mode setters
+    setIsInpaintMode,
+    setIsMagicEditMode,
+    setEditMode,
+    // Mode handlers
+    handleEnterInpaintMode,
+    handleExitInpaintMode,
+    handleEnterMagicEditMode,
+    handleExitMagicEditMode,
+    // Brush/Inpaint
+    brushSize,
+    setBrushSize,
+    isEraseMode,
+    setIsEraseMode,
+    brushStrokes,
+    currentStroke,
+    isDrawing,
+    // Annotation
+    isAnnotateMode,
+    setIsAnnotateMode,
+    annotationMode,
+    setAnnotationMode,
+    selectedShapeId,
+    // Undo/Clear
+    handleUndo,
+    handleClearMask,
+    // Reposition
+    repositionTransform,
+    hasTransformChanges,
+    // Panel UI
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
+  ]);
+
+  // Build EditFormContext value
+  const editFormValue = useMemo<EditFormState>(() => ({
+    // Inpaint form
+    inpaintPrompt,
+    setInpaintPrompt,
+    inpaintNumGenerations,
+    setInpaintNumGenerations,
+
+    // Img2Img form
+    img2imgPrompt,
+    setImg2imgPrompt,
+    img2imgStrength,
+    setImg2imgStrength,
+    enablePromptExpansion,
+    setEnablePromptExpansion,
+
+    // LoRA mode
+    loraMode,
+    setLoraMode,
+    customLoraUrl,
+    setCustomLoraUrl,
+
+    // Generation options
+    createAsGeneration,
+    setCreateAsGeneration,
+
+    // Model selection
+    qwenEditModel,
+    setQwenEditModel,
+
+    // Advanced settings
+    advancedSettings,
+    setAdvancedSettings,
+
+    // Generation status
+    isGeneratingInpaint,
+    inpaintGenerateSuccess,
+    isGeneratingImg2Img,
+    img2imgGenerateSuccess,
+    isGeneratingReposition,
+    repositionGenerateSuccess,
+    isSavingAsVariant,
+    saveAsVariantSuccess,
+    isCreatingMagicEditTasks,
+    magicEditTasksCreated,
+  }), [
+    // Inpaint form
+    inpaintPrompt,
+    setInpaintPrompt,
+    inpaintNumGenerations,
+    setInpaintNumGenerations,
+    // Img2Img form
+    img2imgPrompt,
+    setImg2imgPrompt,
+    img2imgStrength,
+    setImg2imgStrength,
+    enablePromptExpansion,
+    setEnablePromptExpansion,
+    // LoRA mode
+    loraMode,
+    setLoraMode,
+    customLoraUrl,
+    setCustomLoraUrl,
+    // Generation options
+    createAsGeneration,
+    setCreateAsGeneration,
+    // Model selection
+    qwenEditModel,
+    setQwenEditModel,
+    // Advanced settings
+    advancedSettings,
+    setAdvancedSettings,
+    // Generation status
+    isGeneratingInpaint,
+    inpaintGenerateSuccess,
+    isGeneratingImg2Img,
+    img2imgGenerateSuccess,
+    isGeneratingReposition,
+    repositionGenerateSuccess,
+    isSavingAsVariant,
+    saveAsVariantSuccess,
+    isCreatingMagicEditTasks,
+    magicEditTasksCreated,
+  ]);
 
   // ========================================
   // DOWNLOAD HANDLER
@@ -870,21 +1035,16 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   const isSaving = false;
 
   // ========================================
-  // BUILD LAYOUT PROPS
+  // BUILD LAYOUT PROPS (via hook)
   // ========================================
 
-  // For now, build minimal props for layout components
-  // This will be expanded as we complete the split
-
-  const sidePanelLayoutProps = useMemo(() => ({
+  const { sidePanelLayoutProps, centeredLayoutProps } = useLightboxLayoutProps({
     // Core
     onClose,
     readOnly,
-    isMobile,
     selectedProjectId,
+    isMobile,
     actualGenerationId,
-    contentRef,
-
     // Media
     media,
     isVideo: false,
@@ -893,7 +1053,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     imageDimensions,
     setImageDimensions,
     effectiveImageDimensions: effectiveMedia.imageDimensions,
-
     // Variants
     variants: variants.list,
     activeVariant: variants.activeVariant,
@@ -911,8 +1070,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     variantParamsToLoad,
     setVariantParamsToLoad,
     variantsSectionRef,
-
-    // Video edit (stub for images)
+    // Video edit (stubs for images)
     isVideoTrimModeActive: false,
     isVideoEditModeActive: false,
     isInVideoEditMode: false,
@@ -947,7 +1105,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isEnhancing: false,
     enhanceSuccess: false,
     canEnhance: false,
-
     // Edit mode
     isInpaintMode,
     isAnnotateMode,
@@ -994,7 +1151,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     handleExitInpaintMode,
     inpaintPanelPosition,
     setInpaintPanelPosition,
-
     // Edit form props
     inpaintPrompt,
     setInpaintPrompt,
@@ -1019,8 +1175,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isSavingAsVariant,
     saveAsVariantSuccess,
     createAsGeneration,
-    onCreateAsGenerationChange: setCreateAsGeneration,
-
+    setCreateAsGeneration,
     // Img2Img props
     img2imgPrompt,
     setImg2imgPrompt,
@@ -1039,7 +1194,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isLocalGeneration,
     qwenEditModel,
     setQwenEditModel,
-
     // Info panel props
     showImageEditTools,
     adjustedTaskDetailsData,
@@ -1058,7 +1212,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     sourceGenerationData: sourceGeneration.data,
     sourcePrimaryVariant: sourceGeneration.primaryVariant,
     onOpenExternalGeneration,
-
     // Navigation
     showNavigation,
     hasNext,
@@ -1066,296 +1219,84 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     handleSlotNavNext,
     handleSlotNavPrev,
     swipeNavigation: navigation.swipeNavigation,
-
     // Panel
     effectiveTasksPaneOpen,
     effectiveTasksPaneWidth,
-
-    // Floating tool props (for edit mode controls)
-    floatingToolProps: {
-      editMode,
-      setEditMode,
-      brushSize,
-      isEraseMode,
-      setBrushSize,
-      setIsEraseMode,
-      annotationMode,
-      setAnnotationMode,
-      repositionTransform,
-      setTranslateX,
-      setTranslateY,
-      setScale,
-      setRotation,
-      toggleFlipH,
-      toggleFlipV,
-      resetTransform,
-      effectiveImageDimensions: effectiveMedia.imageDimensions,
-      brushStrokes,
-      handleUndo,
-      handleClearMask,
-      inpaintPanelPosition,
-      setInpaintPanelPosition,
-    },
-
-    // Controls panel props (for ControlsPanel component)
-    controlsPanelProps: {
-      // Video edit mode (stubs for images)
-      isInVideoEditMode: false,
-      isSpecialEditMode,
-      videoEditSubMode: null,
-      onEnterTrimMode: () => {},
-      onEnterReplaceMode: () => {},
-      onEnterRegenerateMode: () => {},
-      onEnterEnhanceMode: () => {},
-      onExitVideoEditMode: () => {},
-      enhanceSettings: { enableInterpolation: false, enableUpscale: true, numFrames: 1, upscaleFactor: 2, colorFix: true, outputQuality: 'high' as const },
-      onUpdateEnhanceSetting: () => {},
-      onEnhanceGenerate: () => {},
-      isEnhancing: false,
-      enhanceSuccess: false,
-      canEnhance: false,
-      trimState: { startTrim: 0, endTrim: 0, videoDuration: 0 },
-      onStartTrimChange: () => {},
-      onEndTrimChange: () => {},
-      onResetTrim: () => {},
-      trimmedDuration: 0,
-      hasTrimChanges: false,
-      onSaveTrim: async () => {},
-      isSavingTrim: false,
-      trimSaveProgress: 0,
-      trimSaveError: null,
-      trimSaveSuccess: false,
-      videoUrl: '',
-      trimCurrentTime: 0,
-      trimVideoRef: { current: null },
-      videoEditing: null,
-      projectId: selectedProjectId,
-      regenerateFormProps: null,
-      // EditModePanel props
-      sourceGenerationData: sourceGeneration.data,
-      onOpenExternalGeneration,
-      allShots: allShots || [],
-      isCurrentMediaPositioned: shots.isAlreadyPositionedInSelectedShot,
-      onReplaceInShot: async () => {},
-      sourcePrimaryVariant: sourceGeneration.primaryVariant,
-      onMakeMainVariant: makeMainVariant.handle,
-      canMakeMainVariant: makeMainVariant.canMake,
-      editMode,
-      setEditMode,
-      setIsInpaintMode,
-      inpaintPrompt,
-      setInpaintPrompt,
-      inpaintNumGenerations,
-      setInpaintNumGenerations,
-      loraMode,
-      setLoraMode,
-      customLoraUrl,
-      setCustomLoraUrl,
-      isGeneratingInpaint,
-      inpaintGenerateSuccess,
-      isCreatingMagicEditTasks,
-      magicEditTasksCreated,
-      brushStrokes,
-      handleExitMagicEditMode,
-      handleUnifiedGenerate,
-      handleGenerateAnnotatedEdit,
-      handleGenerateReposition,
-      isGeneratingReposition,
-      repositionGenerateSuccess,
-      hasTransformChanges,
-      handleSaveAsVariant,
-      isSavingAsVariant,
-      saveAsVariantSuccess,
-      createAsGeneration,
-      onCreateAsGenerationChange: setCreateAsGeneration,
-      // Img2Img props
-      img2imgPrompt,
-      setImg2imgPrompt,
-      img2imgStrength,
-      setImg2imgStrength,
-      enablePromptExpansion,
-      setEnablePromptExpansion,
-      isGeneratingImg2Img,
-      img2imgGenerateSuccess,
-      handleGenerateImg2Img,
-      img2imgLoraManager,
-      availableLoras,
-      editLoraManager,
-      advancedSettings,
-      setAdvancedSettings,
-      isLocalGeneration,
-      qwenEditModel,
-      setQwenEditModel,
-      // InfoPanel props
-      isVideo: false,
-      showImageEditTools,
-      readOnly,
-      isInpaintMode,
-      onExitInpaintMode: handleExitInpaintMode,
-      onEnterInpaintMode: () => {
-        setIsInpaintMode(true);
-        setEditMode('inpaint');
-      },
-      onEnterVideoEditMode: () => {},
-      onClose,
-      taskDetailsData: adjustedTaskDetailsData,
-      taskId: adjustedTaskDetailsData?.taskId || (media as any)?.source_task_id || null,
-      generationName,
-      onGenerationNameChange: handleGenerationNameChange,
-      isEditingGenerationName,
-      onEditingGenerationNameChange: setIsEditingGenerationName,
-      derivedItems: lineage.derivedItems,
-      replaceImages,
-      onReplaceImagesChange: setReplaceImages,
-      onSwitchToPrimary: variants.primaryVariant ? () => variants.setActiveVariantId(variants.primaryVariant!.id) : undefined,
-      variantsSectionRef,
-      // Shared props
-      currentMediaId: media.id,
-      currentShotId: selectedShotId || shotId,
-      derivedGenerations: lineage.derivedGenerations,
-      paginatedDerived: lineage.paginatedDerived,
-      derivedPage: lineage.derivedPage,
-      derivedTotalPages: lineage.derivedTotalPages,
-      onSetDerivedPage: lineage.setDerivedPage,
-      variants: variants.list,
-      activeVariant: variants.activeVariant,
-      primaryVariant: variants.primaryVariant,
-      onVariantSelect: variants.setActiveVariantId,
-      onMakePrimary: variants.setPrimaryVariant,
-      isLoadingVariants: variants.isLoading,
-      onPromoteToGeneration: variants.handlePromoteToGeneration,
-      isPromoting: variants.isPromoting,
-      onDeleteVariant: variants.deleteVariant,
-      onLoadVariantSettings: setVariantParamsToLoad,
-    },
-
     // Button group props
     buttonGroupProps: {
       ...buttonGroupProps,
       handleDownload,
       handleDelete,
     },
-
-    // Workflow bar props (bundled for layout components)
-    workflowBarProps: {
-      onAddToShot,
-      onDelete,
-      onApplySettings,
-      allShots: allShots || [],
-      selectedShotId,
-      onShotChange,
-      onCreateShot,
-      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
-      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
-      showTickForImageId,
-      showTickForSecondaryImageId,
-      onAddToShotWithoutPosition,
-      onShowTick,
-      onShowSecondaryTick,
-      onOptimisticPositioned,
-      onOptimisticUnpositioned,
-      contentRef,
-      handleApplySettings,
-      handleNavigateToShotFromSelector,
-      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-    },
-
-    // Workflow controls props (for CenteredLayout - includes isDeleting + handleDelete)
-    workflowControlsProps: {
-      onAddToShot,
-      onDelete,
-      onApplySettings,
-      allShots: allShots || [],
-      selectedShotId,
-      onShotChange,
-      onCreateShot,
-      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
-      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
-      showTickForImageId,
-      showTickForSecondaryImageId,
-      onAddToShotWithoutPosition,
-      onShowTick,
-      onShowSecondaryTick,
-      onOptimisticPositioned,
-      onOptimisticUnpositioned,
-      contentRef,
-      handleApplySettings,
-      handleNavigateToShotFromSelector,
-      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-      isDeleting,
-      handleDelete,
-    },
-
-    // Other workflow props needed directly
+    // Workflow props
+    allShots: allShots || [],
+    selectedShotId,
     shotId,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onDelete,
+    onApplySettings,
+    onShotChange,
+    onCreateShot,
+    showTickForImageId,
+    showTickForSecondaryImageId,
+    onShowTick,
+    onShowSecondaryTick,
+    onOptimisticPositioned,
+    onOptimisticUnpositioned,
+    isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
+    isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
+    contentRef,
+    handleApplySettings,
+    handleNavigateToShotFromSelector,
+    handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
     handleReplaceInShot: async () => {},
-
-    // Adjacent segments (for image-to-video navigation)
+    isDeleting,
+    handleDelete,
+    // Adjacent segments
     adjacentSegments,
-
     // Segment slot mode
     segmentSlotMode: undefined,
-  }), [
-    // Dependencies - list key ones
-    media,
-    variants,
-    effectiveMedia,
-    imageDimensions,
-    isInpaintMode,
-    isSpecialEditMode,
-    editMode,
-    brushStrokes,
-    inpaintPrompt,
-    inpaintNumGenerations,
-    buttonGroupProps,
-    lineage,
-    shots,
-    sourceGeneration,
-    makeMainVariant,
-    navigation,
-  ]);
-
-  const centeredLayoutProps = useMemo(() => ({
-    ...sidePanelLayoutProps,
-    // CenteredLayout specific overrides
-  }), [sidePanelLayoutProps]);
+  });
 
   // ========================================
   // RENDER
   // ========================================
 
   return (
-    <LightboxStateProvider value={lightboxStateValue}>
-      <LightboxVariantProvider value={lightboxVariantContextValue}>
-        <LightboxShell
-          onClose={onClose}
-          isInpaintMode={isInpaintMode}
-          isSelectOpen={isSelectOpen}
-          shouldShowSidePanel={layout.shouldShowSidePanel}
-          isMobile={isMobile}
-          isTabletOrLarger={layout.isTabletOrLarger}
-          effectiveTasksPaneOpen={effectiveTasksPaneOpen}
-          effectiveTasksPaneWidth={effectiveTasksPaneWidth}
-          cancellableTaskCount={cancellableTaskCount}
-          isTasksPaneLocked={isTasksPaneLocked}
-          setIsTasksPaneLocked={setIsTasksPaneLocked}
-          setTasksPaneOpenContext={setTasksPaneOpenContext}
-          needsFullscreenLayout={needsFullscreenLayout}
-          needsTasksPaneOffset={needsTasksPaneOffset}
-          contentRef={contentRef}
-          accessibilityTitle={accessibilityTitle}
-          accessibilityDescription={accessibilityDescription}
-        >
-          {layout.shouldShowSidePanel ? (
-            <DesktopSidePanelLayout {...sidePanelLayoutProps} />
-          ) : (showTaskDetails || isSpecialEditMode) && isMobile ? (
-            <MobileStackedLayout {...sidePanelLayoutProps} />
-          ) : (
-            <CenteredLayout {...centeredLayoutProps} />
-          )}
-        </LightboxShell>
-      </LightboxVariantProvider>
-    </LightboxStateProvider>
+    <LightboxProviders stateValue={lightboxStateValue}>
+      <ImageEditProvider value={imageEditValue}>
+        <EditFormProvider value={editFormValue}>
+          <LightboxShell
+            onClose={onClose}
+            isInpaintMode={isInpaintMode}
+            isSelectOpen={isSelectOpen}
+            shouldShowSidePanel={layout.shouldShowSidePanel}
+            isMobile={isMobile}
+            isTabletOrLarger={layout.isTabletOrLarger}
+            effectiveTasksPaneOpen={effectiveTasksPaneOpen}
+            effectiveTasksPaneWidth={effectiveTasksPaneWidth}
+            cancellableTaskCount={cancellableTaskCount}
+            isTasksPaneLocked={isTasksPaneLocked}
+            setIsTasksPaneLocked={setIsTasksPaneLocked}
+            setTasksPaneOpenContext={setTasksPaneOpenContext}
+            needsFullscreenLayout={needsFullscreenLayout}
+            needsTasksPaneOffset={needsTasksPaneOffset}
+            contentRef={contentRef}
+            accessibilityTitle={accessibilityTitle}
+            accessibilityDescription={accessibilityDescription}
+          >
+            {layout.shouldShowSidePanel ? (
+              <DesktopSidePanelLayout {...sidePanelLayoutProps} />
+            ) : (showTaskDetails || isSpecialEditMode) && isMobile ? (
+              <MobileStackedLayout {...sidePanelLayoutProps} />
+            ) : (
+              <CenteredLayout {...centeredLayoutProps} />
+            )}
+          </LightboxShell>
+        </EditFormProvider>
+      </ImageEditProvider>
+    </LightboxProviders>
   );
 };
 

@@ -1,0 +1,197 @@
+/**
+ * ImageEditContext
+ *
+ * Provides image-specific edit state to lightbox components.
+ * This context is only provided by ImageLightbox, not VideoLightbox.
+ *
+ * Includes state for:
+ * - Inpaint mode (brush painting on image)
+ * - Annotate mode (shapes/arrows on image)
+ * - Reposition mode (transform image)
+ * - Magic edit mode (AI-powered edits)
+ * - Img2Img mode
+ */
+
+import React, { createContext, useContext } from 'react';
+import type { BrushStroke, AnnotationMode } from '../hooks/inpainting/types';
+import type { ImageTransform } from '../hooks/useRepositionMode';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type ImageEditMode = 'inpaint' | 'annotate' | 'reposition' | 'img2img' | 'text' | null;
+
+export interface ImageEditState {
+  // ========================================
+  // Mode state
+  // ========================================
+  isInpaintMode: boolean;
+  isMagicEditMode: boolean;
+  isSpecialEditMode: boolean; // true if any edit mode is active
+  editMode: ImageEditMode;
+
+  // ========================================
+  // Mode setters
+  // ========================================
+  setIsInpaintMode: (value: boolean) => void;
+  setIsMagicEditMode: (value: boolean) => void;
+  setEditMode: (mode: ImageEditMode) => void;
+
+  // ========================================
+  // Mode entry/exit handlers
+  // ========================================
+  handleEnterInpaintMode: () => void;
+  handleExitInpaintMode: () => void;
+  handleEnterMagicEditMode: () => void;
+  handleExitMagicEditMode: () => void;
+
+  // ========================================
+  // Brush/Inpaint state
+  // ========================================
+  brushSize: number;
+  setBrushSize: (size: number) => void;
+  isEraseMode: boolean;
+  setIsEraseMode: (value: boolean) => void;
+  brushStrokes: BrushStroke[];
+  currentStroke: Array<{ x: number; y: number }> | null;
+  isDrawing: boolean;
+
+  // ========================================
+  // Annotation state
+  // ========================================
+  isAnnotateMode: boolean;
+  setIsAnnotateMode: (value: boolean | ((prev: boolean) => boolean)) => void;
+  annotationMode: AnnotationMode;
+  setAnnotationMode: (mode: AnnotationMode | ((prev: AnnotationMode) => AnnotationMode)) => void;
+  selectedShapeId: string | null;
+
+  // ========================================
+  // Undo/Clear
+  // ========================================
+  handleUndo: () => void;
+  handleClearMask: () => void;
+
+  // ========================================
+  // Reposition state (read-only values - handlers stay as props)
+  // ========================================
+  repositionTransform: ImageTransform | null;
+  hasTransformChanges: boolean;
+
+  // ========================================
+  // Panel UI state
+  // ========================================
+  inpaintPanelPosition: 'left' | 'right';
+  setInpaintPanelPosition: (pos: 'left' | 'right') => void;
+}
+
+// ============================================================================
+// Default Values
+// ============================================================================
+
+const EMPTY_IMAGE_EDIT: ImageEditState = {
+  // Mode state
+  isInpaintMode: false,
+  isMagicEditMode: false,
+  isSpecialEditMode: false,
+  editMode: null,
+
+  // Mode setters
+  setIsInpaintMode: () => {},
+  setIsMagicEditMode: () => {},
+  setEditMode: () => {},
+
+  // Mode entry/exit
+  handleEnterInpaintMode: () => {},
+  handleExitInpaintMode: () => {},
+  handleEnterMagicEditMode: () => {},
+  handleExitMagicEditMode: () => {},
+
+  // Brush/Inpaint
+  brushSize: 20,
+  setBrushSize: () => {},
+  isEraseMode: false,
+  setIsEraseMode: () => {},
+  brushStrokes: [],
+  currentStroke: null,
+  isDrawing: false,
+
+  // Annotation
+  isAnnotateMode: false,
+  setIsAnnotateMode: () => {},
+  annotationMode: null,
+  setAnnotationMode: () => {},
+  selectedShapeId: null,
+
+  // Undo/Clear
+  handleUndo: () => {},
+  handleClearMask: () => {},
+
+  // Reposition
+  repositionTransform: null,
+  hasTransformChanges: false,
+
+  // Panel UI
+  inpaintPanelPosition: 'right',
+  setInpaintPanelPosition: () => {},
+};
+
+// ============================================================================
+// Context
+// ============================================================================
+
+const ImageEditContext = createContext<ImageEditState | null>(null);
+
+// ============================================================================
+// Provider
+// ============================================================================
+
+export interface ImageEditProviderProps {
+  children: React.ReactNode;
+  value: ImageEditState;
+}
+
+export const ImageEditProvider: React.FC<ImageEditProviderProps> = ({
+  children,
+  value,
+}) => {
+  return (
+    <ImageEditContext.Provider value={value}>
+      {children}
+    </ImageEditContext.Provider>
+  );
+};
+
+// ============================================================================
+// Hooks
+// ============================================================================
+
+/**
+ * Access image edit state. Throws if used outside ImageEditProvider.
+ */
+export function useImageEdit(): ImageEditState {
+  const context = useContext(ImageEditContext);
+  if (!context) {
+    throw new Error('useImageEdit must be used within an ImageEditProvider');
+  }
+  return context;
+}
+
+/**
+ * Safe version that returns defaults when used outside provider.
+ * Use this for components that may render in both image and video lightbox.
+ */
+export function useImageEditSafe(): ImageEditState {
+  const context = useContext(ImageEditContext);
+  return context ?? EMPTY_IMAGE_EDIT;
+}
+
+/**
+ * Check if we're inside an ImageEditProvider.
+ */
+export function useIsImageLightbox(): boolean {
+  const context = useContext(ImageEditContext);
+  return context !== null;
+}
+
+export default ImageEditContext;

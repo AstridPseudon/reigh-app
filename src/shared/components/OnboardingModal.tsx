@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
@@ -482,6 +482,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isShaking, setIsShaking] = useState(false);
+  const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const modal = useMediumModal();
   const { showFade, scrollRef } = useScrollFade({
     isOpen,
@@ -495,6 +496,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     }
   }, [isOpen]);
 
+  // Cleanup shake timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (shakeTimeoutRef.current) {
+        clearTimeout(shakeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleNext = () => {
     setCurrentStep(prev => Math.min(prev + 1, 6));
   };
@@ -505,7 +515,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   const handleShake = () => {
     setIsShaking(true);
-    setTimeout(() => setIsShaking(false), 500);
+    if (shakeTimeoutRef.current) {
+      clearTimeout(shakeTimeoutRef.current);
+    }
+    shakeTimeoutRef.current = setTimeout(() => setIsShaking(false), 500);
   };
 
   // Render current step component conditionally to avoid calling hooks for unused steps

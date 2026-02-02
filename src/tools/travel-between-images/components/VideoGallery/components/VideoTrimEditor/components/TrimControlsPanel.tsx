@@ -8,7 +8,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Loader2, Check, Scissors, X, RotateCcw, AlertCircle } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn, formatTime } from '@/shared/lib/utils';
 import { TrimTimelineBar } from './TrimTimelineBar';
 import type { TrimControlsPanelProps } from '../types';
 
@@ -262,16 +262,6 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
     };
   }, [videoUrl, isVideoReady, trimState.endTrim, trimState.videoDuration, queueFrameExtraction]);
 
-  // Format seconds to mm:ss.s
-  const formatTime = (seconds: number): string => {
-    if (!Number.isFinite(seconds) || seconds < 0) {
-      return '0:00.0';
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
-  };
-
   // Responsive styles
   const padding = isMobile ? 'p-4' : 'p-6';
   const spacing = isMobile ? 'space-y-4' : 'space-y-6';
@@ -351,7 +341,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
               )}
             </div>
             <span className={cn(labelSize, 'text-primary block text-center font-medium')}>
-              {formatTime(trimState.startTrim)}
+              {formatTime(trimState.startTrim, { showMilliseconds: true, millisecondsDigits: 1 })}
             </span>
           </div>
           <div className="space-y-2">
@@ -370,7 +360,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
               )}
             </div>
             <span className={cn(labelSize, 'text-primary block text-center font-medium')}>
-              {formatTime(trimState.videoDuration - trimState.endTrim)}
+              {formatTime(trimState.videoDuration - trimState.endTrim, { showMilliseconds: true, millisecondsDigits: 1 })}
             </span>
           </div>
         </div>

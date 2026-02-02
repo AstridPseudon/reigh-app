@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 
 // Helper to get thumbnail path for an image
 export const getThumbPath = (src: string): string => {

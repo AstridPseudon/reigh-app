@@ -5,7 +5,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { handleError } from '@/shared/lib/errorHandler';
 
 type ShotField = 'name' | 'aspect_ratio';
 
@@ -46,8 +46,7 @@ export const useUpdateShotField = () => {
     },
 
     onError: (error: Error, { field }) => {
-      console.error(`Error updating shot ${field}:`, error);
-      toast.error(`Failed to update shot ${field}: ${error.message}`);
+      handleError(error, { context: 'useUpdateShotField', toastTitle: `Failed to update shot ${field}` });
     },
   });
 };
@@ -94,8 +93,7 @@ export const useUpdateShotName = () => {
     },
 
     onError: (error: Error) => {
-      console.error('Error updating shot name:', error);
-      toast.error(`Failed to update shot name: ${error.message}`);
+      handleError(error, { context: 'useUpdateShotName', toastTitle: 'Failed to update shot name' });
     },
   });
 };

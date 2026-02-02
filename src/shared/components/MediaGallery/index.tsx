@@ -150,7 +150,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   const currentProject = projects.find(p => p.id === selectedProjectId);
   const projectAspectRatio = currentProject?.aspectRatio;
   const rawIsMobile = useIsMobile();
-  const { toast } = useToast();
 
   // Measure container width for dynamic column calculation
   const [galleryContainerRef, containerWidth] = useContainerWidth();

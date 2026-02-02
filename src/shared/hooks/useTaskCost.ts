@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface CalculateTaskCostRequest {
   task_id: string;
@@ -56,8 +56,7 @@ export function useTaskCost() {
       console.log(`Task cost calculated: $${costInDollars} (${data.billing_type}) for ${data.duration_seconds}s - Task: ${data.task_type}`);
     },
     onError: (error) => {
-      console.error('Error calculating task cost:', error);
-      toast.error(error.message || 'Failed to calculate task cost');
+      handleError(error, { context: 'useTaskCost', toastTitle: 'Failed to calculate task cost' });
     },
   });
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Palette } from 'lucide-react';
 
 interface PaletteIconProps {
@@ -23,11 +23,24 @@ export const PaletteIcon: React.FC<PaletteIconProps> = ({ className = "" }) => {
   const [tooltipBelow, setTooltipBelow] = useState(false);
   const paletteRef = useRef<SVGSVGElement>(null);
   const dehoverTimerRef = useRef<number | null>(null);
+  const quoteCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Computed state based on quote state
   const showQuote = quoteState !== 'closed';
   const isQuoteOpening = quoteState === 'opening';
   const isQuoteClosing = quoteState === 'closing';
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (dehoverTimerRef.current) {
+        clearTimeout(dehoverTimerRef.current);
+      }
+      if (quoteCloseTimerRef.current) {
+        clearTimeout(quoteCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   // Event handlers with useCallback for performance
   const handleMouseEnter = useCallback(() => {
@@ -74,16 +87,22 @@ export const PaletteIcon: React.FC<PaletteIconProps> = ({ className = "" }) => {
   const handleQuoteMouseLeave = useCallback(() => {
     // Prevent duplicate closing actions
     if (quoteState === 'closing') return;
-    
+
     // Start closing animation
     setQuoteState('closing');
-    
+
     // End hovering state when quote starts closing to allow border animation to complete naturally
     setIsHovering(false);
-    
+
+    // Clear any existing quote close timer
+    if (quoteCloseTimerRef.current) {
+      clearTimeout(quoteCloseTimerRef.current);
+    }
+
     // Complete closing after animation duration
-    setTimeout(() => {
+    quoteCloseTimerRef.current = setTimeout(() => {
       setQuoteState('closed');
+      quoteCloseTimerRef.current = null;
     }, ANIMATION_CONFIG.QUOTE_CLOSE_DURATION);
   }, [quoteState]);
 

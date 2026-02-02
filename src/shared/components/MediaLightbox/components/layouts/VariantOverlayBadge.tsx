@@ -4,30 +4,48 @@
  * Shows at top-center of the lightbox:
  * - "Main variant" badge when viewing the primary variant
  * - "Make main" button when viewing a non-primary variant
+ *
+ * Can be used in two modes:
+ * 1. Props mode: Pass all props explicitly (legacy usage)
+ * 2. Context mode: Uses LightboxStateContext via hooks (preferred)
  */
 
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Check, Star, Loader2 } from 'lucide-react';
 import type { Variant } from '@/shared/hooks/useVariants';
+import { useLightboxVariantsSafe, useLightboxCoreSafe } from '../../contexts/LightboxStateContext';
 
 interface VariantOverlayBadgeProps {
-  activeVariant: Variant | undefined;
-  variants: Variant[] | undefined;
-  readOnly: boolean;
-  isMakingMainVariant: boolean;
-  canMakeMainVariant: boolean;
-  onMakeMainVariant: () => void;
+  // All props are optional - uses context if not provided
+  activeVariant?: Variant | undefined;
+  variants?: Variant[] | undefined;
+  readOnly?: boolean;
+  isMakingMainVariant?: boolean;
+  canMakeMainVariant?: boolean;
+  onMakeMainVariant?: () => void;
 }
 
 export const VariantOverlayBadge: React.FC<VariantOverlayBadgeProps> = ({
-  activeVariant,
-  variants,
-  readOnly,
-  isMakingMainVariant,
-  canMakeMainVariant,
-  onMakeMainVariant,
+  activeVariant: activeVariantProp,
+  variants: variantsProp,
+  readOnly: readOnlyProp,
+  isMakingMainVariant: isMakingMainVariantProp,
+  canMakeMainVariant: canMakeMainVariantProp,
+  onMakeMainVariant: onMakeMainVariantProp,
 }) => {
+  // Get values from context (safe versions return defaults if outside provider)
+  const core = useLightboxCoreSafe();
+  const variantsContext = useLightboxVariantsSafe();
+
+  // Use props if provided, otherwise fall back to context
+  const activeVariant = activeVariantProp ?? variantsContext.activeVariant;
+  const variants = variantsProp ?? variantsContext.variants;
+  const readOnly = readOnlyProp ?? core.readOnly;
+  const isMakingMainVariant = isMakingMainVariantProp ?? variantsContext.isMakingMainVariant;
+  const canMakeMainVariant = canMakeMainVariantProp ?? variantsContext.canMakeMainVariant;
+  const onMakeMainVariant = onMakeMainVariantProp ?? variantsContext.handleMakeMainVariant;
+
   if (readOnly || !activeVariant || !variants) {
     return null;
   }

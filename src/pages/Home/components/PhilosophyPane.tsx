@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { GlassSidePane } from './GlassSidePane';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { useTravelAutoAdvance, AUTO_ADVANCE_ANIMATION_DURATION } from './useTravelAutoAdvance';
 import { VideoWithPoster, getThumbPath } from './VideoWithPoster';
 import { TravelSelector } from './TravelSelector';

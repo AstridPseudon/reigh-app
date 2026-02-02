@@ -117,3 +117,34 @@ export const stripQueryParameters = (url: string | undefined | null): string => 
   if (questionMarkIndex === -1) return url;
   return url.substring(0, questionMarkIndex);
 };
+
+/**
+ * Format seconds to a time string.
+ * @param seconds - The number of seconds to format
+ * @param options - Formatting options
+ * @param options.showMilliseconds - Whether to show milliseconds (default: false)
+ * @param options.millisecondsDigits - Number of milliseconds digits (1-3, default: 1)
+ * @returns Formatted time string (e.g., "1:23" or "1:23.4")
+ */
+export function formatTime(
+  seconds: number,
+  options: { showMilliseconds?: boolean; millisecondsDigits?: 1 | 2 | 3 } = {}
+): string {
+  const { showMilliseconds = false, millisecondsDigits = 1 } = options;
+
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return showMilliseconds ? '0:00.0' : '0:00';
+  }
+
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const base = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  if (!showMilliseconds) {
+    return base;
+  }
+
+  const divisor = Math.pow(10, 3 - millisecondsDigits);
+  const ms = Math.floor((seconds % 1) * 1000 / divisor);
+  return `${base}.${ms.toString().padStart(millisecondsDigits, '0')}`;
+}

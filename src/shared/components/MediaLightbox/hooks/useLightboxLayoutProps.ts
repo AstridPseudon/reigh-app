@@ -458,36 +458,18 @@ export function useLightboxLayoutProps(
   ]);
 
   // Build floating tool props (for edit mode controls)
+  // Now simplified - most state comes from ImageEditContext, only specialized handlers here
   const floatingToolProps = useMemo(() => ({
-    editMode: input.editMode,
-    setEditMode: input.setEditMode,
-    brushSize: input.brushSize,
-    isEraseMode: input.isEraseMode,
-    setBrushSize: input.setBrushSize,
-    setIsEraseMode: input.setIsEraseMode,
-    annotationMode: input.annotationMode,
-    setAnnotationMode: input.setAnnotationMode,
+    // Specialized reposition handlers (not contextual state)
     repositionTransform: input.repositionTransform,
-    setTranslateX: input.setTranslateX,
-    setTranslateY: input.setTranslateY,
-    setScale: input.setScale,
-    setRotation: input.setRotation,
-    toggleFlipH: input.toggleFlipH,
-    toggleFlipV: input.toggleFlipV,
-    resetTransform: input.resetTransform,
-    effectiveImageDimensions: input.effectiveImageDimensions,
-    brushStrokes: input.brushStrokes,
-    handleUndo: input.handleUndo,
-    handleClearMask: input.handleClearMask,
-    inpaintPanelPosition: input.inpaintPanelPosition,
-    setInpaintPanelPosition: input.setInpaintPanelPosition,
+    onRepositionScaleChange: input.setScale,
+    onRepositionRotationChange: input.setRotation,
+    onRepositionFlipH: input.toggleFlipH,
+    onRepositionFlipV: input.toggleFlipV,
+    onRepositionReset: input.resetTransform,
   }), [
-    input.editMode, input.setEditMode, input.brushSize, input.isEraseMode,
-    input.setBrushSize, input.setIsEraseMode, input.annotationMode, input.setAnnotationMode,
-    input.repositionTransform, input.setTranslateX, input.setTranslateY, input.setScale,
-    input.setRotation, input.toggleFlipH, input.toggleFlipV, input.resetTransform,
-    input.effectiveImageDimensions, input.brushStrokes, input.handleUndo, input.handleClearMask,
-    input.inpaintPanelPosition, input.setInpaintPanelPosition,
+    input.repositionTransform, input.setScale, input.setRotation,
+    input.toggleFlipH, input.toggleFlipV, input.resetTransform,
   ]);
 
   // Build side panel layout props (for Desktop and Mobile stacked layouts)

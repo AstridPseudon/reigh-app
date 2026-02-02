@@ -41,16 +41,16 @@ interface TaskItemProps {
   projectName?: string;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ 
-  task, 
-  isNew = false, 
-  isActive = false, 
-  onOpenImageLightbox, 
-  onOpenVideoLightbox, 
-  isMobileActive = false, 
-  onMobileActiveChange, 
-  showProjectIndicator = false, 
-  projectName 
+const TaskItemComponent: React.FC<TaskItemProps> = ({
+  task,
+  isNew = false,
+  isActive = false,
+  onOpenImageLightbox,
+  onOpenVideoLightbox,
+  isMobileActive = false,
+  onMobileActiveChange,
+  showProjectIndicator = false,
+  projectName
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -89,6 +89,16 @@ const TaskItem: React.FC<TaskItemProps> = ({
   // State for hover
   const [isHoveringTaskItem, setIsHoveringTaskItem] = useState(false);
   const [progressPercent, setProgressPercent] = useState<number | null>(null);
+  const progressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (progressTimeoutRef.current) {
+        clearTimeout(progressTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Video generations hook
   const {
@@ -258,7 +268,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
       const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
       setProgressPercent(percent);
-      setTimeout(() => setProgressPercent(null), 5000);
+      // Clear any existing timeout before setting a new one
+      if (progressTimeoutRef.current) {
+        clearTimeout(progressTimeoutRef.current);
+      }
+      progressTimeoutRef.current = setTimeout(() => setProgressPercent(null), 5000);
     } catch (error) {
       handleError(error, { context: 'TaskItem', toastTitle: 'Progress Check Failed' });
     }
@@ -622,5 +636,19 @@ const TaskItem: React.FC<TaskItemProps> = ({
     </TaskItemTooltip>
   );
 };
+
+// Memoize to prevent re-renders when parent list updates but this task hasn't changed
+const TaskItem = React.memo(TaskItemComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.task.id === nextProps.task.id &&
+    prevProps.task.status === nextProps.task.status &&
+    prevProps.task.errorMessage === nextProps.task.errorMessage &&
+    prevProps.isNew === nextProps.isNew &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.isMobileActive === nextProps.isMobileActive &&
+    prevProps.showProjectIndicator === nextProps.showProjectIndicator &&
+    prevProps.projectName === nextProps.projectName
+  );
+});
 
 export default TaskItem;

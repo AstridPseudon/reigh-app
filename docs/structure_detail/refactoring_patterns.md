@@ -2,332 +2,201 @@
 
 Principles and checklists for splitting monolithic components and hooks.
 
+> **Complex editor?** See [Complex Editor Pattern](#complex-editor-pattern-shoteditor-reference) for the full architecture (context + sections + reducer + 20 hooks). Reference: `ShotEditor`.
+
 ---
 
 ## General Principles
 
-### 1. Single Responsibility
-Each file should have one reason to change. A hook file manages one domain; a component file renders one concern.
+1. **Single Responsibility** — Each file has one reason to change.
 
-### 2. Extract at 3+ Occurrences
-Only abstract patterns that appear **3+ times**. Don't create utilities for one-off logic.
+2. **Extract at 3+ Occurrences** — Don't abstract one-off logic.
 
-### 3. Preserve API Surface
-Use barrel files (`index.ts`) to re-export everything with the same names. Existing imports must not break.
+3. **Preserve API Surface** — Barrel files re-export with same names. No import breakage.
 
-### 4. Co-locate by Feature, Not Type
-Put a component's hooks inside `ComponentName/hooks/`, not in a global hooks folder. Keep related code together.
+4. **Types When Shared** — Extract to `types.ts` when multiple files need them. Keep inline otherwise.
 
-### 5. Types First
-Extract types to `types.ts` early. Shared interfaces enable clean contracts between files.
+5. **Backwards-Compat Wrappers** — Keep old names as thin wrappers during migration. Remove once consumers update.
 
-### 6. Backwards-Compatible Wrappers
-When merging similar functions, keep the old names as thin wrappers around the unified implementation.
+6. **Structure Over Size** — 10 focused files beats 1 monolith, even if total lines increase.
 
-### 7. Directory Structure Over File Size
-A 2000-line file split into 10 focused files is easier to navigate than one monolith, even if total lines increase slightly.
+---
+
+## When to Split
+
+| Signal | Hook Threshold | Component Threshold |
+|--------|----------------|---------------------|
+| Total lines | > 1000 | > 600 |
+| Exports / Props | > 8 hooks | > 12 props |
+| Repeated patterns | 3+ identical blocks | 3+ similar JSX |
+| Mixed concerns | Queries + mutations + utilities | Multiple conditional branches |
+
+These are guidelines, not rules. Split when navigation becomes painful.
 
 ---
 
 ## Hook Refactoring
 
-### When to Split a Hook File
-
-| Signal | Threshold |
-|--------|-----------|
-| Total lines | > 500 |
-| Exported hooks | > 5 |
-| Repeated code blocks | > 3 identical patterns |
-| Mixed concerns | Queries + mutations + utilities in one file |
-| Similar hooks | 2+ hooks that differ by < 20% |
-
 ### Directory Structure
 
 ```
-hooks/
-└── domain/
-    ├── index.ts              # Barrel: re-exports everything
-    ├── types.ts              # Shared types (optional if small)
-    ├── cacheUtils.ts         # Cache key helpers (if using React Query)
-    ├── debug.ts              # Logging utility (if verbose debugging)
-    ├── mappers.ts            # Data transformation functions
-    ├── useDomainQueries.ts   # Read operations (useQuery)
-    ├── useDomainMutations.ts # Write operations (useMutation)
-    ├── useDomainUpdates.ts   # Field update mutations
-    └── useDomainCreation.ts  # Complex creation workflows
+hooks/domain/
+├── index.ts              # Barrel re-exports
+├── cacheUtils.ts         # Query key helpers (if React Query)
+├── debug.ts              # Logging utility (if needed)
+├── mappers.ts            # Data transformers
+├── useDomainQueries.ts   # useQuery hooks
+├── useDomainMutations.ts # useMutation hooks
+└── useDomainCreation.ts  # Complex workflows
 ```
 
-### Hook Refactoring Checklist
+### Checklist
 
-#### Phase 1: Preparation
-- [ ] **Inventory**: Count lines, exported hooks, repeated patterns
-- [ ] **Map dependencies**: Which hooks call which? Internal vs external deps?
-- [ ] **Identify clusters**: Group hooks by domain (queries, mutations, utilities)
-- [ ] **Find duplication**: Search for repeated code blocks (cache keys, error handling)
+#### 1. Preparation
+- [ ] Count lines, exports, repeated patterns
+- [ ] Map internal dependencies (which hooks call which?)
+- [ ] Group by domain: queries, mutations, utilities
 
-#### Phase 2: Extract Utilities
-- [ ] **Cache keys**: Centralize query key definitions in `cacheUtils.ts`
-- [ ] **Update helpers**: Extract `updateCache()`, `rollbackCache()`, `cancelQueries()`
-- [ ] **Debug logging**: Create typed debug utility with auto-truncated IDs
-- [ ] **Mappers**: Extract data transformation functions to `mappers.ts`
+#### 2. Extract Utilities
+- [ ] Centralize cache keys in `cacheUtils.ts`
+- [ ] Extract `updateCache()`, `rollbackCache()`, `cancelQueries()`
+- [ ] Extract mappers/transformers
 
-#### Phase 3: Consolidate Similar Hooks
-- [ ] **Merge similar hooks**: Identify hooks that differ only by a parameter
-- [ ] **Add discriminant parameter**: e.g., `{ withPosition?: boolean }`
-- [ ] **Create backwards-compat wrappers**: Old name calls new hook with fixed param
-- [ ] **Test both paths**: Ensure wrapper behavior matches original
+#### 3. Consolidate Similar Hooks
+- [ ] Merge hooks differing only by a parameter
+- [ ] Add discriminant param: `{ withPosition?: boolean }`
+- [ ] Create thin wrapper for old name (temporary)
 
-#### Phase 4: Split by Responsibility
-- [ ] **Queries → `useDomainQueries.ts`**: All `useQuery` hooks
-- [ ] **Mutations → `useDomainMutations.ts`**: All `useMutation` hooks
-- [ ] **Updates → `useDomainUpdates.ts`**: Field update helpers
-- [ ] **Creation → `useDomainCreation.ts`**: Complex creation workflows
-
-#### Phase 5: Create Barrel & Cleanup
-- [ ] **Write `index.ts`**: Re-export all hooks, types, utilities
-- [ ] **Update original file**: Convert to re-export barrel or delete
-- [ ] **Verify imports**: Search codebase for imports from old location
-- [ ] **Type exports**: Export `Props` and `Return` types for each hook
-
-### Hook Patterns
-
-**Typed Props/Return Pattern**
-```ts
-export interface UseMyHookProps {
-  projectId: string;
-  enabled?: boolean;
-}
-
-export interface UseMyHookReturn {
-  data: MyData | undefined;
-  isLoading: boolean;
-  refetch: () => void;
-}
-
-export function useMyHook(props: UseMyHookProps): UseMyHookReturn {
-  // ...
-}
-```
-
-**Cache Key Centralization**
-```ts
-// cacheUtils.ts
-export const CACHE_VARIANTS = [undefined, 0, 2, 5] as const;
-
-export function getCacheKeys(id: string) {
-  return CACHE_VARIANTS.map(v => v === undefined ? ['items', id] : ['items', id, v]);
-}
-
-export function updateAllCaches(qc: QueryClient, id: string, updater: Updater) {
-  getCacheKeys(id).forEach(key => qc.setQueryData(key, updater));
-}
-```
-
-**Backwards-Compatible Wrapper**
-```ts
-// Old API preserved
-export const useAddItemWithoutPosition = () => {
-  const add = useAddItem();
-  return {
-    ...add,
-    mutateAsync: (vars) => add.mutateAsync({ ...vars, position: null }),
-  };
-};
-```
+#### 4. Split & Barrel
+- [ ] Move hooks to domain files by responsibility
+- [ ] Write `index.ts` re-exporting everything
+- [ ] Convert original file to re-export barrel
+- [ ] Verify no import breakage
 
 ---
 
 ## Component Refactoring
 
-### When to Split a Component
-
-| Signal | Threshold |
-|--------|-----------|
-| Total lines | > 400 |
-| Props interface | > 10 properties |
-| Local state variables | > 8 |
-| Conditional rendering branches | > 3 major branches |
-| Repeated JSX patterns | > 2 similar blocks |
-
 ### Directory Structure
 
 ```
 ComponentName/
-├── index.tsx                    # Barrel: export main + sub-components
-├── ComponentName.tsx            # Main component logic
-├── types.ts                     # Props, state interfaces
-├── components/
+├── index.tsx             # Barrel exports
+├── ComponentName.tsx     # Main logic
+├── types.ts              # Shared interfaces (if needed)
+├── components/           # Sub-components
 │   ├── SubComponentA.tsx
-│   ├── SubComponentB.tsx
-│   └── index.ts                 # Sub-component barrel
-└── hooks/
-    ├── useComponentState.ts     # State management hook
-    ├── useComponentActions.ts   # Action handlers hook
-    └── index.ts                 # Hooks barrel
+│   └── index.ts
+└── hooks/                # Component-specific hooks (large components only)
+    ├── useComponentState.ts
+    └── index.ts
 ```
 
-### Component Refactoring Checklist
+Note: Only create `hooks/` subfolder for large, complex components. Most component hooks belong in `src/shared/hooks/`.
 
-#### Phase 1: Analysis
-- [ ] **Count lines**: Is it > 400 lines?
-- [ ] **Count props**: More than 10? Consider grouping or splitting
-- [ ] **Map state**: List all `useState`, `useRef`, `useMemo` calls
-- [ ] **Find branches**: Identify major conditional rendering (image vs video, etc.)
-- [ ] **Spot repetition**: Find repeated JSX patterns (buttons, cards, etc.)
+### Checklist
 
-#### Phase 2: Extract Types
-- [ ] **Create `types.ts`**: Move all interfaces, type aliases
-- [ ] **Name props interfaces**: `ComponentNameProps`, `SubComponentProps`
-- [ ] **Export from barrel**: Include in `index.tsx` exports
+#### 1. Analysis
+- [ ] Count lines, props, useState/useRef calls
+- [ ] Identify major conditional branches (image vs video, etc.)
+- [ ] Find repeated JSX patterns
 
-#### Phase 3: Extract Sub-Components
-- [ ] **Identify boundaries**: Self-contained visual units
-- [ ] **Create `components/` folder**: One file per sub-component
-- [ ] **Minimize props**: Pass only what's needed
-- [ ] **Create sub-barrel**: `components/index.ts` re-exports all
+#### 2. Extract Sub-Components
+- [ ] Identify self-contained visual units
+- [ ] One file per sub-component in `components/`
+- [ ] Minimize props — pass only what's needed
 
-#### Phase 4: Extract Hooks
-- [ ] **State hook**: Group related `useState` calls into `useComponentState.ts`
-- [ ] **Actions hook**: Group handlers into `useComponentActions.ts`
-- [ ] **Feature hooks**: Domain-specific logic (e.g., `useInpainting.ts`)
-- [ ] **Create hooks barrel**: `hooks/index.ts` re-exports all
+#### 3. Split by Type (if applicable)
+- [ ] Create specialized variants: `ImageLightbox`, `VideoLightbox`
+- [ ] Extract shared chrome to shell component
+- [ ] Main component becomes thin dispatcher
 
-#### Phase 5: Split by Type (if applicable)
-- [ ] **Identify type branches**: e.g., ImageLightbox vs VideoLightbox
-- [ ] **Create specialized components**: One per type
-- [ ] **Extract shared shell**: Common layout/chrome component
-- [ ] **Create dispatcher**: Main component routes to specialized version
+#### 4. Finalize
+- [ ] Write barrel with all exports
+- [ ] Update imports across codebase
+- [ ] Delete or convert monolith to re-export
 
-#### Phase 6: Finalize
-- [ ] **Write main barrel**: `index.tsx` exports component, types, hooks
-- [ ] **Document architecture**: Comment block at top of barrel
-- [ ] **Update imports**: Search codebase for old paths
-- [ ] **Delete monolith**: Replace with barrel re-export
+### Dispatcher Pattern
 
-### Component Patterns
-
-**Dispatcher Pattern** (for type-specialized variants)
 ```tsx
-// MediaLightbox.tsx - thin dispatcher
+// Main component routes to specialized version
 export default function MediaLightbox(props: MediaLightboxProps) {
-  const isVideo = props.mediaType === 'video';
-
-  return isVideo
+  return props.mediaType === 'video'
     ? <VideoLightbox {...props} />
     : <ImageLightbox {...props} />;
 }
 ```
 
-**Shared Shell Pattern**
-```tsx
-// LightboxShell.tsx - shared chrome
-export function LightboxShell({ children, onClose, title }: ShellProps) {
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>{title}</DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
-  );
-}
+---
 
-// ImageLightbox.tsx - uses shell
-export function ImageLightbox(props: Props) {
-  return (
-    <LightboxShell onClose={props.onClose} title="Image">
-      {/* Image-specific content */}
-    </LightboxShell>
-  );
-}
-```
+## Anti-Patterns
 
-**Consolidated State Hook**
-```tsx
-// hooks/usePhaseConfig.ts
-export function usePhaseConfig(initialConfig?: PhaseConfig) {
-  const [phases, setPhases] = useState(initialConfig?.phases ?? []);
-
-  const updatePhase = (index: number, updates: Partial<Phase>) => {
-    setPhases(prev => prev.map((p, i) => i === index ? { ...p, ...updates } : p));
-  };
-
-  const addPhase = () => setPhases(prev => [...prev, createEmptyPhase()]);
-  const removePhase = (index: number) => setPhases(prev => prev.filter((_, i) => i !== index));
-
-  return { phases, setPhases, updatePhase, addPhase, removePhase };
-}
-```
+| Don't | Why | Do Instead |
+|-------|-----|------------|
+| Split < 500 line files | Unnecessary fragmentation | Wait until it hurts |
+| Utilities with 1 call site | Over-abstraction | Keep inline |
+| Rename exports in barrel | Breaks IDE go-to-definition | Keep original names |
+| Permanent compat wrappers | Tech debt | Remove after migration |
+| Component-local hooks everywhere | Scatters code | Use `src/shared/hooks/` unless component is very large |
 
 ---
 
-## Barrel File Templates
+## Complex Editor Pattern
 
-### Hook Barrel (`index.ts`)
-```ts
-/**
- * Domain hooks barrel.
- * Re-exports all domain-related hooks.
- */
+For components with 1000+ lines, 15+ hooks, and heavy state coordination. Reference: **ShotEditor** (`src/tools/travel-between-images/components/ShotEditor/`).
 
-// Utilities
-export { getCacheKeys, updateAllCaches } from './cacheUtils';
-export { domainDebug } from './debug';
+### When to Use
 
-// Queries
-export { useListItems, useItemStats } from './useDomainQueries';
+- Multiple consumers of shared state (sections needing same data)
+- Performance-sensitive (needs render optimization)
+- Settings shared across tools
 
-// Mutations
-export { useCreateItem, useDeleteItem } from './useDomainMutations';
+### Directory Structure
 
-// Types
-export type { ItemRow, CreateItemInput } from './types';
+```
+ComponentName/
+├── index.tsx                 # Coordination (~600-1200 lines)
+├── ComponentNameContext.tsx  # Context for component state
+├── sections/                 # Visual sections consuming context
+├── hooks/                    # 10-20 domain-specific hooks
+└── state/types.ts            # Props, state, action types
 ```
 
-### Component Barrel (`index.tsx`)
-```tsx
-/**
- * ComponentName - Brief description
- *
- * Architecture:
- * - ComponentName.tsx: Main logic
- * - components/: Sub-components
- * - hooks/: State and action hooks
- */
+### Key Patterns
 
-// Main component
-export { ComponentName } from './ComponentName';
-export type { ComponentNameProps } from './types';
+| Pattern | When | Example |
+|---------|------|---------|
+| **Two-layer context** | UI state separate from reusable settings | `ShotSettingsContext` (UI) + `VideoTravelSettingsProvider` (settings) |
+| **Reducer for UI state** | 5+ related useState calls | `useShotEditorState` with actions for modal, editing, pending states |
+| **Sections pull from context** | Avoid prop drilling | `HeaderSection` gets `selectedShot` from context, not props |
+| **Refs for stability** | Callbacks passed to memoized children | `mutationRef.current = mutation` then `useCallback(..., [])` |
+| **Context value hook** | Large context object | `useShotSettingsValue()` returns memoized context value |
 
-// Sub-components (for external use)
-export { MediaPreview, CopyButton } from './components';
+### When NOT to Use
 
-// Hooks (for external use)
-export { useComponentState } from './hooks';
-export type { UseComponentStateReturn } from './hooks';
-```
+- Display-only components (galleries) → minimal extraction
+- Tool pages (orchestrators) → flat coordinators
+- Under 600 lines → standard patterns
 
 ---
 
-## Anti-Patterns to Avoid
+## Refactoring Discipline
 
-| Anti-Pattern | Why It's Bad | Do Instead |
-|--------------|--------------|------------|
-| Prop drilling through 3+ levels | Hard to trace data flow | Use context or composition |
-| Giant props interfaces (15+) | Component does too much | Split component or group props |
-| Utilities with one call site | Over-abstraction | Keep code inline |
-| Splitting < 300 line files | Unnecessary fragmentation | Wait until it hurts |
-| Renaming exports in barrel | Breaks IDE navigation | Keep original names |
-| Circular dependencies | Build failures | Extract shared types to `types.ts` |
+Lessons from large refactors:
+
+| Do | Why |
+|----|-----|
+| Run `tsc --noEmit` after each extraction | Catches type errors before they compound |
+| Delete unused imports/variables immediately | Dead code obscures what's actually used |
+| Grep before deleting | Verify nothing references the "unused" code |
+| Call hooks before early returns | Rules of Hooks - can't conditionally call hooks |
+| Comment `// Unused but kept for X` if intentional | Prevents re-adding during cleanup |
 
 ---
 
-## Metrics for Success
+## Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Largest file | < 600 lines |
-| Repeated code blocks | 0 (extracted to utilities) |
-| Hook type coverage | 100% (Props + Return types) |
-| Import breakage | 0 (barrel preserves API) |
-| Build passes | Yes |
+- [ ] No file over ~1000 lines
+- [ ] Zero repeated code blocks (extracted to utilities)
+- [ ] All imports still work (barrel preserves API)
+- [ ] Build passes

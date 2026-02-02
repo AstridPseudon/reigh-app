@@ -68,7 +68,7 @@ const TaskItemSkeleton: React.FC<TaskItemSkeletonProps> = ({
 };
 
 // Loading skeleton for the task list that shows varied task types
-const TaskListSkeleton: React.FC<{ activeFilter: FilterGroup; count?: number }> = ({ activeFilter, count }) => {
+const TaskListSkeleton: React.FC<{ activeFilter: FilterGroup; count?: number }> = React.memo(({ activeFilter, count }) => {
   // Determine how many skeletons to show (cap at 4, default to 4 if unknown)
   const skeletonCount = count !== undefined ? Math.min(count, 4) : 4;
 
@@ -84,12 +84,15 @@ const TaskListSkeleton: React.FC<{ activeFilter: FilterGroup; count?: number }> 
 
   const variant = getVariant();
 
-  // Generate skeleton items alternating between image and prompt styles
-  const skeletonItems = Array.from({ length: skeletonCount }, (_, i) => ({
-    variant,
-    showImages: i % 2 === 0,
-    showPrompt: i % 2 === 1,
-  }));
+  // Generate skeleton items alternating between image and prompt styles - memoized
+  const skeletonItems = useMemo(() =>
+    Array.from({ length: skeletonCount }, (_, i) => ({
+      variant,
+      showImages: i % 2 === 0,
+      showPrompt: i % 2 === 1,
+    })),
+    [skeletonCount, variant]
+  );
 
   return (
     <div className="space-y-1">
@@ -103,7 +106,7 @@ const TaskListSkeleton: React.FC<{ activeFilter: FilterGroup; count?: number }> 
       ))}
     </div>
   );
-};
+});
 
 interface TaskListProps {
   filterStatuses: TaskStatus[];
@@ -128,7 +131,7 @@ interface TaskListProps {
   projectNameMap?: Record<string, string>;
 }
 
-const TaskList: React.FC<TaskListProps> = ({
+const TaskListComponent: React.FC<TaskListProps> = ({
   filterStatuses,
   activeFilter,
   statusCounts,
@@ -254,25 +257,6 @@ const TaskList: React.FC<TaskListProps> = ({
     if (!tasks) return [] as Task[];
     const visible = filterVisibleTasks(tasks);
     
-    // [TaskTypeFilterDebug] Log what task types are actually being shown in the task list
-    const visibleTaskTypes = [...new Set(visible.map(t => t.taskType))];
-    const allTaskTypes = [...new Set(tasks.map(t => t.taskType))];
-    console.log('[TaskTypeFilterDebug] TaskList - DISPLAYED task types:', visibleTaskTypes);
-    console.log('[TaskTypeFilterDebug] TaskList - ALL task types before filter:', allTaskTypes);
-    
-    // [TasksPaneCountMismatch] Log when local filtering hides tasks that might be counted
-    try {
-      const hidden = tasks.filter(t => !isTaskVisible(t.taskType));
-      console.log('[TaskList] Visible task filtering', {
-        context: 'TaskList:filter-visible-tasks',
-        activeFilter,
-        tasksCount: tasks.length,
-        visibleCount: visible.length,
-        hiddenCount: hidden.length,
-        hiddenTypesSample: hidden.slice(0, 5).map(t => ({ id: t.id, taskType: t.taskType, status: t.status })),
-        timestamp: Date.now()
-      });
-    } catch {}
     return visible;
   }, [tasks, activeFilter]);
 
@@ -410,5 +394,8 @@ const TaskList: React.FC<TaskListProps> = ({
     </div>
   );
 };
+
+// Memoize TaskList to prevent unnecessary re-renders
+const TaskList = React.memo(TaskListComponent);
 
 export default TaskList;

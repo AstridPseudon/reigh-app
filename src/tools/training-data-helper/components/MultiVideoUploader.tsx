@@ -246,8 +246,7 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
             (videoFile as any).detectedScenes = scenes;
             processedVideos.push(videoFile);
           } catch (error) {
-            console.error('Scene detection failed:', error);
-            toast.error(`Scene detection failed for ${videoFile.file.name}, using manual mode`);
+            handleError(error, { context: 'MultiVideoUploader', toastTitle: `Scene detection failed for ${videoFile.file.name}, using manual mode` });
             processedVideos.push({ ...videoFile, splitMode: 'manual' });
           } finally {
             setProcessingScenes(null);

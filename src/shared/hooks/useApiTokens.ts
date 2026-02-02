@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { queryKeys } from '@/shared/lib/queryKeys';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface ApiToken {
   id: string;
@@ -82,8 +82,7 @@ export const useApiTokens = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.api.tokens });      
     },
     onError: (error: Error) => {
-      console.error('Error generating API token:', error);
-      toast.error(`Failed to generate API token: ${error.message}`);
+      handleError(error, { context: 'useApiTokens', toastTitle: 'Failed to generate API token' });
     },
     onSettled: () => {
       setIsGenerating(false);
@@ -98,8 +97,7 @@ export const useApiTokens = () => {
       
     },
     onError: (error: Error) => {
-      console.error('Error revoking API token:', error);
-      toast.error(`Failed to revoke API token: ${error.message}`);
+      handleError(error, { context: 'useApiTokens', toastTitle: 'Failed to revoke API token' });
     },
   });
 
@@ -116,8 +114,7 @@ export const useApiTokens = () => {
       
     },
     onError: (error: Error) => {
-      console.error('Error refreshing token:', error);
-      toast.error(`Failed to refresh token: ${error.message}`);
+      handleError(error, { context: 'useApiTokens', toastTitle: 'Failed to refresh token' });
     },
   });
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Task, TaskStatus, TASK_STATUS } from '@/types/tasks';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { handleError } from '@/shared/lib/errorHandler';
 import { useProject } from '../contexts/ProjectContext';
 import { filterVisibleTasks, isTaskVisible, getTaskDisplayName, getTaskConfig, getVisibleTaskTypes } from '@/shared/lib/taskConfig';
 // Removed invalidationRouter - DataFreshnessManager handles all invalidation logic
@@ -83,8 +83,7 @@ export const useUpdateTaskStatus = () => {
       // Task status change event is now handled by DataFreshnessManager via realtime events
     },
     onError: (error: Error) => {
-      console.error('Error updating task status:', error);
-      toast.error(`Failed to update task status: ${error.message}`);
+      handleError(error, { context: 'useUpdateTaskStatus', toastTitle: 'Failed to update task status' });
     },
   });
 };
@@ -432,8 +431,7 @@ export const useCancelTask = (projectId: string | null) => {
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
     },
     onError: (error: Error) => {
-      console.error('Error cancelling task:', error);
-      toast.error(`Failed to cancel task: ${error.message}`);
+      handleError(error, { context: 'useCancelTask', toastTitle: 'Failed to cancel task' });
     },
   });
 };
@@ -527,8 +525,7 @@ export const useCancelPendingTasks = () => {
       queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
     },
     onError: (error: Error) => {
-      console.error('Error cancelling pending tasks:', error);
-      toast.error(`Failed to cancel pending tasks: ${error.message}`);
+      handleError(error, { context: 'useCancelPendingTasks', toastTitle: 'Failed to cancel pending tasks' });
     },
   });
 };

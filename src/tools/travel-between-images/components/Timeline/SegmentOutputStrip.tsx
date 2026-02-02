@@ -22,7 +22,7 @@ import { TIMELINE_HORIZONTAL_PADDING, TIMELINE_PADDING_OFFSET } from './constant
 import { supabase } from '@/integrations/supabase/client';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import { handleError } from '@/shared/lib/errorHandler';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 
 import type { PairData } from './TimelineContainer';
 

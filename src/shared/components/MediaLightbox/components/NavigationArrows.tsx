@@ -1,38 +1,56 @@
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLightboxNavigationSafe } from '../contexts/LightboxStateContext';
 
 export interface NavigationArrowsProps {
-  // Visibility
-  showNavigation: boolean;
-  readOnly: boolean;
-  
-  // Handlers
+  // Visibility - optional, uses context if not provided
+  showNavigation?: boolean;
+  readOnly?: boolean;
+
+  // Handlers - optional, uses context if not provided
   onPrevious?: () => void;
   onNext?: () => void;
-  
-  // Availability
+
+  // Availability - optional, uses context if not provided
   hasPrevious?: boolean;
   hasNext?: boolean;
-  
+
   // Variant for different layouts
   variant?: 'desktop' | 'mobile';
 }
 
 /**
  * NavigationArrows Component
- * Left and right navigation arrows for the lightbox
- * Supports desktop (larger buttons) and mobile (smaller buttons) variants
+ *
+ * Left and right navigation arrows for the lightbox.
+ * Supports desktop (larger buttons) and mobile (smaller buttons) variants.
+ *
+ * Can be used in two modes:
+ * 1. Props mode: Pass all props explicitly (legacy usage)
+ * 2. Context mode: Uses LightboxStateContext via hooks (preferred)
+ *
+ * When props are not provided, falls back to context values.
  */
 export const NavigationArrows: React.FC<NavigationArrowsProps> = ({
-  showNavigation,
-  readOnly,
-  onPrevious,
-  onNext,
-  hasPrevious = true,
-  hasNext = true,
+  showNavigation: showNavigationProp,
+  readOnly: _readOnlyProp,
+  onPrevious: onPreviousProp,
+  onNext: onNextProp,
+  hasPrevious: hasPreviousProp,
+  hasNext: hasNextProp,
   variant = 'desktop',
 }) => {
+  // Get values from context (safe version returns defaults if outside provider)
+  const navigation = useLightboxNavigationSafe();
+
+  // Use props if provided, otherwise fall back to context
+  const showNavigation = showNavigationProp ?? navigation.showNavigation;
+  const hasPrevious = hasPreviousProp ?? navigation.hasPrevious;
+  const hasNext = hasNextProp ?? navigation.hasNext;
+  const onPrevious = onPreviousProp ?? navigation.handleSlotNavPrev;
+  const onNext = onNextProp ?? navigation.handleSlotNavNext;
+
   if (!showNavigation) {
     return null;
   }

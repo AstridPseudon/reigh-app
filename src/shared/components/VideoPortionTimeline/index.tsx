@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { cn } from '@/shared/lib/utils';
+import { cn, formatTime } from '@/shared/lib/utils';
 
 // Type for a portion selection
 export interface PortionSelection {
@@ -11,13 +11,13 @@ export interface PortionSelection {
   name?: string;  // Optional user-defined name for the segment
 }
 
-// Format seconds to MM:SS.ms
-export function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 10);
-  return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`;
-}
+// Re-export formatTime for backwards compatibility (with milliseconds enabled by default for this component)
+export { formatTime } from '@/shared/lib/utils';
+
+// Helper to format time with milliseconds (1 digit) for this component's use
+const formatTimeWithMs = (seconds: number): string => {
+  return formatTime(seconds, { showMilliseconds: true, millisecondsDigits: 1 });
+};
 
 // Component to show a mini thumbnail at a specific video time
 function FrameThumbnail({ videoUrl, time }: { videoUrl: string; time: number }) {
@@ -618,7 +618,7 @@ export function MultiPortionTimeline({
                 <FrameThumbnail videoUrl={videoUrl} time={selection.start} />
                 <div className="flex flex-col items-center mt-0.5">
                   <span className="text-[10px] font-mono text-white/80 whitespace-nowrap">
-                    {formatTime(selection.start)}
+                    {formatTimeWithMs(selection.start)}
                   </span>
                   {fps && (
                     <span className="text-[9px] font-mono text-white/50 whitespace-nowrap">
@@ -641,7 +641,7 @@ export function MultiPortionTimeline({
                 <FrameThumbnail videoUrl={videoUrl} time={selection.end} />
                 <div className="flex flex-col items-center mt-0.5">
                   <span className="text-[10px] font-mono text-white/80 whitespace-nowrap">
-                    {formatTime(selection.end)}
+                    {formatTimeWithMs(selection.end)}
                   </span>
                   {fps && (
                     <span className="text-[9px] font-mono text-white/50 whitespace-nowrap">
@@ -753,7 +753,7 @@ export function MultiPortionTimeline({
       {/* Timeline markers */}
       <div className="flex justify-between text-[10px] text-white/40 mt-1 px-1">
         <span>0:00</span>
-        <span>{formatTime(duration)}</span>
+        <span>{formatTimeWithMs(duration)}</span>
       </div>
     </div>
   );

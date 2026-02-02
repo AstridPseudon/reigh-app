@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { handleError } from '@/shared/lib/errorHandler';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { PhaseConfig } from '@/tools/travel-between-images/settings';
 import { supabase } from '@/integrations/supabase/client';
@@ -225,7 +225,7 @@ export const useCreateResource = () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.resources.public(data.type) });
         },
         onError: (error) => {
-            toast.error(error.message);
+            handleError(error, { context: 'useCreateResource', toastTitle: 'Failed to create resource' });
         },
     });
 };
@@ -361,8 +361,7 @@ export const useUpdateResource = () => {
             });
         },
         onError: (error) => {
-            console.error('[useUpdateResource] onError:', error);
-            toast.error(error.message);
+            handleError(error, { context: 'useUpdateResource', toastTitle: 'Failed to update resource' });
         },
     });
 };
@@ -391,7 +390,7 @@ export const useDeleteResource = () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.resources.public(variables.type) });
         },
         onError: (error) => {
-            toast.error(error.message);
+            handleError(error, { context: 'useDeleteResource', toastTitle: 'Failed to delete resource' });
         },
     });
 };

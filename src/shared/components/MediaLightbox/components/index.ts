@@ -68,3 +68,5 @@ export type { SegmentEditorModalProps } from './SegmentEditorModal';
 
 export { LightboxShell } from './LightboxShell';
 export type { LightboxShellProps } from './LightboxShell';
+
+export { LightboxProviders } from './LightboxProviders';

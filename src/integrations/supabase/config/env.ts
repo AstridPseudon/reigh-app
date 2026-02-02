@@ -1,7 +1,13 @@
 // Centralized environment and feature flags for Supabase client/instrumentation
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wczysqzxlwdndgxitrvc.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjenlzcXp4bHdkbmRneGl0cnZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MDI4NjgsImV4cCI6MjA2NzA3ODg2OH0.r-4RyHZiDibUjgdgDDM2Vo6x3YpgIO5-BTwfkB2qyYA";
+// Supabase configuration - environment variables required
+// Note: Anon keys are designed to be public, but we require env vars for easier rotation
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error('Missing required Supabase environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+}
 
 // Dev gating: enable heavy instrumentation only in dev/local
 export const __IS_DEV_ENV__ = (import.meta as any)?.env?.VITE_APP_ENV === 'dev' || (typeof window !== 'undefined' && window.location?.hostname === 'localhost');

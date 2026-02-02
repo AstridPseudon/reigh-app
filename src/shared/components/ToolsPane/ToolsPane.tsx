@@ -84,14 +84,24 @@ const ToolCard = memo(({ item, isCurrentTool, isVisible, onNavigate }: ToolCardP
   const { triggerRipple, rippleStyles, isRippleActive } = useClickRipple();
   const { darkMode } = useDarkMode();
   const [isWiggling, setIsWiggling] = useState(false);
-  
+  const wiggleTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (wiggleTimeoutRef.current) {
+        clearTimeout(wiggleTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const isDisabled = !item.tool;
 
   const handleClick = (e: React.PointerEvent) => {
     if (isDisabled) {
       e.preventDefault();
       setIsWiggling(true);
-      setTimeout(() => setIsWiggling(false), 600);
+      wiggleTimeoutRef.current = setTimeout(() => setIsWiggling(false), 600);
       return;
     }
     

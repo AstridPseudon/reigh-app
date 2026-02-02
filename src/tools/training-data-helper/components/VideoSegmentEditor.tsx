@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/shared/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { handleError } from '@/shared/lib/errorHandler';
+import { formatTime } from '@/shared/lib/utils';
 
 interface SegmentFramePreviewProps {
   segment: TrainingDataSegment;
@@ -42,7 +43,7 @@ function SegmentFramePreview({ segment, captureFrameAtTime, videoReady }: Segmen
       const endImg = await captureFrameAtTime(segment.endTime / 1000);
       setEndFrame(endImg);
     } catch (error) {
-      console.error('Error loading frames for segment:', segment.id, error);
+      handleError(error, { context: 'VideoSegmentEditor', showToast: false, logData: { segmentId: segment.id } });
       // Set to null so fallback UI shows
       setStartFrame(null);
       setEndFrame(null);
@@ -192,11 +193,10 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
       return dataURL;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'SecurityError') {
-        console.warn('CORS issue preventing frame capture. Video may be from a different origin.');
-        toast.error('Unable to capture frame due to security restrictions. Frame preview disabled.');
+        // CORS restriction - expected for cross-origin videos, frame preview unavailable
+        handleError(error, { context: 'VideoSegmentEditor', toastTitle: 'Unable to capture frame due to security restrictions' });
       } else {
-        console.error('Error capturing frame:', error);
-        toast.error('Failed to capture video frame');
+        handleError(error, { context: 'VideoSegmentEditor', toastTitle: 'Failed to capture video frame' });
       }
       return null;
     }
@@ -571,24 +571,22 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
 
   const previewSegment = (segment: TrainingDataSegment) => {
     if (!videoRef.current) return;
-    
+
     const startTime = segment.startTime / 1000;
-    
+
     // Just seek to the start of the segment without auto-playing
     seekTo(startTime);
-    
+
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    const milliseconds = Math.floor((seconds % 1) * 1000);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+  // Format time with milliseconds for video segment editor
+  const formatTimeWithMs = (seconds: number) => {
+    return formatTime(seconds, { showMilliseconds: true, millisecondsDigits: 3 });
   };
 
   const formatDuration = (ms: number) => {
     const seconds = ms / 1000;
-    return formatTime(seconds);
+    return formatTimeWithMs(seconds);
   };
 
   const handleDeleteSegment = (segmentId: string) => {
@@ -635,7 +633,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
       setDescription('');
 
     } catch (error) {
-      toast.error('Failed to update segment');
+      handleError(error, { context: 'VideoSegmentEditor', toastTitle: 'Failed to update segment' });
     }
   };
 
@@ -669,20 +667,22 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                     onPause={() => setIsPlaying(false)}
                     onError={(e) => {
                       const videoElement = e.target as HTMLVideoElement;
-                      console.error('Video load error:', {
-                        videoId: video.id,
-                        src: videoElement.src,
-                        error: videoElement.error,
-                        networkState: videoElement.networkState,
-                        readyState: videoElement.readyState
+                      handleError(new Error('Video load error'), {
+                        context: 'VideoSegmentEditor',
+                        toastTitle: `Video file not available: ${video.originalFilename}`,
+                        showToast: true,
+                        logData: {
+                          videoId: video.id,
+                          src: videoElement.src,
+                          error: videoElement.error,
+                          networkState: videoElement.networkState,
+                          readyState: videoElement.readyState
+                        }
                       });
-                      
+
                       // Mark this video as invalid so it won't be loaded again
                       markVideoAsInvalid(video.id);
                       setVideoReady(false);
-                      
-                      // Show a user-friendly error message
-                      toast.error(`Video file not available: ${video.originalFilename}. The file may have been moved or deleted.`);
                     }}
                     onLoadStart={() => {
                       setVideoReady(false);
@@ -836,7 +836,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                   
                   <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
                     <Clock className="h-4 w-4" />
-                    {formatTime(currentTime)} / {formatTime(duration)}
+                    {formatTimeWithMs(currentTime)} / {formatTimeWithMs(duration)}
                   </div>
                 </div>
                 
@@ -989,7 +989,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                       <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
                         <div className="font-light">Live Preview</div>
                         <div className="text-xs">
-                          Duration: {formatTime(currentTime - segmentStartTime)}
+                          Duration: {formatTimeWithMs(currentTime - segmentStartTime)}
                         </div>
                       </div>
                     )}
@@ -1047,7 +1047,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-sm font-light text-green-700">
-                      {segmentEndTime !== null ? 'Segment Frames' : `Start Frame (${formatTime(segmentStartTime)})`}
+                      {segmentEndTime !== null ? 'Segment Frames' : `Start Frame (${formatTimeWithMs(segmentStartTime)})`}
                     </span>
                   </div>
                   
@@ -1055,7 +1055,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                     {/* Start Frame */}
                     <div className="text-center">
                       <div className="text-xs text-green-700 mb-1 font-light">
-                        Start ({formatTime(segmentStartTime)})
+                        Start ({formatTimeWithMs(segmentStartTime)})
                       </div>
                       {startFrameImage ? (
                         <img
@@ -1106,7 +1106,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                       <div className="p-3 bg-red-50 rounded-lg border border-red-200">
                         <div className="text-center">
                           <div className="text-xs text-red-700 mb-1 font-light">
-                            End at ({formatTime(currentTime)})
+                            End at ({formatTimeWithMs(currentTime)})
                           </div>
                           <div className="text-xs text-red-600 mb-2 font-medium">
                             {Math.round((currentTime - segmentStartTime) * 30)} frames
@@ -1145,7 +1145,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                     {segmentEndTime !== null && (
                       <div className="text-center">
                         <div className="text-xs text-red-700 mb-1 font-light">
-                          End ({formatTime(segmentEndTime)})
+                          End ({formatTimeWithMs(segmentEndTime)})
                         </div>
                         {endFrameImage ? (
                           <img
@@ -1197,7 +1197,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
                   {segmentEndTime !== null && (
                     <div className="mt-3 text-center">
                       <div className="text-sm text-green-700 font-light">
-                        Duration: {formatTime(segmentEndTime - segmentStartTime)}
+                        Duration: {formatTimeWithMs(segmentEndTime - segmentStartTime)}
                         <span className="ml-2 text-xs">
                           (~{Math.round((segmentEndTime - segmentStartTime) * 30)} frames @ 30fps)
                         </span>

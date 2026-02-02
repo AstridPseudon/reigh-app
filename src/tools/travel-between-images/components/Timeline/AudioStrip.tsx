@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { TIMELINE_PADDING_OFFSET } from './constants';
 import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, Trash2, Volume2 } from 'lucide-react';
+import { formatTime } from '@/shared/lib/utils';
 
 // Frame rate for timeline (matches time-utils.ts FPS constant)
 const FRAME_RATE = 16;
@@ -146,13 +147,6 @@ export const AudioStrip: React.FC<AudioStripProps> = ({
   const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
   const playheadPercent = timelineDuration > 0 ? Math.min(currentTime / timelineDuration, 1) : 0;
   const playheadX = TIMELINE_PADDING_OFFSET + (playheadPercent * effectiveWidth);
-
-  // Format time for display
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   // Format with decimals for short durations
   const formatTimeDetailed = (seconds: number) => {

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
+import { useToast } from '@/shared/hooks/use-toast';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import { GeneratedImageWithMetadata, DisplayableMetadata } from '../index';
 import { handleError } from '@/shared/lib/errorHandler';

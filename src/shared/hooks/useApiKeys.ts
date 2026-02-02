@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface ApiKeys {
   fal_api_key?: string;
@@ -92,8 +92,7 @@ export const useApiKeys = () => {
 
     },
     onError: (error: Error) => {
-      console.error('Error updating API keys:', error);
-      toast.error(`Failed to update API keys: ${error.message}`);
+      handleError(error, { context: 'useApiKeys', toastTitle: 'Failed to update API keys' });
     },
   });
 

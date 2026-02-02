@@ -3,6 +3,9 @@
  *
  * Used on mobile/tablet when not in edit mode and not showing task details.
  * Simple centered media with overlay controls and WorkflowControls below.
+ *
+ * Uses context hooks for core/media/variants/navigation/edit state.
+ * Receives only layout-specific and deeply-nested props.
  */
 
 import React from 'react';
@@ -10,8 +13,16 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { Eraser, Square, Undo2, X, Diamond, Trash2 } from 'lucide-react';
-import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
 import type { CenteredLayoutProps } from './types';
+
+// Context hooks
+import {
+  useLightboxCoreSafe,
+  useLightboxMediaSafe,
+  useLightboxVariantsSafe,
+  useLightboxNavigationSafe,
+  useLightboxEditSafe,
+} from '../../contexts/LightboxStateContext';
 
 // Sub-components
 import { VariantOverlayBadge } from './VariantOverlayBadge';
@@ -33,36 +44,30 @@ import { WorkflowControlsBar } from '../WorkflowControlsBar';
 import { MediaDisplayWithCanvas } from '../MediaDisplayWithCanvas';
 import VideoEditModeDisplay from '../VideoEditModeDisplay';
 import VideoTrimModeDisplay from '../VideoTrimModeDisplay';
+import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
 
 export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
+  // ========================================
+  // CONTEXT STATE (no longer from props)
+  // ========================================
+  const core = useLightboxCoreSafe();
+  const mediaState = useLightboxMediaSafe();
+  const variantsState = useLightboxVariantsSafe();
+  const navigation = useLightboxNavigationSafe();
+  const editState = useLightboxEditSafe();
+
+  // Destructure context values
+  const { onClose, readOnly, isMobile, actualGenerationId, selectedProjectId } = core;
+  const { media, isVideo, effectiveMediaUrl, effectiveVideoUrl, setImageDimensions, effectiveImageDimensions } = mediaState;
+  const { variants, activeVariant, primaryVariant, promoteSuccess, isPromoting, handlePromoteToGeneration, isMakingMainVariant, canMakeMainVariant, handleMakeMainVariant } = variantsState;
+  const { showNavigation, hasNext, hasPrevious, handleSlotNavNext, handleSlotNavPrev, swipeNavigation } = navigation;
+  const { isInpaintMode, isSpecialEditMode, editMode } = editState;
+
+  // ========================================
+  // PROPS (only layout-specific / deeply nested)
+  // ========================================
   const {
-    // Core
-    onClose,
-    readOnly,
-    selectedProjectId,
-    isMobile,
-    actualGenerationId,
-
-    // Media
-    media,
-    isVideo,
-    effectiveMediaUrl,
-    effectiveVideoUrl,
-    setImageDimensions,
-    effectiveImageDimensions,
-
-    // Variants
-    variants,
-    activeVariant,
-    primaryVariant,
-    promoteSuccess,
-    isPromoting,
-    handlePromoteToGeneration,
-    isMakingMainVariant,
-    canMakeMainVariant,
-    handleMakeMainVariant,
-
-    // Video edit
+    // Video edit (specialized)
     isVideoTrimModeActive,
     isVideoEditModeActive,
     trimVideoRef,
@@ -71,11 +76,8 @@ export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
     setTrimCurrentTime,
     videoEditing,
 
-    // Edit mode
-    isInpaintMode,
+    // Canvas/annotation (deeply nested refs & handlers)
     isAnnotateMode,
-    isSpecialEditMode,
-    editMode,
     brushStrokes,
     currentStroke,
     isDrawing,
@@ -104,18 +106,8 @@ export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
     isFlippedHorizontally,
     isSaving,
 
-    // Navigation
-    showNavigation,
-    hasNext,
-    hasPrevious,
-    handleSlotNavNext,
-    handleSlotNavPrev,
-    swipeNavigation,
-
-    // Button groups
+    // Composed prop objects
     buttonGroupProps,
-
-    // Workflow bar
     workflowBarProps,
 
     // Workflow controls (below media)

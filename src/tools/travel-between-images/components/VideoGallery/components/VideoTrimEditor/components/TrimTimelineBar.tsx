@@ -6,7 +6,7 @@
  */
 
 import React, { useRef, useCallback, useState, useEffect } from 'react';
-import { cn } from '@/shared/lib/utils';
+import { cn, formatTime } from '@/shared/lib/utils';
 import type { TrimTimelineBarProps } from '../types';
 
 export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
@@ -134,22 +134,12 @@ export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
     [isDragging, videoRef, startTrim, endTrim, duration]
   );
 
-  // Format time as mm:ss.s
-  const formatTime = (seconds: number): string => {
-    if (!Number.isFinite(seconds) || seconds < 0) {
-      return '0:00.0';
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
-  };
-
   return (
     <div className="w-full space-y-2">
       {/* Time labels */}
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>0:00</span>
-        <span>{formatTime(duration)}</span>
+        <span>{formatTime(duration, { showMilliseconds: true, millisecondsDigits: 1 })}</span>
       </div>
 
       {/* Timeline bar */}
@@ -256,13 +246,13 @@ export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
       {/* Trim info */}
       <div className="flex justify-between text-xs">
         <div className="text-red-400">
-          Cut: {formatTime(startTrim)}
+          Cut: {formatTime(startTrim, { showMilliseconds: true, millisecondsDigits: 1 })}
         </div>
         <div className="text-primary font-medium">
-          Keep: {formatTime(duration - startTrim - endTrim)}
+          Keep: {formatTime(duration - startTrim - endTrim, { showMilliseconds: true, millisecondsDigits: 1 })}
         </div>
         <div className="text-red-400">
-          Cut: {formatTime(endTrim)}
+          Cut: {formatTime(endTrim, { showMilliseconds: true, millisecondsDigits: 1 })}
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ import { cn } from '@/shared/lib/utils';
 import { TaskDetailsPanelWrapper } from './TaskDetailsPanelWrapper';
 import { VariantSelector } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor/components/VariantSelector';
 import { VariantBadge } from '@/shared/components/VariantBadge';
-import { useLightboxVariantContext } from '../contexts/LightboxVariantContext';
+import { useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { GenerationRow } from '@/types/shots';
 
@@ -120,7 +120,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const isMobile = variant === 'mobile';
 
   // Get variant state from context (avoids prop drilling)
-  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed, variantsSectionRef: contextVariantsSectionRef } = useLightboxVariantContext();
+  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed, variantsSectionRef: contextVariantsSectionRef } = useLightboxVariantsSafe();
   // Use context ref if prop not provided
   const effectiveVariantsSectionRef = variantsSectionRef || contextVariantsSectionRef;
   const hasVariants = variants && variants.length >= 1;

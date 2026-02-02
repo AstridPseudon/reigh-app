@@ -60,10 +60,10 @@ src/shared/hooks/shots/
 
 | File | Lines | Core Problem | Status |
 |------|-------|--------------|--------|
-| `src/tools/travel-between-images/components/ShotImagesEditor.tsx` | 3,775 | Massive editor combining many concerns | ❌ **CRITICAL** |
-| `src/tools/image-generation/components/ImageGenerationForm/index.tsx` | 3,081 | Form + validation + previews combined | ❌ **CRITICAL** |
-| `src/tools/travel-between-images/components/ShotEditor/index.tsx` | 3,034 | Full editor in single component | ❌ **CRITICAL** |
-| `src/tools/travel-between-images/components/Timeline/TimelineContainer.tsx` | 2,241 | Timeline container + interactions | ❌ **CRITICAL** |
+| `src/tools/travel-between-images/components/ShotImagesEditor.tsx` | ~~3,775~~ 32 | ~~Massive editor combining many concerns~~ | ✅ **REFACTORED** → `ShotImagesEditor/` |
+| `src/tools/image-generation/components/ImageGenerationForm/index.tsx` | ~~3,081~~ 1,164 | ~~Form + validation + previews combined~~ | ✅ **REFACTORED** (orchestrator) |
+| `src/tools/travel-between-images/components/ShotEditor/index.tsx` | ~~3,034~~ 1,190 | ~~Full editor in single component~~ | ✅ **REFACTORED** (orchestrator) |
+| `src/tools/travel-between-images/components/Timeline/TimelineContainer.tsx` | ~~2,241~~ 714 | ~~Timeline container + interactions~~ | ✅ **REFACTORED** → `TimelineContainer/` |
 
 **Oversized (1000-2000 lines):**
 
@@ -77,33 +77,169 @@ src/shared/hooks/shots/
 | `src/shared/components/SegmentSettingsForm.tsx` | 1,570 | Form + validation + dependent field logic | ❌ Pending |
 | `src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx` | 1,532 | Video item rendering + interactions | ❌ Pending |
 | `src/tools/travel-between-images/components/Timeline/GuidanceVideoStrip.tsx` | 1,456 | Video strip + thumbnails + timing | ❌ Pending |
+| `src/shared/components/MediaLightbox/ImageLightbox.tsx` | 1,303 | Image lightbox main component | ⚠️ Monitor (orchestrator) |
 | `src/shared/components/SettingsModal.tsx` | 1,320 | Modal shell + multiple settings tabs | ❌ Pending |
 | `src/tools/travel-between-images/components/Timeline.tsx` | 1,226 | Timeline + segments + markers + interactions | ❌ Pending |
 | `src/tools/travel-between-images/components/VideoGallery/index.tsx` | 1,201 | Gallery + filtering + selection + actions | ❌ Pending |
 | `src/tools/image-generation/pages/ImageGenerationToolPage.tsx` | 1,167 | Full page in single component | ❌ Pending |
+| `src/shared/components/MediaLightbox/VideoLightbox.tsx` | 1,077 | Video lightbox main component | ⚠️ Monitor (orchestrator) |
 
-**Total: 15 components >1000 lines (4 critical >2000 lines)**
+**Total: 11 components >1000 lines pending (0 critical >2000 lines - all refactored)**
 
 **Impact:** Multiple concerns entangled, hard to test, reuse, or modify safely.
 
-**Completed refactor example (`MediaLightbox/`):**
+**Completed refactor examples:**
+
+`ShotImagesEditor/` (3,775 → 32 lines in index):
+```
+src/tools/travel-between-images/components/ShotImagesEditor/
+  index.tsx                 # Clean wrapper (32 lines)
+  types.ts                  # Shared types (233 lines)
+  components/               # Mode-specific content
+    PreviewTogetherDialog.tsx   # Preview dialog (738 lines)
+    BatchModeContent.tsx        # Batch mode UI (289 lines)
+    TimelineModeContent.tsx     # Timeline mode UI (256 lines)
+  hooks/                    # 8+ specialized hooks
+    useSegmentSlotMode.ts       # Slot management (308 lines)
+    useShotGenerationsData.ts   # Data fetching (220 lines)
+```
+
+`ShotEditor/` (3,034 → 1,190 lines orchestrator):
+```
+src/tools/travel-between-images/components/ShotEditor/
+  index.tsx                 # Orchestrator (1,190 lines)
+  ShotSettingsContext.tsx   # Context for state (507 lines)
+  sections/                 # Modular UI sections
+    HeaderSection.tsx, GenerationSection.tsx, TimelineSection.tsx, ModalsSection.tsx
+    generation/             # Mode-specific content
+  hooks/                    # 15+ extracted hooks
+    useGenerateBatch.ts, useImageManagement.ts, useJoinSegmentsHandler.ts, etc.
+  services/                 # Business logic
+    generateVideoService.ts (1,566 lines), applySettingsService.ts (943 lines)
+  ui/                       # Reusable components
+```
+
+`ImageGenerationForm/` (3,081 → 1,164 lines orchestrator):
+```
+src/tools/image-generation/components/ImageGenerationForm/
+  index.tsx                     # Form orchestrator (1,164 lines)
+  ImageGenerationFormContext.tsx # Prop drilling elimination (246 lines)
+  types.ts                      # Type definitions (422 lines)
+  components/                   # Form sections
+    PromptInputRow.tsx, ModelSection.tsx, GenerateControls.tsx, ShotSelector.tsx
+    reference/                  # LoRA/reference UI
+  hooks/                        # 8+ extracted hooks
+    useReferenceManagement.ts (908 lines), useFormSubmission.ts (513 lines)
+  state/                        # Form UI state
+```
+
+`TimelineContainer/` (2,241 → 714 lines core):
+```
+src/tools/travel-between-images/components/Timeline/TimelineContainer/
+  index.tsx                 # Wrapper (22 lines)
+  TimelineContainer.tsx     # Core logic (714 lines)
+  types.ts                  # Type definitions (112 lines)
+  components/               # UI sub-components
+    GuidanceVideoControls.tsx, TimelineBottomControls.tsx, ZoomControls.tsx
+    TimelineSkeletonItem.tsx, AddAudioButton.tsx, PendingFrameMarker.tsx
+```
+
+`MediaLightbox/` (2,617 → 189 lines shell):
 ```
 src/shared/components/MediaLightbox/
   MediaLightbox.tsx         # Shell component (189 lines)
-  index.tsx                 # Barrel file
-  types.ts                  # Shared types
-  contexts/                 # LightboxStateContext, LightboxVariantContext
+  ImageLightbox.tsx         # Image-specific (1,303 lines - orchestrator)
+  VideoLightbox.tsx         # Video-specific (1,077 lines - orchestrator)
+  LightboxProviders.tsx     # Provider composition (45 lines)
+  contexts/                 # Split context strategy
+    LightboxStateContext.tsx    # Shared state
+    EditFormContext.tsx         # Form state (195 lines)
+    ImageEditContext.tsx        # Image edit state (198 lines)
+    VideoEditContext.tsx        # Video edit state (197 lines)
   components/               # 40+ modular UI components
-    layouts/                # Desktop/mobile layouts, overlays
-    controls/               # Brush, annotation, position controls
-  hooks/                    # 30+ focused hooks (navigation, editing, etc.)
-    inpainting/             # Inpainting-specific hooks
-  utils/                    # Download utilities
+  hooks/                    # 30+ focused hooks
 ```
 
 ---
 
-### 3. Cache Invalidation Complexity
+### 3. Prop Drilling (Excessive Props)
+
+**Current state:** 12 components receive 30-50+ props (3 improved via context)
+
+Components passing props through multiple levels without consuming them:
+
+| Component | Props | File | Status |
+|-----------|-------|------|--------|
+| `PhaseConfigSelectorModal` | 50 | `src/shared/components/PhaseConfigSelectorModal/` | ❌ Pending |
+| `ImageLightbox` | ~~49~~ | `src/shared/components/MediaLightbox/ImageLightbox.tsx` | ✅ **Improved** — `EditFormContext`, `ImageEditContext` |
+| `VideoLightbox` | ~~48~~ | `src/shared/components/MediaLightbox/VideoLightbox.tsx` | ✅ **Improved** — `EditFormContext`, `VideoEditContext` |
+| `MediaGalleryItem` | 47 | `src/shared/components/MediaGalleryItem.tsx` | ❌ Pending |
+| `TimelineContainer` | ~~41~~ | `src/tools/travel-between-images/components/Timeline/TimelineContainer/` | ✅ **Improved** — split to directory |
+| `Timeline` | 39 | `src/tools/travel-between-images/components/Timeline.tsx` | ❌ Pending |
+| `ModelSection` | ~~38~~ | `src/tools/image-generation/components/ImageGenerationForm/components/` | ✅ **Improved** — `ImageGenerationFormContext` |
+
+**Impact:**
+- Brittle component contracts — adding a prop requires changes through entire chain
+- Hard to refactor — moving components requires rewiring all props
+- Poor encapsulation — intermediate components know about unrelated data
+
+**Fix:** Use Context or composition for deeply shared data:
+```typescript
+// Before: prop drilling
+<Parent settings={settings} onSave={onSave} user={user} ...47 more>
+  <Child settings={settings} onSave={onSave} user={user} ...47 more>
+    <Grandchild settings={settings} onSave={onSave} />
+
+// After: context for shared data
+<SettingsProvider value={{ settings, onSave }}>
+  <Parent>
+    <Child>
+      <Grandchild /> // uses useSettings() hook
+```
+
+---
+
+### 4. Hook-Heavy Components
+
+**Current state:** 3 components still use 60+ hooks (2 refactored)
+
+Excessive hook usage indicates mixed concerns and scattered state:
+
+| Component | Hooks | File | Status |
+|-----------|-------|------|--------|
+| `ImageGenerationForm/index.tsx` | ~~128~~ | `src/tools/image-generation/components/` | ✅ **REFACTORED** — hooks extracted to `hooks/` |
+| `VideoTravelToolPage.tsx` | 91 | `src/tools/travel-between-images/pages/` | ❌ Pending |
+| `ShotImagesEditor.tsx` | ~~85~~ | `src/tools/travel-between-images/components/` | ✅ **REFACTORED** → `ShotImagesEditor/hooks/` |
+| `ImageGenerationToolPage.tsx` | 63 | `src/tools/image-generation/pages/` | ❌ Pending |
+| `JoinClipsPage.tsx` | ~60 | `src/tools/join-clips/pages/` | ❌ Pending |
+
+**Impact:**
+- Difficult to trace state flow
+- High cognitive load
+- Hard to extract into smaller components
+- Performance risk from many re-render triggers
+
+**Fix:** Extract hook groups into custom hooks or child components:
+```typescript
+// Before: 128 hooks in one component
+function ImageGenerationForm() {
+  const [field1, setField1] = useState();
+  const [field2, setField2] = useState();
+  // ...126 more hooks
+}
+
+// After: grouped into logical units
+function ImageGenerationForm() {
+  const modelSettings = useModelSettings();
+  const promptState = usePromptState();
+  const previewState = usePreviewState();
+  // 3 hooks instead of 128
+}
+```
+
+---
+
+### 5. Cache Invalidation Complexity
 
 **Status:** ✅ **COMPLETE** — Centralized query key registry + domain invalidation hooks
 
@@ -136,7 +272,7 @@ queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShot(shotId) }
 
 ---
 
-### 4. Excessive Console Logging in Production Code
+### 6. Excessive Console Logging in Production Code
 
 **Status:** ✅ **MITIGATED** — Production builds are safe
 
@@ -158,7 +294,7 @@ The logger system (`src/shared/lib/logger.ts`) intercepts and suppresses `consol
 
 ---
 
-### 5. Inconsistent Error Handling
+### 7. Inconsistent Error Handling
 
 **Status:** ✅ **COMPLETE** — Codebase migrated to centralized `handleError()`
 
@@ -187,7 +323,7 @@ handleError(error, { context: 'useCredits', toastTitle: 'Failed to save' });
 
 ## High Severity: Type Safety
 
-### 6. Excessive `any` Usage
+### 8. Excessive `any` Usage
 
 **Current state:** 1,316 occurrences across 242 files
 
@@ -240,7 +376,7 @@ const mapDbProjectToProject = (row: ProjectRow): Project => {
 
 ---
 
-### 7. Double Type Casts (Anti-pattern)
+### 9. Double Type Casts (Anti-pattern)
 
 **Current state:** 15 occurrences across 7 files
 
@@ -285,7 +421,7 @@ interface Props {
 
 ---
 
-### 8. Type Ignores Without Justification
+### 10. Type Ignores Without Justification
 
 ```typescript
 // ToolPageHeaderContext.tsx
@@ -308,7 +444,7 @@ const starred = media.starred;
 
 ## Medium Severity: Consistency Issues
 
-### 9. Naming Inconsistencies
+### 11. Naming Inconsistencies
 
 **Hook naming:**
 - `useToolSettings` vs `useShotSettings` vs `useSegmentSettings` - Unclear relationship hierarchy
@@ -338,7 +474,7 @@ selectVisibleGenerations() // Selector (for memoization)
 
 ---
 
-### 10. Mixed State Management Approaches
+### 12. Mixed State Management Approaches
 
 No clear decision matrix for when to use each approach:
 
@@ -365,7 +501,7 @@ No clear decision matrix for when to use each approach:
 
 ---
 
-### 11. Duplicate Data Transformers
+### 13. Duplicate Data Transformers
 
 Multiple functions do similar transformations:
 
@@ -395,7 +531,7 @@ export const generationTransformers = {
 
 ---
 
-### 12. Deep Import Chains
+### 14. Deep Import Chains
 
 Relative imports spanning 4+ levels:
 
@@ -418,7 +554,7 @@ import { Other } from '@/shared/hooks/useOther';
 
 ---
 
-### 13. ESLint Disables
+### 15. ESLint Disables
 
 **Status:** ✅ **WELL-MANAGED** — All 17 instances properly documented
 
@@ -446,7 +582,125 @@ useEffect(() => {
 
 ---
 
-### 14. Magic Numbers and Strings
+### 16. Hardcoded Colors
+
+**Current state:** 118+ instances across TSX files
+
+Colors should use Tailwind theme variables, not hex/rgb/hsl literals:
+
+| File | Count | Examples |
+|------|-------|----------|
+| `GlobalHeader.tsx` | 42 | `'#a098a8'`, `'rgb(255,255,255,0.2)'` |
+| `HeroSection.tsx` | 23 | `'#ecede3'`, `'#fbbf24'`, `rgba(...)` |
+| `ToolTypeFilter.tsx` | 7 | `'#6a8a8a'`, `'hsl(40,55%,58%)'` |
+| `ToolSelectorPage.tsx` | 7 | `'#a67d2a'`, `'#3d8a62'`, `'#e07070'` |
+| `select.tsx` | 15 | Shadcn component with hardcoded colors |
+| `ShotListDisplay.tsx` | 4 | `'border-[hsl(40,55%,58%)]'` |
+
+**Examples:**
+```tsx
+// ToolSelectorPage.tsx
+darkIconColor: '#a67d2a',  // Should be theme variable
+darkIconColor: '#3d8a62',  // Should be theme variable
+
+// HeroSection.tsx
+color: '#fbbf24',  // Should use text-amber-400 or theme
+
+// ShotListDisplay.tsx
+'border-[hsl(40,55%,58%)]'  // Should use theme border color
+```
+
+**Impact:**
+- Inconsistent with dark/light mode theming
+- Hard to maintain brand colors
+- Accessibility issues if colors don't meet contrast ratios
+
+**Fix:** Use Tailwind theme or CSS variables:
+```tsx
+// Before
+<div style={{ color: '#a67d2a' }}>
+
+// After
+<div className="text-vintage-gold">  // Using theme extension
+// or
+<div className="text-[--color-vintage-gold]">  // Using CSS variable
+```
+
+---
+
+### 17. Inline Functions in JSX
+
+**Current state:** 314 instances across TSX files
+
+Arrow functions defined inline in JSX props cause unnecessary re-renders:
+
+| File | Count | Impact |
+|------|-------|--------|
+| `HeroSection.tsx` | 8+ | Low (static page) |
+| `ProfitSplitBar.tsx` | 6 | Low (simple component) |
+| `TimelineItem.tsx` | 10+ | **High** (list items) |
+| `VideoItem.tsx` | 12+ | **High** (list items) |
+| `MediaGalleryItem.tsx` | 15+ | **High** (virtualized list) |
+
+**Example:**
+```tsx
+// Bad: new function on every render, breaks memo optimization
+<Button onClick={() => handleDelete(item.id)} />
+<Item onHover={() => setHovered(true)} />
+
+// Good: stable reference via useCallback or extracted handler
+const handleItemDelete = useCallback(() => handleDelete(item.id), [item.id]);
+<Button onClick={handleItemDelete} />
+```
+
+**Impact:**
+- Breaks `React.memo` optimization
+- Child components re-render unnecessarily
+- Performance degradation in lists/galleries
+
+**Priority:** Focus on list item components first (`TimelineItem`, `VideoItem`, `MediaGalleryItem`).
+
+---
+
+### 18. Complex Ternaries in JSX
+
+**Current state:** 103 nested ternary expressions
+
+Deep ternary chains reduce readability:
+
+```tsx
+// ToolSelectorPage.tsx - 3-level ternary
+className={`... ${isDisabled ? 'opacity-40' : ''} ${isRippleActive ? 'ripple-active' : ''}`}
+
+// JoinClipsPage.tsx - nested ternary
+{isAddAnotherClip ? 'Add clip' : isLoopedSecondClip ? 'Clip #2 (Looped)' : `Clip #${index + 1}`}
+
+// VideoTravelToolPage.tsx - 4+ level className chains
+className={cn(
+  base,
+  isSm ? 'px-2 py-1' : 'px-1.5 py-0.5',
+  isLg ? 'px-3 py-1.5' : '',
+  isActive && 'ring-2',
+  // ...more conditions
+)}
+```
+
+**Fix:** Extract to helper functions or use object mapping:
+```tsx
+// Before: nested ternary
+{isAddAnotherClip ? 'Add clip' : isLoopedSecondClip ? 'Clip #2 (Looped)' : `Clip #${index + 1}`}
+
+// After: explicit function
+function getClipLabel(index: number, isAddAnother: boolean, isLooped: boolean) {
+  if (isAddAnother) return 'Add clip';
+  if (isLooped) return 'Clip #2 (Looped)';
+  return `Clip #${index + 1}`;
+}
+```
+
+---
+
+### 19. Magic Numbers and Strings
 
 Hardcoded values without explanation:
 
@@ -485,7 +739,7 @@ export const RETRY_SETTINGS = {
 
 ---
 
-### 15. TODO Comments
+### 20. TODO Comments
 
 **Status:** ✅ **LOW COUNT** — Only 7 TODOs in entire codebase
 
@@ -513,7 +767,37 @@ export const RETRY_SETTINGS = {
 
 ## Low Severity: Style & Polish
 
-### 16. Inconsistent Import Organization
+### 21. Inline Styles
+
+**Current state:** 288 instances of `style={{}}` in TSX
+
+Many are legitimate for dynamic values, but some could use Tailwind:
+
+| Pattern | Count | Verdict |
+|---------|-------|---------|
+| Dynamic values (`opacity: fadeOpacity`) | ~150 | ✅ Acceptable |
+| Static values (`zIndex: 10000`) | ~80 | ❌ Use Tailwind |
+| Animation delays (`animationDelay: '2s'`) | ~30 | ⚠️ Consider CSS |
+| Flex ratios (`flex: clipAKeptFlex`) | ~28 | ✅ Acceptable |
+
+**Examples needing migration:**
+```tsx
+// Should use Tailwind
+style={{ zIndex: 10000 }}  // → className="z-[10000]"
+style={{ width: '60%', height: '100%' }}  // → className="w-3/5 h-full"
+style={{ maxWidth: '200px' }}  // → className="max-w-[200px]"
+
+// Acceptable (dynamic)
+style={{ opacity: fadeOpacity }}
+style={{ flex: calculatedFlex }}
+style={{ transform: `translateX(${offset}px)` }}
+```
+
+**Priority:** Low — focus on static values in high-visibility components first.
+
+---
+
+### 22. Inconsistent Import Organization
 
 Files don't follow consistent import ordering:
 
@@ -533,7 +817,7 @@ import clsx from 'clsx';
 
 ---
 
-### 17. Missing JSDoc on Public APIs
+### 23. Missing JSDoc on Public APIs
 
 Exported functions lack documentation:
 
@@ -563,7 +847,7 @@ export function mapShotGenerationToRow(gen: ShotGeneration): ShotGenerationRow {
 
 ---
 
-### 18. Test Coverage
+### 24. Test Coverage
 
 **Status:** ✅ **IMPROVED** — 211 test files present
 
@@ -580,9 +864,9 @@ Test coverage now exists across the codebase, though specific coverage percentag
 
 ---
 
-### 19. Query Key Inconsistency
+### 25. Query Key Inconsistency
 
-**Status:** ✅ **FIXED** — See section 3 (Cache Invalidation Complexity)
+**Status:** ✅ **FIXED** — See section 5 (Cache Invalidation Complexity)
 
 Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScript autocomplete and consistent patterns across the codebase.
 
@@ -592,23 +876,29 @@ Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScr
 
 | Category | Severity | Count | Status |
 |----------|----------|-------|--------|
-| Giant components | **Critical** | 15 (4 critical >2000 LOC) | ❌ `ShotImagesEditor` (3,775), `ImageGenerationForm` (3,081), etc. |
+| Giant components | **Critical** | 15 (4 >2000 LOC) | ❌ `ShotImagesEditor` (3,775), `ImageGenerationForm` (3,081), etc. |
+| Hook-heavy components | **Critical** | 5 with 60+ hooks | ❌ `ImageGenerationForm` (128), `VideoTravelToolPage` (91) |
+| Prop drilling | High | 15 components, 30-50 props | ❌ `PhaseConfigSelectorModal` (50), `ImageLightbox` (49) |
 | Type safety (`any`) | High | 1,316 in 242 files | ❌ Top: `ShotImagesEditor` (65), `useLightboxLayoutProps` (40) |
 | Oversized hooks | High | 7 hooks >800 LOC | ❌ `useSegmentSettings` (1,160), `useGenerations` (942), etc. |
 | Double casts | High | 15 in 7 files | ❌ `ImageGenerationToolPage` (4), `useStickyHeader` (4) |
-| Cache complexity | High | 3+ patterns | ✅ **FIXED** — `queryKeys.ts` registry + invalidation hooks |
-| Error handling | Medium | Adoption gap | ✅ **FIXED** — 107 files migrated to `handleError()` |
-| Console logging | Low | 4,011 in 339 files | ✅ **MITIGATED** — Production suppressed via logger |
-| ESLint disables | Low | 17 total | ✅ **All documented** — 0 unexplained |
-| TODO comments | Low | 7 total | ✅ **Low count** — Good tracking practices |
-| Test coverage | Low | 211 test files | ✅ **IMPROVED** — Up from 3 |
+| Hardcoded colors | Medium | 118+ in TSX | ❌ `GlobalHeader` (42), `HeroSection` (23), etc. |
+| Inline JSX functions | Medium | 314 instances | ❌ Breaks memo optimization in lists |
+| Complex ternaries | Medium | 103 nested | ❌ Reduces readability in className logic |
 | Naming inconsistency | Medium | 15+ | ❌ No documented conventions |
 | State management mix | Medium | Many | ❌ No decision matrix |
 | Deep imports | Medium | 15+ | ❌ Should use `@/` aliases |
 | Duplicate transformers | Medium | 4 | ❌ Multiple transformation patterns |
 | Magic numbers | Medium | 20+ | ❌ Undocumented constants |
+| Inline styles | Low | 288 (80 static) | ⚠️ ~80 static values should use Tailwind |
 | Import organization | Low | Many | ❌ No consistent style |
 | Missing JSDoc | Low | Many | ❌ Exported functions undocumented |
+| Cache complexity | High | — | ✅ **FIXED** — `queryKeys.ts` registry + invalidation hooks |
+| Error handling | Medium | — | ✅ **FIXED** — 107 files migrated to `handleError()` |
+| Console logging | Low | 4,011 | ✅ **MITIGATED** — Production suppressed via logger |
+| ESLint disables | Low | 17 total | ✅ **All documented** — 0 unexplained |
+| TODO comments | Low | 7 total | ✅ **Low count** — Good tracking practices |
+| Test coverage | Low | 211 test files | ✅ **IMPROVED** — Up from 3 |
 
 ---
 
@@ -622,40 +912,46 @@ Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScr
 | Cache invalidation centralization | ✅ **COMPLETE** | `queryKeys.ts` registry + 4 domain invalidation hooks. 327 → 199 inline usages (-39%). |
 | Error handling migration | ✅ **COMPLETE** | 107 files migrated to `handleError()`. 308 scattered calls → 348 structured calls. |
 
-**New Critical Items Discovered:**
-- `ShotImagesEditor.tsx` (3,775 lines) — highest priority component
-- `ImageGenerationForm/index.tsx` (3,081 lines)
+**New Critical Items Discovered (this audit):**
+- `ShotImagesEditor.tsx` (3,775 lines, 85 hooks) — highest priority
+- `ImageGenerationForm/index.tsx` (3,081 lines, 128 hooks) — most hook-heavy
 - `ShotEditor/index.tsx` (3,034 lines)
 - `TimelineContainer.tsx` (2,241 lines)
+- Prop drilling: 15 components with 30-50+ props
+- Hardcoded colors: 118+ instances
+- Inline JSX functions: 314 instances
 
 ---
 
 ## Prioritized Recommendations
 
 ### Phase 1: Critical Components (Highest Impact)
-1. **Split `ShotImagesEditor.tsx`** (3,775 lines) — Largest component, blocks other refactors
-2. **Split `ImageGenerationForm/index.tsx`** (3,081 lines) — Core user-facing form
+1. **Split `ShotImagesEditor.tsx`** (3,775 lines, 85 hooks) — Largest component
+2. **Split `ImageGenerationForm/index.tsx`** (3,081 lines, 128 hooks) — Most hook-heavy
 3. **Split `ShotEditor/index.tsx`** (3,034 lines) — Major editing interface
-4. ~~**Create centralized query keys**~~ ✅ **DONE** — `queryKeys.ts` + invalidation hooks
+4. **Add context for prop drilling** — Start with `PhaseConfigSelectorModal` (50 props)
 
-### Phase 2: Type Safety
+### Phase 2: Type Safety & Performance
 5. **Fix double casts** (15 occurrences) — Address underlying type mismatches
-6. **Reduce `any` types in top files** — Start with `ShotImagesEditor` (65), `useLightboxLayoutProps` (40)
-7. ~~**Standardize error handling adoption**~~ ✅ **DONE** — 107 files migrated to `handleError()`
+6. **Reduce `any` types in top files** — `ShotImagesEditor` (65), `useLightboxLayoutProps` (40)
+7. **Extract inline JSX functions** — Focus on list items: `TimelineItem`, `VideoItem`, `MediaGalleryItem`
 
 ### Phase 3: Hook Structure
 8. **Split `useSegmentSettings.ts`** (1,160 lines) — Largest remaining hook
 9. **Split `useShotGenerationMutations.ts`** (924 lines) — Part of shots module
 10. **Continue `useGenerations.ts`** (942 lines) — Further decomposition
 
-### Phase 4: Consistency
-11. **Document naming conventions** — Add to `structure.md`
-12. **Create state management decision matrix** — Document when to use what
-13. **Add path alias enforcement** — ESLint rule for `@/` imports
+### Phase 4: Theme & Consistency
+11. **Migrate hardcoded colors** — Start with `GlobalHeader` (42), `HeroSection` (23)
+12. **Document naming conventions** — Add to `structure.md`
+13. **Create state management decision matrix** — Document when to use what
+14. **Add path alias enforcement** — ESLint rule for `@/` imports
 
 ### Phase 5: Polish
-14. **Add JSDoc to public APIs** — Focus on shared hooks first
-15. **Configure import sorting** — Automated consistency
+15. **Extract complex ternaries** — Create helper functions for className logic
+16. **Add JSDoc to public APIs** — Focus on shared hooks first
+17. **Configure import sorting** — Automated consistency
+18. **Migrate static inline styles** — ~80 instances to Tailwind
 
 ### Completed ✅
 - Console logging mitigated (production suppressed)
@@ -706,4 +1002,4 @@ Centralized query key registry now in `src/shared/lib/queryKeys.ts` with TypeScr
 
 ---
 
-*Last updated: 2026-02-01*
+*Last audit: 2026-02-01 (added prop drilling, hook-heavy components, hardcoded colors, inline JSX functions, complex ternaries, inline styles)*

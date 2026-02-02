@@ -12,8 +12,8 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
+import { handleError } from '@/shared/lib/errorHandler';
 
 export interface PromoteVariantParams {
   /** ID of the variant to promote */
@@ -149,8 +149,7 @@ export const usePromoteVariantToGeneration = () => {
     },
 
     onError: (error) => {
-      console.error('[PromoteVariant] Mutation error:', error);
-      toast.error('Failed to create new image from variant');
+      handleError(error, { context: 'usePromoteVariantToGeneration', toastTitle: 'Failed to create new image from variant' });
     },
   });
 };

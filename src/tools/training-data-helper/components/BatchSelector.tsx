@@ -70,7 +70,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
       setNewBatchDescription('');
       setIsCreateDialogOpen(false);
     } catch (error) {
-      console.error('Error creating batch:', error);
+      handleError(error, { context: 'BatchSelector', showToast: false });
     } finally {
       setIsCreating(false);
     }
@@ -95,7 +95,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
       setEditName('');
       setEditDescription('');
     } catch (error) {
-      console.error('Error updating batch:', error);
+      handleError(error, { context: 'BatchSelector', showToast: false });
     } finally {
       setIsUpdating(false);
     }
@@ -109,7 +109,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
       setIsDeleteDialogOpen(false);
       setBatchToDelete(null);
     } catch (error) {
-      console.error('Error deleting batch:', error);
+      handleError(error, { context: 'BatchSelector', showToast: false });
     }
   };
 
@@ -301,8 +301,7 @@ File Size: ${segmentBlob.size} bytes`;
           processedSegments++;
           
         } catch (error) {
-          console.error(`Error processing segment ${segment.id}:`, error);
-          toast.error(`Failed to process segment from ${video.originalFilename}: ${error.message}`);
+          handleError(error, { context: 'BatchSelector', toastTitle: `Failed to process segment from ${video.originalFilename}` });
         }
       }
 

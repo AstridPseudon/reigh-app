@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { handleError } from '@/shared/lib/errorHandler';
 import { GenerationRow } from '@/types/shots';
 import { createTask, generateUUID, generateRunId } from '@/shared/lib/taskCreation';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
@@ -512,8 +513,7 @@ export const useVideoEditing = ({
       });
     },
     onError: (error) => {
-      console.error('[VideoEdit] Task creation failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create regeneration task');
+      handleError(error, { context: 'VideoEdit', toastTitle: 'Failed to create regeneration task' });
     },
   });
   

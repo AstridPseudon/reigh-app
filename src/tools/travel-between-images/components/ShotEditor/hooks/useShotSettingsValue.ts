@@ -1,0 +1,339 @@
+/**
+ * useShotSettingsValue - Builds the ShotSettingsContext value
+ *
+ * Extracts context value building from ShotEditor to reduce component size.
+ * Takes the various domain values and returns the assembled context value.
+ *
+ * @see Phase 3 of shot-settings-context-cleanup.md
+ */
+
+import { useMemo } from 'react';
+import { Shot, GenerationRow } from '@/types/shots';
+import {
+  ShotSettingsContextValue,
+  GenerationModeState,
+  GenerationHandlers,
+  StructureVideoHandlers,
+  JoinState,
+  DimensionState,
+} from '../ShotSettingsContext';
+import { ShotEditorState } from '../state/types';
+import { ShotEditorActions } from '../state/useShotEditorState';
+import { LoraManagerReturn } from './useLoraSync';
+import { LoraModel } from '@/shared/components/LoraSelectorModal';
+import type { UseStructureVideoReturn } from './useStructureVideo';
+import type { UseAudioReturn } from './useAudio';
+
+// Type for generation actions from useGenerationActions
+interface GenerationActionsReturn {
+  handleTimelineImageDrop: (files: File[], targetFrame: number) => Promise<void>;
+  handleTimelineGenerationDrop: (
+    generationId: string,
+    imageUrl: string,
+    thumbUrl: string | undefined,
+    targetFrame: number
+  ) => Promise<void>;
+  handleBatchImageDrop: (files: File[]) => Promise<void>;
+  handleBatchGenerationDrop: (
+    generationId: string,
+    imageUrl: string,
+    thumbUrl: string | undefined
+  ) => Promise<void>;
+  handleDeleteImageFromShot: (generationId: string) => Promise<void>;
+  handleBatchDeleteImages: (generationIds: string[]) => Promise<void>;
+  handleDuplicateImage: (generationId: string, currentFrame: number) => Promise<void>;
+}
+
+// Type for shot actions from useShotActions
+interface ShotActionsReturn {
+  handleShotChange: (shotId: string) => void;
+  handleAddToShot: (shotId: string, generationId: string, position?: number) => Promise<void>;
+  handleAddToShotWithoutPosition: (shotId: string, generationId: string) => Promise<boolean>;
+  handleCreateShot: (name: string) => Promise<string>;
+  handleNewShotFromSelection: (selectedIds: string[]) => Promise<string | void>;
+  openUnpositionedGenerationsPane: () => void;
+}
+
+export interface UseShotSettingsValueProps {
+  // Core identifiers
+  selectedShot: Shot;
+  selectedShotId: string;
+  projectId: string;
+  selectedProjectId: string;
+  effectiveAspectRatio: string | undefined;
+  projects: Array<{ id: string; aspectRatio?: string }>;
+
+  // UI state
+  state: ShotEditorState;
+  actions: ShotEditorActions;
+
+  // LoRA
+  loraManager: LoraManagerReturn;
+  availableLoras: LoraModel[];
+
+  // Images
+  allShotImages: GenerationRow[];
+  timelineImages: GenerationRow[];
+  contextImages: GenerationRow[];
+  videoOutputs: GenerationRow[];
+  simpleFilteredImages: GenerationRow[];
+
+  // Structure video hook return
+  structureVideo: UseStructureVideoReturn;
+  handleStructureVideoChangeWithModeSwitch: UseStructureVideoReturn['handleStructureVideoChange'];
+
+  // Structure video compound handlers
+  structureVideoHandlers: StructureVideoHandlers;
+
+  // Audio hook return
+  audio: UseAudioReturn;
+
+  // Generation actions
+  generationActions: GenerationActionsReturn;
+  handleImageReorder: (orderedShotGenerationIds: string[], draggedItemId?: string) => void;
+  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+
+  // Shot management
+  shots: Shot[] | undefined;
+  shotActions: ShotActionsReturn;
+
+  // Generation mode state
+  generationMode: GenerationModeState;
+
+  // Generation handlers
+  generationHandlers: GenerationHandlers;
+
+  // Join state
+  joinState: JoinState;
+
+  // Dimension settings
+  dimensions: DimensionState;
+
+  // Query client
+  queryClient: any;
+}
+
+/**
+ * Hook that builds the ShotSettingsContext value from various domain inputs.
+ * Memoizes the result to prevent unnecessary re-renders.
+ */
+export function useShotSettingsValue({
+  // Core
+  selectedShot,
+  selectedShotId,
+  projectId,
+  selectedProjectId,
+  effectiveAspectRatio,
+  projects,
+  // UI state
+  state,
+  actions,
+  // LoRA
+  loraManager,
+  availableLoras,
+  // Images
+  allShotImages,
+  timelineImages,
+  contextImages,
+  videoOutputs,
+  simpleFilteredImages,
+  // Structure video
+  structureVideo,
+  handleStructureVideoChangeWithModeSwitch,
+  structureVideoHandlers,
+  // Audio
+  audio,
+  // Generation actions
+  generationActions,
+  handleImageReorder,
+  handleImageUpload,
+  // Shot management
+  shots,
+  shotActions,
+  // Generation mode
+  generationMode,
+  // Generation handlers
+  generationHandlers,
+  // Join state
+  joinState,
+  // Dimension settings
+  dimensions,
+  // Query client
+  queryClient,
+}: UseShotSettingsValueProps): ShotSettingsContextValue {
+  // Build structure video domain for context
+  const structureVideoForContext = useMemo(
+    (): ShotSettingsContextValue['structureVideo'] => ({
+      // Multi-video array interface
+      structureVideos: structureVideo.structureVideos,
+      addStructureVideo: structureVideo.addStructureVideo,
+      updateStructureVideo: structureVideo.updateStructureVideo,
+      removeStructureVideo: structureVideo.removeStructureVideo,
+      clearAllStructureVideos: () => structureVideo.setStructureVideos([]),
+      setStructureVideos: structureVideo.setStructureVideos,
+      // Legacy interface
+      structureVideoConfig: structureVideo.structureVideoConfig,
+      setStructureVideoConfig: structureVideo.setStructureVideoConfig,
+      isLoading: structureVideo.isLoading,
+      // Legacy individual accessors
+      structureVideoPath: structureVideo.structureVideoPath,
+      structureVideoMetadata: structureVideo.structureVideoMetadata,
+      structureVideoTreatment: structureVideo.structureVideoTreatment,
+      structureVideoMotionStrength: structureVideo.structureVideoMotionStrength,
+      structureVideoType: structureVideo.structureVideoType,
+      structureVideoResourceId: null,
+      handleStructureVideoChange: handleStructureVideoChangeWithModeSwitch,
+    }),
+    [structureVideo, handleStructureVideoChangeWithModeSwitch]
+  );
+
+  // Build audio domain for context
+  const audioForContext = useMemo(
+    (): ShotSettingsContextValue['audio'] => ({
+      audioUrl: audio.audioUrl,
+      audioMetadata: audio.audioMetadata,
+      handleAudioChange: audio.handleAudioChange,
+      isLoading: audio.isLoading,
+    }),
+    [audio]
+  );
+
+  // Build image handlers domain for context
+  const imageHandlersForContext = useMemo(
+    (): ShotSettingsContextValue['imageHandlers'] => ({
+      onReorder: handleImageReorder,
+      onImageDrop: async (file: File, targetFrame: number) => {
+        await generationActions.handleTimelineImageDrop([file], targetFrame);
+      },
+      onGenerationDrop: async (generationId: string, targetFrame: number) => {
+        const gen = allShotImages.find(
+          img => img.id === generationId || img.generation_id === generationId
+        );
+        if (gen) {
+          await generationActions.handleTimelineGenerationDrop(
+            gen.generation_id || gen.id,
+            gen.imageUrl || gen.location || '',
+            gen.thumbUrl || gen.thumbnail_url,
+            targetFrame
+          );
+        }
+      },
+      onBatchFileDrop: async (files: File[]) => {
+        await generationActions.handleBatchImageDrop(files);
+      },
+      onBatchGenerationDrop: async (generationIds: string[]) => {
+        for (const id of generationIds) {
+          const gen = allShotImages.find(
+            img => img.id === id || img.generation_id === id
+          );
+          if (gen) {
+            await generationActions.handleBatchGenerationDrop(
+              gen.generation_id || gen.id,
+              gen.imageUrl || gen.location || '',
+              gen.thumbUrl || gen.thumbnail_url
+            );
+          }
+        }
+      },
+      onDelete: async (generation: GenerationRow) => {
+        await generationActions.handleDeleteImageFromShot(generation.id);
+      },
+      onBatchDelete: async (generations: GenerationRow[]) => {
+        await generationActions.handleBatchDeleteImages(generations.map(g => g.id));
+      },
+      onDuplicate: async (generation: GenerationRow) => {
+        await generationActions.handleDuplicateImage(
+          generation.id,
+          generation.timeline_frame ?? 0
+        );
+      },
+      onUpload: handleImageUpload,
+    }),
+    [generationActions, allShotImages, handleImageReorder, handleImageUpload]
+  );
+
+  // Build shot management domain for context
+  const shotManagementForContext = useMemo(
+    (): ShotSettingsContextValue['shotManagement'] => ({
+      allShots: shots || [],
+      onShotChange: shotActions.handleShotChange,
+      onAddToShot: shotActions.handleAddToShot,
+      onAddToShotWithoutPosition: shotActions.handleAddToShotWithoutPosition,
+      onCreateShot: shotActions.handleCreateShot,
+      onNewShotFromSelection: shotActions.handleNewShotFromSelection,
+      openUnpositionedGenerationsPane: shotActions.openUnpositionedGenerationsPane,
+    }),
+    [shots, shotActions]
+  );
+
+  // Build final context value
+  return useMemo(
+    (): ShotSettingsContextValue => ({
+      // Core
+      selectedShot,
+      selectedShotId,
+      projectId,
+      selectedProjectId,
+      effectiveAspectRatio,
+      projects,
+      // UI state
+      state,
+      actions,
+      // LoRA
+      loraManager,
+      availableLoras,
+      // Images
+      allShotImages,
+      timelineImages,
+      contextImages,
+      videoOutputs,
+      simpleFilteredImages,
+      // Structure video
+      structureVideo: structureVideoForContext,
+      structureVideoHandlers,
+      // Audio
+      audio: audioForContext,
+      // Image handlers
+      imageHandlers: imageHandlersForContext,
+      // Shot management
+      shotManagement: shotManagementForContext,
+      // Generation mode
+      generationMode,
+      // Generation handlers
+      generationHandlers,
+      // Join state
+      joinState,
+      // Dimension settings
+      dimensions,
+      // Query client
+      queryClient,
+    }),
+    [
+      selectedShot,
+      selectedShotId,
+      projectId,
+      selectedProjectId,
+      effectiveAspectRatio,
+      projects,
+      state,
+      actions,
+      loraManager,
+      availableLoras,
+      allShotImages,
+      timelineImages,
+      contextImages,
+      videoOutputs,
+      simpleFilteredImages,
+      structureVideoForContext,
+      structureVideoHandlers,
+      audioForContext,
+      imageHandlersForContext,
+      shotManagementForContext,
+      generationMode,
+      generationHandlers,
+      joinState,
+      dimensions,
+      queryClient,
+    ]
+  );
+}

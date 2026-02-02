@@ -57,6 +57,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   const [skipConfirmationNextTimeVisual, setSkipConfirmationNextTimeVisual] = useState(false);
   const [newShotState, setNewShotState] = useState<'idle' | 'loading' | 'success'>('idle');
   const [createdShotId, setCreatedShotId] = useState<string | null>(null);
+  const newShotResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // State to control when selection bar should be visible (with delay)
   const [showSelectionBar, setShowSelectionBar] = useState(false);
@@ -137,12 +138,21 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
     window.dispatchEvent(new CustomEvent('mobileSelectionActive', { detail: hasSelection }));
     // Notify parent component of selection change
     onSelectionChange?.(hasSelection);
-    
+
     // Cleanup: ensure pane controls are restored when component unmounts
     return () => {
       window.dispatchEvent(new CustomEvent('mobileSelectionActive', { detail: false }));
     };
   }, [mobileSelectedIds.length, onSelectionChange]);
+
+  // Cleanup newShotResetTimeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (newShotResetTimeoutRef.current) {
+        clearTimeout(newShotResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Reconcile optimistic state with server state when images prop changes
   React.useEffect(() => {
@@ -192,6 +202,11 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
     if (!onNewShotFromSelection || newShotState !== 'idle') return;
     setNewShotState('loading');
     setCreatedShotId(null);
+    // Clear any existing reset timeout
+    if (newShotResetTimeoutRef.current) {
+      clearTimeout(newShotResetTimeoutRef.current);
+      newShotResetTimeoutRef.current = null;
+    }
     try {
       const shotId = await onNewShotFromSelection(mobileSelectedIds);
       if (shotId) {
@@ -199,9 +214,10 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
       }
       setNewShotState('success');
       // Auto-reset after 5 seconds if user doesn't click
-      setTimeout(() => {
+      newShotResetTimeoutRef.current = setTimeout(() => {
         setNewShotState('idle');
         setCreatedShotId(null);
+        newShotResetTimeoutRef.current = null;
       }, 5000);
     } catch {
       setNewShotState('idle');

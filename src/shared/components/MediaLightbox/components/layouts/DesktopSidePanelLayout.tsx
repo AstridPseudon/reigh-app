@@ -3,13 +3,24 @@
  *
  * Used when viewing with task details, edit mode, or video trim mode on larger screens.
  * Features a 60/40 split with media on left and controls/panels on right.
+ *
+ * Uses context hooks for core/media/variants/navigation/edit state.
+ * Receives only layout-specific and deeply-nested props.
  */
 
 import React from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Trash2, Square, Diamond } from 'lucide-react';
-import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
 import type { SidePanelLayoutProps } from './types';
+
+// Context hooks
+import {
+  useLightboxCoreSafe,
+  useLightboxMediaSafe,
+  useLightboxVariantsSafe,
+  useLightboxNavigationSafe,
+  useLightboxEditSafe,
+} from '../../contexts/LightboxStateContext';
 
 // Sub-components
 import { VariantOverlayBadge } from './VariantOverlayBadge';
@@ -32,35 +43,27 @@ import VideoTrimModeDisplay from '../VideoTrimModeDisplay';
 import { WorkflowControlsBar } from '../WorkflowControlsBar';
 
 export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) => {
+  // ========================================
+  // CONTEXT STATE (no longer from props)
+  // ========================================
+  const core = useLightboxCoreSafe();
+  const mediaState = useLightboxMediaSafe();
+  const variantsState = useLightboxVariantsSafe();
+  const navigation = useLightboxNavigationSafe();
+  const editState = useLightboxEditSafe();
+
+  // Destructure context values
+  const { onClose, readOnly, isMobile, actualGenerationId, selectedProjectId } = core;
+  const { media, isVideo, effectiveMediaUrl, effectiveVideoUrl, imageDimensions, setImageDimensions, effectiveImageDimensions } = mediaState;
+  const { variants, activeVariant, primaryVariant, promoteSuccess, isPromoting, handlePromoteToGeneration, isMakingMainVariant, canMakeMainVariant, handleMakeMainVariant } = variantsState;
+  const { showNavigation, hasNext, hasPrevious, handleSlotNavNext, handleSlotNavPrev } = navigation;
+  const { isInpaintMode, isSpecialEditMode, editMode } = editState;
+
+  // ========================================
+  // PROPS (only layout-specific / deeply nested)
+  // ========================================
   const {
-    // Core
-    onClose,
-    readOnly,
-    selectedProjectId,
-    isMobile,
-    actualGenerationId,
-
-    // Media
-    media,
-    isVideo,
-    effectiveMediaUrl,
-    effectiveVideoUrl,
-    imageDimensions,
-    setImageDimensions,
-    effectiveImageDimensions,
-
-    // Variants
-    variants,
-    activeVariant,
-    primaryVariant,
-    promoteSuccess,
-    isPromoting,
-    handlePromoteToGeneration,
-    isMakingMainVariant,
-    canMakeMainVariant,
-    handleMakeMainVariant,
-
-    // Video edit
+    // Video edit (specialized)
     isVideoTrimModeActive,
     isVideoEditModeActive,
     trimVideoRef,
@@ -69,11 +72,8 @@ export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) =>
     setTrimCurrentTime,
     videoEditing,
 
-    // Edit mode
-    isInpaintMode,
+    // Canvas/annotation (deeply nested refs & handlers)
     isAnnotateMode,
-    isSpecialEditMode,
-    editMode,
     brushStrokes,
     currentStroke,
     isDrawing,
@@ -98,33 +98,18 @@ export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) =>
     isFlippedHorizontally,
     isSaving,
 
-    // Navigation
-    showNavigation,
-    hasNext,
-    hasPrevious,
-    handleSlotNavNext,
-    handleSlotNavPrev,
-
-    // Panel
+    // Panel state
     effectiveTasksPaneOpen,
     effectiveTasksPaneWidth,
 
-    // Button groups
+    // Composed prop objects
     buttonGroupProps,
-
-    // Workflow bar
     workflowBarProps,
-
-    // Floating tool controls
     floatingToolProps,
-
-    // Controls panel
     controlsPanelProps,
 
-    // Adjacent segment navigation
+    // Special navigation
     adjacentSegments,
-
-    // Segment slot mode (for constituent image navigation)
     segmentSlotMode,
   } = props;
 
@@ -305,28 +290,16 @@ export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) =>
         />
 
         {/* Floating Tool Controls - Tablet (landscape with sidebar) */}
+        {/* Uses ImageEditContext for edit state; only receives specialized reposition handlers */}
         {isSpecialEditMode && (
           <FloatingToolControls
             variant="tablet"
-            editMode={floatingToolProps.editMode}
-            onSetEditMode={floatingToolProps.setEditMode}
-            brushSize={floatingToolProps.brushSize}
-            isEraseMode={floatingToolProps.isEraseMode}
-            onSetBrushSize={floatingToolProps.setBrushSize}
-            onSetIsEraseMode={floatingToolProps.setIsEraseMode}
-            annotationMode={floatingToolProps.editMode === 'annotate' ? floatingToolProps.annotationMode : null}
-            onSetAnnotationMode={floatingToolProps.setAnnotationMode}
             repositionTransform={floatingToolProps.repositionTransform}
-            onRepositionScaleChange={floatingToolProps.setScale}
-            onRepositionRotationChange={floatingToolProps.setRotation}
-            onRepositionFlipH={floatingToolProps.toggleFlipH}
-            onRepositionFlipV={floatingToolProps.toggleFlipV}
-            onRepositionReset={floatingToolProps.resetTransform}
-            brushStrokes={floatingToolProps.brushStrokes}
-            onUndo={floatingToolProps.handleUndo}
-            onClearMask={floatingToolProps.handleClearMask}
-            panelPosition={floatingToolProps.inpaintPanelPosition}
-            onSetPanelPosition={floatingToolProps.setInpaintPanelPosition}
+            onRepositionScaleChange={floatingToolProps.onRepositionScaleChange}
+            onRepositionRotationChange={floatingToolProps.onRepositionRotationChange}
+            onRepositionFlipH={floatingToolProps.onRepositionFlipH}
+            onRepositionFlipV={floatingToolProps.onRepositionFlipV}
+            onRepositionReset={floatingToolProps.onRepositionReset}
           />
         )}
 

@@ -21,7 +21,8 @@ import { timeEnd } from '@/shared/lib/logger';
 import { handleError } from '@/shared/lib/errorHandler';
 
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import ShotEditor from '../components/ShotEditor';
+import { ShotSettingsEditor } from '../components/ShotEditor';
+import { VideoTravelSettingsProvider } from '../providers';
 import { useAllShotGenerations, usePrimeShotGenerationsCache } from '@/shared/hooks/useShotGenerations';
 import { useProjectVideoCountsCache } from '@/shared/hooks/useProjectVideoCountsCache';
 import { useProjectGenerationModesCache } from '@/shared/hooks/useProjectGenerationModesCache';
@@ -1716,78 +1717,49 @@ const VideoTravelToolPage: React.FC = () => {
                   shotName: shotToEdit.name,
                   timestamp: Date.now()
                 })}
-              <ShotEditor
+              <VideoTravelSettingsProvider
+                projectId={selectedProjectId}
+                shotId={shotToEdit.id}
+                selectedShot={shotToEdit}
+                availableLoras={availableLoras}
+                updateShotMode={updateShotMode}
+              >
+              <ShotSettingsEditor
+                // Core identifiers
                 selectedShotId={shotToEdit.id}
                 projectId={selectedProjectId}
                 optimisticShotData={isNewlyCreatedShot ? shotFromState : undefined}
-              videoControlMode={videoControlMode}
-              batchVideoPrompt={batchVideoPrompt}
-              batchVideoFrames={batchVideoFrames}
-              onShotImagesUpdate={handleShotImagesUpdate}
-              onBack={handleBackToShotList}
-              onVideoControlModeChange={handleVideoControlModeChange}
-              onPairConfigChange={handlePairConfigChange}
-              onBatchVideoPromptChange={handleBatchVideoPromptChange}
-              negativePrompt={negativePrompt}
-              onNegativePromptChange={handleNegativePromptChange}
-              textBeforePrompts={textBeforePrompts}
-              onTextBeforePromptsChange={handleTextBeforePromptsChange}
-              textAfterPrompts={textAfterPrompts}
-              onTextAfterPromptsChange={handleTextAfterPromptsChange}
-              onBatchVideoFramesChange={handleBatchVideoFramesChange}
-              batchVideoSteps={batchVideoSteps}
-              onBatchVideoStepsChange={handleBatchVideoStepsChange}
-              dimensionSource={dimensionSource}
-              onDimensionSourceChange={handleDimensionSourceChange}
-              customWidth={customWidth}
-              onCustomWidthChange={handleCustomWidthChange}
-              customHeight={customHeight}
-              onCustomHeightChange={handleCustomHeightChange}
-              steerableMotionSettings={steerableMotionSettings}
-              onSteerableMotionSettingsChange={handleSteerableMotionSettingsChange}
-              onGenerateAllSegments={noOpCallback}
-              // LoRAs now synced with all other settings
-              availableLoras={availableLoras}
-              selectedLoras={selectedLoras}
-              onSelectedLorasChange={handleSelectedLorasChange}
-              enhancePrompt={enhancePrompt}
-              onEnhancePromptChange={handleEnhancePromptChange}
-              turboMode={turboMode}
-              onTurboModeChange={handleTurboModeChange}
-              smoothContinuations={smoothContinuations}
-              onSmoothContinuationsChange={handleSmoothContinuationsChange}
-              amountOfMotion={amountOfMotion}
-              onAmountOfMotionChange={handleAmountOfMotionChange}
-              motionMode={motionMode}
-              onMotionModeChange={handleMotionModeChange}
-              generationTypeMode={generationTypeMode}
-              onGenerationTypeModeChange={handleGenerationTypeModeChange}
-              phaseConfig={phaseConfig}
-              onPhaseConfigChange={handlePhaseConfigChange}
-              selectedPhasePresetId={selectedPhasePresetId}
-              onPhasePresetSelect={handlePhasePresetSelect}
-              onPhasePresetRemove={handlePhasePresetRemove}
-              onBlurSave={handleBlurSave}
-              onRestoreDefaults={handleRestoreDefaults}
-              generationMode={generationMode === 'by-pair' ? 'batch' : generationMode}
-              onGenerationModeChange={handleGenerationModeChange}
-
-              onPreviousShot={handlePreviousShot}
-              onNextShot={handleNextShot}
-              onPreviousShotNoScroll={handlePreviousShotNoScroll}
-              onNextShotNoScroll={handleNextShotNoScroll}
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
-              onUpdateShotName={handleUpdateShotName}
-              settingsLoading={shotSettings.status !== 'ready' || shotSettings.shotId !== currentShotId}
-              getShotVideoCount={getShotVideoCount}
-              getFinalVideoCount={getFinalVideoCount}
-              invalidateVideoCountsCache={invalidateOnVideoChanges}
-              onDragStateChange={setIsDraggingInTimeline}
-              headerContainerRef={headerCallbackRef}
-              nameClickRef={nameClickRef}
-              isSticky={stickyHeader.isSticky}
-            />
+                // Callbacks
+                onShotImagesUpdate={handleShotImagesUpdate}
+                onBack={handleBackToShotList}
+                onPairConfigChange={handlePairConfigChange}
+                onGenerateAllSegments={noOpCallback}
+                // Dimension settings (still passed as props - not in context yet)
+                dimensionSource={dimensionSource}
+                onDimensionSourceChange={handleDimensionSourceChange}
+                customWidth={customWidth}
+                onCustomWidthChange={handleCustomWidthChange}
+                customHeight={customHeight}
+                onCustomHeightChange={handleCustomHeightChange}
+                // Navigation
+                onPreviousShot={handlePreviousShot}
+                onNextShot={handleNextShot}
+                onPreviousShotNoScroll={handlePreviousShotNoScroll}
+                onNextShotNoScroll={handleNextShotNoScroll}
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                onUpdateShotName={handleUpdateShotName}
+                // Loading and cache
+                getShotVideoCount={getShotVideoCount}
+                getFinalVideoCount={getFinalVideoCount}
+                invalidateVideoCountsCache={invalidateOnVideoChanges}
+                // UI coordination
+                onDragStateChange={setIsDraggingInTimeline}
+                headerContainerRef={headerCallbackRef}
+                nameClickRef={nameClickRef}
+                isSticky={stickyHeader.isSticky}
+              />
+              </VideoTravelSettingsProvider>
               </>
             ) : (isNewlyCreatedShot || hashLoadingGrace) ? (
               // Show loading state for newly created shots or during hash navigation grace period

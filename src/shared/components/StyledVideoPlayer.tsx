@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn, formatTime, getDisplayUrl } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { getDisplayUrl } from '@/shared/lib/utils';
 
 interface StyledVideoPlayerProps {
   src: string;
@@ -53,15 +52,6 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
   const [isHovering, setIsHovering] = useState(false);
   // Track video loading state - show thumbnail until video can play
   const [isVideoReady, setIsVideoReady] = useState(false);
-
-  const formatTime = (seconds: number): string => {
-    if (!Number.isFinite(seconds) || seconds < 0) {
-      return '0:00';
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
