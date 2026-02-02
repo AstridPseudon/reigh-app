@@ -1027,7 +1027,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                   onUseDefault={() => onChange({ textBeforePrompts: undefined })}
                   onSetAsDefault={onSaveFieldAsDefault ? (displayValue) => handleSaveFieldAsDefault('textBeforePrompts', displayValue) : undefined}
                   isSavingDefault={savingField === 'textBeforePrompts'}
-                  className="min-h-0 h-8 text-xs resize-none py-1.5"
+                  className="min-h-0 h-8 text-xs resize-none py-1.5 overflow-hidden"
                   placeholder="Text to prepend..."
                 />
                 <DefaultableTextarea
@@ -1040,7 +1040,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                   onUseDefault={() => onChange({ textAfterPrompts: undefined })}
                   onSetAsDefault={onSaveFieldAsDefault ? (displayValue) => handleSaveFieldAsDefault('textAfterPrompts', displayValue) : undefined}
                   isSavingDefault={savingField === 'textAfterPrompts'}
-                  className="min-h-0 h-8 text-xs resize-none py-1.5"
+                  className="min-h-0 h-8 text-xs resize-none py-1.5 overflow-hidden"
                   placeholder="Text to append..."
                 />
               </div>

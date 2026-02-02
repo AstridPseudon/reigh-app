@@ -15,6 +15,7 @@ import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
 import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
 import { buildTaskParams } from '@/shared/components/segmentSettingsUtils';
 import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individualTravelSegment';
+import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
@@ -126,6 +127,26 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     effectiveEnhanceEnabledRef.current = enabled; // Update ref immediately for submit handler
     saveEnhancePromptEnabled(enabled); // Persist to database
   }, [saveEnhancePromptEnabled]);
+
+  // Build structure video config from props (for task creation)
+  // This combines the shot-level structure video with segment-level setting overrides
+  const structureVideoForTask = useMemo((): StructureVideoConfig | null => {
+    const { structureVideoUrl, structureVideoType, structureVideoFrameRange, structureVideoDefaults } = segmentSlotMode;
+    if (!structureVideoUrl || !structureVideoType || !structureVideoFrameRange) {
+      return null;
+    }
+
+    const effectiveSettings = getSettingsForTaskCreation();
+    return {
+      path: structureVideoUrl,
+      start_frame: structureVideoFrameRange.segmentStart,
+      end_frame: structureVideoFrameRange.segmentEnd,
+      structure_type: structureVideoType,
+      treatment: effectiveSettings.structureTreatment ?? structureVideoDefaults?.treatment ?? 'adjust',
+      motion_strength: effectiveSettings.structureMotionStrength ?? structureVideoDefaults?.motionStrength ?? 1.2,
+      uni3c_end_percent: effectiveSettings.structureUni3cEndPercent ?? structureVideoDefaults?.uni3cEndPercent ?? 0.1,
+    };
+  }, [segmentSlotMode, getSettingsForTaskCreation]);
 
   // Handle frame count change
   const handleFrameCountChange = useCallback((frameCount: number) => {
@@ -312,6 +333,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
               pairShotGenerationId,
               projectResolution: segmentSlotMode.projectResolution,
               enhancedPrompt: enhancedPromptWithPrefixes,
+              structureVideo: structureVideoForTask,
             }
           );
 
@@ -366,6 +388,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
         endImageGenerationId: segmentSlotMode.pairData.endImage?.generationId,
         pairShotGenerationId,
         projectResolution: segmentSlotMode.projectResolution,
+        structureVideo: structureVideoForTask,
       });
 
       // Create task
@@ -392,6 +415,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     removeIncomingTask,
     taskStatusCounts,
     queryClient,
+    structureVideoForTask,
   ]);
 
   return (

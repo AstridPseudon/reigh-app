@@ -16,7 +16,7 @@ import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individual
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
-import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { StructureVideoConfigWithMetadata, StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
 
 export interface SegmentRegenerateFormProps {
   /** Generation params from the current video */
@@ -253,6 +253,25 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     }
   }, [pairShotGenerationId, onFrameCountChange]);
 
+  // Build structure video config from props (for task creation)
+  // This combines the shot-level structure video with segment-level setting overrides
+  const structureVideoForTask = useMemo((): StructureVideoConfig | null => {
+    if (!structureVideoUrl || !structureVideoType || !structureVideoFrameRange) {
+      return null;
+    }
+
+    const effectiveSettings = getSettingsForTaskCreation();
+    return {
+      path: structureVideoUrl,
+      start_frame: structureVideoFrameRange.segmentStart,
+      end_frame: structureVideoFrameRange.segmentEnd,
+      structure_type: structureVideoType,
+      treatment: effectiveSettings.structureTreatment ?? structureVideoDefaults?.treatment ?? 'adjust',
+      motion_strength: effectiveSettings.structureMotionStrength ?? structureVideoDefaults?.motionStrength ?? 1.2,
+      uni3c_end_percent: effectiveSettings.structureUni3cEndPercent ?? structureVideoDefaults?.uni3cEndPercent ?? 0.1,
+    };
+  }, [structureVideoUrl, structureVideoType, structureVideoFrameRange, structureVideoDefaults, getSettingsForTaskCreation]);
+
   // Effect to load variant settings when triggered from outside (e.g., VariantSelector hover button)
   useEffect(() => {
     if (!variantParamsToLoad) return;
@@ -441,6 +460,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
               pairShotGenerationId,
               projectResolution,
               enhancedPrompt: enhancedPromptWithPrefixes,
+              structureVideo: structureVideoForTask,
             }
           );
 
@@ -492,6 +512,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
         endImageGenerationId,
         pairShotGenerationId,
         projectResolution,
+        structureVideo: structureVideoForTask,
       });
 
       // Create task
@@ -528,6 +549,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     removeIncomingTask,
     taskStatusCounts,
     queryClient,
+    structureVideoForTask,
   ]);
 
   return (

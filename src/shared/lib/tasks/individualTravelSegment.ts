@@ -154,10 +154,15 @@ function buildIndividualTravelSegmentParams(
 
   // Determine model settings FIRST (needed for basic mode phase config)
   // Get structure_guidance from new unified format (preferred)
+  // Also check params.structure_videos (passed directly from buildTaskParams)
   const structureGuidance = orig.structure_guidance || orchDetails.structure_guidance;
 
-  // Check for structure videos
+  // Check for structure videos - look at multiple sources:
+  // 1. params.structure_videos - passed directly from UI (new flow via buildTaskParams)
+  // 2. structureGuidance.videos - unified format
+  // 3. orig/orchDetails.structure_videos - legacy from originalParams
   const hasStructureVideos = !!(
+    (params.structure_videos as unknown[] | undefined)?.length > 0 ||
     (structureGuidance?.videos as unknown[] | undefined)?.length > 0 ||
     orchDetails.structure_videos?.length > 0 ||
     orig.structure_videos?.length > 0 ||
@@ -170,7 +175,9 @@ function buildIndividualTravelSegmentParams(
   if (structureGuidance?.target === 'uni3c') {
     isUni3c = hasStructureVideos;
   } else if (hasStructureVideos && !structureGuidance) {
-    const structureType = orig.structure_type || orchDetails.structure_type ||
+    // Check params.structure_videos first (from UI), then legacy sources
+    const structureType = (params.structure_videos as any)?.[0]?.structure_type ||
+      orig.structure_type || orchDetails.structure_type ||
       orchDetails.structure_videos?.[0]?.structure_type || orig.structure_videos?.[0]?.structure_type ||
       orchDetails.structure_video_type || orig.structure_video_type;
     isUni3c = structureType === 'uni3c';
@@ -277,31 +284,74 @@ function buildIndividualTravelSegmentParams(
   const frameOverlapExpanded = orchDetails.frame_overlap_expanded;
   
   // UNIFIED STRUCTURE GUIDANCE FORMAT: Ensure we use the new format
-  // If we have structure_guidance (new unified format), use it
-  // If we have separate structure_videos (legacy), build unified format
+  // Priority:
+  // 1. params.structure_videos - passed directly from UI via buildTaskParams (new flow)
+  // 2. structure_guidance (new unified format from originalParams)
+  // 3. legacy structure_videos from originalParams/orchDetails
   let finalStructureGuidance = structureGuidance;
-  
+
+  // Check for structure_videos passed directly from UI (highest priority)
+  const directStructureVideos = params.structure_videos as any[] | undefined;
+  if (!finalStructureGuidance && directStructureVideos?.length > 0) {
+    // Build unified format from UI-provided structure_videos
+    const firstVideo = directStructureVideos[0];
+    const isUni3cDirect = firstVideo.structure_type === 'uni3c';
+
+    const cleanedVideos = directStructureVideos.map((v: Record<string, unknown>) => ({
+      path: v.path,
+      start_frame: v.start_frame ?? 0,
+      end_frame: v.end_frame ?? null,
+      treatment: v.treatment ?? 'adjust',
+    }));
+
+    finalStructureGuidance = {
+      target: isUni3cDirect ? 'uni3c' : 'vace',
+      videos: cleanedVideos,
+      strength: firstVideo.motion_strength ?? 1.0,
+    } as Record<string, unknown>;
+
+    if (isUni3cDirect) {
+      finalStructureGuidance.step_window = [
+        firstVideo.uni3c_start_percent ?? 0,
+        firstVideo.uni3c_end_percent ?? 0.1,
+      ];
+      finalStructureGuidance.frame_policy = 'fit';
+      finalStructureGuidance.zero_empty_frames = true;
+    } else {
+      const preprocessingMap: Record<string, string> = {
+        'flow': 'flow', 'canny': 'canny', 'depth': 'depth', 'raw': 'none',
+      };
+      finalStructureGuidance.preprocessing = preprocessingMap[firstVideo.structure_type ?? 'flow'] ?? 'flow';
+    }
+
+    console.log('[IndividualTravelSegment] Built structure_guidance from UI params.structure_videos:', {
+      target: finalStructureGuidance.target,
+      videosCount: cleanedVideos.length,
+      firstVideoPath: firstVideo.path?.substring(0, 50),
+    });
+  }
+
   if (!finalStructureGuidance) {
-    // Check for legacy separate structure_videos array
+    // Check for legacy separate structure_videos array from originalParams
     const legacyStructureVideos = orchDetails.structure_videos ?? orig.structure_videos;
     if (legacyStructureVideos?.length > 0) {
       // Build unified format from legacy structure_videos
       const firstVideo = legacyStructureVideos[0];
       const isUni3cLegacy = firstVideo.structure_type === 'uni3c';
-      
+
       const cleanedVideos = legacyStructureVideos.map((v: Record<string, unknown>) => ({
         path: v.path,
         start_frame: v.start_frame ?? 0,
         end_frame: v.end_frame ?? null,
         treatment: v.treatment ?? 'adjust',
       }));
-      
+
       finalStructureGuidance = {
         target: isUni3cLegacy ? 'uni3c' : 'vace',
         videos: cleanedVideos,
         strength: firstVideo.motion_strength ?? 1.0,
       } as Record<string, unknown>;
-      
+
       if (isUni3cLegacy) {
         finalStructureGuidance.step_window = [
           firstVideo.uni3c_start_percent ?? 0,
@@ -315,7 +365,7 @@ function buildIndividualTravelSegmentParams(
         };
         finalStructureGuidance.preprocessing = preprocessingMap[firstVideo.structure_type ?? 'flow'] ?? 'flow';
       }
-      
+
       console.log('[IndividualTravelSegment] Converted legacy structure_videos to unified format:', {
         target: finalStructureGuidance.target,
         videosCount: cleanedVideos.length,

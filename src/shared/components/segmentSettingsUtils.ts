@@ -19,6 +19,7 @@
 import { PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '@/tools/travel-between-images/settings';
 import type { ActiveLora } from '@/shared/hooks/useLoraManager';
 import { readSegmentOverrides, writeSegmentOverrides, type SegmentOverrides, type LoraConfig } from '@/shared/utils/settingsMigration';
+import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
 
 // =============================================================================
 // BUILT-IN PRESETS
@@ -494,8 +495,19 @@ export function buildTaskParams(
     projectResolution?: string;
     // Optional enhanced prompt (AI-enhanced version, kept separate from base_prompt)
     enhancedPrompt?: string;
+    // Structure video config for this segment (from shot timeline data)
+    structureVideo?: StructureVideoConfig | null;
   }
 ): Record<string, any> {
+  // Build structure_videos array if we have a structure video for this segment
+  const structureVideos = context.structureVideo ? [context.structureVideo] : undefined;
+
+  console.log('[buildTaskParams] Building task params:', {
+    segmentIndex: context.segmentIndex,
+    hasStructureVideo: !!context.structureVideo,
+    structureVideoPath: context.structureVideo?.path?.substring(0, 50),
+  });
+
   return {
     project_id: context.projectId,
     shot_id: context.shotId,
@@ -523,6 +535,8 @@ export function buildTaskParams(
     make_primary_variant: settings.makePrimaryVariant,
     // Resolution
     ...(context.projectResolution && { parsed_resolution_wh: context.projectResolution }),
+    // Structure video (from shot timeline data)
+    ...(structureVideos && { structure_videos: structureVideos }),
   };
 }
 

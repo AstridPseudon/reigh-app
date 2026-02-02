@@ -10,6 +10,7 @@ import { useSegmentSettingsForm } from "@/shared/hooks/useSegmentSettingsForm";
 import { SegmentSettingsForm } from "@/shared/components/SegmentSettingsForm";
 import { buildTaskParams, buildMetadataUpdate } from "@/shared/components/segmentSettingsUtils";
 import { createIndividualTravelSegmentTask } from "@/shared/lib/tasks/individualTravelSegment";
+import type { StructureVideoConfig } from "@/shared/lib/tasks/travelBetweenImages";
 import { useIncomingTasks } from "@/shared/contexts/IncomingTasksContext";
 import { useTaskStatusCounts } from "@/shared/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
@@ -158,6 +159,25 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
   const effectiveEnhanceEnabledRef = useRef(effectiveEnhanceEnabled);
   // Keep in sync during normal renders
   effectiveEnhanceEnabledRef.current = effectiveEnhanceEnabled;
+
+  // Build structure video config from props (for task creation)
+  // This combines the shot-level structure video with segment-level setting overrides
+  const structureVideoForTask = useMemo((): StructureVideoConfig | null => {
+    if (!structureVideoUrl || !structureVideoType || !structureVideoFrameRange) {
+      return null;
+    }
+
+    const effectiveSettings = settings;
+    return {
+      path: structureVideoUrl,
+      start_frame: structureVideoFrameRange.segmentStart,
+      end_frame: structureVideoFrameRange.segmentEnd,
+      structure_type: structureVideoType,
+      treatment: effectiveSettings.structureTreatment ?? structureVideoDefaults?.treatment ?? 'adjust',
+      motion_strength: effectiveSettings.structureMotionStrength ?? structureVideoDefaults?.motionStrength ?? 1.2,
+      uni3c_end_percent: effectiveSettings.structureUni3cEndPercent ?? structureVideoDefaults?.uni3cEndPercent ?? 0.1,
+    };
+  }, [structureVideoUrl, structureVideoType, structureVideoFrameRange, structureVideoDefaults, settings]);
 
   // Handle enhance toggle changes - persist to database AND update ref synchronously
   const handleEnhancePromptChange = useCallback((enabled: boolean) => {
@@ -390,6 +410,7 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
               pairShotGenerationId,
               projectResolution,
               enhancedPrompt: enhancedPromptWithPrefixes,
+              structureVideo: structureVideoForTask,
             }
           );
 
@@ -449,6 +470,7 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
         endImageUrl,
         pairShotGenerationId,
         projectResolution,
+        structureVideo: structureVideoForTask,
       });
 
       // Create task
@@ -486,6 +508,7 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
     removeIncomingTask,
     taskStatusCounts,
     queryClient,
+    structureVideoForTask,
   ]);
 
   if (!pairData) return null;
