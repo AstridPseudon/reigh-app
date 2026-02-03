@@ -196,15 +196,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     lastImageIdPassed: lastImageId?.substring(0, 8),
   });
 
-  // [StripLayout] Track hook loading state and slot count transitions
-  console.log('[StripLayout] 🔄 HOOK STATE:', {
-    isLoading,
-    segmentSlotsFromHook: segmentSlots.length,
-    pairInfoFromProps: pairInfo.length,
-    expectedSlotCount: pairInfo.length + (trailingSegmentMode ? 1 : 0),
-    mismatch: segmentSlots.length !== (pairInfo.length + (trailingSegmentMode ? 1 : 0)),
-  });
-
   // Get the active segment's video URL (must be after segmentSlots is defined)
   const activeSegmentSlot = activeScrubbingIndex !== null ? segmentSlots[activeScrubbingIndex] : null;
   const activeSegmentVideoUrl = activeSegmentSlot?.type === 'child' ? activeSegmentSlot.child.location : null;
@@ -491,15 +482,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   // 3. If trailingSegmentMode is passed (user configured trailing), add placeholder
   // 4. Otherwise, no trailing slot (show "+" button)
   const displaySlots = useMemo(() => {
-    // [StripLayout] Log inputs to displaySlots calculation
-    console.log('[StripLayout] 📥 displaySlots inputs:', {
-      segmentSlotsCount: segmentSlots.length,
-      pairInfoCount: pairInfo.length,
-      trailingSegmentMode: trailingSegmentMode ? {
-        imageFrame: trailingSegmentMode.imageFrame,
-        endFrame: trailingSegmentMode.endFrame,
-      } : null,
-    });
     let baseSlots: typeof segmentSlots = [];
 
     // If we have actual segment slots, use them as base
@@ -579,10 +561,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
 
     // No trailing configured, no existing video - return filtered base slots only
     // (The "+" button will show for adding trailing)
-    console.log('[StripLayout] 📤 displaySlots OUTPUT:', {
-      count: filteredBaseSlots.length,
-      types: filteredBaseSlots.map(s => s.type),
-    });
     return filteredBaseSlots;
   }, [segmentSlots, pairInfo, trailingSegmentMode]);
 
@@ -664,17 +642,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   // Calculate segment positions based on pair info
   // Uses same coordinate system as timeline for alignment
   const segmentPositions = useMemo(() => {
-    // [StripLayout] Log coordinate system inputs
-    console.log('[StripLayout] 📐 segmentPositions inputs:', {
-      fullMin,
-      fullMax,
-      fullRange,
-      containerWidth,
-      pairInfoCount: pairInfo.length,
-      trailingEndFrame: trailingSegmentMode?.endFrame,
-      trailingExtendsBeyondFullMax: trailingSegmentMode ? trailingSegmentMode.endFrame > fullMax : false,
-    });
-
     if (fullRange <= 0 || containerWidth <= 0) return [];
 
     const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
@@ -776,13 +743,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   if (pairInfo.length === 0 && !trailingSegmentMode) {
     return null;
   }
-
-  // [StripLayout] Final render summary
-  console.log('[StripLayout] 🎬 RENDER:', {
-    displaySlotsCount: displaySlots.length,
-    segmentPositionsCount: segmentPositions.length,
-    willRenderSlots: displaySlots.length > 0 && segmentPositions.length > 0,
-  });
 
   return (
     <div className="w-full relative" ref={stripContainerRef}>

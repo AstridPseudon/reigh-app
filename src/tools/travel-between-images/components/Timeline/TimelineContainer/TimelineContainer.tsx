@@ -28,6 +28,7 @@ import {
 
 // Orchestrator hook
 import { useTimelineOrchestrator } from '../hooks/useTimelineOrchestrator';
+import { findTrailingVideoInfo } from '../utils/timeline-utils';
 
 // Types
 import type { TimelineContainerProps } from './types';
@@ -87,46 +88,23 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onNewShotFromSelection,
   onShotChange,
 }) => {
-  // State for trailing video URL (for extract final frame feature)
-  // This is set by SegmentOutputStrip when it detects an existing trailing video
-  const [trailingVideoUrl, setTrailingVideoUrl] = React.useState<string | null>(null);
-
-  // Compute hasExistingTrailingVideo from videoOutputs SYNCHRONOUSLY to avoid layout shift
-  // A trailing video is one where pair_shot_generation_id matches the last image's shot_generation_id
-  const hasExistingTrailingVideo = React.useMemo(() => {
-    if (!videoOutputs || videoOutputs.length === 0) return false;
-    if (images.length === 0) return false;
+  // Compute trailing video info from videoOutputs SYNCHRONOUSLY to avoid layout shift
+  // This replaces the async callback approach that caused fullMax to expand after render
+  const { hasTrailing: hasExistingTrailingVideo, videoUrl: computedTrailingVideoUrl } = React.useMemo(() => {
+    if (!videoOutputs || videoOutputs.length === 0 || images.length === 0) {
+      return { hasTrailing: false, videoUrl: null };
+    }
 
     // Find the last image's shot_generation_id from framePositions
     const sortedEntries = [...framePositions.entries()].sort((a, b) => a[1] - b[1]);
-    const lastImageShotGenId = sortedEntries[sortedEntries.length - 1]?.[0];
-    if (!lastImageShotGenId) return false;
+    const lastImageShotGenId = sortedEntries[sortedEntries.length - 1]?.[0] || null;
 
-    // Check if any video output has this as its pair_shot_generation_id
-    const hasTrailing = videoOutputs.some(gen => {
-      // Must be a video with a location (completed)
-      if (!gen.type?.includes('video') || !gen.location) return false;
-      // Check pair_shot_generation_id column or params
-      const pairId = gen.pair_shot_generation_id ||
-        (gen.params as Record<string, unknown> | undefined)?.pair_shot_generation_id ||
-        ((gen.params as Record<string, unknown> | undefined)?.individual_segment_params as Record<string, unknown> | undefined)?.pair_shot_generation_id;
-      return pairId === lastImageShotGenId;
-    });
-
-    console.log('[StripLayout] 🎯 hasExistingTrailingVideo computed:', {
-      lastImageShotGenId: lastImageShotGenId?.substring(0, 8),
-      videoOutputsCount: videoOutputs.length,
-      hasTrailing,
-    });
-
-    return hasTrailing;
+    return findTrailingVideoInfo(videoOutputs, lastImageShotGenId);
   }, [videoOutputs, framePositions, images.length]);
 
-  // [TrailingDebug] Log state at render time
-  console.log('[TrailingDebug] 🎬 TimelineContainer RENDER:', {
-    trailingEndFrame,
-    hasExistingTrailingVideo,
-  });
+  // Use computed URL, with callback as fallback for edge cases
+  const [callbackTrailingVideoUrl, setTrailingVideoUrl] = React.useState<string | null>(null);
+  const trailingVideoUrl = computedTrailingVideoUrl || callbackTrailingVideoUrl;
 
   // Use orchestrator hook for all state, effects, and handlers
   const {

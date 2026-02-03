@@ -223,15 +223,6 @@ export function useTimelineOrchestrator({
     return trailingEndFrame ?? (Math.max(...Array.from(framePositions.values()), 0) + trailingDefaultOffset);
   })();
 
-  // [StripLayout] Log trailing dimension calculation inputs
-  console.log('[StripLayout] 🔧 trailingEffectiveEnd calculation:', {
-    isMultiImage,
-    trailingEndFrame,
-    hasExistingTrailingVideo,
-    trailingEffectiveEnd,
-    willIncludeTrailingInDimensions: trailingEffectiveEnd !== null,
-  });
-
   const rawDimensions = getTimelineDimensions(
     framePositions,
     [
@@ -241,14 +232,6 @@ export function useTimelineOrchestrator({
       trailingEffectiveEnd
     ]
   );
-
-  // [StripLayout] Log raw dimensions output
-  console.log('[StripLayout] 📏 rawDimensions:', {
-    fullMin: rawDimensions.fullMin,
-    fullMax: rawDimensions.fullMax,
-    fullRange: rawDimensions.fullRange,
-    includedTrailing: trailingEffectiveEnd !== null,
-  });
 
   const containerWidth = containerRef.current?.clientWidth || 1000;
   const containerRect = containerRef.current?.getBoundingClientRect() || null;
