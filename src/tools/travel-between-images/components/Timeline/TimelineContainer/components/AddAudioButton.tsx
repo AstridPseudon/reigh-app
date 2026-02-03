@@ -1,4 +1,5 @@
 import React from 'react';
+import { uploadVideoToStorage } from '@/shared/lib/videoUploader';
 
 export interface AddAudioButtonProps {
   projectId?: string;
@@ -32,7 +33,6 @@ export const AddAudioButton: React.FC<AddAudioButtonProps> = ({
               audio.addEventListener('loadedmetadata', () => resolve());
               audio.addEventListener('error', () => reject(new Error('Failed to load audio')));
             });
-            const { uploadVideoToStorage } = await import('@/shared/lib/videoUploader');
             const uploadedUrl = await uploadVideoToStorage(file, projectId!, shotId);
             URL.revokeObjectURL(tempUrl);
             onAudioChange(uploadedUrl, { duration: audio.duration, name: file.name });

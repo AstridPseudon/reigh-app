@@ -54,7 +54,7 @@ The `task_types` table also carries `category`, `base_cost_per_second`, and `cos
 │  UI → Task Helper → createTask() → create-task EF               │
 │       │  Validates params, builds payload    │  Auth + INSERT    │
 │       │                                      ▼                   │
-│       │                          tasks row (status='Pending')    │
+│       │                          tasks row (status='Queued')    │
 │       │                                      │                   │
 │       ▼                                      ▼                   │
 │                      DB Trigger: on_task_created                 │
@@ -66,7 +66,7 @@ The `task_types` table also carries `category`, `base_cost_per_second`, and `cos
 │              TASK EXECUTION (task_worker_lifecycle.md)            │
 ├──────────────────────────────────────────────────────────────────┤
 │  Worker polls for tasks matching its run_type                    │
-│       → Claims task (status → 'Processing')                      │
+│       → Claims task (status → 'In Progress')                      │
 │       → Executes (GPU inference / API call)                      │
 │       → Calls complete-task EF                                   │
 │            → status → 'Complete' or 'Failed'                     │

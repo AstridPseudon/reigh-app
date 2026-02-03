@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { ArrowDown, Trash2, Loader2, FolderPlus, ExternalLink } from 'lucide-react';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -263,7 +264,6 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
           totalImages: currentImages.length,
           missingIds: missingCount
         });
-        const { toast } = await import('sonner');
         const message = currentImages.length > 500 
           ? `Loading metadata for ${currentImages.length} images... this may take a moment.`
           : 'Loading image metadata... please wait a moment and try again.';
@@ -328,12 +328,10 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
     
     if (validIds.length < idsToDelete.length) {
       console.warn('[MobileBatchDelete] ⚠️  Some images missing shotImageEntryId (Phase 2 incomplete). Skipping those.');
-      const { toast } = await import('sonner');
       toast.warning(`Could only delete ${validIds.length} of ${idsToDelete.length} images. Some are still loading metadata.`);
     }
-    
+
     if (validIds.length === 0) {
-      const { toast } = await import('sonner');
       const message = currentImages.length > 500 
         ? `Loading metadata for ${currentImages.length} images... please wait.`
         : 'Unable to delete images. Metadata still loading, please wait a moment and try again.';

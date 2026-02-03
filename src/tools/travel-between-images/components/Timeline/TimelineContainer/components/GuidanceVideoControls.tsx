@@ -6,7 +6,7 @@ import { useCreateResource, StructureVideoMetadata } from '@/shared/hooks/useRes
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { calculateNewVideoPlacement } from '../../utils/timeline-utils';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
-import type { VideoMetadata } from '@/shared/lib/videoUploader';
+import { extractVideoMetadata, uploadVideoToStorage, type VideoMetadata } from '@/shared/lib/videoUploader';
 
 export interface GuidanceVideoControlsProps {
   shotId: string;
@@ -59,7 +59,6 @@ export const GuidanceVideoControls: React.FC<GuidanceVideoControlsProps> = ({
     if (!file) return;
     setIsUploadingStructureVideo(true);
     try {
-      const { extractVideoMetadata, uploadVideoToStorage } = await import('@/shared/lib/videoUploader');
       const metadata = await extractVideoMetadata(file);
       const videoUrl = await uploadVideoToStorage(file, projectId!, shotId);
 

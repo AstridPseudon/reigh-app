@@ -1,12 +1,12 @@
-# 🛠️ Adding a New Tool
+# Adding a New Tool
 
-> **⚡ Quick Guide**: Follow these steps and your tool will be auto-wired into the system (routing, persistence, UI visibility).
+Follow these steps and your tool will be auto-wired into the system (routing, persistence, UI visibility).
 
 ---
 
-## 📋 Step-by-Step Checklist
+## Step-by-Step Checklist
 
-### 1️⃣ Create Tool Structure
+### 1. Create Tool Structure
 
 Create your tool directory with this layout:
 
@@ -19,7 +19,7 @@ src/tools/my-new-tool/
 └── settings.ts                 # Config & defaults
 ```
 
-### 2️⃣ Define Tool Settings
+### 2. Define Tool Settings
 
 Create `settings.ts` with your tool's configuration:
 
@@ -40,7 +40,7 @@ export const myNewToolSettings = {
 export type MyNewToolSettings = typeof myNewToolSettings.defaults;
 ```
 
-### 3️⃣ Register in Tool Manifest
+### 3. Register in Tool Manifest
 
 Add your tool to the global registry:
 
@@ -64,7 +64,7 @@ toolsUIManifest.push({
 });
 ```
 
-### 4️⃣ Add Route
+### 4. Add Route
 
 Register the route in the app router:
 
@@ -81,7 +81,7 @@ import { MyNewToolPage } from '@/tools/my-new-tool/pages/MyNewToolPage';
 }
 ```
 
-### 5️⃣ Implement Tool UI
+### 5. Implement Tool UI
 
 Create your main page component using `useAutoSaveSettings` (recommended for full-featured auto-save):
 
@@ -127,13 +127,11 @@ export function MyNewToolPage() {
 ```
 
 > **See also:** [Settings System](./settings_system.md) for full API docs and alternative hooks (`usePersistentToolState` for binding existing useState, `useToolSettings` for low-level access).
-```
 
-### 6️⃣ (Optional) Add Backend Logic
+### 6. (Optional) Add Backend Logic
 
-If your tool needs server-side processing:
+If your tool needs server-side processing, create an Edge Function:
 
-#### Option A: Edge Function
 ```bash
 # Create new Edge Function
 supabase functions new my-tool-process
@@ -142,42 +140,17 @@ supabase functions new my-tool-process
 # Deploy with: supabase functions deploy my-tool-process
 ```
 
-#### Option B: Express Route
-```typescript
-// src/server/routes/my-tool.ts
-// Add Express routes for backend processing
-```
+---
+
+## Notes
+
+- **Settings scope** -- choose based on where settings should persist:
+  - `user`: Global user preferences
+  - `project`: Project-specific config
+  - `shot`: Shot-level overrides
+- **State management** -- use `markAsInteracted()` after programmatic changes to ensure saves trigger correctly.
 
 ---
 
-## ✅ That's It!
-
-Your tool now has:
-- 🔧 Automatic settings persistence via `useAutoSaveSettings`
-- 💾 Debounced auto-save with dirty tracking
-- 🎨 Automatic appearance in Tool Selector
-- 🔄 Cross-device settings sync
-- 📱 Mobile-responsive layout support
-
-## 🎯 Pro Tips
-
-1. **Settings Scope**: Choose scope based on where settings should persist:
-   - `user`: Global user preferences
-   - `project`: Project-specific config
-   - `shot`: Shot-level overrides
-
-2. **State Management**: Use `markAsInteracted()` after programmatic changes to ensure saves
-
-3. **Testing**: Check your tool appears in `/tools` selector and settings persist across refreshes
-
-4. **Icons**: Browse available icons at [lucide.dev](https://lucide.dev)
-
----
-
-<div align="center">
-
-**📚 Related Docs**
-
-[Back to Structure](../../structure.md) • [Settings System](./settings_system.md) • [Design Guidelines](./design_motion_guidelines.md)
-
-</div> 
+**Related Docs:**
+[Back to Structure](../../structure.md) | [Settings System](./settings_system.md) | [Design Guidelines](./design_motion_guidelines.md)

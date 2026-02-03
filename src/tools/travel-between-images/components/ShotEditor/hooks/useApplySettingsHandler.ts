@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ApplySettingsService from '../services/applySettingsService';
@@ -103,7 +104,6 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
     const hasMissingIds = ctx.simpleFilteredImages.some(img => !img.id);
     if (hasMissingIds && replaceImages) {
       console.warn('[ApplySettings] ⚠️  Some images missing shotImageEntryId (Phase 2 incomplete). Waiting for metadata...');
-      const { toast } = await import('sonner');
       toast.error('Loading shot data... please try again in a moment.');
       return;
     }

@@ -38,13 +38,7 @@ UI Components ◀──────── React Query cache (data)
       - Postgres changes: `tasks` table (INSERT/UPDATE) filtered by `project_id`
     - Emits DOM events for React consumption: `realtime:task-update`, `realtime:task-new`
     - Reports events and connection status to `DataFreshnessManager`
-    - **Enhanced Features:**
-      - Authentication validation using `getSession()` (local/cached) before channel creation
-      - Explicit `realtime.setAuth()` call with session token before subscribing
-      - Listens for `realtime:auth-heal` events from ReconnectScheduler with proper cleanup
-      - Exponential backoff reconnection with attempt limits (max 3 attempts)
-      - Comprehensive error handling and debugging
-      - Robust connection state management with unconditional timeout clearing
+    - **Enhanced Features:** Auth validation via `getSession()` + `realtime.setAuth()`, exponential backoff reconnection (max 3 attempts), `realtime:auth-heal` listener from ReconnectScheduler, robust cleanup and timeout clearing
 
 - SimpleRealtimeProvider
   - Path: `src/shared/providers/SimpleRealtimeProvider.tsx`
@@ -101,15 +95,7 @@ On realtime events, the provider invalidates these query key families:
 - `['unpositioned-count']` — per-shot generation counts
 - `['project-video-counts']` — aggregated video counts by project
 
-React Query invalidation uses prefix matching, so the families above cover concrete keys such as:
-- `['tasks', 'paginated', projectId, page, limit, status]`
-- `['task-status-counts', projectId]`
-- `['unified-generations', 'project', projectId, page, limit, filters]`
-- `['unified-generations', 'shot', shotId]`
-- `['derived-generations', sourceGenerationId]`
-- `['shots', projectId]`
-- `['unpositioned-count', shotId]`
-- `['project-video-counts', projectId]`
+React Query invalidation uses prefix matching, so the families above cover all concrete keys (e.g., `['tasks', 'paginated', projectId, ...]`).
 
 ## Smart Polling Fallback
 
@@ -124,52 +110,17 @@ This fallback complements (but does not replace) direct invalidation. With a hea
 
 ## Usage Examples
 
-### Basic Setup (already configured in `App.tsx`)
-```tsx
-import { SimpleRealtimeProvider } from '@/shared/providers/SimpleRealtimeProvider';
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ProjectProvider>
-        <SimpleRealtimeProvider>
-          {/* Your app components */}
-        </SimpleRealtimeProvider>
-      </ProjectProvider>
-    </QueryClientProvider>
-  );
-}
-```
+### Basic Setup
+Already configured in `App.tsx`.
 
 ### Using Connection Status
 ```tsx
-import { useSimpleRealtime } from '@/shared/providers/SimpleRealtimeProvider';
-
-function MyComponent() {
-  const { isConnected, isConnecting, error } = useSimpleRealtime();
-  
-  return (
-    <div>
-      Status: {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
-      {error && <div>Error: {error}</div>}
-    </div>
-  );
-}
+const { isConnected, isConnecting, error } = useSimpleRealtime();
+// Returns boolean flags for connected/connecting and an optional error string.
 ```
 
 ### Listening to Custom Events
-```tsx
-useEffect(() => {
-  const onUpdate = (event: any) => console.log('Task update event', event.detail);
-  const onNew = (event: any) => console.log('New task event', event.detail);
-  window.addEventListener('realtime:task-update', onUpdate as EventListener);
-  window.addEventListener('realtime:task-new', onNew as EventListener);
-  return () => {
-    window.removeEventListener('realtime:task-update', onUpdate as EventListener);
-    window.removeEventListener('realtime:task-new', onNew as EventListener);
-  };
-}, []);
-```
+Subscribe to DOM events listed in Event Handling above via `window.addEventListener('realtime:task-update-batch', handler)` in a `useEffect` cleanup pattern.
 
 ## Observability & Debugging
 
@@ -186,16 +137,6 @@ useEffect(() => {
 - `window.__DATA_FRESHNESS_MANAGER__` — freshness manager instance (diagnostics available)
 - `window.__RECONNECT_SCHEDULER__` — reconnection scheduler state and pending intents
 
-### Enhanced Error Handling
-The system now provides detailed debugging information for connection failures:
-- Authentication state verification using local session cache (`getSession()`) to avoid network-dependent auth checks
-- Explicit `realtime.setAuth()` calls to ensure proper token synchronization before channel subscription
-- Post-failure auth checks to identify authentication vs. network issues
-- WebSocket readiness state logging
-- Reconnection attempt tracking with exponential backoff timing
-- Proper event listener cleanup to prevent memory leaks
-- Unconditional timeout clearing to prevent zombie retry attempts
-
 ### Common Checks
 1. **CHANNEL_ERROR issues**: Check authentication state in logs - user must be signed in
 2. **Rapid reconnection loops**: Look for reconnection attempt limits being reached (max 3 attempts)
@@ -204,7 +145,6 @@ The system now provides detailed debugging information for connection failures:
 5. **Excess polling**: check DataFreshness diagnostics and realtime connection state
 
 ## Notes & Limitations
-- The system currently subscribes to `tasks` changes only. Generation-related UI updates are primarily driven by task events and by explicit mutation invalidations. Pure generation-only backend changes that are not accompanied by a task event (e.g., background thumbnail writes) are picked up by the smart polling fallback.
+- The system subscribes to `tasks`, `shot_generations`, and `generations` Postgres changes, plus `task-update` broadcasts (see Event Handling above). Pure backend changes not covered by these subscriptions (e.g., background thumbnail writes) are picked up by the smart polling fallback.
 - Invalidation uses broad key families to ensure all relevant variants refetch without bespoke wiring per consumer.
-
-Result: **Fast, reliable updates via direct invalidation, with intelligent polling as a resilient fallback.**
+- Smart polling is a real fallback system, not just a safety net -- it actively adapts intervals based on connection health and data freshness.

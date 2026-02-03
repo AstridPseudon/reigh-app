@@ -42,12 +42,7 @@ All keys live in `queryKeys` object. Invalidation goes through hooks in `shared/
 
 ### `createSafeContext` factory
 
-**Source:** `shared/lib/createSafeContext.ts`
-
-Standard for all new contexts. `createSafeContext<T>(name)` returns:
-- `useContext()` -- throws if missing provider
-- `useContextSafe()` -- returns undefined
-- `useHasProvider()` -- boolean check
+Standard for all new contexts. See [shared_utilities.md](shared_utilities.md) for API details (`useContext`, `useContextSafe`, `useHasProvider`).
 
 ### Provider nesting order matters
 
@@ -72,11 +67,7 @@ See `App.tsx` for the hierarchy. Providers that depend on others must be nested 
 
 ## Shared Components Worth Knowing
 
-| Component | Purpose |
-|-----------|---------|
-| `ModalContainer` | Responsive modal with header/footer/scroll structure |
-| `DataContainer` | Handles loading/error/empty/data states |
-| `ConfirmDialog` | Promise-based confirmation (`useConfirmDialog` hook + `confirmPresets`) |
+`ModalContainer`, `DataContainer`, `ConfirmDialog` -- See [shared_utilities.md](shared_utilities.md).
 
 ---
 

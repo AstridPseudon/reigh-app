@@ -20,6 +20,7 @@
 | **Deployment** | [deployment_and_migration_guide.md](docs/structure_detail/deployment_and_migration_guide.md) | Safe migrations and Edge Function deployment |
 | **Settings System** | [settings_system.md](docs/structure_detail/settings_system.md) | Settings resolution, storage layers, hooks, write queue |
 | **Data Fetching** | [data_fetching.md](docs/structure_detail/data_fetching.md) | Query scopes, mutations, optimistic updates, invalidation, cache sync |
+| **Per-Pair Data** | [per_pair_data_persistence.md](docs/structure_detail/per_pair_data_persistence.md) | Timeline pair data, prompt priority, video-to-pair tethering |
 | **Task System** | [task_worker_lifecycle.md](docs/structure_detail/task_worker_lifecycle.md) | Async task queue, worker polling |
 | **Task Creation** | [unified_task_creation.md](docs/structure_detail/unified_task_creation.md) | Client-side task creation pattern |
 | **Edge Functions** | [edge_functions.md](docs/structure_detail/edge_functions.md) | Serverless function reference |

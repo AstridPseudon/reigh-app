@@ -5,6 +5,7 @@
 - Start at `structure.md` (links to sub-docs). Deep dives live in `docs/structure_detail/`.
 - **Read the relevant sub-doc before editing**:
   - Settings/persistence → `settings_system.md`
+  - Per-pair data (timeline pairs, prompts) → `per_pair_data_persistence.md`
   - Performance → `performance_system.md`
   - Image loading → `image_loading_system.md`
   - Realtime → `realtime_system.md`
@@ -13,12 +14,16 @@
   - DB triggers, RPCs, storage → `db_and_storage.md`
   - Edge Functions → `edge_functions.md`
   - Payments/credits → `auto_topup_system.md`
-  - Debugging/logs → `debugging.md` (CLI, `system_logs` table, frontend logging)
-  - Error handling → `error_handling.md` (typed errors, `handleError()`, error boundary)
-  - Frontend patterns → `frontend_architecture.md` (contexts, hooks, state, components)
-  - Shared utilities → `shared_utilities.md` (ModalContainer, DataContainer, ConfirmDialog, createSafeContext)
-  - Data fetching/caching → `data_fetching.md` (query scopes, invalidation, cache sync)
-  - Code quality → `docs/code_quality_audit.md` (metrics, anti-patterns, known exceptions)
+  - Debugging/logs → `debugging.md`
+  - Error handling → `error_handling.md`
+  - Frontend patterns → `frontend_architecture.md`
+  - Shared utilities → `shared_utilities.md`
+  - Data fetching/caching → `data_fetching.md`
+  - Design/motion → `design_motion_guidelines.md`
+  - Deployment/migrations → `deployment_and_migration_guide.md`
+  - Refactoring → `refactoring_patterns.md`
+  - Video travel tool → `tool_video_travel.md`
+  - Code quality → `docs/code_quality_audit.md`
 - **Multiple docs apply?** Start with most specific (e.g., `image_loading` before `performance`).
 - **New feature?** Check `adding_new_tool.md` for tool pattern; `structure.md` for where things live.
 - **Debugging a flow?** Trace: UI → hook → task creation (`unified_task_creation.md`) → worker (`task_worker_lifecycle.md`) → `complete_task` edge function.
@@ -47,24 +52,12 @@
 ## Review discipline
 - After changes: ensure nothing out-of-scope was deleted/edited.
 - Flag briefly (don't derail): duplication, giant components (>300 LOC), prop drilling (3+ levels), mixed concerns, inconsistent patterns, missing error handling.
-- Anti-patterns (see `docs/code_quality_audit.md`): no registry/capability patterns for ~5 tools, no React Query wrappers (`useSafeQuery`), no facade hooks with deprecation layers, no multi-week architecture overhauls. Every change should make the codebase smaller or more explicit.
+- Anti-patterns and quality standards: see `docs/code_quality_audit.md`. Core principle: every change should make the codebase smaller or more explicit.
 
 ## Debugging
-- **Server-side (tasks/workers)**: Use `system_logs` table (48h retention). Query via:
-  - CLI: `cd scripts && python3 debug.py task <task_id>` — shows full timeline + related data
-  - SQL: `SELECT * FROM system_logs WHERE task_id = '...' ORDER BY timestamp`
-  - Views: `v_recent_errors`, `v_worker_log_activity`
-- **Client-side (browser logs)**:
-  1. Start dev server: `VITE_PERSIST_LOGS=true npm run dev`
-  2. Use app in browser (all console.log/warn/error captured)
-  3. Query: `cd scripts && python3 debug.py logs --latest`
-  - Filter by tag: `debug.py logs --latest --tag ShotNav`
-  - List sessions: `debug.py logs --sessions`
-  - Add `VITE_DEBUG_LOGS=true` to also see logs in browser console
-- **Use consistent tags**: When adding debug logs for an issue, use a common tag prefix (e.g., `[StructureVideoFix]`) on ALL related logs so they can be filtered together: `console.log('[MyTag] message', data)`.
-- Debug logs are dev-only (production builds strip `console.log`), so temporary instrumentation is OK.
-- After debugging, suggest what extra diagnostics/logging would have made it easier.
-- See `debugging.md` for full details on CLI, frontend logging, and SQL queries.
+- See `debugging.md` for CLI commands, frontend logging, SQL queries, and the decision table.
+- **Use consistent tags**: `console.log('[MyTag] message', data)` — filter with `debug.py logs --latest --tag MyTag`.
+- Debug logs are dev-only (stripped in prod), so temporary instrumentation is OK.
 
 ## Doc maintenance
 - **Sub-docs** (`docs/structure_detail/`): Update when changing system patterns (triggers, RPCs, storage, shared hooks). Use routing table above.

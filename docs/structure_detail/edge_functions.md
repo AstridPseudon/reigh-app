@@ -30,7 +30,7 @@
 ## Integration Contracts
 
 - External workers must send payloads in **Headless-Wan2GP** format.
-- All task status changes broadcast via **Supabase Realtime** (no polling needed client-side).
+- All task status changes broadcast via **Supabase Realtime** (primary freshness via realtime; smart polling as fallback).
 - Functions return standardized error JSON — see `error_handling.md`.
 
 ---

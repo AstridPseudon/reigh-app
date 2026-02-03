@@ -4,6 +4,7 @@
  */
 
 import { handleError } from '@/shared/lib/errorHandler';
+import { uploadImageToStorage, uploadBlobToStorage } from './imageUploader';
 
 interface ThumbnailResult {
   thumbnailBlob: Blob;
@@ -139,8 +140,6 @@ export async function uploadImageWithThumbnail(
   }
 
   const { onProgress, signal } = options;
-
-  const { uploadImageToStorage, uploadBlobToStorage } = await import('./imageUploader');
 
   // Upload original image using existing utility (with progress tracking)
   // Original image is ~90% of the work, thumbnail is ~10%

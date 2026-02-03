@@ -11,6 +11,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { QueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
+import { updateSettingsCache } from '@/shared/hooks/useToolSettings';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 import {
@@ -243,7 +244,6 @@ export function useGenerationSource(props: UseGenerationSourceProps): UseGenerat
     // Optimistically update settings cache
     if (queryClient) {
       try {
-        const { updateSettingsCache } = await import('@/shared/hooks/useToolSettings');
         queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
           updateSettingsCache<ProjectImageSettings>(prev, { selectedModel: value })
         );

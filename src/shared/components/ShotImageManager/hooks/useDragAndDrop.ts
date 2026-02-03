@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import {
   useSensor,
   useSensors,
@@ -141,12 +142,10 @@ export function useDragAndDrop({
         totalImages: images.length,
         missingIds: missingCount
       });
-      import('sonner').then(({ toast }) => {
-        const message = images.length > 500 
-          ? `Loading metadata for ${images.length} images... this may take a moment.`
-          : 'Loading image metadata... please wait a moment and try again.';
-        toast.error(message);
-      });
+      const message = images.length > 500
+        ? `Loading metadata for ${images.length} images... this may take a moment.`
+        : 'Loading image metadata... please wait a moment and try again.';
+      toast.error(message);
       // Clear selection
       setSelectedIds([]);
       setLastSelectedIndex(null);

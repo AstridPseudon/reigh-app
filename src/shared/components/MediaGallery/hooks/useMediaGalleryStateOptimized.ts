@@ -60,7 +60,6 @@ export type MediaGalleryStateAction =
   | { type: 'SET_MOBILE_POPOVER_OPEN_IMAGE_ID'; payload: string | null }
   | { type: 'SET_BACKFILL_LOADING'; payload: boolean }
   | { type: 'SET_BACKFILL_SKELETON_COUNT'; payload: number }
-  | { type: 'CLEAR_BACKFILL_SKELETON' }
   | { type: 'RESET_UI_STATE' };
 
 // Initial state factory
@@ -262,10 +261,7 @@ const mediaGalleryStateReducer = (
       
     case 'SET_BACKFILL_SKELETON_COUNT':
       return { ...state, backfillSkeletonCount: action.payload };
-      
-    case 'CLEAR_BACKFILL_SKELETON':
-      return { ...state, isBackfillLoading: false, backfillSkeletonCount: 0 };
-      
+
     case 'RESET_UI_STATE':
       return {
         ...state,
@@ -319,7 +315,6 @@ export interface UseMediaGalleryStateOptimizedReturn {
   setMobilePopoverOpenImageId: (id: string | null) => void;
   setIsBackfillLoading: (loading: boolean) => void;
   setBackfillSkeletonCount: (count: number) => void;
-  clearBackfillSkeleton: () => void;
   resetUIState: () => void;
   
   // Refs (unchanged)
@@ -418,11 +413,9 @@ export const useMediaGalleryStateOptimized = ({
       dispatch({ type: 'SET_MOBILE_POPOVER_OPEN_IMAGE_ID', payload: id }),
     setIsBackfillLoading: (loading: boolean) => 
       dispatch({ type: 'SET_BACKFILL_LOADING', payload: loading }),
-    setBackfillSkeletonCount: (count: number) => 
+    setBackfillSkeletonCount: (count: number) =>
       dispatch({ type: 'SET_BACKFILL_SKELETON_COUNT', payload: count }),
-    clearBackfillSkeleton: () => 
-      dispatch({ type: 'CLEAR_BACKFILL_SKELETON' }),
-    resetUIState: () => 
+    resetUIState: () =>
       dispatch({ type: 'RESET_UI_STATE' }),
   }), []);
   
@@ -482,9 +475,6 @@ export const useMediaGalleryStateOptimized = ({
     [images]
   );
 
-  // Track previous image count for backfill skeleton clearing
-  const prevImageCountRef = useRef<number>(images.length);
-  
   // Reconcile optimistic state when images update
   useEffect(() => {
     // Sync activeLightboxMedia with updated images list to ensure fresh data (like name changes)
@@ -512,12 +502,9 @@ export const useMediaGalleryStateOptimized = ({
       }
     }
 
-    // Track image count for reconciliation (skeleton clearing is handled by timer in useMediaGalleryActions)
-    prevImageCountRef.current = images.length;
-    
     // Clean up optimistic sets using the consolidated action
     dispatch({ type: 'RECONCILE_OPTIMISTIC_STATE', payload: currentImageIds });
-  }, [currentImageIds, images, isServerPagination, state.isBackfillLoading, serverPage, actions, state.activeLightboxMedia]);
+  }, [currentImageIds, images, actions, state.activeLightboxMedia]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {

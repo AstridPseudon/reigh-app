@@ -20,9 +20,6 @@ Reigh uses an async task queue pattern for all AI generation workloads. This dec
                 └──────────────┘
 ```
 
-### Detailed Processing Flow  
-For a complete step-by-step breakdown with error handling, see: [**Task Processing Deep Dive**](task_processing_deep_dive.md)
-
 ## Detailed Steps
 
 ### 1. Task Creation
@@ -121,7 +118,7 @@ The worker polls the same task queue but specializes in video generation:
 ### 4. Real-time Updates
 - **Database Triggers** automatically broadcast changes via Supabase Realtime
 - **Instant processing** when tasks complete (no 10-second delay)
-- Client subscribes using `useWebSocket` hook
+- Client subscribes via the realtime system (`SimpleRealtimeProvider`; see [`realtime_system.md`](realtime_system.md))
 - UI updates automatically as task progresses
 
 ## Debugging

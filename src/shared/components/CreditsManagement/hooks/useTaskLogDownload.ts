@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { getTaskDisplayName } from '@/shared/lib/taskConfig';
 import { handleError } from '@/shared/lib/errorHandler';
 import type { TaskLogFilters } from '../types';
@@ -14,8 +15,6 @@ export function useTaskLogDownload(filters: TaskLogFilters): UseTaskLogDownloadR
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
-
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         throw new Error('Authentication required');

@@ -107,16 +107,9 @@ Stable callbacks: use refs to prevent recreation storms (avoid `addMutation` in 
 
 Scopes for `useInvalidateGenerations`: `'all'` | `'images'` | `'metadata'` | `'counts'`.
 
-### Realtime: `SimpleRealtimeProvider`
+### Realtime invalidation
 
-| Event | Triggers | Invalidation |
-|-------|----------|-------------|
-| `realtime:task-update-batch` | Task status changes | `tasks.*`, and if Complete: `unified`, `all-shot-generations`, segments |
-| `realtime:task-new-batch` | New tasks created | `tasks.*` only |
-| `realtime:shot-generation-change-batch` | `shot_generations` INSERT/UPDATE/DELETE | `all-shot-generations` per shot (skips INSERT-only to avoid flicker) |
-| `realtime:generation-update-batch` | `generations` UPDATE | `unified`, `all-shot-generations` (broad), `shots`, detail |
-| `realtime:generation-insert-batch` | `generations` INSERT | `unified`, `all-shot-generations` (broad), detail |
-| `realtime:variant-change-batch` | `generation_variants` changes | Per-generation variants + badges, `unified`, `all-shot-generations` (broad) |
+Realtime event -> invalidation mapping: see [realtime_system.md](realtime_system.md).
 
 ### Smart Polling (fallback)
 
@@ -146,7 +139,7 @@ Scopes for `useInvalidateGenerations`: `'all'` | `'images'` | `'metadata'` | `'c
 
 1. **Three scopes, three hooks** -- project, shot, variant. Don't merge them.
 2. **Mutations in dedicated files** -- `useGenerationMutations.ts` and `useShotGenerationMutations.ts`, not in query hooks.
-3. **All query keys in `queryKeys` registry** -- no hardcoded strings.
+3. **Prefer `queryKeys.*` registry for all query keys** -- ~25 isolated hooks still use inline keys (see `code_quality_audit.md` S2).
 4. **Optimistic updates use snapshot + rollback** -- cancel queries first, snapshot for rollback, replace temp IDs on success.
 5. **Realtime -> invalidation, not direct cache updates** -- keeps cache consistent with DB.
 6. **Smart polling is fallback** -- primary freshness from realtime events.
