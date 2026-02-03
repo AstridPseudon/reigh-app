@@ -145,15 +145,6 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
     setQwenEditModel,
   } = useEditFormSafe();
 
-  // [GenerationsSlider] Debug: trace why slider might not show
-  console.log('[GenerationsSlider] EditModePanel state:', {
-    setCreateAsGeneration: typeof setCreateAsGeneration,
-    setCreateAsGenerationIsTruthy: !!setCreateAsGeneration,
-    createAsGeneration,
-    inpaintNumGenerations,
-    editMode,
-  });
-
   const {
     variants,
     activeVariant,
@@ -534,14 +525,6 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
           )}
 
           {/* Number of Generations + Create as Variant - shown for all image edit modes */}
-          {(() => {
-            console.log('[GenerationsSlider] Render check:', {
-              willRender: !!setCreateAsGeneration,
-              editMode,
-              isMobile,
-            });
-            return null;
-          })()}
           {setCreateAsGeneration && (
             <div className={cn(
               "py-1.5 px-1 rounded-md flex items-center gap-2 overflow-hidden w-[80%]",

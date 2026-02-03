@@ -42,6 +42,8 @@ export interface UseEditSettingsPersistenceReturn {
   enhanceSettings: VideoEnhanceSettings;
   // Model selection for cloud mode
   qwenEditModel: QwenEditModel;
+  // Generation options
+  createAsGeneration: boolean;
 
   // Setters (each triggers persistence)
   setEditMode: (mode: EditMode) => void;
@@ -58,6 +60,8 @@ export interface UseEditSettingsPersistenceReturn {
   setAdvancedSettings: (updates: Partial<EditAdvancedSettings>) => void;
   // Video enhance settings setter
   setEnhanceSettings: (updates: Partial<VideoEnhanceSettings>) => void;
+  // Generation options setter
+  setCreateAsGeneration: (value: boolean) => void;
 
   // Video/Panel mode settings (persisted to "last used" only)
   videoEditSubMode: VideoEditSubMode;
@@ -213,6 +217,7 @@ export function useEditSettingsPersistence({
     setImg2imgEnablePromptExpansion: genSetImg2imgEnablePromptExpansion,
     setAdvancedSettings: genSetAdvancedSettings,
     setEnhanceSettings: genSetEnhanceSettings,
+    setCreateAsGeneration: genSetCreateAsGeneration,
   } = generationSettings;
 
   // Wrapper setters that also update "last used" (except prompt)
@@ -275,6 +280,12 @@ export function useEditSettingsPersistence({
     genSetEnhanceSettings(updates);
   }, [genSetEnhanceSettings]);
 
+  // Generation options setter (saves to both generation and "last used")
+  const setCreateAsGeneration = useCallback((value: boolean) => {
+    genSetCreateAsGeneration(value);
+    updateLastUsed({ createAsGeneration: value });
+  }, [genSetCreateAsGeneration, updateLastUsed]);
+
   // Video/Panel mode setters (only save to "last used", not per-generation)
   const setVideoEditSubMode = useCallback((mode: VideoEditSubMode) => {
     updateLastUsed({ videoEditSubMode: mode });
@@ -327,6 +338,8 @@ export function useEditSettingsPersistence({
     enhanceSettings: effectiveSettings.enhanceSettings ?? DEFAULT_ENHANCE_SETTINGS,
     // Model selection for cloud mode
     qwenEditModel: effectiveSettings.qwenEditModel ?? 'qwen-edit',
+    // Generation options
+    createAsGeneration: effectiveSettings.createAsGeneration ?? false,
 
     // Setters
     setEditMode,
@@ -343,6 +356,8 @@ export function useEditSettingsPersistence({
     setAdvancedSettings,
     // Video enhance settings setter
     setEnhanceSettings,
+    // Generation options setter
+    setCreateAsGeneration,
 
     // Video/Panel mode (from "last used")
     videoEditSubMode: lastUsedSettings.lastUsed.videoEditSubMode,

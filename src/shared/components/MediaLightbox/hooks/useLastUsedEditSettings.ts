@@ -27,6 +27,8 @@ export interface LastUsedEditSettings {
   videoEditSubMode: VideoEditSubMode;
   // Panel mode (info/edit) - whether user was last viewing Info or Edit panel
   panelMode: PanelMode;
+  // Generation options - whether to create as new generation (true) or variant (false)
+  createAsGeneration: boolean;
 }
 
 export const DEFAULT_LAST_USED: LastUsedEditSettings = {
@@ -43,6 +45,8 @@ export const DEFAULT_LAST_USED: LastUsedEditSettings = {
   videoEditSubMode: 'trim',
   // Panel defaults
   panelMode: 'info',
+  // Generation options - default to creating as variant
+  createAsGeneration: false,
 };
 
 // localStorage keys for instant access (no loading delay)
@@ -176,6 +180,7 @@ export function useLastUsedEditSettings({
       prev.img2imgEnablePromptExpansion === merged.img2imgEnablePromptExpansion &&
       prev.videoEditSubMode === merged.videoEditSubMode &&
       prev.panelMode === merged.panelMode &&
+      prev.createAsGeneration === merged.createAsGeneration &&
       !advancedSettingsChanged
     ) {
       console.log('[EDIT_DEBUG] 💾 LAST-USED SAVE: No changes detected, skipping save');

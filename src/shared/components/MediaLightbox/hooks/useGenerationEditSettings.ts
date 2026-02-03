@@ -130,6 +130,8 @@ export interface GenerationEditSettings {
   advancedSettings: EditAdvancedSettings;
   // Video enhance settings
   enhanceSettings: VideoEnhanceSettings;
+  // Generation options - whether to create as new generation (true) or variant (false)
+  createAsGeneration: boolean;
 }
 
 export const DEFAULT_EDIT_SETTINGS: GenerationEditSettings = {
@@ -149,6 +151,8 @@ export const DEFAULT_EDIT_SETTINGS: GenerationEditSettings = {
   advancedSettings: DEFAULT_ADVANCED_SETTINGS,
   // Video enhance defaults
   enhanceSettings: DEFAULT_ENHANCE_SETTINGS,
+  // Generation options - default to creating as variant (false)
+  createAsGeneration: false,
 };
 
 export interface UseGenerationEditSettingsReturn {
@@ -170,6 +174,8 @@ export interface UseGenerationEditSettingsReturn {
   setAdvancedSettings: (settings: Partial<EditAdvancedSettings>) => void;
   // Video enhance settings setter
   setEnhanceSettings: (settings: Partial<VideoEnhanceSettings>) => void;
+  // Generation options setter
+  setCreateAsGeneration: (value: boolean) => void;
 
   // Bulk update
   updateSettings: (updates: Partial<GenerationEditSettings>) => void;
@@ -511,6 +517,15 @@ export function useGenerationEditSettings({
     });
   }, [triggerSave]);
 
+  // Generation options setter
+  const setCreateAsGeneration = useCallback((value: boolean) => {
+    setSettings(prev => {
+      const updated = { ...prev, createAsGeneration: value };
+      triggerSave(updated);
+      return updated;
+    });
+  }, [triggerSave]);
+
   // Bulk update
   const updateSettings = useCallback((updates: Partial<GenerationEditSettings>) => {
     setSettings(prev => {
@@ -557,6 +572,7 @@ export function useGenerationEditSettings({
     setImg2imgEnablePromptExpansion,
     setAdvancedSettings,
     setEnhanceSettings,
+    setCreateAsGeneration,
     updateSettings,
     isLoading,
     hasPersistedSettings,
