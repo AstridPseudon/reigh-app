@@ -51,7 +51,6 @@
 | **Frontend** | React + Vite + TypeScript | SPA framework & build tooling |
 | **Styling** | TailwindCSS + shadcn-ui | Utility CSS with container queries (`@container`) |
 | **Backend** | Supabase (Postgres + Edge Functions) | Database, auth, storage, serverless workers |
-| **AI/ML** | FAL-AI | Image/video generation services |
 
 **Dev server:** `http://localhost:2222` • **Package managers:** npm (default) or bun
 
@@ -67,7 +66,6 @@
 | `/src/shared` | Shared code | `components/ui/` (shadcn), `hooks/`, `contexts/`, `lib/` |
 | `/supabase/functions` | Edge Functions | Task processing, payments, AI integration |
 | `/supabase/migrations` | DB migrations | Schema changes (use `db push --linked`) |
-| `/db` | Schema docs & seeding | `schema/schema.ts` (types), `seed.ts` |
 | Root | Build configs | `vite.config.ts`, `tailwind.config.ts`, `railway.toml` |
 
 ---
