@@ -87,11 +87,40 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onNewShotFromSelection,
   onShotChange,
 }) => {
-  // State for trailing video URL (for extract final frame feature and timeline dimensions)
+  // State for trailing video URL (for extract final frame feature)
   // This is set by SegmentOutputStrip when it detects an existing trailing video
-  // Must be declared before the orchestrator hook so we can pass hasExistingTrailingVideo to it
   const [trailingVideoUrl, setTrailingVideoUrl] = React.useState<string | null>(null);
-  const hasExistingTrailingVideo = !!trailingVideoUrl;
+
+  // Compute hasExistingTrailingVideo from videoOutputs SYNCHRONOUSLY to avoid layout shift
+  // A trailing video is one where pair_shot_generation_id matches the last image's shot_generation_id
+  const hasExistingTrailingVideo = React.useMemo(() => {
+    if (!videoOutputs || videoOutputs.length === 0) return false;
+    if (images.length === 0) return false;
+
+    // Find the last image's shot_generation_id from framePositions
+    const sortedEntries = [...framePositions.entries()].sort((a, b) => a[1] - b[1]);
+    const lastImageShotGenId = sortedEntries[sortedEntries.length - 1]?.[0];
+    if (!lastImageShotGenId) return false;
+
+    // Check if any video output has this as its pair_shot_generation_id
+    const hasTrailing = videoOutputs.some(gen => {
+      // Must be a video with a location (completed)
+      if (!gen.type?.includes('video') || !gen.location) return false;
+      // Check pair_shot_generation_id column or params
+      const pairId = gen.pair_shot_generation_id ||
+        (gen.params as Record<string, unknown> | undefined)?.pair_shot_generation_id ||
+        ((gen.params as Record<string, unknown> | undefined)?.individual_segment_params as Record<string, unknown> | undefined)?.pair_shot_generation_id;
+      return pairId === lastImageShotGenId;
+    });
+
+    console.log('[StripLayout] 🎯 hasExistingTrailingVideo computed:', {
+      lastImageShotGenId: lastImageShotGenId?.substring(0, 8),
+      videoOutputsCount: videoOutputs.length,
+      hasTrailing,
+    });
+
+    return hasTrailing;
+  }, [videoOutputs, framePositions, images.length]);
 
   // [TrailingDebug] Log state at render time
   console.log('[TrailingDebug] 🎬 TimelineContainer RENDER:', {
