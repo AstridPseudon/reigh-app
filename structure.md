@@ -36,6 +36,9 @@
 | **Refactoring** | [refactoring_patterns.md](docs/structure_detail/refactoring_patterns.md) | Splitting hooks/components, checklists |
 | **Tool: Video Travel** | [tool_video_travel.md](docs/structure_detail/tool_video_travel.md) | Timeline workflow, batch processing |
 | **Payments** | [auto_topup_system.md](docs/structure_detail/auto_topup_system.md) | Credits, auto-top-up, Stripe |
+| **Authentication** | [auth_system.md](docs/structure_detail/auth_system.md) | Auth state, session management, route protection |
+| **Routing & Navigation** | [routing_and_navigation.md](docs/structure_detail/routing_and_navigation.md) | Route structure, URL hash sync, shot navigation |
+| **Storage & Uploads** | [storage_uploads.md](docs/structure_detail/storage_uploads.md) | Upload flow, path conventions, thumbnails |
 | **Referrals** | [referral_system.md](docs/structure_detail/referral_system.md) | Username-based referral tracking |
 | **Code Quality** | [code_quality_audit.md](docs/code_quality_audit.md) | Quality metrics, anti-patterns, known exceptions |
 
