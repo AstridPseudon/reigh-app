@@ -86,6 +86,7 @@ export const useMediaGalleryActions = ({
   // Track in-flight delete operations for debouncing rapid deletions
   const pendingDeletesRef = useRef<Set<string>>(new Set());
   const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const clearLoadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Optimistic delete with skeleton placeholder at end of grid.
@@ -126,9 +127,12 @@ export const useMediaGalleryActions = ({
 
       // 5. Trigger refetch (debounced 100ms to batch rapid deletions)
       if (isServerPagination && onBackfillRequest) {
-        // Clear existing timeout
+        // Clear existing timeouts (debounce and any pending clear)
         if (refetchTimeoutRef.current) {
           clearTimeout(refetchTimeoutRef.current);
+        }
+        if (clearLoadingTimeoutRef.current) {
+          clearTimeout(clearLoadingTimeoutRef.current);
         }
 
         // Short debounce to batch rapid deletions
@@ -142,8 +146,8 @@ export const useMediaGalleryActions = ({
             await onBackfillRequest();
 
             // Check page bounds after refetch
-            // The new total is currentTotal minus all pending deletes
-            const newTotal = currentTotal - pendingDeletesRef.current.size;
+            // The new total is totalCount minus all pending deletes
+            const newTotal = (totalCount ?? 0) - pendingDeletesRef.current.size;
             const newTotalPages = Math.max(1, Math.ceil(newTotal / itemsPerPage));
 
             if (serverPage && serverPage > newTotalPages) {
@@ -154,9 +158,16 @@ export const useMediaGalleryActions = ({
               });
               onPageBoundsExceeded?.(newTotalPages);
             }
+
+            // Clear backfill loading after a short delay to allow image to load
+            // The skeleton stays visible during this time, then fades out
+            // Use ref so this can be cancelled if more deletes happen
+            clearLoadingTimeoutRef.current = setTimeout(() => {
+              setIsBackfillLoading(false);
+              clearLoadingTimeoutRef.current = null;
+            }, 750);
           } catch (error) {
             console.error('[BackfillV2] Refetch failed:', error);
-            // Only clear on error - success case is handled by Grid when new data renders
             setIsBackfillLoading(false);
           }
           // Clear pending deletes after refetch attempt
@@ -428,6 +439,9 @@ export const useMediaGalleryActions = ({
     return () => {
       if (refetchTimeoutRef.current) {
         clearTimeout(refetchTimeoutRef.current);
+      }
+      if (clearLoadingTimeoutRef.current) {
+        clearTimeout(clearLoadingTimeoutRef.current);
       }
     };
   }, []);

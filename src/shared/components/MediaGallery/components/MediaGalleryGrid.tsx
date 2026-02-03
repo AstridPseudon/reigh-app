@@ -160,17 +160,8 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
     }
   }, [pageSignature, isGalleryLoading]);
 
-  // Clear backfill loading when new data arrives (signature changes while loading)
-  const prevSignatureForBackfillRef = React.useRef<string>(pageSignature);
-  React.useEffect(() => {
-    if (isBackfillLoading && prevSignatureForBackfillRef.current !== pageSignature) {
-      console.log('[BackfillV2] Data arrived, clearing backfill loading');
-      setIsBackfillLoading?.(false);
-    }
-    prevSignatureForBackfillRef.current = pageSignature;
-  }, [pageSignature, isBackfillLoading, setIsBackfillLoading]);
-
-  // Compute how many skeletons to show at the end of the grid during backfill
+  // Skeleton count: show enough to fill the gap from deleted items
+  // When data arrives, gapCount becomes 0, but we keep 1 skeleton until timer clears isBackfillLoading
   const computedSkeletonCount = React.useMemo(() => {
     if (!isBackfillLoading || !isServerPagination) return 0;
 
@@ -184,8 +175,11 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
     // How many items do we actually have?
     const actualItems = paginatedImages.length;
 
-    // Skeleton count is the gap
-    return Math.max(0, expectedItems - actualItems);
+    // Gap = expected - actual, but always show at least 1 while loading
+    // This ensures smooth transition: multiple skeletons during delete,
+    // then 1 skeleton remains until image loads
+    const gapCount = Math.max(0, expectedItems - actualItems);
+    return Math.max(1, gapCount);
   }, [isBackfillLoading, isServerPagination, totalCount, optimisticDeletedCount, offset, itemsPerPage, paginatedImages.length]);
 
   // Calculate aspect ratio to match MediaGalleryItem exactly
@@ -276,11 +270,8 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
             isLightboxOpen={isLightboxOpen}
             instanceId={`gallery-${isServerPagination ? (serverPage || 1) : page}`}
             onImagesReady={() => {
-              // Clear backfill loading when images are ready to display
-              if (isBackfillLoading && setIsBackfillLoading) {
-                console.log('[BackfillV2] ProgressiveLoadingManager - images ready, clearing loading');
-                setIsBackfillLoading(false);
-              }
+              // Backfill loading is cleared by timer in useMediaGalleryActions
+              // This callback can be used for other purposes if needed
             }}
           >
             {(showImageIndices) => (
