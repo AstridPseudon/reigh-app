@@ -2568,11 +2568,3 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-export const Constants = {
-  public: {
-    Enums: {
-      credit_ledger_type: ["stripe", "manual", "spend", "refund", "auto_topup"],
-      task_status: ["Queued", "In Progress", "Complete", "Failed", "Cancelled"],
-    },
-  },
-} as const

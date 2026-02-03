@@ -20,24 +20,22 @@ import { PhaseConfig } from '@/tools/travel-between-images/settings';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { MotionPresetSelector } from '@/shared/components/MotionPresetSelector';
 import { SectionHeader } from '@/tools/image-generation/components/ImageGenerationForm/components/SectionHeader';
-import { 
-  DEFAULT_VACE_PHASE_CONFIG, 
-  BUILTIN_VACE_PRESET, 
+import {
+  DEFAULT_VACE_PHASE_CONFIG,
+  BUILTIN_VACE_PRESET,
   BUILTIN_VACE_DEFAULT_ID,
   VACE_FEATURED_PRESET_IDS,
-  buildPhaseConfigWithLoras,
 } from '@/shared/lib/vaceDefaults';
 
 // =============================================================================
 // EXPORTS FOR BACKWARDS COMPATIBILITY
 // =============================================================================
 
-// Re-export shared defaults with Join Clips aliases for backwards compatibility
+// Shared defaults with Join Clips aliases
 export const DEFAULT_JOIN_CLIPS_PHASE_CONFIG = DEFAULT_VACE_PHASE_CONFIG;
 export const BUILTIN_JOIN_CLIPS_DEFAULT_ID = BUILTIN_VACE_DEFAULT_ID;
-export const BUILTIN_JOIN_CLIPS_PRESET = BUILTIN_VACE_PRESET;
-export const JOIN_CLIPS_FEATURED_PRESET_IDS = VACE_FEATURED_PRESET_IDS;
-export const buildJoinClipsPhaseConfig = buildPhaseConfigWithLoras;
+const BUILTIN_JOIN_CLIPS_PRESET = BUILTIN_VACE_PRESET;
+const JOIN_CLIPS_FEATURED_PRESET_IDS = VACE_FEATURED_PRESET_IDS;
 
 /**
  * Quantize total generation frames to 4N+1 format (required by Wan models)

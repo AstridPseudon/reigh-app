@@ -50,45 +50,6 @@ export const sortVideoOutputsByDate = (videoOutputs: GenerationRow[]): Generatio
 };
 
 /**
- * Transform unified generations data to GenerationRow format
- */
-export const transformUnifiedGenerationsData = (items: Array<{
-  id: string;
-  url?: string;
-  thumbUrl?: string;
-  isVideo?: boolean;
-  updatedAt?: string;
-  createdAt?: string;
-  metadata?: Record<string, unknown>;
-  position?: number;
-  name?: string;
-  starred?: boolean;
-  derivedCount?: number;
-  taskId?: string;
-}>): GenerationRow[] => {
-  if (!items) return [];
-
-  return items.map((item) => ({
-    id: item.id,
-    imageUrl: item.url,
-    location: item.url,
-    thumbUrl: item.thumbUrl,
-    type: item.isVideo ? 'video_travel_output' : 'single_image',
-    // Use updated_at for timestamp display (when video was generated), fallback to created_at
-    created_at: item.updatedAt || item.createdAt,
-    metadata: item.metadata,
-    // Deprecated (backwards compat) - use item.id instead
-    shotImageEntryId: item.id,
-    position: item.position,
-    name: item.name, // Include variant name
-    starred: item.starred ?? false, // 🌟 Preserve starred state from cache
-    derivedCount: item.derivedCount ?? 0, // Include variant count
-    // Include task data if available
-    ...(item.taskId && { taskId: item.taskId }),
-  })) as GenerationRow[];
-};
-
-/**
  * Log video loading strategy for debugging
  */
 export const logVideoLoadingStrategy = (currentVideoOutputs: GenerationRow[], currentPage: number) => {

@@ -40,7 +40,7 @@ export interface ValidationResult {
  * This applies to REPLACE mode to avoid double-blending artifacts.
  * In INSERT mode, the constraint is simpler (just context frames).
  */
-export function calculateMinClipFramesRequired(
+function calculateMinClipFramesRequired(
   contextFrames: number,
   gapFrames: number,
   replaceMode: boolean
@@ -64,7 +64,7 @@ export function calculateMinClipFramesRequired(
  * In INSERT mode:
  * - Only need contextFrames (no frames are removed from source clips)
  */
-export function getMinFramesRequired(
+function getMinFramesRequired(
   contextFrames: number,
   gapFrames: number,
   replaceMode: boolean,
@@ -109,7 +109,7 @@ export function getMinFramesRequired(
 /**
  * Get clip position based on index and total count
  */
-export function getClipPosition(index: number, totalClips: number): 'first' | 'middle' | 'last' {
+function getClipPosition(index: number, totalClips: number): 'first' | 'middle' | 'last' {
   if (index === 0) return 'first';
   if (index === totalClips - 1) return 'last';
   return 'middle';

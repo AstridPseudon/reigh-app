@@ -38,57 +38,12 @@
 import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
-import { GenerationRow, TimelineGenerationRow, Shot } from '@/types/shots';
-import { isTimelineGeneration } from '@/shared/lib/typeGuards';
+import { GenerationRow, Shot } from '@/types/shots';
 import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import React from 'react';
 
 import { mapShotGenerationToRow } from '@/shared/hooks/useShots';
-
-// Hook for getting unpositioned count
-export const useUnpositionedGenerationsCount = (
-  shotId: string | null
-): UseQueryResult<number> => {
-  const smartPollingConfig = useSmartPollingConfig(queryKeys.generations.unpositionedCount(shotId!));
-  return useQuery({
-    queryKey: queryKeys.generations.unpositionedCount(shotId!),
-    enabled: !!shotId,
-    queryFn: async () => {
-      // Try to use the database function first
-      const { data, error } = await supabase
-        .rpc('count_unpositioned_generations', { p_shot_id: shotId! });
-
-      if (!error && data !== null) {
-        return data as number;
-      }
-
-      // Fallback to manual count if function doesn't exist
-      const { count, error: countError } = await supabase
-        .from('shot_generations')
-        .select('generation_id', { count: 'exact', head: true })
-        .eq('shot_id', shotId!)
-        .is('timeline_frame', null);
-
-      if (countError) throw countError;
-
-      // We need to filter out videos, so fetch the actual records
-      const { data: unpositioned } = await supabase
-        .from('shot_generations')
-        .select('generation:generations!shot_generations_generation_id_generations_id_fk(type)')
-        .eq('shot_id', shotId!)
-        .is('timeline_frame', null);
-
-      const nonVideoCount = (unpositioned || []).filter(
-        shotGen => !(shotGen.generation as { type?: string } | null)?.type?.includes('video')
-      ).length;
-
-      return nonVideoCount;
-    },
-    // Smart polling: intelligent intervals based on realtime health
-    ...smartPollingConfig,
-  });
-};
 
 /**
  * Hook for loading ALL shot generations (non-paginated)
@@ -263,62 +218,6 @@ export const useAllShotGenerations = (
   // Return query result (simplified - single query, no phases)
   // ============================================================================
   return mainQuery as UseQueryResult<GenerationRow[]>;
-};
-
-/**
- * Specialized hook for timeline-specific shot generations
- * Returns only positioned images with metadata (required for pair prompts)
- *
- * @deprecated Use `useTimelineImages` instead - it has the same functionality
- * with a clearer name. This export is kept for backwards compatibility.
- *
- * This is a typed wrapper around useShotImages that:
- * 1. Filters to only positioned images (timeline_frame != null)
- * 2. Filters to only images with metadata (required for pair prompts)
- * 3. Returns TimelineGenerationRow type (guarantees metadata exists)
- *
- * @param shotId - The shot ID to load generations for
- * @param options - Query options (disableRefetch, etc.)
- * @returns Query result with TimelineGenerationRow[] data
- *
- * @example
- * ```typescript
- * // Preferred: use useTimelineImages instead
- * const { data: timelineImages } = useTimelineImages(shotId);
- * ```
- */
-export const useTimelineShotGenerations = (
-  shotId: string | null,
-  options?: {
-    disableRefetch?: boolean;
-  }
-): UseQueryResult<TimelineGenerationRow[]> => {
-  const baseQuery = useAllShotGenerations(shotId, options);
-  
-  // Transform the data to filter and type-narrow
-  const timelineData = React.useMemo(() => {
-    if (!baseQuery.data) return undefined;
-    
-    // Filter to only timeline generations (positioned + has metadata) AND not videos
-    // Timeline should only display image frames
-    const filtered = baseQuery.data
-      .filter(isTimelineGeneration)
-      .filter(gen => !gen.type?.includes('video'));
-    
-    console.log('[useTimelineShotGenerations] Filtered timeline generations:', {
-      shotId,
-      totalGenerations: baseQuery.data.length,
-      timelineGenerations: filtered.length,
-      filteredOut: baseQuery.data.length - filtered.length
-    });
-    
-    return filtered;
-  }, [baseQuery.data, shotId]);
-  
-  return {
-    ...baseQuery,
-    data: timelineData
-  } as UseQueryResult<TimelineGenerationRow[]>;
 };
 
 // ============================================================================
@@ -549,6 +448,3 @@ export const usePrimeShotImagesCache = usePrimeShotGenerationsCache;
 
 /** @deprecated Use `useShotImages` instead */
 // useAllShotGenerations is exported above as the implementation
-
-/** @deprecated Use `useTimelineImages` instead (same function, clearer name) */
-export const useTimelineShotGenerations_DEPRECATED = useTimelineShotGenerations;

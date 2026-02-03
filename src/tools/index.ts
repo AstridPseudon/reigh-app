@@ -1,14 +1,6 @@
-// Centralized tool settings exports - automatically registers defaults in toolSettingsService
-export { videoTravelSettings } from './travel-between-images/settings';
-export { imageGenerationSettings } from './image-generation/settings';
-export { characterAnimateSettings } from './character-animate/settings';
-export { joinClipsSettings } from './join-clips/settings';
-export { editImagesSettings } from './edit-images/settings';
-export { editVideoSettings } from './edit-video/settings';
-export { trainingDataHelperSettings } from './training-data-helper/settings';
-export { userPreferencesSettings } from '../shared/settings/userPreferences';
-
 // Tool manifest for UI discovery and automatic registration
+// Note: Individual tool settings are not re-exported here as they're
+// accessed via toolsManifest. Import directly from tool settings files if needed.
 import { videoTravelSettings } from './travel-between-images/settings';
 import { imageGenerationSettings } from './image-generation/settings';
 import { characterAnimateSettings } from './character-animate/settings';

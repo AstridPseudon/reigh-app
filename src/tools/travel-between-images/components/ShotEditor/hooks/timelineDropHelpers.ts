@@ -206,30 +206,6 @@ export const calculateNextAvailableFrame = async (
   return calculatedTargetFrame;
 };
 
-/**
- * Create a map of generation IDs to their timeline positions
- */
-export const createPositionMap = (
-  generationIds: string[],
-  startFrame: number,
-  frameSpacing: number
-): Map<string, number> => {
-  const newPending = new Map<string, number>();
-  
-  generationIds.forEach((genId, index) => {
-    const framePosition = startFrame + (index * frameSpacing);
-    newPending.set(genId, framePosition);
-    console.log('[AddImagesDebug] 📌 Setting pending position:', {
-      generationId: genId.substring(0, 8),
-      index,
-      framePosition,
-      calculation: `${startFrame} + (${index} * ${frameSpacing})`
-    });
-  });
-
-  return newPending;
-};
-
 // ============================================================================
 // Database Operations
 // ============================================================================
@@ -238,7 +214,7 @@ export const createPositionMap = (
  * Query shot_generation records for the given generation IDs
  * Includes retry logic with 500ms delay
  */
-export const queryShotGenerationRecords = async (
+const queryShotGenerationRecords = async (
   shotId: string,
   generationIds: string[]
 ): Promise<ShotGenerationRecord[]> => {
@@ -330,7 +306,7 @@ export const queryShotGenerationRecords = async (
 /**
  * Batch update timeline_frame values for shot_generation records
  */
-export const batchUpdateTimelineFrames = async (
+const batchUpdateTimelineFrames = async (
   shotGenRecords: ShotGenerationRecord[],
   generationIds: string[],
   calculatedTargetFrame: number,
@@ -403,7 +379,7 @@ export const batchUpdateTimelineFrames = async (
 /**
  * Verify that timeline positions were correctly written to database
  */
-export const verifyPositionUpdates = async (
+const verifyPositionUpdates = async (
   shotId: string,
   generationIds: string[]
 ): Promise<void> => {

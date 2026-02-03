@@ -11,7 +11,6 @@ import { QueryClient } from '@tanstack/react-query';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import {
   isImageCached,
-  setImageCacheStatus,
   clearCacheForImages,
   clearCacheForProjectSwitch,
 } from '@/shared/lib/imageCacheManager';
@@ -21,9 +20,6 @@ import {
   preloadImages,
   PreloadableImage,
 } from '@/shared/lib/imagePreloading';
-
-// Re-export for backwards compatibility
-export { setImageCacheStatus as markImageAsCached };
 
 // Global queue for legacy functions
 let legacyQueue: PreloadQueue | null = null;

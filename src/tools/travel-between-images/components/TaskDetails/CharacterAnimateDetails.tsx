@@ -1,8 +1,0 @@
-/**
- * CharacterAnimateDetails - Re-export from shared
- *
- * This component has been moved to shared/components/TaskDetails/CharacterAnimateDetails.tsx
- * Re-exported here for backwards compatibility with existing imports.
- */
-
-export { CharacterAnimateDetails, CharacterAnimateDetails as default } from '@/shared/components/TaskDetails';

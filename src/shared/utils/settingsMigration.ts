@@ -34,7 +34,7 @@ import {
  * Migrate LoRA from any format to LoraConfig.
  * Handles both old ShotLora and new LoraConfig formats.
  */
-export function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig {
+function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig {
   return {
     id: (lora.id as string) ?? (lora.path as string) ?? '',
     name: (lora.name as string) ?? '',
@@ -50,7 +50,7 @@ export function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig {
 /**
  * Migrate an array of LoRAs to the new format.
  */
-export function migrateLoras(loras: Record<string, unknown>[] | undefined | null): LoraConfig[] {
+function migrateLoras(loras: Record<string, unknown>[] | undefined | null): LoraConfig[] {
   if (!loras || !Array.isArray(loras)) return [];
   return loras.map(migrateLoraConfig);
 }
@@ -63,7 +63,7 @@ export function migrateLoras(loras: Record<string, unknown>[] | undefined | null
  * Normalize motion amount to 0-100 scale.
  * Old pair metadata stored 0-1, new format uses 0-100.
  */
-export function normalizeMotionAmount(value: number | undefined): number {
+function normalizeMotionAmount(value: number | undefined): number {
   if (value === undefined) return DEFAULT_SEGMENT_SETTINGS.amountOfMotion;
   // If value is <= 1, assume it's in 0-1 scale and convert
   return value <= 1 ? value * 100 : value;
@@ -73,7 +73,7 @@ export function normalizeMotionAmount(value: number | undefined): number {
  * Convert motion amount from UI scale (0-100) to backend scale (0-1).
  * Only use this at task submission time.
  */
-export function motionAmountToBackend(value: number): number {
+function motionAmountToBackend(value: number): number {
   return value / 100;
 }
 
@@ -125,40 +125,6 @@ export function readShotSettings(raw: Record<string, unknown> | null | undefined
 
     // Legacy (for any code still reading this)
     advancedMode: raw.advancedMode,
-  };
-}
-
-/**
- * Write shot settings in normalized format.
- * Uses existing field names for backwards compatibility.
- *
- * @param settings - Settings to write
- * @returns Object ready to save to shots.settings['travel-between-images']
- */
-export function writeShotSettings(settings: ShotVideoSettings): Record<string, unknown> {
-  return {
-    // Core settings (using existing field names for compatibility)
-    prompt: settings.prompt,
-    negativePrompt: settings.negativePrompt,
-    motionMode: settings.motionMode,
-    amountOfMotion: settings.amountOfMotion,
-    phaseConfig: settings.phaseConfig,
-    selectedPhasePresetId: settings.selectedPhasePresetId,
-    loras: settings.loras,
-    numFrames: settings.numFrames,
-    randomSeed: settings.randomSeed,
-    seed: settings.seed,
-    makePrimaryVariant: settings.makePrimaryVariant,
-
-    // Batch-specific (using existing field names)
-    batchVideoFrames: settings.batchVideoFrames,
-    textBeforePrompts: settings.textBeforePrompts,
-    textAfterPrompts: settings.textAfterPrompts,
-    enhancePrompt: settings.enhancePrompt,
-    generationTypeMode: settings.generationTypeMode,
-
-    // Mark as migrated
-    _settingsVersion: 2,
   };
 }
 
@@ -337,170 +303,3 @@ export function writeSegmentOverrides(
   return metadata;
 }
 
-// =============================================================================
-// MERGE UTILITIES
-// =============================================================================
-
-/**
- * Merge shot defaults with segment overrides to get final segment settings.
- *
- * @param shotSettings - Shot-level defaults
- * @param overrides - Segment-level overrides (sparse)
- * @returns Complete SegmentSettings for this segment
- */
-export function mergeSettingsWithOverrides(
-  shotSettings: ShotVideoSettings,
-  overrides: SegmentOverrides
-): SegmentSettings {
-  return {
-    prompt: overrides.prompt ?? shotSettings.prompt,
-    negativePrompt: overrides.negativePrompt ?? shotSettings.negativePrompt,
-    motionMode: overrides.motionMode ?? shotSettings.motionMode,
-    amountOfMotion: overrides.amountOfMotion ?? shotSettings.amountOfMotion,
-    phaseConfig: overrides.phaseConfig ?? shotSettings.phaseConfig,
-    selectedPhasePresetId: overrides.selectedPhasePresetId ?? shotSettings.selectedPhasePresetId,
-    loras: overrides.loras ?? shotSettings.loras,
-    numFrames: overrides.numFrames ?? shotSettings.numFrames,
-    randomSeed: overrides.randomSeed ?? shotSettings.randomSeed,
-    seed: overrides.seed ?? shotSettings.seed,
-    makePrimaryVariant: shotSettings.makePrimaryVariant,
-    // Structure video overrides (segment-level only, no shot-level defaults)
-    structureMotionStrength: overrides.structureMotionStrength,
-    structureTreatment: overrides.structureTreatment,
-    structureUni3cEndPercent: overrides.structureUni3cEndPercent,
-  };
-}
-
-/**
- * Extract overrides by comparing segment settings to shot defaults.
- * Returns only fields that differ from defaults.
- *
- * @param settings - Current segment settings
- * @param defaults - Shot-level defaults
- * @returns Sparse overrides (only changed fields)
- */
-export function extractOverrides(
-  settings: SegmentSettings,
-  defaults: ShotVideoSettings
-): SegmentOverrides {
-  const overrides: SegmentOverrides = {};
-
-  if (settings.prompt !== defaults.prompt) {
-    overrides.prompt = settings.prompt;
-  }
-  if (settings.negativePrompt !== defaults.negativePrompt) {
-    overrides.negativePrompt = settings.negativePrompt;
-  }
-  if (settings.motionMode !== defaults.motionMode) {
-    overrides.motionMode = settings.motionMode;
-  }
-  if (settings.amountOfMotion !== defaults.amountOfMotion) {
-    overrides.amountOfMotion = settings.amountOfMotion;
-  }
-  if (JSON.stringify(settings.phaseConfig) !== JSON.stringify(defaults.phaseConfig)) {
-    overrides.phaseConfig = settings.phaseConfig;
-  }
-  if (settings.selectedPhasePresetId !== defaults.selectedPhasePresetId) {
-    overrides.selectedPhasePresetId = settings.selectedPhasePresetId;
-  }
-  if (JSON.stringify(settings.loras) !== JSON.stringify(defaults.loras)) {
-    overrides.loras = settings.loras;
-  }
-  if (settings.numFrames !== defaults.numFrames) {
-    overrides.numFrames = settings.numFrames;
-  }
-  if (settings.randomSeed !== defaults.randomSeed) {
-    overrides.randomSeed = settings.randomSeed;
-  }
-  if (settings.seed !== defaults.seed) {
-    overrides.seed = settings.seed;
-  }
-  // Structure video overrides (always include if set since no shot-level defaults)
-  if (settings.structureMotionStrength !== undefined) {
-    overrides.structureMotionStrength = settings.structureMotionStrength;
-  }
-  if (settings.structureTreatment !== undefined) {
-    overrides.structureTreatment = settings.structureTreatment;
-  }
-  if (settings.structureUni3cEndPercent !== undefined) {
-    overrides.structureUni3cEndPercent = settings.structureUni3cEndPercent;
-  }
-
-  return overrides;
-}
-
-// =============================================================================
-// CONVERSION TO TASK PARAMS (for backend)
-// =============================================================================
-
-/**
- * Convert SegmentSettings to task params format for backend.
- * This is where amountOfMotion 0-100 → 0-1 conversion happens.
- *
- * @param settings - Segment settings
- * @returns Object ready for task creation
- */
-export function settingsToTaskParams(settings: SegmentSettings): Record<string, unknown> {
-  return {
-    // Prompts
-    base_prompt: settings.prompt,
-    negative_prompt: settings.negativePrompt,
-
-    // Motion (convert to 0-1 scale for backend)
-    motion_mode: settings.motionMode,
-    amount_of_motion: motionAmountToBackend(settings.amountOfMotion),
-    advanced_mode: settings.motionMode === 'advanced',
-
-    // Phase config
-    phase_config: settings.phaseConfig,
-    selected_phase_preset_id: settings.selectedPhasePresetId,
-
-    // LoRAs (convert to backend format)
-    loras: settings.loras.map(l => ({
-      path: l.path,
-      strength: l.strength,
-      low_noise_path: l.lowNoisePath,
-      is_multi_stage: l.isMultiStage,
-    })),
-
-    // Video
-    num_frames: settings.numFrames,
-
-    // Seed
-    random_seed: settings.randomSeed,
-    seed: settings.seed,
-
-    // Structure video overrides (only included if set)
-    ...(settings.structureMotionStrength !== undefined && {
-      structure_motion_strength: settings.structureMotionStrength,
-    }),
-    ...(settings.structureTreatment !== undefined && {
-      structure_treatment: settings.structureTreatment,
-    }),
-    ...(settings.structureUni3cEndPercent !== undefined && {
-      structure_uni3c_end_percent: settings.structureUni3cEndPercent,
-    }),
-  };
-}
-
-// =============================================================================
-// LOGGING HELPERS
-// =============================================================================
-
-/**
- * Create a loggable summary of settings for debugging.
- */
-export function summarizeSettings(settings: SegmentSettings | ShotVideoSettings): Record<string, unknown> {
-  return {
-    prompt: settings.prompt?.substring(0, 30) + (settings.prompt?.length > 30 ? '...' : ''),
-    negativePrompt: settings.negativePrompt?.substring(0, 30) + (settings.negativePrompt?.length > 30 ? '...' : ''),
-    motionMode: settings.motionMode,
-    amountOfMotion: settings.amountOfMotion,
-    hasPhaseConfig: !!settings.phaseConfig,
-    selectedPhasePresetId: settings.selectedPhasePresetId,
-    loraCount: settings.loras?.length ?? 0,
-    numFrames: settings.numFrames,
-    randomSeed: settings.randomSeed,
-    seed: settings.seed,
-  };
-}

@@ -31,7 +31,7 @@ export type SupabaseErrorCode = typeof SUPABASE_ERROR[keyof typeof SUPABASE_ERRO
 /**
  * Type guard for objects with a `code` property.
  */
-export function isErrorWithCode(error: unknown): error is { code: string } {
+function isErrorWithCode(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error;
 }
 

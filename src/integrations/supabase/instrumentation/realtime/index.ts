@@ -19,7 +19,7 @@ export function installRealtimeInstrumentation(supabase: SupabaseClient) {
 }
 
 // Legacy function for backward compatibility - direct implementation
-export function installRealtimeInstrumentationLegacy(supabase: SupabaseClient) {
+function installRealtimeInstrumentationLegacy(supabase: SupabaseClient) {
   if (typeof window === 'undefined' || !supabase?.realtime) return;
   const realtime = supabase.realtime as unknown as RealtimeClientWithInstrumentation;
 

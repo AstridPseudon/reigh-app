@@ -177,28 +177,3 @@ export const DEFAULT_SHOT_VIDEO_SETTINGS: ShotVideoSettings = {
 };
 
 // =============================================================================
-// TYPE GUARDS
-// =============================================================================
-
-/**
- * Check if a value is a valid LoraConfig.
- */
-export function isLoraConfig(value: unknown): value is LoraConfig {
-  if (typeof value !== 'object' || value === null) return false;
-  const obj = value as Record<string, unknown>;
-  return typeof obj.path === 'string' && typeof obj.strength === 'number';
-}
-
-/**
- * Check if a value is a valid SegmentSettings.
- */
-export function isSegmentSettings(value: unknown): value is SegmentSettings {
-  if (typeof value !== 'object' || value === null) return false;
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.prompt === 'string' &&
-    typeof obj.negativePrompt === 'string' &&
-    (obj.motionMode === 'basic' || obj.motionMode === 'advanced') &&
-    typeof obj.amountOfMotion === 'number'
-  );
-}

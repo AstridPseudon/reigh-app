@@ -1,28 +1,6 @@
 import type { CommandConfig } from './types';
 
 /**
- * Format the age of a token in human-readable form
- */
-export const formatTokenAge = (createdAt: string | number): string => {
-  const now = new Date();
-  const created = new Date(createdAt);
-  const diffInMs = now.getTime() - created.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  const diffInDays = Math.floor(diffInHours / 24);
-
-  if (diffInMinutes < 1) {
-    return "< 1 min old token";
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes} min old token`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h old token`;
-  } else {
-    return `${diffInDays}d old token`;
-  }
-};
-
-/**
  * Safe clipboard copy with fallback for older browsers
  */
 export const safeCopy = async (text: string): Promise<boolean> => {

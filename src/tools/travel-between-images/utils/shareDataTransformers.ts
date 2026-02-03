@@ -34,31 +34,6 @@ export function transformGenerationToParentRow(
 }
 
 /**
- * Transform share page images to the format expected by ShotImagesEditor.
- *
- * The images from the RPC should already be in GenerationRow format,
- * but this ensures consistency and handles any edge cases.
- *
- * @param images - Array of image data from the share RPC
- * @returns Array of GenerationRow compatible objects
- */
-export function transformImagesToGenerationRows(
-  images: Record<string, unknown>[] | null | undefined
-): GenerationRow[] {
-  if (!images || !Array.isArray(images)) return [];
-
-  return images.map((img) => ({
-    ...img,
-    // Ensure required fields exist
-    id: img.id || img.generation_id,
-    generation_id: getGenerationId(img as GenerationRow),
-    type: img.type || 'image',
-    imageUrl: img.imageUrl || img.location,
-    thumbUrl: img.thumbUrl || img.thumbnail_url,
-  })) as GenerationRow[];
-}
-
-/**
  * Calculate the appropriate column count for the image grid based on device type.
  *
  * Uses the same logic as ShotEditor to ensure consistent display.

@@ -63,7 +63,7 @@ export const validateGaps = (
 // Shrink oversized gaps and enforce frame 0 constraint.
 // First item is always placed at position 0.
 // ---------------------------------------------------------------------------
-export const shrinkOversizedGaps = (
+const shrinkOversizedGaps = (
   positions: Map<string, number>,
   excludeId?: string,
   skipQuantization: boolean = false,
@@ -143,64 +143,6 @@ export const pixelToFrame = (pixelX: number, containerWidth: number, fullMin: nu
   return Math.round(fullMin + fraction * fullRange);
 };
 
-// Find closest valid position using binary search
-export const findClosestValidPosition = (
-  targetFrame: number,
-  activeId: string,
-  framePositions: Map<string, number>,
-): number => {
-  const originalPos = framePositions.get(activeId) ?? 0;
-
-  const validateWithFrame0Logic = (testFrame: number): boolean => {
-    const testMap = new Map(framePositions);
-    testMap.set(activeId, testFrame);
-
-    if (originalPos === 0 && testFrame !== 0) {
-      const nearest = [...testMap.entries()]
-        .filter(([id]) => id !== activeId)
-        .sort((a, b) => a[1] - b[1])[0];
-      if (nearest) {
-        testMap.set(nearest[0], 0);
-      }
-    }
-
-    return validateGaps(testMap);
-  };
-
-  if (validateWithFrame0Logic(targetFrame)) {
-    return targetFrame;
-  }
-
-  // Binary search for closest valid position
-  const direction = targetFrame > originalPos ? 1 : -1;
-  let low = Math.min(originalPos, targetFrame);
-  let high = Math.max(originalPos, targetFrame);
-  let best = originalPos;
-  let iterations = 0;
-
-  while (low <= high && iterations < 20) {
-    const mid = Math.round((low + high) / 2);
-    iterations++;
-
-    if (validateWithFrame0Logic(mid)) {
-      best = mid;
-      if (direction > 0) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    } else {
-      if (direction > 0) {
-        high = mid - 1;
-      } else {
-        low = mid + 1;
-      }
-    }
-  }
-
-  return best;
-};
-
 // Calculate timeline dimensions
 const MINIMUM_TIMELINE_MAX = 30;
 
@@ -226,7 +168,7 @@ export const getTimelineDimensions = (
 };
 
 // Clamp value between min and max
-export const clamp = (value: number, min: number, max: number): number => {
+const clamp = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(value, max));
 };
 
@@ -355,7 +297,7 @@ export const calculateNewVideoPlacement = (
  * Extract pair_shot_generation_id from a generation row.
  * Checks the FK column first, then falls back to params for legacy data.
  */
-export const getPairShotGenerationId = (
+const getPairShotGenerationId = (
   generation: {
     pair_shot_generation_id?: string | null;
     params?: Record<string, unknown> | null;

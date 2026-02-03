@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GeneratedImageWithMetadata } from '../MediaGallery';
 
 /**
@@ -46,6 +46,7 @@ export interface UseMediaGalleryPaginationReturn {
   // Pagination state
   page: number;
   setPage: (page: number) => void;
+  goToFirstPage: () => void;  // Explicit method for callers to reset page
   isServerPagination: boolean;
 
   // Unified navigation state (new)
@@ -83,8 +84,8 @@ export const useMediaGalleryPagination = ({
   galleryTopRef,
 }: UseMediaGalleryPaginationProps): UseMediaGalleryPaginationReturn => {
 
-  // Pagination state
-  const [page, setPage] = useState(0);
+  // Raw page state - may temporarily be out of bounds
+  const [rawPage, setRawPage] = useState(0);
 
   // Determine if we're in server-side pagination mode (available at init time)
   const isServerPagination = !!(onServerPageChange && serverPage);
@@ -102,41 +103,64 @@ export const useMediaGalleryPagination = ({
   // Track last applied server data signature so we can clear loading when new data arrives
   const lastServerDataSignatureRef = useRef<string>('');
 
-  // CRITICAL: Track navigation state changes for debugging
-  useEffect(() => {
-    console.log(`[NAV_STATE] Navigation state changed:`, {
-      status: navigationState.status,
-      direction: navigationState.direction,
-      targetPage: navigationState.targetPage,
-      isServerPagination,
-      currentPage: isServerPagination ? serverPage : page,
-      elapsed: navigationState.startedAt ? Date.now() - navigationState.startedAt : null,
-      timestamp: Date.now()
-    });
-  }, [navigationState, isServerPagination, serverPage, page]);
-
   // Derive backwards-compatible values from unified state
   const loadingButton = navigationState.status === 'navigating' ? navigationState.direction : null;
   const isGalleryLoading = navigationState.status === 'navigating';
-  
-  // When filters change, reset to first page (debounced to avoid rapid state changes)
-  useEffect(() => {
-    const timer = setTimeout(() => setPage(0), 10);
-    return () => clearTimeout(timer);
-  }, [filteredImages.length]); // Reset when filtered results change
-  
+
   // Calculate pagination values
   const totalFilteredItems = isServerPagination ? (totalCount ?? (offset + filteredImages.length)) : filteredImages.length;
-  const currentPageForCalc = isServerPagination ? (serverPage! - 1) : page;
   const totalPages = Math.max(1, Math.ceil(totalFilteredItems / itemsPerPage));
-  
+
+  // DERIVED PAGE: Always clamped to valid range
+  // This is the key insight - instead of using effects to fix invalid pages,
+  // we derive a valid page from the raw page. No effects, no race conditions.
+  const page = Math.min(rawPage, Math.max(0, totalPages - 1));
+
+  // If raw page was out of bounds, sync it (this is a one-time correction, not a loop)
+  // We use a ref to track if we've already logged this to avoid spam
+  const lastCorrectionRef = useRef<{ raw: number; clamped: number } | null>(null);
+  if (rawPage !== page) {
+    const correction = { raw: rawPage, clamped: page };
+    if (
+      !lastCorrectionRef.current ||
+      lastCorrectionRef.current.raw !== correction.raw ||
+      lastCorrectionRef.current.clamped !== correction.clamped
+    ) {
+      lastCorrectionRef.current = correction;
+      console.log('[Pagination] Page clamped from', rawPage, 'to', page, '(totalPages:', totalPages, ')');
+    }
+    // Sync the raw state to avoid drift (this won't cause re-render loops because page is derived)
+    // Using setTimeout to avoid state update during render
+    setTimeout(() => setRawPage(page), 0);
+  }
+
+  // For server pagination: notify parent if their page is out of bounds
+  // This is the ONE place we handle orphaned server pages
+  const lastServerPageNotificationRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isServerPagination || !onServerPageChange) return;
+
+    const currentServerPage = serverPage ?? 1;
+    if (currentServerPage > totalPages && totalPages > 0) {
+      // Avoid notifying multiple times for the same correction
+      if (lastServerPageNotificationRef.current === currentServerPage) return;
+      lastServerPageNotificationRef.current = currentServerPage;
+
+      console.log('[Pagination] Server page out of bounds, notifying parent:', currentServerPage, '→', totalPages);
+      onServerPageChange(totalPages);
+    } else {
+      // Reset the ref when page is valid
+      lastServerPageNotificationRef.current = null;
+    }
+  }, [isServerPagination, serverPage, totalPages, onServerPageChange]);
+
   const rangeStart = totalFilteredItems === 0 ? 0 : (isServerPagination ? offset : page * itemsPerPage) + 1;
   // For server pagination, show the actual displayed count (capped at itemsPerPage for full rows)
   const displayedCount = isServerPagination
     ? Math.min(itemsPerPage, filteredImages.length)
     : Math.min(itemsPerPage, filteredImages.length - page * itemsPerPage);
   const rangeEnd = rangeStart + displayedCount - 1;
-  
+
   // Get paginated images
   const paginatedImages = React.useMemo(() => {
     if (isServerPagination) {
@@ -146,13 +170,17 @@ export const useMediaGalleryPagination = ({
     }
     return filteredImages.slice(page * itemsPerPage, (page + 1) * itemsPerPage);
   }, [filteredImages, page, isServerPagination, itemsPerPage]);
-  
-  // Ensure current page is within bounds when totalPages changes (e.g., after filtering)
-  useEffect(() => {
-    if (page >= totalPages) {
-      setPage(Math.max(0, totalPages - 1));
+
+  // Explicit method for callers to reset to first page
+  // This replaces the auto-reset effect - callers now declare their intent
+  const goToFirstPage = useCallback(() => {
+    console.log('[Pagination] goToFirstPage called explicitly');
+    if (isServerPagination && onServerPageChange) {
+      onServerPageChange(1);
+    } else {
+      setRawPage(0);
     }
-  }, [totalPages, page]);
+  }, [isServerPagination, onServerPageChange]);
 
   // Canonical way to clear navigation state - called by onImagesReady
   const clearNavigation = useCallback(() => {
@@ -235,7 +263,7 @@ export const useMediaGalleryPagination = ({
     clearNavigation();
 
   }, [filteredImages, isServerPagination, navigationState.status, serverPage, clearNavigation]);
-  
+
   // Handle pagination with loading state
   const handlePageChange = useCallback((newPage: number, direction: 'prev' | 'next', fromBottom = false) => {
     // Generate unique navigation ID for tracking
@@ -281,7 +309,7 @@ export const useMediaGalleryPagination = ({
     } else {
       // Client-side pagination - update page state immediately
       console.log(`[NAV_STATE] [${navId}] Client pagination - updating local page state`);
-      setPage(newPage);
+      setRawPage(newPage);
 
       // Handle scroll for bottom button clicks
       // Note: This happens in a timeout to ensure the page state update has been processed
@@ -300,8 +328,8 @@ export const useMediaGalleryPagination = ({
       }
       // Loading will be cleared by onImagesReady when images render
     }
-  }, [navigationState.status, navigationState.direction, isServerPagination, onServerPageChange, setPage, isMobile, page, serverPage, galleryTopRef]);
-  
+  }, [navigationState.status, navigationState.direction, isServerPagination, onServerPageChange, isMobile, page, serverPage, galleryTopRef]);
+
   // Clean up safety timeout on unmount
   useEffect(() => {
     return () => {
@@ -310,11 +338,12 @@ export const useMediaGalleryPagination = ({
       }
     };
   }, []);
-  
+
   return {
     // Pagination state
     page,
-    setPage,
+    setPage: setRawPage,  // Expose raw setter for external use
+    goToFirstPage,        // New: explicit method to reset to first page
     isServerPagination,
 
     // Unified navigation state (new)

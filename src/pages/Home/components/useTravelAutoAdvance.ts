@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 
 // Timing constants - keep CSS and JS in sync
-export const AUTO_ADVANCE_DELAY_MS = 3800;
+const AUTO_ADVANCE_DELAY_MS = 3800;
 export const AUTO_ADVANCE_ANIMATION_DURATION = '3.75s';
 
 interface UseTravelAutoAdvanceOptions {

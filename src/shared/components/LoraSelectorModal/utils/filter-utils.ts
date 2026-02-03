@@ -24,7 +24,7 @@ export function getDefaultSubFilter(loraType: string | undefined): string {
 }
 
 // Check if a lora matches a filter category
-export function matchesFilterCategory(loraType: string | undefined, filter: ModelFilterCategory): boolean {
+function matchesFilterCategory(loraType: string | undefined, filter: ModelFilterCategory): boolean {
   if (filter === 'all') return true;
   if (!loraType) return false;
   const lower = loraType.toLowerCase();

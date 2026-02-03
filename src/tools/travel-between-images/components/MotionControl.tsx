@@ -27,7 +27,7 @@ export const BUILTIN_DEFAULT_I2V_ID = '__builtin_default_i2v__';
 export const BUILTIN_DEFAULT_VACE_ID = '__builtin_default_vace__';
 
 // Built-in default preset for I2V mode
-export const BUILTIN_I2V_PRESET = {
+const BUILTIN_I2V_PRESET = {
   id: BUILTIN_DEFAULT_I2V_ID,
   metadata: {
     name: 'Basic',
@@ -37,7 +37,7 @@ export const BUILTIN_I2V_PRESET = {
 };
 
 // Built-in default preset for VACE mode
-export const BUILTIN_VACE_PRESET = {
+const BUILTIN_VACE_PRESET = {
   id: BUILTIN_DEFAULT_VACE_ID,
   metadata: {
     name: 'Basic',

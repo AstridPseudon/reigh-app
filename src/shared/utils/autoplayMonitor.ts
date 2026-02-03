@@ -107,7 +107,7 @@ const logVideoStateChanges = (current: VideoState[], previous: VideoState[]) => 
   }
 };
 
-export const startAutoplayMonitoring = () => {
+const startAutoplayMonitoring = () => {
   if (monitoringActive || process.env.NODE_ENV !== 'development') return;
   
   console.log('[AutoplayMonitor] 🎬 Starting autoplay monitoring...');
@@ -124,7 +124,7 @@ export const startAutoplayMonitoring = () => {
   }, 1000); // Check every second
 };
 
-export const stopAutoplayMonitoring = () => {
+const stopAutoplayMonitoring = () => {
   if (!monitoringActive) return;
   
   console.log('[AutoplayMonitor] 🛑 Stopping autoplay monitoring...');

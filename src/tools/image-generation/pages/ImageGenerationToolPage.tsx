@@ -170,8 +170,9 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
   const { apiKeys, getApiKey } = useApiKeys();
   const imageGenerationFormRef = useRef<ImageGenerationFormHandles>(null);
   // Measure gallery container dimensions for calculating correct items per page
-  // Height offset accounts for pagination controls at bottom (~80px)
-  const [galleryRef, containerDimensions] = useContainerDimensions(80);
+  // Height offset accounts for gallery internal chrome:
+  //   MediaGalleryHeader filters (~40px) + space-y-6 gaps (~48px) + bottom pagination (~62px) ≈ 150px
+  const [galleryRef, containerDimensions] = useContainerDimensions(150);
   const formContainerRef = useRef<HTMLDivElement>(null);
   const collapsibleContainerRef = useRef<HTMLDivElement>(null);
   const [searchParams] = useSearchParams();
@@ -280,9 +281,9 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
   const stableSkeletonLayout = useRef<{ columns: number; itemsPerPage: number } | null>(null);
   if (stableSkeletonLayout.current === null) {
     // Use window dimensions estimate for stable initial value
-    // Height offset of 80 matches useContainerDimensions offset for header + controls
+    // Height offset of 150 matches useContainerDimensions offset for gallery chrome
     const estimatedWidth = typeof window !== 'undefined' ? Math.floor(window.innerWidth * 0.9) : 800;
-    const estimatedHeight = typeof window !== 'undefined' ? window.innerHeight - 80 : 600;
+    const estimatedHeight = typeof window !== 'undefined' ? window.innerHeight - 150 : 600;
     const stableLayout = getLayoutForAspectRatio(projectAspectRatio, isMobile, estimatedWidth, estimatedHeight, true);
     stableSkeletonLayout.current = {
       columns: stableLayout.columns,
@@ -969,6 +970,60 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       }
     };
   }, []);
+
+  // Keyboard navigation: left/right arrow keys change gallery pages
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+      const target = e.target as HTMLElement;
+      const tag = target?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable;
+      const dialog = document.querySelector('[role="dialog"], [data-state="open"].fixed');
+
+      const totalCount = generationsResponse?.total ?? lastKnownTotal;
+      const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+      console.log('[KeyNav]', {
+        key: e.key,
+        currentPage,
+        totalPages,
+        totalCount,
+        itemsPerPage,
+        isInput,
+        targetTag: tag,
+        dialogOpen: !!dialog,
+        dialogEl: dialog?.tagName + '.' + dialog?.className?.toString().substring(0, 60),
+      });
+
+      if (isInput) {
+        console.log('[KeyNav] Skipped: focus in input/textarea');
+        return;
+      }
+      if (dialog) {
+        console.log('[KeyNav] Skipped: dialog/modal open');
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        e.preventDefault();
+        console.log('[KeyNav] Navigating to page', currentPage - 1);
+        handleServerPageChange(currentPage - 1);
+      } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        e.preventDefault();
+        console.log('[KeyNav] Navigating to page', currentPage + 1);
+        handleServerPageChange(currentPage + 1);
+      } else {
+        console.log('[KeyNav] At boundary, no navigation', {
+          atFirst: currentPage <= 1,
+          atLast: currentPage >= totalPages,
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage, itemsPerPage, generationsResponse?.total, lastKnownTotal, handleServerPageChange]);
 
   return (
     <PageFadeIn>

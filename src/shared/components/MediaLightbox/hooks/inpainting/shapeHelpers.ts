@@ -128,26 +128,3 @@ export function getRectangleClickType(
 
   return null;
 }
-
-/**
- * Scale strokes proportionally when canvas size changes
- */
-export function scaleStrokes(
-  strokes: BrushStroke[],
-  oldWidth: number,
-  oldHeight: number,
-  newWidth: number,
-  newHeight: number
-): BrushStroke[] {
-  const scaleX = newWidth / oldWidth;
-  const scaleY = newHeight / oldHeight;
-
-  return strokes.map(stroke => ({
-    ...stroke,
-    points: stroke.points.map(point => ({
-      x: point.x * scaleX,
-      y: point.y * scaleY
-    })),
-    // Keep brush size the same (it's relative to drawing, not image size)
-  }));
-}

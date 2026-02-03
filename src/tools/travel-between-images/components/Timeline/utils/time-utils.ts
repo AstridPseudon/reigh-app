@@ -7,14 +7,9 @@
  */
 
 export {
-  FPS,
   isValidFrameCount,
   quantizeFrameCount,
-  nextValidFrameCount,
-  prevValidFrameCount,
   getValidFrameCounts,
   quantizeGap,
   framesToSeconds,
-  framesToSecondsValue,
-  secondsToFrames,
 } from '@/shared/lib/videoUtils';

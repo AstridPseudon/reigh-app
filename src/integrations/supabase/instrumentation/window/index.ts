@@ -9,7 +9,7 @@ export function installWindowOnlyInstrumentation() {
 }
 
 // Legacy function for backward compatibility - now delegates to InstrumentationManager
-export function installWindowOnlyInstrumentationLegacy() {
+function installWindowOnlyInstrumentationLegacy() {
   if (typeof window === 'undefined') return;
 
   // localStorage monitoring removed - not needed in production

@@ -16,7 +16,7 @@
 export const DEFAULT_FRAME_SPACING = 50;
 
 /** Minimum spacing to use even if average is lower (prevents overly tight timelines) */
-export const MIN_FRAME_SPACING = 10;
+const MIN_FRAME_SPACING = 10;
 
 /**
  * Calculate the average spacing between existing frames in a timeline.
@@ -113,44 +113,6 @@ export const ensureUniqueFrame = (
     existingCount: existingFrames.length
   });
   return fallback;
-};
-
-/**
- * Calculate unique positions for multiple items being added at once.
- * Ensures all new items get unique positions relative to existing items AND each other.
- * 
- * @param startFrame - The starting frame for the first item
- * @param count - Number of items to position
- * @param existingFrames - Array of existing frame positions
- * @param spacing - Spacing between consecutive items (default: 1)
- * @returns Array of unique frame positions for each item
- */
-export const calculateUniqueFramesForBatch = (
-  startFrame: number,
-  count: number,
-  existingFrames: number[],
-  spacing: number = 1
-): number[] => {
-  const result: number[] = [];
-  const allUsedFrames = [...existingFrames];
-  
-  for (let i = 0; i < count; i++) {
-    const targetFrame = startFrame + (i * spacing);
-    const uniqueFrame = ensureUniqueFrame(targetFrame, allUsedFrames);
-    result.push(uniqueFrame);
-    // Add to used frames so subsequent items don't collide with this one
-    allUsedFrames.push(uniqueFrame);
-  }
-  
-  console.log('[UniqueFrame] 📦 Batch positions calculated:', {
-    startFrame,
-    count,
-    spacing,
-    existingCount: existingFrames.length,
-    results: result
-  });
-  
-  return result;
 };
 
 /**

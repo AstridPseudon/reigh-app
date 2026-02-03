@@ -12,7 +12,7 @@ export const TASK_STATUS = {
 
 export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 
-export const CREDIT_LEDGER_TYPE = {
+const CREDIT_LEDGER_TYPE = {
   STRIPE: 'stripe',
   MANUAL: 'manual',
   SPEND: 'spend', 

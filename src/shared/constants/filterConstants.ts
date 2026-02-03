@@ -24,9 +24,3 @@ export function isSpecialFilter(filter: string): filter is SpecialShotFilter {
   return filter === SHOT_FILTER.ALL || filter === SHOT_FILTER.NO_SHOT;
 }
 
-/**
- * Type guard to check if the filter represents a specific shot (not 'all' or 'no-shot').
- */
-export function isSpecificShotFilter(filter: string): boolean {
-  return !isSpecialFilter(filter);
-}

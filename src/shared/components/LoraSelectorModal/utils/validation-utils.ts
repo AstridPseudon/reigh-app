@@ -20,7 +20,7 @@ export function validateHuggingFaceUrl(url: string): { isValid: boolean; message
   return { isValid: true, message: '' };
 }
 
-export function extractFilenameFromUrl(url: string): string {
+function extractFilenameFromUrl(url: string): string {
   try {
     // Extract filename from /resolve/ URL
     const urlParts = url.split('/');

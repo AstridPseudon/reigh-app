@@ -22,7 +22,7 @@ interface RawGenerationData {
 /**
  * Build shot associations array from shot_generations relation
  */
-export const buildShotAssociations = (shotGenerations: ShotGenerationJoinRow[]) => {
+const buildShotAssociations = (shotGenerations: ShotGenerationJoinRow[]) => {
   return shotGenerations.map((sg) => ({
     shot_id: sg.shot_id,
     timeline_frame: sg.timeline_frame,

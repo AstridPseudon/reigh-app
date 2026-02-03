@@ -46,6 +46,3 @@ export const editVideoSettings = {
 // TypeScript type for settings
 export type EditVideoSettings = typeof editVideoSettings.defaults;
 
-// Re-export shared defaults for convenience
-export { BUILTIN_VACE_DEFAULT_ID, DEFAULT_VACE_PHASE_CONFIG } from '@/shared/lib/vaceDefaults';
-

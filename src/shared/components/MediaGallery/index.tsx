@@ -760,6 +760,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
               const next = Boolean(val);
               // Update local filter state immediately to keep UI responsive
               filtersHook.setShowStarredOnly(next);
+              // Explicitly reset to first page when filter changes
+              paginationHook.goToFirstPage();
               // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
@@ -777,6 +779,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             onShotFilterChange={(shotId) => {
               // Update local shot filter state immediately
               filtersHook.setShotFilter(shotId);
+              // Explicitly reset to first page when filter changes
+              paginationHook.goToFirstPage();
               // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
@@ -788,6 +792,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             onExcludePositionedChange={(exclude) => {
               // Update local exclude positioned state immediately
               filtersHook.setExcludePositioned(exclude);
+              // Explicitly reset to first page when filter changes
+              paginationHook.goToFirstPage();
               // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
@@ -807,6 +813,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             handleSearchChange={(value) => {
               // Update local search state immediately
               filtersHook.setSearchTerm(value);
+              // Explicitly reset to first page when search changes
+              paginationHook.goToFirstPage();
               // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
@@ -820,6 +828,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             onMediaTypeFilterChange={(value) => {
               // Update local filter state immediately to keep UI responsive
               filtersHook.setMediaTypeFilter(value);
+              // Explicitly reset to first page when filter changes
+              paginationHook.goToFirstPage();
               // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
@@ -833,6 +843,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             onToolTypeFilterChange={(enabled) => {
               // Update local filter state immediately to keep UI responsive
               filtersHook.setToolTypeFilterEnabled(enabled);
+              // Explicitly reset to first page when filter changes
+              paginationHook.goToFirstPage();
               // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);

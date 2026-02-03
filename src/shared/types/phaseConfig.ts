@@ -129,7 +129,7 @@ export const DEFAULT_VACE_PHASE_CONFIG: PhaseConfig = {
 // =============================================================================
 
 /** Motion LoRA URL - used when amount_of_motion > 0 */
-export const MOTION_LORA_URL = 'https://huggingface.co/peteromallet/random_junk/resolve/main/14b-i2v.safetensors';
+const MOTION_LORA_URL = 'https://huggingface.co/peteromallet/random_junk/resolve/main/14b-i2v.safetensors';
 
 /**
  * User LoRA input format for buildBasicModePhaseConfig

@@ -51,7 +51,7 @@ export interface ImageGenerationSettings {
   hiresFixConfig?: HiresFixConfig; // Two-pass hires fix settings
 }
 
-export const defaultImageGenerationSettings: ImageGenerationSettings = {
+const defaultImageGenerationSettings: ImageGenerationSettings = {
   prompts: [
     {
       id: 'prompt-1',

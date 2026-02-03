@@ -4,23 +4,17 @@
 // Re-exported here for backwards compatibility with existing imports.
 // =============================================================================
 export {
-  type PhaseLoraConfig,
-  type PhaseSettings,
   type PhaseConfig,
-  type UserLoraInput,
   DEFAULT_PHASE_CONFIG,
   DEFAULT_VACE_PHASE_CONFIG,
-  MOTION_LORA_URL,
   buildBasicModePhaseConfig,
 } from '@/shared/types/phaseConfig';
 
-// Import for local use, then re-export for backwards compatibility
+// Import for local use
 import {
   type SteerableMotionSettings,
   DEFAULT_STEERABLE_MOTION_SETTINGS,
 } from '@/shared/types/steerableMotion';
-
-export { type SteerableMotionSettings, DEFAULT_STEERABLE_MOTION_SETTINGS };
 
 // =============================================================================
 // TOOL-SPECIFIC TYPES

@@ -3,20 +3,10 @@
  * Re-exports all shot-related hooks for backwards compatibility.
  *
  * Import from this file or from '@/shared/hooks/useShots' (which re-exports from here).
+ *
+ * Note: Cache utilities (cacheUtils.ts) are internal to this module
+ * and not re-exported - internal code imports directly from cacheUtils.
  */
-
-// Cache utilities
-export {
-  SHOTS_CACHE_VARIANTS,
-  getShotsCacheKeys,
-  updateAllShotsCaches,
-  rollbackShotsCaches,
-  cancelShotsQueries,
-  findShotsCache,
-  updateShotGenerationsCache,
-  rollbackShotGenerationsCache,
-  cancelShotGenerationsQuery,
-} from './cacheUtils';
 
 // Mappers
 export { mapShotGenerationToRow } from './mappers';
@@ -34,11 +24,7 @@ export {
 export { useListShots, useProjectImageStats } from './useShotsQueries';
 
 // Shot field updates
-export {
-  useUpdateShotField,
-  useUpdateShotName,
-  useUpdateShotAspectRatio,
-} from './useShotUpdates';
+export { useUpdateShotName } from './useShotUpdates';
 
 // Shot-generation mutations (add, remove, reorder images in shots)
 export {
@@ -52,7 +38,6 @@ export {
 
 // Composite creation operations
 export {
-  createGenerationForUploadedImage,
   useCreateShotWithImage,
   useHandleExternalImageDrop,
 } from './useShotCreation';

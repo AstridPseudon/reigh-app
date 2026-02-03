@@ -22,8 +22,10 @@ export function useContainerWidth(): [RefObject<HTMLDivElement | null>, number] 
     const element = containerRef.current;
     if (!element) return;
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     // Set up ResizeObserver - this is the source of truth for width
-    // We skip the initial offsetWidth read because it may fire before layout is complete
+    // Debounced to avoid rapid recalculations during animated resizes (e.g. pane lock/unlock)
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newWidth = entry.contentRect.width;
@@ -31,7 +33,8 @@ export function useContainerWidth(): [RefObject<HTMLDivElement | null>, number] 
         // This filters out intermediate layout states
         if (newWidth > initialEstimate * 0.5) {
           hasReceivedStableWidth.current = true;
-          setWidth(newWidth);
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => setWidth(newWidth), 150);
         }
       }
     });
@@ -48,6 +51,7 @@ export function useContainerWidth(): [RefObject<HTMLDivElement | null>, number] 
     return () => {
       resizeObserver.disconnect();
       clearTimeout(fallbackTimeout);
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
   }, [initialEstimate]);
 
@@ -97,28 +101,58 @@ export function useContainerDimensions(
 
     const updateDimensions = () => {
       const newWidth = element.getBoundingClientRect().width;
-      // Use full viewport height minus offset - not dependent on scroll position
-      const viewportHeight = window.innerHeight - heightOffset;
+
+      // Detect sticky/fixed header height by scanning for header-like elements
+      // pinned at the top of the viewport (the site header is a sibling, not ancestor)
+      let fixedChromeHeight = 0;
+      const candidates = document.querySelectorAll('[class*="sticky"], [class*="fixed"]');
+      for (const el of candidates) {
+        const style = getComputedStyle(el);
+        if (style.position !== 'sticky' && style.position !== 'fixed') continue;
+        const rect = el.getBoundingClientRect();
+        // Must be at the top (within 10px) and header-sized (under 200px)
+        if (rect.top <= 10 && rect.height > 0 && rect.height < 200) {
+          fixedChromeHeight = Math.max(fixedChromeHeight, rect.height);
+        }
+      }
+
+      // Available height = viewport - fixed header - caller's offset (pagination, gallery chrome, etc.)
+      const availableHeight = window.innerHeight - fixedChromeHeight - heightOffset;
+
+      console.log('[LayoutDebug:Dimensions]', {
+        containerWidth: Math.round(newWidth),
+        viewport: window.innerHeight,
+        fixedChrome: Math.round(fixedChromeHeight),
+        heightOffset,
+        availableHeight: Math.round(availableHeight),
+      });
 
       // Only accept dimensions that are reasonable
-      if (newWidth > initialWidthEstimate * 0.5 && viewportHeight > 200) {
+      if (newWidth > initialWidthEstimate * 0.5 && availableHeight > 200) {
         hasReceivedStableDimensions.current = true;
         setDimensions({
           width: newWidth,
-          height: Math.max(200, viewportHeight),
+          height: Math.max(200, availableHeight),
         });
       }
     };
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedUpdate = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateDimensions, 150);
+    };
+
     // Set up ResizeObserver for container width changes
+    // Debounced to avoid rapid recalculations during animated resizes (e.g. pane lock/unlock)
     const resizeObserver = new ResizeObserver(() => {
-      updateDimensions();
+      debouncedUpdate();
     });
 
     resizeObserver.observe(element);
 
     // Also listen to window resize for viewport height changes
-    window.addEventListener('resize', updateDimensions);
+    window.addEventListener('resize', debouncedUpdate);
 
     // Initial measurement after a short delay for layout stability
     const fallbackTimeout = setTimeout(() => {
@@ -129,8 +163,9 @@ export function useContainerDimensions(
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener('resize', updateDimensions);
+      window.removeEventListener('resize', debouncedUpdate);
       clearTimeout(fallbackTimeout);
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
   }, [initialWidthEstimate, heightOffset]);
 

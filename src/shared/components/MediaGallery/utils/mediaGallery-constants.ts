@@ -203,13 +203,30 @@ export function calculateDynamicRows(
   // Calculate how many rows fit in available height
   // containerHeight = rows * imageHeight + (rows - 1) * gap
   // Solve for rows: rows = (containerHeight + gap) / (imageHeight + gap)
+  // Subtract half a row height as safety margin so the last row isn't barely clipped
   const effectiveHeight = imageHeight + gap;
-  const rows = Math.floor((containerHeight + gap) / effectiveHeight);
+  const usableHeight = containerHeight - imageHeight * 0.5;
+  const rows = Math.floor((usableHeight + gap) / effectiveHeight);
 
-  return Math.max(
+  const clamped = Math.max(
     ROW_LIMITS.MIN_ROWS,
     Math.min(ROW_LIMITS.MAX_ROWS, rows)
   );
+
+  console.log('[LayoutDebug:Rows]', {
+    containerWidth: Math.round(containerWidth),
+    containerHeight: Math.round(containerHeight),
+    usableHeight: Math.round(usableHeight),
+    columns,
+    imageWidth: Math.round(imageWidth),
+    imageHeight: Math.round(imageHeight),
+    effectiveHeight: Math.round(effectiveHeight),
+    rawRows: rows,
+    clampedRows: clamped,
+    gap,
+  });
+
+  return clamped;
 }
 
 /**
@@ -287,6 +304,20 @@ export function getLayoutForAspectRatio(
   const itemsPerPage = rawColumns * rows;
   const skeletonColumns = SKELETON_COLUMNS[clampedColumns] || SKELETON_COLUMNS[5];
   const gridColumnClasses = GRID_COLUMN_CLASSES[clampedColumns];
+
+  console.log('[LayoutDebug:Layout]', {
+    aspectRatio: aspectRatioStr,
+    ratio: Math.round(ratio * 100) / 100,
+    gap,
+    reducedSpacing,
+    containerWidth: containerWidth ? Math.round(containerWidth) : undefined,
+    containerHeight: containerHeight ? Math.round(containerHeight) : undefined,
+    columns: rawColumns,
+    clampedColumns,
+    rows,
+    itemsPerPage,
+    isMobile,
+  });
 
   return { columns: rawColumns, rows, itemsPerPage, skeletonColumns, gridColumnClasses };
 }

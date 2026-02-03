@@ -173,16 +173,3 @@ export const useUserSettings = () => {
   return context;
 };
 
-/**
- * Internal hook for accessing userSettingsRef directly.
- * Used by ProjectContext for synchronous access to latest settings.
- */
-export const useUserSettingsRef = () => {
-  const context = useContext(UserSettingsContext);
-  if (context === undefined) {
-    throw new Error('useUserSettingsRef must be used within a UserSettingsProvider.');
-  }
-  // Return the ref value from context - this is a workaround
-  // In practice, ProjectContext will maintain its own ref synced with context
-  return context.userSettings;
-};

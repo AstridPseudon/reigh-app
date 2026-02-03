@@ -81,7 +81,7 @@ export function GenerationTaskProvider({
 // HOOKS FOR USING THE CONTEXT
 // ================================================================
 
-export function useGenerationTaskContext() {
+function useGenerationTaskContext() {
   const context = useContext(GenerationTaskContext);
   if (!context) {
     throw new Error('useGenerationTaskContext must be used within a GenerationTaskProvider');
@@ -114,25 +114,3 @@ export function useEnhancedGenerations(generations: GenerationRow[]) {
   }, [generations, enhanceWithTaskData]);
 }
 
-/**
- * Hook for components that want to opt into background preloading
- */
-export function useBackgroundTaskPreloading(config: {
-  enabled?: boolean;
-  batchSize?: number;
-  delay?: number;
-} = {}) {
-  const { isPreloadingEnabled, setPreloadingEnabled } = useGenerationTaskContext();
-  
-  useEffect(() => {
-    if (config.enabled !== undefined) {
-      setPreloadingEnabled(config.enabled);
-    }
-  }, [config.enabled, setPreloadingEnabled]);
-  
-  return {
-    isEnabled: isPreloadingEnabled,
-    enable: () => setPreloadingEnabled(true),
-    disable: () => setPreloadingEnabled(false),
-  };
-}
