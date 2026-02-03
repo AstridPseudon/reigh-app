@@ -512,17 +512,7 @@ export const useMediaGalleryStateOptimized = ({
       }
     }
 
-    // Clear backfill skeleton immediately when new images arrive (server pagination only)
-    if (isServerPagination && state.isBackfillLoading && images.length > prevImageCountRef.current) {
-      console.log('[SKELETON_DEBUG] State reconciliation - clearing skeleton (new images detected):', {
-        prevCount: prevImageCountRef.current,
-        newCount: images.length,
-        serverPage,
-        isBackfillLoading: state.isBackfillLoading,
-        timestamp: Date.now()
-      });
-      actions.clearBackfillSkeleton();
-    }
+    // Track image count for reconciliation (skeleton clearing is handled by timer in useMediaGalleryActions)
     prevImageCountRef.current = images.length;
     
     // Clean up optimistic sets using the consolidated action
