@@ -209,12 +209,10 @@ export const useAllShotGenerations = (
         throw response.error;
       }
 
-      console.log('[DataTrace] 📦 NETWORK FETCH SUCCESS:', {
+      console.log('[PositionTrace] NETWORK FETCH from shot_generations:', {
         shotId: stableShotId?.substring(0, 8),
         rowCount: response.data?.length ?? 0,
-        firstRowId: response.data?.[0]?.id?.substring(0, 8),
-        firstRowFrame: response.data?.[0]?.timeline_frame,
-        allFrames: response.data?.map(r => r.timeline_frame),
+        allFrames: response.data?.map(r => ({ id: r.id?.substring(0, 8), frame: r.timeline_frame })),
         timestamp: Date.now()
       });
 

@@ -223,6 +223,15 @@ export function useTimelineOrchestrator({
     return trailingEndFrame ?? (Math.max(...Array.from(framePositions.values()), 0) + trailingDefaultOffset);
   })();
 
+  // [StripLayout] Log trailing dimension calculation inputs
+  console.log('[StripLayout] 🔧 trailingEffectiveEnd calculation:', {
+    isMultiImage,
+    trailingEndFrame,
+    hasExistingTrailingVideo,
+    trailingEffectiveEnd,
+    willIncludeTrailingInDimensions: trailingEffectiveEnd !== null,
+  });
+
   const rawDimensions = getTimelineDimensions(
     framePositions,
     [
@@ -232,6 +241,14 @@ export function useTimelineOrchestrator({
       trailingEffectiveEnd
     ]
   );
+
+  // [StripLayout] Log raw dimensions output
+  console.log('[StripLayout] 📏 rawDimensions:', {
+    fullMin: rawDimensions.fullMin,
+    fullMax: rawDimensions.fullMax,
+    fullRange: rawDimensions.fullRange,
+    includedTrailing: trailingEffectiveEnd !== null,
+  });
 
   const containerWidth = containerRef.current?.clientWidth || 1000;
   const containerRect = containerRef.current?.getBoundingClientRect() || null;
@@ -426,8 +443,35 @@ export function useTimelineOrchestrator({
     } else {
       duplicateTargetFrame = timeline_frame + DEFAULT_DUPLICATE_GAP;
     }
-    setPendingDuplicateFrame(duplicateTargetFrame);
-    onImageDuplicate(imageId, duplicateTargetFrame);
+
+    // Apply collision avoidance (same logic as server-side mutation)
+    // This ensures skeleton position matches where item will actually appear
+    const existingFrames = new Set(
+      images
+        .map(img => img.timeline_frame)
+        .filter((f): f is number => f !== null && f !== undefined)
+    );
+
+    let finalFrame = Math.max(0, Math.round(duplicateTargetFrame));
+    if (existingFrames.has(finalFrame)) {
+      let offset = 1;
+      while (offset < 1000) {
+        const higher = finalFrame + offset;
+        if (!existingFrames.has(higher)) {
+          finalFrame = higher;
+          break;
+        }
+        const lower = finalFrame - offset;
+        if (lower >= 0 && !existingFrames.has(lower)) {
+          finalFrame = lower;
+          break;
+        }
+        offset += 1;
+      }
+    }
+
+    setPendingDuplicateFrame(finalFrame);
+    onImageDuplicate(imageId, finalFrame);
   }, [images, onImageDuplicate, setPendingDuplicateFrame, trailingEndFrame]);
 
   // Unified drop hook
@@ -643,8 +687,16 @@ export function useTimelineOrchestrator({
     sortedEntries.forEach(([shotGenId], index) => {
       posMap.set(shotGenId, index);
     });
+    // [PositionTrace] Log when rendered positions change
+    if (currentPositions.size > 0) {
+      console.log('[PositionTrace] RENDER using positions:', {
+        shotId: shotId?.substring(0, 8),
+        positions: sortedEntries.map(([id, frame]) => ({ id: id.substring(0, 8), frame })),
+        timestamp: Date.now()
+      });
+    }
     return posMap;
-  }, [currentPositions]);
+  }, [currentPositions, shotId]);
 
   // Compute full pair data for each pair index
   const pairDataByIndex = useMemo(() => {

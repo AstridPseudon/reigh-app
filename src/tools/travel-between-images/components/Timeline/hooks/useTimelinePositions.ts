@@ -14,7 +14,6 @@
 
 import { useState, useCallback, useMemo, useRef, useTransition, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { GenerationRow } from '@/types/shots';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,7 +48,6 @@ type PositionStatus =
 interface UseTimelinePositionsProps {
   shotId: string | null;
   shotGenerations: ShotGeneration[];
-  images: GenerationRow[];
   frameSpacing?: number;
   onPositionsChange?: (positions: Map<string, number>) => void;
 }
@@ -104,7 +102,6 @@ const OPERATION_TIMEOUT_MS = 10000; // 10 seconds max for any operation
 export function useTimelinePositions({
   shotId,
   shotGenerations,
-  images,
   frameSpacing = DEFAULT_FRAME_SPACING,
   onPositionsChange,
 }: UseTimelinePositionsProps): UseTimelinePositionsReturn {
@@ -163,36 +160,16 @@ export function useTimelinePositions({
       return;
     }
 
-    // Calculate new positions from database AND optimistic images
+    // Calculate positions from shotGenerations (single source of truth)
+    // Optimistic items should use addItemsAtPositions() which adds to pendingUpdatesRef
     const newPositions = new Map<string, number>();
-    
-    // 1. First, add positions from shotGenerations (database source)
+
+    // Add positions from shotGenerations (database source)
     // shotGenerations uses sg.id as the key (shot_generations.id)
-    // CRITICAL: Also exclude negative values (-1 is used as sentinel for unpositioned in useTimelinePositionUtils)
+    // CRITICAL: Exclude negative values (-1 is used as sentinel for unpositioned)
     shotGenerations.forEach(shotGen => {
       if (shotGen.timeline_frame !== null && shotGen.timeline_frame !== undefined && shotGen.timeline_frame >= 0) {
         newPositions.set(shotGen.id, shotGen.timeline_frame);
-      }
-    });
-    
-    // 2. Then, add positions from images that aren't in shotGenerations yet
-    // This handles optimistic items that have timeline_frame but haven't synced to DB
-    // image.id is shot_generations.id (or temp-xxx for optimistic items)
-    images.forEach(img => {
-      // Skip if already in positions (from shotGenerations)
-      if (newPositions.has(img.id)) {
-        return;
-      }
-      
-      // Add optimistic items that have a timeline_frame
-      // CRITICAL: Also exclude negative values (unpositioned items)
-      if (img.timeline_frame !== null && img.timeline_frame !== undefined && img.timeline_frame >= 0) {
-        console.log('[TimelinePositions] 🆕 Adding optimistic item to positions:', {
-          id: img.id?.substring(0, 8),
-          timeline_frame: img.timeline_frame,
-          isOptimistic: !!(img as GenerationRow & { _optimistic?: boolean })._optimistic
-        });
-        newPositions.set(img.id, img.timeline_frame);
       }
     });
 
@@ -255,29 +232,40 @@ export function useTimelinePositions({
     }
     lastSyncRef.current = syncKey;
     
-    console.log('[TimelinePositions] 🔄 Syncing from database:', {
+    console.log('[PositionTrace] syncFromDatabase SETTING POSITIONS:', {
       shotId: shotId?.substring(0, 8),
       positionsCount: newPositions.size,
-      items: [...newPositions.entries()].slice(0, 5).map(([id, pos]) => ({
+      allPositions: [...newPositions.entries()].map(([id, pos]) => ({
         id: id.substring(0, 8),
         position: pos
-      }))
+      })),
+      fromShotGenerationsCount: shotGenerations.length,
+      timestamp: Date.now()
     });
-    
+
     // Sync positions immediately (not in transition) to prevent flicker
     // when new items are added - the position must be available before render
     setPositions(newPositions);
-    
+
     // Notify parent if callback provided
     if (onPositionsChange) {
       onPositionsChange(newPositions);
     }
-    
-  }, [isLocked, status.type, shotGenerations, images, shotId, onPositionsChange]);
+
+  }, [isLocked, status.type, shotGenerations, shotId, onPositionsChange]);
   
   // Auto-sync when shot generations change
   useEffect(() => {
     if (shotId && shotGenerations.length > 0) {
+      console.log('[PositionTrace] shotGenerations changed, triggering sync:', {
+        shotId: shotId.substring(0, 8),
+        count: shotGenerations.length,
+        positions: shotGenerations.slice(0, 5).map(sg => ({
+          id: sg.id.substring(0, 8),
+          frame: sg.timeline_frame
+        })),
+        timestamp: Date.now()
+      });
       syncFromDatabase();
     }
   }, [shotId, shotGenerations, syncFromDatabase]);
@@ -566,12 +554,11 @@ export function useTimelinePositions({
     }
     
   }, [
-    shotId, 
-    positions, 
-    shotGenerations, 
-    images, 
-    applyOptimistic, 
-    clearPendingUpdates, 
+    shotId,
+    positions,
+    shotGenerations,
+    applyOptimistic,
+    clearPendingUpdates,
     queryClient
   ]);
   

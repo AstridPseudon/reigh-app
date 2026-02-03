@@ -32,6 +32,7 @@ export function usePendingFrames({
 }: UsePendingFramesProps): UsePendingFramesReturn {
   const [pendingDropFrame, setPendingDropFrame] = useState<number | null>(null);
   const [pendingDuplicateFrame, setPendingDuplicateFrame] = useState<number | null>(null);
+  const [pendingDuplicateId, setPendingDuplicateId] = useState<string | null>(null);
   const [pendingExternalAddFrame, setPendingExternalAddFrame] = useState<number | null>(null);
   const [isInternalDropProcessing, setIsInternalDropProcessing] = useState(false);
 
@@ -54,6 +55,22 @@ export function usePendingFrames({
     };
   }, [shotId]);
 
+  // Listen for duplicate complete event to get the new item's ID
+  useEffect(() => {
+    const handleDuplicateComplete = (event: CustomEvent) => {
+      const { shotId: targetShotId, newItemId } = event.detail;
+      if (!targetShotId || targetShotId === shotId) {
+        // Store the ID so we can clear skeleton when this item appears
+        setPendingDuplicateId(newItemId);
+      }
+    };
+
+    window.addEventListener('timeline:duplicate-complete', handleDuplicateComplete as EventListener);
+    return () => {
+      window.removeEventListener('timeline:duplicate-complete', handleDuplicateComplete as EventListener);
+    };
+  }, [shotId]);
+
   // Clear pending drop frame when upload finishes
   useEffect(() => {
     if (!isUploadingImage && !isInternalDropProcessing) {
@@ -61,21 +78,23 @@ export function usePendingFrames({
     }
   }, [isUploadingImage, isInternalDropProcessing]);
 
-  // Clear pending duplicate frame when the new item appears
+  // Clear pending duplicate frame when the new item appears (by ID, not frame)
   useEffect(() => {
-    if (pendingDuplicateFrame !== null) {
-      const hasImageAtFrame = images.some(img => img.timeline_frame === pendingDuplicateFrame);
-      if (hasImageAtFrame) {
+    if (pendingDuplicateFrame !== null && pendingDuplicateId !== null) {
+      const hasNewItem = images.some(img => img.id === pendingDuplicateId);
+      if (hasNewItem) {
         setPendingDuplicateFrame(null);
+        setPendingDuplicateId(null);
       }
     }
-  }, [images, pendingDuplicateFrame]);
+  }, [images, pendingDuplicateFrame, pendingDuplicateId]);
 
   // Safety timeout for pending duplicate frame
   useEffect(() => {
     if (pendingDuplicateFrame !== null) {
       const timer = setTimeout(() => {
         setPendingDuplicateFrame(null);
+        setPendingDuplicateId(null);
       }, 5000);
       return () => clearTimeout(timer);
     }

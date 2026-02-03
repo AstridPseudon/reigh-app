@@ -1,13 +1,10 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { GenerationRow } from '@/types/shots';
-import { toast } from 'sonner';
+import { useEffect } from 'react';
 import type { ShotGeneration } from '@/shared/hooks/useTimelineCore';
 import { useTimelinePositions } from './useTimelinePositions';
 
 interface PositionManagementProps {
   shotId: string;
   shotGenerations: ShotGeneration[];
-  images: GenerationRow[];
   frameSpacing: number;
   isLoading: boolean;
   isPersistingPositions: boolean;
@@ -35,7 +32,6 @@ interface PositionChangeAnalysis {
 export function usePositionManagement({
   shotId,
   shotGenerations,
-  images,
   frameSpacing,
   isLoading,
   isPersistingPositions,
@@ -52,7 +48,6 @@ export function usePositionManagement({
   const newPositionSystem = useTimelinePositions({
     shotId,
     shotGenerations,
-    images,
     frameSpacing,
     onPositionsChange: onFramePositionsChange,
   });

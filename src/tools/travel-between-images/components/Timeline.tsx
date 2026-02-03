@@ -510,11 +510,10 @@ const Timeline: React.FC<TimelineProps> = ({
   } = usePositionManagement({
     shotId,
     shotGenerations,
-    images,
-      frameSpacing,
-      isLoading,
-        isPersistingPositions,
-      isDragInProgress,
+    frameSpacing,
+    isLoading,
+    isPersistingPositions,
+    isDragInProgress,
     updateTimelineFrame,
     onFramePositionsChange,
     setIsPersistingPositions

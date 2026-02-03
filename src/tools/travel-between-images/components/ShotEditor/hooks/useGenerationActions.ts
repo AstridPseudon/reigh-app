@@ -476,20 +476,28 @@ export const useGenerationActions = ({
     }, {
       onSuccess: (result) => {
         console.log('[DUPLICATE] Created new generation from primary variant:', result);
-        
+
         // Add the new item to pending positions immediately to prevent flicker
         // The new item will be in the positions map before the refetch completes
         if (result.new_shot_generation_id && result.timeline_frame !== undefined) {
           const newPendingPositions = new Map(state.pendingFramePositions);
           newPendingPositions.set(result.new_shot_generation_id, result.timeline_frame);
           actionsRef.current.setPendingFramePositions(newPendingPositions);
-          
+
           console.log('[DUPLICATE] Added to pending positions:', {
             id: result.new_shot_generation_id.substring(0, 8),
             frame: result.timeline_frame
           });
+
+          // Notify skeleton to wait for this specific item ID before clearing
+          window.dispatchEvent(new CustomEvent('timeline:duplicate-complete', {
+            detail: {
+              shotId: currentShot.id,
+              newItemId: result.new_shot_generation_id
+            }
+          }));
         }
-        
+
         // Show success state
         actionsRef.current.setDuplicateSuccessImageId(shotImageEntryId);
         // Clear success state after 2 seconds
