@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { GenerationRow } from '@/types/shots';
-import { timelineDebugger } from '../utils/timeline-debug';
 
 interface LightboxProps {
   images: GenerationRow[];
@@ -31,87 +30,34 @@ export function useLightbox({ images, shotId, isMobile = false }: LightboxProps)
   const goNext = useCallback(() => {
     setLightboxIndex(i => {
       if (i === null) return null;
-      const nextIndex = (i + 1) % images.length;
-      
-      timelineDebugger.logEvent('Lightbox navigation: next', {
-        shotId,
-        from: i,
-        to: nextIndex,
-        totalImages: images.length
-      });
-      
-      return nextIndex;
+      return (i + 1) % images.length;
     });
-  }, [images.length, shotId]);
+  }, [images.length]);
 
   const goPrev = useCallback(() => {
     setLightboxIndex(i => {
       if (i === null) return null;
-      const prevIndex = (i - 1 + images.length) % images.length;
-      
-      timelineDebugger.logEvent('Lightbox navigation: previous', {
-        shotId,
-        from: i,
-        to: prevIndex,
-        totalImages: images.length
-      });
-      
-      return prevIndex;
+      return (i - 1 + images.length) % images.length;
     });
-  }, [images.length, shotId]);
+  }, [images.length]);
 
   const openLightbox = useCallback((index: number) => {
-    console.log('[DoubleTapFlow] 🎭 openLightbox called:', {
-      shotId: shotId?.substring(0, 8) ?? 'none',
-      requestedIndex: index,
-      totalImages: images.length,
-      isValidIndex: index >= 0 && index < images.length,
-      imageId: images[index]?.id?.substring(0, 8) // shot_generations.id
-    });
-
     if (index >= 0 && index < images.length) {
-      console.log('[DoubleTapFlow] ✅ LIGHTBOX OPENING:', {
-        shotId: shotId?.substring(0, 8) ?? 'none',
-        index,
-        imageId: images[index]?.id?.substring(0, 8) // shot_generations.id
-      });
-      
-      timelineDebugger.logEvent('Lightbox opened', {
-        shotId,
-        imageIndex: index,
-        imageId: images[index]?.id?.substring(0, 8), // shot_generations.id
-        totalImages: images.length
-      });
       setLightboxIndex(index);
-    } else {
-      console.log('[DoubleTapFlow] ❌ INVALID INDEX - Cannot open lightbox:', {
-        index,
-        totalImages: images.length
-      });
     }
-  }, [images, shotId]);
+  }, [images]);
 
   const openLightboxWithInpaint = useCallback((index: number) => {
     if (index >= 0 && index < images.length) {
-      timelineDebugger.logEvent('Lightbox opened with inpaint mode', {
-        shotId,
-        imageIndex: index,
-        imageId: images[index]?.id?.substring(0, 8), // shot_generations.id
-        totalImages: images.length
-      });
       setAutoEnterInpaint(true);
       setLightboxIndex(index);
     }
-  }, [images, shotId]);
+  }, [images]);
 
   const closeLightbox = useCallback(() => {
-    timelineDebugger.logEvent('Lightbox closed', {
-      shotId,
-      previousIndex: lightboxIndex
-    });
     setLightboxIndex(null);
     setAutoEnterInpaint(false); // Reset auto-enter flag when closing
-  }, [shotId, lightboxIndex]);
+  }, []);
 
   // Handle mobile tap - called by the "Open" button in TimelineItem when selected
   const handleMobileTap = useCallback((idx: number) => {
@@ -122,14 +68,8 @@ export function useLightbox({ images, shotId, isMobile = false }: LightboxProps)
   // Desktop double-click handler
   const handleDesktopDoubleClick = useCallback((idx: number) => {
     if (isMobile) return;
-    
-    timelineDebugger.logEvent('Desktop double-click detected', {
-      shotId,
-      imageIndex: idx
-    });
-    
     openLightbox(idx);
-  }, [isMobile, shotId, openLightbox]);
+  }, [isMobile, openLightbox]);
 
   // Get current lightbox image
   const currentLightboxImage = lightboxIndex !== null ? images[lightboxIndex] : null;

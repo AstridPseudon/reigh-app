@@ -14,6 +14,7 @@ import type { StructureVideoConfig } from "@/shared/lib/tasks/travelBetweenImage
 import { useIncomingTasks } from "@/shared/contexts/IncomingTasksContext";
 import { useTaskStatusCounts } from "@/shared/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/shared/lib/queryKeys";
 
 interface SegmentSettingsModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ interface SegmentSettingsModalProps {
   /** Whether this is regenerating an existing segment (shows "Make primary variant" toggle) */
   isRegeneration?: boolean;
   /** Initial params from the existing generation (for regeneration) */
-  initialParams?: Record<string, any>;
+  initialParams?: Record<string, unknown>;
   /** Project resolution for output */
   projectResolution?: string;
   /** Enhanced prompt that was AI-generated */
@@ -133,8 +134,8 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
     segmentIndex: pairData?.index,
     startImageUrl,
     endImageUrl,
-    modelName: initialParams?.model_name || initialParams?.orchestrator_details?.model_name,
-    resolution: projectResolution || initialParams?.parsed_resolution_wh,
+    modelName: (initialParams?.model_name as string) || ((initialParams?.orchestrator_details as Record<string, unknown> | undefined)?.model_name as string),
+    resolution: projectResolution || (initialParams?.parsed_resolution_wh as string),
     isRegeneration,
     buttonLabel: isRegeneration ? "Regenerate Segment" : "Generate Segment",
     showHeader: false,
@@ -190,7 +191,7 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
     if (!open) {
       if (isDirty && pairShotGenerationId) {
         // Optimistic cache update - immediately reflect changes so reopening shows new values
-        queryClient.setQueryData(['pair-metadata', pairShotGenerationId], (old: any) => {
+        queryClient.setQueryData(queryKeys.segments.pairMetadata(pairShotGenerationId), (old: Record<string, unknown> | undefined) => {
           return buildMetadataUpdate(old || {}, {
             prompt: settings.prompt,
             negativePrompt: settings.negativePrompt,
@@ -259,7 +260,21 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
   // Handle form submission (save + create task)
   // Uses background submission pattern when enhance is enabled
   const handleSubmit = useCallback(async () => {
+    // Detect if this is a trailing segment (no end image - single-image-to-video)
+    const isTrailingSegment = pairData?.endImage === null;
+
+    console.log('[TrailingGen] handleSubmit called:', {
+      projectId: projectId?.substring(0, 8),
+      shotId: shotId?.substring(0, 8),
+      pairIndex: pairData?.index,
+      isTrailingSegment,
+      hasStartImageUrl: !!startImageUrl,
+      hasEndImageUrl: !!endImageUrl,
+      pairShotGenerationId: pairShotGenerationId?.substring(0, 8),
+    });
+
     if (!projectId || !pairData) {
+      console.error('[TrailingGen] ❌ Missing project or pair data');
       toast({
         title: "Error",
         description: "Missing project or pair data",
@@ -268,10 +283,23 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
       return;
     }
 
-    if (!startImageUrl || !endImageUrl) {
+    // For trailing segments (single-image-to-video), endImageUrl is intentionally undefined
+    if (!startImageUrl) {
+      console.error('[TrailingGen] ❌ Missing start image');
       toast({
         title: "Error",
-        description: "Missing start or end image",
+        description: "Missing start image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For regular pairs, require end image
+    if (!isTrailingSegment && !endImageUrl) {
+      console.error('[TrailingGen] ❌ Missing end image for non-trailing segment');
+      toast({
+        title: "Error",
+        description: "Missing end image",
         variant: "destructive",
       });
       return;
@@ -361,7 +389,7 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
               console.error('[EnhancedPromptSave] ❌ Error fetching current metadata:', fetchError);
             }
 
-            const currentMetadata = (current?.metadata as Record<string, any>) || {};
+            const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
             console.log('[EnhancedPromptSave] 📝 Saving enhanced_prompt to metadata:', {
               pairShotGenerationId: pairShotGenerationId.substring(0, 8),
               enhancedPromptPreview: enhancedPromptResult.substring(0, 50) + '...',
@@ -387,7 +415,7 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
             }
 
             // Invalidate cache
-            queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
           } else {
             console.log('[EnhancedPromptSave] ⏭️ Skipping save:', {
               hasPairShotGenerationId: !!pairShotGenerationId,
@@ -431,8 +459,8 @@ const SegmentSettingsModal: React.FC<SegmentSettingsModalProps> = ({
           });
         } finally {
           // Refetch task queries and remove placeholder
-          await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
-          await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
+          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
           removeIncomingTask(incomingTaskId);
         }
       })();

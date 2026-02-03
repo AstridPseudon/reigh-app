@@ -42,7 +42,7 @@ export function useOnboarding() {
           return;
         }
 
-        const onboardingCompleted = (userData as any).onboarding_completed;
+        const onboardingCompleted = (userData as Record<string, unknown>).onboarding_completed;
 
         // If user hasn't completed onboarding, show the modal
         if (!onboardingCompleted) {

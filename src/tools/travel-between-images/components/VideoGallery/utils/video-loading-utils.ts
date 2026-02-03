@@ -52,10 +52,23 @@ export const sortVideoOutputsByDate = (videoOutputs: GenerationRow[]): Generatio
 /**
  * Transform unified generations data to GenerationRow format
  */
-export const transformUnifiedGenerationsData = (items: any[]): GenerationRow[] => {
+export const transformUnifiedGenerationsData = (items: Array<{
+  id: string;
+  url?: string;
+  thumbUrl?: string;
+  isVideo?: boolean;
+  updatedAt?: string;
+  createdAt?: string;
+  metadata?: Record<string, unknown>;
+  position?: number;
+  name?: string;
+  starred?: boolean;
+  derivedCount?: number;
+  taskId?: string;
+}>): GenerationRow[] => {
   if (!items) return [];
-  
-  return items.map((item: any) => ({
+
+  return items.map((item) => ({
     id: item.id,
     imageUrl: item.url,
     location: item.url,

@@ -5,12 +5,13 @@
 
 import { useEffect, useRef } from 'react';
 import { handleError } from '@/shared/lib/errorHandler';
+import type { GenerationRow } from '@/types/shots';
 
 interface UseSmoothContinuationsProps {
   /** Whether smooth continuations is enabled */
   smoothContinuations: boolean;
   /** Array of images with timeline_frame positions */
-  images: any[];
+  images: GenerationRow[];
   /** Maximum frame limit (77 when smooth continuations enabled) */
   maxFrameLimit: number;
   /** Function to update a single timeline frame position */
@@ -37,8 +38,8 @@ export function useSmoothContinuations({
 
     // Get positioned images sorted by frame
     const positionedImages = images
-      .filter((img: any) => img.timeline_frame != null && img.timeline_frame !== -1)
-      .sort((a: any, b: any) => a.timeline_frame - b.timeline_frame);
+      .filter((img) => img.timeline_frame != null && img.timeline_frame !== -1)
+      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
 
     if (positionedImages.length < 2) return;
 
@@ -50,7 +51,7 @@ export function useSmoothContinuations({
     let prevFrame = 0;
 
     for (const img of positionedImages) {
-      const currentFrame = (img as any).timeline_frame;
+      const currentFrame = img.timeline_frame ?? 0;
       const gap = currentFrame - prevFrame;
 
       if (gap > maxFrameLimit) {
@@ -61,7 +62,7 @@ export function useSmoothContinuations({
 
       if (cumulativeShift > 0) {
         const newFrame = currentFrame - cumulativeShift;
-        updates.push({ id: (img as any).id, newFrame });
+        updates.push({ id: img.id, newFrame });
       }
 
       prevFrame = currentFrame - cumulativeShift; // Use the new position for next gap calculation

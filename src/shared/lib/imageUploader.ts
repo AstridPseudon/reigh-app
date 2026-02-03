@@ -69,7 +69,7 @@ export const uploadImageToStorage = async (
   const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
   console.log(`[ImageUpload] Starting upload for ${file.name} (${fileSizeMB}MB) to path: ${filePath} (max retries: ${maxRetries}, timeout: ${timeoutMs}ms)`);
 
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const uploadStartTime = Date.now();
@@ -88,7 +88,7 @@ export const uploadImageToStorage = async (
     try {
       console.log(`[ImageUpload] Upload attempt ${attempt}/${maxRetries} for ${file.name}`);
 
-      let data: any, error: any;
+      let data: { path: string } | null, error: Error | null;
 
       // Always use XHR for timeout/abort/stall support
       try {
@@ -174,7 +174,7 @@ export const uploadImageToStorage = async (
         data = { path: filePath };
         error = null;
       } catch (xhrError) {
-        error = xhrError;
+        error = xhrError instanceof Error ? xhrError : new Error(String(xhrError));
         data = null;
       }
 
@@ -229,17 +229,18 @@ export const uploadImageToStorage = async (
       console.log(`[ImageUpload] Upload complete for ${file.name}: ${publicUrl.substring(0, 60)}...`);
       return publicUrl;
 
-    } catch (uploadError: any) {
+    } catch (uploadError: unknown) {
       lastError = uploadError;
       const uploadDuration = Date.now() - uploadStartTime;
+      const errorMsg = uploadError instanceof Error ? uploadError.message : String(uploadError);
 
-      console.warn(`[ImageUpload] Upload attempt ${attempt} exception for ${file.name} after ${uploadDuration}ms:`, uploadError.message);
+      console.warn(`[ImageUpload] Upload attempt ${attempt} exception for ${file.name} after ${uploadDuration}ms:`, errorMsg);
 
       // Don't retry for certain permanent errors or user cancellation
-      if (uploadError.message?.includes('413') || uploadError.message?.includes('too large')) {
+      if (errorMsg.includes('413') || errorMsg.includes('too large')) {
         throw uploadError;
       }
-      if (uploadError.message?.includes('cancelled')) {
+      if (errorMsg.includes('cancelled')) {
         throw uploadError; // Don't retry user cancellations
       }
 
@@ -259,12 +260,13 @@ export const uploadImageToStorage = async (
   console.error(`[ImageUpload] All ${maxRetries} upload attempts failed for ${file.name}`);
 
   // Provide more specific error messages based on the error type
-  if (lastError?.message?.includes('cancelled')) {
+  const lastErrorMsg = lastError instanceof Error ? lastError.message : String(lastError);
+  if (lastErrorMsg.includes('cancelled')) {
     throw new Error('Upload cancelled');
-  } else if (lastError?.message?.includes('timed out') || lastError?.message?.includes('stalled')) {
+  } else if (lastErrorMsg.includes('timed out') || lastErrorMsg.includes('stalled')) {
     throw new Error(`Upload failed: ${file.name} (${fileSizeMB}MB) - connection too slow or unstable. Please check your connection and try again.`);
   } else {
-    throw new Error(`Failed to upload image after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
+    throw new Error(`Failed to upload image after ${maxRetries} attempts: ${lastErrorMsg || 'Unknown error'}`);
   }
 };
 

@@ -12,7 +12,14 @@ import { dataURLtoFile } from '@/shared/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { useCreateResource, StyleReferenceMetadata } from '@/shared/hooks/useResources';
-import { ReferenceImage } from '@/tools/image-generation/components/ImageGenerationForm/types';
+import type { ReferenceImage } from '@/shared/types/referenceImage';
+
+/** Settings shape for project-image-settings tool */
+interface ProjectImageSettingsForReferences {
+  references?: ReferenceImage[];
+  selectedReferenceIdByShot?: Record<string, string | null>;
+  [key: string]: unknown;
+}
 
 export interface UseReferencesProps {
   media: GenerationRow;
@@ -45,7 +52,7 @@ export const useReferences = ({
   const {
     settings: projectImageSettings,
     update: updateProjectImageSettings,
-  } = useToolSettings<any>('project-image-settings', {
+  } = useToolSettings<ProjectImageSettingsForReferences>('project-image-settings', {
     projectId: selectedProjectId,
     enabled: !!selectedProjectId
   });
@@ -66,8 +73,8 @@ export const useReferences = ({
 
     setIsAddingToReferences(true);
     try {
-      // FIX: Use 'url' field which is what the media object actually has
-      const imageUrl = (media as any).url || media.location || media.imageUrl;
+      // Use location or imageUrl from the media object; fall back to 'url' if present at runtime
+      const imageUrl = media.location || media.imageUrl || (media as Record<string, unknown>).url as string | undefined;
       if (!imageUrl) {
         throw new Error('No image URL available');
       }
@@ -163,7 +170,7 @@ export const useReferences = ({
       
       console.log('[AddToRefDebug] 📊 Current project state', {
         existingReferencesCount: references.length,
-        existingReferenceIds: references.map((r: any) => r.id || r.resourceId),
+        existingReferenceIds: references.map((r: ReferenceImage) => r.id || r.resourceId),
         selectedReferenceIdByShot,
         projectImageSettings: projectImageSettings ? 'exists' : 'null',
       });

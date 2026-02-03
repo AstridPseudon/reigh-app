@@ -20,9 +20,9 @@ installWindowOnlyInstrumentation();
 // Store the client on window to avoid redeclaration errors during HMR
 const getOrCreateSupabaseClient = (): ReturnType<typeof createClient<Database>> => {
   // Check if we already have a client from a previous module execution
-  if (typeof window !== 'undefined' && (window as any).__supabase_client__) {
+  if (typeof window !== 'undefined' && window.__supabase_client__) {
     console.log('[Supabase] Reusing existing client from window (HMR reload detected)');
-    return (window as any).__supabase_client__;
+    return window.__supabase_client__ as ReturnType<typeof createClient<Database>>;
   }
 
   console.log('[Supabase] Creating new client');
@@ -54,8 +54,8 @@ const getOrCreateSupabaseClient = (): ReturnType<typeof createClient<Database>> 
           const timeoutMs = isEdgeFunction ? 60000 : 30000;
           const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
           let composedSignal = controller.signal;
-          if ((options as any).signal && 'signal' in options && (options as any).signal instanceof AbortSignal) {
-            const existingSignal = (options as any).signal as AbortSignal;
+          if (options.signal instanceof AbortSignal) {
+            const existingSignal = options.signal;
             const composedController = new AbortController();
             const onAbort = () => composedController.abort();
             controller.signal.addEventListener('abort', onAbort);
@@ -67,15 +67,15 @@ const getOrCreateSupabaseClient = (): ReturnType<typeof createClient<Database>> 
       },
       db: { schema: 'public' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     handleError(error, { context: 'SupabaseClient', showToast: false });
     throw error;
   }
 
   // Store on window to reuse on HMR and for diagnostics
   if (typeof window !== 'undefined') {
-    (window as any).__supabase_client__ = client;
-    (window as any).supabase = client;
+    window.__supabase_client__ = client;
+    window.supabase = client;
   }
 
   // Initialize centralized reconnect scheduler

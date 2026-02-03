@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface WaitForTasksOptions {
   /** Maximum time to wait in ms (default: 5000) */
@@ -44,7 +45,7 @@ export async function waitForTasksInCache(
 
       // Check if any of the task IDs appear in any paginated task queries
       const queries = queryClient.getQueriesData<{ tasks?: Array<{ id: string }> }>({
-        queryKey: ['tasks', 'paginated', projectId],
+        queryKey: queryKeys.tasks.paginated(projectId),
       });
 
       for (const [, data] of queries) {

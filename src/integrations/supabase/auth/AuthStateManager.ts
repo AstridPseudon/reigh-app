@@ -1,20 +1,23 @@
 import { handleError } from '@/shared/lib/errorHandler';
+import type { SupabaseClient, Session } from '@supabase/supabase-js';
+
+type AuthCallback = (event: string, session: Session | null) => void;
 
 export class AuthStateManager {
-  private listeners: Array<{id: string, callback: (event: string, session: any) => void}> = [];
+  private listeners: Array<{id: string, callback: AuthCallback}> = [];
   private isInitialized = false;
   private __LAST_AUTH_HEAL_AT__ = 0;
 
-  constructor(private supabase: any) {}
+  constructor(private supabase: SupabaseClient) {}
 
-  subscribe(id: string, callback: (event: string, session: any) => void) {
+  subscribe(id: string, callback: AuthCallback) {
     this.listeners.push({ id, callback });
     return () => {
-      this.listeners = this.listeners.filter(l => l.id !== id);
+      this.listeners = this.listeners.filter(listener => listener.id !== id);
     };
   }
 
-  private notifyListeners(event: string, session: any) {
+  private notifyListeners(event: string, session: Session | null) {
     this.listeners.forEach(({ id, callback }) => {
       try {
         callback(event, session);
@@ -24,7 +27,7 @@ export class AuthStateManager {
     });
   }
 
-  private handleCoreAuth(event: string, session: any) {
+  private handleCoreAuth(event: string, session: Session | null) {
     try {
       this.supabase?.realtime?.setAuth?.(session?.access_token ?? null);
       
@@ -65,7 +68,7 @@ export class AuthStateManager {
     }
     
     try {
-      this.supabase.auth.onAuthStateChange((event: any, session: any) => {
+      this.supabase.auth.onAuthStateChange((event, session) => {
         this.handleCoreAuth(event, session);
         this.notifyListeners(event, session);
       });
@@ -76,10 +79,10 @@ export class AuthStateManager {
   }
 }
 
-export function initAuthStateManager(supabase: any) {
+export function initAuthStateManager(supabase: SupabaseClient) {
   if (typeof window !== 'undefined') {
-    (window as any).__AUTH_MANAGER__ = new AuthStateManager(supabase);
-    (window as any).__AUTH_MANAGER__.init();
+    window.__AUTH_MANAGER__ = new AuthStateManager(supabase);
+    window.__AUTH_MANAGER__.init();
   }
 }
 

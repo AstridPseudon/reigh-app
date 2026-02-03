@@ -182,12 +182,14 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   // Calculate aspect ratio for consistent sizing
   const getAspectRatioStyle = () => {
     // Try to get dimensions from image metadata first
-    let width = (image as any).metadata?.width;
-    let height = (image as any).metadata?.height;
+    let width = image.metadata?.width as number | undefined;
+    let height = image.metadata?.height as number | undefined;
 
     // If not found, try to extract from resolution string
     if (!width || !height) {
-      const resolution = (image as any).metadata?.originalParams?.orchestrator_details?.resolution;
+      const originalParams = image.metadata?.originalParams as Record<string, unknown> | undefined;
+      const orchestratorDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
+      const resolution = orchestratorDetails?.resolution as string | undefined;
       if (resolution && typeof resolution === 'string' && resolution.includes('x')) {
         const [w, h] = resolution.split('x').map(Number);
         if (!isNaN(w) && !isNaN(h)) {
@@ -254,8 +256,8 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
         id: image.id.substring(0, 8), // shot_generations.id
         generation_id: image.generation_id?.substring(0, 8),
         framePosition_from_timeline: framePosition,
-        timeline_frame_from_image: (image as any).timeline_frame,
-        mismatch: framePosition !== (image as any).timeline_frame ? 'POSITION_MISMATCH!' : 'positions_match'
+        timeline_frame_from_image: image.timeline_frame,
+        mismatch: framePosition !== image.timeline_frame ? 'POSITION_MISMATCH!' : 'positions_match'
       });
       // Use id (shot_generations.id) - unique per entry
       onDuplicate(image.id, framePosition);
@@ -551,9 +553,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
               {/* Duplicate Button */}
               {/* "X new" badge + Variant Count - top left */}
               <VariantBadge
-                derivedCount={(image as any).derivedCount}
-                unviewedVariantCount={(image as any).unviewedVariantCount}
-                hasUnviewedVariants={(image as any).hasUnviewedVariants}
+                derivedCount={image.derivedCount}
+                unviewedVariantCount={image.unviewedVariantCount}
+                hasUnviewedVariants={image.hasUnviewedVariants}
                 variant="overlay"
                 size="sm"
                 zIndex={20}

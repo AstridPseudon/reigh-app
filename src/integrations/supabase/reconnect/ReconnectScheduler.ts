@@ -74,7 +74,7 @@ export class ReconnectScheduler {
     console.log('[ReconnectScheduler] Processing intents:', {
       isProcessing: this.isProcessing,
       pendingIntentsCount: this.pendingIntents.length,
-      pendingIntents: this.pendingIntents.map(i => ({ source: i.source, reason: i.reason, priority: i.priority }))
+      pendingIntents: this.pendingIntents.map(intent => ({ source: intent.source, reason: intent.reason, priority: intent.priority }))
     });
 
     if (this.isProcessing || this.pendingIntents.length === 0) {
@@ -116,8 +116,8 @@ export class ReconnectScheduler {
     });
 
     const primaryIntent = sortedIntents[0];
-    const allSources = sortedIntents.map(i => i.source);
-    const allReasons = [...new Set(sortedIntents.map(i => i.reason))];
+    const allSources = sortedIntents.map(intent => intent.source);
+    const allReasons = [...new Set(sortedIntents.map(intent => intent.reason))];
 
     console.log('[ReconnectScheduler] Coalescing intents:', {
       totalIntents: sortedIntents.length,

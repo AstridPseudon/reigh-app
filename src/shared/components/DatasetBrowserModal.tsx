@@ -21,7 +21,7 @@ import { Search, ChevronLeft, ChevronRight, Image as ImageIcon, Video, Loader2, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { processImageUrl } from '@/shared/lib/urlToFile';
 import { handleError } from '@/shared/lib/errorHandler';
-import { useListResources, useListPublicResources, useUpdateResource, Resource, StyleReferenceMetadata, StructureVideoMetadata, ResourceType } from '@/shared/hooks/useResources';
+import { useListResources, useListPublicResources, useUpdateResource, Resource, ResourceMetadata, StyleReferenceMetadata, StructureVideoMetadata, ResourceType } from '@/shared/hooks/useResources';
 import { supabase } from '@/integrations/supabase/client';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 
@@ -293,7 +293,7 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
       await updateResource.mutateAsync({
         id: resourceId,
         type: resourceType,
-        metadata: updatedMetadata as any,
+        metadata: updatedMetadata as ResourceMetadata,
       });
       
       console.log('[ResourceBrowser] ✅ Visibility toggled successfully');
@@ -464,7 +464,7 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
             <div className="grid grid-cols-4 gap-3">
               {paginatedResources.map((resource) => {
                 // Check both camelCase (interface) and snake_case (database) for owner
-                const resourceOwnerId = resource.userId || (resource as any).user_id;
+                const resourceOwnerId = resource.userId || (resource as Record<string, unknown>).user_id as string | undefined;
                 const isOwner = userId && resourceOwnerId === userId;
                 
                 // For videos, use the VideoResourceItem component with scrubbing

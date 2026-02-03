@@ -16,8 +16,10 @@ import {
 import { cropImageToProjectAspectRatio } from '@/shared/lib/imageCropper';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { useCreateShot } from './useShotsCrud';
 import { useAddImageToShot, useAddImageToShotWithoutPosition } from './useShotGenerationMutations';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 
 // ============================================================================
 // HELPER: Create generation for uploaded image
@@ -58,7 +60,7 @@ export const createGenerationForUploadedImage = async (
     location: imageUrl,
     thumbnail_url: thumbnailUrl || imageUrl,
     is_primary: true,
-    variant_type: 'original',
+    variant_type: VARIANT_TYPE.ORIGINAL,
     name: 'Original',
     params: generationParams,
   });
@@ -128,11 +130,11 @@ export const useCreateShotWithImage = () => {
 
       // Mark queries stale but don't refetch immediately (performance optimization)
       queryClient.invalidateQueries({
-        queryKey: ['shots', variables.projectId],
+        queryKey: [...queryKeys.shots.all, variables.projectId],
         refetchType: 'inactive',
       });
       queryClient.invalidateQueries({
-        queryKey: ['unified-generations', 'project', variables.projectId],
+        queryKey: queryKeys.unified.projectPrefix(variables.projectId),
         refetchType: 'inactive',
       });
 
@@ -223,7 +225,7 @@ export const useHandleExternalImageDrop = () => {
           shotData = data;
         }
 
-        const uploadSettings = (projectData?.settings as any)?.upload;
+        const uploadSettings = (projectData?.settings as Record<string, unknown> | null)?.upload as Record<string, unknown> | undefined;
         shouldCrop = uploadSettings?.cropToProjectSize ?? true;
 
         console.log(`[ImageDrop] Crop setting: ${shouldCrop ? 'enabled' : 'disabled'}`);

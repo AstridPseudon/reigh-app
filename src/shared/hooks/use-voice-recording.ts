@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { handleError } from '@/shared/lib/errorHandler';
+import { getErrorMessage, isError } from '@/shared/lib/errorUtils';
 
 export type VoiceRecordingState = "idle" | "recording" | "processing";
 
@@ -78,7 +79,7 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
           if (analyserRef.current) {
             analyserRef.current.getByteFrequencyData(dataArray);
             // Calculate average level from frequency data
-            const sum = dataArray.reduce((a, b) => a + b, 0);
+            const sum = dataArray.reduce((accumulator, frequency) => accumulator + frequency, 0);
             const avg = sum / dataArray.length;
             // Normalize to 0-1 range with some amplification for better visual feedback
             const normalized = Math.min(1, (avg / 128) * 1.5);
@@ -163,16 +164,17 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
             prompt: data.prompt,
           });
           setState("idle");
-        } catch (err: any) {
+        } catch (err: unknown) {
           handleError(err, { context: 'useVoiceRecording', showToast: false });
-          onError?.(err.message || "Failed to process recording");
+          onError?.(getErrorMessage(err) || "Failed to process recording");
           setState("idle");
         }
       };
 
-      mediaRecorder.onerror = (event: any) => {
-        handleError(event.error, { context: 'useVoiceRecording', showToast: false });
-        onError?.(event.error?.message || "Recording error");
+      mediaRecorder.onerror = (event: Event) => {
+        const mediaError = (event as MediaRecorderErrorEvent).error;
+        handleError(mediaError, { context: 'useVoiceRecording', showToast: false });
+        onError?.(mediaError?.message || "Recording error");
         setState("idle");
       };
 
@@ -194,14 +196,15 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
           mediaRecorderRef.current.stop();
         }
       }, MAX_RECORDING_SECONDS * 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleError(err, { context: 'useVoiceRecording', showToast: false });
-      if (err.name === "NotAllowedError") {
+      const errName = isError(err) ? err.name : '';
+      if (errName === "NotAllowedError") {
         onError?.("Microphone access denied. Please allow microphone access.");
-      } else if (err.name === "NotFoundError") {
+      } else if (errName === "NotFoundError") {
         onError?.("No microphone found. Please connect a microphone.");
       } else {
-        onError?.(err.message || "Failed to start recording");
+        onError?.(getErrorMessage(err) || "Failed to start recording");
       }
       setState("idle");
     }

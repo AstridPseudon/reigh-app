@@ -1,6 +1,26 @@
 import { useMemo, useEffect } from 'react';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { GenerationRow, Shot } from '@/types/shots';
+import { getGenerationId, getMediaUrl, getThumbnailUrl } from '@/shared/lib/mediaTypeHelpers';
+
+/**
+ * Shot association data that may exist on media objects from gallery queries.
+ * These fields are added by the query layer (not on GenerationRow base type).
+ */
+interface ShotAssociation {
+  shot_id: string;
+  position: number | null;
+  timeline_frame?: number | null;
+}
+
+/** Extended media fields that may be present at runtime from gallery/query layer */
+interface MediaWithShotFields {
+  shot_id?: string;
+  position?: number | null;
+  url?: string;
+  thumbnail_url?: string;
+  all_shot_associations?: ShotAssociation[];
+}
 
 export interface ShotOption {
   id: string;
@@ -69,7 +89,7 @@ export const useShotPositioning = ({
   
   // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
   // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
-  const actualGenerationId = (media as any).generation_id || media.id;
+  const actualGenerationId = getGenerationId(media);
 
   const isAlreadyPositionedInSelectedShot = useMemo(() => {
     if (!selectedShotId || !media.id) return false;
@@ -101,16 +121,17 @@ export const useShotPositioning = ({
     
     // Check if this media is positioned in the selected shot
     // First check single shot association
-    if ((media as any).shot_id === selectedShotId) {
-      const result = (media as any).position !== null && (media as any).position !== undefined;
+    const mediaExt = media as GenerationRow & MediaWithShotFields;
+    if (mediaExt.shot_id === selectedShotId) {
+      const result = mediaExt.position !== null && mediaExt.position !== undefined;
       return result;
     }
-    
+
     // Check multiple shot associations
-    const allShotAssociations = (media as any).all_shot_associations;
+    const allShotAssociations = mediaExt.all_shot_associations;
     if (allShotAssociations && Array.isArray(allShotAssociations)) {
       const matchingAssociation = allShotAssociations.find(
-        (assoc: any) => assoc.shot_id === selectedShotId
+        (assoc: ShotAssociation) => assoc.shot_id === selectedShotId
       );
       const result = matchingAssociation && 
              matchingAssociation.position !== null && 
@@ -123,12 +144,13 @@ export const useShotPositioning = ({
 
   // [ShotNavDebug] Log computed positioned state
   useEffect(() => {
+    const mediaExtDbg = media as GenerationRow & MediaWithShotFields;
     console.log('[ShotNavDebug] [MediaLightbox] isAlreadyPositionedInSelectedShot computed', {
       mediaId: media?.id,
       selectedShotId,
       value: isAlreadyPositionedInSelectedShot,
-      mediaShotId: (media as any)?.shot_id,
-      mediaPosition: (media as any)?.position,
+      mediaShotId: mediaExtDbg?.shot_id,
+      mediaPosition: mediaExtDbg?.position,
       optimisticHas: optimisticPositionedIds?.has(media?.id || ''),
       override: positionedInSelectedShot,
       timestamp: Date.now()
@@ -173,19 +195,20 @@ export const useShotPositioning = ({
     
     // FIX: Use fallback chain for image URL since data structure varies
     // The media object may have 'url', 'location', or 'imageUrl' depending on source
-    const imageUrl = (media as any).url || media.location || media.imageUrl;
-    const thumbUrl = (media as any).thumbnail_url || media.thumbUrl || imageUrl;
-    
+    const mediaWithUrls = media as GenerationRow & MediaWithShotFields;
+    const imageUrl = getMediaUrl(mediaWithUrls) || media.imageUrl;
+    const thumbUrl = getThumbnailUrl(mediaWithUrls) || media.thumbUrl || imageUrl;
+
     console.log('[ShotNavDebug] [MediaLightbox] Calling onAddToShot', {
       targetShotId: selectedShotId,
       mediaId: media?.id,
       imageUrl: (imageUrl || '').slice(0, 120),
       thumbUrl: (thumbUrl || '').slice(0, 120),
       originalFields: {
-        hasUrl: !!(media as any).url,
+        hasUrl: !!mediaWithUrls.url,
         hasLocation: !!media.location,
         hasImageUrl: !!media.imageUrl,
-        hasThumbnailUrl: !!(media as any).thumbnail_url,
+        hasThumbnailUrl: !!mediaWithUrls.thumbnail_url,
         hasThumbUrl: !!media.thumbUrl
       },
       timestamp: Date.now()
@@ -235,15 +258,16 @@ export const useShotPositioning = ({
     
     // Check if this media is associated with the selected shot without position
     // First check single shot association
-    if ((media as any).shot_id === selectedShotId) {
-      return (media as any).position === null || (media as any).position === undefined;
+    const mediaExtAssoc = media as GenerationRow & MediaWithShotFields;
+    if (mediaExtAssoc.shot_id === selectedShotId) {
+      return mediaExtAssoc.position === null || mediaExtAssoc.position === undefined;
     }
-    
+
     // Check multiple shot associations
-    const allShotAssociations = (media as any).all_shot_associations;
-    if (allShotAssociations && Array.isArray(allShotAssociations)) {
-      const matchingAssociation = allShotAssociations.find(
-        (assoc: any) => assoc.shot_id === selectedShotId
+    const assocShotAssociations = mediaExtAssoc.all_shot_associations;
+    if (assocShotAssociations && Array.isArray(assocShotAssociations)) {
+      const matchingAssociation = assocShotAssociations.find(
+        (assoc: ShotAssociation) => assoc.shot_id === selectedShotId
       );
       return matchingAssociation && 
              (matchingAssociation.position === null || matchingAssociation.position === undefined);
@@ -254,12 +278,13 @@ export const useShotPositioning = ({
 
   // [ShotNavDebug] Log computed unpositioned state
   useEffect(() => {
+    const mediaExtDbg2 = media as GenerationRow & MediaWithShotFields;
     console.log('[ShotNavDebug] [MediaLightbox] isAlreadyAssociatedWithoutPosition computed', {
       mediaId: media?.id,
       selectedShotId,
       value: isAlreadyAssociatedWithoutPosition,
-      mediaShotId: (media as any)?.shot_id,
-      mediaPosition: (media as any)?.position,
+      mediaShotId: mediaExtDbg2?.shot_id,
+      mediaPosition: mediaExtDbg2?.position,
       optimisticHas: optimisticUnpositionedIds?.has(media?.id || ''),
       override: associatedWithoutPositionInSelectedShot,
       timestamp: Date.now()
@@ -303,8 +328,9 @@ export const useShotPositioning = ({
     }
     
     // FIX: Use fallback chain for image URL since data structure varies
-    const imageUrl = (media as any).url || media.location || media.imageUrl;
-    const thumbUrl = (media as any).thumbnail_url || media.thumbUrl || imageUrl;
+    const mediaWithUrls2 = media as GenerationRow & MediaWithShotFields;
+    const imageUrl = getMediaUrl(mediaWithUrls2) || media.imageUrl;
+    const thumbUrl = getThumbnailUrl(mediaWithUrls2) || media.thumbUrl || imageUrl;
     
     console.log('[ShotNavDebug] [MediaLightbox] Calling onAddToShotWithoutPosition', {
       targetShotId: selectedShotId,

@@ -8,6 +8,7 @@ import { useIsMobile } from "@/shared/hooks/use-mobile"
 import { supabase } from "@/integrations/supabase/client"
 import { useAIInputMode } from "@/shared/contexts/AIInputModeContext"
 import { handleError } from "@/shared/lib/errorHandler"
+import { getErrorMessage } from "@/shared/lib/errorUtils"
 
 type TextProcessingState = "idle" | "open" | "processing" | "success"
 
@@ -139,9 +140,9 @@ export const AIInputButton = React.forwardRef<
         setTextState("idle")
         setInputValue("")
       }, 500)
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleError(err, { context: 'AIInputButton', showToast: false })
-      onError?.(err.message || "Failed to process instructions")
+      onError?.(getErrorMessage(err) || "Failed to process instructions")
       setTextState("open")
     }
   }

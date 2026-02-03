@@ -8,6 +8,7 @@
  */
 
 import type { GenerationRow } from '@/types/shots';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 /**
  * Transform a shared generation (video) to the GenerationRow format expected by FinalVideoSection.
@@ -16,13 +17,13 @@ import type { GenerationRow } from '@/types/shots';
  * @returns GenerationRow compatible object, or null if no generation
  */
 export function transformGenerationToParentRow(
-  generation: Record<string, any> | null | undefined
+  generation: Record<string, unknown> | null | undefined
 ): GenerationRow | null {
   if (!generation) return null;
 
   return {
     id: generation.id || generation.generation_id || 'shared',
-    generation_id: generation.generation_id || generation.id || 'shared',
+    generation_id: getGenerationId(generation as GenerationRow) || 'shared',
     type: 'video',
     location: generation.location,
     imageUrl: generation.location, // FinalVideoSection/VideoItem uses imageUrl
@@ -42,7 +43,7 @@ export function transformGenerationToParentRow(
  * @returns Array of GenerationRow compatible objects
  */
 export function transformImagesToGenerationRows(
-  images: Record<string, any>[] | null | undefined
+  images: Record<string, unknown>[] | null | undefined
 ): GenerationRow[] {
   if (!images || !Array.isArray(images)) return [];
 
@@ -50,7 +51,7 @@ export function transformImagesToGenerationRows(
     ...img,
     // Ensure required fields exist
     id: img.id || img.generation_id,
-    generation_id: img.generation_id || img.id,
+    generation_id: getGenerationId(img as GenerationRow),
     type: img.type || 'image',
     imageUrl: img.imageUrl || img.location,
     thumbUrl: img.thumbUrl || img.thumbnail_url,
@@ -84,7 +85,7 @@ export function calculateColumnsForDevice(
  * @returns Array of structure video configurations
  */
 export function extractStructureVideos(
-  settings: Record<string, any> | null | undefined
+  settings: Record<string, unknown> | null | undefined
 ): Array<{
   path: string;
   start_frame: number;
@@ -92,11 +93,11 @@ export function extractStructureVideos(
   treatment: 'adjust' | 'clip';
   motion_strength: number;
   structure_type: string;
-  metadata: any;
+  metadata: unknown;
 }> {
   if (!settings) return [];
 
-  const structureVideo = settings.structureVideo;
+  const structureVideo = settings.structureVideo as Record<string, unknown> | undefined;
   const structureVideos = settings.structureVideos;
 
   // Prefer the array format if present
@@ -105,14 +106,14 @@ export function extractStructureVideos(
   }
 
   // Fall back to single video format
-  if (structureVideo?.path) {
+  if (structureVideo && structureVideo.path) {
     return [{
-      path: structureVideo.path,
-      start_frame: structureVideo.startFrame ?? 0,
-      end_frame: structureVideo.endFrame ?? 300,
-      treatment: structureVideo.treatment || 'adjust',
-      motion_strength: structureVideo.motionStrength ?? 1.0,
-      structure_type: structureVideo.structureType || 'uni3c',
+      path: structureVideo.path as string,
+      start_frame: (structureVideo.startFrame as number) ?? 0,
+      end_frame: (structureVideo.endFrame as number) ?? 300,
+      treatment: (structureVideo.treatment as 'adjust' | 'clip') || 'adjust',
+      motion_strength: (structureVideo.motionStrength as number) ?? 1.0,
+      structure_type: (structureVideo.structureType as string) || 'uni3c',
       metadata: structureVideo.metadata || null,
     }];
   }

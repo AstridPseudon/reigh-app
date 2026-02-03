@@ -18,7 +18,7 @@ interface ImageWithId {
   id: string;
   url?: string;
   thumbUrl?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface UseProgressiveImageLoadingProps {

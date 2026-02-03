@@ -6,6 +6,12 @@ import { dataFreshnessManager } from '@/shared/realtime/DataFreshnessManager';
 import { invalidateGenerationsSync, invalidateAllShotGenerations } from '@/shared/hooks/invalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandler';
+import type {
+  TaskUpdatePayload,
+  ShotGenerationChangePayload,
+  GenerationUpdatePayload,
+  VariantChangePayload,
+} from '@/shared/types/realtimePayloads';
 
 interface SimpleRealtimeContextType {
   isConnected: boolean;
@@ -115,30 +121,36 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       const { payloads, count } = event.detail;
 
       // Analyze batch to determine what needs invalidation
-      const hasCompleteTask = payloads.some((p: any) => p?.new?.status === 'Complete');
-      const hasFailedOrCancelledTask = payloads.some((p: any) =>
+      const hasCompleteTask = payloads.some((p: TaskUpdatePayload) => p?.new?.status === 'Complete');
+      const hasFailedOrCancelledTask = payloads.some((p: TaskUpdatePayload) =>
         p?.new?.status === 'Failed' || p?.new?.status === 'Cancelled'
       );
       const completedShotIds = new Set<string>(
         payloads
-          .filter((p: any) => p?.new?.status === 'Complete')
-          .map((p: any) => {
+          .filter((p: TaskUpdatePayload) => p?.new?.status === 'Complete')
+          .map((p: TaskUpdatePayload) => {
             const newItem = p?.new;
+            const metadata = newItem?.metadata as Record<string, unknown> | undefined;
+            const params = newItem?.params as Record<string, unknown> | undefined;
+            const orchestratorDetails = params?.orchestrator_details as Record<string, unknown> | undefined;
+            const originalParams = params?.originalParams as Record<string, unknown> | undefined;
+            const originalOrchestrator = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
+            const fullOrchestrator = params?.full_orchestrator_payload as Record<string, unknown> | undefined;
             // 🎯 Check all possible shot_id locations (matches complete_task extraction logic)
-            return newItem?.metadata?.shot_id || 
-                   newItem?.metadata?.shotId || 
-                   newItem?.params?.shot_id || 
-                   newItem?.params?.orchestrator_details?.shot_id ||
+            return metadata?.shot_id ||
+                   metadata?.shotId ||
+                   params?.shot_id ||
+                   orchestratorDetails?.shot_id ||
                    // Additional paths for travel-between-images tasks
-                   newItem?.params?.originalParams?.orchestrator_details?.shot_id ||
-                   newItem?.params?.full_orchestrator_payload?.shot_id;
+                   originalOrchestrator?.shot_id ||
+                   fullOrchestrator?.shot_id;
           })
-          .filter((id: any): id is string => typeof id === 'string')
+          .filter((id): id is string => typeof id === 'string')
       );
 
       // ALWAYS invalidate list queries (broad invalidation - matches all projects)
-      queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated'] });
-      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
 
       // Invalidate pending task queries when tasks fail or get cancelled (for instant UI update)
       if (hasFailedOrCancelledTask) {
@@ -150,10 +162,10 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       }
 
       // 🎯 TARGETED INVALIDATION: Invalidate only specific tasks that changed
-      payloads.forEach((p: any) => {
+      payloads.forEach((p: TaskUpdatePayload) => {
         const taskId = p.new?.id || p.old?.id;
         if (taskId) {
-          queryClient.invalidateQueries({ queryKey: ['tasks', 'single', taskId] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.single(taskId) });
         }
       });
 
@@ -162,15 +174,9 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
         // 🚀 Segment strip (Travel Between Images): ensure new segments appear without refresh
         // These queries are custom to the timeline segment output strip and are not covered by
         // unified-generations invalidation.
-        queryClient.invalidateQueries({
-          predicate: (query) => query.queryKey[0] === 'segment-parent-generations'
-        });
-        queryClient.invalidateQueries({
-          predicate: (query) => query.queryKey[0] === 'segment-child-generations'
-        });
-        queryClient.invalidateQueries({
-          predicate: (query) => query.queryKey[0] === 'segment-live-timeline'
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.parentsAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.childrenAll });
+        queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimelineAll });
 
         // Invalidate derived generations (edits based on source images)
         queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedGenerationsAll });
@@ -215,28 +221,18 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       
       // Reduced invalidation scope (broad invalidation - matches all projects)
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
       
       if (isComplete) {
           // 🚀 Segment strip (Travel Between Images): ensure new segments appear without refresh
-          queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[0] === 'segment-parent-generations'
-          });
-          queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[0] === 'segment-child-generations'
-          });
-          queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[0] === 'segment-live-timeline'
-          });
+          queryClient.invalidateQueries({ queryKey: queryKeys.segments.parentsAll });
+          queryClient.invalidateQueries({ queryKey: queryKeys.segments.childrenAll });
+          queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimelineAll });
 
           // Always invalidate project-level queries for ChildGenerationsView
           queryClient.invalidateQueries({
             predicate: (query) => query.queryKey[0] === 'unified-generations' && query.queryKey[1] === 'project'
           });
-          
-          if (shotId) {
-            queryClient.invalidateQueries({ queryKey: ['unified-generations', 'shot', shotId] });
-          }
       }
     };
 
@@ -262,11 +258,11 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       
       // ONLY invalidate task queries (most new tasks are just queued, not complete)
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
-      
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+
       // Note: We don't invalidate generation queries here because new tasks
       // haven't completed yet. They'll be invalidated when tasks complete.
-      
+
       console.log('[TasksPaneRealtimeDebug:Batching] ✅ Batched invalidation complete:', {
         duration: '<5ms',
         batchSize: count,
@@ -283,7 +279,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       
       // Simplified invalidation - just tasks
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
     };
 
     // NEW: Handle batched shot generation changes more efficiently
@@ -299,8 +295,8 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       // Check if any payloads are INSERT events (which are handled by optimistic updates)
       // We skip all-shot-generations invalidation for pure INSERT batches to prevent flicker
       // Also checking for 'insert' just in case case-sensitivity varies
-      const eventTypes = payloads?.map((p: any) => p.eventType) || [];
-      const hasOnlyInserts = payloads?.length > 0 && payloads?.every((p: any) => p.eventType === 'INSERT' || p.eventType === 'insert');
+      const eventTypes = payloads?.map((p: ShotGenerationChangePayload) => p.eventType) || [];
+      const hasOnlyInserts = payloads?.length > 0 && payloads?.every((p: ShotGenerationChangePayload) => p.eventType === 'INSERT' || p.eventType === 'insert');
       
       console.log('[AddFlicker] 4️⃣ REALTIME shot-generation-change-batch received:', {
         payloadCount: payloads?.length,
@@ -373,7 +369,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       const { count, payloads } = event.detail;
       console.log('[AddFlicker] 5️⃣ REALTIME generation-update-batch received:', {
         count,
-        payloads: payloads?.map((p: any) => ({
+        payloads: payloads?.map((p: GenerationUpdatePayload) => ({
           generationId: p.generationId?.substring(0, 8),
           upscaleCompleted: p.upscaleCompleted,
           locationChanged: p.locationChanged,
@@ -385,7 +381,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       // Invalidate generation queries to show new URLs/locations
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
-      queryClient.invalidateQueries({ queryKey: ['generation'] }); // Partial match for all single generation queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.detailAll }); // Partial match for all single generation queries
       // Also invalidate shot-generations as they contain generation data
       invalidateAllShotGenerations(queryClient, 'generation-update-batch');
       // Invalidate shots as they might contain generation data (thumbnails etc)
@@ -399,7 +395,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
         count,
         childGenerations,
         parentGenerations,
-        payloads: payloads?.slice(0, 3).map((p: any) => ({
+        payloads: payloads?.slice(0, 3).map((p: { generationId?: string; isChild?: boolean; parentGenerationId?: string; hasLocation?: boolean }) => ({
           generationId: p.generationId?.substring(0, 8),
           isChild: p.isChild,
           parentGenerationId: p.parentGenerationId?.substring(0, 8),
@@ -412,7 +408,7 @@ export function SimpleRealtimeProvider({ children }: SimpleRealtimeProviderProps
       // This is especially important for ChildGenerationsView which queries by parentGenerationId
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
-      queryClient.invalidateQueries({ queryKey: ['generation'] }); // Partial match for all single generation queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.detailAll }); // Partial match for all single generation queries
       // Also invalidate shot-generations as they may contain generation data
       invalidateAllShotGenerations(queryClient, 'generation-insert-batch');
     };

@@ -30,6 +30,7 @@ import { inheritSettingsForNewShot } from '@/shared/lib/shotSettingsInheritance'
 import { GenerationRow, Shot } from '@/types/shots';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 // ============================================================================
 // TYPES
@@ -325,10 +326,10 @@ export function useShotCreation(): UseShotCreationReturn {
           };
 
           // Keep the common cache variants in sync (ShotsContext uses maxImagesPerShot=0)
-          queryClient.setQueryData<Shot[]>(['shots', selectedProjectId, 0], updateShotCache);
-          queryClient.setQueryData<Shot[]>(['shots', selectedProjectId, 5], updateShotCache);
-          queryClient.setQueryData<Shot[]>(['shots', selectedProjectId], updateShotCache);
-          queryClient.setQueryData(['shot', newShotId], (old: Shot | undefined) => old ?? ({
+          queryClient.setQueryData<Shot[]>(queryKeys.shots.list(selectedProjectId, 0), updateShotCache);
+          queryClient.setQueryData<Shot[]>(queryKeys.shots.list(selectedProjectId, 5), updateShotCache);
+          queryClient.setQueryData<Shot[]>([...queryKeys.shots.all, selectedProjectId], updateShotCache);
+          queryClient.setQueryData(queryKeys.shots.detail(newShotId), (old: Shot | undefined) => old ?? ({
             id: newShotId,
             name: newShotName,
             images: [],

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/types/shots';
 import { Task } from '@/types/tasks';
 import { deriveInputImages } from '../utils/task-utils';
-import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { handleError } from '@/shared/lib/errorHandler';
 
 interface LightboxData {
@@ -85,53 +85,60 @@ export function useTasksLightbox({
       if (error) throw error;
       
       if (data) {
+        // The Supabase select returns unknown additional fields; cast once for property access
+        const dbRow = data as Record<string, unknown>;
+        const metadata = dbRow.metadata as Record<string, unknown> | undefined;
+
         // The database field is 'based_on' at the top level
-        const basedOnValue = (data as any).based_on || (data as any).metadata?.based_on || null;
-        
+        const basedOnValue = (dbRow.based_on as string | null) || (metadata?.based_on as string | null) || null;
+
         // Transform the data to match GenerationRow format
-        const shotGenerations = (data as any).shot_generations || [];
-        
+        const shotGenerations = (dbRow.shot_generations || []) as Array<{ shot_id: string; timeline_frame: number | null }>;
+
         // Database fields: location (full image), thumbnail_url (thumb)
-        const imageUrl = (data as any).location || (data as any).thumbnail_url;
-        const thumbUrl = (data as any).thumbnail_url || (data as any).location;
-        
-        const transformedData: GenerationRow = {
+        const location = dbRow.location as string | undefined;
+        const thumbnailUrl = dbRow.thumbnail_url as string | undefined;
+        const imageUrl = location || thumbnailUrl;
+        const thumbUrl = thumbnailUrl || location;
+        const videoUrl = dbRow.video_url as string | null | undefined;
+
+        const transformedData: GenerationRow & { videoUrl?: string | null; sourceGenerationId?: string | null; shotIds?: string[]; timelineFrames?: Record<string, number | null> } = {
           id: data.id,
-          location: (data as any).location,
+          location: location,
           imageUrl,
           thumbUrl,
-          videoUrl: (data as any).video_url || null,
+          videoUrl: videoUrl || null,
           createdAt: data.created_at,
-          taskId: (data as any).task_id,
-          metadata: (data as any).metadata,
-          starred: (data as any).starred || false,
+          metadata: metadata as GenerationRow['metadata'],
+          starred: (dbRow.starred as boolean) || false,
           // CRITICAL: Include based_on at TOP LEVEL for MediaLightbox
           based_on: basedOnValue,
           // Also include as sourceGenerationId for compatibility
           sourceGenerationId: basedOnValue,
           // Add shot associations
-          shotIds: shotGenerations.map((sg: any) => sg.shot_id),
-          timelineFrames: shotGenerations.reduce((acc: any, sg: any) => {
+          shotIds: shotGenerations.map((sg) => sg.shot_id),
+          timelineFrames: shotGenerations.reduce<Record<string, number | null>>((acc, sg) => {
             acc[sg.shot_id] = sg.timeline_frame;
             return acc;
           }, {}),
-        } as any;
-        
+        };
+
         // Update lightbox to show this generation
         // We don't have the original task, so we'll use a minimal task object
         const minimalTask: Task = {
-          id: (data as any).task_id || 'unknown',
+          id: (dbRow.task_id as string) || 'unknown',
           status: 'Complete',
           taskType: 'unknown',
           createdAt: data.created_at,
           updatedAt: data.created_at,
           projectId: selectedProjectId || '',
-        } as Task;
-        
+          params: {},
+        };
+
         setLightboxData({
-          type: (transformedData as any).videoUrl ? 'video' : 'image',
+          type: videoUrl ? 'video' : 'image',
           task: minimalTask,
-          media: transformedData,
+          media: transformedData as GenerationRow,
         });
       }
     } catch (error) {

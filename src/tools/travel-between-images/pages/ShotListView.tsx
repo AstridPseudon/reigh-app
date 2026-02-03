@@ -6,7 +6,8 @@ import ShotListDisplay from '../components/ShotListDisplay';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
-import { useProjectGenerations, useDeleteGeneration } from '@/shared/hooks/useProjectGenerations';
+import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';
+import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { handleError } from '@/shared/lib/errorHandler';
 import {
@@ -140,8 +141,8 @@ export function ShotListView({
             const metadataStr = JSON.stringify(image.metadata).toLowerCase();
             if (metadataStr.includes(query)) return true;
           }
-          if ((image as any).params) {
-            const paramsStr = JSON.stringify((image as any).params).toLowerCase();
+          if (image.params) {
+            const paramsStr = JSON.stringify(image.params).toLowerCase();
             if (paramsStr.includes(query)) return true;
           }
           if (image.type && image.type.toLowerCase().includes(query)) {
@@ -185,8 +186,7 @@ export function ShotListView({
 
   // Clear videosViewJustEnabled flag when data loads
   React.useEffect(() => {
-    const vd: any = videosData as any;
-    if (showVideosView && videosViewJustEnabled && vd?.items) {
+    if (showVideosView && videosViewJustEnabled && (videosData as { items?: unknown[] } | undefined)?.items) {
       setVideosViewJustEnabled(false);
     }
   }, [showVideosView, videosViewJustEnabled, videosData, setVideosViewJustEnabled]);

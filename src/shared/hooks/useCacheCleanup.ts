@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type Query } from '@tanstack/react-query';
 import { clearCacheForImages } from '@/shared/lib/imageCacheManager';
 
 export interface UseCacheCleanupProps {
@@ -51,10 +51,10 @@ export function useCacheCleanup({
     // Find all generation queries for this project
     const allQueries = queryClient.getQueryCache().getAll();
 
-    const queriesToRemove: Array<{ query: any; page: number }> = [];
+    const queriesToRemove: Array<{ query: Query; page: number }> = [];
 
     allQueries.forEach((query) => {
-      const key = query.queryKey as any[];
+      const key = query.queryKey as unknown[];
 
       if (!Array.isArray(key)) return;
 

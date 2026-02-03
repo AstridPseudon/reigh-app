@@ -14,7 +14,9 @@ import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import type { PresetMetadata, PresetSampleGeneration } from '@/shared/types/presetMetadata';
 
 // =============================================================================
 // BUILT-IN DEFAULT PRESETS (always shown, no DB lookup)
@@ -82,7 +84,7 @@ export interface MotionControlProps {
   
   // Phase preset props (used in Basic mode for quick-select chips)
   selectedPhasePresetId?: string | null;
-  onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: any) => void;
+  onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
   onPhasePresetRemove: () => void;
   currentSettings: {
     textBeforePrompts?: string;
@@ -179,7 +181,7 @@ export const MotionControl: React.FC<MotionControlProps> = ({
 
   // Fetch additional featured presets from database (optional)
   const { data: additionalPresets } = useQuery({
-    queryKey: ['featured-presets', featuredPresetIds],
+    queryKey: queryKeys.presets.featured(featuredPresetIds),
     queryFn: async () => {
       if (!featuredPresetIds || featuredPresetIds.length === 0) return [];
       
@@ -207,7 +209,7 @@ export const MotionControl: React.FC<MotionControlProps> = ({
 
   // Combine built-in default (first) + additional presets from database
   const allPresets = useMemo(() => {
-    const presets: any[] = [builtinDefaultPreset];
+    const presets: Array<{ id: string; metadata: { name: string; description: string; phaseConfig: PhaseConfig; sample_generations?: PresetSampleGeneration[] } }> = [builtinDefaultPreset];
     if (additionalPresets && additionalPresets.length > 0) {
       presets.push(...additionalPresets);
     }
@@ -362,7 +364,7 @@ export const MotionControl: React.FC<MotionControlProps> = ({
   }, [onPhasePresetRemove, onMotionModeChange]);
 
   // Handle preset selection from chips or modal
-  const handlePresetSelect = useCallback((preset: any) => {
+  const handlePresetSelect = useCallback((preset: { id: string; metadata?: { phaseConfig?: PhaseConfig } }) => {
     if (preset.metadata?.phaseConfig) {
       onPhasePresetSelect(preset.id, preset.metadata.phaseConfig, preset.metadata);
     }
@@ -423,12 +425,12 @@ export const MotionControl: React.FC<MotionControlProps> = ({
                 {/* Preset chips */}
                 <div className="flex flex-wrap gap-2">
                   {/* Built-in + additional presets */}
-                  {allPresets.map((preset: any) => {
+                  {allPresets.map((preset) => {
                     // When custom mode, no preset is selected
                     const isSelected = !isCustomConfig && selectedPhasePresetId === preset.id;
                     const isBuiltinDefault = preset.id === builtinDefaultId;
-                    const metadata = preset.metadata as any;
-                    const sampleVideo = metadata?.sample_generations?.find((g: any) => g.type === 'video');
+                    const metadata = preset.metadata;
+                    const sampleVideo = metadata?.sample_generations?.find((g: PresetSampleGeneration) => g.type === 'video');
                     
                     return (
                       <button
@@ -607,7 +609,7 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
 }) => {
   // Fetch preset details from database
   const { data: preset, isLoading, isError } = useQuery({
-    queryKey: ['preset-details', presetId],
+    queryKey: queryKeys.presets.detail(presetId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('resources')
@@ -650,9 +652,9 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
     );
   }
 
-  const metadata = preset.metadata as any;
+  const metadata = preset.metadata as PresetMetadata;
   const sampleGenerations = metadata?.sample_generations || [];
-  const hasVideo = sampleGenerations.some((gen: any) => gen.type === 'video');
+  const hasVideo = sampleGenerations.some((gen: PresetSampleGeneration) => gen.type === 'video');
 
   return (
     <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
@@ -713,9 +715,9 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
         {hasVideo && (
           <div className="flex-shrink-0 w-24">
             {sampleGenerations
-              .filter((gen: any) => gen.type === 'video')
+              .filter((gen: PresetSampleGeneration) => gen.type === 'video')
               .slice(0, 1)
-              .map((gen: any, idx: number) => (
+              .map((gen: PresetSampleGeneration, idx: number) => (
                 <HoverScrubVideo
                   key={idx}
                   src={gen.url}

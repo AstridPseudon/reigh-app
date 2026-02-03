@@ -4,6 +4,7 @@ import {
   TaskValidationError,
   BaseTaskParams,
 } from '../taskCreation';
+import type { TaskCreationResult } from '../taskCreation';
 import { handleError } from '@/shared/lib/errorHandler';
 
 /**
@@ -67,7 +68,7 @@ function buildImageUpscaleTaskParams(
  * @param params - Image upscale task parameters
  * @returns Promise resolving to the created task
  */
-export async function createImageUpscaleTask(params: ImageUpscaleTaskParams): Promise<any> {
+export async function createImageUpscaleTask(params: ImageUpscaleTaskParams): Promise<TaskCreationResult> {
   console.log("[createImageUpscaleTask] Creating task with params:", params);
 
   try {

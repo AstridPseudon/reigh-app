@@ -124,12 +124,12 @@ export function installWindowOnlyInstrumentationLegacy() {
       ws.addEventListener('close', () => {
         wsDestroyedCount++;
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
 
-    return ws as any;
-  } as any;
+    return ws as WebSocket;
+  };
 
   // Global fetch instrumentation removed - not needed in production
 }

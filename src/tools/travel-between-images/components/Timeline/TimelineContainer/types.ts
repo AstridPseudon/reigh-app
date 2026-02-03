@@ -1,28 +1,16 @@
 import type { GenerationRow } from '@/types/shots';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type {
+  ImageDeleteHandler,
+  ImageDuplicateHandler,
+  ImageReorderHandler,
+  FileDropHandler,
+  GenerationDropHandler,
+} from '@/shared/types/imageHandlers';
 
-/** Shared pair data structure for SegmentSettingsModal and MediaLightbox */
-export interface PairData {
-  index: number;
-  frames: number;
-  startFrame: number;
-  endFrame: number;
-  startImage: {
-    id: string;           // shot_generation.id (used as startShotGenerationId)
-    generationId?: string; // generation_id (used as startGenerationId)
-    url?: string;
-    thumbUrl?: string;
-    position: number;
-  } | null;
-  endImage: {
-    id: string;           // shot_generation.id
-    generationId?: string; // generation_id (used as endGenerationId)
-    url?: string;
-    thumbUrl?: string;
-    position: number;
-  } | null;
-}
+// Re-export PairData from shared for backwards compatibility
+export type { PairData } from '@/shared/types/pairData';
 
 export interface TimelineContainerProps {
   shotId: string;
@@ -30,9 +18,9 @@ export interface TimelineContainerProps {
   images: GenerationRow[];
   framePositions: Map<string, number>;
   setFramePositions: (positions: Map<string, number>) => Promise<void>;
-  onImageReorder: (orderedIds: string[], draggedItemId?: string) => void;
-  onImageDrop?: (files: File[], targetFrame?: number) => Promise<void>;
-  onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
+  onImageReorder: ImageReorderHandler;
+  onFileDrop?: FileDropHandler;
+  onGenerationDrop?: GenerationDropHandler;
   setIsDragInProgress: (dragging: boolean) => void;
   // Control props
   onResetFrames: (gap: number) => Promise<void>;
@@ -44,8 +32,8 @@ export interface TimelineContainerProps {
   defaultNegativePrompt?: string;
   onClearEnhancedPrompt?: (pairIndex: number) => void;
   // Action handlers
-  onImageDelete: (imageId: string) => void;
-  onImageDuplicate: (imageId: string, timeline_frame: number) => void;
+  onImageDelete: ImageDeleteHandler;
+  onImageDuplicate: ImageDuplicateHandler;
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
   projectAspectRatio?: string;
@@ -90,9 +78,9 @@ export interface TimelineContainerProps {
   // Upload progress tracking
   isUploadingImage?: boolean;
   uploadProgress?: number;
-  // Single image endpoint for setting video duration
-  singleImageEndFrame?: number;
-  onSingleImageEndFrameChange?: (endFrame: number) => void;
+  // Trailing segment endpoint for setting video duration (when last image has no following image)
+  trailingEndFrame?: number;
+  onTrailingEndFrameChange?: (endFrame: number | undefined) => void;
   // Maximum frame limit for timeline gaps (77 with smooth continuations, 81 otherwise)
   maxFrameLimit?: number;
   // Shared output selection state (syncs FinalVideoSection with SegmentOutputStrip)

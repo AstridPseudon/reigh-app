@@ -10,8 +10,6 @@ import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
 import { queryKeys } from '@/shared/lib/queryKeys';
 
-const TASKS_QUERY_KEY = 'tasks';
-
 // Pagination configuration constants
 const PAGINATION_CONFIG = {
   // For Processing tasks that need custom sorting
@@ -42,9 +40,25 @@ export interface PaginatedTasksResponse {
   totalPages: number;
 }
 
+interface TaskDbRow {
+  id: string;
+  task_type: string;
+  params: Record<string, unknown> | null;
+  status: string;
+  dependant_on?: string[] | null;
+  output_location?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  project_id: string;
+  cost_cents?: number | null;
+  generation_started_at?: string | null;
+  generation_processed_at?: string | null;
+  error_message?: string | null;
+}
+
 // Helper to convert DB row (snake_case) to Task interface (camelCase)
 // Exported for use in prefetch utilities
-export const mapDbTaskToTask = (row: any): Task => ({
+export const mapDbTaskToTask = (row: TaskDbRow): Task => ({
   id: row.id,
   taskType: row.task_type,
   params: row.params,
@@ -92,7 +106,7 @@ export const useUpdateTaskStatus = () => {
 // Uses IMMUTABLE_PRESET since task data rarely changes after creation
 export const useGetTask = (taskId: string) => {
   return useQuery<Task, Error>({
-    queryKey: [TASKS_QUERY_KEY, 'single', taskId],
+    queryKey: queryKeys.tasks.single(taskId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
@@ -127,21 +141,21 @@ export const usePaginatedTasks = (params: PaginatedTasksParams) => {
   });
   
   // 🎯 SMART POLLING: Use DataFreshnessManager for intelligent polling decisions
-  const smartPollingConfig = useSmartPollingConfig([TASKS_QUERY_KEY, 'paginated', projectId]);
+  const smartPollingConfig = useSmartPollingConfig(queryKeys.tasks.paginated(projectId!));
   
   // [TasksPaneCountMismatch] Debug unexpected limit values
   if (limit < 10) {
     // Limit too small for processing view - check for cache collision
   }
   
-  const effectiveProjectId = projectId ?? (typeof window !== 'undefined' ? (window as any).__PROJECT_CONTEXT__?.selectedProjectId : null);
+  const effectiveProjectId = projectId ?? (typeof window !== 'undefined' ? window.__PROJECT_CONTEXT__?.selectedProjectId : null);
   
   // For cache key: use 'all' when querying all projects, otherwise use effectiveProjectId
   const cacheProjectKey = allProjects ? 'all' : effectiveProjectId;
   
   const query = useQuery<PaginatedTasksResponse, Error>({
     // CRITICAL: Use page-based cache keys like gallery
-    queryKey: [TASKS_QUERY_KEY, 'paginated', cacheProjectKey, page, limit, status, taskType],
+    queryKey: [...queryKeys.tasks.paginated(cacheProjectKey as string), page, limit, status, taskType],
     queryFn: async (queryContext) => {
       
       // For all projects mode, we need allProjectIds; otherwise we need effectiveProjectId
@@ -411,8 +425,8 @@ async function cancelTask(taskId: string): Promise<void> {
 
     if (!subtaskFetchError && subtasks) {
       const subtaskIds = subtasks.filter(subtask => {
-        const params = subtask.params as any;
-        return params?.orchestrator_task_id_ref === taskId || 
+        const params = subtask.params as Record<string, unknown> | null;
+        return params?.orchestrator_task_id_ref === taskId ||
                params?.orchestrator_task_id === taskId;
       }).map(subtask => subtask.id);
 
@@ -443,9 +457,8 @@ export const useCancelTask = (projectId: string | null) => {
     onSuccess: (_, taskId) => {
       console.log(`[${Date.now()}] [useCancelTask] Task cancelled, invalidating queries for projectId:`, projectId);
       // Immediately invalidate tasks queries so cancelled task disappears
-      // Note: Using partial keys for broad invalidation
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.tasks.all, 'paginated'] });
-      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
       // Immediately invalidate pending task queries so indicators update instantly
       queryClient.invalidateQueries({
         predicate: (query) =>
@@ -501,7 +514,7 @@ async function cancelPendingTasks(projectId: string): Promise<CancelAllPendingTa
 
     if (!allTasksError && allProjectTasks) {
       allProjectTasks.forEach(task => {
-        const params = task.params as any;
+        const params = task.params as Record<string, unknown> | null;
         const orchestratorRef = params?.orchestrator_task_id_ref || params?.orchestrator_task_id;
 
         if (orchestratorRef && orchestratorIds.includes(orchestratorRef)) {
@@ -543,9 +556,8 @@ export const useCancelPendingTasks = () => {
     onSuccess: (data, projectId) => {
       console.log(`[${Date.now()}] [useCancelPendingTasks] Tasks cancelled, invalidating queries for projectId:`, projectId);
       // Immediately invalidate tasks queries so cancelled tasks disappear
-      // Note: Using partial keys for broad invalidation
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.tasks.all, 'paginated'] });
-      queryClient.invalidateQueries({ queryKey: ['task-status-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
     },
     onError: (error: Error) => {
       handleError(error, { context: 'useCancelPendingTasks', toastTitle: 'Failed to cancel pending tasks' });

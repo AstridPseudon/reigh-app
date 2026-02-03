@@ -1,39 +1,45 @@
 import { Task } from '@/types/tasks';
 import { TASK_NAME_ABBREVIATIONS } from '../constants';
 
+// TODO: type properly — task params are deeply nested JSON with varying shapes per task type
+// Using index signature to allow deep property access without full structural typing
+type DeepJsonParams = { [key: string]: DeepJsonParams | string | string[] | number | boolean | null | undefined };
+
 /**
  * Derive input images from task params
  * Extracts image URLs from various param locations based on task type
  */
 export const deriveInputImages = (task: Task | null): string[] => {
   if (!task?.params) return [];
-  const params = task.params as Record<string, any>;
-  
+  const params = task.params as DeepJsonParams;
+
   // For individual_travel_segment, use top-level or individual_segment_params (2 images only)
   if (task.taskType === 'individual_travel_segment') {
-    const images = params.individual_segment_params?.input_image_paths_resolved || 
-                   params.input_image_paths_resolved || 
+    const images = (params.individual_segment_params as DeepJsonParams)?.input_image_paths_resolved ||
+                   params.input_image_paths_resolved ||
                    [];
-    return images.filter(Boolean);
+    return (Array.isArray(images) ? images : []).filter(Boolean) as string[];
   }
-  
+
   const inputImages: string[] = [];
-  if (params.input_image) inputImages.push(params.input_image);
-  if (params.image) inputImages.push(params.image);
-  if (params.init_image) inputImages.push(params.init_image);
-  if (params.control_image) inputImages.push(params.control_image);
-  if (params.images && Array.isArray(params.images)) inputImages.push(...params.images);
-  if (params.input_images && Array.isArray(params.input_images)) inputImages.push(...params.input_images);
+  if (typeof params.input_image === 'string') inputImages.push(params.input_image);
+  if (typeof params.image === 'string') inputImages.push(params.image);
+  if (typeof params.init_image === 'string') inputImages.push(params.init_image);
+  if (typeof params.control_image === 'string') inputImages.push(params.control_image);
+  if (params.images && Array.isArray(params.images)) inputImages.push(...params.images as string[]);
+  if (params.input_images && Array.isArray(params.input_images)) inputImages.push(...params.input_images as string[]);
   // For travel tasks, also check orchestrator paths
-  if (params.full_orchestrator_payload?.input_image_paths_resolved && Array.isArray(params.full_orchestrator_payload.input_image_paths_resolved)) {
-    inputImages.push(...params.full_orchestrator_payload.input_image_paths_resolved);
+  const orchestratorPayload = params.full_orchestrator_payload as DeepJsonParams | undefined;
+  if (orchestratorPayload?.input_image_paths_resolved && Array.isArray(orchestratorPayload.input_image_paths_resolved)) {
+    inputImages.push(...orchestratorPayload.input_image_paths_resolved as string[]);
   }
-  if (params.orchestrator_details?.input_image_paths_resolved && Array.isArray(params.orchestrator_details.input_image_paths_resolved)) {
-    inputImages.push(...params.orchestrator_details.input_image_paths_resolved);
+  const orchestratorDetails = params.orchestrator_details as DeepJsonParams | undefined;
+  if (orchestratorDetails?.input_image_paths_resolved && Array.isArray(orchestratorDetails.input_image_paths_resolved)) {
+    inputImages.push(...orchestratorDetails.input_image_paths_resolved as string[]);
   }
   // Also check top-level input_image_paths_resolved
   if (params.input_image_paths_resolved && Array.isArray(params.input_image_paths_resolved)) {
-    inputImages.push(...params.input_image_paths_resolved);
+    inputImages.push(...params.input_image_paths_resolved as string[]);
   }
   return inputImages.filter(Boolean);
 };
@@ -48,12 +54,13 @@ export const getAbbreviatedTaskName = (fullName: string): string => {
 /**
  * Parse task params safely (handles both string and object formats)
  */
-export const parseTaskParamsForDisplay = (params: unknown): { parsed: Record<string, any>; promptText: string } => {
-  const parsed = typeof params === 'string' 
-    ? (() => { try { return JSON.parse(params); } catch { return {}; } })() 
-    : (params || {}) as Record<string, any>;
-  
-  const promptText = parsed?.orchestrator_details?.prompt || parsed?.prompt || '';
+export const parseTaskParamsForDisplay = (params: unknown): { parsed: Record<string, unknown>; promptText: string } => {
+  const parsed = typeof params === 'string'
+    ? (() => { try { return JSON.parse(params); } catch { return {}; } })()
+    : (params || {}) as Record<string, unknown>;
+
+  const p = parsed as DeepJsonParams;
+  const promptText = ((p?.orchestrator_details as DeepJsonParams)?.prompt as string) || (p?.prompt as string) || '';
   return { parsed, promptText };
 };
 
@@ -61,14 +68,14 @@ export const parseTaskParamsForDisplay = (params: unknown): { parsed: Record<str
  * Extract shot_id from task params for video tasks
  */
 export const extractShotId = (task: Task): string | null => {
-  const params = task.params as Record<string, any>;
+  const params = task.params as DeepJsonParams;
 
   // Try different locations where shot_id might be stored based on task type
   return (
-    params?.orchestrator_details?.shot_id ||           // travel_orchestrator, wan_2_2_i2v
-    params?.full_orchestrator_payload?.shot_id ||      // travel_stitch, wan_2_2_i2v fallback
-    params?.individual_segment_params?.shot_id ||      // individual_travel_segment
-    params?.shot_id ||                                 // direct shot_id
+    ((params?.orchestrator_details as DeepJsonParams)?.shot_id as string) ||
+    ((params?.full_orchestrator_payload as DeepJsonParams)?.shot_id as string) ||
+    ((params?.individual_segment_params as DeepJsonParams)?.shot_id as string) ||
+    (params?.shot_id as string) ||
     null
   );
 };
@@ -77,13 +84,15 @@ export const extractShotId = (task: Task): string | null => {
  * Extract source generation ID from task params
  * Used for variant fetching and "Based On" feature
  */
-export const extractSourceGenerationId = (params: Record<string, any>): string | undefined => {
+export const extractSourceGenerationId = (params: Record<string, unknown>): string | undefined => {
+  const p = params as DeepJsonParams;
   return (
-    params?.based_on ||
-    params?.source_generation_id ||
-    params?.generation_id ||
-    params?.input_generation_id ||
-    params?.parent_generation_id
+    (p?.based_on as string) ||
+    (p?.source_generation_id as string) ||
+    (p?.generation_id as string) ||
+    (p?.input_generation_id as string) ||
+    (p?.parent_generation_id as string) ||
+    undefined
   );
 };
 
@@ -91,11 +100,13 @@ export const extractSourceGenerationId = (params: Record<string, any>): string |
  * Extract parent generation ID from task params
  * For edit-video tasks, the REAL parent is in task params, not the generation's parent_generation_id
  */
-export const extractTaskParentGenerationId = (params: Record<string, any>): string | undefined => {
+export const extractTaskParentGenerationId = (params: Record<string, unknown>): string | undefined => {
+  const p = params as DeepJsonParams;
   return (
-    params?.parent_generation_id ||
-    params?.orchestrator_details?.parent_generation_id ||
-    params?.full_orchestrator_payload?.parent_generation_id
+    (p?.parent_generation_id as string) ||
+    ((p?.orchestrator_details as DeepJsonParams)?.parent_generation_id as string) ||
+    ((p?.full_orchestrator_payload as DeepJsonParams)?.parent_generation_id as string) ||
+    undefined
   );
 };
 
@@ -104,12 +115,16 @@ export const extractTaskParentGenerationId = (params: Record<string, any>): stri
  * This identifies which timeline pair the segment belongs to.
  */
 export const extractPairShotGenerationId = (task: Task): string | null => {
-  const params = task.params as Record<string, any>;
+  const params = task.params as DeepJsonParams;
+
+  const orchDetails = params?.orchestrator_details as DeepJsonParams | undefined;
+  const pairIds = orchDetails?.pair_shot_generation_ids as string[] | undefined;
+  const segmentIndex = (params?.segment_index as number) ?? 0;
 
   return (
-    params?.pair_shot_generation_id ||
-    params?.individual_segment_params?.pair_shot_generation_id ||
-    params?.orchestrator_details?.pair_shot_generation_ids?.[params?.segment_index ?? 0] ||
+    (params?.pair_shot_generation_id as string) ||
+    ((params?.individual_segment_params as DeepJsonParams)?.pair_shot_generation_id as string) ||
+    (pairIds?.[segmentIndex]) ||
     null
   );
 };

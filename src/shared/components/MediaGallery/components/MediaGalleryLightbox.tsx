@@ -1,14 +1,17 @@
 import React, { useMemo, useEffect, useCallback } from "react";
 import MediaLightbox from "@/shared/components/MediaLightbox";
-import TaskDetailsModal from '@/tools/travel-between-images/components/TaskDetailsModal';
+import TaskDetailsModal from '@/shared/components/TaskDetailsModal';
 import { GenerationRow, Shot } from "@/types/shots";
-import { GeneratedImageWithMetadata } from '../index';
+import { Task } from "@/types/tasks";
+import { GeneratedImageWithMetadata, DisplayableMetadata } from '../index';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
-import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 export interface MediaGalleryLightboxProps {
   // Lightbox state
@@ -28,7 +31,7 @@ export interface MediaGalleryLightboxProps {
   // Actions
   onDelete: (id: string) => Promise<void>;
   isDeleting?: string | null;
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: DisplayableMetadata) => void;
   
   // Shot management
   simplifiedShotOptions: { id: string; name: string }[];
@@ -56,11 +59,11 @@ export interface MediaGalleryLightboxProps {
   setShowTaskDetailsModal: (show: boolean) => void;
   selectedImageForDetails: GenerationRow | null;
   setSelectedImageForDetails: (image: GenerationRow | null) => void;
-  task?: any;
+  task?: Task;
   isLoadingTask?: boolean;
-  taskError?: any;
+  taskError?: Error | null;
   inputImages?: string[];
-  lightboxTaskMapping?: any;
+  lightboxTaskMapping?: { taskId: string | null };
   onShowTaskDetails?: () => void;
   
   // Shot creation
@@ -211,7 +214,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     // Prefetch previous item
     if (currentIndex > 0) {
       const prevItem = filteredImages[currentIndex - 1];
-      const prevGenerationId = (prevItem as any).generation_id || prevItem.id;
+      const prevGenerationId = getGenerationId(prevItem);
       if (prevGenerationId) {
         prefetchTaskData(prevGenerationId);
       }
@@ -220,14 +223,14 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     // Prefetch next item
     if (currentIndex < filteredImages.length - 1) {
       const nextItem = filteredImages[currentIndex + 1];
-      const nextGenerationId = (nextItem as any).generation_id || nextItem.id;
+      const nextGenerationId = getGenerationId(nextItem);
       if (nextGenerationId) {
         prefetchTaskData(nextGenerationId);
       }
     }
 
     // Prefetch current item too (in case it wasn't prefetched on hover)
-    const currentGenerationId = (activeLightboxMedia as any).generation_id || activeLightboxMedia.id;
+    const currentGenerationId = getGenerationId(activeLightboxMedia);
     if (currentGenerationId) {
       prefetchTaskData(currentGenerationId);
     }
@@ -241,7 +244,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
   useEffect(() => {
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       // Only trigger on mutations that might affect starred state
-      if (event.type === 'updated' && event.query.queryKey[0] === 'unified-generations') {
+      if (event.type === 'updated' && event.query.queryKey[0] === queryKeys.unified.all[0]) {
         console.log('[StarPersist] 📡 Cache updated, forcing enhancedMedia recompute');
         setCacheVersion(v => v + 1);
       }
@@ -259,10 +262,10 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     // If not found or starred is undefined, check React Query cache directly
     // This ensures we get the latest optimistically-updated values
     if (!foundImage || foundImage.starred === undefined) {
-      const queries = queryClient.getQueriesData({ queryKey: ['unified-generations'] });
+      const queries = queryClient.getQueriesData({ queryKey: queryKeys.unified.all });
       for (const [, data] of queries) {
         if (data && typeof data === 'object' && 'items' in data) {
-          const cacheItem = (data as any).items.find((g: any) => g.id === activeLightboxMedia.id);
+          const cacheItem = (data as { items: GeneratedImageWithMetadata[] }).items.find((g: GeneratedImageWithMetadata) => g.id === activeLightboxMedia.id);
           if (cacheItem) {
             foundImage = cacheItem;
             console.log('[StarPersist] 📦 Found values in React Query cache:', {
@@ -337,14 +340,14 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
       return result;
     }
     
-    const a = sourceRecord.all_shot_associations;
-    if (Array.isArray(a)) {
-      const m = a.find(x => x.shot_id === effectiveShotIdForOverride);
-      result = !!(m && m.position !== null && m.position !== undefined);
+    const shotAssociations = sourceRecord.all_shot_associations;
+    if (Array.isArray(shotAssociations)) {
+      const matchedAssociation = shotAssociations.find(assoc => assoc.shot_id === effectiveShotIdForOverride);
+      result = !!(matchedAssociation && matchedAssociation.position !== null && matchedAssociation.position !== undefined);
       console.log('[ShotNavDebug] [MediaGalleryLightbox] positionedInSelectedShot: all_shot_associations check', {
-        associationsCount: a.length,
-        foundMatch: !!m,
-        matchPosition: m?.position,
+        associationsCount: shotAssociations.length,
+        foundMatch: !!matchedAssociation,
+        matchPosition: matchedAssociation?.position,
         result,
         effectiveShotIdForOverride,
         timestamp: Date.now()
@@ -380,14 +383,14 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
       return result;
     }
     
-    const a = sourceRecord.all_shot_associations;
-    if (Array.isArray(a)) {
-      const m = a.find(x => x.shot_id === effectiveShotIdForOverride);
-      result = !!(m && (m.position === null || m.position === undefined));
+    const shotAssociations = sourceRecord.all_shot_associations;
+    if (Array.isArray(shotAssociations)) {
+      const matchedAssociation = shotAssociations.find(assoc => assoc.shot_id === effectiveShotIdForOverride);
+      result = !!(matchedAssociation && (matchedAssociation.position === null || matchedAssociation.position === undefined));
       console.log('[ShotNavDebug] [MediaGalleryLightbox] associatedWithoutPositionInSelectedShot: all_shot_associations check', {
-        associationsCount: a.length,
-        foundMatch: !!m,
-        matchPosition: m?.position,
+        associationsCount: shotAssociations.length,
+        foundMatch: !!matchedAssociation,
+        matchPosition: matchedAssociation?.position,
         result,
         effectiveShotIdForOverride,
         timestamp: Date.now()
@@ -514,34 +517,30 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
 
         // Transform to GeneratedImageWithMetadata format
         // Database uses 'params' field for metadata
-        const params = (data as any).params || {};
-        const basedOnValue = (data as any).based_on || params?.based_on || null;
-        const shotGenerations = (data as any).shot_generations || [];
-        
+        // Type the raw Supabase row with fields we access
+        const row = data as Record<string, unknown>;
+        const params = (row.params as Record<string, unknown>) || {};
+        const basedOnValue = (row.based_on as string | null) || (params?.based_on as string | null) || null;
+        const shotGenerations = (row.shot_generations as Array<{ shot_id: string; timeline_frame: number | null }>) || [];
+
         // Database fields: location (full image), thumbnail_url (thumb)
-        const imageUrl = (data as any).location || (data as any).thumbnail_url;
-        const thumbUrl = (data as any).thumbnail_url || (data as any).location;
-        
+        const imageUrl = (row.location as string) || (row.thumbnail_url as string);
+        const thumbUrl = (row.thumbnail_url as string) || (row.location as string);
+
         const transformedData: GeneratedImageWithMetadata = {
           id: data.id,
           url: imageUrl,
           thumbUrl,
-          prompt: params?.prompt || '',
-          metadata: params,
+          prompt: (params?.prompt as string) || '',
+          metadata: params as DisplayableMetadata,
           createdAt: data.created_at,
           starred: data.starred || false,
-          isVideo: !!(data as any).video_url,
-          videoUrl: (data as any).video_url || undefined,
+          isVideo: !!(row.video_url),
           // Include based_on for lineage navigation
           based_on: basedOnValue,
-          sourceGenerationId: basedOnValue,
           // Add shot associations
-          shotIds: shotGenerations.map((sg: any) => sg.shot_id),
-          timelineFrames: shotGenerations.reduce((acc: any, sg: any) => {
-            acc[sg.shot_id] = sg.timeline_frame;
-            return acc;
-          }, {}),
-        } as any;
+          shot_id: shotGenerations[0]?.shot_id,
+        };
         
         console.log('[DerivedNav:Gallery] 🎯 Opening external generation in lightbox', {
           generationId: transformedData.id.substring(0, 8),

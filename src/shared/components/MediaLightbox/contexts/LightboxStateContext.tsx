@@ -14,6 +14,7 @@
 
 import React, { createContext, useContext, RefObject, useMemo } from 'react';
 import type { GenerationRow } from '@/types/shots';
+import type { GenerationVariant } from '@/shared/hooks/useVariants';
 
 // ============================================================================
 // Core State
@@ -47,15 +48,15 @@ interface LightboxMediaState {
 // ============================================================================
 
 interface LightboxVariantState {
-  variants: any[];
-  activeVariant: any;
-  primaryVariant: any;
+  variants: GenerationVariant[];
+  activeVariant: GenerationVariant | null;
+  primaryVariant: GenerationVariant | null;
   isLoadingVariants: boolean;
   // Handler-style names for UI components
   handleVariantSelect: (id: string) => void;
   handleMakePrimary: (id: string) => Promise<void>;
   handleDeleteVariant: (id: string) => Promise<void>;
-  onLoadVariantSettings?: (variantParams: Record<string, any>) => void;
+  onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
   // Promotion
   promoteSuccess: boolean;
   isPromoting: boolean;
@@ -82,7 +83,7 @@ interface LightboxNavigationState {
   handleSlotNavNext: () => void;
   handleSlotNavPrev: () => void;
   swipeNavigation: {
-    swipeHandlers: Record<string, any>;
+    swipeHandlers: Record<string, unknown>;
     isSwiping: boolean;
     swipeOffset: number;
   };

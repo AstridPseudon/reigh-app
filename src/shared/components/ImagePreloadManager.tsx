@@ -25,7 +25,7 @@ interface ImagePreloadManagerProps {
   /** Callback to prefetch adjacent pages (for server pagination) */
   onPrefetchAdjacentPages?: (prevPage: number | null, nextPage: number | null) => void;
   /** All images (for client pagination) */
-  allImages?: any[];
+  allImages?: { id?: string; url?: string; thumbUrl?: string }[];
   /** Project ID (for cache cleanup) */
   projectId?: string | null;
   /** Pause preloading when lightbox is open */

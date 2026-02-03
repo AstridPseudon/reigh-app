@@ -12,7 +12,9 @@ import { handleError } from '@/shared/lib/errorHandler';
 import { generateVideo } from '../services/generateVideoService';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
-import type { SteerableMotionSettingsState } from '../state/types';
+import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
+import type { Shot, GenerationRow } from '@/types/shots';
 
 interface SelectedLora {
   id: string;
@@ -23,25 +25,21 @@ interface SelectedLora {
 
 interface StructureVideoConfig {
   uni3c_end_percent?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface StructureVideo {
   url: string;
-  [key: string]: any;
-}
-
-interface PhaseConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface UseGenerateBatchOptions {
   projectId?: string;
   selectedProjectId?: string;
   selectedShotId?: string;
-  selectedShot: any;
+  selectedShot: Shot | null;
   queryClient: QueryClient;
-  onShotImagesUpdate?: (images: any[]) => void;
+  onShotImagesUpdate?: (images: GenerationRow[]) => void;
   effectiveAspectRatio?: string;
   // Generation mode
   generationMode: string;
@@ -58,7 +56,7 @@ interface UseGenerateBatchOptions {
   phaseConfig?: PhaseConfig;
   selectedPhasePresetId?: string | null;
   // Model config
-  steerableMotionSettings?: SteerableMotionSettingsState;
+  steerableMotionSettings?: SteerableMotionSettings;
   randomSeed: boolean;
   turboMode: boolean;
   generationTypeMode?: string;
@@ -89,7 +87,7 @@ interface UseGenerateBatchOptions {
   joinSeed: number;
   joinRandomSeed: boolean;
   joinMotionMode: string;
-  joinPhaseConfig?: any;
+  joinPhaseConfig?: PhaseConfig;
   joinSelectedPhasePresetId?: string | null;
   joinSelectedLoras: Array<{ path: string; strength: number }>;
   joinPriority: number;
@@ -245,7 +243,6 @@ export function useGenerateBatch({
           selectedShotId,
           selectedShot,
           queryClient,
-          onShotImagesUpdate,
           effectiveAspectRatio,
           generationMode,
           promptConfig: {
@@ -352,8 +349,8 @@ export function useGenerateBatch({
         handleError(error, { context: 'handleGenerateBatch', toastTitle: 'Failed to create video task. Please try again.' });
       } finally {
         // Wait for task queries to refetch, then remove placeholder
-        await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
-        await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
         console.log('[handleGenerateBatch] Removing incoming task placeholder:', incomingTaskId);
         removeIncomingTask(incomingTaskId);
       }

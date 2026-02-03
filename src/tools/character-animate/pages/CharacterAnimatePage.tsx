@@ -6,16 +6,18 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Upload, Film, Play, X } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
-import { handleError } from '@/shared/lib/errorHandler';
+import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { storagePaths, getFileExtension, MEDIA_BUCKET } from '@/shared/lib/storagePaths';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 import { CharacterAnimateSettings, characterAnimateSettings } from '../settings';
 import { PageFadeIn } from '@/shared/components/transitions';
 import { createCharacterAnimateTask } from '@/shared/lib/tasks/characterAnimate';
-import { useGenerations, useDeleteGeneration, type GenerationsPaginatedResponse } from '@/shared/hooks/useGenerations';
+import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
+import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
 import { MediaGallery } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
@@ -50,9 +52,11 @@ const CharacterAnimatePage: React.FC = () => {
   const [characterImage, setCharacterImage] = useState<{ url: string; file?: File } | null>(null);
   const [motionVideo, setMotionVideo] = useState<{ url: string; posterUrl?: string; file?: File } | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [localMode, setLocalMode] = useState<'animate' | 'replace'>('animate');
+
+  // Upload operations with automatic loading state and error handling
+  const imageUpload = useAsyncOperation();
+  const videoUpload = useAsyncOperation();
   
   // Loading states for smooth transitions
   const [characterImageLoaded, setCharacterImageLoaded] = useState(false);
@@ -97,8 +101,8 @@ const CharacterAnimatePage: React.FC = () => {
   
   // Fetch all videos generated with character-animate tool type
   // Disable polling to prevent gallery flicker (character-animate tasks are long-running)
-  const generationsQuery = useGenerations(
-    selectedProjectId, 
+  const generationsQuery = useProjectGenerations(
+    selectedProjectId,
     1, // page
     100, // limit
     !!selectedProjectId, // only enable when project is selected
@@ -138,8 +142,8 @@ const CharacterAnimatePage: React.FC = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && selectedProjectId) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['unified-generations', 'project', selectedProjectId]
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.unified.projectPrefix(selectedProjectId)
         });
       }
     };
@@ -233,7 +237,7 @@ const CharacterAnimatePage: React.FC = () => {
   const handleCharacterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
       toast({
         title: 'Invalid file type',
@@ -242,32 +246,22 @@ const CharacterAnimatePage: React.FC = () => {
       });
       return;
     }
-    
-    setIsUploadingImage(true);
-    try {
-      // Upload to Supabase storage
+
+    await imageUpload.execute(async () => {
       const uploadedUrl = await uploadImageToStorage(file);
-      
-      // Reset loaded state to show skeleton during image load
       setCharacterImageLoaded(false);
       setCharacterImage({ url: uploadedUrl, file });
-      
-      // Save URL to project settings for persistence
       if (selectedProjectId) {
         updateField('inputImageUrl', uploadedUrl);
       }
-    } catch (error) {
-      handleError(error, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
-    } finally {
-      setIsUploadingImage(false);
-    }
+    }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
   };
 
   // Handle motion video selection
   const handleMotionVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('video/')) {
       toast({
         title: 'Invalid file type',
@@ -276,73 +270,51 @@ const CharacterAnimatePage: React.FC = () => {
       });
       return;
     }
-    
-    setIsUploadingVideo(true);
-    try {
-      // Extract poster frame
+
+    await videoUpload.execute(async () => {
       const posterBlob = await extractVideoPosterFrame(file);
-      
-      // Get userId for storage path
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         throw new Error('User not authenticated');
       }
       const userId = session.user.id;
 
-      // Generate storage paths using centralized utilities
       const fileExt = getFileExtension(file.name, file.type, 'mp4');
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(7);
       const fileName = storagePaths.upload(userId, `${timestamp}-${randomId}.${fileExt}`);
       const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-${randomId}-poster.jpg`);
-      
-      // Upload video
-      const { data: videoData, error: videoError } = await supabase.storage
+
+      const { error: videoError } = await supabase.storage
         .from(MEDIA_BUCKET)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
       if (videoError) throw videoError;
-      
-      // Upload poster image
-      const { data: posterData, error: posterError } = await supabase.storage
+
+      const { error: posterError } = await supabase.storage
         .from(MEDIA_BUCKET)
         .upload(posterFileName, posterBlob, {
           cacheControl: '3600',
           upsert: false,
           contentType: 'image/jpeg'
         });
-      
       if (posterError) throw posterError;
-      
-      // Get public URLs
+
       const { data: { publicUrl: videoUrl } } = supabase.storage
         .from(MEDIA_BUCKET)
         .getPublicUrl(fileName);
-        
       const { data: { publicUrl: posterUrl } } = supabase.storage
         .from(MEDIA_BUCKET)
         .getPublicUrl(posterFileName);
-      
-      // Reset loaded and playing state
+
       setMotionVideoLoaded(false);
       setMotionVideoPlaying(false);
       setMotionVideo({ url: videoUrl, posterUrl, file });
-      
-      // Save URLs to project settings for persistence
+
       if (selectedProjectId) {
-        updateFields({
-          inputVideoUrl: videoUrl,
-          inputVideoPosterUrl: posterUrl
-        });
+        updateFields({ inputVideoUrl: videoUrl, inputVideoPosterUrl: posterUrl });
       }
-    } catch (error) {
-      handleError(error, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
-    } finally {
-      setIsUploadingVideo(false);
-    }
+    }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
   };
 
   // Generate animation mutation
@@ -378,10 +350,8 @@ const CharacterAnimatePage: React.FC = () => {
       setVideosViewJustEnabled(true);
       
       // Invalidate both tasks and generations queries
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ 
-        queryKey: ['unified-generations', 'project', selectedProjectId]
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
     },
     onError: (error) => {
       handleError(error, { context: 'CharacterAnimate', toastTitle: 'Failed to create task' });
@@ -451,10 +421,10 @@ const CharacterAnimatePage: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOverImage(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    
+
     if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
       toast({
         title: 'Invalid file type',
@@ -463,21 +433,15 @@ const CharacterAnimatePage: React.FC = () => {
       });
       return;
     }
-    
-    setIsUploadingImage(true);
-    try {
+
+    await imageUpload.execute(async () => {
       const uploadedUrl = await uploadImageToStorage(file);
       setCharacterImageLoaded(false);
       setCharacterImage({ url: uploadedUrl, file });
-
       if (selectedProjectId) {
         updateField('inputImageUrl', uploadedUrl);
       }
-    } catch (error) {
-      handleError(error, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
-    } finally {
-      setIsUploadingImage(false);
-    }
+    }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
   };
 
   // Drag and drop handlers for motion video
@@ -521,10 +485,10 @@ const CharacterAnimatePage: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOverVideo(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('video/')) {
       toast({
         title: 'Invalid file type',
@@ -533,67 +497,51 @@ const CharacterAnimatePage: React.FC = () => {
       });
       return;
     }
-    
-    setIsUploadingVideo(true);
-    try {
+
+    await videoUpload.execute(async () => {
       const posterBlob = await extractVideoPosterFrame(file);
-      
-      // Get userId for storage path
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         throw new Error('User not authenticated');
       }
       const userId = session.user.id;
 
-      // Generate storage paths using centralized utilities
       const fileExt = getFileExtension(file.name, file.type, 'mp4');
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(7);
       const fileName = storagePaths.upload(userId, `${timestamp}-${randomId}.${fileExt}`);
       const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-${randomId}-poster.jpg`);
-      
-      const { data: videoData, error: videoError } = await supabase.storage
+
+      const { error: videoError } = await supabase.storage
         .from(MEDIA_BUCKET)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
       if (videoError) throw videoError;
-      
-      const { data: posterData, error: posterError } = await supabase.storage
+
+      const { error: posterError } = await supabase.storage
         .from(MEDIA_BUCKET)
         .upload(posterFileName, posterBlob, {
           cacheControl: '3600',
           upsert: false,
           contentType: 'image/jpeg'
         });
-      
       if (posterError) throw posterError;
-      
+
       const { data: { publicUrl: videoUrl } } = supabase.storage
         .from(MEDIA_BUCKET)
         .getPublicUrl(fileName);
-        
       const { data: { publicUrl: posterUrl } } = supabase.storage
         .from(MEDIA_BUCKET)
         .getPublicUrl(posterFileName);
-      
+
       setMotionVideoLoaded(false);
       setMotionVideoPlaying(false);
       setMotionVideo({ url: videoUrl, posterUrl, file });
 
       if (selectedProjectId) {
-        updateFields({
-          inputVideoUrl: videoUrl,
-          inputVideoPosterUrl: posterUrl
-        });
+        updateFields({ inputVideoUrl: videoUrl, inputVideoPosterUrl: posterUrl });
       }
-    } catch (error) {
-      handleError(error, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
-    } finally {
-      setIsUploadingVideo(false);
-    }
+    }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
   };
 
   if (!selectedProjectId) {
@@ -653,14 +601,14 @@ const CharacterAnimatePage: React.FC = () => {
                 isDraggingOverImage 
                   ? 'border-primary bg-primary/10' 
                   : 'border-border hover:border-primary/50'
-              } ${!characterImage && !isUploadingImage ? 'cursor-pointer' : ''}`}
+              } ${!characterImage && !imageUpload.isLoading ? 'cursor-pointer' : ''}`}
               onDragOver={handleImageDragOver}
               onDragEnter={handleImageDragEnter}
               onDragLeave={handleImageDragLeave}
               onDrop={handleImageDrop}
-              onClick={() => !characterImage && !isUploadingImage && characterImageInputRef.current?.click()}
+              onClick={() => !characterImage && !imageUpload.isLoading && characterImageInputRef.current?.click()}
             >
-              {isUploadingImage ? (
+              {imageUpload.isLoading ? (
                 <UploadingMediaState type="image" />
               ) : characterImage ? (
                 <>
@@ -688,7 +636,7 @@ const CharacterAnimatePage: React.FC = () => {
                         updateField('inputImageUrl', undefined);
                       }
                     }}
-                    disabled={isUploadingImage}
+                    disabled={imageUpload.isLoading}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -725,7 +673,7 @@ const CharacterAnimatePage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => characterImageInputRef.current?.click()}
-                disabled={isUploadingImage}
+                disabled={imageUpload.isLoading}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -747,14 +695,14 @@ const CharacterAnimatePage: React.FC = () => {
                 isDraggingOverVideo 
                   ? 'border-primary bg-primary/10' 
                   : 'border-border hover:border-primary/50'
-              } ${!motionVideo && !isUploadingVideo ? 'cursor-pointer' : ''}`}
+              } ${!motionVideo && !videoUpload.isLoading ? 'cursor-pointer' : ''}`}
               onDragOver={handleVideoDragOver}
               onDragEnter={handleVideoDragEnter}
               onDragLeave={handleVideoDragLeave}
               onDrop={handleVideoDrop}
-              onClick={() => !motionVideo && !isUploadingVideo && motionVideoInputRef.current?.click()}
+              onClick={() => !motionVideo && !videoUpload.isLoading && motionVideoInputRef.current?.click()}
             >
-              {isUploadingVideo ? (
+              {videoUpload.isLoading ? (
                 <UploadingMediaState type="video" />
               ) : motionVideo ? (
                 <>
@@ -816,7 +764,7 @@ const CharacterAnimatePage: React.FC = () => {
                         });
                       }
                     }}
-                    disabled={isUploadingVideo}
+                    disabled={videoUpload.isLoading}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -853,7 +801,7 @@ const CharacterAnimatePage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => motionVideoInputRef.current?.click()}
-                disabled={isUploadingVideo}
+                disabled={videoUpload.isLoading}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />

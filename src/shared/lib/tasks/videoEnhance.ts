@@ -3,6 +3,7 @@ import {
   validateRequiredFields,
   TaskValidationError,
 } from "../taskCreation";
+import type { TaskCreationResult } from "../taskCreation";
 import { handleError } from '@/shared/lib/errorHandler';
 
 // ============================================================================
@@ -203,7 +204,7 @@ function buildVideoEnhancePayload(
  * Result of creating a video enhancement task
  */
 export interface VideoEnhanceTaskResult {
-  task: any;
+  task: TaskCreationResult;
 }
 
 /**

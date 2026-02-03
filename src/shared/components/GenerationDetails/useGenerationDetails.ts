@@ -1,16 +1,16 @@
 import { useMemo } from 'react';
 import { useGetTask } from '@/shared/hooks/useTasks';
-import { deriveInputImages } from '@/tools/travel-between-images/components/TaskDetails/taskDetailsConfig';
+import { deriveInputImages } from '@/shared/utils/taskParamsUtils';
 import { Task } from '@/types/tasks';
 
 interface UseGenerationDetailsOptions {
   taskId?: string;
-  task?: Task | any;
+  task?: Task;
   inputImages?: string[];
 }
 
 interface UseGenerationDetailsResult {
-  task: Task | any | undefined;
+  task: Task | undefined;
   inputImages: string[];
   isLoading: boolean;
   isError: boolean;

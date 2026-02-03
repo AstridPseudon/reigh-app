@@ -2,6 +2,17 @@ import { GenerationRow } from "@/types/shots";
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { ShotLora } from '@/tools/travel-between-images/settings';
 
+// =============================================================================
+// RE-EXPORTS FROM SHARED
+// These types were moved to shared/ because they're used across components.
+// Re-exported here for backwards compatibility with existing imports.
+// =============================================================================
+export {
+  type SteerableMotionSettings,
+  DEFAULT_STEERABLE_MOTION_SETTINGS,
+  type GenerationsPaneSettings,
+} from '@/shared/types/steerableMotion';
+
 // JSON type for compatibility with Supabase client types
 export type Json =
   | string
@@ -19,14 +30,6 @@ export interface SegmentGenerationParams {
   generatedVideoUrl?: string;
 }
 
-// Interface for per-shot GenerationsPane settings (matches useGenerationsPageLogic.ts)
-export interface GenerationsPaneSettings {
-  selectedShotFilter: string;
-  excludePositioned: boolean;
-  // Flag to track if user has manually changed settings (never auto-reset after this)
-  userHasCustomized?: boolean;
-}
-
 // Interface for individual video pair configuration
 export interface VideoPairConfig {
   id: string;
@@ -37,24 +40,6 @@ export interface VideoPairConfig {
   context: number;
   generatedVideoUrl?: string;
 }
-
-// Steerable motion settings interface
-export interface SteerableMotionSettings {
-  negative_prompt: string;
-  model_name: string;
-  seed: number;
-  debug: boolean;
-  show_input_images: boolean;
-}
-
-// Default values for steerable motion settings - single source of truth
-export const DEFAULT_STEERABLE_MOTION_SETTINGS: SteerableMotionSettings = {
-  negative_prompt: '',
-  model_name: 'wan_2_2_i2v_lightning_baseline_2_2_2',
-  seed: 789,
-  debug: false,
-  show_input_images: false,
-};
 
 // Main props interface for ShotEditor
 // NEW: Simplified settings bundle approach
@@ -70,8 +55,8 @@ export interface ShotSettings {
   amountOfMotion: number;
   advancedMode: boolean;
   motionMode?: 'basic' | 'advanced'; // Motion control mode (Presets tab merged into Basic)
-  phaseConfig?: any;
-  pairConfigs?: any[];
+  phaseConfig?: Record<string, unknown>;
+  pairConfigs?: Record<string, unknown>[];
   textBeforePrompts?: string;
   textAfterPrompts?: string;
 }
@@ -98,7 +83,7 @@ export interface ShotEditorProps {
   selectedShotId: string;
   projectId: string;
   /** Optimistic shot data for newly created shots that aren't in the cache yet */
-  optimisticShotData?: any;
+  optimisticShotData?: Partial<import('@/types/shots').Shot>;
 
   // ============================================================================
   // CALLBACKS

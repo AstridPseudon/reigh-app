@@ -109,7 +109,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
         // Image handlers from context
         onImageReorder={imageHandlers.onReorder}
         onFramePositionsChange={undefined}
-        onImageDrop={imageHandlers.onImageDrop}
+        onFileDrop={imageHandlers.onFileDrop}
         onGenerationDrop={imageHandlers.onGenerationDrop}
         onBatchFileDrop={imageHandlers.onBatchFileDrop}
         onBatchGenerationDrop={imageHandlers.onBatchGenerationDrop}
@@ -122,7 +122,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
         skeleton={
           <ImageManagerSkeleton
             isMobile={isMobile}
-            {...({ columns } as any)}
+            columns={columns}
             shotImages={contextImages}
             projectAspectRatio={effectiveAspectRatio}
           />
@@ -174,7 +174,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
         onCreateShot={shotManagement.onCreateShot}
         onNewShotFromSelection={shotManagement.onNewShotFromSelection}
         onDragStateChange={onDragStateChange}
-        onSingleImageDurationChange={onBatchVideoFramesChange}
+        onTrailingDurationChange={onBatchVideoFramesChange}
         maxFrameLimit={maxFrameLimit}
         smoothContinuations={smoothContinuations}
         selectedOutputId={selectedOutputId}

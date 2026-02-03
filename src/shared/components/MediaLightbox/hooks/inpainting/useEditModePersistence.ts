@@ -31,7 +31,7 @@ export function useEditModePersistence() {
         return null;
       }
 
-      const savedMode = (data?.params as any)?.ui?.editMode;
+      const savedMode = ((data?.params as Record<string, unknown>)?.ui as Record<string, unknown> | undefined)?.editMode;
       if (savedMode && VALID_EDIT_MODES.includes(savedMode)) {
         console.log('[EditMode] Loaded from DB:', { generationId: generationId.substring(0, 8), mode: savedMode });
         return savedMode as EditMode;
@@ -67,11 +67,12 @@ export function useEditModePersistence() {
       }
 
       // Merge with existing params
-      const currentParams = (current?.params || {}) as Record<string, any>;
+      const currentParams = (current?.params || {}) as Record<string, unknown>;
+      const currentUi = (currentParams.ui || {}) as Record<string, unknown>;
       const updatedParams = {
         ...currentParams,
         ui: {
-          ...(currentParams.ui || {}),
+          ...currentUi,
           editMode: mode
         }
       };

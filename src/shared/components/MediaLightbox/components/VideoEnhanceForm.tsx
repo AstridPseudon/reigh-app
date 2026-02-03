@@ -101,7 +101,7 @@ function useDetectVideoFps(videoUrl: string | undefined): number | null {
       if (rafId !== null && videoRef.current) {
         // Note: cancelVideoFrameCallback may not exist in all browsers
         try {
-          (videoRef.current as any).cancelVideoFrameCallback?.(rafId);
+          (videoRef.current as HTMLVideoElement & { cancelVideoFrameCallback?: (id: number) => void }).cancelVideoFrameCallback?.(rafId);
         } catch {}
       }
       video.pause();

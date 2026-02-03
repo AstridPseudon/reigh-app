@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { Shot, GenerationRow } from '@/types/shots';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 /**
  * Cache key variants for shots queries.
@@ -15,9 +16,11 @@ export const SHOTS_CACHE_VARIANTS = [undefined, 0, 2, 5] as const;
  * Get all cache key variants for a project's shots.
  * Use this to ensure all cache entries are updated consistently.
  */
-export function getShotsCacheKeys(projectId: string): (string | number)[][] {
+export function getShotsCacheKeys(projectId: string): readonly (string | number | undefined)[][] {
   return SHOTS_CACHE_VARIANTS.map(variant =>
-    variant === undefined ? ['shots', projectId] : ['shots', projectId, variant]
+    variant === undefined
+      ? [...queryKeys.shots.all, projectId] as const
+      : queryKeys.shots.list(projectId, variant)
   );
 }
 
@@ -101,7 +104,7 @@ export function updateShotGenerationsCache(
   shotId: string,
   updater: (old: GenerationRow[] | undefined) => GenerationRow[]
 ): void {
-  const key = ['all-shot-generations', shotId];
+  const key = queryKeys.generations.byShot(shotId);
   const existing = queryClient.getQueryData<GenerationRow[]>(key);
   if (existing !== undefined) {
     queryClient.setQueryData(key, updater(existing));
@@ -117,7 +120,7 @@ export function rollbackShotGenerationsCache(
   previous: GenerationRow[] | undefined
 ): void {
   if (!previous) return;
-  queryClient.setQueryData(['all-shot-generations', shotId], previous);
+  queryClient.setQueryData(queryKeys.generations.byShot(shotId), previous);
 }
 
 /**
@@ -127,5 +130,5 @@ export async function cancelShotGenerationsQuery(
   queryClient: QueryClient,
   shotId: string
 ): Promise<void> {
-  await queryClient.cancelQueries({ queryKey: ['all-shot-generations', shotId] });
+  await queryClient.cancelQueries({ queryKey: queryKeys.generations.byShot(shotId) });
 }

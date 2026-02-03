@@ -6,7 +6,7 @@ import { Search } from 'lucide-react';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { Resource } from '@/shared/hooks/useResources';
 
-import { CommunityLorasTabProps, LoraModel, SortOption } from '../types';
+import { CommunityLorasTabProps, LoraModel, ModelFilterCategory, SortOption } from '../types';
 import { useLoraFilters } from '../hooks/useLoraFilters';
 import { getSubFilterOptions } from '../utils/filter-utils';
 import { LoraCard } from './LoraCard';
@@ -125,7 +125,7 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
           </SelectContent>
         </Select>
         {/* Model Filter Dropdown - far right */}
-        <Select value={selectedModelFilter} onValueChange={(v) => setSelectedModelFilter(v as any)}>
+        <Select value={selectedModelFilter} onValueChange={(v) => setSelectedModelFilter(v as ModelFilterCategory)}>
           <SelectTrigger variant="retro" className="w-[120px] ml-auto">
             <SelectValue placeholder="Model" />
           </SelectTrigger>

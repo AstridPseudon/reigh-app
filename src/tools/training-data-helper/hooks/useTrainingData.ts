@@ -9,7 +9,7 @@ interface TrainingDataBatchDB {
   user_id: string;
   name: string;
   description: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string | null;
 }
@@ -19,7 +19,7 @@ interface TrainingDataVideoDB {
   original_filename: string;
   storage_location: string;
   duration: number | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string | null;
   user_id: string;
@@ -33,7 +33,7 @@ interface TrainingDataSegmentDB {
   end_time: number;
   segment_location: string | null;
   description: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string | null;
 }
@@ -44,7 +44,7 @@ export interface TrainingDataBatch {
   userId: string;
   name: string;
   description: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -54,7 +54,7 @@ export interface TrainingDataVideo {
   originalFilename: string;
   storageLocation: string;
   duration: number | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string | null;
   userId: string;
@@ -68,7 +68,7 @@ export interface TrainingDataSegment {
   endTime: number;
   segmentLocation: string | null;
   description: string | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string | null;
 }

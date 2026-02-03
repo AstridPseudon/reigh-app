@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isAbortError } from '@/shared/lib/errorUtils';
 
 type InvokeOptions = {
-  body?: any;
+  body?: unknown;
   headers?: Record<string, string>;
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -11,7 +12,7 @@ type InvokeOptions = {
  * Calls supabase.functions.invoke with a client-side timeout and abort propagation.
  * Ensures long-running invocations do not stall the UI indefinitely.
  */
-export async function invokeWithTimeout<T = any>(functionName: string, options: InvokeOptions = {}): Promise<T> {
+export async function invokeWithTimeout<T = unknown>(functionName: string, options: InvokeOptions = {}): Promise<T> {
   const { body, headers, timeoutMs = 20000, signal } = options;
 
   const controller = new AbortController();
@@ -22,9 +23,9 @@ export async function invokeWithTimeout<T = any>(functionName: string, options: 
   // Compose signals: abort if any provided signal aborts
   const composed = new AbortController();
   const onAbort = () => composed.abort();
-  signals.forEach(s => {
-    if (s.aborted) composed.abort();
-    else s.addEventListener('abort', onAbort, { once: true });
+  signals.forEach(signal => {
+    if (signal.aborted) composed.abort();
+    else signal.addEventListener('abort', onAbort, { once: true });
   });
 
   const tid = setTimeout(() => {
@@ -41,8 +42,8 @@ export async function invokeWithTimeout<T = any>(functionName: string, options: 
       throw new Error(error.message || `Function ${functionName} failed`);
     }
     return data as T;
-  } catch (err: any) {
-    if (err?.name === 'AbortError') {
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
       throw new Error(`Function ${functionName} timed out after ${timeoutMs}ms`);
     }
     throw err;

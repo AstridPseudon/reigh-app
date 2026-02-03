@@ -16,11 +16,12 @@ import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individual
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import type { StructureVideoConfigWithMetadata, StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
 
 export interface SegmentRegenerateFormProps {
   /** Generation params from the current video */
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   /** Project ID for task creation */
   projectId: string | null;
   /** Generation ID to use as parent for the variant */
@@ -50,7 +51,7 @@ export interface SegmentRegenerateFormProps {
   /** Maximum frames allowed (77 with smooth continuations, 81 otherwise) */
   maxFrames?: number;
   /** Variant params to load into the form (set externally, e.g., from VariantSelector hover) */
-  variantParamsToLoad?: Record<string, any> | null;
+  variantParamsToLoad?: Record<string, unknown> | null;
   /** Callback when variant params have been loaded (to clear the trigger) */
   onVariantParamsLoaded?: () => void;
   /** Structure video type for this segment (null = no structure video coverage) */
@@ -410,7 +411,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
               console.error('[EnhancedPromptSave] ❌ Error fetching current metadata:', fetchError);
             }
 
-            const currentMetadata = (current?.metadata as Record<string, any>) || {};
+            const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
             console.log('[EnhancedPromptSave] 📝 Saving enhanced_prompt to metadata:', {
               pairShotGenerationId: pairShotGenerationId.substring(0, 8),
               enhancedPromptPreview: enhancedPromptResult.substring(0, 50) + '...',
@@ -435,7 +436,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
               console.log('[EnhancedPromptSave] ✅ Enhanced prompt saved to metadata successfully');
             }
 
-            queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
           } else {
             console.log('[EnhancedPromptSave] ⏭️ Skipping save:', {
               hasPairShotGenerationId: !!pairShotGenerationId,
@@ -475,8 +476,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
         } catch (error) {
           handleError(error, { context: 'SegmentRegenerateForm', toastTitle: 'Failed to create task' });
         } finally {
-          await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
-          await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
+          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
           removeIncomingTask(incomingTaskId);
         }
       })();

@@ -12,11 +12,9 @@ import React from 'react';
 import { Scissors, RefreshCw, RotateCcw, Sparkles } from 'lucide-react';
 
 // Import video editing components
-import {
-  TrimControlsPanel,
-} from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor';
-import type { TrimState } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor/types';
-import { VideoPortionEditor } from '@/tools/edit-video/components/VideoPortionEditor';
+import { TrimControlsPanel } from '@/shared/components/VideoTrimEditor';
+import type { TrimState } from '@/shared/types/videoTrim';
+import { VideoPortionEditor } from '@/shared/components/VideoPortionEditor';
 import { DEFAULT_VACE_PHASE_CONFIG } from '@/shared/lib/vaceDefaults';
 import type { UseVideoEditingReturn } from '../hooks/useVideoEditing';
 import { EditPanelLayout } from './EditPanelLayout';

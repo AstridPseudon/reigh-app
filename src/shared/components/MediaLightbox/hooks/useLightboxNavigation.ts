@@ -34,19 +34,19 @@ export const useLightboxNavigation = ({
       shield.style.background = 'transparent';
       shield.style.pointerEvents = 'all';
       shield.style.zIndex = '2147483647';
-      (shield.style as any).touchAction = 'none';
+      shield.style.touchAction = 'none';
 
       const block = (ev: Event) => {
         try { ev.preventDefault(); } catch {}
         try { ev.stopPropagation(); } catch {}
-        try { (ev as any).stopImmediatePropagation?.(); } catch {}
+        try { ev.stopImmediatePropagation?.(); } catch {}
       };
 
       shield.addEventListener('click', block, true);
       shield.addEventListener('pointerdown', block, true);
       shield.addEventListener('pointerup', block, true);
-      shield.addEventListener('touchstart', block, { capture: true, passive: false } as any);
-      shield.addEventListener('touchend', block, { capture: true, passive: false } as any);
+      shield.addEventListener('touchstart', block, { capture: true, passive: false } as AddEventListenerOptions);
+      shield.addEventListener('touchend', block, { capture: true, passive: false } as AddEventListenerOptions);
 
       document.body.appendChild(shield);
 

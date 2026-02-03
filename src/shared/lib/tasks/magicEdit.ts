@@ -6,6 +6,7 @@ import {
   TaskValidationError,
   BaseTaskParams,
 } from '../taskCreation';
+import type { TaskCreationResult } from '../taskCreation';
 import type { HiresFixApiParams } from './imageGeneration';
 import { handleError } from '@/shared/lib/errorHandler';
 
@@ -247,7 +248,7 @@ function buildMagicEditTaskParams(
  * @param params - Magic edit task parameters
  * @returns Promise resolving to the created task
  */
-export async function createMagicEditTask(params: MagicEditTaskParams): Promise<any> {
+export async function createMagicEditTask(params: MagicEditTaskParams): Promise<TaskCreationResult> {
   console.log("[createMagicEditTask] Creating task with params:", params);
 
   try {
@@ -286,7 +287,7 @@ export async function createMagicEditTask(params: MagicEditTaskParams): Promise<
  * @param params - Batch magic edit parameters
  * @returns Promise resolving to array of created tasks
  */
-export async function createBatchMagicEditTasks(params: BatchMagicEditTaskParams): Promise<any[]> {
+export async function createBatchMagicEditTasks(params: BatchMagicEditTaskParams): Promise<TaskCreationResult[]> {
   console.log("[createBatchMagicEditTasks] Creating batch tasks with params:", params);
 
   try {
@@ -358,7 +359,7 @@ export async function createBatchMagicEditTasks(params: BatchMagicEditTaskParams
 
     // 8. Return successful results
     const successfulResults = results
-      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .filter((r): r is PromiseFulfilledResult<TaskCreationResult> => r.status === 'fulfilled')
       .map(r => r.value);
 
     console.log(`[createBatchMagicEditTasks] Batch completed: ${successfulResults.length} tasks created`);

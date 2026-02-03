@@ -4,13 +4,17 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { extractVideoMetadataFromUrl } from '@/shared/lib/videoUploader';
+import { extractVideoMetadataFromUrl, type VideoMetadata } from '@/shared/lib/videoUploader';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal/types';
+import type { Shot } from '@/types/shots';
+import type { GenerationRow } from '@/types/shots';
 
 // ==================== Types ====================
 
 export interface TaskData {
-  params: any;
-  orchestrator: any;
+  params: Record<string, unknown>;
+  orchestrator: Record<string, unknown>;
 }
 
 export interface ExtractedSettings {
@@ -37,7 +41,7 @@ export interface ExtractedSettings {
   motionMode?: 'basic' | 'advanced';
   
   // Advanced mode settings
-  phaseConfig?: any;
+  phaseConfig?: PhaseConfig;
   selectedPhasePresetId?: string | null;
   turboMode?: boolean;
   enhancePrompt?: boolean;
@@ -63,7 +67,7 @@ export interface ApplyResult {
   success: boolean;
   settingName: string;
   error?: string;
-  details?: any;
+  details?: Record<string, unknown> | string;
 }
 
 export interface ApplyContext {
@@ -73,15 +77,15 @@ export interface ApplyContext {
   
   // Callbacks for applying settings
   onBatchVideoPromptChange: (prompt: string) => void;
-  onSteerableMotionSettingsChange: (settings: any) => void;
+  onSteerableMotionSettingsChange: (settings: { model_name?: string; negative_prompt?: string }) => void;
   onBatchVideoFramesChange: (frames: number) => void;
   onBatchVideoStepsChange: (steps: number) => void;
   onGenerationModeChange: (mode: 'batch' | 'timeline') => void;
   onAdvancedModeChange: (advanced: boolean) => void;
   onMotionModeChange?: (mode: 'basic' | 'advanced') => void;
   onGenerationTypeModeChange?: (mode: 'i2v' | 'vace') => void;
-  onPhaseConfigChange: (config: any) => void;
-  onPhasePresetSelect?: (presetId: string, config: any) => void;
+  onPhaseConfigChange: (config: PhaseConfig) => void;
+  onPhasePresetSelect?: (presetId: string, config: PhaseConfig) => void;
   onPhasePresetRemove?: () => void;
   onTurboModeChange?: (turbo: boolean) => void;
   onEnhancePromptChange?: (enhance: boolean) => void;
@@ -92,7 +96,7 @@ export interface ApplyContext {
   // Structure video
   handleStructureVideoChange: (
     videoPath: string | null,
-    metadata: any | null,
+    metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
     structureType: 'uni3c' | 'flow' | 'canny' | 'depth'
@@ -100,10 +104,10 @@ export interface ApplyContext {
   
   // LoRAs
   loraManager: {
-    setSelectedLoras?: (loras: any[]) => void;
-    handleAddLora: (lora: any, showToast: boolean, strength: number) => void;
+    setSelectedLoras?: (loras: LoraModel[]) => void;
+    handleAddLora: (lora: LoraModel, showToast: boolean, strength: number) => void;
   };
-  availableLoras: any[];
+  availableLoras: LoraModel[];
   
   // Pair prompts (for timeline mode)
   updatePairPromptsByIndex?: (index: number, prompt: string, negativePrompt: string) => Promise<void>;
@@ -140,8 +144,8 @@ export const fetchTask = async (taskId: string): Promise<TaskData | null> => {
     
     console.log('[ApplySettings] ✅ Task fetched successfully');
     
-    const params: any = data.params || {};
-    const orchestrator: any = params.orchestrator_details || params.full_orchestrator_payload || {};
+    const params = (data.params || {}) as Record<string, unknown>;
+    const orchestrator = (params.orchestrator_details || params.full_orchestrator_payload || {}) as Record<string, unknown>;
     
     return { params, orchestrator };
   } catch (queryError) {
@@ -153,7 +157,11 @@ export const fetchTask = async (taskId: string): Promise<TaskData | null> => {
 // ==================== Extract Settings ====================
 
 export const extractSettings = (taskData: TaskData): ExtractedSettings => {
-  const { params, orchestrator } = taskData;
+  // Cast to permissive record for dynamic property access from Supabase JSON
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const params = taskData.params as Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orchestrator = taskData.orchestrator as Record<string, any>;
   
   // Extract all settings with fallbacks
   const extracted: ExtractedSettings = {
@@ -572,7 +580,7 @@ export const applyLoRAs = async (
         
         settings.loras!.forEach(loraData => {
           const matchingLora = context.availableLoras.find(lora => {
-            const loraUrl = (lora as any).huggingface_url || lora['Download Link'] || '';
+            const loraUrl = lora.huggingface_url || (lora as Record<string, unknown>)['Download Link'] || '';
             return loraUrl === loraData.path ||
                    loraUrl.endsWith(loraData.path) ||
                    loraData.path.endsWith(loraUrl.split('/').pop() || '');
@@ -669,8 +677,8 @@ export const applyStructureVideo = async (
  */
 export const applyFramePositionsToExistingImages = async (
   settings: ExtractedSettings,
-  selectedShot: any,
-  simpleFilteredImages: any[]
+  selectedShot: Shot | null,
+  simpleFilteredImages: GenerationRow[]
 ): Promise<ApplyResult> => {
   const segmentGaps = settings.segmentFramesExpanded;
   const hasSegmentGaps = Array.isArray(segmentGaps) && segmentGaps.length > 0;
@@ -766,11 +774,11 @@ export const replaceImagesIfRequested = async (
   settings: ExtractedSettings,
   replaceImages: boolean,
   inputImages: string[],
-  selectedShot: any,
+  selectedShot: Shot | null,
   projectId: string,
-  simpleFilteredImages: any[],
-  addImageToShotMutation: any,
-  removeImageFromShotMutation: any
+  simpleFilteredImages: GenerationRow[],
+  addImageToShotMutation: { mutateAsync: (params: Record<string, unknown>) => Promise<unknown> },
+  removeImageFromShotMutation: { mutateAsync: (params: Record<string, unknown>) => Promise<unknown> }
 ): Promise<ApplyResult> => {
   if (!replaceImages) {
     console.log('[ApplySettings] ⏭️  Skipping image replacement (replaceImages = false)');
@@ -917,7 +925,7 @@ export const replaceImagesIfRequested = async (
         imageUrl: url,
         thumbUrl: generation.thumbnail_url || url,
         timelineFrame: timelineFrame,
-      } as any);
+      });
     });
     
     if (additions.length > 0) {

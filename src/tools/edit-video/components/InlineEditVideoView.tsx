@@ -15,6 +15,7 @@ import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { generateUUID, generateRunId, createTask } from '@/shared/lib/taskCreation';
 import { MultiPortionTimeline, formatTime, PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { SEGMENT_OVERLAY_COLORS } from '@/shared/lib/segmentColors';
@@ -87,7 +88,7 @@ export function InlineEditVideoView({
   const queryClient = useQueryClient();
   
   // Get video URL
-  const videoUrl = media.location || (media as any).url || (media as any).imageUrl;
+  const videoUrl = media.location || media.imageUrl;
   
   // Video duration and FPS state
   const [videoDuration, setVideoDuration] = useState(0);
@@ -99,7 +100,7 @@ export function InlineEditVideoView({
   
   // Progressive loading: show thumbnail first, then video when ready
   const [videoReady, setVideoReady] = useState(false);
-  const thumbnailUrl = (media as any).thumbnail_url || (media as any).thumbUrl;
+  const thumbnailUrl = media.thumbnail_url || media.thumbUrl;
   
   // Multiple portion selections - start at 10%-20% of video
   // Each selection can have its own gapFrameCount and prompt
@@ -665,10 +666,8 @@ export function InlineEditVideoView({
       setShowSuccessState(true);
       setTimeout(() => setShowSuccessState(false), 3000);
       
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ 
-        queryKey: ['unified-generations', 'project', selectedProjectId]
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
     },
     onError: (error) => {
       handleError(error, { context: 'InlineEditVideoView', toastTitle: 'Failed to create regeneration task' });

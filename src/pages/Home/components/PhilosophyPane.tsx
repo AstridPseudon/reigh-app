@@ -362,8 +362,8 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
     if (loraPlaying) {
       // Pause
       setLoraPlaying(false);
-      loraVideosRef.current.forEach(v => {
-        if (v) v.pause();
+      loraVideosRef.current.forEach(video => {
+        if (video) video.pause();
       });
     } else {
       // Play - wait for video to actually start playing before hiding button
@@ -386,10 +386,10 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setLoraPlaying(false);
-      loraVideosRef.current.forEach(v => {
-        if (v) {
-          v.pause();
-          v.currentTime = 0;
+      loraVideosRef.current.forEach(video => {
+        if (video) {
+          video.pause();
+          video.currentTime = 0;
         }
       });
     }
@@ -408,10 +408,10 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
   useEffect(() => {
     if (!isOpen && !isClosing) {
       // Stop all travel videos when closed
-      travelVideoRefs.current.forEach(v => {
-        if (v) {
-          v.pause();
-          v.currentTime = 0;
+      travelVideoRefs.current.forEach(video => {
+        if (video) {
+          video.pause();
+          video.currentTime = 0;
         }
       });
       // Reset all animation state

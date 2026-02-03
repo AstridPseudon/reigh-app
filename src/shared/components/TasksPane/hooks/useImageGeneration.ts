@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/types/shots';
 import { extractSourceGenerationId } from '../utils/task-utils';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface UseImageGenerationOptions {
   task: Task;
-  taskParams: { parsed: Record<string, any>; promptText: string };
+  taskParams: { parsed: Record<string, unknown>; promptText: string };
   isImageTask: boolean;
 }
 
@@ -27,7 +28,7 @@ export function useImageGeneration({
 
   // Fetch generation data - checks both generations and generation_variants tables
   const { data: generationResult, isLoading: isLoadingGeneration, error: generationError } = useQuery({
-    queryKey: ['image-generation-for-task', task.id, task.outputLocation],
+    queryKey: [...queryKeys.generations.forTask(task.id), task.outputLocation],
     queryFn: async () => {
       if (!task.outputLocation) return null;
 
@@ -139,39 +140,40 @@ export function useImageGeneration({
     
     if (!hasGeneratedImage || !actualGeneration) return null;
     
-    const basedOnValue = (actualGeneration as any).based_on || (actualGeneration.metadata as any)?.based_on || null;
-    
+    const gen = actualGeneration as Record<string, unknown>;
+    const basedOnValue = (gen.based_on as string | null) || (actualGeneration.metadata as Record<string, unknown> | undefined)?.based_on as string | null || null;
+
     // Transform shot associations
-    const shotGenerations = (actualGeneration as any).shot_generations || [];
-    const shotIds = shotGenerations.map((sg: any) => sg.shot_id);
-    const timelineFrames = shotGenerations.reduce((acc: any, sg: any) => {
+    const shotGenerations = (gen.shot_generations as Array<{ shot_id: string; timeline_frame: number | null }>) || [];
+    const shotIds = shotGenerations.map((sg) => sg.shot_id);
+    const timelineFrames = shotGenerations.reduce<Record<string, number | null>>((acc, sg) => {
       acc[sg.shot_id] = sg.timeline_frame;
       return acc;
     }, {});
-    
-    const allShotAssociations = shotGenerations.map((sg: any) => ({
+
+    const allShotAssociations = shotGenerations.map((sg) => ({
       shot_id: sg.shot_id,
       position: sg.timeline_frame,
     }));
-    
-    const imageUrl = actualGeneration.location || (actualGeneration as any).thumbnail_url;
-    const thumbUrl = (actualGeneration as any).thumbnail_url || actualGeneration.location;
-    
+
+    const imageUrl = actualGeneration.location || (gen.thumbnail_url as string | undefined);
+    const thumbUrl = (gen.thumbnail_url as string | undefined) || actualGeneration.location;
+
     return {
       id: actualGeneration.id,
       location: actualGeneration.location,
       imageUrl,
       thumbUrl,
       type: actualGeneration.type || 'image',
-      createdAt: (actualGeneration as any).created_at || actualGeneration.createdAt,
+      createdAt: (gen.created_at as string | undefined) || actualGeneration.createdAt,
       metadata: actualGeneration.metadata || {},
       based_on: basedOnValue,
       sourceGenerationId: basedOnValue,
-      parent_generation_id: (actualGeneration as any).parent_generation_id || undefined,
+      parent_generation_id: (gen.parent_generation_id as string | undefined) || undefined,
       shotIds,
       timelineFrames,
       all_shot_associations: allShotAssociations,
-      name: (actualGeneration as any).name || undefined,
+      name: (gen.name as string | undefined) || undefined,
       // Include variant info if this was found via variant lookup
       _variant_id: generationResult?.variantId || undefined,
       _variant_is_primary: generationResult?.variantIsPrimary || undefined,

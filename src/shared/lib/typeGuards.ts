@@ -183,10 +183,10 @@ export function filterShotGenerationsForDisplay<T extends ShotGenerationLike>(
   shotGenerations: T[]
 ): T[] {
   return sortByTimelineFrame(
-    shotGenerations.filter(sg => 
-      sg.generation && 
-      isPositioned(sg) && 
-      !isVideoShotGeneration(sg)
+    shotGenerations.filter(shotGen =>
+      shotGen.generation &&
+      isPositioned(shotGen) &&
+      !isVideoShotGeneration(shotGen)
     )
   );
 }

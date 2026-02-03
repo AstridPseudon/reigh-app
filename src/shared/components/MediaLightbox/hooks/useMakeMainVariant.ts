@@ -99,7 +99,7 @@ export function useMakeMainVariant({
         .insert({
           generation_id: parentGenId,
           location: media.location,
-          thumbnail_url: media.thumbUrl || (media as any).thumbnail_url || null,
+          thumbnail_url: media.thumbUrl || media.thumbnail_url || null,
           is_primary: true,
           variant_type: 'child_promoted',
           name: null,
@@ -123,7 +123,7 @@ export function useMakeMainVariant({
         .from('generations')
         .update({
           location: media.location,
-          thumbnail_url: media.thumbUrl || (media as any).thumbnail_url
+          thumbnail_url: media.thumbUrl || media.thumbnail_url
         })
         .eq('id', parentGenId);
 

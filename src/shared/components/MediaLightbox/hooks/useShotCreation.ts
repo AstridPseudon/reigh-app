@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { GenerationRow, Shot } from '@/types/shots';
 import { QuickCreateSuccess, ShotOption } from '../types';
 import { useQuickShotCreate } from '@/shared/hooks/useQuickShotCreate';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 export interface UseShotCreationProps {
   media: GenerationRow;
@@ -34,20 +35,16 @@ export const useShotCreation = ({
   onClose,
   onShotChange,
 }: UseShotCreationProps): UseShotCreationReturn => {
-  const mediaGenerationId = (media as any).generation_id as string | undefined;
-  
   // CRITICAL: When viewing from ShotImagesEditor, media.id is the shot_generations.id (join table ID)
   // We need to use media.generation_id (actual generations table ID) for creating new shot associations
   const actualGenerationId = useMemo(() => {
-    const genId = mediaGenerationId || media.id;
+    const genId = getGenerationId(media);
     console.log('[useShotCreation] Computed actualGenerationId:', {
       mediaId: media.id,
-      generationId: mediaGenerationId,
       actualGenerationId: genId,
-      usingGenerationIdField: !!mediaGenerationId
     });
     return genId;
-  }, [media.id, mediaGenerationId]);
+  }, [media]);
 
   // Use the consolidated hook
   const {

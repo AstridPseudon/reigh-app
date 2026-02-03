@@ -18,7 +18,7 @@ interface TaskTypeInfo {
 
 interface UseTaskContentTypeOptions {
   task: Task;
-  taskParams: { parsed: Record<string, any>; promptText: string };
+  taskParams: { parsed: Record<string, unknown>; promptText: string };
   /** Pass taskTypeInfo from parent to avoid duplicate useTaskType calls */
   taskTypeInfo?: TaskTypeInfo | null;
 }
@@ -36,7 +36,7 @@ export function useTaskContentType({ task, taskParams, taskTypeInfo }: UseTaskCo
 
     // Fallback: Infer content_type from task type name if not in database
     // This ensures "Open Image" button shows for image editing tasks
-    const inferredContentType = KNOWN_IMAGE_TASK_TYPES.includes(task.taskType as any) ? 'image' : null;
+    const inferredContentType = (KNOWN_IMAGE_TASK_TYPES as readonly string[]).includes(task.taskType) ? 'image' : null;
     const contentType = dbContentType || inferredContentType;
 
     const isVideoTask = contentType === 'video';

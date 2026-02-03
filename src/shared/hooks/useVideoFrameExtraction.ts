@@ -83,6 +83,8 @@ export function useVideoFrameExtraction(
 
     const video = videoRef.current;
     video.src = videoUrl;
+    // Explicitly trigger load - browsers may not auto-load detached (not in DOM) video elements
+    video.load();
 
     const extractFrames = async () => {
       console.log('[useVideoFrameExtraction] Starting extraction:', {
@@ -106,6 +108,13 @@ export function useVideoFrameExtraction(
             resolve();
           }, 3000);
         });
+      }
+
+      // Validate video actually loaded (has dimensions)
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.error('[useVideoFrameExtraction] Video did not load properly - dimensions are 0');
+        setIsExtracting(false);
+        return;
       }
 
       try {

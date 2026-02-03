@@ -6,6 +6,8 @@ import { Slider } from "@/shared/components/ui/slider";
 import { Pencil, Trash2 } from 'lucide-react';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+import type { Resource } from '@/shared/hooks/useResources';
+import type { LoraModel } from '../types';
 import { LoraCardProps } from '../types';
 
 const LoraCardComponent: React.FC<LoraCardProps> = ({
@@ -123,7 +125,7 @@ const LoraCardComponent: React.FC<LoraCardProps> = ({
                     size="sm"
                     className="h-6 w-6 p-0"
                     onClick={() => {
-                      onEdit({ id: resourceId, metadata: lora } as any);
+                      onEdit({ id: resourceId, metadata: lora } as Resource & { metadata: LoraModel });
                     }}
                   >
                     <Pencil className="h-3 w-3" />

@@ -10,44 +10,32 @@
 import React from 'react';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useGenerationDetails } from './useGenerationDetails';
+import { isImageEditTaskType, isVideoEnhanceTaskType, parseTaskParams, derivePrompt } from '@/shared/utils/taskParamsUtils';
+import { type TaskDetailsProps } from '@/shared/types/taskDetailsTypes';
 import {
   ImageEditTaskDetails,
   CharacterAnimateDetails,
   JoinClipsDetails,
   VideoTravelDetails,
   VideoEnhanceDetails,
-  isImageEditTaskType,
-  isVideoEnhanceTaskType,
-  type TaskDetailsProps,
-} from '@/tools/travel-between-images/components/TaskDetails';
-import { isJoinClipsTaskType, isCharacterAnimateTaskType } from '@/shared/lib/taskTypeUtils';
-import { VariantDetails } from './VariantDetails';
+} from '@/shared/components/TaskDetails';
+import { isJoinClipsTaskType, isCharacterAnimateTaskType, isTravelTaskType } from '@/shared/lib/taskTypeUtils';
+import { ImageGenerationDetails } from '@/shared/components/ImageGenerationDetails';
+import { Task } from '@/types/tasks';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 
 // Types
 export type DisplayVariant = 'hover' | 'modal' | 'panel';
-
-export interface VariantMeta {
-  isPrimary?: boolean;
-  isParent?: boolean;
-  isChild?: boolean;
-  createdAt?: string;
-}
 
 export interface GenerationDetailsProps {
   /** Task ID - component will fetch task data */
   taskId?: string;
   /** Direct task data (for backward compatibility) */
-  task?: any;
+  task?: Task;
   /** Input images - derived from task if not provided */
   inputImages?: string[];
   /** Display variant */
   variant: DisplayVariant;
-  /** Variant type (trimmed, upscaled, etc.) for transformation variants */
-  variantType?: string;
-  /** Variant-specific params (for trim/upscale) */
-  variantParams?: Record<string, any>;
-  /** Variant relationship metadata */
-  variantMeta?: VariantMeta;
   /** Mobile layout */
   isMobile?: boolean;
   // Pass-through props for specialized components
@@ -57,7 +45,7 @@ export interface GenerationDetailsProps {
   onShowFullPromptChange?: (show: boolean) => void;
   showFullNegativePrompt?: boolean;
   onShowFullNegativePromptChange?: (show: boolean) => void;
-  availableLoras?: any[];
+  availableLoras?: LoraModel[];
   showCopyButtons?: boolean;
 }
 
@@ -84,9 +72,6 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
   task: taskProp,
   inputImages: inputImagesProp,
   variant,
-  variantType,
-  variantParams,
-  variantMeta,
   isMobile = false,
   showAllImages,
   onShowAllImagesChange,
@@ -104,40 +89,12 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
     inputImages: inputImagesProp,
   });
 
-  // Transform variants (trimmed, upscaled) show their own UI, not full task details
-  const isTransformVariant = variantType === 'trimmed' || variantType === 'upscaled';
-  const shouldShowVariantOnly = isTransformVariant && variantParams;
-
-  // Show loading state when fetching task (but not for transform variants)
-  if (taskId && isLoading && !taskProp && !shouldShowVariantOnly) {
+  // Show loading state when fetching task
+  if (taskId && isLoading && !taskProp) {
     return <LoadingSkeleton variant={variant} />;
   }
 
-  // Render variant-specific display for trim/upscale (transformation variants)
-  if (shouldShowVariantOnly) {
-    return (
-      <VariantDetails
-        variantType={variantType!}
-        variantParams={variantParams}
-        variantMeta={variantMeta}
-        variant={variant}
-      />
-    );
-  }
-
-  // For other variant types without task, also show variant-only details if we have params
-  if (variantType && !task && variantParams) {
-    return (
-      <VariantDetails
-        variantType={variantType}
-        variantParams={variantParams}
-        variantMeta={variantMeta}
-        variant={variant}
-      />
-    );
-  }
-
-  // If no task and no variant data, show nothing
+  // If no task, show nothing
   if (!task) {
     return null;
   }
@@ -177,12 +134,42 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
     return <JoinClipsDetails {...detailsProps} />;
   }
 
-  // Default to VideoTravelDetails for travel tasks and other video types
-  return <VideoTravelDetails {...detailsProps} />;
+  // For travel tasks, use VideoTravelDetails
+  if (isTravelTaskType(taskType)) {
+    return <VideoTravelDetails {...detailsProps} />;
+  }
+
+  // For image generation tasks (non-video), build metadata and use ImageGenerationDetails
+  const parsedParams = parseTaskParams(task.params);
+  const metadata = {
+    prompt: derivePrompt(parsedParams),
+    tool_type: taskType,
+    originalParams: parsedParams,
+    negative_prompt: parsedParams.negative_prompt,
+    model: parsedParams.model,
+    steps: parsedParams.steps || parsedParams.num_inference_steps,
+    resolution: parsedParams.resolution,
+    style_reference_image: parsedParams.style_reference_image,
+    style_reference_strength: parsedParams.style_reference_strength,
+    subject_strength: parsedParams.subject_strength,
+    scene_reference_strength: parsedParams.scene_reference_strength,
+  };
+
+  return (
+    <ImageGenerationDetails
+      metadata={metadata}
+      variant={variant}
+      isMobile={isMobile}
+      showFullPrompt={showFullPrompt}
+      onShowFullPromptChange={onShowFullPromptChange}
+      showFullNegativePrompt={showFullNegativePrompt}
+      onShowFullNegativePromptChange={onShowFullNegativePromptChange}
+      showCopyButtons={showCopyButtons}
+    />
+  );
 };
 
 // Re-export for convenience
 export { useGenerationDetails } from './useGenerationDetails';
-export { VariantDetails } from './VariantDetails';
 
 export default GenerationDetails;

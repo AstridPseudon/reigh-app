@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { getImageRange } from '../utils/image-utils';
-import { logSelectionEvent } from '../utils/selection-debug';
 import { SELECTION_BAR_DELAY } from '../constants';
 
 interface UseSelectionProps {
@@ -68,10 +67,6 @@ export function useSelection({
   
   // Clear selection
   const clearSelection = useCallback(() => {
-    logSelectionEvent('Clearing selection', {
-      desktopCount: selectedIds.length,
-      mobileCount: mobileSelectedIds.length
-    });
     setSelectedIds([]);
     setMobileSelectedIds([]);
     setLastSelectedIndex(null);
@@ -80,14 +75,6 @@ export function useSelection({
   
   // Handle item click (desktop)
   const handleItemClick = useCallback((imageKey: string, event: React.MouseEvent) => {
-    logSelectionEvent('handleItemClick called', {
-      imageKey: imageKey.substring(0, 8),
-      isMobile,
-      generationMode,
-      metaKey: event.metaKey,
-      ctrlKey: event.ctrlKey
-    });
-    
     event.preventDefault();
     
     // Mobile behavior for batch mode

@@ -4,30 +4,30 @@ import { handleError } from "@/shared/lib/errorHandler";
 import { pixelToFrame } from "../utils/timeline-utils";
 
 interface UseFileDropProps {
-  onImageDrop?: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   fullMin: number;
   fullRange: number;
 }
 
-export const useFileDrop = ({ onImageDrop, fullMin, fullRange }: UseFileDropProps) => {
+export const useFileDrop = ({ onFileDrop, fullMin, fullRange }: UseFileDropProps) => {
   const [isFileOver, setIsFileOver] = useState(false);
   const [dropTargetFrame, setDropTargetFrame] = useState<number | null>(null);
 
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer.types.includes('Files') && onImageDrop) {
+    if (e.dataTransfer.types.includes('Files') && onFileDrop) {
       setIsFileOver(true);
     }
-  }, [onImageDrop]);
+  }, [onFileDrop]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, containerRef: React.RefObject<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer.types.includes('Files') && onImageDrop && containerRef.current) {
+    if (e.dataTransfer.types.includes('Files') && onFileDrop && containerRef.current) {
       setIsFileOver(true);
       e.dataTransfer.dropEffect = 'copy';
-      
+
       // Calculate target frame position based on mouse position
       const rect = containerRef.current.getBoundingClientRect();
       const relativeX = e.clientX - rect.left;
@@ -37,7 +37,7 @@ export const useFileDrop = ({ onImageDrop, fullMin, fullRange }: UseFileDropProp
       e.dataTransfer.dropEffect = 'none';
       setDropTargetFrame(null);
     }
-  }, [onImageDrop, fullMin, fullRange]);
+  }, [onFileDrop, fullMin, fullRange]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -52,12 +52,12 @@ export const useFileDrop = ({ onImageDrop, fullMin, fullRange }: UseFileDropProp
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const targetFrame = dropTargetFrame;
     setIsFileOver(false);
     setDropTargetFrame(null);
 
-    if (!onImageDrop) {
+    if (!onFileDrop) {
       return;
     }
 
@@ -80,11 +80,11 @@ export const useFileDrop = ({ onImageDrop, fullMin, fullRange }: UseFileDropProp
     }
 
     try {
-      await onImageDrop(validFiles, targetFrame ?? undefined);
+      await onFileDrop(validFiles, targetFrame ?? undefined);
     } catch (error) {
       handleError(error, { context: 'FileDrop', toastTitle: 'Failed to add images' });
     }
-  }, [onImageDrop, dropTargetFrame]);
+  }, [onFileDrop, dropTargetFrame]);
 
   return {
     isFileOver,

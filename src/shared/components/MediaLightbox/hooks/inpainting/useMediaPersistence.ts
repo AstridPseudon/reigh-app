@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react
 import type { GenerationRow } from '@/types/shots';
 import type { BrushStroke, EditMode, AnnotationMode, MediaStateCache, StrokeCache } from './types';
 import { useEditModePersistence } from './useEditModePersistence';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 interface UseMediaPersistenceProps {
   media: GenerationRow;
@@ -46,7 +47,7 @@ export function useMediaPersistence({
     : `inpaint-data-${media.id}`;
 
   // Get actual generation ID (may differ from media.id for shot_generations)
-  const actualGenerationId = (media as any).generation_id || media.id;
+  const actualGenerationId = getGenerationId(media);
 
   // DB persistence hooks
   const { loadEditModeFromDB, saveEditModeToDB } = useEditModePersistence();
@@ -142,7 +143,7 @@ export function useMediaPersistence({
 
     const oldMediaId = prevMediaIdRef.current;
     const newMediaId = media.id;
-    const newActualGenerationId = (media as any).generation_id || media.id;
+    const newActualGenerationId = getGenerationId(media);
 
     console.log('[Media] Media switching', {
       from: oldMediaId.substring(0, 8),

@@ -12,7 +12,7 @@
  * SCALE CONVENTION: motionAmount is 0-100 everywhere, converted to 0-1 only at task submission
  */
 
-import type { PhaseConfig } from '@/tools/travel-between-images/settings';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
 
 // =============================================================================
 // LORA CONFIG

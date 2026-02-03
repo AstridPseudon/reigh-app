@@ -14,7 +14,7 @@ export interface WorkflowControlsBarProps {
   // CRITICAL: targetShotId is the shot selected in the DROPDOWN, not the shot being viewed
   onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onDelete?: (id: string) => void;
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: Record<string, unknown>) => void;
   isSpecialEditMode: boolean;
   isVideo: boolean;
   

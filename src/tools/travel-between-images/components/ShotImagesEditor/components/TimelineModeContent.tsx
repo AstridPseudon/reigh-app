@@ -9,6 +9,8 @@ import Timeline from '../../Timeline';
 import type { PairData } from '../../Timeline/TimelineContainer';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { GenerationRow, Shot } from '@/types/shots';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 
 export interface TimelineModeContentProps {
   // Core
@@ -17,23 +19,23 @@ export interface TimelineModeContentProps {
   readOnly: boolean;
 
   // Images
-  images: any[];
-  memoizedShotGenerations: any[];
-  preloadedImages?: any[];
+  images: GenerationRow[];
+  memoizedShotGenerations: GenerationRow[];
+  preloadedImages?: GenerationRow[];
 
   // Frame management
   batchVideoFrames: number;
   updateTimelineFrame: (id: string, frame: number) => Promise<void>;
   pendingPositions: Map<string, number>;
   onPendingPositionApplied: (generationId: string) => void;
-  singleImageEndFrame?: number;
-  onSingleImageEndFrameChange: (endFrame: number) => void;
+  trailingEndFrame?: number;
+  onTrailingEndFrameChange: (endFrame: number | undefined) => void;
   maxFrameLimit: number;
 
   // Image actions
   onImageReorder: (orderedIds: string[], draggedItemId?: string) => void;
   onFramePositionsChange: (newPositions: Map<string, number>) => void;
-  onImageDrop: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   onImageDelete: (id: string) => void;
   onImageDuplicate?: (id: string, timeline_frame: number) => void;
@@ -82,7 +84,7 @@ export interface TimelineModeContentProps {
   uploadProgress: number;
 
   // Shot management
-  allShots?: any[];
+  allShots?: Shot[];
   onShotChange?: (shotId: string) => void;
   onAddToShot?: (targetShotId: string, generationId: string) => Promise<boolean>;
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string) => Promise<boolean>;
@@ -90,7 +92,7 @@ export interface TimelineModeContentProps {
   onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
 
   // Segment slots
-  segmentSlots: any[];
+  segmentSlots: SegmentSlot[];
   selectedOutputId?: string | null;
   onSelectedOutputChange?: (id: string | null) => void;
   onSegmentFrameCountChange: (pairShotGenerationId: string, newFrameCount: number) => Promise<{ finalFrameCount: number } | void>;
@@ -119,12 +121,12 @@ export const TimelineModeContent: React.FC<TimelineModeContentProps> = ({
   updateTimelineFrame,
   pendingPositions,
   onPendingPositionApplied,
-  singleImageEndFrame,
-  onSingleImageEndFrameChange,
+  trailingEndFrame,
+  onTrailingEndFrameChange,
   maxFrameLimit,
   onImageReorder,
   onFramePositionsChange,
-  onImageDrop,
+  onFileDrop,
   onGenerationDrop,
   onImageDelete,
   onImageDuplicate,
@@ -180,7 +182,7 @@ export const TimelineModeContent: React.FC<TimelineModeContentProps> = ({
         frameSpacing={batchVideoFrames}
         onImageReorder={onImageReorder}
         onFramePositionsChange={onFramePositionsChange}
-        onImageDrop={onImageDrop}
+        onFileDrop={onFileDrop}
         onGenerationDrop={onGenerationDrop}
         pendingPositions={pendingPositions}
         onPendingPositionApplied={onPendingPositionApplied}
@@ -224,8 +226,8 @@ export const TimelineModeContent: React.FC<TimelineModeContentProps> = ({
         onAddToShot={onAddToShot}
         onAddToShotWithoutPosition={onAddToShotWithoutPosition}
         onCreateShot={onCreateShot}
-        singleImageEndFrame={singleImageEndFrame}
-        onSingleImageEndFrameChange={onSingleImageEndFrameChange}
+        trailingEndFrame={trailingEndFrame}
+        onTrailingEndFrameChange={onTrailingEndFrameChange}
         maxFrameLimit={maxFrameLimit}
         selectedOutputId={selectedOutputId}
         onSelectedOutputChange={onSelectedOutputChange}

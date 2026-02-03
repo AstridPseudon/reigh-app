@@ -1,13 +1,14 @@
 /**
- * Segment Settings Hooks
+ * Segment Hooks
  *
- * Modular hooks for managing segment-level video generation settings.
+ * Modular hooks for managing segment-level video generation settings and outputs.
  *
  * Main exports:
  * - useSegmentSettings - Composed hook for full settings management
  * - usePairMetadata - Query hook for pair metadata
  * - useShotVideoSettings - Query hook for shot settings
  * - useSegmentMutations - Mutations for saving settings
+ * - useSegmentOutputsForShot - Hook for segment outputs/slots
  */
 
 // Main composed hook
@@ -32,3 +33,11 @@ export type {
   UseSegmentMutationsOptions,
   UseSegmentMutationsReturn,
 } from './useSegmentMutations';
+
+// Segment outputs hook (moved from travel-between-images tool)
+export { useSegmentOutputsForShot } from './useSegmentOutputsForShot';
+export type {
+  SegmentSlot,
+  ExpectedSegmentData,
+  UseSegmentOutputsReturn,
+} from './useSegmentOutputsForShot';

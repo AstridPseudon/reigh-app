@@ -15,7 +15,7 @@ import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 import { TaskDetailsPanelWrapper } from './TaskDetailsPanelWrapper';
-import { VariantSelector } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor/components/VariantSelector';
+import { VariantSelector } from '@/shared/components/VariantSelector';
 import { VariantBadge } from '@/shared/components/VariantBadge';
 import {
   useLightboxCoreSafe,
@@ -25,6 +25,7 @@ import {
 import { useImageEditSafe } from '../contexts/ImageEditContext';
 import { useVideoEditSafe } from '../contexts/VideoEditContext';
 import type { GenerationRow } from '@/types/shots';
+import type { TaskDetailsData } from '../types';
 
 export interface InfoPanelProps {
   /** Layout variant */
@@ -34,8 +35,8 @@ export interface InfoPanelProps {
   showImageEditTools: boolean;
 
   // TaskDetailsPanelWrapper props (deeply nested data)
-  taskDetailsData: any;
-  derivedItems: any[];
+  taskDetailsData: TaskDetailsData | undefined;
+  derivedItems: GenerationRow[];
   derivedGenerations: GenerationRow[] | null;
   paginatedDerived: GenerationRow[];
   derivedPage: number;
@@ -204,12 +205,12 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>{pendingTaskCount} pending</span>
             </div>
-          ) : unviewedVariantCount > 0 ? (
+          ) : variants && variants.length > 1 && unviewedVariantCount > 0 ? (
             <VariantBadge
               variant="inline"
+              derivedCount={variants.length}
               unviewedVariantCount={unviewedVariantCount}
               hasUnviewedVariants={true}
-              alwaysShowNew={true}
               tooltipSide="bottom"
               onMarkAllViewed={onMarkAllViewed}
               onClick={() => variantsSectionRef?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}

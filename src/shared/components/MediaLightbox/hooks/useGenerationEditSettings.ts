@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 export type EditMode = 'text' | 'inpaint' | 'annotate' | 'reposition' | 'img2img' | 'enhance';
 export type LoraMode = 'none' | 'in-scene' | 'next-scene' | 'custom';
@@ -231,19 +232,20 @@ export function useGenerationEditSettings({
         return null;
       }
       
-      const savedSettings = (data?.params as any)?.ui?.editSettings;
-      if (savedSettings) {
+      const savedSettings = (data?.params as Record<string, unknown>)?.ui as Record<string, unknown> | undefined;
+      const editSettings = savedSettings?.editSettings as Partial<GenerationEditSettings> | undefined;
+      if (editSettings) {
         console.log('[EDIT_DEBUG] ✅ LOAD SUCCESS: Found persisted settings');
-        console.log('[EDIT_DEBUG] ✅ LOAD: editMode:', savedSettings.editMode);
-        console.log('[EDIT_DEBUG] ✅ LOAD: loraMode:', savedSettings.loraMode);
-        console.log('[EDIT_DEBUG] ✅ LOAD: customLoraUrl:', savedSettings.customLoraUrl || '(empty)');
-        console.log('[EDIT_DEBUG] ✅ LOAD: numGenerations:', savedSettings.numGenerations);
-        console.log('[EDIT_DEBUG] ✅ LOAD: prompt:', savedSettings.prompt ? `"${savedSettings.prompt.substring(0, 50)}..."` : '(empty)');
-        console.log('[EDIT_DEBUG] ✅ LOAD: img2imgPrompt:', savedSettings.img2imgPrompt ? `"${savedSettings.img2imgPrompt.substring(0, 50)}..."` : '(empty)');
-        console.log('[EDIT_DEBUG] ✅ LOAD: img2imgPromptHasBeenSet:', !!savedSettings.img2imgPromptHasBeenSet);
+        console.log('[EDIT_DEBUG] ✅ LOAD: editMode:', editSettings.editMode);
+        console.log('[EDIT_DEBUG] ✅ LOAD: loraMode:', editSettings.loraMode);
+        console.log('[EDIT_DEBUG] ✅ LOAD: customLoraUrl:', editSettings.customLoraUrl || '(empty)');
+        console.log('[EDIT_DEBUG] ✅ LOAD: numGenerations:', editSettings.numGenerations);
+        console.log('[EDIT_DEBUG] ✅ LOAD: prompt:', editSettings.prompt ? `"${editSettings.prompt.substring(0, 50)}..."` : '(empty)');
+        console.log('[EDIT_DEBUG] ✅ LOAD: img2imgPrompt:', editSettings.img2imgPrompt ? `"${editSettings.img2imgPrompt.substring(0, 50)}..."` : '(empty)');
+        console.log('[EDIT_DEBUG] ✅ LOAD: img2imgPromptHasBeenSet:', !!editSettings.img2imgPromptHasBeenSet);
         return {
           ...DEFAULT_EDIT_SETTINGS,
-          ...savedSettings,
+          ...editSettings,
         };
       }
       
@@ -288,11 +290,12 @@ export function useGenerationEditSettings({
       }
       
       // Merge with existing params
-      const currentParams = (current?.params || {}) as Record<string, any>;
+      const currentParams = (current?.params || {}) as Record<string, unknown>;
+      const currentUi = (currentParams.ui || {}) as Record<string, unknown>;
       const updatedParams = {
         ...currentParams,
         ui: {
-          ...(currentParams.ui || {}),
+          ...currentUi,
           editSettings: newSettings,
           // Also save editMode at top level for backwards compatibility
           editMode: newSettings.editMode,
@@ -310,8 +313,8 @@ export function useGenerationEditSettings({
         console.log('[EDIT_DEBUG] ✅ SAVE SUCCESS: Settings persisted to database');
         
         // Invalidate generation queries
-        queryClient.invalidateQueries({ 
-          queryKey: ['generation', genId] 
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.generations.detail(genId)
         });
       }
     } catch (err) {

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter as ItemCardFooter, CardH
 import { useCreateResource, useUpdateResource, Resource, PhaseConfigMetadata } from '@/shared/hooks/useResources';
 import { toast } from "sonner";
 import { Pencil } from 'lucide-react';
-import { PhaseConfig, DEFAULT_PHASE_CONFIG } from '@/tools/travel-between-images/settings';
+import { PhaseConfig, DEFAULT_PHASE_CONFIG } from '@/shared/types/phaseConfig';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -281,7 +281,7 @@ export const AddNewPresetTab: React.FC<AddNewTabProps> = ({
     };
   }, [sampleFiles, mainGenerationIndex]);
 
-  const handleFormChange = (field: string, value: any) => {
+  const handleFormChange = (field: string, value: string | boolean | number) => {
     setAddForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -358,11 +358,11 @@ export const AddNewPresetTab: React.FC<AddNewTabProps> = ({
         await updateResource.mutateAsync({
           id: editingPreset.id,
           type: 'phase-config',
-          metadata: presetMetadata as any
+          metadata: presetMetadata,
         });
         onClearEdit();
       } else {
-        await createResource.mutateAsync({ type: 'phase-config', metadata: presetMetadata as any });
+        await createResource.mutateAsync({ type: 'phase-config', metadata: presetMetadata });
       }
 
       resetForm();

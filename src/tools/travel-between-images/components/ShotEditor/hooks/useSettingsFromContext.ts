@@ -19,6 +19,10 @@
 
 import { useContext } from 'react';
 import { VideoTravelSettingsContext } from '@/tools/travel-between-images/providers/VideoTravelSettingsProvider';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
+import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
+import type { ShotLora } from '@/tools/travel-between-images/settings';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal/types';
 
 /**
  * Check if we're inside VideoTravelSettingsProvider
@@ -148,11 +152,11 @@ export function useFrameSettingsWithFallback(propsFallback: {
  * Get phase config settings from context or props fallback
  */
 export function usePhaseConfigSettingsWithFallback(propsFallback: {
-  phaseConfig?: any;
+  phaseConfig?: PhaseConfig;
   selectedPhasePresetId?: string | null;
   generationTypeMode?: 'i2v' | 'vace';
-  setPhaseConfig?: (config: any) => void;
-  selectPreset?: (presetId: string, config: any) => void;
+  setPhaseConfig?: (config: PhaseConfig) => void;
+  selectPreset?: (presetId: string, config: PhaseConfig) => void;
   removePreset?: () => void;
   setGenerationTypeMode?: (mode: 'i2v' | 'vace') => void;
   restoreDefaults?: () => void;
@@ -218,8 +222,8 @@ export function useGenerationModeSettingsWithFallback(propsFallback: {
  * Get steerable motion settings from context or props fallback
  */
 export function useSteerableMotionSettingsWithFallback(propsFallback: {
-  steerableMotionSettings?: any;
-  setSteerableMotionSettings?: (settings: any) => void;
+  steerableMotionSettings?: SteerableMotionSettings;
+  setSteerableMotionSettings?: (settings: Partial<SteerableMotionSettings>) => void;
 }) {
   const ctx = useContext(VideoTravelSettingsContext);
 
@@ -240,9 +244,9 @@ export function useSteerableMotionSettingsWithFallback(propsFallback: {
  * Get LoRA settings from context or props fallback
  */
 export function useLoraSettingsWithFallback(propsFallback: {
-  selectedLoras?: any[];
-  availableLoras?: any[];
-  setSelectedLoras?: (loras: any[]) => void;
+  selectedLoras?: ShotLora[];
+  availableLoras?: LoraModel[];
+  setSelectedLoras?: (loras: ShotLora[]) => void;
 }) {
   const ctx = useContext(VideoTravelSettingsContext);
 

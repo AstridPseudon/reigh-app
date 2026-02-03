@@ -11,6 +11,8 @@ import { useShots } from '@/shared/contexts/ShotsContext';
 import { NEW_GROUP_DROPPABLE_ID } from '@/shared/lib/dragDrop';
 import { LastAffectedShotProvider, LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';
 import { AppRoutes } from "./routes";
+import { AuthProvider } from "@/shared/contexts/AuthContext";
+import { UserSettingsProvider } from "@/shared/contexts/UserSettingsContext";
 import { ProjectProvider, useProject } from "@/shared/contexts/ProjectContext";
 import { SimpleRealtimeProvider } from '@/shared/providers/SimpleRealtimeProvider';
 // Removed RealtimeBoundary - using surgical observer restoration instead
@@ -96,7 +98,7 @@ const AppInternalContent = () => {
   const addImageToShotMutation = useAddImageToShot();
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
 
-  const [activeDragData, setActiveDragData] = React.useState<any | null>(null);
+  const [activeDragData, setActiveDragData] = React.useState<Record<string, unknown> | null>(null);
   const [dropAnimation, setDropAnimation] = React.useState(false);
 
   const getDisplayUrl = (relativePath: string | undefined): string => {
@@ -258,26 +260,30 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TaskTypeConfigInitializer />
-      <ProjectProvider>
-        <SimpleRealtimeProvider>
-          <ShotsProvider>
-            <GenerationTaskProvider>
-              <IncomingTasksProvider>
-                <PanesProvider>
-                  <LastAffectedShotProvider>
-                    <CurrentShotProvider>
-                      <ToolPageHeaderProvider>
-                        <RefactorMetricsCollector />
-                        <AppInternalContent />
-                      </ToolPageHeaderProvider>
-                    </CurrentShotProvider>
-                  </LastAffectedShotProvider>
-                </PanesProvider>
-              </IncomingTasksProvider>
-            </GenerationTaskProvider>
-          </ShotsProvider>
-        </SimpleRealtimeProvider>
-      </ProjectProvider>
+      <AuthProvider>
+        <UserSettingsProvider>
+          <ProjectProvider>
+            <SimpleRealtimeProvider>
+              <ShotsProvider>
+                <GenerationTaskProvider>
+                  <IncomingTasksProvider>
+                    <PanesProvider>
+                      <LastAffectedShotProvider>
+                        <CurrentShotProvider>
+                          <ToolPageHeaderProvider>
+                            <RefactorMetricsCollector />
+                            <AppInternalContent />
+                          </ToolPageHeaderProvider>
+                        </CurrentShotProvider>
+                      </LastAffectedShotProvider>
+                    </PanesProvider>
+                  </IncomingTasksProvider>
+                </GenerationTaskProvider>
+              </ShotsProvider>
+            </SimpleRealtimeProvider>
+          </ProjectProvider>
+        </UserSettingsProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

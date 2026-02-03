@@ -63,7 +63,7 @@ interface SmartPollingResult {
   debug?: {
     pollingReason: string;
     lastEventAge?: number;
-    diagnostics: any;
+    diagnostics: ReturnType<typeof dataFreshnessManager.getDiagnostics> | null;
   };
 }
 

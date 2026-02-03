@@ -1,7 +1,15 @@
 import { GenerationRow, PairLoraConfig, PairMotionSettings } from '@/types/shots';
-import { SegmentSlot } from '@/tools/travel-between-images/hooks/useSegmentOutputsForShot';
-import type { PhaseConfig } from '@/tools/travel-between-images/settings';
-import type { PairData } from '@/tools/travel-between-images/components/Timeline/TimelineContainer';
+import type { SegmentSlot } from '@/shared/hooks/segments';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
+import type { PairData } from '@/shared/types/pairData';
+import type {
+  ImageDeleteHandler,
+  BatchImageDeleteHandler,
+  ImageDuplicateHandler,
+  ImageReorderHandler,
+  FileDropHandler,
+  GenerationDropHandler,
+} from '@/shared/types/imageHandlers';
 
 /** Per-pair parameter overrides for showing override icons */
 export type PairOverridesMap = Record<number, {
@@ -12,11 +20,11 @@ export type PairOverridesMap = Record<number, {
 
 export interface ShotImageManagerProps {
   images: GenerationRow[];
-  onImageDelete: (shotImageEntryId: string) => void;
-  onBatchImageDelete?: (shotImageEntryIds: string[]) => void;
-  onImageDuplicate?: (shotImageEntryId: string, timeline_frame: number) => void;
+  onImageDelete: ImageDeleteHandler;
+  onBatchImageDelete?: BatchImageDeleteHandler;
+  onImageDuplicate?: ImageDuplicateHandler;
   /** @param draggedItemId - The ID of the item that was actually dragged (for midpoint insertion) */
-  onImageReorder: (orderedShotGenerationIds: string[], draggedItemId?: string) => void;
+  onImageReorder: ImageReorderHandler;
   columns?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   generationMode: 'batch' | 'timeline';
   onMagicEdit?: (imageUrl: string, prompt: string, numImages: number) => void;
@@ -29,8 +37,10 @@ export interface ShotImageManagerProps {
   batchVideoFrames?: number;
   onSelectionChange?: (hasSelection: boolean) => void;
   readOnly?: boolean;
-  onFileDrop?: (files: File[], targetPosition?: number, framePosition?: number) => Promise<void>;
-  onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetPosition?: number, framePosition?: number) => Promise<void>;
+  /** Drop files onto batch grid - component calculates targetFrame from grid position */
+  onFileDrop?: FileDropHandler;
+  /** Drop generation onto batch grid - component calculates targetFrame from grid position */
+  onGenerationDrop?: GenerationDropHandler;
   shotId?: string;
   projectId?: string;
   toolTypeOverride?: string;
@@ -92,11 +102,11 @@ export interface ExternalGeneration extends GenerationRow {
 // Props used by the mobile variant (existing component)
 export interface BaseShotImageManagerProps {
   images: GenerationRow[];
-  onImageDelete: (shotImageEntryId: string) => void;
-  onBatchImageDelete?: (shotImageEntryIds: string[]) => void;
-  onImageDuplicate?: (shotImageEntryId: string, timeline_frame: number) => void;
+  onImageDelete: ImageDeleteHandler;
+  onBatchImageDelete?: BatchImageDeleteHandler;
+  onImageDuplicate?: ImageDuplicateHandler;
   /** @param draggedItemId - The ID of the item that was actually dragged (for midpoint insertion) */
-  onImageReorder: (orderedShotGenerationIds: string[], draggedItemId?: string) => void;
+  onImageReorder: ImageReorderHandler;
   onOpenLightbox?: (index: number) => void;
   onInpaintClick?: (index: number) => void;
   columns?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;

@@ -8,6 +8,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -29,6 +31,7 @@ import { handleError } from '@/shared/lib/errorHandler';
 import { Plus, Upload, Loader2 } from 'lucide-react';
 import { getDragType, getGenerationDropData, isFileDrag, type GenerationDropData, type DragType } from '@/shared/lib/dragDrop';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface ShotListDisplayProps {
   onSelectShot: (shot: Shot) => void;
@@ -230,7 +233,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
     keyboardSensor
   );
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     // Prevent drag if an input is focused
     if (isInputFocused) {
       console.log(`${REORDER_DEBUG_TAG} Preventing drag start - input is focused`);
@@ -317,7 +320,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
       
       // Update the unlimited shots cache (used by ShotsContext -> useListShots(projectId))
       // Cache key is ['shots', projectId, 0] where 0 = unlimited maxImagesPerShot
-      queryClient.setQueryData(['shots', currentProjectId, 0], shotsWithNewPositions);
+      queryClient.setQueryData(queryKeys.shots.list(currentProjectId, 0), shotsWithNewPositions);
       console.log(`${REORDER_DEBUG_TAG} Updated shots cache with key: ['shots', '${currentProjectId}', 0]`);
       
       // Generate position updates for database
@@ -343,8 +346,8 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
               errorDetails: error
             });
             // Revert optimistic updates on both caches on error
-            queryClient.setQueryData(['shots', currentProjectId], shots);
-            queryClient.setQueryData(['shots', currentProjectId, 5], shots);
+            queryClient.setQueryData(queryKeys.shots.list(currentProjectId), shots);
+            queryClient.setQueryData(queryKeys.shots.list(currentProjectId, 5), shots);
             toast.error(`Failed to reorder shots: ${error.message}`);
           },
           onSuccess: (data) => {
@@ -367,7 +370,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
 
   // [ShotReorderDebug] Additional drag event handlers for debugging
 
-  const handleDragMove = (event: any) => {
+  const handleDragMove = (event: DragMoveEvent) => {
     // Only log when over a different item to reduce noise
     if (event.over && event.active.id !== event.over.id) {
       console.log(`${REORDER_DEBUG_TAG} Drag move over different item:`, {

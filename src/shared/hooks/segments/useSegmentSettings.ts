@@ -100,7 +100,7 @@ export interface ShotDefaults {
   negativePrompt: string;
   motionMode: 'basic' | 'advanced';
   amountOfMotion: number;
-  phaseConfig?: import('@/tools/travel-between-images/settings').PhaseConfig;
+  phaseConfig?: import('@/shared/types/phaseConfig').PhaseConfig;
   loras: import('@/shared/types/segmentSettings').LoraConfig[];
   selectedPhasePresetId: string | null;
   textBeforePrompts: string;

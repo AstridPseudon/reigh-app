@@ -5,7 +5,7 @@ import {
 } from "../taskCreation";
 import type { TaskCreationResult } from "../taskCreation";
 import { supabase } from '@/integrations/supabase/client';
-import { PhaseConfig, buildBasicModePhaseConfig } from '@/tools/travel-between-images/settings';
+import { PhaseConfig, buildBasicModePhaseConfig } from '@/shared/types/phaseConfig';
 import { handleError } from '@/shared/lib/errorHandler';
 
 /**
@@ -26,14 +26,15 @@ export interface IndividualTravelSegmentParams {
   
   // The original segment params from the SegmentCard
   // This contains all the orchestrator_details, phase_config, etc.
-  originalParams?: Record<string, any>;
+  originalParams?: Record<string, unknown>;
   
   // Segment identification
   segment_index: number;
   
   // Input images for this segment (extracted from originalParams or provided)
+  // end_image_url is optional for trailing segments (single-image-to-video mode)
   start_image_url: string;
-  end_image_url: string;
+  end_image_url?: string;
   
   // Generation IDs for the input images (for clickable images in SegmentCard)
   start_image_generation_id?: string;
@@ -69,6 +70,9 @@ export interface IndividualTravelSegmentParams {
   svi_predecessor_video_url?: string;
   svi_strength_1?: number;
   svi_strength_2?: number;
+
+  // Segment position flags (auto-detected from end_image_url for trailing segments)
+  is_last_segment?: boolean;
 }
 
 // Maximum frames allowed per segment (81-frame limit)
@@ -79,35 +83,34 @@ const MAX_SEGMENT_FRAMES = 81;
  */
 function validateIndividualTravelSegmentParams(params: IndividualTravelSegmentParams): void {
   const errors: string[] = [];
-  
+
   if (!params.project_id) {
     errors.push("project_id is required");
   }
-  
+
   // Either parent_generation_id OR shot_id must be provided
   // (shot_id is used to create a new parent if none exists)
   if (!params.parent_generation_id && !params.shot_id) {
     errors.push("Either parent_generation_id or shot_id is required");
   }
-  
+
   if (typeof params.segment_index !== 'number' || params.segment_index < 0) {
     errors.push("segment_index must be a non-negative number");
   }
-  
+
   if (!params.start_image_url) {
     errors.push("start_image_url is required");
   }
-  
-  if (!params.end_image_url) {
-    errors.push("end_image_url is required");
-  }
-  
+
+  // end_image_url is optional for trailing segments (single-image-to-video mode)
+  // When not provided, the GPU worker will generate video from just the start image
+
   // Enforce 81-frame limit per segment
   const numFrames = params.num_frames ?? params.originalParams?.num_frames ?? 49;
   if (numFrames > MAX_SEGMENT_FRAMES) {
     errors.push(`num_frames (${numFrames}) exceeds maximum of ${MAX_SEGMENT_FRAMES} frames per segment`);
   }
-  
+
   if (errors.length > 0) {
     throw new TaskValidationError(errors.join(", "));
   }
@@ -176,7 +179,7 @@ function buildIndividualTravelSegmentParams(
     isUni3c = hasStructureVideos;
   } else if (hasStructureVideos && !structureGuidance) {
     // Check params.structure_videos first (from UI), then legacy sources
-    const structureType = (params.structure_videos as any)?.[0]?.structure_type ||
+    const structureType = ((params as Record<string, unknown>).structure_videos as Array<Record<string, unknown>> | undefined)?.[0]?.structure_type ||
       orig.structure_type || orchDetails.structure_type ||
       orchDetails.structure_videos?.[0]?.structure_type || orig.structure_videos?.[0]?.structure_type ||
       orchDetails.structure_video_type || orig.structure_video_type;
@@ -264,7 +267,11 @@ function buildIndividualTravelSegmentParams(
   
   // Build input_image_paths_resolved for orchestrator_details
   // Include all input images from the original orchestrator if available
-  const allInputImages = orchDetails.input_image_paths_resolved || [params.start_image_url, params.end_image_url];
+  // For trailing segments (single-image-to-video), end_image_url is undefined
+  const inputImages = params.end_image_url
+    ? [params.start_image_url, params.end_image_url]
+    : [params.start_image_url];
+  const allInputImages = orchDetails.input_image_paths_resolved || inputImages;
   
   // Build orchestrator_details to match travel_segment structure exactly
   // IMPORTANT: Remove orchestrator references so this task is billed as a standalone task
@@ -291,7 +298,7 @@ function buildIndividualTravelSegmentParams(
   let finalStructureGuidance = structureGuidance;
 
   // Check for structure_videos passed directly from UI (highest priority)
-  const directStructureVideos = params.structure_videos as any[] | undefined;
+  const directStructureVideos = (params as Record<string, unknown>).structure_videos as Array<Record<string, unknown>> | undefined;
   if (!finalStructureGuidance && directStructureVideos?.length > 0) {
     // Build unified format from UI-provided structure_videos
     const firstVideo = directStructureVideos[0];
@@ -386,7 +393,7 @@ function buildIndividualTravelSegmentParams(
     segmentIndex: params.segment_index,
   });
 
-  const orchestratorDetails: Record<string, any> = {
+  const orchestratorDetails: Record<string, unknown> = {
     ...orchDetailsWithoutOrchestratorRefs,
     // Common identifier for comparing batch vs individual segment generation
     generation_source: 'individual_segment',
@@ -487,7 +494,9 @@ function buildIndividualTravelSegmentParams(
     guidance_phases: guidancePhases,
     
     // Segment position flags
-    is_last_segment: orig.is_last_segment ?? false,
+    // Check params.is_last_segment first (from buildTaskParams trailing segment detection),
+    // then fall back to orig.is_last_segment (from originalParams)
+    is_last_segment: params.is_last_segment ?? orig.is_last_segment ?? false,
     negative_prompt: negativePrompt,
     is_first_segment: orig.is_first_segment ?? (params.segment_index === 0),
     
@@ -521,7 +530,8 @@ function buildIndividualTravelSegmentParams(
     ...(params.child_generation_id ? { based_on: params.child_generation_id } : {}),
     
     // Input images at top level for TaskItem image display
-    input_image_paths_resolved: [params.start_image_url, params.end_image_url],
+    // For trailing segments (single-image-to-video), end_image_url is undefined
+    input_image_paths_resolved: inputImages,
     
     // Image tethering IDs - stored at top level so they're on the generation params
     ...(params.start_image_generation_id && { start_image_generation_id: params.start_image_generation_id }),
@@ -549,10 +559,11 @@ function buildIndividualTravelSegmentParams(
   // Build individual_segment_params - all UI overrides in one place
   // GPU worker should check these first before falling back to top-level values
   const individualSegmentParams: Record<string, unknown> = {
-    // Input images for this segment (just 2 images)
-    input_image_paths_resolved: [params.start_image_url, params.end_image_url],
+    // Input images for this segment
+    // For trailing segments (single-image-to-video), end_image_url is undefined
+    input_image_paths_resolved: inputImages,
     start_image_url: params.start_image_url,
-    end_image_url: params.end_image_url,
+    ...(params.end_image_url && { end_image_url: params.end_image_url }),
     
     // Shot generation IDs for image tethering (video follows its source image on timeline)
     ...(params.start_image_generation_id && { start_image_generation_id: params.start_image_generation_id }),
@@ -610,13 +621,18 @@ function buildIndividualTravelSegmentParams(
  * @returns Promise resolving to the created task
  */
 export async function createIndividualTravelSegmentTask(params: IndividualTravelSegmentParams): Promise<TaskCreationResult> {
-  console.log("[IndividualTravelSegment] Creating task with params:", {
-    project_id: params.project_id,
-    parent_generation_id: params.parent_generation_id,
-    shot_id: params.shot_id,
+  // Detect trailing segment mode (single-image-to-video, no end image)
+  const isTrailingSegment = !params.end_image_url;
+
+  console.log("[TrailingGen] createTask called:", {
+    project_id: params.project_id?.substring(0, 8),
+    parent_generation_id: params.parent_generation_id?.substring(0, 8),
+    shot_id: params.shot_id?.substring(0, 8),
     segment_index: params.segment_index,
+    isTrailingSegment,
+    hasStartImageUrl: !!params.start_image_url,
+    hasEndImageUrl: !!params.end_image_url,
     hasOriginalParams: !!params.originalParams,
-    originalParamsKeys: params.originalParams ? Object.keys(params.originalParams).slice(0, 10) : [],
   });
 
   try {
@@ -631,13 +647,18 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
       
       // Create a placeholder parent generation
       const newParentId = crypto.randomUUID();
+      // Build input images array (end_image_url is optional for trailing segments)
+      const placeholderInputImages = params.end_image_url
+        ? [params.start_image_url, params.end_image_url]
+        : [params.start_image_url];
+
       const placeholderParams = {
         tool_type: 'travel-between-images',
         created_from: 'individual_segment_first_generation',
         // Include basic orchestrator_details structure so it shows in segment outputs
         orchestrator_details: {
           num_new_segments_to_generate: 1, // Will be updated as more segments are generated
-          input_image_paths_resolved: [params.start_image_url, params.end_image_url],
+          input_image_paths_resolved: placeholderInputImages,
         },
       };
       
@@ -778,13 +799,14 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
     // 5. Build task params matching travel_segment structure
     const taskParams = buildIndividualTravelSegmentParams(paramsWithIds, finalResolution);
 
-    console.log("[IndividualTravelSegment] Built task params:", {
+    console.log("[TrailingGen] Built task params:", {
       model_name: taskParams.model_name,
       segment_index: taskParams.segment_index,
       num_frames: taskParams.num_frames,
       seed_to_use: taskParams.seed_to_use,
       parsed_resolution_wh: taskParams.parsed_resolution_wh,
       child_generation_id: taskParams.child_generation_id,
+      is_last_segment: taskParams.is_last_segment,
       origResolution,
       finalResolution,
       hasPhaseConfig: !!taskParams.phase_config,

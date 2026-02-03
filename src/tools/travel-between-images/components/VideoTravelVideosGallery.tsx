@@ -11,14 +11,14 @@ import React from 'react';
 import { MediaGallery } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
-import { Shot } from '@/types/shots';
+import { GenerationRow, Shot } from '@/types/shots';
 
 // =============================================================================
 // PROP TYPES (grouped for clarity)
 // =============================================================================
 
 export interface VideosQueryProps {
-  videosData: any;
+  videosData: { items: GenerationRow[]; total: number } | undefined;
   videosLoading: boolean;
   videosFetching: boolean;
   selectedProjectId: string | null | undefined;
@@ -113,8 +113,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
   } = addToShot;
 
   // Determine if we should show skeleton
-  const vd: any = videosData as any;
-  const hasValidData = vd?.items && vd.items.length > 0;
+  const hasValidData = videosData?.items && videosData.items.length > 0;
   const isLoadingOrFetching = videosLoading || videosFetching;
   
   // Show skeleton if:
@@ -124,7 +123,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
   const shouldShowSkeleton = !selectedProjectId || (isLoadingOrFetching && !hasValidData) || videosViewJustEnabled;
   
   // Use actual count if available, otherwise default to 12
-  const skeletonCount = (vd?.total) || 12;
+  const skeletonCount = videosData?.total || 12;
   
   // For videos, use fewer columns than images (hardcoded for now to verify it works)
   const effectiveColumnsPerRow = columnsPerRow ?? 3;
@@ -143,8 +142,8 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
     videosViewJustEnabled,
     shouldShowSkeleton,
     skeletonCount,
-    videosDataTotal: vd?.total,
-    videosDataItemsLength: vd?.items?.length,
+    videosDataTotal: videosData?.total,
+    videosDataItemsLength: videosData?.items?.length,
     decisionBreakdown: {
       condition1_noProject: !selectedProjectId,
       condition2_loadingNoData: isLoadingOrFetching && !hasValidData,
@@ -174,7 +173,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
     <div className="px-4 max-w-7xl mx-auto">
       <div className="pb-2">
         <MediaGallery
-          images={(videosData as any)?.items || []}
+          images={videosData?.items || []}
           allShots={shots || []}
           // Add to Shot functionality
           onAddToLastShot={handleAddVideoToTargetShot}
@@ -184,7 +183,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
           currentToolType="travel-between-images"
           currentToolTypeName="Travel Between Images"
           // Pagination props
-          totalCount={(videosData as any)?.total}
+          totalCount={videosData?.total}
           serverPage={videoPage}
           onServerPageChange={(page) => setVideoPage(page)}
           itemsPerPage={itemsPerPage}

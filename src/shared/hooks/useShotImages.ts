@@ -41,6 +41,7 @@ import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { GenerationRow, TimelineGenerationRow, Shot } from '@/types/shots';
 import { isTimelineGeneration } from '@/shared/lib/typeGuards';
 import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import React from 'react';
 
 import { mapShotGenerationToRow } from '@/shared/hooks/useShots';
@@ -49,9 +50,9 @@ import { mapShotGenerationToRow } from '@/shared/hooks/useShots';
 export const useUnpositionedGenerationsCount = (
   shotId: string | null
 ): UseQueryResult<number> => {
-  const smartPollingConfig = useSmartPollingConfig(['unpositioned-count', shotId]);
+  const smartPollingConfig = useSmartPollingConfig(queryKeys.generations.unpositionedCount(shotId!));
   return useQuery({
-    queryKey: ['unpositioned-count', shotId],
+    queryKey: queryKeys.generations.unpositionedCount(shotId!),
     enabled: !!shotId,
     queryFn: async () => {
       // Try to use the database function first
@@ -79,7 +80,7 @@ export const useUnpositionedGenerationsCount = (
         .is('timeline_frame', null);
 
       const nonVideoCount = (unpositioned || []).filter(
-        shotGen => !(shotGen.generation as any)?.type?.includes('video')
+        shotGen => !(shotGen.generation as { type?: string } | null)?.type?.includes('video')
       ).length;
 
       return nonVideoCount;
@@ -148,7 +149,7 @@ export const useAllShotGenerations = (
   // This replaces the previous two-phase approach for simpler, more reliable data
   // ============================================================================
   const mainQuery = useQuery<GenerationRow[], Error>({
-    queryKey: ['all-shot-generations', stableShotId],
+    queryKey: queryKeys.generations.byShot(stableShotId!),
     enabled: isEnabled,
     // Use realtimeBacked preset - data freshness from realtime + mutations
     // (invalidated by SimpleRealtimeProvider + useGenerationInvalidation)
@@ -201,7 +202,7 @@ export const useAllShotGenerations = (
       if (response.error) {
         // Abort errors are expected during rapid invalidations - silently return cached data
         if (response.error.code === '20' || response.error.message?.includes('abort')) {
-          const cachedData = queryClient.getQueryData<GenerationRow[]>(['all-shot-generations', stableShotId]);
+          const cachedData = queryClient.getQueryData<GenerationRow[]>(queryKeys.generations.byShot(stableShotId!));
           return cachedData || [];
         }
         console.error('[DataTrace] ❌ NETWORK FETCH ERROR:', response.error);
@@ -242,13 +243,13 @@ export const useAllShotGenerations = (
         shotId: stableShotId?.substring(0, 8), 
         resultCount: result.length,
         duration: `${duration}ms`,
-        hasOptimistic: result.some((r: any) => r._optimistic),
+        hasOptimistic: result.some(r => r.isOptimistic),
         // Show last 3 items for debugging
         lastItems: result.slice(-3).map(r => ({
           id: r.id?.substring(0, 8),
           generation_id: r.generation_id?.substring(0, 8),
           timeline_frame: r.timeline_frame,
-          _optimistic: (r as any)._optimistic
+          isOptimistic: r.isOptimistic
         })),
       });
 
@@ -484,7 +485,7 @@ export const usePrimeShotGenerationsCache = (
   
   React.useEffect(() => {
     // [SelectorDebug] Log every priming attempt
-    const existingData = queryClient.getQueryData<GenerationRow[]>(['all-shot-generations', shotId]);
+    const existingData = queryClient.getQueryData<GenerationRow[]>(queryKeys.generations.byShot(shotId!));
     
     const willPrime = shotId && 
                       contextImages && 
@@ -515,7 +516,7 @@ export const usePrimeShotGenerationsCache = (
     }
     
     // Prime the cache with context data
-    queryClient.setQueryData(['all-shot-generations', shotId], contextImages);
+    queryClient.setQueryData(queryKeys.generations.byShot(shotId!), contextImages);
     
     console.log('[SelectorDebug] ✅ Cache PRIMED from context:', {
       shotId: shotId.substring(0, 8),

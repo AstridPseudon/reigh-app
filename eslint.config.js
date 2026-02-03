@@ -25,5 +25,19 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  // Architectural rule: shared/ should not import from tools/
+  // This prevents coupling between the shared layer and tool-specific code.
+  // Existing exceptions are documented in tasks/2026-02-02-shared-tools-cleanup.md
+  {
+    files: ["src/shared/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: ["@/tools/*", "**/tools/*"],
+          message: "shared/ cannot import from tools/. Move the type/utility to shared/, or move the component to tools/. See tasks/2026-02-02-shared-tools-cleanup.md for documented exceptions."
+        }]
+      }]
+    }
   }
 );

@@ -20,6 +20,7 @@
 | **Deployment** | [deployment_and_migration_guide.md](docs/structure_detail/deployment_and_migration_guide.md) | Safe migrations and Edge Function deployment |
 | **Settings System** | [settings_system.md](docs/structure_detail/settings_system.md) | Settings priority (shot→project→user→defaults), inheritance |
 | **Data Persistence** | [data_persistence.md](docs/structure_detail/data_persistence.md) | State management patterns, storage layers |
+| **Data Fetching** | [data_fetching.md](docs/structure_detail/data_fetching.md) | Query scopes, mutation ownership, invalidation patterns |
 | **Shot Data Flow** | [shot_generation_data_flow.md](docs/structure_detail/shot_generation_data_flow.md) | Types, hooks, caching patterns for shot images |
 | **Task System** | [task_worker_lifecycle.md](docs/structure_detail/task_worker_lifecycle.md) | Async task queue, worker polling |
 | **Task Creation** | [unified_task_creation.md](docs/structure_detail/unified_task_creation.md) | Client-side task creation pattern |

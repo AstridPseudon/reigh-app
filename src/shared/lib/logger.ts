@@ -92,11 +92,11 @@ function addToBuffer(level: BufferedLog['log_level'], tag: string, args: unknown
   if (!shouldPersist()) return;
   
   // Serialize args safely
-  const message = `[${tag}] ${args.map(a => {
+  const message = `[${tag}] ${args.map(arg => {
     try {
-      return typeof a === 'string' ? a : JSON.stringify(a);
+      return typeof arg === 'string' ? arg : JSON.stringify(arg);
     } catch {
-      return String(a);
+      return String(arg);
     }
   }).join(' ')}`;
   
@@ -334,13 +334,13 @@ function addToBufferRaw(level: BufferedLog['log_level'], args: unknown[]): void 
   }
   
   // Serialize args safely
-  const message = `[${tag}] ${messageArgs.map(a => {
+  const message = `[${tag}] ${messageArgs.map(arg => {
     try {
-      if (typeof a === 'string') return a;
-      if (a instanceof Error) return `${a.name}: ${a.message}`;
-      return JSON.stringify(a);
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+      return JSON.stringify(arg);
     } catch {
-      return String(a);
+      return String(arg);
     }
   }).join(' ')}`;
   

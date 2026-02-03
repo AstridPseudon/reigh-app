@@ -96,7 +96,7 @@ async function fetchProjectGenerationModesFromDB(projectId: string): Promise<Map
   const projectToolSettings = extractToolSettings(projectResult.data?.settings, toolId);
 
   const modes = new Map<string, GenerationModeNormalized>();
-  (shotsResult.data || []).forEach((shot: any) => {
+  (shotsResult.data || []).forEach((shot) => {
     const shotToolSettings = extractToolSettings(shot.settings, toolId);
 
     // Use shared resolution logic (priority: shot → project → user → defaults)

@@ -8,6 +8,7 @@
 
 import { useMemo, RefObject } from 'react';
 import type { GenerationRow } from '@/types/shots';
+import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { LightboxStateValue } from '../contexts/LightboxStateContext';
 
 export interface UseLightboxStateValueInput {
@@ -29,14 +30,14 @@ export interface UseLightboxStateValueInput {
   setImageDimensions: (dims: { width: number; height: number }) => void;
 
   // Variants
-  variants: any[];
-  activeVariant: any;
-  primaryVariant: any;
+  variants: GenerationVariant[];
+  activeVariant: GenerationVariant | null;
+  primaryVariant: GenerationVariant | null;
   isLoadingVariants: boolean;
   setActiveVariantId: (id: string) => void;
   setPrimaryVariant: (id: string) => void;
   deleteVariant: (id: string) => void;
-  onLoadVariantSettings?: (variantParams: Record<string, any>) => void;
+  onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
   promoteSuccess: boolean;
   isPromoting: boolean;
   handlePromoteToGeneration: (variantId: string) => Promise<void>;
@@ -55,7 +56,7 @@ export interface UseLightboxStateValueInput {
   handleSlotNavNext: () => void;
   handleSlotNavPrev: () => void;
   swipeNavigation: {
-    swipeHandlers: Record<string, any>;
+    swipeHandlers: Record<string, unknown>;
     isSwiping: boolean;
     swipeOffset: number;
   };

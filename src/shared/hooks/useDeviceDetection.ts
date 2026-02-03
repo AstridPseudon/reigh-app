@@ -107,10 +107,10 @@ export function useDeviceDetection(): UseDeviceDetectionReturn {
     if (typeof window === 'undefined') return !!isMobile;
     try {
       const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      const ua = (navigator as any)?.userAgent || '';
+      const ua = navigator.userAgent || '';
       const tabletUA = /iPad|Tablet|Android(?!.*Mobile)|Silk|Kindle|PlayBook/i.test(ua);
-      const maxTouchPoints = (navigator as any)?.maxTouchPoints || 0;
-      const isIpadOsLike = (navigator as any)?.platform === 'MacIntel' && maxTouchPoints > 1;
+      const maxTouchPoints = navigator.maxTouchPoints || 0;
+      const isIpadOsLike = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
       return Boolean(isMobile || coarsePointer || tabletUA || isIpadOsLike);
     } catch {
       return !!isMobile;
@@ -141,10 +141,9 @@ export function useDeviceDetection(): UseDeviceDetectionReturn {
 function detectTablet(): boolean {
   if (typeof window === 'undefined') return false;
   
-  const nav: any = navigator || {};
-  const ua: string = nav.userAgent || '';
-  const platform: string = nav.platform || '';
-  const maxTouchPoints: number = nav.maxTouchPoints || 0;
+  const ua: string = navigator.userAgent || '';
+  const platform: string = navigator.platform || '';
+  const maxTouchPoints: number = navigator.maxTouchPoints || 0;
   
   // iPad detection (including iPadOS 13+ that masquerades as Mac)
   const isIpadUA = /iPad/i.test(ua);

@@ -4,7 +4,6 @@ import { getDisplayUrl, stripQueryParameters } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
-import { getAutoplayContext, logAutoplayAttempt, trackVideoStates } from '@/shared/utils/autoplayDebugger';
 
 interface HoverScrubVideoProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onTouchEnd'> {
   /**
@@ -159,30 +158,6 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
   // Track stable source (without query params) to avoid resetting when only tokens change
   const stableSrcRef = useRef<string>(stripQueryParameters(src));
   
-  // Debug mobile detection (development only)
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      // Track video context when component mounts
-      const autoplayContext = getAutoplayContext(isMobile);
-      
-      console.log('[AutoplayDebugger:GALLERY] 🎬 Video mounted', {
-        videoType: disableScrubbing ? 'lightbox' : 'gallery',
-        isMobile,
-        src: src?.substring(src.lastIndexOf('/') + 1) || 'no-src',
-        autoplayContext,
-        componentState: {
-          disableScrubbing,
-          thumbnailMode,
-          isEmulatedMobile: /Chrome/.test(navigator.userAgent) && isMobile
-        },
-        timestamp: Date.now()
-      });
-      
-      // Track video states when new video mounts
-      trackVideoStates();
-    }
-  }, [isMobile, src, poster, disableScrubbing, thumbnailMode]);
-
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     // Skip hover interactions on mobile devices or when scrubbing is disabled
     if (!scrubbingEnabled) {
@@ -369,67 +344,14 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
 
     // Add event listeners to track unexpected play events
     const handlePlay = () => {
-      if (process.env.NODE_ENV === 'development') {
-        // Get full autoplay context when video starts playing
-        const autoplayContext = getAutoplayContext(isMobile);
-        
-        console.warn('[AutoplayDebugger:GALLERY] 🎯 Video STARTED playing', {
-          videoSrc: video.src?.substring(video.src.lastIndexOf('/') + 1) || 'no-src',
-          playTrigger: isHoveringRef.current ? 'hover' : 'unexpected',
-          autoplayContext,
-          playbackState: {
-            currentTime: video.currentTime,
-            readyState: video.readyState,
-            muted: video.muted
-          },
-          componentState: {
-            isMobile,
-            disableScrubbing,
-            isHovering: isHoveringRef.current
-          },
-          timestamp: Date.now()
-        });
-        
-        // Log this as an autoplay attempt for tracking
-        logAutoplayAttempt(autoplayContext, video.src, true);
-      }
-      
       // Only enforce anti-autoplay on mobile thumbnails (scrubbing enabled)
       // but allow if explicitly user-initiated (click/touch)
       if (!disableScrubbing && isMobile && !isHoveringRef.current && !userInitiatedPlayRef.current) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[AutoplayDebugger:GALLERY] 🚫 BLOCKED mobile autoplay', {
-            videoSrc: video.src?.substring(video.src.lastIndexOf('/') + 1) || 'no-src',
-            reason: 'Mobile gallery video should not autoplay',
-            autoplayContext: getAutoplayContext(isMobile),
-            blockingPolicy: 'Prevent gallery videos from autoplaying on mobile',
-            timestamp: Date.now()
-          });
-        }
         video.pause();
       }
     };
 
     const handlePause = () => {
-      if (process.env.NODE_ENV === 'development') {
-        const autoplayContext = getAutoplayContext(isMobile);
-
-        console.log('[AutoplayDebugger:GALLERY] ⏸️ Video paused', {
-          videoSrc: video.src?.substring(video.src.lastIndexOf('/') + 1) || 'no-src',
-          pauseTrigger: isHoveringRef.current ? 'hover-end' : 'programmatic',
-          autoplayContext,
-          playbackState: {
-            currentTime: video.currentTime,
-            readyState: video.readyState
-          },
-          componentState: {
-            isMobile,
-            isHovering: isHoveringRef.current
-          },
-          timestamp: Date.now()
-        });
-        console.trace('[AutoplayDebugger] Pause stack trace');
-      }
       // Reset user-initiated flag on pause so future autoplays are blocked again
       userInitiatedPlayRef.current = false;
     };

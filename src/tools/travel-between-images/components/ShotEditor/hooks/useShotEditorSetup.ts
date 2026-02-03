@@ -233,7 +233,7 @@ export function useShotEditorSetup({
   const initialParentGenerations = useMemo(() => {
     return videoOutputs
       .filter(v => {
-        const params = v.params as any;
+        const params = v.params as Record<string, unknown> | null;
         return params?.orchestrator_details != null;
       })
       .sort((a, b) => {

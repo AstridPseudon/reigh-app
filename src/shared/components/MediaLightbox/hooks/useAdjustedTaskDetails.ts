@@ -8,6 +8,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
+import { getSourceTaskId, hasOrchestratorDetails } from '@/shared/lib/taskIdHelpers';
 
 // Helper to derive input images from task params
 function deriveInputImages(params: Record<string, unknown>): string[] {
@@ -81,23 +84,17 @@ export function useAdjustedTaskDetails({
   // Extract source_task_id and check if variant already has orchestrator_details
   const { variantSourceTaskId, variantHasOrchestratorDetails } = useMemo(() => {
     const variantParams = activeVariant?.params as Record<string, unknown> | undefined;
-    // Try multiple possible field names for the source task ID
-    const taskId = variantParams?.source_task_id ||
-                   variantParams?.orchestrator_task_id ||
-                   variantParams?.task_id ||
-                   null;
-    // Validate it's a UUID before using (some params have non-UUID identifiers)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const validTaskId = typeof taskId === 'string' && uuidRegex.test(taskId) ? taskId : null;
-    const hasOrchestratorDetails = !!variantParams?.orchestrator_details;
-    return { variantSourceTaskId: validTaskId, variantHasOrchestratorDetails: hasOrchestratorDetails };
+    return {
+      variantSourceTaskId: getSourceTaskId(variantParams),
+      variantHasOrchestratorDetails: hasOrchestratorDetails(variantParams),
+    };
   }, [activeVariant?.params]);
 
   // Fetch the variant's source task when it differs from taskDetailsData
   // Skip fetch if variant already has orchestrator_details (e.g., clip_join variants)
   // NOTE: Uses ['tasks', 'single', taskId] query key to share cache with usePrefetchTaskData
   const { data: variantSourceTask, isLoading: isLoadingVariantTask } = useQuery({
-    queryKey: ['tasks', 'single', variantSourceTaskId],
+    queryKey: queryKeys.tasks.single(variantSourceTaskId!),
     queryFn: async () => {
       if (!variantSourceTaskId) return null;
       console.log('[VariantTaskDetails] Fetching task:', variantSourceTaskId.substring(0, 8));
@@ -125,7 +122,7 @@ export function useAdjustedTaskDetails({
     const isTaskCreatedVariant = activeVariant && variantParams && (
       variantParams.source_task_id ||
       variantParams.created_from ||
-      (activeVariant.variant_type && activeVariant.variant_type !== 'original')
+      (activeVariant.variant_type && activeVariant.variant_type !== VARIANT_TYPE.ORIGINAL)
     );
 
     if (isTaskCreatedVariant && variantParams) {

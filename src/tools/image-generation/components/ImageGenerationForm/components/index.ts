@@ -1,40 +1,8 @@
 /**
- * ImageGenerationForm sub-components barrel
+ * ImageGenerationForm components - Re-exports from shared
  *
- * Re-exports all sub-components for the ImageGenerationForm.
+ * Components have been moved to shared/components/ImageGenerationForm/components/
+ * Re-exported here for backwards compatibility with existing imports.
  */
 
-// Main form sections
-export { PromptsSection } from "./PromptsSection";
-export { ShotSelector } from "./ShotSelector";
-export { ModelSection } from "./ModelSection";
-export { GenerateControls } from "./GenerateControls";
-export { GenerationSettingsSection } from "./GenerationSettingsSection";
-
-// Prompt components
-export { PromptInputRow } from "./PromptInputRow";
-export { SectionHeader } from "./SectionHeader";
-
-// Reference components (nested barrel)
-export {
-  ReferenceSection,
-  ReferenceGrid,
-  ReferencePreview,
-  ReferenceModeControls,
-  LoraGrid,
-  ReferenceThumbnail,
-  SkeletonThumbnail,
-  AddReferenceButton,
-} from "./reference";
-
-// Types from reference
-export type {
-  ReferenceSectionProps,
-  ReferenceGridProps,
-  ReferencePreviewProps,
-  ReferenceModeControlsProps,
-  LoraGridProps,
-  DisabledState,
-  ReferenceThumbnailProps,
-  AddReferenceButtonProps,
-} from "./reference";
+export * from '@/shared/components/ImageGenerationForm/components';

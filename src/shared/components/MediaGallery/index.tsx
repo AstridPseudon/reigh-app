@@ -3,7 +3,7 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import { useToggleGenerationStar } from '@/shared/hooks/useProjectGenerations';
+import { useToggleGenerationStar } from '@/shared/hooks/useGenerationMutations';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
 import { useBackgroundThumbnailGenerator } from '@/shared/hooks/useBackgroundThumbnailGenerator';
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
@@ -46,6 +46,7 @@ import type {
   MediaGalleryProps,
   ColumnsPerRow,
 } from './types';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 // Re-export types for convenience
 export type {
@@ -341,7 +342,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // Task details functionality using shared hook
   // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
   // For ShotImageManager images, id is shot_generations.id but generation_id is the actual generation ID
-  const lightboxImageId = (stateHook.state.activeLightboxMedia as any)?.generation_id
+  const lightboxImageId = stateHook.state.activeLightboxMedia?.generation_id
     || stateHook.state.activeLightboxMedia?.id
     || null;
   const {
@@ -367,7 +368,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // This allows images to display immediately while badge data loads in background
   const paginatedGenerationIds = useMemo(() =>
     (paginationHook.paginatedImages || []).map(img =>
-      (img as any).generation_id || img.id
+      getGenerationId(img)
     ).filter(Boolean),
     [paginationHook.paginatedImages]
   );
@@ -380,10 +381,10 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
       // Don't merge badge data while loading - prevents showing "0" badges
       // Strip out any existing derivedCount to prevent flash of "0"
       if (isBadgeDataLoading) {
-        const { derivedCount, hasUnviewedVariants, unviewedVariantCount, ...imgWithoutBadges } = img as any;
+        const { derivedCount, hasUnviewedVariants, unviewedVariantCount, ...imgWithoutBadges } = img;
         return imgWithoutBadges;
       }
-      const generationId = (img as any).generation_id || img.id;
+      const generationId = getGenerationId(img);
       const badgeData = getBadgeData(generationId);
       return {
         ...img,

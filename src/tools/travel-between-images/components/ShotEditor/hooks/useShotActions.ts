@@ -13,25 +13,35 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandler';
-import type { GenerationRow } from '@/types/shots';
+import type { GenerationRow, Shot } from '@/types/shots';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+
+interface AddToShotParams {
+  shot_id: string;
+  generation_id: string;
+  imageUrl?: string;
+  thumbUrl?: string;
+  timelineFrame?: number;
+  project_id: string;
+}
 
 interface UseShotActionsOptions {
   // Refs for stable access
   projectIdRef: React.MutableRefObject<string>;
-  selectedShotRef: React.MutableRefObject<any>;
+  selectedShotRef: React.MutableRefObject<Shot | null>;
   allShotImagesRef: React.MutableRefObject<GenerationRow[]>;
-  addToShotMutationRef: React.MutableRefObject<(params: any) => Promise<void>>;
-  addToShotWithoutPositionMutationRef: React.MutableRefObject<(params: any) => Promise<void>>;
+  addToShotMutationRef: React.MutableRefObject<(params: AddToShotParams) => Promise<void>>;
+  addToShotWithoutPositionMutationRef: React.MutableRefObject<(params: { shot_id: string; generation_id: string; project_id: string }) => Promise<void>>;
   createShotRef: React.MutableRefObject<(params: { name: string }) => Promise<{ shotId: string } | null>>;
   setIsGenerationsPaneLockedRef: React.MutableRefObject<(locked: boolean) => void>;
 
   // Direct dependencies
-  shots: any[] | undefined;
-  navigateToShot: (shot: any, options?: { scrollToTop?: boolean; isNewlyCreated?: boolean }) => void;
+  shots: Shot[] | undefined;
+  navigateToShot: (shot: Shot, options?: { scrollToTop?: boolean; isNewlyCreated?: boolean }) => void;
   setCurrentShotId: (id: string) => void;
-  updateGenerationsPaneSettings: (settings: any) => void;
+  updateGenerationsPaneSettings: (settings: Record<string, unknown>) => void;
   isMobile: boolean;
-  selectedShot: any;
+  selectedShot: Shot | null;
 }
 
 export function useShotActions({
@@ -83,7 +93,7 @@ export function useShotActions({
     } else {
       queryClient.refetchQueries({ queryKey: queryKeys.shots.all }).then(() => {
         const refreshedShots = queryClient.getQueryData<typeof shots>(queryKeys.shots.all);
-        const refreshedShot = refreshedShots?.find((s: any) => s.id === shotId);
+        const refreshedShot = refreshedShots?.find((s) => s.id === shotId);
         if (refreshedShot) {
           navigateToShot(refreshedShot, { scrollToTop: true, isNewlyCreated: true });
         } else {
@@ -163,7 +173,7 @@ export function useShotActions({
 
       const FRAME_GAP = 50;
       await Promise.all(sortedImages.map((img, i) => {
-        const generationId = (img as any).generation_id || img.id;
+        const generationId = getGenerationId(img);
         const newFrame = i * FRAME_GAP;
         return addToShotMutationRef.current({
           shot_id: result.shotId,

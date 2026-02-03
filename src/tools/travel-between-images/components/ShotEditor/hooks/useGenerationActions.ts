@@ -23,6 +23,8 @@ import {
 import { DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
 import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
 import { useDemoteOrphanedVariants } from '@/shared/hooks/useDemoteOrphanedVariants';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface UseGenerationActionsProps {
   state: ShotEditorState;
@@ -255,10 +257,10 @@ export const useGenerationActions = ({
         });
 
         // Optimistic UI update: immediately update the cache so UI feels instant
-        const previousGens = queryClientRef.current.getQueryData<GenerationRow[]>(['all-shot-generations', currentShot.id]);
+        const previousGens = queryClientRef.current.getQueryData<GenerationRow[]>(queryKeys.generations.byShot(currentShot.id));
         if (previousGens) {
           queryClientRef.current.setQueryData(
-            ['all-shot-generations', currentShot.id],
+            queryKeys.generations.byShot(currentShot.id),
             previousGens.map(g => {
               const update = updates.find(u => u.id === g.id);
               return update ? { ...g, timeline_frame: update.newFrame } : g;
@@ -281,7 +283,7 @@ export const useGenerationActions = ({
           handleError(rpcError, { context: 'DeleteDebug', showToast: false });
           // Rollback optimistic update on error
           if (previousGens) {
-            queryClientRef.current.setQueryData(['all-shot-generations', currentShot.id], previousGens);
+            queryClientRef.current.setQueryData(queryKeys.generations.byShot(currentShot.id), previousGens);
           }
           throw rpcError;
         }
@@ -392,7 +394,7 @@ export const useGenerationActions = ({
     
     // Get the actual generation_id (generations.id, not shot_generations.id)
     // originalImage.id is now shot_generations.id, we need generation_id
-    const generationId = (originalImage as any).generation_id || originalImage.id;
+    const generationId = getGenerationId(originalImage);
     
     // Additional guard: Check if the generation ID is also temporary
     if (generationId.startsWith('temp-')) {
@@ -408,7 +410,7 @@ export const useGenerationActions = ({
       shotGenerationsId: originalImage.id?.substring(0, 8),
       generationId: generationId?.substring(0, 8),
       timeline_frame_from_button: timeline_frame,
-      timeline_frame_from_image: (originalImage as any).timeline_frame,
+      timeline_frame_from_image: originalImage.timeline_frame,
       imageUrl: originalImage.imageUrl?.substring(0, 50) + '...',
       totalImagesInShot: currentOrderedImages.length
     });
@@ -434,30 +436,43 @@ export const useGenerationActions = ({
     // Calculate the next image's frame from UI data (more reliable than database query)
     // Sort images by their timeline_frame and find the one after the current
     const sortedImages = [...currentOrderedImages]
-      .filter(img => (img as any).timeline_frame !== undefined && (img as any).timeline_frame !== null)
-      .sort((a, b) => ((a as any).timeline_frame ?? 0) - ((b as any).timeline_frame ?? 0));
+      .filter(img => img.timeline_frame !== undefined && img.timeline_frame !== null)
+      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
     
     // Find by id (shot_generations.id)
     const currentIndex = sortedImages.findIndex(img => img.id === shotImageEntryId);
     
-    const nextImage = currentIndex >= 0 && currentIndex < sortedImages.length - 1 
-      ? sortedImages[currentIndex + 1] 
+    const nextImage = currentIndex >= 0 && currentIndex < sortedImages.length - 1
+      ? sortedImages[currentIndex + 1]
       : null;
-    const nextTimelineFrame = nextImage ? (nextImage as any).timeline_frame : undefined;
-    
+    const nextTimelineFrame = nextImage ? nextImage.timeline_frame : undefined;
+
+    // For single-image mode, use the passed timeline_frame as explicit target
+    // (the interceptor passes the trailing endpoint position for single-image)
+    const isSingleImage = sortedImages.length === 1;
+    const targetTimelineFrame = isSingleImage ? timeline_frame : undefined;
+    // For single-image, use the original image frame (0 typically) for the source frame
+    const sourceTimelineFrame = isSingleImage
+      ? (originalImage.timeline_frame ?? 0)
+      : timeline_frame;
+
     console.log('[DUPLICATE] Calling duplicateAsNewGenerationMutation (creates NEW generation from primary variant)', {
       originalTimelineFrame: timeline_frame,
+      sourceTimelineFrame,
+      targetTimelineFrame,
       nextTimelineFrame,
       currentIndex,
-      totalSortedImages: sortedImages.length
+      totalSortedImages: sortedImages.length,
+      isSingleImage
     });
 
     duplicateAsNewGenerationMutationRef.current.mutate({
       shot_id: currentShot.id,
       generation_id: generationId,
       project_id: currentProjectId,
-      timeline_frame: timeline_frame,
+      timeline_frame: sourceTimelineFrame,
       next_timeline_frame: nextTimelineFrame,
+      target_timeline_frame: targetTimelineFrame,
     }, {
       onSuccess: (result) => {
         console.log('[DUPLICATE] Created new generation from primary variant:', result);
@@ -676,14 +691,16 @@ export const useGenerationActions = ({
 
   /**
    * Handle dropping external images onto batch mode grid
-   * 
+   *
    * Shows optimistic skeleton immediately using local file preview URLs,
    * then uploads and replaces with real data.
+   *
+   * @param files - Files to upload
+   * @param targetFrame - timeline_frame position (calculated by component from grid position)
    */
   const handleBatchImageDrop = useCallback(async (
     files: File[],
-    targetPosition?: number,
-    framePosition?: number
+    targetFrame?: number
   ) => {
     // 🎯 STABILITY FIX: Use refs to access latest values without causing callback recreation
     const currentShot = selectedShotRef.current;
@@ -691,7 +708,7 @@ export const useGenerationActions = ({
     
     console.log('[BatchDrop] 🎯 Starting drop:', {
       filesCount: files.length,
-      framePosition,
+      targetFrame,
       shotId: currentShot?.id?.substring(0, 8)
     });
 
@@ -709,11 +726,11 @@ export const useGenerationActions = ({
       
       // 1. Calculate target frame positions with collision detection
       // First get the start frame (already collision-checked by calculateNextAvailableFrame)
-      const startFrame = framePosition ?? await calculateNextAvailableFrame(currentShot.id, undefined);
+      const startFrame = targetFrame ?? await calculateNextAvailableFrame(currentShot.id, undefined);
       
       // For multiple files, we need to ensure each position is unique
       // Get existing frames from cache for quick collision detection
-      const existingGens = queryClientRef.current.getQueryData<GenerationRow[]>(['all-shot-generations', currentShot.id]) || [];
+      const existingGens = queryClientRef.current.getQueryData<GenerationRow[]>(queryKeys.generations.byShot(currentShot.id)) || [];
       const existingFrames = existingGens
         .filter(g => g.timeline_frame != null && g.timeline_frame !== -1)
         .map(g => g.timeline_frame as number);
@@ -739,7 +756,7 @@ export const useGenerationActions = ({
       });
       
       // 2. Create optimistic entries immediately using local file URLs
-      const previousFastGens = queryClientRef.current.getQueryData<GenerationRow[]>(['all-shot-generations', currentShot.id]) || [];
+      const previousFastGens = queryClientRef.current.getQueryData<GenerationRow[]>(queryKeys.generations.byShot(currentShot.id)) || [];
       
       const optimisticItems = files.map((file, index) => {
         const localUrl = URL.createObjectURL(file);
@@ -771,7 +788,7 @@ export const useGenerationActions = ({
       
       // Add optimistic items to cache
       queryClientRef.current.setQueryData(
-        ['all-shot-generations', currentShot.id], 
+        queryKeys.generations.byShot(currentShot.id),
         [...previousFastGens, ...optimisticItems]
       );
       
@@ -827,9 +844,9 @@ export const useGenerationActions = ({
       handleError(error, { context: 'BatchDrop', toastTitle: 'Failed to add images' });
 
       // Remove optimistic items on error
-      const currentCache = queryClientRef.current.getQueryData<GenerationRow[]>(['all-shot-generations', currentShot.id]) || [];
+      const currentCache = queryClientRef.current.getQueryData<GenerationRow[]>(queryKeys.generations.byShot(currentShot.id)) || [];
       queryClientRef.current.setQueryData(
-        ['all-shot-generations', currentShot.id],
+        queryKeys.generations.byShot(currentShot.id),
         currentCache.filter(item => !optimisticIds.includes(item.id))
       );
 
@@ -845,18 +862,22 @@ export const useGenerationActions = ({
   /**
    * Handle dropping a generation from GenerationsPane onto batch mode grid
    * Adds an existing generation to the shot at the specified position
+   *
+   * @param generationId - ID of the generation to add
+   * @param imageUrl - Full URL of the image
+   * @param thumbUrl - Thumbnail URL (optional)
+   * @param targetFrame - timeline_frame position (calculated by component from grid position)
    */
   const handleBatchGenerationDrop = useCallback(async (
     generationId: string,
     imageUrl: string,
     thumbUrl: string | undefined,
-    targetPosition?: number,
-    framePosition?: number
+    targetFrame?: number
   ) => {
     // 🎯 STABILITY FIX: Use refs to access latest values without causing callback recreation
     const currentShot = selectedShotRef.current;
     const currentProjectId = projectIdRef.current;
-    
+
     if (!currentShot?.id || !currentProjectId) {
       toast.error("Cannot add generation: No shot or project selected.");
       return;
@@ -868,16 +889,13 @@ export const useGenerationActions = ({
     }
 
     try {
-      // Use framePosition (calculated timeline_frame) or fall back to targetPosition
-      const timelineFrame = framePosition ?? targetPosition;
-      
       await addImageToShotMutationRef.current.mutateAsync({
         generation_id: generationId,
         shot_id: currentShot.id,
         imageUrl: imageUrl,
         thumbUrl: thumbUrl,
         project_id: currentProjectId,
-        timelineFrame: timelineFrame,
+        timelineFrame: targetFrame,
       });
     } catch (error) {
       handleError(error, { context: 'BatchDrop', toastTitle: 'Failed to add generation' });

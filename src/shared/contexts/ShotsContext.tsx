@@ -2,13 +2,14 @@ import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useListShots, useProjectImageStats } from '@/shared/hooks/useShots';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Shot } from '@/types/shots';
+import { SHOT_FILTER } from '@/shared/constants/filterConstants';
 
 interface ShotsContextType {
   shots: Shot[] | undefined;
   isLoading: boolean;
   error: Error | null;
   refetchShots: () => void;
-  // Stats for 'all' and 'no-shot' filters
+  // Stats for SHOT_FILTER.ALL and SHOT_FILTER.NO_SHOT filters
   allImagesCount?: number;
   noShotImagesCount?: number;
 }

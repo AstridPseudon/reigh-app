@@ -1,11 +1,8 @@
 /**
- * ImageGenerationForm state barrel
+ * ImageGenerationForm state - Re-exports from shared
+ *
+ * State has been moved to shared/components/ImageGenerationForm/state/
+ * Re-exported here for backwards compatibility with existing imports.
  */
 
-export { useFormUIState } from './useFormUIState';
-export type { FormUIActions, UseFormUIStateReturn } from './useFormUIState';
-export type {
-  ImageGenerationFormUIState,
-  ImageGenerationFormUIAction,
-} from './types';
-export { createInitialUIState } from './types';
+export * from '@/shared/components/ImageGenerationForm/state';

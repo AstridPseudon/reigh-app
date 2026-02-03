@@ -16,7 +16,7 @@ import type { UseStructureVideoReturn } from './useStructureVideo';
 
 interface StructureVideoEntry {
   structure_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface UseStructureVideoHandlersOptions {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { useRenderLogger } from '@/shared/hooks/useRenderLogger';
 import TaskList from './TaskList';
 import { cn } from '@/shared/lib/utils';
@@ -11,7 +12,7 @@ import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import PaneControlTab from '../PaneControlTab';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { useCancelAllPendingTasks, useTaskStatusCounts, usePaginatedTasks, useAllTaskTypes } from '@/shared/hooks/useTasks';
+import { useCancelAllPendingTasks, useTaskStatusCounts, usePaginatedTasks, useAllTaskTypes, type PaginatedTasksResponse } from '@/shared/hooks/useTasks';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useToast } from '@/shared/hooks/use-toast';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -39,7 +40,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
   // Expose queryClient globally for diagnostics
   useEffect(() => {
     if (typeof window !== 'undefined' && queryClient) {
-      (window as any).__REACT_QUERY_CLIENT__ = queryClient;
+      window.__REACT_QUERY_CLIENT__ = queryClient;
     }
   }, [queryClient]);
 
@@ -191,7 +192,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
 
   // Calculate the effective count including incoming/placeholder tasks
   const dbCount = selectedFilter === 'Processing'
-    ? ((paginatedData as any)?.total || 0)
+    ? (paginatedData?.total || 0)
     : (displayStatusCounts?.processing || 0);
 
   const cancellableTaskCount = useMemo(() => {
@@ -260,17 +261,17 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
       return;
     }
 
-    const queryKey = ['tasks', 'paginated', selectedProjectId, STATUS_GROUPS[selectedFilter], ITEMS_PER_PAGE, (currentPage - 1) * ITEMS_PER_PAGE];
+    const queryKey = [...queryKeys.tasks.paginated(selectedProjectId!), STATUS_GROUPS[selectedFilter], ITEMS_PER_PAGE, (currentPage - 1) * ITEMS_PER_PAGE];
     const previousData = queryClient.getQueryData(queryKey);
     
-    queryClient.setQueryData(queryKey, (oldData: any) => {
+    queryClient.setQueryData<PaginatedTasksResponse | undefined>(queryKey, (oldData) => {
       if (!oldData?.tasks) return oldData;
 
       return {
         ...oldData,
-        tasks: oldData.tasks.map((task: any) => {
+        tasks: oldData.tasks.map((task) => {
           if (task.status === 'Queued') {
-            return { ...task, status: 'Cancelled' };
+            return { ...task, status: 'Cancelled' as const };
           }
           return task;
         }),
@@ -285,8 +286,8 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
           variant: 'default',
         });
         
-        queryClient.invalidateQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });
-        queryClient.refetchQueries({ queryKey: ['tasks', 'paginated', selectedProjectId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.paginated(selectedProjectId) });
+        queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginated(selectedProjectId) });
       },
       onError: (error) => {
         queryClient.setQueryData(queryKey, previousData);
@@ -327,7 +328,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
     }
   }, [isOpen]);
 
-  const totalTasks = (paginatedData as any)?.total || 0;
+  const totalTasks = paginatedData?.total || 0;
   const totalPages = Math.ceil(totalTasks / ITEMS_PER_PAGE);
 
   return (
@@ -561,7 +562,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
                 filterStatuses={STATUS_GROUPS[selectedFilter]}
                 activeFilter={selectedFilter}
                 statusCounts={displayStatusCounts}
-                paginatedData={paginatedData as any}
+                paginatedData={paginatedData}
                 isLoading={isPaginatedLoading}
                 currentPage={currentPage}
                 activeTaskId={activeTaskId}

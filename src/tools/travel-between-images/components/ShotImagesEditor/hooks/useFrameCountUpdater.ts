@@ -25,7 +25,10 @@ export interface UseFrameCountUpdaterReturn {
 
 /**
  * Provides a function to update the frame count for a pair.
- * When increasing, shifts all subsequent images forward.
+ *
+ * For pairs with an end image: shifts subsequent images forward.
+ * For trailing segments (no end image): updates metadata.end_frame on the start image.
+ *
  * When exceeding maxFrameLimit, compresses subsequent pairs proportionally.
  */
 export function useFrameCountUpdater({
@@ -48,19 +51,65 @@ export function useFrameCountUpdater({
       .filter((img) => img.timeline_frame != null && img.timeline_frame >= 0)
       .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
 
-    // Find the pair by startImage.id
+    // Find the image by id
     const pairIndex = sortedImages.findIndex((img) => img.id === pairShotGenerationId);
-    if (pairIndex === -1 || pairIndex >= sortedImages.length - 1) {
+    if (pairIndex === -1) {
       return;
     }
 
     const startImage = sortedImages[pairIndex];
-    const endImage = sortedImages[pairIndex + 1];
-    const currentFrameCount = (endImage.timeline_frame ?? 0) - (startImage.timeline_frame ?? 0);
+    const startFrame = startImage.timeline_frame ?? 0;
+    const isTrailingSegment = pairIndex === sortedImages.length - 1;
 
     // Calculate effective frame count (capped at maxFrameLimit)
-    const exceedsMax = newFrameCount > maxFrameLimit;
     const effectiveNewFrameCount = Math.min(newFrameCount, maxFrameLimit);
+
+    // Handle trailing segment (no end image) - update metadata.end_frame
+    if (isTrailingSegment) {
+      const newEndFrame = startFrame + effectiveNewFrameCount;
+
+      // Fetch current metadata
+      const { data: current, error: fetchError } = await supabase
+        .from('shot_generations')
+        .select('metadata')
+        .eq('id', pairShotGenerationId)
+        .single();
+
+      if (fetchError) {
+        console.error('[useFrameCountUpdater] Error fetching metadata:', fetchError);
+        return;
+      }
+
+      const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
+
+      // Update metadata.end_frame
+      const { error: updateError } = await supabase
+        .from('shot_generations')
+        .update({
+          metadata: {
+            ...currentMetadata,
+            end_frame: newEndFrame,
+          },
+        })
+        .eq('id', pairShotGenerationId);
+
+      if (updateError) {
+        console.error('[useFrameCountUpdater] Error updating end_frame:', updateError);
+        return;
+      }
+
+      // Refresh data
+      if (loadPositions) {
+        await loadPositions({ silent: true, reason: 'end-frame-update' });
+      }
+
+      return { finalFrameCount: effectiveNewFrameCount };
+    }
+
+    // Standard case: pair with end image - shift subsequent images
+    const endImage = sortedImages[pairIndex + 1];
+    const currentFrameCount = (endImage.timeline_frame ?? 0) - startFrame;
+    const exceedsMax = newFrameCount > maxFrameLimit;
 
     // Collect subsequent pairs for potential compression
     const subsequentPairs: Array<{ startIdx: number; endIdx: number; originalFrames: number }> = [];
@@ -96,7 +145,7 @@ export function useFrameCountUpdater({
       const targetTotal = totalSubsequentFrames - actualBorrow;
       const compressionRatio = targetTotal / totalSubsequentFrames;
 
-      let currentFrame = (startImage.timeline_frame ?? 0) + finalFrameCount;
+      let currentFrame = startFrame + finalFrameCount;
       updates.push({ id: sortedImages[pairIndex + 1].id, newFrame: currentFrame });
 
       for (let i = 0; i < subsequentPairs.length; i++) {

@@ -25,7 +25,7 @@ export interface GenerationDropData {
   generationId: string;
   imageUrl: string;
   thumbUrl?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UseVideoTravelDropHandlersParams {
@@ -41,7 +41,7 @@ export interface UseVideoTravelDropHandlersParams {
       project_id: string | null | undefined;
       imageUrl: string;
       thumbUrl?: string;
-    }) => Promise<any>;
+    }) => Promise<unknown>;
   };
   /** Mutation to add an image to a shot without timeline position */
   addImageToShotWithoutPositionMutation: {
@@ -51,7 +51,7 @@ export interface UseVideoTravelDropHandlersParams {
       project_id: string | null | undefined;
       imageUrl: string;
       thumbUrl?: string;
-    }) => Promise<any>;
+    }) => Promise<unknown>;
   };
   /** Mutation to handle external file drops (for existing shots only) */
   handleExternalImageDropMutation: {
@@ -61,7 +61,7 @@ export interface UseVideoTravelDropHandlersParams {
       currentProjectQueryKey: string | null | undefined;
       currentShotCount: number;
       skipAutoPosition?: boolean;
-    }) => Promise<any>;
+    }) => Promise<unknown>;
   };
   /** Callback to refetch shots after mutations */
   refetchShots: () => void;

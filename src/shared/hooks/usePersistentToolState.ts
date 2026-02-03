@@ -18,7 +18,7 @@ import { handleError } from '@/shared/lib/errorHandler';
  * @param value - The current state value to infer an empty value from
  * @returns An appropriate empty value based on the type of the input
  */
-function inferEmptyValue(value: any): any {
+function inferEmptyValue(value: unknown): unknown {
   if (Array.isArray(value)) return [];
   if (typeof value === 'object' && value !== null) return {};
   if (typeof value === 'string') return '';
@@ -69,7 +69,7 @@ export interface UsePersistentToolStateResult {
  *   }
  * );
  */
-export function usePersistentToolState<T extends Record<string, any>>(
+export function usePersistentToolState<T extends Record<string, unknown>>(
   toolId: string,
   context: { projectId?: string; shotId?: string },
   stateMapping: StateMapping<T>,
@@ -144,10 +144,10 @@ export function usePersistentToolState<T extends Record<string, any>>(
       Object.entries(stateMapping).forEach(([key, [currentValue, setter]]) => {
         if (effectiveSettings[key as keyof T] !== undefined) {
           // Value exists in DB - use it
-          setter(effectiveSettings[key as keyof T] as any);
+          setter(effectiveSettings[key as keyof T] as T[keyof T]);
         } else if (toolDefaults[key as keyof typeof toolDefaults] !== undefined) {
           // Value missing in DB but has a default - reset to default
-          setter(toolDefaults[key as keyof typeof toolDefaults] as any);
+          setter(toolDefaults[key as keyof typeof toolDefaults] as T[keyof T]);
         } else {
           // SAFETY NET: No value in DB and no default - infer empty value from current type
           // This prevents stale state but ideally all fields should have explicit defaults
@@ -162,7 +162,7 @@ export function usePersistentToolState<T extends Record<string, any>>(
             );
           }
           
-          setter(emptyValue as any);
+          setter(emptyValue as T[keyof T]);
         }
       });
 
@@ -173,7 +173,7 @@ export function usePersistentToolState<T extends Record<string, any>>(
 
   // Collect current state values from the mapping
   const getCurrentState = useCallback((): T => {
-    const currentState: any = {};
+    const currentState: Record<string, unknown> = {};
     Object.entries(stateMapping).forEach(([key, [value]]) => {
       currentState[key] = value;
     });

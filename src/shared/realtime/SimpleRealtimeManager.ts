@@ -1,10 +1,20 @@
 // Simple, clean Supabase Realtime implementation following official documentation
 import { supabase } from '@/integrations/supabase/client';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { dataFreshnessManager } from './DataFreshnessManager';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import type {
+  TaskUpdatePayload,
+  NewTaskPayload,
+  ShotGenerationChangePayload,
+  VariantChangePayload,
+  GenerationUpdatePayload,
+  RealtimePayload,
+} from '@/shared/types/realtimePayloads';
 
 export class SimpleRealtimeManager {
-  private channel: any = null;
+  private channel: RealtimeChannel | null = null;
   private projectId: string | null = null;
   private isSubscribed = false;
   private reconnectAttempts = 0;
@@ -12,7 +22,7 @@ export class SimpleRealtimeManager {
   private reconnectTimeout: NodeJS.Timeout | null = null;
 
   // Event batching to prevent cascading invalidations
-  private eventBatchQueue: Map<string, any[]> = new Map();
+  private eventBatchQueue: Map<string, unknown[]> = new Map();
   private batchTimeoutId: NodeJS.Timeout | null = null;
   private readonly BATCH_WINDOW_MS = 100; // Batch events within 100ms
 
@@ -130,67 +140,67 @@ export class SimpleRealtimeManager {
 
       // Add event handlers BEFORE subscribing
       this.channel
-        .on('broadcast', { event: 'task-update' }, (payload: any) => {
+        .on('broadcast', { event: 'task-update' }, (payload) => {
           console.log('[SimpleRealtime] 📨 Task update received:', payload);
           // Handle the task update
-          this.handleTaskUpdate(payload);
+          this.handleTaskUpdate(payload as unknown as TaskUpdatePayload);
         })
-        .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
-          (payload: any) => {
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` },
+          (payload) => {
             console.log('[SimpleRealtime] 📨 New task:', payload);
-            this.handleNewTask(payload);
+            this.handleNewTask(payload as unknown as NewTaskPayload);
           }
         )
-        .on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
-          (payload: any) => {
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` },
+          (payload) => {
             console.log('[SimpleRealtime] 📨 Task updated:', payload);
-            this.handleTaskUpdate(payload);
+            this.handleTaskUpdate(payload as unknown as TaskUpdatePayload);
           }
         )
         // Listen to shot_generations table for positioned image changes
         // This allows timeline to reload ONLY when relevant positioned images are added/updated
-        .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'shot_generations' }, 
-          (payload: any) => {
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'shot_generations' },
+          (payload) => {
             console.log('[SimpleRealtime] 📨 Shot generation inserted:', payload);
-            this.handleShotGenerationChange(payload, 'INSERT');
+            this.handleShotGenerationChange(payload as unknown as ShotGenerationChangePayload, 'INSERT');
           }
         )
-        .on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'shot_generations' }, 
-          (payload: any) => {
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'shot_generations' },
+          (payload) => {
             console.log('[SimpleRealtime] 📨 Shot generation updated:', payload);
-            this.handleShotGenerationChange(payload, 'UPDATE');
+            this.handleShotGenerationChange(payload as unknown as ShotGenerationChangePayload, 'UPDATE');
           }
         )
         // Listen to generations table for upscale completion and other updates
-        .on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'generations', filter: `project_id=eq.${projectId}` }, 
-          (payload: any) => {
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'generations', filter: `project_id=eq.${projectId}` },
+          (payload) => {
             console.log('[AddFlicker] 2️⃣a REALTIME: generations UPDATE received from Supabase:', {
-              generationId: payload?.new?.id?.substring(0, 8),
+              generationId: (payload as unknown as GenerationUpdatePayload)?.new?.id?.substring(0, 8),
               hasNew: !!payload?.new,
               hasOld: !!payload?.old,
               timestamp: Date.now()
             });
-            this.handleGenerationUpdate(payload);
+            this.handleGenerationUpdate(payload as unknown as GenerationUpdatePayload);
           }
         )
         // Listen to generation_variants table for variant changes (segment regenerations, etc.)
-        .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'generation_variants' }, 
-          (payload: any) => {
-            console.log('[SimpleRealtime] 📨 Generation variant inserted:', payload?.new?.id?.substring(0, 8));
-            this.handleVariantChange(payload, 'INSERT');
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'generation_variants' },
+          (payload) => {
+            console.log('[SimpleRealtime] 📨 Generation variant inserted:', (payload as unknown as VariantChangePayload)?.new?.id?.substring(0, 8));
+            this.handleVariantChange(payload as unknown as VariantChangePayload, 'INSERT');
           }
         )
-        .on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'generation_variants' }, 
-          (payload: any) => {
-            console.log('[SimpleRealtime] 📨 Generation variant updated:', payload?.new?.id?.substring(0, 8));
-            this.handleVariantChange(payload, 'UPDATE');
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'generation_variants' },
+          (payload) => {
+            console.log('[SimpleRealtime] 📨 Generation variant updated:', (payload as unknown as VariantChangePayload)?.new?.id?.substring(0, 8));
+            this.handleVariantChange(payload as unknown as VariantChangePayload, 'UPDATE');
           }
         );
 
@@ -294,7 +304,7 @@ export class SimpleRealtimeManager {
    * Batch an event for processing. Events are grouped by type and processed together
    * within BATCH_WINDOW_MS to reduce invalidation cascades.
    */
-  private batchEvent(eventType: string, payload: any) {
+  private batchEvent(eventType: string, payload: RealtimePayload) {
     const existing = this.eventBatchQueue.get(eventType) || [];
     existing.push(payload);
     this.eventBatchQueue.set(eventType, existing);
@@ -337,18 +347,18 @@ export class SimpleRealtimeManager {
       timestamp: Date.now()
     });
 
-    // Process each event type
+    // Process each event type (cast from unknown[] to the specific payload type per event)
     this.eventBatchQueue.forEach((payloads, eventType) => {
       if (eventType === 'task-update') {
-        this.dispatchBatchedTaskUpdates(payloads);
+        this.dispatchBatchedTaskUpdates(payloads as TaskUpdatePayload[]);
       } else if (eventType === 'task-new') {
-        this.dispatchBatchedNewTasks(payloads);
+        this.dispatchBatchedNewTasks(payloads as NewTaskPayload[]);
       } else if (eventType === 'shot-generation-change') {
-        this.dispatchBatchedShotGenerationChanges(payloads);
+        this.dispatchBatchedShotGenerationChanges(payloads as ShotGenerationChangePayload[]);
       } else if (eventType === 'generation-update') {
-        this.dispatchBatchedGenerationUpdates(payloads);
+        this.dispatchBatchedGenerationUpdates(payloads as GenerationUpdatePayload[]);
       } else if (eventType === 'variant-change') {
-        this.dispatchBatchedVariantChanges(payloads);
+        this.dispatchBatchedVariantChanges(payloads as VariantChangePayload[]);
       }
     });
 
@@ -360,7 +370,7 @@ export class SimpleRealtimeManager {
   /**
    * Dispatch batched task update events as a single consolidated event
    */
-  private dispatchBatchedTaskUpdates(payloads: any[]) {
+  private dispatchBatchedTaskUpdates(payloads: TaskUpdatePayload[]) {
     // Update global snapshot with latest event time
     this.updateGlobalSnapshot('joined', Date.now());
 
@@ -372,11 +382,11 @@ export class SimpleRealtimeManager {
     // Report consolidated event to freshness manager
     dataFreshnessManager.onRealtimeEvent('task-update', [
       ['tasks'],
-      ['task-status-counts'],
-      ['unified-generations'],
-      ['all-shot-generations'],
+      queryKeys.tasks.statusCountsAll,
+      queryKeys.unified.all,
+      queryKeys.generations.byShotAll,
       ['generations'],
-      ['tasks', 'paginated', this.projectId].filter(Boolean)
+      this.projectId ? [...queryKeys.tasks.paginated(this.projectId)] : [...queryKeys.tasks.paginatedAll]
     ]);
 
     // Emit single consolidated event with all payloads
@@ -394,7 +404,7 @@ export class SimpleRealtimeManager {
   /**
    * Dispatch batched new task events as a single consolidated event
    */
-  private dispatchBatchedNewTasks(payloads: any[]) {
+  private dispatchBatchedNewTasks(payloads: NewTaskPayload[]) {
     // Update global snapshot with latest event time
     this.updateGlobalSnapshot('joined', Date.now());
 
@@ -406,9 +416,9 @@ export class SimpleRealtimeManager {
     // Report consolidated event to freshness manager
     dataFreshnessManager.onRealtimeEvent('task-new', [
       ['tasks'],
-      ['task-status-counts'],
-      ['unified-generations'],
-      ['tasks', 'paginated', this.projectId].filter(Boolean)
+      queryKeys.tasks.statusCountsAll,
+      queryKeys.unified.all,
+      this.projectId ? [...queryKeys.tasks.paginated(this.projectId)] : [...queryKeys.tasks.paginatedAll]
     ]);
 
     // Emit single consolidated event with all payloads
@@ -426,7 +436,7 @@ export class SimpleRealtimeManager {
   /**
    * Dispatch batched shot generation change events as a single consolidated event
    */
-  private dispatchBatchedShotGenerationChanges(payloads: any[]) {
+  private dispatchBatchedShotGenerationChanges(payloads: ShotGenerationChangePayload[]) {
     // Update global snapshot with latest event time
     this.updateGlobalSnapshot('joined', Date.now());
 
@@ -437,7 +447,7 @@ export class SimpleRealtimeManager {
 
     // Collect unique shot IDs affected by this batch
     const affectedShotIds = new Set<string>();
-    payloads.forEach((p: any) => {
+    payloads.forEach((p) => {
       if (p.shotId) {
         affectedShotIds.add(p.shotId);
       }
@@ -449,14 +459,13 @@ export class SimpleRealtimeManager {
     });
 
     // Report consolidated event to freshness manager for all affected shots
-    const queryKeys = Array.from(affectedShotIds).flatMap(shotId => [
-      ['unified-generations', 'shot', shotId],
-      ['all-shot-generations', shotId],
-      ['unpositioned-count', shotId],
-      ['segment-live-timeline', shotId],  // For video slot positioning in useSegmentOutputsForShot
+    const affectedQueryKeys = Array.from(affectedShotIds).flatMap(shotId => [
+      queryKeys.generations.byShot(shotId),
+      queryKeys.generations.unpositionedCount(shotId),
+      queryKeys.segments.liveTimeline(shotId),  // For video slot positioning in useSegmentOutputsForShot
     ]);
 
-    dataFreshnessManager.onRealtimeEvent('shot-generation-positioned', queryKeys);
+    dataFreshnessManager.onRealtimeEvent('shot-generation-positioned', affectedQueryKeys);
 
     // Emit single consolidated event with all payloads
     if (typeof window !== 'undefined') {
@@ -474,13 +483,13 @@ export class SimpleRealtimeManager {
   /**
    * Dispatch batched variant change events (e.g., segment regenerations)
    */
-  private dispatchBatchedVariantChanges(payloads: any[]) {
+  private dispatchBatchedVariantChanges(payloads: VariantChangePayload[]) {
     // Update global snapshot with latest event time
     this.updateGlobalSnapshot('joined', Date.now());
 
     // Collect unique generation IDs affected by this batch
     const affectedGenerationIds = new Set<string>();
-    payloads.forEach((p: any) => {
+    payloads.forEach((p) => {
       if (p.generationId) {
         affectedGenerationIds.add(p.generationId);
       }
@@ -493,16 +502,16 @@ export class SimpleRealtimeManager {
     });
 
     // Build query keys for each affected generation's variants
-    const queryKeys = Array.from(affectedGenerationIds).map(generationId =>
+    const variantKeys = Array.from(affectedGenerationIds).map(generationId =>
       ['generation-variants', generationId]
     );
-    
+
     // IMPORTANT: Also add all-shot-generations to invalidate Timeline/Batch mode
     // When a variant becomes primary, the generation's location changes which affects shot displays
-    queryKeys.push(['all-shot-generations']);
-    queryKeys.push(['generations']);
+    variantKeys.push([...queryKeys.generations.byShotAll]);
+    variantKeys.push(['generations']);
 
-    dataFreshnessManager.onRealtimeEvent('variant-change', queryKeys);
+    dataFreshnessManager.onRealtimeEvent('variant-change', variantKeys);
 
     // Emit single consolidated event with all payloads
     if (typeof window !== 'undefined') {
@@ -520,24 +529,24 @@ export class SimpleRealtimeManager {
   /**
    * Dispatch batched generation update events (e.g., upscale completion)
    */
-  private dispatchBatchedGenerationUpdates(payloads: any[]) {
+  private dispatchBatchedGenerationUpdates(payloads: GenerationUpdatePayload[]) {
     // Update global snapshot with latest event time
     this.updateGlobalSnapshot('joined', Date.now());
 
     console.log('[SimpleRealtime:Batching] 📨 Dispatching batched generation updates:', {
       count: payloads.length,
-      upscaleCompletions: payloads.filter((p: any) => p.upscaleCompleted).length,
+      upscaleCompletions: payloads.filter((p) => p.upscaleCompleted).length,
       timestamp: Date.now()
     });
 
     // Invalidate all generation-related queries to pick up changes
-    const queryKeys = [
-      ['unified-generations'],
+    const affectedQueryKeys = [
+      queryKeys.unified.all,
       ['generations'],
-      ['all-shot-generations']
+      queryKeys.generations.byShotAll
     ];
-    
-    dataFreshnessManager.onRealtimeEvent('generation-update', queryKeys);
+
+    dataFreshnessManager.onRealtimeEvent('generation-update', affectedQueryKeys);
 
     // Emit single consolidated event with all payloads
     if (typeof window !== 'undefined') {
@@ -551,17 +560,17 @@ export class SimpleRealtimeManager {
     }
   }
 
-  private handleTaskUpdate(payload: any) {
+  private handleTaskUpdate(payload: TaskUpdatePayload) {
     // Batch this event instead of dispatching immediately
     this.batchEvent('task-update', payload);
   }
 
-  private handleNewTask(payload: any) {
+  private handleNewTask(payload: NewTaskPayload) {
     // Batch this event instead of dispatching immediately
     this.batchEvent('task-new', payload);
   }
 
-  private handleShotGenerationChange(payload: any, eventType: 'INSERT' | 'UPDATE') {
+  private handleShotGenerationChange(payload: ShotGenerationChangePayload, eventType: 'INSERT' | 'UPDATE') {
     const newRecord = payload?.new;
     const oldRecord = payload?.old;
     const shotId = newRecord?.shot_id;
@@ -603,7 +612,7 @@ export class SimpleRealtimeManager {
     this.batchEvent('shot-generation-change', { ...payload, eventType, shotId, isPositioned: isNowPositioned });
   }
 
-  private handleVariantChange(payload: any, eventType: 'INSERT' | 'UPDATE') {
+  private handleVariantChange(payload: VariantChangePayload, eventType: 'INSERT' | 'UPDATE') {
     const newRecord = payload?.new;
     const generationId = newRecord?.generation_id;
     
@@ -618,7 +627,7 @@ export class SimpleRealtimeManager {
     this.batchEvent('variant-change', { ...payload, eventType, generationId });
   }
 
-  private handleGenerationUpdate(payload: any) {
+  private handleGenerationUpdate(payload: GenerationUpdatePayload) {
     console.log('[AddFlicker] 2️⃣ handleGenerationUpdate called - checking if shot sync only');
     
     const newRecord = payload?.new;

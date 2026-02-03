@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { GenerationRow } from '@/types/shots';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { generateAndUploadThumbnail } from '@/shared/utils/videoThumbnailGenerator';
 
 interface UseBackgroundThumbnailGeneratorOptions {
@@ -185,17 +186,17 @@ export function useBackgroundThumbnailGenerator({
 
         // Invalidate React Query cache to refresh the UI
         // This will trigger a refetch and show the new thumbnail
-        queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
-        
+        queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
+
         // Also update the cache directly for immediate UI update
         queryClient.setQueriesData(
-          { queryKey: ['unified-generations'] },
-          (oldData: any) => {
+          { queryKey: queryKeys.unified.all },
+          (oldData: { items: Array<{ id: string; [key: string]: unknown }> } | undefined) => {
             if (!oldData?.items) return oldData;
-            
+
             return {
               ...oldData,
-              items: oldData.items.map((item: any) => 
+              items: oldData.items.map((item) =>
                 item.id === generationId 
                   ? { ...item, thumbUrl: result.thumbnailUrl }
                   : item

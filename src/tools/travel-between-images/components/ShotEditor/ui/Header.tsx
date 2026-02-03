@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { AspectRatioSelector } from '@/shared/components/AspectRatioSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import type { Json } from '@/integrations/supabase/types';
 
 interface HeaderProps {
   selectedShot: Shot;
@@ -63,7 +65,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
     // Optimistically update ALL shots cache variants (with different maxImagesPerShot values)
     // This ensures both desktop (maxImagesPerShot=0) and mobile (maxImagesPerShot=2) caches are updated
     [0, 2].forEach(maxImages => {
-      queryClient.setQueryData(['shots', projectId, maxImages], (oldData: any) => {
+      queryClient.setQueryData(queryKeys.shots.list(projectId, maxImages), (oldData: Shot[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.map((shot: Shot) => 
           shot.id === selectedShot.id 
@@ -88,9 +90,9 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           .eq('id', selectedShot.id)
           .single();
         
-        const currentSettings = (currentShot?.settings as any) || {};
-        const travelSettings = currentSettings['travel-between-images'] || {};
-        
+        const currentSettings = (currentShot?.settings as Record<string, unknown>) || {};
+        const travelSettings = (currentSettings['travel-between-images'] || {}) as Record<string, unknown>;
+
         // Clear custom dimension settings when aspect ratio changes
         // This ensures the new aspect ratio takes precedence
         const updatedTravelSettings = {
@@ -99,31 +101,31 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           customWidth: undefined,
           customHeight: undefined,
         };
-        
+
         // Update both aspect_ratio and settings
         const { error } = await supabase
           .from('shots')
-          .update({ 
+          .update({
             aspect_ratio: newAspectRatio,
             settings: {
               ...currentSettings,
               'travel-between-images': updatedTravelSettings
-            }
-          } as any)
+            } as unknown as Json
+          })
           .eq('id', selectedShot.id);
         
         if (error) {
           console.error('Failed to update aspect ratio:', error);
           // Revert on error by invalidating all shots caches
-          queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
         } else {
           console.log('[AspectRatioChange] Cleared custom dimensions, reset to dimensionSource: firstImage');
           // Invalidate tool settings to refresh UI with cleared custom dimensions
-          queryClient.invalidateQueries({ queryKey: ['toolSettings', 'travel-between-images', 'shot', selectedShot.id] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.settings.tool('travel-between-images', projectId, selectedShot.id) });
         }
       } catch (error) {
         console.error('Failed to update aspect ratio and settings:', error);
-        queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
       }
     }, 300); // Wait 300ms after last change before updating database
   };

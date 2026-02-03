@@ -14,6 +14,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 
 export interface PromoteVariantParams {
   /** ID of the variant to promote */
@@ -31,7 +33,7 @@ export interface PromotedGeneration {
   type: string;
   project_id: string;
   based_on: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }
 
 /**
@@ -82,11 +84,11 @@ export const usePromoteVariantToGeneration = () => {
         type: mediaType,
         based_on: sourceGenerationId, // Track lineage
         params: {
-          ...((variant.params as Record<string, any>) || {}),
+          ...((variant.params as Record<string, unknown>) || {}),
           source: 'variant_promotion',
           source_variant_id: variantId,
           source_generation_id: sourceGenerationId,
-          tool_type: (variant.params as any)?.tool_type || 'promoted-variant',
+          tool_type: (variant.params as Record<string, unknown> | null)?.tool_type || 'promoted-variant',
           promoted_at: new Date().toISOString(),
         },
       };
@@ -114,7 +116,7 @@ export const usePromoteVariantToGeneration = () => {
         location: newGenerationData.location,
         thumbnail_url: newGenerationData.thumbnail_url,
         is_primary: true,
-        variant_type: 'original',
+        variant_type: VARIANT_TYPE.ORIGINAL,
         name: 'Original',
         params: newGenerationData.params,
       });
@@ -131,7 +133,7 @@ export const usePromoteVariantToGeneration = () => {
         type: newGeneration.type,
         project_id: newGeneration.project_id,
         based_on: newGeneration.based_on,
-        params: newGeneration.params as Record<string, any>,
+        params: newGeneration.params as Record<string, unknown>,
       };
     },
 
@@ -139,12 +141,12 @@ export const usePromoteVariantToGeneration = () => {
       console.log('[PromoteVariant] Mutation success, invalidating caches');
 
       // Invalidate generations queries to show the new generation in galleries
-      queryClient.invalidateQueries({ queryKey: ['generations'] });
-      queryClient.invalidateQueries({ queryKey: ['project-generations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.byProjectAll });
 
       // Invalidate derived generations for the source (new generation will show in "based on this")
       queryClient.invalidateQueries({
-        queryKey: ['derived-generations', variables.sourceGenerationId],
+        queryKey: queryKeys.generations.derivedGenerations(variables.sourceGenerationId),
       });
     },
 

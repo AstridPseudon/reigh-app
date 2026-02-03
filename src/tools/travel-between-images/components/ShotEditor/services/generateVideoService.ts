@@ -3,25 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { getDisplayUrl } from '@/shared/lib/utils';
-// NOTE: resolveImageUrl is no longer needed - location already contains the best version
 import {
   createTravelBetweenImagesTask,
   type TravelBetweenImagesTaskParams,
-  type VideoStructureApiParams,
-  type VideoMotionApiParams,
-  type VideoModelApiParams,
-  type VideoPromptApiParams,
   type PromptConfig,
   type MotionConfig,
   type ModelConfig,
-  type StructureVideoConfig as ApiStructureVideoConfig,
   type StructureVideoConfigWithMetadata,
   type StitchConfig,
   DEFAULT_VIDEO_STRUCTURE_PARAMS,
-  DEFAULT_VIDEO_MOTION_PARAMS,
-  DEFAULT_PROMPT_CONFIG,
-  DEFAULT_MOTION_CONFIG,
-  DEFAULT_MODEL_CONFIG,
 } from '@/shared/lib/tasks/travelBetweenImages';
 import {
   type LegacyStructureVideoConfig as StructureVideoConfig,
@@ -34,12 +24,16 @@ import { PhaseConfig, buildBasicModePhaseConfig as buildPhaseConfigCore } from '
 import { isVideoShotGenerations, type ShotGenerationsLike } from '@/shared/lib/typeGuards';
 import {
   readSegmentOverrides,
-  migrateLoras,
   type SegmentOverrides,
 } from '@/shared/utils/settingsMigration';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import type { Shot } from '@/types/shots';
 
-// Strip 'mode' field from phaseConfig before sending to backend
-// The backend should determine mode from the actual model, not a potentially stale field
+// Re-export types used by consumers (VideoGenerationModal, etc.)
+export type { StructureVideoConfig, StitchConfig };
+export { DEFAULT_STRUCTURE_VIDEO_CONFIG };
+
+/** Strip 'mode' field from phaseConfig - backend determines mode from actual model */
 const stripModeFromPhaseConfig = (config: PhaseConfig): PhaseConfig => {
   const { mode, ...rest } = config as PhaseConfig & { mode?: string };
   return rest as PhaseConfig;
@@ -48,346 +42,192 @@ const stripModeFromPhaseConfig = (config: PhaseConfig): PhaseConfig => {
 /**
  * Extract segment overrides from metadata using migration utility.
  * Handles new format (segmentOverrides.*), old format (pair_*), and legacy (user_overrides).
- *
- * @param metadata - Raw metadata from shot_generations
- * @returns Object with normalized overrides and legacy fallback data
  */
-function extractPairOverrides(metadata: Record<string, any> | null | undefined): {
+function extractPairOverrides(metadata: Record<string, unknown> | null | undefined): {
   overrides: SegmentOverrides;
   enhancedPrompt: string | undefined;
-  /** Legacy user_overrides for very old data fallback */
-  legacyOverrides: Record<string, any>;
+  legacyOverrides: Record<string, unknown>;
 } {
   if (!metadata) {
     return { overrides: {}, enhancedPrompt: undefined, legacyOverrides: {} };
   }
 
-  // Use migration utility to read from new or old format
   const overrides = readSegmentOverrides(metadata);
-
-  // Keep legacy user_overrides as final fallback for very old data
-  const legacyOverrides = metadata.user_overrides || {};
-
-  // enhanced_prompt is separate (AI-generated, not user settings)
-  const enhancedPrompt = metadata.enhanced_prompt;
+  const legacyOverrides = (metadata.user_overrides as Record<string, unknown>) || {};
+  const enhancedPrompt = metadata.enhanced_prompt as string | undefined;
 
   return { overrides, enhancedPrompt, legacyOverrides };
 }
 
-// Re-export API types for UI code to use
-export type {
-  TravelBetweenImagesTaskParams,
-  VideoStructureApiParams,
-  VideoMotionApiParams,
-  VideoModelApiParams,
-  VideoPromptApiParams,
-  PromptConfig,
-  MotionConfig,
-  ModelConfig,
-  StructureVideoConfig,
-  StitchConfig,
-};
-export {
-  DEFAULT_VIDEO_STRUCTURE_PARAMS,
-  DEFAULT_VIDEO_MOTION_PARAMS,
-  DEFAULT_PROMPT_CONFIG,
-  DEFAULT_MOTION_CONFIG,
-  DEFAULT_MODEL_CONFIG,
-  DEFAULT_STRUCTURE_VIDEO_CONFIG,
-};
-
-// ============================================================================
-// MASTER TIMELINE STATE LOG - For debugging FE vs BE discrepancies
-// ============================================================================
-
 /**
- * Logs a comprehensive summary of the timeline state at generation time.
- * This allows direct comparison between what's shown in the UI and what's submitted to the backend.
- * 
- * Call this right before task submission to see the exact data being sent.
+ * Build phase config for basic mode based on motion amount and user LoRAs.
+ * Wraps the shared buildBasicModePhaseConfig, adding model selection.
  */
-export function logTimelineMasterState(params: {
-  shotId: string;
-  shotName?: string;
-  generationMode: 'batch' | 'timeline';
-  // Timeline images
-  images: Array<{
-    shotGenId: string;
-    generationId: string;
-    timelineFrame: number | null;
-    location: string;
-  }>;
-  // Calculated pairs/segments
-  segments: Array<{
-    pairIndex: number;
-    startImageId: string;
-    endImageId: string;
-    startFrame: number;
-    endFrame: number;
-    frameCount: number;
-    basePrompt: string;
-    negativePrompt: string;
-    enhancedPrompt: string;
-    hasCustomPrompt: boolean;
-    hasEnhancedPrompt: boolean;
-  }>;
-  // Structure videos
-  structureVideos: Array<{
-    index: number;
-    path: string;
-    startFrame: number;
-    endFrame: number;
-    treatment: string;
-    motionStrength: number;
-    structureType: string;
-    affectedSegments: number[]; // Which pair indexes this video affects
-  }>;
-  // Settings
-  settings: {
-    basePrompt: string;
-    defaultNegativePrompt: string;
-    amountOfMotion: number;
-    motionMode: string;
-    advancedMode: boolean;
-    turboMode: boolean;
-    enhancePrompt: boolean;
-    modelName: string;
-    modelType: string;
-    resolution?: string;
-    loras: Array<{ name: string; path: string; strength: number }>;
-  };
-  // Total frame info
-  totalFrames: number;
-  totalDurationSeconds: number;
-}) {
-  const TAG = '[TIMELINE_MASTER_STATE]';
-  const divider = '═'.repeat(80);
-  const sectionDivider = '─'.repeat(60);
-  
-  console.log(`\n${divider}`);
-  console.log(`${TAG} 📊 TIMELINE MASTER STATE SUMMARY`);
-  console.log(`${TAG} Shot: ${params.shotName || 'Unknown'} (${params.shotId.substring(0, 8)})`);
-  console.log(`${TAG} Mode: ${params.generationMode.toUpperCase()}`);
-  console.log(`${TAG} Timestamp: ${new Date().toISOString()}`);
-  console.log(divider);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 1: TIMELINE IMAGES
-  // ═══════════════════════════════════════════════════════════════════════════
-  console.log(`\n${TAG} 🖼️  TIMELINE IMAGES (${params.images.length} images)`);
-  console.log(sectionDivider);
-  console.log(`${TAG} ${'#'.padStart(3)} | ${'Frame'.padStart(6)} | ${'ShotGen ID'.padEnd(10)} | ${'Gen ID'.padEnd(10)} | Location`);
-  console.log(sectionDivider);
-  
-  params.images.forEach((img, i) => {
-    const frameStr = img.timelineFrame !== null ? String(img.timelineFrame).padStart(6) : '  NULL';
-    const locationShort = img.location.length > 40 ? '...' + img.location.slice(-37) : img.location;
-    console.log(`${TAG} ${String(i).padStart(3)} | ${frameStr} | ${img.shotGenId.substring(0, 10)} | ${img.generationId.substring(0, 10)} | ${locationShort}`);
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 2: SEGMENTS (PAIRS)
-  // ═══════════════════════════════════════════════════════════════════════════
-  console.log(`\n${TAG} 🎬 SEGMENTS / PAIRS (${params.segments.length} segments)`);
-  console.log(sectionDivider);
-  
-  params.segments.forEach((seg) => {
-    const promptPreview = seg.basePrompt 
-      ? (seg.basePrompt.length > 50 ? seg.basePrompt.substring(0, 47) + '...' : seg.basePrompt)
-      : '(using default)';
-    const enhancedPreview = seg.enhancedPrompt
-      ? (seg.enhancedPrompt.length > 50 ? seg.enhancedPrompt.substring(0, 47) + '...' : seg.enhancedPrompt)
-      : '';
-    
-    console.log(`${TAG} ┌─ Segment ${seg.pairIndex}: Frame ${seg.startFrame} → ${seg.endFrame} (${seg.frameCount} frames, ~${(seg.frameCount / 24).toFixed(1)}s)`);
-    console.log(`${TAG} │  Images: ${seg.startImageId.substring(0, 8)} → ${seg.endImageId.substring(0, 8)}`);
-    console.log(`${TAG} │  Prompt: ${seg.hasCustomPrompt ? '✏️ CUSTOM: ' : '📝 DEFAULT: '}${promptPreview}`);
-    if (seg.hasEnhancedPrompt) {
-      console.log(`${TAG} │  Enhanced: ✨ ${enhancedPreview}`);
-    }
-    if (seg.negativePrompt && seg.negativePrompt !== params.settings.defaultNegativePrompt) {
-      const negPreview = seg.negativePrompt.length > 40 ? seg.negativePrompt.substring(0, 37) + '...' : seg.negativePrompt;
-      console.log(`${TAG} │  Negative: 🚫 CUSTOM: ${negPreview}`);
-    }
-    console.log(`${TAG} └${sectionDivider.substring(0, 20)}`);
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 3: STRUCTURE VIDEOS
-  // ═══════════════════════════════════════════════════════════════════════════
-  console.log(`\n${TAG} 🎥 STRUCTURE VIDEOS (${params.structureVideos.length} videos)`);
-  console.log(sectionDivider);
-  
-  if (params.structureVideos.length === 0) {
-    console.log(`${TAG}   (No structure videos configured - using I2V mode)`);
-  } else {
-    params.structureVideos.forEach((sv) => {
-      const pathShort = sv.path.length > 50 ? '...' + sv.path.slice(-47) : sv.path;
-      console.log(`${TAG} ┌─ Structure Video ${sv.index}:`);
-      console.log(`${TAG} │  Path: ${pathShort}`);
-      console.log(`${TAG} │  Output Range: Frame ${sv.startFrame} → ${sv.endFrame} (${sv.endFrame - sv.startFrame} frames)`);
-      console.log(`${TAG} │  Type: ${sv.structureType} | Treatment: ${sv.treatment} | Motion: ${sv.motionStrength}`);
-      console.log(`${TAG} │  Affects Segments: ${sv.affectedSegments.length > 0 ? sv.affectedSegments.join(', ') : '(all)'}`);
-      console.log(`${TAG} └${sectionDivider.substring(0, 20)}`);
-    });
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 4: SETTINGS
-  // ═══════════════════════════════════════════════════════════════════════════
-  console.log(`\n${TAG} ⚙️  SETTINGS`);
-  console.log(sectionDivider);
-  console.log(`${TAG}   Model: ${params.settings.modelName} (${params.settings.modelType})`);
-  console.log(`${TAG}   Resolution: ${params.settings.resolution || '(auto)'}`);
-  console.log(`${TAG}   Motion: ${params.settings.amountOfMotion}% | Mode: ${params.settings.motionMode} | Advanced: ${params.settings.advancedMode}`);
-  console.log(`${TAG}   Turbo: ${params.settings.turboMode} | Enhance Prompt: ${params.settings.enhancePrompt}`);
-  console.log(`${TAG}   Base Prompt: "${params.settings.basePrompt.length > 60 ? params.settings.basePrompt.substring(0, 57) + '...' : params.settings.basePrompt}"`);
-  
-  if (params.settings.loras.length > 0) {
-    console.log(`${TAG}   LoRAs (${params.settings.loras.length}):`);
-    params.settings.loras.forEach((lora) => {
-      console.log(`${TAG}     - ${lora.name}: ${lora.strength} (${lora.path.substring(0, 40)}...)`);
-    });
-  } else {
-    console.log(`${TAG}   LoRAs: (none)`);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 5: SUMMARY
-  // ═══════════════════════════════════════════════════════════════════════════
-  console.log(`\n${TAG} 📈 SUMMARY`);
-  console.log(sectionDivider);
-  console.log(`${TAG}   Total Images: ${params.images.length}`);
-  console.log(`${TAG}   Total Segments: ${params.segments.length}`);
-  console.log(`${TAG}   Total Frames: ${params.totalFrames} (~${params.totalDurationSeconds.toFixed(1)}s at 24fps)`);
-  console.log(`${TAG}   Structure Videos: ${params.structureVideos.length}`);
-  
-  // Calculate custom vs default prompts
-  const customPromptCount = params.segments.filter(s => s.hasCustomPrompt).length;
-  const enhancedPromptCount = params.segments.filter(s => s.hasEnhancedPrompt).length;
-  console.log(`${TAG}   Custom Prompts: ${customPromptCount}/${params.segments.length}`);
-  console.log(`${TAG}   Enhanced Prompts: ${enhancedPromptCount}/${params.segments.length}`);
-  
-  console.log(`\n${divider}\n`);
+export function buildBasicModePhaseConfig(
+  amountOfMotion: number,
+  userLoras: Array<{ path: string; strength: number; lowNoisePath?: string; isMultiStage?: boolean }>,
+): { model: string; phaseConfig: PhaseConfig } {
+  const model = 'wan_2_2_i2v_lightning_baseline_2_2_2';
+  const phaseConfig = buildPhaseConfigCore(false, amountOfMotion / 100, userLoras);
+  return { model, phaseConfig };
 }
 
 // ============================================================================
-// PHASE CONFIG HELPERS FOR BASIC MODE
+// STRUCTURE GUIDANCE BUILDER
 // ============================================================================
 
+const PREPROCESSING_MAP: Record<string, string> = {
+  'flow': 'flow', 'canny': 'canny', 'depth': 'depth', 'raw': 'none',
+};
+
 /**
- * Build phase config for basic mode based on structure video presence, motion amount, and user LoRAs.
- * Wraps the shared buildBasicModePhaseConfig from settings.ts, adding model selection logic.
- *
- * @param hasStructureVideo - Whether a structure video is set
- * @param amountOfMotion - 0-100 motion slider value (converted to 0-1 internally)
- * @param userLoras - User-selected LoRAs to add to phases (with optional multi-stage support)
- * @param structureType - Structure type determines mode: 'uni3c' uses I2V model, others use VACE model
- * @returns Object with model name and phase config
+ * Build unified structure_guidance object for the API request.
+ * Handles both new multi-video array format and legacy single-video config.
+ * Returns null if no structure video is configured.
  */
-export function buildBasicModePhaseConfig(
-  hasStructureVideo: boolean,
-  amountOfMotion: number,
-  userLoras: Array<{ path: string; strength: number; lowNoisePath?: string; isMultiStage?: boolean }>,
-  _structureType?: 'uni3c' | 'flow' | 'canny' | 'depth'  // Ignored - always uni3c now
-): { model: string; phaseConfig: PhaseConfig } {
-  // VACE mode removed - always use I2V model
-  // Structure video type is hardcoded to uni3c, which uses I2V
-  const useVaceModel = false;
+function buildStructureGuidance(
+  structureVideos: StructureVideoConfigWithMetadata[] | undefined,
+  structureVideoConfig: StructureVideoConfig,
+  uni3cEndPercent: number | undefined,
+  totalFrames: number,
+): Record<string, unknown> | null {
+  if (structureVideos && structureVideos.length > 0) {
+    const firstVideo = structureVideos[0];
+    const isUni3c = firstVideo.structure_type === 'uni3c';
 
-  // Always use I2V model (VACE removed)
-  const model = 'wan_2_2_i2v_lightning_baseline_2_2_2';
+    const cleanedVideos = structureVideos.map(video => ({
+      path: video.path,
+      start_frame: video.start_frame ?? 0,
+      end_frame: video.end_frame ?? null,
+      treatment: video.treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
+      ...(video.metadata ? { metadata: video.metadata } : {}),
+      ...(video.resource_id ? { resource_id: video.resource_id } : {}),
+    }));
 
-  // Use shared core function (converts 0-100 to 0-1)
-  const phaseConfig = buildPhaseConfigCore(
-    useVaceModel,
-    amountOfMotion / 100,
-    userLoras
-  );
+    const guidance: Record<string, unknown> = {
+      target: isUni3c ? 'uni3c' : 'vace',
+      videos: cleanedVideos,
+      strength: firstVideo.motion_strength ?? 1.0,
+    };
 
-  return { model, phaseConfig };
+    if (isUni3c) {
+      guidance.step_window = [
+        firstVideo.uni3c_start_percent ?? 0,
+        firstVideo.uni3c_end_percent ?? (uni3cEndPercent ?? 1.0),
+      ];
+      guidance.frame_policy = 'fit';
+      guidance.zero_empty_frames = true;
+    } else {
+      guidance.preprocessing = PREPROCESSING_MAP[firstVideo.structure_type ?? 'flow'] ?? 'flow';
+      if (firstVideo.canny_intensity != null) guidance.canny_intensity = firstVideo.canny_intensity;
+      if (firstVideo.depth_contrast != null) guidance.depth_contrast = firstVideo.depth_contrast;
+    }
+
+    return guidance;
+  }
+
+  if (structureVideoConfig.structure_video_path) {
+    const isUni3c = structureVideoConfig.structure_video_type === 'uni3c';
+    const legacyUni3cEndPercent = structureVideoConfig.uni3c_end_percent ?? uni3cEndPercent ?? 1.0;
+
+    const guidance: Record<string, unknown> = {
+      target: isUni3c ? 'uni3c' : 'vace',
+      videos: [{
+        path: structureVideoConfig.structure_video_path,
+        start_frame: 0,
+        end_frame: totalFrames,
+        treatment: structureVideoConfig.structure_video_treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
+      }],
+      strength: structureVideoConfig.structure_video_motion_strength ?? 1.0,
+    };
+
+    if (isUni3c) {
+      guidance.step_window = [0, legacyUni3cEndPercent];
+      guidance.frame_policy = 'fit';
+      guidance.zero_empty_frames = true;
+    } else {
+      guidance.preprocessing = PREPROCESSING_MAP[structureVideoConfig.structure_video_type ?? 'flow'] ?? 'flow';
+    }
+
+    return guidance;
+  }
+
+  return null;
 }
 
 // ============================================================================
 
 export interface GenerateVideoParams {
-  // Core IDs
   projectId: string;
   selectedShotId: string;
-  selectedShot: any; // Shot type
-
-  // Query management
+  selectedShot: Shot;
   queryClient: QueryClient;
-  onShotImagesUpdate?: () => void;
-
-  // Resolution/dimensions
   effectiveAspectRatio: string | null;
-
-  // Generation mode
   generationMode: 'timeline' | 'batch';
-
-  // Grouped configs (snake_case matching API)
   promptConfig: PromptConfig;
   motionConfig: MotionConfig;
   modelConfig: ModelConfig;
   /** Legacy single-video config (deprecated - use structureVideos instead) */
   structureVideoConfig: StructureVideoConfig;
-  /** NEW: Array of structure videos for multi-video support */
   structureVideos?: StructureVideoConfigWithMetadata[];
-
-  // Video settings (used for fallback computation, not direct API params)
   batchVideoFrames: number;
-
-  // LoRAs
   selectedLoras: Array<{ id: string; path: string; strength: number; name: string }>;
-
-  // Generation name
   variantNameParam: string;
-
-  // Cleanup function
   clearAllEnhancedPrompts: () => Promise<void>;
-
-  // Uni3C settings (only used when structure_video_type is 'uni3c')
   uni3cEndPercent?: number;
-  
-  // Parent generation ID - if provided, new segments will be children of this generation
-  // instead of creating a new parent. Used when regenerating under a selected output.
   parentGenerationId?: string;
-
-  // Stitch config - if provided, orchestrator will create a join task after segments complete
   stitchConfig?: StitchConfig;
 }
 
 export interface GenerateVideoResult {
   success: boolean;
   error?: string;
-  /** The parent generation ID (either provided or newly created) */
   parentGenerationId?: string;
 }
 
+/** Shared Supabase query shape for shot_generations with joined generation data */
+const SHOT_GEN_QUERY = `
+  id,
+  generation_id,
+  timeline_frame,
+  metadata,
+  generation:generations!shot_generations_generation_id_generations_id_fk (
+    id,
+    location,
+    type
+  )
+`;
+
+type ShotGenRow = {
+  id: string;
+  generation_id: string | null;
+  timeline_frame: number | null;
+  metadata: Record<string, unknown> | null;
+  generation: { id: string; location: string | null; type: string | null } | null;
+};
+
+/** Filter shot_generations to positioned image rows with valid locations */
+function filterImageShotGenerations(rows: ShotGenRow[]): ShotGenRow[] {
+  return rows.filter(shotGen => {
+    const hasValidLocation = shotGen.generation?.location && shotGen.generation.location !== '/placeholder.svg';
+    return shotGen.generation &&
+           shotGen.timeline_frame != null &&
+           !isVideoShotGenerations(shotGen as ShotGenerationsLike) &&
+           hasValidLocation;
+  });
+}
+
 /**
- * Generate video task - extracted from ShotEditor's handleGenerateBatch
- * This function handles all the complexity of preparing and submitting a video generation task
+ * Prepare and submit a video generation task.
+ * Handles resolution, fresh DB queries, per-pair overrides, model selection,
+ * structure guidance, and task creation.
  */
 export async function generateVideo(params: GenerateVideoParams): Promise<GenerateVideoResult> {
-  console.log('[BasePromptsDebug] ========================================');
-  console.log('[BasePromptsDebug] 🚀 GENERATION STARTED');
-  console.log('[BasePromptsDebug] Generation mode:', params.generationMode);
-  console.log('[BasePromptsDebug] Shot ID:', params.selectedShotId?.substring(0, 8));
-  console.log('[BasePromptsDebug] Batch video frames:', params.batchVideoFrames);
-  console.log('[BasePromptsDebug] Batch video prompt:', params.promptConfig.base_prompt);
-  console.log('[BasePromptsDebug] ========================================');
-
-  // [ParentReuseDebug] Log the parentGenerationId received by generateVideo
-  console.log('[ParentReuseDebug] === generateVideo SERVICE ===');
-  console.log('[ParentReuseDebug] params.parentGenerationId:', params.parentGenerationId?.substring(0, 8) || 'undefined');
-
   const {
     projectId,
     selectedShotId,
     selectedShot,
     queryClient,
-    onShotImagesUpdate,
     effectiveAspectRatio,
     generationMode,
     promptConfig,
@@ -402,7 +242,6 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     stitchConfig,
   } = params;
 
-  // Destructure prompt config for convenience (snake_case matches API)
   const {
     base_prompt: batchVideoPrompt,
     enhance_prompt: enhancePrompt,
@@ -411,12 +250,6 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     default_negative_prompt: defaultNegativePrompt,
   } = promptConfig;
 
-  console.log('[NegPromptDebug] 📋 promptConfig values:', {
-    defaultNegativePrompt: defaultNegativePrompt ?? '(undefined)',
-    'promptConfig.default_negative_prompt': promptConfig.default_negative_prompt ?? '(undefined)',
-  });
-
-  // Destructure motion config
   const {
     amount_of_motion: rawAmountOfMotion,
     motion_mode: motionMode,
@@ -425,23 +258,9 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     selected_phase_preset_id: selectedPhasePresetId,
   } = motionConfig;
 
-  // Destructure model config
-  const {
-    seed,
-    random_seed: randomSeed,
-    turbo_mode: turboMode,
-    debug,
-    generation_type_mode: generationTypeMode,
-    // HARDCODED: SVI (smooth continuations) feature has been removed from UX
-    // Ignore any persisted value and always use false
-    use_svi: _ignoredUseSvi,
-  } = modelConfig;
-  
-  // SVI is always disabled - feature removed from UX
-  const useSvi = false;
+  const { seed, random_seed: randomSeed, turbo_mode: turboMode, debug } = modelConfig;
 
-  // CRITICAL: Ensure amountOfMotion has a valid default value
-  // JavaScript destructuring default only applies when property is absent, not when it's undefined
+  // Ensure amountOfMotion has a valid default (destructuring default only applies when absent, not undefined)
   const amountOfMotion = rawAmountOfMotion ?? 50;
 
   if (!projectId) {
@@ -449,82 +268,38 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     return { success: false, error: 'No project selected' };
   }
 
-  // Wait for any pending mutations (add/reorder/delete images) to complete before submitting task
-  // This prevents race conditions where the user adds/reorders images and immediately clicks Generate,
-  // causing the task to be submitted with stale data (before the mutation commits to the database)
+  // Wait for pending mutations to complete before submitting (prevents stale data race conditions)
   const mutationCache = queryClient.getMutationCache();
   const pendingMutations = mutationCache.getAll().filter(m => m.state.status === 'pending');
-
   if (pendingMutations.length > 0) {
-    console.log('[TaskSubmission] ⏳ Awaiting', pendingMutations.length, 'pending mutations...');
-
-    const startTime = Date.now();
-    // Await all pending mutations directly (with 1s safety cap)
     await Promise.race([
       Promise.all(pendingMutations.map(m => m.state.promise?.catch(() => {}))),
-      new Promise(resolve => setTimeout(resolve, 1000))
+      new Promise(resolve => setTimeout(resolve, 1000)),
     ]);
-
-    const elapsed = Date.now() - startTime;
-    const stillPending = mutationCache.getAll().filter(m => m.state.status === 'pending').length;
-
-    if (stillPending > 0) {
-      console.warn('[TaskSubmission] ⚠️', stillPending, 'mutations still pending after 1s, proceeding anyway');
-    } else {
-      console.log('[TaskSubmission] ✅ All mutations completed in', elapsed, 'ms');
-    }
   }
 
-  // Note: We query the database directly below (not from cache), so no need to refresh React Query cache here
-
-  let resolution: string | undefined = undefined;
-
-  // SIMPLIFIED RESOLUTION LOGIC - Only use aspect ratios (no more custom dimensions)
-  // Priority 1: Check if shot has an aspect ratio set
+  // ── Resolution ──────────────────────────────────────────────────────────
+  // Priority: shot aspect ratio > project aspect ratio > default
+  let resolution: string | undefined;
   if (selectedShot?.aspect_ratio) {
     resolution = ASPECT_RATIO_TO_RESOLUTION[selectedShot.aspect_ratio];
-    console.log('[Resolution] Using shot aspect ratio:', {
-      aspectRatio: selectedShot.aspect_ratio,
-      resolution
-    });
   }
-
-  // Priority 2: If no shot aspect ratio, fall back to project aspect ratio
   if (!resolution && effectiveAspectRatio) {
     resolution = ASPECT_RATIO_TO_RESOLUTION[effectiveAspectRatio];
-    console.log('[Resolution] Using project aspect ratio:', {
-      aspectRatio: effectiveAspectRatio,
-      resolution
-    });
   }
-
-  // Priority 3: Use default resolution if nothing else is set
   if (!resolution) {
     resolution = DEFAULT_RESOLUTION;
-    console.log('[Resolution] Using default resolution:', resolution);
   }
 
-  // Use getDisplayUrl to convert relative paths to absolute URLs
-  // IMPORTANT: Query fresh data directly from database to avoid using stale cached data
-  // This prevents deleted items from appearing in the task
-  let absoluteImageUrls: string[];
-  let imageGenerationIds: string[] = []; // Track generation IDs for clickable images in SegmentCard
-  let pairShotGenerationIds: string[] = []; // Track shot_generations.id for video-to-timeline tethering
+  // ── Fetch fresh shot generation data from DB ────────────────────────────
+  // Single query used for both image URL extraction and timeline override extraction.
+  // Query directly to avoid using stale React Query cache.
+  let allShotGenerations: ShotGenRow[];
+
   try {
-    console.log('[TaskSubmission] Fetching fresh image data from database for task...');
-    const { data: freshShotGenerations, error } = await supabase
+    const { data, error } = await supabase
       .from('shot_generations')
-      .select(`
-        id,
-        generation_id,
-        timeline_frame,
-        metadata,
-        generation:generations!shot_generations_generation_id_generations_id_fk (
-          id,
-          location,
-          type
-        )
-      `)
+      .select(SHOT_GEN_QUERY)
       .eq('shot_id', selectedShotId)
       .order('timeline_frame', { ascending: true });
 
@@ -533,1034 +308,331 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
       return { success: false, error: 'Failed to fetch shot data' };
     }
 
-    // Filter and process - location already contains the best version (upscaled if available)
-    // Uses canonical isVideoShotGenerations from typeGuards
-    const filteredShotGenerations = (freshShotGenerations || [])
-      .filter(sg => sg.timeline_frame != null && !isVideoShotGenerations(sg as ShotGenerationsLike))
-      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-
-    // Extract URLs, generation IDs, and shot_generation IDs
-    const freshImagesWithIds = filteredShotGenerations.map(sg => {
-      const gen = sg.generation as any;
-      return {
-        location: gen?.location,
-        generationId: gen?.id || sg.generation_id, // Prefer joined id, fallback to FK
-        shotGenerationId: sg.id // The shot_generations.id for video-to-timeline tethering
-      };
-    }).filter(item => Boolean(item.location));
-
-    absoluteImageUrls = freshImagesWithIds
-      .map(item => getDisplayUrl(item.location))
-      .filter((url): url is string => Boolean(url) && url !== '/placeholder.svg');
-
-    // Extract generation IDs and shot_generation IDs in the same order as URLs
-    const filteredImages = freshImagesWithIds.filter(item => {
-      const url = getDisplayUrl(item.location);
-      return Boolean(url) && url !== '/placeholder.svg';
-    });
-
-    imageGenerationIds = filteredImages
-      .map(item => item.generationId)
-      .filter((id): id is string => Boolean(id));
-
-    // Pair shot generation IDs: for N images, we have N-1 pairs
-    // Each pair_shot_generation_id is the shot_generations.id of the START image of that pair
-    pairShotGenerationIds = filteredImages
-      .slice(0, -1) // Exclude the last image (it can only be an END image, not a pair start)
-      .map(item => item.shotGenerationId)
-      .filter((id): id is string => Boolean(id));
-
-    console.log('[TaskSubmission] Using fresh image URLs and IDs:', {
-      imageCount: absoluteImageUrls.length,
-      urls: absoluteImageUrls.map(url => url.substring(0, 50) + '...'),
-      generationIds: imageGenerationIds.map(id => id.substring(0, 8) + '...'),
-      pairShotGenIds: pairShotGenerationIds.map(id => id.substring(0, 8) + '...'),
-      pairCount: pairShotGenerationIds.length,
-      idsMatchUrls: absoluteImageUrls.length === imageGenerationIds.length
-    });
+    allShotGenerations = (data || []) as ShotGenRow[];
   } catch (err) {
     handleError(err, { context: 'TaskSubmission', toastTitle: 'Failed to prepare task data' });
     return { success: false, error: 'Failed to prepare task data' };
   }
 
+  // ── Extract image URLs and IDs from fetched data ────────────────────────
+  const filteredForUrls = filterImageShotGenerations(allShotGenerations)
+    .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
+
+  const freshImagesWithIds = filteredForUrls.map(shotGen => ({
+    location: shotGen.generation?.location,
+    generationId: shotGen.generation?.id || shotGen.generation_id,
+    shotGenerationId: shotGen.id,
+  })).filter(item => Boolean(item.location));
+
+  const absoluteImageUrls = freshImagesWithIds
+    .map(item => getDisplayUrl(item.location))
+    .filter((url): url is string => Boolean(url) && url !== '/placeholder.svg');
+
+  const filteredImages = freshImagesWithIds.filter(item => {
+    const url = getDisplayUrl(item.location);
+    return Boolean(url) && url !== '/placeholder.svg';
+  });
+
+  const imageGenerationIds = filteredImages
+    .map(item => item.generationId)
+    .filter((id): id is string => Boolean(id));
+
+  // Each pair_shot_generation_id is the shot_generations.id of the START image of that pair
+  const pairShotGenerationIds = filteredImages
+    .slice(0, -1)
+    .map(item => item.shotGenerationId)
+    .filter((id): id is string => Boolean(id));
+
+  // ── Per-pair overrides (timeline vs batch) ──────────────────────────────
   let basePrompts: string[];
   let segmentFrames: number[];
   let frameOverlap: number[];
   let negativePrompts: string[];
   let enhancedPromptsArray: string[] = [];
-  // NEW: Per-pair parameter override arrays
-  // null = use shot default, explicit value = use per-pair override
   let pairPhaseConfigsArray: (PhaseConfig | null)[] = [];
   let pairLorasArray: (Array<{ path: string; strength: number }> | null)[] = [];
-  let pairMotionSettingsArray: (Record<string, any> | null)[] = [];
+  let pairMotionSettingsArray: (Record<string, unknown> | null)[] = [];
 
   if (generationMode === 'timeline') {
-    console.log('[BasePromptsDebug] ✅ Entered TIMELINE mode branch');
-    console.log('[BasePromptsDebug] Will fetch shot_generations from database with metadata');
-    
-    // Timeline positions are now managed by useEnhancedShotPositions
-    // Frame gaps will be extracted from the database-driven positions
-    
-    // Fetch shot generations with timeline positions from database for timeline generation
-    let pairPrompts: Record<number, { prompt: string; negativePrompt: string }> = {};
-    let enhancedPrompts: Record<number, string> = {};
-    let sortedPositions: Array<{id: string, pos: number}> = [];
-    // NEW: Per-pair parameter override records (indexed by pair index)
-    let pairPhaseConfigsOverrides: Record<number, PhaseConfig> = {};
-    let pairLorasOverrides: Record<number, Array<{ path: string; strength: number }>> = {};
-    let pairMotionSettingsOverrides: Record<number, Record<string, any>> = {};
-    let pairNumFramesOverrides: Record<number, number> = {};
-    
-    try {
-      console.log('[BasePromptsDebug] 🔍 Querying shot_generations table for shot:', selectedShotId.substring(0, 8));
-      const { data: shotGenerationsData, error } = await supabase
-        .from('shot_generations')
-        .select(`
-          id,
-          generation_id,
-          timeline_frame,
-          metadata,
-          generation:generations!shot_generations_generation_id_generations_id_fk (
-            id,
-            location,
-            type
-          )
-        `)
-        .eq('shot_id', selectedShotId)
-        .order('timeline_frame', { ascending: true });
+    // ── TIMELINE MODE: Extract per-pair overrides from fetched data ──────
+    const pairPrompts: Record<number, { prompt: string; negativePrompt: string }> = {};
+    const enhancedPrompts: Record<number, string> = {};
+    const pairPhaseConfigsOverrides: Record<number, PhaseConfig> = {};
+    const pairLorasOverrides: Record<number, Array<{ path: string; strength: number }>> = {};
+    const pairMotionSettingsOverrides: Record<number, Record<string, unknown>> = {};
+    const pairNumFramesOverrides: Record<number, number> = {};
 
-      if (error) {
-        handleError(error, { context: 'Generation', showToast: false });
-      } else if (shotGenerationsData) {
-        console.log('[BasePromptsDebug] ✅ Query returned data');
-        console.log('[BasePromptsDebug] Total records from DB:', shotGenerationsData.length);
-        console.log('[BasePromptsDebug] Records summary:', shotGenerationsData.map((sg, i) => ({
-          index: i,
-          id: sg.id?.substring(0, 8),
-          generation_id: sg.generation_id?.substring(0, 8),
-          timeline_frame: sg.timeline_frame,
-          has_metadata: !!sg.metadata,
-          has_generations: !!sg.generation
-        })));
-        
-        // Build sorted positions from timeline_frame data
-        // CRITICAL: Filter to match absoluteImageUrls filtering EXACTLY
-        // Must filter by: has generations join, not video, valid timeline_frame, AND valid location
-        // This ensures sortedPositions.length matches absoluteImageUrls.length
-        // Uses canonical isVideoShotGenerations from typeGuards
-        const filteredShotGenerations = shotGenerationsData.filter(sg => {
-          const gen = sg.generation as any;
-          const hasValidLocation = gen?.location && gen.location !== '/placeholder.svg';
-          return sg.generation &&
-                 !isVideoShotGenerations(sg as ShotGenerationsLike) &&
-                 hasValidLocation;
-        });
+    // Reuse the same data already fetched — filter to match absoluteImageUrls exactly
+    const filteredShotGenerations = filterImageShotGenerations(allShotGenerations);
 
-        console.log('[BasePromptsDebug] After filtering out videos and invalid locations:', filteredShotGenerations.length);
-        console.log('[BasePromptsDebug] Filtered records:', filteredShotGenerations.map((sg, i) => ({
-          index: i,
-          id: sg.id?.substring(0, 8),
-          timeline_frame: sg.timeline_frame,
-          has_metadata: !!sg.metadata,
-          location: (sg.generation as any)?.location?.substring(0, 30)
-        })));
+    // Build sorted positions for frame gap calculation
+    const sortedPositions = filteredShotGenerations
+      .filter(shotGen => shotGen.timeline_frame != null && shotGen.timeline_frame >= 0)
+      .map(shotGen => ({
+        id: getGenerationId(shotGen),
+        pos: shotGen.timeline_frame!,
+      }))
+      .sort((a, b) => a.pos - b.pos);
 
-        // Build sorted positions ONLY from items with valid timeline_frame
-        // (needed for calculating frame gaps)
-        // NOTE: -1 is used as sentinel for unpositioned items in useTimelinePositionUtils
-        sortedPositions = filteredShotGenerations
-          .filter(sg => sg.timeline_frame !== null && sg.timeline_frame !== undefined && sg.timeline_frame >= 0)
-          .map(sg => ({
-            id: sg.generation_id || sg.id,
-            pos: sg.timeline_frame!
-          }))
-          .sort((a, b) => a.pos - b.pos);
-        
-        console.log('[Generation] Timeline mode - Sorted positions from database:', sortedPositions);
-        console.log('[Generation] Timeline mode - First image position:', sortedPositions[0]?.pos);
-        console.log('[Generation] Timeline mode - All positions:', sortedPositions.map(sp => sp.pos));
-        
-        // CRITICAL FIX: Extract pair prompts from FILTERED data (not raw data)
-        // This ensures pair prompt indexes match the actual image pairs being generated
-        console.log('[BasePromptsDebug] 📚 Starting to extract pair prompts from database');
-        console.log('[BasePromptsDebug] Total filtered generations:', filteredShotGenerations.length);
-        console.log('[BasePromptsDebug] Expected pairs:', filteredShotGenerations.length - 1);
-        console.log('[BasePromptsDebug] All generation IDs:', filteredShotGenerations.map(g => g.id.substring(0, 8)));
-        console.log('[BasePromptsDebug] All timeline frames:', filteredShotGenerations.map(g => g.timeline_frame));
-        
-        // Log FULL metadata for all items to diagnose the issue
-        console.log('[BasePromptsDebug] FULL METADATA DUMP:');
-        filteredShotGenerations.forEach((gen, idx) => {
-          console.log(`[BasePromptsDebug] Generation ${idx}:`, {
-            id: gen.id.substring(0, 8),
-            generation_id: gen.generation_id?.substring(0, 8),
-            timeline_frame: gen.timeline_frame,
-            metadata: gen.metadata,
-            has_metadata: !!gen.metadata,
-            metadata_type: typeof gen.metadata,
-            metadata_keys: gen.metadata ? Object.keys(gen.metadata) : []
-          });
-        });
-        
-        // [PhaseConfigDebug] Log the mapping of pair indices to shot generation IDs
-        console.log('[PhaseConfigDebug] 📋 Pair-to-ShotGenId mapping (timeline mode):');
-        for (let j = 0; j < filteredShotGenerations.length - 1; j++) {
-          console.log(`[PhaseConfigDebug]   Pair ${j} -> shotGenId: ${filteredShotGenerations[j].id.substring(0, 8)} (timeline_frame: ${filteredShotGenerations[j].timeline_frame})`);
-        }
+    // Extract per-pair overrides from filtered data (indexes match actual image pairs)
+    for (let i = 0; i < filteredShotGenerations.length - 1; i++) {
+      const firstItem = filteredShotGenerations[i];
+      const metadata = firstItem.metadata as Record<string, unknown> | null;
+      const { overrides, enhancedPrompt, legacyOverrides } = extractPairOverrides(metadata);
 
-        for (let i = 0; i < filteredShotGenerations.length - 1; i++) {
-          const firstItem = filteredShotGenerations[i];
-          const metadata = firstItem.metadata as Record<string, any> | null;
-
-          // Use migration utility to extract overrides (handles new + old formats)
-          const { overrides, enhancedPrompt, legacyOverrides } = extractPairOverrides(metadata);
-
-          console.log(`[BasePromptsDebug] 🔍 Pair ${i} (Image ${i} -> Image ${i+1})`);
-          console.log(`[BasePromptsDebug]   shotGenId: ${firstItem.id.substring(0, 8)}`);
-          console.log(`[BasePromptsDebug]   timeline_frame: ${firstItem.timeline_frame}`);
-          console.log(`[BasePromptsDebug]   has_prompt: ${!!overrides.prompt}`);
-          console.log(`[BasePromptsDebug]   prompt value: "${overrides.prompt || '(none)'}"`);
-          console.log(`[NegPromptDebug]   has_negative_prompt: ${!!overrides.negativePrompt}`);
-          console.log(`[NegPromptDebug]   negative_prompt value: "${overrides.negativePrompt || '(none)'}"`);
-          console.log(`[BasePromptsDebug]   has_enhanced_prompt: ${!!enhancedPrompt}`);
-
-          // Load prompts from overrides
-          if (overrides.prompt || overrides.negativePrompt) {
-            pairPrompts[i] = {
-              prompt: overrides.prompt || '',
-              negativePrompt: overrides.negativePrompt || '',
-            };
-            console.log(`[BasePromptsDebug] ✅ Loaded pair prompt ${i} from metadata`);
-          } else {
-            console.log(`[BasePromptsDebug] ⚠️ No custom prompt for pair ${i} - will use default`);
-          }
-
-          // Extract enhanced prompt if present (separate from settings)
-          if (enhancedPrompt) {
-            enhancedPrompts[i] = enhancedPrompt;
-            console.log(`[BasePromptsDebug] ✅ Loaded enhanced prompt ${i} from metadata`);
-          }
-
-          // Log what we're reading from metadata (for debugging)
-          console.log(`[PhaseConfigDebug] 🔍 Reading pair ${i} metadata:`, {
-            shotGenId: firstItem.id.substring(0, 8),
-            // Via migration utility
-            hasPhaseConfig: !!overrides.phaseConfig,
-            motionMode: overrides.motionMode ?? '(none)',
-            amountOfMotion: overrides.amountOfMotion ?? '(none)',
-            hasLoras: !!(overrides.loras && overrides.loras.length > 0),
-            phaseConfigFlowShift: overrides.phaseConfig?.flow_shift ?? '(none)',
-            // Legacy user_overrides (fallback)
-            hasLegacyOverrides: Object.keys(legacyOverrides).length > 0,
-            legacyMotionMode: legacyOverrides?.motion_mode ?? '(none)',
-            legacyPhaseConfigFlowShift: legacyOverrides?.phase_config?.flow_shift ?? '(none)',
-          });
-
-          // Check if motion_mode is 'basic' - if so, ignore any phase_config (handles stale data)
-          const motionMode = overrides.motionMode || legacyOverrides?.motion_mode;
-          const isBasicMode = motionMode === 'basic';
-
-          // Phase config: use overrides, with legacy fallback
-          if (isBasicMode && (overrides.phaseConfig || legacyOverrides?.phase_config)) {
-            console.log(`[PhaseConfigDebug] 🧹 Ignoring stale phase_config for pair ${i} (motion_mode is basic)`);
-          } else if (overrides.phaseConfig) {
-            pairPhaseConfigsOverrides[i] = overrides.phaseConfig;
-            console.log(`[PhaseConfigDebug] ✅ Loaded phase config for pair ${i}`);
-          } else if (legacyOverrides?.phase_config) {
-            pairPhaseConfigsOverrides[i] = legacyOverrides.phase_config;
-            console.log(`[PhaseConfigDebug] ✅ Loaded phase config for pair ${i} from legacy user_overrides`);
-          } else {
-            console.log(`[PhaseConfigDebug] ⚠️ No phase config override for pair ${i}`);
-          }
-
-          // LoRAs: use overrides, with legacy fallback
-          if (overrides.loras && overrides.loras.length > 0) {
-            pairLorasOverrides[i] = overrides.loras.map((lora) => ({
-              path: lora.path,
-              strength: lora.strength,
-            }));
-            console.log(`[PairOverrides] ✅ Loaded LoRA override for pair ${i}:`, pairLorasOverrides[i]);
-          } else if (legacyOverrides?.additional_loras && Object.keys(legacyOverrides.additional_loras).length > 0) {
-            // Convert from URL->strength map to array format (legacy)
-            pairLorasOverrides[i] = Object.entries(legacyOverrides.additional_loras).map(([path, strength]) => ({
-              path,
-              strength: typeof strength === 'number' ? strength : 1.0,
-            }));
-            console.log(`[PairOverrides] ✅ Loaded LoRA override for pair ${i} from legacy user_overrides:`, pairLorasOverrides[i]);
-          }
-
-          // Motion and structure settings: build from overrides
-          const hasMotionOverrides = overrides.motionMode !== undefined || overrides.amountOfMotion !== undefined;
-          const hasStructureOverrides = overrides.structureMotionStrength !== undefined ||
-                                        overrides.structureTreatment !== undefined ||
-                                        overrides.structureUni3cEndPercent !== undefined;
-
-          if (hasMotionOverrides || hasStructureOverrides) {
-            pairMotionSettingsOverrides[i] = {
-              // Motion settings (convert back to backend format: 0-1 scale)
-              ...(overrides.amountOfMotion !== undefined && { amount_of_motion: overrides.amountOfMotion / 100 }),
-              ...(overrides.motionMode !== undefined && { motion_mode: overrides.motionMode }),
-              // Structure video settings
-              ...(overrides.structureMotionStrength !== undefined && { structure_motion_strength: overrides.structureMotionStrength }),
-              ...(overrides.structureTreatment !== undefined && { structure_treatment: overrides.structureTreatment }),
-              ...(overrides.structureUni3cEndPercent !== undefined && { uni3c_end_percent: overrides.structureUni3cEndPercent }),
-            };
-            console.log(`[PairOverrides] ✅ Loaded motion/structure settings override for pair ${i}:`, pairMotionSettingsOverrides[i]);
-          } else if (legacyOverrides?.amount_of_motion !== undefined || legacyOverrides?.motion_mode !== undefined) {
-            pairMotionSettingsOverrides[i] = {
-              amount_of_motion: legacyOverrides.amount_of_motion,
-              motion_mode: legacyOverrides.motion_mode,
-            };
-            console.log(`[PairOverrides] ✅ Loaded motion settings override for pair ${i} from legacy user_overrides:`, pairMotionSettingsOverrides[i]);
-          }
-
-          // Num frames: use overrides
-          if (overrides.numFrames !== undefined) {
-            pairNumFramesOverrides[i] = overrides.numFrames;
-            console.log(`[PairOverrides] ✅ Loaded numFrames override for pair ${i}: ${pairNumFramesOverrides[i]}`);
-          }
-        }
-
-        console.log('[PairPrompts-LOAD] 📊 Pair prompts loaded from database:', {
-          totalPairs: filteredShotGenerations.length - 1,
-          customPairs: Object.keys(pairPrompts).length,
-          pairPromptIndexes: Object.keys(pairPrompts).map(Number),
-          allPairPrompts: pairPrompts,
-          enhancedPromptsCount: Object.keys(enhancedPrompts).length,
-          enhancedPromptIndexes: Object.keys(enhancedPrompts).map(Number),
-          allEnhancedPrompts: enhancedPrompts,
-          // NEW: Log per-pair overrides
-          pairPhaseConfigsCount: Object.keys(pairPhaseConfigsOverrides).length,
-          pairLorasCount: Object.keys(pairLorasOverrides).length,
-          pairMotionSettingsCount: Object.keys(pairMotionSettingsOverrides).length,
-        });
+      // Prompts
+      if (overrides.prompt || overrides.negativePrompt) {
+        pairPrompts[i] = {
+          prompt: overrides.prompt || '',
+          negativePrompt: overrides.negativePrompt || '',
+        };
       }
-    } catch (err) {
-      handleError(err, { context: 'Generation', showToast: false });
+
+      if (enhancedPrompt) {
+        enhancedPrompts[i] = enhancedPrompt;
+      }
+
+      // Phase config (ignore stale phase_config when motion_mode is 'basic')
+      const pairMotionMode = overrides.motionMode || legacyOverrides?.motion_mode;
+      const isBasicMode = pairMotionMode === 'basic';
+
+      if (!isBasicMode) {
+        if (overrides.phaseConfig) {
+          pairPhaseConfigsOverrides[i] = overrides.phaseConfig;
+        } else if (legacyOverrides?.phase_config) {
+          pairPhaseConfigsOverrides[i] = legacyOverrides.phase_config;
+        }
+      }
+
+      // LoRAs
+      if (overrides.loras && overrides.loras.length > 0) {
+        pairLorasOverrides[i] = overrides.loras.map(lora => ({
+          path: lora.path,
+          strength: lora.strength,
+        }));
+      } else if (legacyOverrides?.additional_loras && Object.keys(legacyOverrides.additional_loras).length > 0) {
+        pairLorasOverrides[i] = Object.entries(legacyOverrides.additional_loras).map(([path, strength]) => ({
+          path,
+          strength: typeof strength === 'number' ? strength : 1.0,
+        }));
+      }
+
+      // Motion and structure settings
+      const hasMotionOverrides = overrides.motionMode !== undefined || overrides.amountOfMotion !== undefined;
+      const hasStructureOverrides = overrides.structureMotionStrength !== undefined ||
+                                    overrides.structureTreatment !== undefined ||
+                                    overrides.structureUni3cEndPercent !== undefined;
+
+      if (hasMotionOverrides || hasStructureOverrides) {
+        pairMotionSettingsOverrides[i] = {
+          ...(overrides.amountOfMotion !== undefined && { amount_of_motion: overrides.amountOfMotion / 100 }),
+          ...(overrides.motionMode !== undefined && { motion_mode: overrides.motionMode }),
+          ...(overrides.structureMotionStrength !== undefined && { structure_motion_strength: overrides.structureMotionStrength }),
+          ...(overrides.structureTreatment !== undefined && { structure_treatment: overrides.structureTreatment }),
+          ...(overrides.structureUni3cEndPercent !== undefined && { uni3c_end_percent: overrides.structureUni3cEndPercent }),
+        };
+      } else if (legacyOverrides?.amount_of_motion !== undefined || legacyOverrides?.motion_mode !== undefined) {
+        pairMotionSettingsOverrides[i] = {
+          amount_of_motion: legacyOverrides.amount_of_motion,
+          motion_mode: legacyOverrides.motion_mode,
+        };
+      }
+
+      // Num frames
+      if (overrides.numFrames !== undefined) {
+        pairNumFramesOverrides[i] = overrides.numFrames;
+      }
     }
 
     // Calculate frame gaps from sorted positions
-    const frameGaps = [];
+    const frameGaps: number[] = [];
     for (let i = 0; i < sortedPositions.length - 1; i++) {
-      const gap = sortedPositions[i + 1].pos - sortedPositions[i].pos;
-      frameGaps.push(gap);
-      console.log(`[Generation] Gap ${i}: position ${sortedPositions[i].pos} -> ${sortedPositions[i + 1].pos} = ${gap} frames`);
+      frameGaps.push(sortedPositions[i + 1].pos - sortedPositions[i].pos);
     }
-    
-    console.log('[Generation] Timeline mode - Calculated frame gaps:', frameGaps);
-    console.log('[Generation] Timeline mode - Gap calculation summary:', {
-      totalImages: sortedPositions.length,
-      totalGaps: frameGaps.length,
-      expectedGaps: sortedPositions.length - 1,
-      gapsMatch: frameGaps.length === sortedPositions.length - 1
-    });
 
-    console.log('[BasePromptsDebug] 🎯 Building prompts array');
-    console.log('[BasePromptsDebug] Total gaps:', frameGaps.length);
-    console.log('[BasePromptsDebug] Available pair prompts:', Object.keys(pairPrompts).length);
-    console.log('[BasePromptsDebug] Pair prompts indexes:', Object.keys(pairPrompts).map(Number));
-    console.log('[BasePromptsDebug] Batch video prompt (default):', batchVideoPrompt);
-    console.log('[BasePromptsDebug] Full pairPrompts object:', pairPrompts);
+    // Build per-pair arrays from overrides
+    basePrompts = frameGaps.length > 0
+      ? frameGaps.map((_, index) => {
+          // Empty string = backend uses base_prompt (singular)
+          const pairPrompt = pairPrompts[index]?.prompt;
+          return (pairPrompt && pairPrompt.trim()) ? pairPrompt.trim() : '';
+        })
+      : [''];
 
-    basePrompts = frameGaps.length > 0 ? frameGaps.map((_, index) => {
-      // CRITICAL: Only use pair-specific prompt if it exists
-      // Send EMPTY STRING if no custom prompt - backend will use base_prompt (singular)
-      const pairPrompt = pairPrompts[index]?.prompt;
-      const finalPrompt = (pairPrompt && pairPrompt.trim()) ? pairPrompt.trim() : '';
-      
-      console.log(`[BasePromptsDebug] 📝 Pair ${index}:`);
-      console.log(`[BasePromptsDebug]   hasPairPrompt: ${!!pairPrompt}`);
-      console.log(`[BasePromptsDebug]   pairPromptRaw: "${pairPrompt || '(none)'}"`);
-      console.log(`[BasePromptsDebug]   finalPromptUsed: "${finalPrompt || '(empty - will use base_prompt)'}"`);
-      console.log(`[BasePromptsDebug]   isCustom: ${pairPrompt && pairPrompt.trim() ? true : false}`);
-      
-      return finalPrompt;
-    }) : [''];
-    
-    // Use per-pair numFrames override if set, otherwise use frame gap from timeline positions
-    segmentFrames = frameGaps.length > 0 ? frameGaps.map((gap, index) => {
-      const pairFrames = pairNumFramesOverrides[index];
-      if (pairFrames !== undefined) {
-        console.log(`[PairOverrides] 🎬 Using per-pair frames for pair ${index}: ${pairFrames} (timeline gap was ${gap})`);
-        return pairFrames;
-      }
-      return gap;
-    }) : [batchVideoFrames];
-    frameOverlap = frameGaps.length > 0 ? frameGaps.map(() => 10) : [10]; // Fixed context of 10 frames
-    
-    negativePrompts = frameGaps.length > 0 ? frameGaps.map((_, index) => {
-      // Use pair-specific negative prompt if available, otherwise fall back to default
-      const pairNegativePrompt = pairPrompts[index]?.negativePrompt;
-      const finalNegativePrompt = (pairNegativePrompt && pairNegativePrompt.trim()) ? pairNegativePrompt.trim() : defaultNegativePrompt;
-      console.log(`[NegPromptDebug] 🚫 Pair ${index} negative:`, {
-        hasPairNegativePrompt: !!pairNegativePrompt,
-        pairNegativePromptRaw: pairNegativePrompt || '(none)',
-        finalNegativePromptUsed: finalNegativePrompt,
-        isCustom: pairNegativePrompt && pairNegativePrompt.trim() ? true : false
-      });
-      return finalNegativePrompt;
-    }) : [defaultNegativePrompt];
+    segmentFrames = frameGaps.length > 0
+      ? frameGaps.map((gap, index) => pairNumFramesOverrides[index] ?? gap)
+      : [batchVideoFrames];
 
-    // Build enhanced prompts array (empty strings for pairs without enhanced prompts)
-    enhancedPromptsArray = frameGaps.length > 0 ? frameGaps.map((_, index) => {
-      const enhancedPrompt = enhancedPrompts[index] || '';
-      console.log(`[PairPrompts-GENERATION] 🌟 Pair ${index} enhanced:`, {
-        hasEnhancedPrompt: !!enhancedPrompt,
-        enhancedPromptRaw: enhancedPrompt || '(none)',
-        promptPreview: enhancedPrompt ? enhancedPrompt.substring(0, 50) + (enhancedPrompt.length > 50 ? '...' : '') : '(none)'
-      });
-      return enhancedPrompt;
-    }) : [];
+    frameOverlap = frameGaps.length > 0 ? frameGaps.map(() => 10) : [10];
 
-    // NEW: Build per-pair parameter override arrays (null = use shot default)
-    // Strip mode field from phase configs - backend determines mode from actual model
-    pairPhaseConfigsArray = frameGaps.length > 0 ? frameGaps.map((_, index) => {
-      const config = pairPhaseConfigsOverrides[index];
-      return config ? stripModeFromPhaseConfig(config) : null;
-    }) : [];
+    negativePrompts = frameGaps.length > 0
+      ? frameGaps.map((_, index) => {
+          const pairNeg = pairPrompts[index]?.negativePrompt;
+          return (pairNeg && pairNeg.trim()) ? pairNeg.trim() : defaultNegativePrompt;
+        })
+      : [defaultNegativePrompt];
 
-    pairLorasArray = frameGaps.length > 0 ? frameGaps.map((_, index) => {
-      return pairLorasOverrides[index] || null;
-    }) : [];
+    enhancedPromptsArray = frameGaps.length > 0
+      ? frameGaps.map((_, index) => enhancedPrompts[index] || '')
+      : [];
 
-    pairMotionSettingsArray = frameGaps.length > 0 ? frameGaps.map((_, index) => {
-      return pairMotionSettingsOverrides[index] || null;
-    }) : [];
+    pairPhaseConfigsArray = frameGaps.length > 0
+      ? frameGaps.map((_, index) => {
+          const config = pairPhaseConfigsOverrides[index];
+          return config ? stripModeFromPhaseConfig(config) : null;
+        })
+      : [];
 
-    console.log('[PairOverrides] ✅ Built per-pair override arrays:', {
-      pairPhaseConfigsCount: pairPhaseConfigsArray.filter(x => x !== null).length,
-      pairLorasCount: pairLorasArray.filter(x => x !== null).length,
-      pairMotionSettingsCount: pairMotionSettingsArray.filter(x => x !== null).length,
-    });
-    // [PhaseConfigDebug] Log the actual phase configs being sent
-    console.log('[PhaseConfigDebug] 📤 Final pair_phase_configs:', pairPhaseConfigsArray.map((cfg, i) => ({
-      pairIndex: i,
-      hasConfig: cfg !== null,
-      flowShift: cfg?.flow_shift ?? '(none)',
-    })));
-    console.log('[PhaseConfigDebug] 📤 Final pair_motion_settings:', pairMotionSettingsArray);
+    pairLorasArray = frameGaps.length > 0
+      ? frameGaps.map((_, index) => pairLorasOverrides[index] || null)
+      : [];
 
-    console.log(`[PairPrompts-GENERATION] ✅ Final prompts array:`, {
-      basePrompts,
-      negativePrompts,
-      enhancedPrompts: enhancedPromptsArray,
-      pairPromptsObject: pairPrompts,
-      summary: basePrompts.map((prompt, idx) => ({
-        pairIndex: idx,
-        promptPreview: prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''),
-        isCustom: prompt !== batchVideoPrompt,
-        hasEnhancedPrompt: !!enhancedPromptsArray[idx]
-      }))
-    });
-
-    console.log(`[Generation] Timeline mode - Final prompts:`, { basePrompts, negativePrompts, pairPrompts, enhancedPrompts, enhancedPromptsArray });
+    pairMotionSettingsArray = frameGaps.length > 0
+      ? frameGaps.map((_, index) => pairMotionSettingsOverrides[index] || null)
+      : [];
   } else {
-    // BATCH MODE: Use uniform settings for all pairs
-    // Individual per-pair settings are only used in timeline mode
-    console.log('[BasePromptsDebug] ⚠️ Entered BATCH mode branch');
-    console.log('[BasePromptsDebug] Using uniform batch settings (no per-pair overrides)');
-
+    // ── BATCH MODE: Uniform settings for all pairs ──────────────────────
     const numPairs = Math.max(0, absoluteImageUrls.length - 1);
-    console.log('[BasePromptsDebug] Number of pairs:', numPairs);
 
-    // All pairs use the same empty base prompt (global base_prompt will be used)
     basePrompts = numPairs > 0 ? Array(numPairs).fill('') : [''];
-
-    // All pairs use the same negative prompt
     negativePrompts = numPairs > 0 ? Array(numPairs).fill(defaultNegativePrompt) : [defaultNegativePrompt];
-
-    // All pairs use the same frame count from batch settings
     segmentFrames = numPairs > 0 ? Array(numPairs).fill(batchVideoFrames) : [batchVideoFrames];
-
-    // Standard frame overlap
     frameOverlap = numPairs > 0 ? Array(numPairs).fill(10) : [10];
-
-    // No per-pair overrides in batch mode - use global settings
     pairPhaseConfigsArray = numPairs > 0 ? Array(numPairs).fill(null) : [];
     pairLorasArray = numPairs > 0 ? Array(numPairs).fill(null) : [];
     pairMotionSettingsArray = numPairs > 0 ? Array(numPairs).fill(null) : [];
     enhancedPromptsArray = numPairs > 0 ? Array(numPairs).fill(null) : [];
-
-    console.log('[BasePromptsDebug] ✅ Batch mode arrays (uniform):', {
-      basePromptsLength: basePrompts.length,
-      negativePromptsLength: negativePrompts.length,
-      segmentFrames,
-      frameOverlap,
-      allUniform: true,
-    });
   }
 
-  // ============================================================================
-  // MODEL AND PHASE CONFIG DETERMINATION
-  // ============================================================================
-  // 
-  // We now use phase configs for BOTH basic and advanced mode, unifying the backend.
-  // - Basic mode: Phase config is computed based on generationTypeMode (I2V/VACE) + motion + user LoRAs
-  // - Advanced mode: User's phase config is used (with LoRA swapping for VACE if needed)
-  // 
-  // Note: generationTypeMode determines whether to use I2V or VACE mode.
-  // If set to 'i2v' but structure video exists, the structure video will NOT be processed.
-  // The UI should show a warning in this case, but we respect the user's choice.
-  //
-  // NEW: structure_video_type can now be 'uni3c' which uses I2V mode with a guidance video
-  // - uni3c: Uses I2V model with raw structure video processing (uni3c_start_percent=0, uni3c_end_percent configurable)
-  // - flow/canny/depth: Uses VACE model with respective structure video processing
-  
+  // ── Model and phase config determination ────────────────────────────────
   let actualModelName: string;
   let effectivePhaseConfig: PhaseConfig;
-  let modelType: 'i2v' | 'vace';
-  
-  // Structure video type is always uni3c now (hardcoded), which uses I2V model
-  const isUni3cMode = structureVideoConfig.structure_video_type === 'uni3c' && structureVideoConfig.structure_video_path;
 
-  // VACE mode is no longer supported - always use I2V
-  // uni3c structure type uses I2V with guidance video
-  const useVaceMode = false;  // Hardcoded: VACE mode removed, always use I2V
-
-  // Log uni3c mode
-  if (isUni3cMode) {
-    console.log('[Generation] 🔵 Using Uni3C mode - I2V model with guidance video');
-  }
-  
-  // Convert user LoRAs to the format needed for phase config (including multi-stage fields)
   const userLorasForPhaseConfig = (selectedLoras || []).map(l => ({
     path: l.path,
     strength: parseFloat(l.strength?.toString() ?? '0') || 0.0,
-    // Multi-stage LoRA fields
-    lowNoisePath: (l as any).lowNoisePath,
-    isMultiStage: (l as any).isMultiStage,
+    lowNoisePath: (l as { lowNoisePath?: string }).lowNoisePath,
+    isMultiStage: (l as { isMultiStage?: boolean }).isMultiStage,
   }));
-  
-  // Use advanced mode ONLY if:
-  // 1. advancedMode is explicitly true
-  // 2. phaseConfig exists
-  // 3. motionMode is NOT 'basic' (explicit check to ensure Basic mode UI selection is respected)
+
+  // Use advanced mode only when explicitly enabled, phaseConfig exists, and motionMode isn't 'basic'
   const useAdvancedMode = advancedMode && phaseConfig && motionMode !== 'basic';
-  
-  console.log('[Generation] Mode decision:', {
-    advancedMode,
-    hasPhaseConfig: !!phaseConfig,
-    motionMode,
-    generationTypeMode,
-    useVaceMode,
-    isUni3cMode,
-    useAdvancedMode,
-    hasStructureVideo: !!structureVideoConfig.structure_video_path,
-    structureVideoWillBeUsed: (useVaceMode || isUni3cMode) && !!structureVideoConfig.structure_video_path,
-    amountOfMotion,
-    rawAmountOfMotion,
-    amountOfMotionDefaultApplied: rawAmountOfMotion == null
-  });
-  
+
   if (useAdvancedMode) {
-    // ADVANCED MODE: Use user's phase config
-    // Always use I2V model - VACE mode removed
     actualModelName = phaseConfig.num_phases === 2
       ? 'wan_2_2_i2v_lightning_baseline_3_3'
       : 'wan_2_2_i2v_lightning_baseline_2_2_2';
-    modelType = 'i2v';
-
     effectivePhaseConfig = phaseConfig;
-    console.log('[Generation] Advanced Mode - using user phase config:', {
-      model: actualModelName,
-      modelType,
-      numPhases: effectivePhaseConfig.num_phases,
-      stepsPerPhase: effectivePhaseConfig.steps_per_phase
-    });
-    
   } else {
-    // BASIC MODE: Build phase config automatically based on generationTypeMode + Amount of Motion
-    console.log('[Generation] Using BASIC MODE - building phase config from Amount of Motion');
-    
-    // Pass structure type for uni3c mode detection
-    const basicConfig = buildBasicModePhaseConfig(
-      useVaceMode || isUni3cMode, // Has structure video for both VACE and Uni3C modes
-      amountOfMotion,
-      userLorasForPhaseConfig,
-      structureVideoConfig.structure_video_type // Pass structure type for uni3c detection
-    );
-    
+    const basicConfig = buildBasicModePhaseConfig(amountOfMotion, userLorasForPhaseConfig);
     actualModelName = basicConfig.model;
     effectivePhaseConfig = basicConfig.phaseConfig;
-    // Always use I2V model type - VACE mode removed
-    modelType = 'i2v';
-    
-    console.log('[Generation] Basic Mode - built phase config:', {
-      model: actualModelName,
-      modelType,
-      generationTypeMode,
-      useVaceMode,
-      isUni3cMode,
-      structureVideoType: structureVideoConfig.structure_video_type,
-      hasStructureVideo: !!structureVideoConfig.structure_video_path,
-      structureVideoWillBeUsed: (useVaceMode || isUni3cMode) && !!structureVideoConfig.structure_video_path,
-      amountOfMotion,
-      motionLoraApplied: amountOfMotion > 0,
-      motionLoraStrength: amountOfMotion > 0 ? (amountOfMotion / 100).toFixed(2) : 'N/A',
-      userLorasCount: userLorasForPhaseConfig.length,
-      numPhases: effectivePhaseConfig.num_phases,
-      stepsPerPhase: effectivePhaseConfig.steps_per_phase,
-      totalLorasPerPhase: effectivePhaseConfig.phases.map(p => p.loras.length)
-    });
   }
-  
-  // Validate phase config before sending (always validate now since we always send it)
+
+  // Validate phase config consistency before sending
   {
     const phasesLength = effectivePhaseConfig.phases?.length || 0;
     const stepsLength = effectivePhaseConfig.steps_per_phase?.length || 0;
     const numPhases = effectivePhaseConfig.num_phases;
-    
-    // Final validation check before sending to backend
+
     if (numPhases !== phasesLength || numPhases !== stepsLength) {
-      console.error('[PhaseConfigDebug] CRITICAL: Inconsistent phase config about to be sent!', {
-        num_phases: numPhases,
-        phases_array_length: phasesLength,
-        steps_array_length: stepsLength,
-        advancedMode,
-        ERROR: 'This WILL cause backend validation errors!',
-        phases_data: effectivePhaseConfig.phases?.map(p => ({ phase: p.phase, guidance_scale: p.guidance_scale, loras_count: p.loras?.length })),
-        steps_per_phase: effectivePhaseConfig.steps_per_phase
+      console.error('[Generation] Inconsistent phase config:', {
+        num_phases: numPhases, phases_array_length: phasesLength, steps_array_length: stepsLength,
       });
       toast.error(`Invalid phase configuration: num_phases (${numPhases}) doesn't match arrays (phases: ${phasesLength}, steps: ${stepsLength}). Please reset to defaults.`);
       return { success: false, error: 'Invalid phase configuration' };
     }
-    
-    console.log('[PhaseConfigDebug] ✅ Preparing to send phase_config:', {
-      mode: advancedMode ? 'advanced' : 'basic',
-      num_phases: effectivePhaseConfig.num_phases,
-      model_switch_phase: effectivePhaseConfig.model_switch_phase,
-      phases_array_length: phasesLength,
-      steps_array_length: stepsLength,
-      phases_data: effectivePhaseConfig.phases?.map(p => ({ 
-        phase: p.phase, 
-        guidance_scale: p.guidance_scale, 
-        loras_count: p.loras?.length,
-        lora_urls: p.loras?.map(l => l.url.split('/').pop())
-      })),
-      steps_per_phase: effectivePhaseConfig.steps_per_phase,
-      VALIDATION: 'PASSED'
-    });
   }
-  
-  // CRITICAL: Filter out empty enhanced prompts to prevent backend from duplicating base_prompt
-  // Only send enhanced_prompts if we have actual non-empty enhanced prompts from metadata
-  const hasValidEnhancedPrompts = enhancedPromptsArray.some(prompt => prompt && prompt.trim().length > 0);
-  
-  console.log('[EnhancedPrompts-Safety] Checking enhanced prompts:', {
-    enhancedPromptsArrayLength: enhancedPromptsArray.length,
-    hasValidEnhancedPrompts,
-    enhancedPromptsPreview: enhancedPromptsArray.map((p, i) => ({ 
-      index: i, 
-      hasContent: !!p && p.trim().length > 0,
-      preview: p ? p.substring(0, 30) + '...' : '(empty)'
-    })),
-    enhancePromptFlag: enhancePrompt,
-    // Show what we're sending for prompt appending
-    base_prompt_singular: batchVideoPrompt,
-    base_prompts_array: basePrompts,
-    willAppendBasePrompt: enhancePrompt
-  });
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MASTER TIMELINE STATE LOG - Call before task submission for debugging
-  // ═══════════════════════════════════════════════════════════════════════════
-  try {
-    // Build the structure videos array with affected segments info
-    const structureVideosForLog: Parameters<typeof logTimelineMasterState>[0]['structureVideos'] = [];
-    const structureVideos = params.structureVideos;
-    
-    if (structureVideos && structureVideos.length > 0) {
-      structureVideos.forEach((sv, index) => {
-        // Determine which segments this video affects based on frame ranges
-        const affectedSegments: number[] = [];
-        let cumulativeFrame = 0;
-        segmentFrames.forEach((frameCount, segIdx) => {
-          const segStart = cumulativeFrame;
-          const segEnd = cumulativeFrame + frameCount;
-          // Check if this structure video overlaps with this segment
-          if (sv.start_frame < segEnd && sv.end_frame > segStart) {
-            affectedSegments.push(segIdx);
-          }
-          cumulativeFrame = segEnd;
-        });
-        
-        structureVideosForLog.push({
-          index,
-          path: sv.path,
-          startFrame: sv.start_frame,
-          endFrame: sv.end_frame,
-          treatment: sv.treatment ?? 'adjust',
-          motionStrength: sv.motion_strength ?? 1.0,
-          structureType: sv.structure_type ?? 'flow',
-          affectedSegments,
-        });
-      });
-    } else if (structureVideoConfig.structure_video_path) {
-      // Legacy single video - affects all segments
-      structureVideosForLog.push({
-        index: 0,
-        path: structureVideoConfig.structure_video_path,
-        startFrame: 0,
-        endFrame: segmentFrames.reduce((a, b) => a + b, 0),
-        treatment: structureVideoConfig.structure_video_treatment ?? 'adjust',
-        motionStrength: structureVideoConfig.structure_video_motion_strength ?? 1.0,
-        structureType: structureVideoConfig.structure_video_type ?? 'flow',
-        affectedSegments: [], // Empty = all segments
-      });
-    }
 
-    // Build the segments array from the calculated data
-    const segmentsForLog: Parameters<typeof logTimelineMasterState>[0]['segments'] = [];
-    let cumulativeFrame = 0;
-    for (let i = 0; i < segmentFrames.length; i++) {
-      const frameCount = segmentFrames[i];
-      const startFrame = cumulativeFrame;
-      const endFrame = cumulativeFrame + frameCount;
-      
-      segmentsForLog.push({
-        pairIndex: i,
-        startImageId: imageGenerationIds[i] || `img-${i}`,
-        endImageId: imageGenerationIds[i + 1] || `img-${i + 1}`,
-        startFrame,
-        endFrame,
-        frameCount,
-        basePrompt: basePrompts[i] || '',
-        negativePrompt: negativePrompts[i] || defaultNegativePrompt,
-        enhancedPrompt: enhancedPromptsArray[i] || '',
-        hasCustomPrompt: !!(basePrompts[i] && basePrompts[i].trim()),
-        hasEnhancedPrompt: !!(enhancedPromptsArray[i] && enhancedPromptsArray[i].trim()),
-      });
-      
-      cumulativeFrame = endFrame;
-    }
+  // Only include enhanced_prompts if there are actual non-empty values
+  const hasValidEnhancedPrompts = enhancedPromptsArray.some(p => p && p.trim().length > 0);
 
-    // Build the images array
-    // Note: We calculate frame positions based on segment frames for accurate logging
-    // In timeline mode, positions are cumulative; in batch mode they're evenly spaced
-    const imagesForLog: Parameters<typeof logTimelineMasterState>[0]['images'] = absoluteImageUrls.map((url, i) => {
-      // Calculate cumulative frame position from segment frames
-      let framePosition = 0;
-      for (let j = 0; j < i && j < segmentFrames.length; j++) {
-        framePosition += segmentFrames[j];
-      }
-      return {
-        shotGenId: pairShotGenerationIds[i] || `shotgen-${i}`,
-        generationId: imageGenerationIds[i] || `gen-${i}`,
-        timelineFrame: framePosition,
-        location: url,
-      };
-    });
-
-    const totalFrames = segmentFrames.reduce((a, b) => a + b, 0);
-    
-    logTimelineMasterState({
-      shotId: selectedShotId,
-      shotName: selectedShot?.name,
-      generationMode,
-      images: imagesForLog,
-      segments: segmentsForLog,
-      structureVideos: structureVideosForLog,
-      settings: {
-        basePrompt: batchVideoPrompt,
-        defaultNegativePrompt,
-        amountOfMotion,
-        motionMode: motionMode || 'basic',
-        advancedMode: useAdvancedMode,
-        turboMode,
-        enhancePrompt,
-        modelName: actualModelName,
-        modelType,
-        resolution,
-        loras: selectedLoras.map(l => ({ name: l.name, path: l.path, strength: l.strength })),
-      },
-      totalFrames,
-      totalDurationSeconds: totalFrames / 24,
-    });
-  } catch (logError) {
-    // Don't let logging errors break generation
-    console.warn('[TIMELINE_MASTER_STATE] Error logging master state:', logError);
-  }
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  const requestBody: any = {
+  // ── Build request body ──────────────────────────────────────────────────
+  const requestBody: Record<string, unknown> = {
     project_id: projectId,
     shot_id: selectedShot.id,
     image_urls: absoluteImageUrls,
-    // Include generation IDs for clickable images in SegmentCard
-    ...(imageGenerationIds.length > 0 && imageGenerationIds.length === absoluteImageUrls.length 
-      ? { image_generation_ids: imageGenerationIds } 
+    ...(imageGenerationIds.length > 0 && imageGenerationIds.length === absoluteImageUrls.length
+      ? { image_generation_ids: imageGenerationIds }
       : {}),
-    // Include pair_shot_generation_ids for video-to-timeline tethering
-    // These are the shot_generations.id of each pair's START image
-    ...(pairShotGenerationIds.length > 0 
-      ? { pair_shot_generation_ids: pairShotGenerationIds } 
-      : {}),
-    // Include parent_generation_id if provided - segments will become children of this parent
-    // instead of creating a new parent generation
+    ...(pairShotGenerationIds.length > 0 ? { pair_shot_generation_ids: pairShotGenerationIds } : {}),
     ...(parentGenerationId ? { parent_generation_id: parentGenerationId } : {}),
     base_prompts: basePrompts,
-    base_prompt: batchVideoPrompt, // Singular - the default/base prompt used for all segments
+    base_prompt: batchVideoPrompt,
     segment_frames: segmentFrames,
     frame_overlap: frameOverlap,
     negative_prompts: negativePrompts,
-    // CRITICAL: Only include enhanced_prompts if we have actual enhanced prompts to send
-    // This prevents the backend from duplicating base_prompt into enhanced_prompts_expanded
     ...(hasValidEnhancedPrompts ? { enhanced_prompts: enhancedPromptsArray } : {}),
-    // NEW: Per-pair parameter overrides (null = use shot default)
-    // Only include if there are actual overrides to send
     ...(pairPhaseConfigsArray.some(x => x !== null) ? { pair_phase_configs: pairPhaseConfigsArray } : {}),
     ...(pairLorasArray.some(x => x !== null) ? { pair_loras: pairLorasArray } : {}),
     ...(pairMotionSettingsArray.some(x => x !== null) ? { pair_motion_settings: pairMotionSettingsArray } : {}),
     model_name: actualModelName,
-    model_type: modelType,
-    seed: seed,
-    // Steps are now always in phase_config.steps_per_phase - don't send separately
+    model_type: 'i2v',
+    seed,
     debug: debug ?? DEFAULT_STEERABLE_MOTION_SETTINGS.debug,
     show_input_images: DEFAULT_STEERABLE_MOTION_SETTINGS.show_input_images,
     enhance_prompt: enhancePrompt,
-    // Save UI state settings (dimension_source removed - now using aspect ratios only)
     generation_mode: generationMode,
-    // Note: model_type (i2v/vace) is already stored above via modelType variable
     random_seed: randomSeed,
     turbo_mode: turboMode,
-    // Amount of motion is now embedded in phase_config LoRAs - store for UI restoration only
     amount_of_motion: amountOfMotion / 100.0,
-    // UNIFIED: Always send phase_config for consistent backend processing
-    // advanced_mode reflects whether user's custom phase config is being used vs computed basic mode
     advanced_mode: useAdvancedMode,
-    motion_mode: motionMode, // Motion control mode (basic/presets/advanced) - for UI state
-    // Strip mode field from phase config - backend determines mode from actual model
-    phase_config: stripModeFromPhaseConfig(effectivePhaseConfig), // Always send phase config (computed or user-defined)
-    regenerate_anchors: false, // Always false
-    // Include selected phase preset ID for UI state restoration (saved in all modes)
+    motion_mode: motionMode,
+    phase_config: stripModeFromPhaseConfig(effectivePhaseConfig),
+    regenerate_anchors: false,
     selected_phase_preset_id: selectedPhasePresetId || undefined,
-    // Add generation name if provided
     generation_name: variantNameParam.trim() || undefined,
-    // Text before/after prompts
     ...(textBeforePrompts ? { text_before_prompts: textBeforePrompts } : {}),
     ...(textAfterPrompts ? { text_after_prompts: textAfterPrompts } : {}),
-    // Independent segments enabled (VACE mode removed, always I2V now)
     independent_segments: true,
     chain_segments: false,
-    // Smooth video interpolation (SVI) for smoother transitions - always send explicitly
-    use_svi: useSvi ?? false,
+    use_svi: false,
   };
 
-  // Log Smooth Continuations params
-  if (useSvi) {
-    console.log('[SmoothContinuationsDebug] Task params:', {
-      useSvi,
-      independent_segments: requestBody.independent_segments,
-      chain_segments: requestBody.chain_segments,
-    });
-  }
-
-  // Debug log the exact request body being sent
-  console.log('[BasePromptsDebug] 📤 REQUEST BODY BEING SENT TO BACKEND:');
-  console.log('[BasePromptsDebug]   base_prompts:', requestBody.base_prompts);
-  console.log('[BasePromptsDebug]   base_prompts length:', requestBody.base_prompts?.length);
-  console.log('[BasePromptsDebug]   base_prompts values:', requestBody.base_prompts?.map((p: string, i: number) => 
-    `[${i}]: "${p || '(empty)'}"`
-  ));
-  console.log('[BasePromptsDebug]   base_prompt (singular):', requestBody.base_prompt);
-  console.log('[BasePromptsDebug]   negative_prompts:', requestBody.negative_prompts?.map((p: string, i: number) => 
-    `[${i}]: "${p?.substring(0, 30) || '(empty)'}"`
-  ));
-  console.log('[BasePromptsDebug]   image_urls count:', requestBody.image_urls?.length);
-  console.log('[BasePromptsDebug]   segment_frames:', requestBody.segment_frames);
-  console.log('[BasePromptsDebug]   phase_config phases:', requestBody.phase_config?.num_phases);
-
   // LoRAs are in phase_config for GPU worker processing.
-  // Also send as separate loras array so they become additional_loras in orchestrator_details.
-  // This allows segment regeneration to preserve user-selected LoRAs.
+  // Also send as separate loras array for orchestrator_details (segment regeneration).
   if (selectedLoras && selectedLoras.length > 0) {
     requestBody.loras = selectedLoras.map(l => ({
       path: l.path,
       strength: parseFloat(l.strength?.toString() ?? '1') || 1.0,
     }));
-    console.log('[Generation] Adding user-selected LoRAs to additional_loras:', requestBody.loras);
   }
 
   if (resolution) {
     requestBody.resolution = resolution;
   }
 
-  // Add stitch config if provided (for automatic join after generation)
   if (stitchConfig) {
     requestBody.stitch_config = stitchConfig;
-    console.log('[Generation] Adding stitch_config for automatic join after generation:', {
-      context_frame_count: stitchConfig.context_frame_count,
-      gap_frame_count: stitchConfig.gap_frame_count,
-      replace_mode: stitchConfig.replace_mode,
-      motion_mode: stitchConfig.motion_mode,
-    });
   }
 
-  // ============================================================================
-  // STRUCTURE GUIDANCE - NEW UNIFIED FORMAT (videos INSIDE structure_guidance)
-  // ============================================================================
-  // The unified format nests videos inside structure_guidance:
-  // {
-  //   "structure_guidance": {
-  //     "target": "uni3c" | "vace",
-  //     "videos": [{ path, start_frame, end_frame, treatment }],
-  //     "strength": 1.0,
-  //     // Uni3C: step_window, frame_policy, zero_empty_frames
-  //     // VACE: preprocessing, canny_intensity, depth_contrast
-  //   }
-  // }
-  // NO SEPARATE structure_videos array - everything is in structure_guidance.
-  
-  const structureVideos = params.structureVideos;
-  
-  console.log('[Generation] [DEBUG] Structure video config at generation time:', {
-    hasStructureVideosArray: !!structureVideos && structureVideos.length > 0,
-    structureVideosCount: structureVideos?.length ?? 0,
-    legacyConfigPath: structureVideoConfig.structure_video_path,
-    isUni3cMode
-  });
-
-  if (structureVideos && structureVideos.length > 0) {
-    // Use NEW unified format with videos INSIDE structure_guidance
-    const firstVideo = structureVideos[0];
-    const isUni3cTarget = firstVideo.structure_type === 'uni3c';
-    
-    // Transform videos to clean format (strip structure_type, motion_strength, uni3c_* from each video)
-    const cleanedVideos = structureVideos.map(video => ({
-      path: video.path,
-      start_frame: video.start_frame ?? 0,
-      end_frame: video.end_frame ?? null,
-      treatment: video.treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-      ...(video.metadata ? { metadata: video.metadata } : {}),
-      ...(video.resource_id ? { resource_id: video.resource_id } : {}),
-    }));
-    
-    // Build unified structure_guidance object with videos inside
-    const structureGuidance: Record<string, unknown> = {
-      target: isUni3cTarget ? 'uni3c' : 'vace',
-      videos: cleanedVideos,
-      strength: firstVideo.motion_strength ?? 1.0,
-    };
-    
-    if (isUni3cTarget) {
-      // Uni3C specific params
-      structureGuidance.step_window = [
-        firstVideo.uni3c_start_percent ?? 0,
-        firstVideo.uni3c_end_percent ?? (params.uni3cEndPercent ?? 1.0),
-      ];
-      structureGuidance.frame_policy = 'fit';
-      structureGuidance.zero_empty_frames = true;
-    } else {
-      // VACE specific params
-      const preprocessingMap: Record<string, string> = {
-        'flow': 'flow', 'canny': 'canny', 'depth': 'depth', 'raw': 'none',
-      };
-      structureGuidance.preprocessing = preprocessingMap[firstVideo.structure_type ?? 'flow'] ?? 'flow';
-      // Include optional VACE params if present
-      if (firstVideo.canny_intensity != null) structureGuidance.canny_intensity = firstVideo.canny_intensity;
-      if (firstVideo.depth_contrast != null) structureGuidance.depth_contrast = firstVideo.depth_contrast;
-    }
-    
+  // Structure guidance (unified format with videos nested inside)
+  const totalFrames = segmentFrames.reduce((a, b) => a + b, 0);
+  const structureGuidance = buildStructureGuidance(
+    params.structureVideos,
+    structureVideoConfig,
+    params.uni3cEndPercent,
+    totalFrames,
+  );
+  if (structureGuidance) {
     requestBody.structure_guidance = structureGuidance;
-    
-    console.log('[Generation] 🎬 Using UNIFIED structure_guidance format (videos inside):', {
-      target: structureGuidance.target,
-      videosCount: cleanedVideos.length,
-      strength: structureGuidance.strength,
-      stepWindow: structureGuidance.step_window,
-      preprocessing: structureGuidance.preprocessing,
-      firstVideoPath: cleanedVideos[0]?.path?.substring(0, 50) + '...',
-    });
-  } else if (structureVideoConfig.structure_video_path) {
-    // LEGACY single-video path - convert to new unified format
-    const isUni3cTarget = structureVideoConfig.structure_video_type === 'uni3c';
-    const legacyUni3cEndPercent =
-      structureVideoConfig.uni3c_end_percent ??
-      params.uni3cEndPercent ??
-      1.0;
-    
-    // Compute end_frame from the total frames being generated
-    const totalFrames = segmentFrames.reduce((a, b) => a + b, 0);
-    
-    // Build unified structure_guidance object with videos inside
-    const structureGuidance: Record<string, unknown> = {
-      target: isUni3cTarget ? 'uni3c' : 'vace',
-      videos: [{
-        path: structureVideoConfig.structure_video_path,
-        start_frame: 0,
-        end_frame: totalFrames,
-        treatment: structureVideoConfig.structure_video_treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-      }],
-      strength: structureVideoConfig.structure_video_motion_strength ?? 1.0,
-    };
-    
-    if (isUni3cTarget) {
-      // Uni3C specific params
-      structureGuidance.step_window = [0, legacyUni3cEndPercent];
-      structureGuidance.frame_policy = 'fit';
-      structureGuidance.zero_empty_frames = true;
-    } else {
-      // VACE specific params
-      const preprocessingMap: Record<string, string> = {
-        'flow': 'flow', 'canny': 'canny', 'depth': 'depth', 'raw': 'none',
-      };
-      structureGuidance.preprocessing = preprocessingMap[structureVideoConfig.structure_video_type ?? 'flow'] ?? 'flow';
-    }
-    
-    requestBody.structure_guidance = structureGuidance;
-    
-    console.log('[Generation] 🎬 Converted LEGACY single-video to UNIFIED format:', {
-      target: structureGuidance.target,
-      videosCount: (structureGuidance.videos as unknown[]).length,
-      strength: structureGuidance.strength,
-    });
   }
-  
-  // Debug logging for enhance_prompt parameter and enhanced_prompts array
-  console.log("[EnhancePromptDebug] ⚠️ ShotEditor - Value being sent to task creation:", {
-    enhancePrompt_from_props: enhancePrompt,
-    requestBody_enhance_prompt: requestBody.enhance_prompt,
-    VALUES_MATCH: enhancePrompt === requestBody.enhance_prompt,
-    // CRITICAL: Verify enhanced_prompts is NOT being sent when empty
-    enhanced_prompts_included_in_request: 'enhanced_prompts' in requestBody,
-    enhanced_prompts_array_length: requestBody.enhanced_prompts?.length || 0,
-    enhanced_prompts_preview: requestBody.enhanced_prompts?.map((p: string, i: number) => ({
-      index: i,
-      preview: p ? p.substring(0, 30) + '...' : '(empty)',
-      length: p?.length || 0
-    })) || 'NOT_INCLUDED',
-    WARNING: enhancePrompt === false && requestBody.enhance_prompt === true ? '❌ MISMATCH DETECTED! requestBody has true but prop is false' : '✅ Values match'
-  });
-  
+
+  // ── Submit task ─────────────────────────────────────────────────────────
   try {
-    // IMPORTANT: If enhance_prompt is false, clear all existing enhanced prompts
-    // This ensures we don't use stale enhanced prompts from previous generations
+    // Clear stale enhanced prompts when enhance_prompt is disabled
     if (!enhancePrompt) {
-      console.log("[generateVideoService] enhance_prompt is false - clearing all enhanced prompts before task submission");
       try {
         await clearAllEnhancedPrompts();
-        console.log("[generateVideoService] ✅ Successfully cleared all enhanced prompts");
       } catch (clearError) {
         handleError(clearError, { context: 'generateVideoService', showToast: false });
-        // Continue with task submission even if clearing fails (non-critical)
       }
     }
-    // Use the new client-side travel between images task creation instead of calling the edge function
-    // [ParentReuseDebug] Log what we're passing to createTravelBetweenImagesTask
-    console.log('[ParentReuseDebug] Calling createTravelBetweenImagesTask with parent_generation_id:', requestBody.parent_generation_id?.substring(0, 8) || 'undefined');
 
     const result = await createTravelBetweenImagesTask(requestBody as TravelBetweenImagesTaskParams);
-
-    // [ParentReuseDebug] Log the result
-    console.log('[ParentReuseDebug] createTravelBetweenImagesTask returned parentGenerationId:', result.parentGenerationId?.substring(0, 8) || 'undefined');
-
-    return {
-      success: true,
-      parentGenerationId: result.parentGenerationId,
-    };
+    return { success: true, parentGenerationId: result.parentGenerationId };
   } catch (error) {
     const appError = handleError(error, { context: 'generateVideoService', toastTitle: 'Failed to create video generation task' });
     return { success: false, error: appError.message };
   }
 }
-

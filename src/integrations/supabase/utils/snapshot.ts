@@ -67,7 +67,7 @@ export function captureRealtimeSnapshot(): any {
       timestamp: Date.now()
     };
   } catch (error) {
-    return { error: 'SNAPSHOT_FAILED', message: (error as any)?.message };
+    return { error: 'SNAPSHOT_FAILED', message: (error as Error)?.message };
   }
 }
 

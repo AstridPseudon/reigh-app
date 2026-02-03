@@ -13,7 +13,7 @@ import { DEFAULT_BATCH_VIDEO_FRAMES } from './constants';
 import { EmptyState } from './components/EmptyState';
 import { ShotImageManagerDesktop } from './ShotImageManagerDesktop.tsx';
 import { ShotImageManagerMobileWrapper } from './ShotImageManagerMobileWrapper.tsx';
-import { useSegmentOutputsForShot } from '@/tools/travel-between-images/hooks/useSegmentOutputsForShot';
+import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
 import { usePendingSegmentTasks } from '@/shared/hooks/usePendingSegmentTasks';
 import MediaLightbox from '../MediaLightbox';
 import { GenerationRow } from '@/types/shots';
@@ -30,7 +30,7 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
   
   console.log('[DataTrace] 🎯 ShotImageManager received props.images:', {
     count: props.images?.length || 0,
-    imageIds: props.images?.map(img => ((img as any).shotImageEntryId ?? (img as any).id)?.substring(0, 8)) || [],
+    imageIds: props.images?.map(img => (img.shotImageEntryId ?? img.id)?.substring(0, 8)) || [],
   });
   
   // ============================================================================
@@ -284,7 +284,7 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
             showDownload={true}
             hasNext={segmentChildSlotIndices.length > 1}
             hasPrevious={segmentChildSlotIndices.length > 1}
-            starred={(currentSegmentMedia as any).starred ?? false}
+            starred={currentSegmentMedia.starred ?? false}
             shotId={props.shotId}
             readOnly={props.readOnly}
             showTaskDetails={true}
@@ -336,7 +336,7 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
           showDownload={true}
           hasNext={segmentChildSlotIndices.length > 1}
           hasPrevious={segmentChildSlotIndices.length > 1}
-          starred={(currentSegmentMedia as any).starred ?? false}
+          starred={currentSegmentMedia.starred ?? false}
           shotId={props.shotId}
           readOnly={props.readOnly}
           showTaskDetails={true}

@@ -5,7 +5,8 @@ import {
   validateRequiredFields,
   TaskValidationError
 } from "../taskCreation";
-import { PhaseConfig, PhaseLoraConfig } from '@/tools/travel-between-images/settings';
+import type { TaskCreationResult } from "../taskCreation";
+import { PhaseConfig, PhaseLoraConfig } from '@/shared/types/phaseConfig';
 import { handleError } from '@/shared/lib/errorHandler';
 
 // ============================================================================
@@ -410,7 +411,7 @@ function buildJoinClipsPayload(
  * @param params - Join clips task parameters
  * @returns Promise resolving to the created task
  */
-export async function createJoinClipsTask(params: JoinClipsTaskParams): Promise<any> {
+export async function createJoinClipsTask(params: JoinClipsTaskParams): Promise<TaskCreationResult> {
   console.log("[createJoinClipsTask] Creating task with params:", params);
 
   try {

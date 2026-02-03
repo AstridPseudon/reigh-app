@@ -18,7 +18,7 @@ import { ModalContainer } from '@/shared/components/ModalContainer';
 interface ProjectImageSettings {
   references?: ReferenceImage[];
   selectedReferenceIdByShot?: Record<string, string | null>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ProjectSettingsModalProps {

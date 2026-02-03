@@ -21,6 +21,8 @@ import { BUILTIN_DEFAULT_I2V_ID, BUILTIN_DEFAULT_VACE_ID } from '../components/M
 import { SteerableMotionSettings, DEFAULT_STEERABLE_MOTION_SETTINGS } from '../components/ShotEditor/state/types';
 import { buildBasicModePhaseConfig } from '../components/ShotEditor/services/generateVideoService';
 import { UseShotSettingsReturn } from './useShotSettings';
+import type { PresetMetadata } from '@/shared/types/presetMetadata';
+import type { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 
 interface UseVideoTravelSettingsHandlersParams {
   /** Ref to the shot settings - used to access current settings without triggering re-renders */
@@ -66,7 +68,7 @@ export interface VideoTravelSettingsHandlers {
   
   // Phase config
   handlePhaseConfigChange: (config: PhaseConfig) => void;
-  handlePhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: any) => void;
+  handlePhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
   handlePhasePresetRemove: () => void;
   handleRestoreDefaults: () => void;
   
@@ -74,7 +76,7 @@ export interface VideoTravelSettingsHandlers {
   handleGenerationModeChange: (mode: 'batch' | 'timeline') => void;
   
   // LoRAs
-  handleSelectedLorasChange: (loras: any[]) => void;
+  handleSelectedLorasChange: (loras: ActiveLora[]) => void;
   
   // No-op callback for disabled handlers
   noOpCallback: () => void;
@@ -215,15 +217,13 @@ export const useVideoTravelSettingsHandlers = ({
     const isBasicMode = currentSettings?.motionMode === 'basic' || !currentSettings?.motionMode;
     if (!isBasicMode && !options?.force) return;
 
-    // VACE mode removed - always use I2V
-    const useVaceMode = false;
     const motion = options?.amountOfMotion ?? currentSettings?.amountOfMotion ?? 50;
     const loras = options?.selectedLoras ?? (currentSettings?.loras || []).map(l => ({
       path: l.path,
       strength: l.strength
     }));
     
-    const basicConfig = buildBasicModePhaseConfig(useVaceMode, motion, loras);
+    const basicConfig = buildBasicModePhaseConfig(motion, loras);
     shotSettingsRef.current.updateField('phaseConfig', basicConfig.phaseConfig);
   }, [shotSettingsRef]);
 
@@ -265,14 +265,13 @@ export const useVideoTravelSettingsHandlers = ({
       if (!currentPhaseConfig) {
         // Build phase config from current basic mode settings (always I2V now)
         const currentSettings = shotSettingsRef.current.settings;
-        const useVaceMode = false;  // VACE mode removed - always use I2V
         const currentMotion = currentSettings?.amountOfMotion ?? 50;
         const currentLoras = (currentSettings?.loras || []).map(l => ({
           path: l.path,
           strength: l.strength
         }));
 
-        const basicConfig = buildBasicModePhaseConfig(useVaceMode, currentMotion, currentLoras);
+        const basicConfig = buildBasicModePhaseConfig(currentMotion, currentLoras);
 
         console.log('[MotionMode] Initializing phaseConfig from basic mode settings:', {
           amountOfMotion: currentMotion,
@@ -388,7 +387,7 @@ export const useVideoTravelSettingsHandlers = ({
     });
   }, [shotSettingsRef]);
 
-  const handlePhasePresetSelect = useCallback((presetId: string, config: PhaseConfig, presetMetadata?: any) => {
+  const handlePhasePresetSelect = useCallback((presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => {
     console.log('[PhasePreset] User selected preset:', {
       presetId: presetId.substring(0, 8),
       generationTypeMode: presetMetadata?.generationTypeMode,
@@ -407,7 +406,7 @@ export const useVideoTravelSettingsHandlers = ({
     };
     
     // Update preset ID, phase config, and generation type mode (if preset specifies one)
-    const updates: Record<string, any> = {
+    const updates: Partial<VideoTravelSettings> = {
       selectedPhasePresetId: presetId,
       phaseConfig: deepClonedConfig
     };
@@ -468,7 +467,7 @@ export const useVideoTravelSettingsHandlers = ({
   // =============================================================================
   // LORAS
   // =============================================================================
-  const handleSelectedLorasChange = useCallback((lorasToSet: any[]) => {
+  const handleSelectedLorasChange = useCallback((lorasToSet: ActiveLora[]) => {
     shotSettingsRef.current.updateField('loras', lorasToSet);
     rebuildPhaseConfig({
       selectedLoras: (lorasToSet || []).map(l => ({ path: l.path, strength: l.strength }))

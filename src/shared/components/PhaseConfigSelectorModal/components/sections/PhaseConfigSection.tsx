@@ -8,9 +8,9 @@ import { Slider } from '@/shared/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { Info, Trash2, RotateCcw, Search, Download } from 'lucide-react';
-import { PhaseConfig } from '@/tools/travel-between-images/settings';
+import { PhaseConfig } from '@/shared/types/phaseConfig';
 import { LoraModel, LoraSelectorModal } from '@/shared/components/LoraSelectorModal';
-import { PREDEFINED_LORAS, getDisplayNameFromUrl } from '@/tools/travel-between-images/utils/loraDisplayUtils';
+import { PREDEFINED_LORAS, getDisplayNameFromUrl } from '@/shared/lib/loraUtils';
 
 interface PhaseConfigSectionProps {
   editablePhaseConfig: PhaseConfig;
@@ -358,7 +358,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
         loras={availableLoras || []}
         onAddLora={(lora) => {
           if (activePhaseForLoraSelection !== null) {
-            const loraUrl = ((lora as any).huggingface_url as string) || '';
+            const loraUrl = (lora as LoraModel).huggingface_url || '';
             addLoraToPhase(activePhaseForLoraSelection, loraUrl, '1.0');
             setIsLoraModalOpen(false);
             setActivePhaseForLoraSelection(null);

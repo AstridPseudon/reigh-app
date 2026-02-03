@@ -71,20 +71,20 @@ export function usePlatformInstall(): PlatformInstallState {
     if (typeof navigator === 'undefined') return 'unknown';
     
     const ua = navigator.userAgent || '';
-    const platform = (navigator as any).platform || '';
-    
+    const navPlatform = navigator.platform || '';
+
     // iOS detection (iPhone, iPad, iPod)
     if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
     // iPadOS 13+ detection (reports as Mac)
-    if (platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1) return 'ios';
+    if (navPlatform === 'MacIntel' && navigator.maxTouchPoints > 1) return 'ios';
     
     // Android
     if (/Android/i.test(ua)) return 'android';
     
     // Desktop platforms
-    if (/Mac/i.test(platform) || /Macintosh/i.test(ua)) return 'mac';
-    if (/Win/i.test(platform) || /Windows/i.test(ua)) return 'windows';
-    if (/Linux/i.test(platform) || /Linux/i.test(ua)) return 'linux';
+    if (/Mac/i.test(navPlatform) || /Macintosh/i.test(ua)) return 'mac';
+    if (/Win/i.test(navPlatform) || /Windows/i.test(ua)) return 'windows';
+    if (/Linux/i.test(navPlatform) || /Linux/i.test(ua)) return 'linux';
     
     return 'unknown';
   }, []);
@@ -121,11 +121,11 @@ export function usePlatformInstall(): PlatformInstallState {
     if (typeof navigator === 'undefined') return 'desktop';
     
     const ua = navigator.userAgent || '';
-    const navPlatform = (navigator as any).platform || '';
-    
+    const navPlatform = navigator.platform || '';
+
     // iPad detection (explicit iPad in UA, or iPadOS 13+ which reports as Mac with touch)
     if (/iPad/i.test(ua)) return 'tablet';
-    if (navPlatform === 'MacIntel' && (navigator as any).maxTouchPoints > 1) return 'tablet';
+    if (navPlatform === 'MacIntel' && navigator.maxTouchPoints > 1) return 'tablet';
     
     // Android tablet detection (Android without "Mobile" usually means tablet)
     if (/Android/i.test(ua) && !/Mobile/i.test(ua)) return 'tablet';

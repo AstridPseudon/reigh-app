@@ -1,5 +1,5 @@
 import { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { Resource } from '@/shared/hooks/useResources';
+import { Resource, ResourceType, CreateResourceArgs, UpdateResourceArgs } from '@/shared/hooks/useResources';
 
 // Model filter categories - broad matching
 export type ModelFilterCategory = 'all' | 'qwen' | 'wan' | 'z-image';
@@ -76,9 +76,9 @@ export interface CommunityLorasTabProps {
   onUpdateLoraStrength: (loraId: string, strength: number) => void;
   selectedLoras: (LoraModel & { strength: number })[];
   myLorasResource: UseQueryResult<Resource[], Error>;
-  createResource: UseMutationResult<Resource, Error, { type: 'lora'; metadata: LoraModel; }, unknown>;
-  updateResource: UseMutationResult<Resource, Error, { id: string; type: 'lora'; metadata: LoraModel; }, unknown>;
-  deleteResource: UseMutationResult<void, Error, { id: string; type: "lora"; }, unknown>;
+  createResource: UseMutationResult<Resource, Error, CreateResourceArgs, unknown>;
+  updateResource: UseMutationResult<Resource, Error, UpdateResourceArgs, unknown>;
+  deleteResource: UseMutationResult<void, Error, { id: string; type: ResourceType }, unknown>;
   onEdit: (lora: Resource & { metadata: LoraModel }) => void;
   onPageChange?: (page: number, totalPages: number, setPage: (page: number) => void) => void;
   onClose: () => void;
@@ -95,9 +95,9 @@ export interface CommunityLorasTabProps {
 
 export interface MyLorasTabProps {
   myLorasResource: UseQueryResult<Resource[], Error>;
-  deleteResource: UseMutationResult<void, Error, { id: string; type: "lora"; }, unknown>;
-  createResource: UseMutationResult<Resource, Error, { type: 'lora'; metadata: LoraModel; }, unknown>;
-  updateResource: UseMutationResult<Resource, Error, { id: string; type: 'lora'; metadata: LoraModel; }, unknown>;
+  deleteResource: UseMutationResult<void, Error, { id: string; type: ResourceType }, unknown>;
+  createResource: UseMutationResult<Resource, Error, CreateResourceArgs, unknown>;
+  updateResource: UseMutationResult<Resource, Error, UpdateResourceArgs, unknown>;
   /** Callback to switch to the browse tab */
   onSwitchToBrowse: () => void;
   /** LoRA being edited (if any) */

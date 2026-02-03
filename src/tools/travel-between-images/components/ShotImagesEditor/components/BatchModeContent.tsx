@@ -10,6 +10,8 @@ import { BatchGuidanceVideo } from '../../BatchGuidanceVideo';
 import { SectionHeader } from '@/tools/image-generation/components/ImageGenerationForm/components/SectionHeader';
 import type { PairData } from '../../Timeline/TimelineContainer';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
+import type { GenerationRow, Shot } from '@/types/shots';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 
 export interface BatchModeContentProps {
   // Core
@@ -20,7 +22,7 @@ export interface BatchModeContentProps {
   generationMode: 'batch' | 'timeline';
 
   // Images
-  images: any[];
+  images: GenerationRow[];
   pairPrompts: Record<string, { prompt: string; negativePrompt: string }>;
 
   // Grid
@@ -54,7 +56,7 @@ export interface BatchModeContentProps {
   isUploadingImage: boolean;
 
   // Shot management
-  allShots?: any[];
+  allShots?: Shot[];
   onShotChange?: (shotId: string) => void;
   onAddToShot?: (targetShotId: string, generationId: string) => Promise<boolean>;
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string) => Promise<boolean>;
@@ -62,7 +64,7 @@ export interface BatchModeContentProps {
   onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
 
   // Segment slots
-  segmentSlots: any[];
+  segmentSlots: SegmentSlot[];
   onSegmentDelete: (generationId: string) => Promise<void>;
   deletingSegmentId: string | null;
 

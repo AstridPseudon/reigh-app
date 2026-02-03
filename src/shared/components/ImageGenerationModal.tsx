@@ -8,12 +8,13 @@ import {
 } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { useExtraLargeModal } from '@/shared/hooks/useModal';
-import { ImageGenerationForm } from '@/tools/image-generation/components/ImageGenerationForm';
-import { ImageGenerationFormHandles } from '@/tools/image-generation/components/ImageGenerationForm/types';
+import { ImageGenerationForm } from '@/shared/components/ImageGenerationForm';
+import { ImageGenerationFormHandles } from '@/shared/components/ImageGenerationForm/types';
 import { createBatchImageGenerationTasks, BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
 import { useApiKeys } from '@/shared/hooks/useApiKeys';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { Skeleton } from '@/shared/components/ui/skeleton';
@@ -68,7 +69,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
       await createBatchImageGenerationTasks(taskParams);
 
       // Invalidate generations to ensure they refresh when tasks complete
-      queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
       
       console.log('[ImageGenerationModal] Image generation tasks created successfully');
       setJustQueued(true);

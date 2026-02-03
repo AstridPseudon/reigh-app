@@ -198,7 +198,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
             mediaRecorder.onstop = () => {
               const blob = new Blob(chunks, { type: mimeType });
               // Attach file extension info to blob for later use
-              (blob as any).fileExtension = fileExtension;
+              (blob as unknown as Record<string, unknown>).fileExtension = fileExtension;
               resolve(blob);
             };
             
@@ -280,7 +280,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
           
           // Generate filename with correct extension
           const videoBaseName = video.originalFilename.replace(/\.[^/.]+$/, '');
-          const fileExt = (segmentBlob as any).fileExtension || 'mp4';
+          const fileExt = (segmentBlob as unknown as Record<string, unknown>).fileExtension as string || 'mp4';
           const segmentFileName = `${videoBaseName}_${Math.floor(startTimeSeconds)}s-${Math.floor(endTimeSeconds)}s.${fileExt}`;
           
           // Add segment to zip

@@ -16,8 +16,13 @@ export interface SourceVariantData {
   is_primary: boolean;
 }
 
+/** Enriched generation data with shot associations */
+interface SourceGenerationWithAssociations extends GenerationRow {
+  all_shot_associations: Array<{ shot_id: string; timeline_frame: number | null }>;
+}
+
 interface UseSourceGenerationReturn {
-  sourceGenerationData: GenerationRow | null;
+  sourceGenerationData: SourceGenerationWithAssociations | null;
   sourcePrimaryVariant: SourceVariantData | null;
 }
 
@@ -29,12 +34,12 @@ export const useSourceGeneration = ({
   media,
   onOpenExternalGeneration
 }: UseSourceGenerationParams): UseSourceGenerationReturn => {
-  const [sourceGenerationData, setSourceGenerationData] = useState<GenerationRow | null>(null);
+  const [sourceGenerationData, setSourceGenerationData] = useState<SourceGenerationWithAssociations | null>(null);
   const [sourcePrimaryVariant, setSourcePrimaryVariant] = useState<SourceVariantData | null>(null);
 
   useEffect(() => {
-    const basedOnId = (media as any).based_on;
-    const basedOnFromMetadata = (media.metadata as any)?.based_on;
+    const basedOnId = media.based_on;
+    const basedOnFromMetadata = (media.metadata as Record<string, unknown> | null)?.based_on as string | undefined;
     const effectMediaKeys = Object.keys(media);
     
     console.log('[BasedOnDebug] 🔍 useSourceGeneration hook checking media:');
@@ -92,18 +97,19 @@ export const useSourceGeneration = ({
 
         if (data) {
           // Extract shot associations from joined data
-          const shotAssociations = (data as any).shot_generations || [];
-          const variants = (data as any).generation_variants || [];
+          const joinedData = data as unknown as Record<string, unknown>;
+          const shotAssociations = (joinedData.shot_generations || []) as Array<{ shot_id: string; timeline_frame: number | null }>;
+          const variants = (joinedData.generation_variants || []) as SourceVariantData[];
           
           // Find primary variant
-          const primaryVariant = variants.find((v: any) => v.is_primary) || null;
+          const primaryVariant = variants.find((v) => v.is_primary) || null;
           
           console.log('[VariantClickDebug] ✅ Fetched source generation:', {
             sourceId: data.id.substring(0, 8),
             type: data.type,
             location: data.location?.substring(0, 50),
             variantsCount: variants.length,
-            allVariants: variants.map((v: any) => ({
+            allVariants: variants.map((v) => ({
               id: v.id?.substring(0, 8),
               type: v.variant_type,
               isPrimary: v.is_primary,
@@ -117,12 +123,12 @@ export const useSourceGeneration = ({
           });
           
           // Add shot associations to the data for easy access
-          const enrichedData = {
-            ...data,
-            all_shot_associations: shotAssociations
+          const enrichedData: SourceGenerationWithAssociations = {
+            ...data as unknown as GenerationRow,
+            all_shot_associations: shotAssociations,
           };
-          
-          setSourceGenerationData(enrichedData as any);
+
+          setSourceGenerationData(enrichedData);
           setSourcePrimaryVariant(primaryVariant);
         } else {
           console.log('[VariantClickDebug] ⚠️ No data returned from source generation query');
@@ -138,7 +144,7 @@ export const useSourceGeneration = ({
     };
     
     fetchSourceGeneration();
-  }, [media.id, (media as any).based_on, (media.metadata as any)?.based_on, onOpenExternalGeneration]);
+  }, [media.id, media.based_on, (media.metadata as Record<string, unknown> | null)?.based_on, onOpenExternalGeneration]);
 
   return {
     sourceGenerationData,

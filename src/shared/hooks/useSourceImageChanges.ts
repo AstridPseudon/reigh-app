@@ -18,7 +18,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { extractSegmentImages } from '@/tools/travel-between-images/components/VideoGallery/utils/gallery-utils';
+import { extractSegmentImages } from '@/shared/lib/galleryUtils';
 
 // How long to show the warning after a source change (in milliseconds)
 const SOURCE_CHANGE_WARNING_DURATION_MS = 5 * 60 * 1000; // 5 minutes
@@ -35,7 +35,7 @@ export interface SourceMismatchInfo {
 interface SegmentSourceInfo {
   segmentId: string;
   childOrder: number;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   startGenId: string | null;
   endGenId: string | null;
 }
@@ -121,7 +121,7 @@ export function useSourceImageChanges(
       console.log('[SourceChange] 📡 Shot has ' + orderedSlots.length + ' positioned slots');
 
       // Build map: startGenId -> { startSlotInfo, nextGenId, nextSlotUpdatedAt }
-      const startGenToNext: Record<string, { startSlot: any; nextGenId: string | null; nextSlotUpdatedAt: Date | null }> = {};
+      const startGenToNext: Record<string, { startSlot: typeof startSlots[number]; nextGenId: string | null; nextSlotUpdatedAt: Date | null }> = {};
       startSlots.forEach(slot => {
         const idx = orderedSlots.findIndex(s => s.generation_id === slot.generation_id);
         const nextSlot = idx >= 0 && idx < orderedSlots.length - 1 ? orderedSlots[idx + 1] : null;

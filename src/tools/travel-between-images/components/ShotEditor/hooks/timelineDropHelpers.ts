@@ -50,7 +50,7 @@ interface PositionUpdateResult {
   genId: string;
   shotGenId?: string;
   framePosition?: number;
-  error?: any;
+  error?: { message: string } | string | null;
 }
 
 // ============================================================================
@@ -77,7 +77,7 @@ export const cropImagesToShotAspectRatio = async (
   const currentProject = projects.find(p => p.id === projectId);
   const aspectRatioStr = selectedShot?.aspect_ratio || 
                         currentProject?.aspectRatio || 
-                        (currentProject as any)?.settings?.aspectRatio;
+                        currentProject?.settings?.aspectRatio;
   
   if (!aspectRatioStr) {
     console.log('[ImageCrop] No aspect ratio found, skipping crop');
@@ -142,12 +142,12 @@ export const calculateNextAvailableFrame = async (
     hasError: !!error,
     error: error?.message,
     dataCount: shotGenerationsData?.length,
-    sampleData: shotGenerationsData?.slice(0, 3).map(sg => ({
-      id: sg.id.substring(0, 8),
-      generation_id: sg.generation_id?.substring(0, 8),
-      timeline_frame: sg.timeline_frame,
-      hasGenerations: !!sg.generation,
-      generationType: (sg.generation as any)?.type
+    sampleData: shotGenerationsData?.slice(0, 3).map(shotGen => ({
+      id: shotGen.id.substring(0, 8),
+      generation_id: shotGen.generation_id?.substring(0, 8),
+      timeline_frame: shotGen.timeline_frame,
+      hasGenerations: !!shotGen.generation,
+      generationType: (shotGen.generation as Record<string, unknown> | null)?.type
     }))
   });
 
@@ -163,8 +163,8 @@ export const calculateNextAvailableFrame = async (
   }
 
   // Filter out videos using canonical function from typeGuards
-  const filteredShotGenerations = shotGenerationsData.filter(sg => 
-    sg.generation && !isVideoShotGenerations(sg as ShotGenerationsLike)
+  const filteredShotGenerations = shotGenerationsData.filter(shotGen =>
+    shotGen.generation && !isVideoShotGenerations(shotGen as ShotGenerationsLike)
   );
 
   console.log('[AddImagesDebug] 🔍 After filtering videos:', {
@@ -175,8 +175,8 @@ export const calculateNextAvailableFrame = async (
 
   // Get positions only from items with valid timeline_frame
   const existingPositions = filteredShotGenerations
-    .filter(sg => sg.timeline_frame !== null && sg.timeline_frame !== undefined && sg.timeline_frame !== -1)
-    .map(sg => sg.timeline_frame!);
+    .filter(shotGen => shotGen.timeline_frame !== null && shotGen.timeline_frame !== undefined && shotGen.timeline_frame !== -1)
+    .map(shotGen => shotGen.timeline_frame!);
   
   console.log('[AddImagesDebug] 📍 Valid timeline_frame positions:', {
     count: existingPositions.length,

@@ -1,4 +1,6 @@
+import { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 /**
  * Debug utilities for investigating polling issues
@@ -92,15 +94,15 @@ export const debugPolling = {
   /**
    * Monitor React Query cache
    */
-  inspectReactQueryCache(queryClient: any, projectId: string) {
+  inspectReactQueryCache(queryClient: QueryClient, projectId: string) {
     console.log('[PollingDebug] React Query cache inspection:');
     
     const taskStatusQueries = queryClient.getQueriesData({
-      queryKey: ['task-status-counts', projectId]
+      queryKey: queryKeys.tasks.statusCounts(projectId)
     });
-    
+
     const paginatedTaskQueries = queryClient.getQueriesData({
-      queryKey: ['tasks', 'paginated', projectId]
+      queryKey: queryKeys.tasks.paginated(projectId)
     });
     
     console.log('[PollingDebug] Task status queries:', taskStatusQueries);
@@ -115,7 +117,7 @@ export const debugPolling = {
   /**
    * Full diagnostic
    */
-  async runFullDiagnostic(projectId: string, queryClient?: any) {
+  async runFullDiagnostic(projectId: string, queryClient?: QueryClient) {
     console.log('[PollingDebug] 🔍 Running full polling diagnostic...');
     
     this.checkPageVisibility();

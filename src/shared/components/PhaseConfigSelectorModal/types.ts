@@ -1,5 +1,5 @@
 import { Resource, PhaseConfigMetadata } from '@/shared/hooks/useResources';
-import { PhaseConfig } from '@/tools/travel-between-images/settings';
+import { PhaseConfig } from '@/shared/types/phaseConfig';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 
 export type SortOption = 'default' | 'newest' | 'oldest' | 'mostUsed' | 'name';

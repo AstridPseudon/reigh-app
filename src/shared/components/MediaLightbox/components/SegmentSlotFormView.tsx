@@ -19,6 +19,7 @@ import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImage
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import type { SegmentSlotModeData } from '../types';
 import { NavigationArrows } from './NavigationArrows';
 
@@ -182,7 +183,21 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
+    // Detect trailing segment (single-image-to-video with no end image)
+    const isTrailingSegment = segmentSlotMode.pairData.endImage === null;
+
+    console.log('[TrailingGen] SegmentSlotFormView.handleSubmit called:', {
+      projectId: segmentSlotMode.projectId?.substring(0, 8),
+      shotId: segmentSlotMode.shotId?.substring(0, 8),
+      pairIndex: segmentSlotMode.currentIndex,
+      isTrailingSegment,
+      hasStartImageUrl: !!startImageUrl,
+      hasEndImageUrl: !!endImageUrl,
+      pairShotGenerationId: pairShotGenerationId?.substring(0, 8),
+    });
+
     if (!segmentSlotMode.projectId) {
+      console.error('[TrailingGen] ❌ No project selected');
       toast({
         title: "Error",
         description: "No project selected",
@@ -191,10 +206,23 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
       return;
     }
 
-    if (!startImageUrl || !endImageUrl) {
+    // For trailing segments (single-image-to-video), endImageUrl is intentionally undefined
+    if (!startImageUrl) {
+      console.error('[TrailingGen] ❌ Missing start image');
       toast({
         title: "Error",
-        description: "Missing start or end image",
+        description: "Missing start image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For regular pairs, require end image
+    if (!isTrailingSegment && !endImageUrl) {
+      console.error('[TrailingGen] ❌ Missing end image for non-trailing segment');
+      toast({
+        title: "Error",
+        description: "Missing end image",
         variant: "destructive",
       });
       return;
@@ -283,7 +311,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
               console.error('[EnhancedPromptSave] ❌ Error fetching current metadata:', fetchError);
             }
 
-            const currentMetadata = (current?.metadata as Record<string, any>) || {};
+            const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
             console.log('[EnhancedPromptSave] 📝 Saving enhanced_prompt to metadata:', {
               pairShotGenerationId: pairShotGenerationId.substring(0, 8),
               enhancedPromptPreview: enhancedPromptResult.substring(0, 50) + '...',
@@ -308,7 +336,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
               console.log('[EnhancedPromptSave] ✅ Enhanced prompt saved to metadata successfully');
             }
 
-            queryClient.invalidateQueries({ queryKey: ['pair-metadata', pairShotGenerationId] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
           } else {
             console.log('[EnhancedPromptSave] ⏭️ Skipping save:', {
               hasPairShotGenerationId: !!pairShotGenerationId,
@@ -344,12 +372,12 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
             throw new Error(result.error || 'Failed to create task');
           }
 
-          console.log('[SegmentSlotFormView] ✅ Task created successfully:', result.task_id);
+          console.log('[TrailingGen] ✅ Task created successfully (enhanced path):', result.task_id);
         } catch (error) {
           handleError(error, { context: 'SegmentSlotFormView', toastTitle: 'Failed to create task' });
         } finally {
-          await queryClient.refetchQueries({ queryKey: ['tasks', 'paginated'] });
-          await queryClient.refetchQueries({ queryKey: ['task-status-counts'] });
+          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
           removeIncomingTask(incomingTaskId);
         }
       })();
@@ -397,6 +425,8 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
       if (!result.task_id) {
         throw new Error(result.error || 'Failed to create task');
       }
+
+      console.log('[TrailingGen] ✅ Task created successfully:', result.task_id);
     } catch (error) {
       handleError(error, { context: 'SegmentSlotFormView', toastTitle: 'Failed to create task' });
     } finally {

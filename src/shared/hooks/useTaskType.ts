@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 export interface TaskTypeInfo {
   id: string;
@@ -19,7 +20,7 @@ export interface TaskTypeInfo {
  */
 export const useTaskType = (taskType: string) => {
   return useQuery({
-    queryKey: ['task-type', taskType],
+    queryKey: queryKeys.tasks.type(taskType),
     queryFn: async (): Promise<TaskTypeInfo | null> => {
       const { data, error } = await supabase
         .from('task_types')
@@ -132,7 +133,7 @@ export async function fetchAllTaskTypesConfig(): Promise<Record<string, TaskType
  */
 export const useAllTaskTypesConfig = () => {
   return useQuery({
-    queryKey: ['task-types-config', 'all'],
+    queryKey: [...queryKeys.tasks.typesConfig, 'all'],
     queryFn: fetchAllTaskTypesConfig,
     staleTime: 10 * 60 * 1000, // 10 minutes - task types config rarely changes
     gcTime: 30 * 60 * 1000, // 30 minutes

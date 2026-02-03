@@ -16,7 +16,7 @@
  * - New format (pair_X fields at root) takes precedence over legacy (user_overrides.X)
  */
 
-import { PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '@/tools/travel-between-images/settings';
+import { PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '@/shared/types/phaseConfig';
 import type { ActiveLora } from '@/shared/hooks/useLoraManager';
 import { readSegmentOverrides, writeSegmentOverrides, type SegmentOverrides, type LoraConfig } from '@/shared/utils/settingsMigration';
 import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
@@ -247,7 +247,7 @@ export interface PairMetadata {
     motion_mode?: 'basic' | 'advanced';
     amount_of_motion?: number;
     additional_loras?: Record<string, number>;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -347,13 +347,13 @@ export function mergeSegmentSettings(
   };
 
   // Use migration utility to read from new or old format
-  const overrides = readSegmentOverrides(pairMetadata as Record<string, any> | null);
+  const overrides = readSegmentOverrides(pairMetadata as Record<string, unknown> | null);
 
   // Legacy user_overrides for very old data fallback
-  const legacyOverrides = (pairMetadata as any)?.user_overrides || {};
+  const legacyOverrides = (pairMetadata as PairMetadata | undefined)?.user_overrides || {} as NonNullable<PairMetadata['user_overrides']>;
 
   // enhanced_prompt is separate (AI-generated, not user settings)
-  const enhancedPrompt = (pairMetadata as any)?.enhanced_prompt;
+  const enhancedPrompt = (pairMetadata as PairMetadata | undefined)?.enhanced_prompt;
 
   // Prompts: overrides.prompt > enhanced_prompt > batch > default
   // Note: empty string is a valid override (user explicitly cleared)
@@ -382,7 +382,7 @@ export function mergeSegmentSettings(
 
   // Motion mode: overrides > legacy > batch > default
   let motionMode: 'basic' | 'advanced' = 'basic';
-  const pairMotionMode = overrides.motionMode ?? legacyOverrides.motion_mode;
+  const pairMotionMode = (overrides.motionMode ?? legacyOverrides.motion_mode) as 'basic' | 'advanced' | undefined;
   if (pairMotionMode !== undefined) {
     motionMode = pairMotionMode;
     sources.motionMode = 'pair';
@@ -398,7 +398,7 @@ export function mergeSegmentSettings(
   if (overrides.amountOfMotion !== undefined) {
     amountOfMotion = overrides.amountOfMotion / 100; // Convert 0-100 to 0-1
   } else if (legacyOverrides.amount_of_motion !== undefined) {
-    amountOfMotion = legacyOverrides.amount_of_motion;
+    amountOfMotion = legacyOverrides.amount_of_motion as number;
   } else if (shotBatchSettings?.amountOfMotion !== undefined) {
     amountOfMotion = shotBatchSettings.amountOfMotion;
   }
@@ -407,7 +407,7 @@ export function mergeSegmentSettings(
   // overrides > legacy > batch > none
   let phaseConfig: PhaseConfig | undefined = undefined;
   if (motionMode === 'advanced') {
-    const pairPhaseConfig = overrides.phaseConfig ?? legacyOverrides.phase_config;
+    const pairPhaseConfig = (overrides.phaseConfig ?? legacyOverrides.phase_config) as PhaseConfig | undefined;
     if (pairPhaseConfig) {
       phaseConfig = stripModeFromPhaseConfig(pairPhaseConfig);
       sources.phaseConfig = 'pair';
@@ -430,8 +430,8 @@ export function mergeSegmentSettings(
       strength: lora.strength,
     }));
     sources.loras = 'pair';
-  } else if (legacyOverrides.additional_loras && Object.keys(legacyOverrides.additional_loras).length > 0) {
-    loras = legacyLorasToArray(legacyOverrides.additional_loras);
+  } else if (legacyOverrides.additional_loras && Object.keys(legacyOverrides.additional_loras as Record<string, unknown>).length > 0) {
+    loras = legacyLorasToArray(legacyOverrides.additional_loras as Record<string, number>);
     sources.loras = 'pair';
   } else if (shotBatchSettings?.selectedLoras && shotBatchSettings.selectedLoras.length > 0) {
     loras = shotBatchSettings.selectedLoras;
@@ -488,7 +488,7 @@ export function buildTaskParams(
     childGenerationId?: string;
     segmentIndex: number;
     startImageUrl: string;
-    endImageUrl: string;
+    endImageUrl?: string; // Optional for trailing segments (single-image-to-video)
     startImageGenerationId?: string;
     endImageGenerationId?: string;
     pairShotGenerationId?: string;
@@ -498,14 +498,18 @@ export function buildTaskParams(
     // Structure video config for this segment (from shot timeline data)
     structureVideo?: StructureVideoConfig | null;
   }
-): Record<string, any> {
+): Record<string, unknown> {
   // Build structure_videos array if we have a structure video for this segment
   const structureVideos = context.structureVideo ? [context.structureVideo] : undefined;
+
+  // Detect trailing segment: no end image means single-image-to-video (last segment)
+  const isTrailingSegment = !context.endImageUrl;
 
   console.log('[buildTaskParams] Building task params:', {
     segmentIndex: context.segmentIndex,
     hasStructureVideo: !!context.structureVideo,
     structureVideoPath: context.structureVideo?.path?.substring(0, 50),
+    isTrailingSegment,
   });
 
   return {
@@ -516,6 +520,8 @@ export function buildTaskParams(
     segment_index: context.segmentIndex,
     start_image_url: context.startImageUrl,
     end_image_url: context.endImageUrl,
+    // For trailing segments (no end image), mark as last segment so worker uses I2V mode
+    is_last_segment: isTrailingSegment,
     start_image_generation_id: context.startImageGenerationId,
     end_image_generation_id: context.endImageGenerationId,
     pair_shot_generation_id: context.pairShotGenerationId,
@@ -545,18 +551,18 @@ export function buildTaskParams(
  * Used to populate the form with settings from an existing generation.
  */
 export function extractSettingsFromParams(
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   defaults?: Partial<SegmentSettings>
 ): SegmentSettings {
   console.log('[extractSettingsFromParams] Input params:', params);
   console.log('[extractSettingsFromParams] Defaults:', defaults);
 
   // Handle nested orchestrator_details (common in task params)
-  const orchDetails = params.orchestrator_details || {};
+  const orchDetails = (params.orchestrator_details || {}) as Record<string, unknown>;
   console.log('[extractSettingsFromParams] orchestrator_details:', orchDetails);
 
   // Extract prompt: base_prompt > prompt > orchestrator > default
-  const prompt = params.base_prompt ?? params.prompt ?? orchDetails.base_prompt ?? defaults?.prompt ?? '';
+  const prompt = (params.base_prompt ?? params.prompt ?? orchDetails.base_prompt ?? defaults?.prompt ?? '') as string;
   console.log('[extractSettingsFromParams] Prompt sources:', {
     'params.base_prompt': params.base_prompt,
     'params.prompt': params.prompt,
@@ -566,10 +572,10 @@ export function extractSettingsFromParams(
   });
 
   // Extract negative prompt
-  const negativePrompt = params.negative_prompt ?? orchDetails.negative_prompt ?? defaults?.negativePrompt ?? '';
+  const negativePrompt = (params.negative_prompt ?? orchDetails.negative_prompt ?? defaults?.negativePrompt ?? '') as string;
 
   // Extract num_frames
-  const numFrames = params.num_frames ?? orchDetails.num_frames ?? defaults?.numFrames ?? 25;
+  const numFrames = (params.num_frames ?? orchDetails.num_frames ?? defaults?.numFrames ?? 25) as number;
   console.log('[extractSettingsFromParams] numFrames sources:', {
     'params.num_frames': params.num_frames,
     'orchDetails.num_frames': orchDetails.num_frames,
@@ -578,28 +584,28 @@ export function extractSettingsFromParams(
   });
 
   // Extract seed/randomSeed
-  const randomSeed = params.random_seed ?? orchDetails.random_seed ?? defaults?.randomSeed ?? true;
-  const seed = params.seed ?? orchDetails.seed ?? defaults?.seed;
+  const randomSeed = (params.random_seed ?? orchDetails.random_seed ?? defaults?.randomSeed ?? true) as boolean;
+  const seed = (params.seed ?? orchDetails.seed ?? defaults?.seed) as number | undefined;
 
   // Extract motion settings
-  const motionMode = params.motion_mode ?? orchDetails.motion_mode ?? defaults?.motionMode ?? 'basic';
+  const motionMode = (params.motion_mode ?? orchDetails.motion_mode ?? defaults?.motionMode ?? 'basic') as 'basic' | 'advanced';
   const amountOfMotion = params.amount_of_motion != null
-    ? Math.round(params.amount_of_motion * 100) // Convert 0-1 to 0-100
+    ? Math.round((params.amount_of_motion as number) * 100) // Convert 0-1 to 0-100
     : (orchDetails.amount_of_motion != null
-        ? Math.round(orchDetails.amount_of_motion * 100)
+        ? Math.round((orchDetails.amount_of_motion as number) * 100)
         : (defaults?.amountOfMotion ?? 50));
 
   // Extract phase config (only if advanced mode)
   let phaseConfig: PhaseConfig | undefined = undefined;
   if (motionMode === 'advanced') {
-    phaseConfig = params.phase_config ?? orchDetails.phase_config ?? defaults?.phaseConfig;
+    phaseConfig = (params.phase_config ?? orchDetails.phase_config ?? defaults?.phaseConfig) as PhaseConfig | undefined;
     if (phaseConfig) {
       phaseConfig = stripModeFromPhaseConfig(phaseConfig);
     }
   }
 
   // Extract selected preset ID
-  const selectedPhasePresetId = params.selected_phase_preset_id ?? orchDetails.selected_phase_preset_id ?? defaults?.selectedPhasePresetId ?? null;
+  const selectedPhasePresetId = (params.selected_phase_preset_id ?? orchDetails.selected_phase_preset_id ?? defaults?.selectedPhasePresetId ?? null) as string | null;
 
   // Extract LoRAs - handle multiple formats
   let loras: ActiveLora[] = [];
@@ -615,21 +621,21 @@ export function extractSettingsFromParams(
   // Format 1: loras array at top level (new format)
   if (Array.isArray(params.loras) && params.loras.length > 0) {
     console.log('[extractSettingsFromParams] Using params.loras');
-    loras = pairLorasToArray(params.loras);
+    loras = pairLorasToArray(params.loras as Array<{ path: string; strength: number }>);
   }
   // Format 2: additional_loras object at top level (legacy)
-  else if (params.additional_loras && typeof params.additional_loras === 'object' && Object.keys(params.additional_loras).length > 0) {
+  else if (params.additional_loras && typeof params.additional_loras === 'object' && Object.keys(params.additional_loras as Record<string, unknown>).length > 0) {
     console.log('[extractSettingsFromParams] Using params.additional_loras (legacy)');
-    loras = legacyLorasToArray(params.additional_loras);
+    loras = legacyLorasToArray(params.additional_loras as Record<string, number>);
   }
   // Format 3: in orchestrator_details (either format)
   else if (Array.isArray(orchDetails.loras) && orchDetails.loras.length > 0) {
     console.log('[extractSettingsFromParams] Using orchDetails.loras');
-    loras = pairLorasToArray(orchDetails.loras);
+    loras = pairLorasToArray(orchDetails.loras as Array<{ path: string; strength: number }>);
   }
-  else if (orchDetails.additional_loras && typeof orchDetails.additional_loras === 'object' && Object.keys(orchDetails.additional_loras).length > 0) {
+  else if (orchDetails.additional_loras && typeof orchDetails.additional_loras === 'object' && Object.keys(orchDetails.additional_loras as Record<string, unknown>).length > 0) {
     console.log('[extractSettingsFromParams] Using orchDetails.additional_loras (legacy)');
-    loras = legacyLorasToArray(orchDetails.additional_loras);
+    loras = legacyLorasToArray(orchDetails.additional_loras as Record<string, number>);
   }
   // Format 4: use defaults if provided
   else if (defaults?.loras) {
@@ -658,9 +664,9 @@ export function extractSettingsFromParams(
 }
 
 export function buildMetadataUpdate(
-  currentMetadata: Record<string, any>,
+  currentMetadata: Record<string, unknown>,
   settings: PairSettingsToSave
-): Record<string, any> {
+): Record<string, unknown> {
   console.log(`[PairPromptDebug] buildMetadataUpdate called`, {
     settingsPrompt: settings.prompt?.substring(0, 30),
     settingsNegPrompt: settings.negativePrompt?.substring(0, 30),
@@ -782,16 +788,19 @@ export function buildMetadataUpdate(
   // Use writeSegmentOverrides to write to new format
   const newMetadata = writeSegmentOverrides(currentMetadata, overrides);
 
+  // Access segmentOverrides as a mutable record for cleanup operations
+  const segOverrides = newMetadata.segmentOverrides as Record<string, unknown> | undefined;
+
   // Handle explicit clear of phaseConfig (when switching to basic mode)
-  if (settings.phaseConfig === null && newMetadata.segmentOverrides) {
-    delete newMetadata.segmentOverrides.phaseConfig;
-    delete newMetadata.segmentOverrides.selectedPhasePresetId; // Also clear preset when clearing config
+  if (settings.phaseConfig === null && segOverrides) {
+    delete segOverrides.phaseConfig;
+    delete segOverrides.selectedPhasePresetId; // Also clear preset when clearing config
   }
 
   // Handle explicitly cleared fields ('' means remove override, use shot default)
-  if (fieldsToClear.length > 0 && newMetadata.segmentOverrides) {
+  if (fieldsToClear.length > 0 && segOverrides) {
     for (const field of fieldsToClear) {
-      delete newMetadata.segmentOverrides[field];
+      delete segOverrides[field];
     }
   }
 
@@ -823,14 +832,15 @@ export function buildMetadataUpdate(
   }
 
   // Clean up legacy user_overrides if present
-  if (newMetadata.user_overrides) {
-    if (settings.motionMode !== undefined) delete newMetadata.user_overrides.motion_mode;
-    if (settings.amountOfMotion !== undefined) delete newMetadata.user_overrides.amount_of_motion;
-    if (settings.phaseConfig !== undefined) delete newMetadata.user_overrides.phase_config;
-    if (settings.loras !== undefined) delete newMetadata.user_overrides.additional_loras;
+  const userOverrides = newMetadata.user_overrides as Record<string, unknown> | undefined;
+  if (userOverrides) {
+    if (settings.motionMode !== undefined) delete userOverrides.motion_mode;
+    if (settings.amountOfMotion !== undefined) delete userOverrides.amount_of_motion;
+    if (settings.phaseConfig !== undefined) delete userOverrides.phase_config;
+    if (settings.loras !== undefined) delete userOverrides.additional_loras;
 
     // Clean up empty user_overrides
-    if (Object.keys(newMetadata.user_overrides).length === 0) {
+    if (Object.keys(userOverrides).length === 0) {
       delete newMetadata.user_overrides;
     }
   }

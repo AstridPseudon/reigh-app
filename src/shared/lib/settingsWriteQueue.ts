@@ -23,7 +23,7 @@ export interface QueuedWrite {
 
 interface PendingWrite {
   write: QueuedWrite;
-  resolvers: Array<{ resolve: (value: any) => void; reject: (error: any) => void }>;
+  resolvers: Array<{ resolve: (value: unknown) => void; reject: (error: unknown) => void }>;
   timerId: NodeJS.Timeout | null;
   enqueuedAt: number;
 }
@@ -38,13 +38,13 @@ let inFlightCount = 0;
 const flushQueue: Array<{ targetKey: string; pending: PendingWrite }> = [];
 
 // The actual write function - injected to avoid circular imports
-let writeFunction: ((write: QueuedWrite) => Promise<any>) | null = null;
+let writeFunction: ((write: QueuedWrite) => Promise<unknown>) | null = null;
 
 /**
  * Set the write function that performs the actual DB update.
  * Must be called once at app init (in useToolSettings.ts).
  */
-export function setSettingsWriteFunction(fn: (write: QueuedWrite) => Promise<any>) {
+export function setSettingsWriteFunction(fn: (write: QueuedWrite) => Promise<unknown>) {
   writeFunction = fn;
 }
 
@@ -140,7 +140,7 @@ function scheduleFlush(key: string, pending: PendingWrite) {
 export function enqueueSettingsWrite(
   write: QueuedWrite,
   mode: 'debounced' | 'immediate' = 'debounced'
-): Promise<any> {
+): Promise<unknown> {
   const key = targetKey(write);
   
   return new Promise((resolve, reject) => {
@@ -191,7 +191,7 @@ export function enqueueSettingsWrite(
 /**
  * Flush all pending writes for a specific target immediately.
  */
-export function flushTarget(scope: 'user' | 'project' | 'shot', entityId: string, toolId: string): Promise<any> | undefined {
+export function flushTarget(scope: 'user' | 'project' | 'shot', entityId: string, toolId: string): Promise<unknown> | undefined {
   const key = `${scope}:${entityId}:${toolId}`;
   const pending = pendingByTarget.get(key);
   

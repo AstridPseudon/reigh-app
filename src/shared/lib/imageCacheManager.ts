@@ -14,10 +14,16 @@ const urlCache = new Map<string, { loadedAt: number; width?: number; height?: nu
 // Debug logging configuration
 const CACHE_DEBUG_LOG_RATE = 0.05; // 5% of cache checks will be logged
 
+/** Image with an id property for caching */
+interface CacheableImage {
+  id: string;
+  __memoryCached?: boolean;
+}
+
 /**
  * Mark an image as cached or uncached
  */
-export const setImageCacheStatus = (image: any, isCached: boolean = true): void => {
+export const setImageCacheStatus = (image: CacheableImage, isCached: boolean = true): void => {
   const imageId = image.id;
   if (!imageId) {
     console.warn('[ImageCacheManager] Cannot cache image without ID:', image);
@@ -30,7 +36,7 @@ export const setImageCacheStatus = (image: any, isCached: boolean = true): void 
   globalImageCache.set(imageId, isCached);
 
   // Update object cache for backwards compatibility (will be phased out)
-  (image as any).__memoryCached = isCached;
+  image.__memoryCached = isCached;
 
   // Only log when state changes to reduce noise
   if (prevState !== isCached) {
@@ -67,7 +73,7 @@ const removeCachedImages = (imageIds: string[]): number => {
 /**
  * Clear images from cache by page/query data
  */
-export const clearCacheForImages = (images: any[]): number => {
+export const clearCacheForImages = (images: Array<{ id: string }>): number => {
   const imageIds = images
     .map(img => img.id)
     .filter(id => id); // Only valid IDs
@@ -89,7 +95,7 @@ export const clearCacheForProjectSwitch = (reason: string = 'project switch'): n
 /**
  * Check if a URL is cached
  */
-export const isImageCached = (urlOrImage: string | any): boolean => {
+export const isImageCached = (urlOrImage: string | CacheableImage): boolean => {
   // Handle both URL strings and image objects
   if (typeof urlOrImage === 'string') {
     return urlCache.has(urlOrImage);
@@ -105,8 +111,8 @@ export const isImageCached = (urlOrImage: string | any): boolean => {
   const isCached = globalImageCache.get(imageId) === true;
 
   // Sync object cache if needed (backwards compatibility)
-  if (isCached && (urlOrImage as any).__memoryCached !== true) {
-    (urlOrImage as any).__memoryCached = true;
+  if (isCached && urlOrImage.__memoryCached !== true) {
+    urlOrImage.__memoryCached = true;
   }
 
   // Occasional debug logging (reduced noise)
@@ -124,7 +130,7 @@ export const isImageCached = (urlOrImage: string | any): boolean => {
 /**
  * Mark a URL as cached
  */
-export const markImageAsCached = (urlOrImage: string | any, metadata?: { width?: number; height?: number }): void => {
+export const markImageAsCached = (urlOrImage: string | CacheableImage, metadata?: { width?: number; height?: number }): void => {
   // Handle both URL strings and image objects
   if (typeof urlOrImage === 'string') {
     urlCache.set(urlOrImage, {

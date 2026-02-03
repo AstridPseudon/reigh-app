@@ -6,8 +6,14 @@ import { Star, Loader2 } from 'lucide-react';
 import { handleError } from '@/shared/lib/errorHandler';
 import type { SourceVariantData } from '../hooks/useSourceGeneration';
 
+/** Generation data with enriched fields from useSourceGeneration */
+interface EnrichedGenerationRow extends GenerationRow {
+  all_shot_associations?: Array<{ shot_id: string; timeline_frame: number | null }>;
+  thumbUrl?: string;
+}
+
 interface SourceGenerationDisplayProps {
-  sourceGeneration: GenerationRow;
+  sourceGeneration: EnrichedGenerationRow;
   onNavigate: (generationId: string) => Promise<void>;
   variant?: 'compact' | 'full';
   className?: string;
@@ -43,7 +49,7 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
   console.log('[VariantClickDebug] SourceGenerationDisplay render:', {
     sourceGenerationId: sourceGeneration?.id?.substring(0, 8),
     sourceGenerationLocation: sourceGeneration?.location?.substring(0, 50),
-    sourceGenerationThumbUrl: (sourceGeneration as any)?.thumbUrl?.substring(0, 50),
+    sourceGenerationThumbUrl: sourceGeneration?.thumbUrl?.substring(0, 50),
     hasPrimaryVariant: !!sourcePrimaryVariant,
     primaryVariantId: sourcePrimaryVariant?.id?.substring(0, 8),
     primaryVariantLocation: sourcePrimaryVariant?.location?.substring(0, 50),
@@ -54,9 +60,9 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
     currentMediaId: currentMediaId?.substring(0, 8),
   });
   // Check if parent is positioned in the current shot
-  const parentShotAssociation = currentShotId 
-    ? (sourceGeneration as any).all_shot_associations?.find(
-        (assoc: any) => assoc.shot_id === currentShotId
+  const parentShotAssociation = currentShotId
+    ? sourceGeneration.all_shot_associations?.find(
+        (assoc) => assoc.shot_id === currentShotId
       )
     : null;
   
@@ -78,9 +84,9 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
     allShotsIds: allShots?.map(s => ({ id: s.id.substring(0, 8), name: s.name })),
     foundShotName: shotName,
     usedCurrentShotName: !!currentShotName,
-    hasParentAssociations: !!(sourceGeneration as any).all_shot_associations,
-    parentAssociationsCount: (sourceGeneration as any).all_shot_associations?.length || 0,
-    parentAssociations: (sourceGeneration as any).all_shot_associations?.map((a: any) => ({
+    hasParentAssociations: !!sourceGeneration.all_shot_associations,
+    parentAssociationsCount: sourceGeneration.all_shot_associations?.length || 0,
+    parentAssociations: sourceGeneration.all_shot_associations?.map((a) => ({
       shotId: a.shot_id?.substring(0, 8),
       frame: a.timeline_frame
     })),
@@ -140,15 +146,15 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
   // Use primary variant's thumbnail if available, otherwise fall back to generation's location
   const displayThumbnail = sourcePrimaryVariant?.thumbnail_url || 
     sourcePrimaryVariant?.location || 
-    (sourceGeneration as any).thumbUrl || 
+    sourceGeneration.thumbUrl ||
     sourceGeneration.location;
 
   console.log('[VariantClickDebug] SourceGenerationDisplay displayThumbnail:', {
     displayThumbnail: displayThumbnail?.substring(0, 50),
     usedPrimaryVariantThumbnail: !!sourcePrimaryVariant?.thumbnail_url,
     usedPrimaryVariantLocation: !sourcePrimaryVariant?.thumbnail_url && !!sourcePrimaryVariant?.location,
-    usedSourceThumbUrl: !sourcePrimaryVariant?.thumbnail_url && !sourcePrimaryVariant?.location && !!(sourceGeneration as any).thumbUrl,
-    usedSourceLocation: !sourcePrimaryVariant?.thumbnail_url && !sourcePrimaryVariant?.location && !(sourceGeneration as any).thumbUrl,
+    usedSourceThumbUrl: !sourcePrimaryVariant?.thumbnail_url && !sourcePrimaryVariant?.location && !!sourceGeneration.thumbUrl,
+    usedSourceLocation: !sourcePrimaryVariant?.thumbnail_url && !sourcePrimaryVariant?.location && !sourceGeneration.thumbUrl,
   });
 
   return (

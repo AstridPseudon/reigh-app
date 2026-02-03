@@ -33,6 +33,7 @@ import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
 import { useShareGeneration } from '@/shared/hooks/useShareGeneration';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import { VariantBadge } from '@/shared/components/VariantBadge';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 // Stable empty function reference to avoid re-renders from inline () => {}
 const noop = () => {};
@@ -48,7 +49,7 @@ interface FinalVideoSectionProps {
   /** Optional callback when selected parent changes (for controlled mode) */
   onSelectedParentChange?: (id: string | null) => void;
   /** Parent generations passed from parent (to avoid duplicate fetch) */
-  parentGenerations?: any[];
+  parentGenerations?: GenerationRow[];
   /** Segment progress passed from parent */
   segmentProgress?: { completed: number; total: number };
   /** Loading state from parent (when in controlled mode) */
@@ -126,7 +127,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
   // Derive selectedParent from parentGenerations (works in both controlled and uncontrolled mode)
   const selectedParent = useMemo(() => {
     if (!selectedParentId) return null;
-    return parentGenerations.find((p: any) => p.id === selectedParentId) || null;
+    return parentGenerations.find((p) => p.id === selectedParentId) || null;
   }, [parentGenerations, selectedParentId]);
   
   const hasFinalOutput = !!(selectedParent?.location);
@@ -179,7 +180,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
   // Include parentGenerations IDs in query key so we can match by parent_generation_id
   const parentGenIdsForQuery = useMemo(() => parentGenerations.map(p => p.id), [parentGenerations]);
   const { data: activeJoinTask } = useQuery({
-    queryKey: ['active-join-clips-task', shotId, projectId, parentGenIdsForQuery],
+    queryKey: [...queryKeys.tasks.activeJoinClips(shotId), projectId, parentGenIdsForQuery],
     queryFn: async () => {
       if (!shotId || !projectId) return null;
 
@@ -203,10 +204,11 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
       // Also check parent_generation_id as fallback for tasks created before shot_id was added
       const parentGenIds = new Set(parentGenIdsForQuery);
 
-      const matchingTask = (data || []).find((task: any) => {
-        const params = task.params as Record<string, any>;
-        const taskShotId = params?.orchestrator_details?.shot_id || params?.shot_id;
-        const taskParentGenId = params?.orchestrator_details?.parent_generation_id || params?.parent_generation_id;
+      const matchingTask = (data || []).find((task) => {
+        const params = task.params as Record<string, unknown>;
+        const orchestratorDetails = params?.orchestrator_details as Record<string, unknown> | undefined;
+        const taskShotId = orchestratorDetails?.shot_id || params?.shot_id;
+        const taskParentGenId = orchestratorDetails?.parent_generation_id || params?.parent_generation_id;
 
         // Match by shot_id (preferred)
         if (taskShotId === shotId) {
@@ -226,11 +228,15 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
       if (matchingTask) {
         console.log('[FinalVideoSection] Found matching join task:', matchingTask.id.substring(0, 8), 'status:', matchingTask.status);
       } else if (data && data.length > 0) {
-        console.log('[FinalVideoSection] No matching join task for this shot. Tasks found:', data.map((t: any) => ({
-          id: t.id.substring(0, 8),
-          shot_id: (t.params?.orchestrator_details?.shot_id || t.params?.shot_id)?.substring(0, 8) || 'NONE',
-          parent_gen_id: (t.params?.orchestrator_details?.parent_generation_id || t.params?.parent_generation_id)?.substring(0, 8) || 'NONE'
-        })));
+        console.log('[FinalVideoSection] No matching join task for this shot. Tasks found:', data.map((t) => {
+          const tParams = t.params as Record<string, unknown>;
+          const tOrch = tParams?.orchestrator_details as Record<string, unknown> | undefined;
+          return {
+            id: t.id.substring(0, 8),
+            shot_id: ((tOrch?.shot_id || tParams?.shot_id) as string)?.substring(0, 8) || 'NONE',
+            parent_gen_id: ((tOrch?.parent_generation_id || tParams?.parent_generation_id) as string)?.substring(0, 8) || 'NONE'
+          };
+        }));
       }
 
       return matchingTask || null;
@@ -245,10 +251,10 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
   // Derive input images from task params for lightbox
   const inputImages: string[] = useMemo(() => {
     if (!task?.params) return [];
-    const params = task.params as any;
+    const params = task.params as Record<string, unknown>;
     
     // Try different sources for input images
-    const orchestratorDetails = params.orchestrator_details || {};
+    const orchestratorDetails = (params.orchestrator_details || {}) as Record<string, unknown>;
     const inputPaths = params.input_image_paths_resolved ||
                       orchestratorDetails.input_image_paths_resolved ||
                       params.input_images ||
@@ -318,7 +324,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
     selectedParentId: selectedParentId?.substring(0, 8),
     hasFinalOutput,
     parentGenerationsCount: parentGenerations.length,
-    parentGenerationIds: parentGenerations.map((p: any) => p.id?.substring(0, 8)),
+    parentGenerationIds: parentGenerations.map((p) => p.id?.substring(0, 8)),
     isDeleting,
     hasOnDelete: !!onDelete,
   });
@@ -418,7 +424,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {parentGenerations.map((parent, index) => {
-                    const createdAt = parent.created_at || (parent as any).createdAt;
+                    const createdAt = parent.created_at || parent.createdAt;
                     const timeAgo = createdAt ? formatDistanceToNow(new Date(createdAt), { addSuffix: true }) : '';
                     const hasOutput = !!parent.location;
 
@@ -574,7 +580,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
           showDownload={true}
           hasNext={false}
           hasPrevious={false}
-          starred={(parentVideoRow as any).starred ?? false}
+          starred={parentVideoRow.starred ?? false}
           shotId={shotId}
           showTaskDetails={true}
           showVideoTrimEditor={true}

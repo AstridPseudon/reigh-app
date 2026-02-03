@@ -15,8 +15,9 @@ import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ShotBatchItemMobile } from './ShotBatchItemMobile';
 import { BaseShotImageManagerProps } from './types';
+import type { GenerationRow } from '@/types/shots';
 import { PairPromptIndicator } from './components/PairPromptIndicator';
-import { InlineSegmentVideo } from '@/tools/travel-between-images/components/Timeline/InlineSegmentVideo';
+import { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 
 export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
@@ -63,7 +64,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   const [showSelectionBar, setShowSelectionBar] = useState(false);
   
   // Optimistic update state for mobile reordering
-  const [optimisticOrder, setOptimisticOrder] = useState<any[]>([]);
+  const [optimisticOrder, setOptimisticOrder] = useState<GenerationRow[]>([]);
   const [isOptimisticUpdate, setIsOptimisticUpdate] = useState(false);
   const [reconciliationId, setReconciliationId] = useState(0);
   
@@ -519,7 +520,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
                   projectAspectRatio={projectAspectRatio}
                   frameNumber={frameNumber}
                   readOnly={readOnly}
-                  onMarkAllViewed={(image as any).generation_id ? () => markAllViewed((image as any).generation_id) : undefined}
+                  onMarkAllViewed={image.generation_id ? () => markAllViewed(image.generation_id!) : undefined}
                 />
                 
                 {/* Move button on left side of each non-selected item (hidden in readOnly) */}

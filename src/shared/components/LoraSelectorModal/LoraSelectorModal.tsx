@@ -134,10 +134,10 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
                   onRemoveLora={onRemoveLora}
                   onUpdateLoraStrength={onUpdateLoraStrength}
                   selectedLoras={selectedLoras}
-                  myLorasResource={myLorasResource as any}
-                  createResource={createResource as any}
-                  updateResource={updateResource as any}
-                  deleteResource={deleteResource as any}
+                  myLorasResource={myLorasResource}
+                  createResource={createResource}
+                  updateResource={updateResource}
+                  deleteResource={deleteResource}
                   onClose={onClose}
                   onEdit={handleEdit}
                   showMyLorasOnly={showMyLorasOnly}
@@ -154,10 +154,10 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
               </TabsContent>
               <TabsContent value="add-new" className="flex-1 min-h-0 overflow-auto">
                 <MyLorasTab
-                  myLorasResource={myLorasResource as any}
-                  deleteResource={deleteResource as any}
-                  createResource={createResource as any}
-                  updateResource={updateResource as any}
+                  myLorasResource={myLorasResource}
+                  deleteResource={deleteResource}
+                  createResource={createResource}
+                  updateResource={updateResource}
                   onSwitchToBrowse={() => {
                     setActiveTab('browse');
                     handleClearEdit();

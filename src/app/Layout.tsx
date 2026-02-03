@@ -167,7 +167,7 @@ const Layout: React.FC = () => {
 
   // Check for settings navigation state
   useEffect(() => {
-    const state = location.state as any;
+    const state = location.state as { openSettings?: boolean; settingsTab?: string; creditsTab?: 'purchase' | 'history' } | null;
     if (state?.openSettings) {
       handleOpenSettings(state.settingsTab, state.creditsTab);
       // Clear the state to avoid reopening on navigation
@@ -180,7 +180,7 @@ const Layout: React.FC = () => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
 
     // Use centralized auth manager instead of direct listener
-    const authManager = (window as any).__AUTH_MANAGER__;
+    const authManager = window.__AUTH_MANAGER__;
     let unsubscribe: (() => void) | null = null;
     
     if (authManager) {

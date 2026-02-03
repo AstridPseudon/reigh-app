@@ -14,7 +14,7 @@ import {
 export type { DragType, GenerationDropData };
 
 interface UseUnifiedDropProps {
-  onImageDrop?: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   fullMin: number;
   fullRange: number;
@@ -24,11 +24,11 @@ interface UseUnifiedDropProps {
  * Unified drop hook that handles both file drops (from file system) and generation drops (from GenerationsPane)
  * Reuses the same coordinate system and visual feedback for consistency
  */
-export const useUnifiedDrop = ({ 
-  onImageDrop, 
-  onGenerationDrop, 
-  fullMin, 
-  fullRange 
+export const useUnifiedDrop = ({
+  onFileDrop,
+  onGenerationDrop,
+  fullMin,
+  fullRange
 }: UseUnifiedDropProps) => {
   const [isFileOver, setIsFileOver] = useState(false);
   const [isGenerationOver, setIsGenerationOver] = useState(false);
@@ -56,12 +56,12 @@ export const useUnifiedDrop = ({
     
     console.log('[BatchDropPositionIssue] 🚀 handleDragEnter:', {
       dragType,
-      hasImageDropHandler: !!onImageDrop,
+      hasFileDropHandler: !!onFileDrop,
       hasGenerationDropHandler: !!onGenerationDrop,
       timestamp: Date.now()
     });
-    
-    if (dragType === 'file' && onImageDrop) {
+
+    if (dragType === 'file' && onFileDrop) {
       console.log('[BatchDropPositionIssue] 📁 FILE DRAG ENTER - Setting isFileOver=true');
       setIsFileOver(true);
     } else if (dragType === 'generation' && onGenerationDrop) {
@@ -70,7 +70,7 @@ export const useUnifiedDrop = ({
     } else {
       console.log('[BatchDropPositionIssue] ⚠️ DRAG ENTER - No handler for this type');
     }
-  }, [getDragType, onImageDrop, onGenerationDrop]);
+  }, [getDragType, onFileDrop, onGenerationDrop]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, containerRef: React.RefObject<HTMLDivElement>) => {
     e.preventDefault();
@@ -92,7 +92,7 @@ export const useUnifiedDrop = ({
       const targetFrame = Math.max(0, pixelToFrame(relativeX, effectiveWidth, fullMin, fullRange));
       setDropTargetFrame(targetFrame);
       
-      if (dragType === 'file' && onImageDrop) {
+      if (dragType === 'file' && onFileDrop) {
         setIsFileOver(true);
         e.dataTransfer.dropEffect = 'copy';
         console.log('[BatchDropPositionIssue] 📁 FILE OVER - dropEffect=copy');
@@ -109,7 +109,7 @@ export const useUnifiedDrop = ({
       setDropTargetFrame(null);
       console.log('[BatchDropPositionIssue] ❌ DRAG OVER - Invalid dragType or no container');
     }
-  }, [getDragType, onImageDrop, onGenerationDrop, fullMin, fullRange]);
+  }, [getDragType, onFileDrop, onGenerationDrop, fullMin, fullRange]);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -152,7 +152,7 @@ export const useUnifiedDrop = ({
     console.log('[BatchDropPositionIssue] 💥 DROP EVENT:', {
       dragType,
       targetFrame,
-      hasImageDropHandler: !!onImageDrop,
+      hasFileDropHandler: !!onFileDrop,
       hasGenerationDropHandler: !!onGenerationDrop,
       timestamp: Date.now()
     });
@@ -163,7 +163,7 @@ export const useUnifiedDrop = ({
     setDropTargetFrame(null);
 
     // Handle file drops (from file system)
-    if (dragType === 'file' && onImageDrop) {
+    if (dragType === 'file' && onFileDrop) {
       const files = Array.from(e.dataTransfer.files);
       
       console.log('[BatchDropPositionIssue] 📁 FILE DROP:', {
@@ -194,13 +194,13 @@ export const useUnifiedDrop = ({
       }
 
       try {
-        console.log('[BatchDropPositionIssue] 📤 FILE DROP - CALLING onImageDrop:', {
+        console.log('[BatchDropPositionIssue] 📤 FILE DROP - CALLING onFileDrop:', {
           validFileCount: validFiles.length,
           targetFrame,
           timestamp: Date.now()
         });
-        await onImageDrop(validFiles, targetFrame ?? undefined);
-        console.log('[BatchDropPositionIssue] ✅ FILE DROP - onImageDrop completed');
+        await onFileDrop(validFiles, targetFrame ?? undefined);
+        console.log('[BatchDropPositionIssue] ✅ FILE DROP - onFileDrop completed');
       } catch (error) {
         handleError(error, { context: 'UnifiedDrop', toastTitle: 'Failed to add images' });
       }
@@ -239,7 +239,7 @@ export const useUnifiedDrop = ({
     } else {
       console.log('[BatchDropPositionIssue] ⚠️ DROP - No handler matched dragType:', dragType);
     }
-  }, [getDragType, onImageDrop, onGenerationDrop, dropTargetFrame, fullMin, fullRange]);
+  }, [getDragType, onFileDrop, onGenerationDrop, dropTargetFrame, fullMin, fullRange]);
 
   // Determine current drag type for consumers
   const currentDragType: DragType = isFileOver ? 'file' : isGenerationOver ? 'generation' : 'none';

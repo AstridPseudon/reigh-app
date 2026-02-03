@@ -13,6 +13,7 @@
  */
 
 import { UseQueryOptions } from '@tanstack/react-query';
+import { isErrorWithCode, isErrorWithStatus, SUPABASE_ERROR } from '@/shared/lib/errorUtils';
 
 /**
  * For queries backed by Supabase realtime subscriptions.
@@ -152,14 +153,14 @@ export type QueryPresetKey = keyof typeof QUERY_PRESETS;
  */
 export const STANDARD_RETRY = (failureCount: number, error: Error) => {
   // Don't retry aborts or cancelled requests
-  if (error?.message?.includes('abort') || 
+  if (error?.message?.includes('abort') ||
       error?.message?.includes('Request was cancelled')) {
     return false;
   }
   // Don't retry client errors (4xx)
-  if ((error as any)?.code === 'PGRST116' || 
+  if ((isErrorWithCode(error) && error.code === SUPABASE_ERROR.NOT_FOUND) ||
       error?.message?.includes('Invalid') ||
-      (error as any)?.status >= 400 && (error as any)?.status < 500) {
+      (isErrorWithStatus(error) && error.status !== undefined && error.status >= 400 && error.status < 500)) {
     return false;
   }
   // Retry up to 2 times for other errors

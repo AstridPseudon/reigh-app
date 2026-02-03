@@ -5,6 +5,7 @@ import {
   validateRequiredFields,
   TaskValidationError
 } from "../taskCreation";
+import type { TaskCreationResult } from "../taskCreation";
 import { handleError } from '@/shared/lib/errorHandler';
 
 /**
@@ -108,7 +109,7 @@ function buildCharacterAnimatePayload(
  * @param params - Character animate task parameters
  * @returns Promise resolving to the created task
  */
-export async function createCharacterAnimateTask(params: CharacterAnimateTaskParams): Promise<any> {
+export async function createCharacterAnimateTask(params: CharacterAnimateTaskParams): Promise<TaskCreationResult> {
   console.log("[createCharacterAnimateTask] Creating task with params:", params);
 
   try {

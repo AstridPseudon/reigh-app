@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { handleError } from '@/shared/lib/errorHandler';
+import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { GenerationRow } from '@/types/shots';
 import { DEFAULT_JOIN_CLIPS_PHASE_CONFIG, BUILTIN_JOIN_CLIPS_DEFAULT_ID } from '@/tools/join-clips/components/JoinClipsSettingsForm';
@@ -41,11 +42,11 @@ interface JoinSettings {
   keepBridgingImages: boolean;
   enhancePrompt: boolean;
   motionMode: 'basic' | 'advanced';
-  phaseConfig?: any;
+  phaseConfig?: Record<string, unknown>;
   selectedPhasePresetId?: string | null;
   randomSeed: boolean;
-  updateField: (field: string, value: any) => void;
-  updateFields: (fields: Record<string, any>) => void;
+  updateField: (field: string, value: unknown) => void;
+  updateFields: (fields: Record<string, unknown>) => void;
 }
 
 interface UseJoinSegmentsHandlerProps {
@@ -99,7 +100,7 @@ export function useJoinSegmentsHandler({
   const joinValidationData = useMemo(() => {
     // Count segments that are in valid slots AND have a location (completed videos)
     const readySlots = joinSegmentSlots.filter(
-      slot => slot.type === 'child' && Boolean((slot.child as any)?.location)
+      slot => slot.type === 'child' && Boolean(slot.child?.location)
     );
 
     if (readySlots.length < 2) {
@@ -109,9 +110,9 @@ export function useJoinSegmentsHandler({
     // Get frame counts from video params or metadata
     const frameCounts = readySlots.map(slot => {
       const child = slot.child;
-      const params = (child as any)?.params;
-      const metadata = (child as any)?.metadata;
-      return params?.frame_count || params?.num_frames || metadata?.frame_count || metadata?.frameCount || 61;
+      const params = child?.params as Record<string, unknown> | undefined;
+      const metadata = child?.metadata as Record<string, unknown> | undefined;
+      return (params?.frame_count as number) || (params?.num_frames as number) || (metadata?.frame_count as number) || (metadata?.frameCount as number) || 61;
     });
 
     return {
@@ -234,8 +235,8 @@ export function useJoinSegmentsHandler({
       setJoinClipsSuccess(true);
       setTimeout(() => setJoinClipsSuccess(false), 3000);
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-    } catch (error: any) {
-      handleError(error, { context: 'JoinSegments', toastTitle: error.message || 'Failed to create join task' });
+    } catch (error: unknown) {
+      handleError(error, { context: 'JoinSegments', toastTitle: getErrorMessage(error) || 'Failed to create join task' });
       removeIncomingTask(incomingTaskId);
     } finally {
       setIsJoiningClips(false);

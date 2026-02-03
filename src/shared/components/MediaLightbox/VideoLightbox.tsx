@@ -15,8 +15,8 @@
  */
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import type { GenerationRow, Shot } from '@/types/shots';
-import type { SegmentSlotModeData, AdjacentSegmentsData, ShotOption } from './types';
+import type { GenerationRow, GenerationParams, Shot } from '@/types/shots';
+import type { SegmentSlotModeData, AdjacentSegmentsData, ShotOption, TaskDetailsData } from './types';
 import { ASPECT_RATIO_TO_RESOLUTION, findClosestAspectRatio, parseRatio } from '@/shared/lib/aspectRatios';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
@@ -47,6 +47,7 @@ import { VideoEditProvider, type VideoEditState } from './contexts/VideoEditCont
 // Import utils
 import { downloadMedia } from './utils';
 import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 // ============================================================================
 // Props Interface
@@ -71,22 +72,14 @@ export interface VideoLightboxProps {
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onDelete?: (id: string) => void;
   isDeleting?: string | null;
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: GenerationRow['metadata']) => void;
   showTickForImageId?: string | null;
   onShowTick?: (imageId: string) => void;
   showTickForSecondaryImageId?: string | null;
   onShowSecondaryTick?: (imageId: string) => void;
   starred?: boolean;
   showTaskDetails?: boolean;
-  taskDetailsData?: {
-    task: any;
-    isLoading: boolean;
-    error: any;
-    inputImages: string[];
-    taskId: string | null;
-    onApplySettingsFromTask?: (taskId: string, replaceImages: boolean, inputImages: string[]) => void;
-    onClose?: () => void;
-  };
+  taskDetailsData?: TaskDetailsData;
   onShowTaskDetails?: () => void;
   onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
   onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
@@ -243,12 +236,12 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [replaceImages, setReplaceImages] = useState(true);
-  const [variantParamsToLoad, setVariantParamsToLoad] = useState<any>(null);
+  const [variantParamsToLoad, setVariantParamsToLoad] = useState<Record<string, unknown> | null>(null);
 
   // Compute actual generation ID
   // For timeline media, media.id is shot_generations.id, not the generation ID
   // So we need to prefer media.generation_id for variant fetching
-  const actualGenerationId = media?.generation_id || media?.id || null;
+  const actualGenerationId = getGenerationId(media) || null;
   const variantFetchGenerationId = fetchVariantsForSelf
     ? actualGenerationId
     : (media?.parent_generation_id || actualGenerationId);
@@ -330,24 +323,24 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
   const extractDimensionsFromMedia = useCallback((mediaObj: typeof media): { width: number; height: number } | null => {
     if (!mediaObj) return null;
-    const params = (mediaObj as any)?.params;
-    const metadata = mediaObj?.metadata as any;
+    const params = mediaObj.params as GenerationParams | undefined;
+    const metadata = mediaObj.metadata as Record<string, unknown> | undefined;
 
-    if ((mediaObj as any)?.width && (mediaObj as any)?.height) {
-      return { width: (mediaObj as any).width, height: (mediaObj as any).height };
-    }
-    if (metadata?.width && metadata?.height) {
+    // Check metadata for width/height (these may exist as extended metadata fields)
+    if (metadata?.width && metadata?.height && typeof metadata.width === 'number' && typeof metadata.height === 'number') {
       return { width: metadata.width, height: metadata.height };
     }
 
     const resolutionSources = [
       params?.resolution,
-      params?.originalParams?.resolution,
+      (params as Record<string, unknown>)?.originalParams,
       metadata?.resolution,
     ];
     for (const res of resolutionSources) {
-      const dims = resolutionToDimensions(res);
-      if (dims) return dims;
+      if (typeof res === 'string') {
+        const dims = resolutionToDimensions(res);
+        if (dims) return dims;
+      }
     }
 
     const aspectRatioSources = [
@@ -355,7 +348,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
       metadata?.aspect_ratio,
     ];
     for (const ar of aspectRatioSources) {
-      if (ar) {
+      if (ar && typeof ar === 'string') {
         const dims = aspectRatioToDimensions(ar);
         if (dims) return dims;
       }
@@ -376,7 +369,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
   // Effective URL for video (the video URL, not thumbnail)
   // This is used as fallback in useEffectiveMedia when there's no activeVariant
-  const effectiveImageUrl = (media as any)?.url || media?.imageUrl || media?.location || '';
+  const effectiveImageUrl = media?.imageUrl || media?.location || '';
 
   // ========================================
   // SHARED LIGHTBOX STATE
@@ -598,7 +591,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
   const unviewedVariantCount = useMemo(() => {
     if (!variants.list || variants.list.length === 0) return 0;
-    return variants.list.filter((v: any) => v.viewed_at === null).length;
+    return variants.list.filter((v) => v.viewed_at === null).length;
   }, [variants.list]);
 
   const { markAllViewed: markAllViewedMutation } = useMarkVariantViewed();
@@ -730,7 +723,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     const intendedVariantId = intendedActiveVariantIdRef.current;
 
     if (intendedVariantId && variants.list.length > 0) {
-      const intendedVariant = variants.list.find((v: any) => v.id === intendedVariantId);
+      const intendedVariant = variants.list.find((v) => v.id === intendedVariantId);
       if (intendedVariant?.location) {
         urlToDownload = intendedVariant.location;
       }
@@ -744,11 +737,11 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
     setIsDownloading(true);
     try {
-      const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, any> | null);
-      const prompt = (media.params as any)?.prompt ||
-                     (media.metadata as any)?.enhanced_prompt ||
+      const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, unknown> | null);
+      const prompt = media.params?.prompt ||
+                     (media.metadata as Record<string, unknown> | undefined)?.enhanced_prompt as string | undefined ||
                      segmentOverrides.prompt ||
-                     (media.metadata as any)?.prompt;
+                     (media.metadata as Record<string, unknown> | undefined)?.prompt as string | undefined;
       await downloadMedia(urlToDownload, media.id, true, media.contentType, prompt);
     } finally {
       setIsDownloading(false);

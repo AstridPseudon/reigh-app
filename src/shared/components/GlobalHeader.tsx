@@ -116,7 +116,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ contentOffsetRight =
     getSessionAndUserData();
 
     // Use centralized auth manager instead of direct listener
-    const authManager = (window as any).__AUTH_MANAGER__;
+    const authManager = window.__AUTH_MANAGER__;
     let unsubscribe: (() => void) | null = null;
     
     if (authManager) {

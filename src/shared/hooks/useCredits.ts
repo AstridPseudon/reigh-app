@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface CreditBalance {
   balance: number;
@@ -133,7 +134,7 @@ export function useCredits() {
     isLoading: isLoadingBalance,
     error: balanceError,
   } = useQuery<CreditBalance>({
-    queryKey: ['credits', 'balance'],
+    queryKey: queryKeys.credits.balance,
     queryFn: fetchCreditBalance,
     // Use userConfig preset - balance changes after purchases/spend
     ...QUERY_PRESETS.userConfig,
@@ -143,7 +144,7 @@ export function useCredits() {
   // Fetch credit ledger with pagination using Supabase
   const useCreditLedger = (limit = 50, offset = 0) => {
     return useQuery<CreditLedgerResponse>({
-      queryKey: ['credits', 'ledger', limit, offset],
+      queryKey: [...queryKeys.credits.ledger, limit, offset],
       queryFn: () => fetchCreditLedger(limit, offset),
       // Use userConfig preset - ledger updates after transactions
       ...QUERY_PRESETS.userConfig,
@@ -189,7 +190,7 @@ export function useCredits() {
   });
 
   // Grant credits - for admin use via Edge Function
-  const grantCreditsMutation = useMutation<any, Error, { userId: string; amount: number; description: string }>({
+  const grantCreditsMutation = useMutation<unknown, Error, { userId: string; amount: number; description: string }>({
     mutationKey: ['grant-credits'],
     mutationFn: async ({ userId, amount, description }) => {
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -209,9 +210,8 @@ export function useCredits() {
     },
     onSuccess: () => {
       // Invalidate balance and ledger to refresh
-      queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });
-      queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });
-      
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.balance });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.ledger });
     },
     onError: (error) => {
       handleError(error, { context: 'useCredits', toastTitle: 'Failed to grant credits' });

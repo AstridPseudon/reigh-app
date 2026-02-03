@@ -13,7 +13,7 @@ import type { SegmentSlotModeData } from '@/shared/components/MediaLightbox/type
 import type { PairData } from '../../Timeline/TimelineContainer';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { GenerationRow } from '@/types/shots';
-import type { SegmentSlot } from '@/tools/travel-between-images/hooks/useSegmentOutputsForShot';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
 import { usePairData } from './usePairData';
 import { useFrameCountUpdater } from './useFrameCountUpdater';
@@ -38,7 +38,6 @@ export interface UseSegmentSlotModeProps {
   loadPositions: (options?: { silent?: boolean; reason?: string }) => Promise<void>;
   navigateWithTransition: (doNavigation: () => void) => void;
   addOptimisticPending: (pairShotGenerationId: string) => void;
-  singleImageEndFrame?: number;
 }
 
 export interface UseSegmentSlotModeReturn {
@@ -75,7 +74,6 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     loadPositions,
     navigateWithTransition,
     addOptimisticPending,
-    singleImageEndFrame,
   } = props;
 
   const location = useLocation();
@@ -98,7 +96,6 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     shotGenerations,
     generationMode: effectiveGenerationMode,
     batchVideoFrames,
-    singleImageEndFrame,
   });
 
   const { updatePairFrameCount } = useFrameCountUpdater({
@@ -135,6 +132,12 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
   // ==========================================================================
 
   const handlePairClick = useCallback((pairIndex: number, passedPairData?: PairData) => {
+    console.log('[TrailingGen] useSegmentSlotMode.handlePairClick:', {
+      pairIndex,
+      hasPassedPairData: !!passedPairData,
+      passedEndImage: passedPairData?.endImage,
+      pairDataByIndexSize: pairDataByIndex.size,
+    });
     const pairData = passedPairData || pairDataByIndex.get(pairIndex);
     if (pairData) {
       setActivePairData(pairData);
@@ -164,8 +167,8 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     }) ?? (effectiveGenerationMode === 'batch' && structureVideos?.[0]);
 
     // Get prompts from metadata
-    const shotGen = shotGenerations.find(sg => sg.id === pairData.startImage?.id);
-    const overrides = readSegmentOverrides(shotGen?.metadata as Record<string, any> | null);
+    const shotGen = shotGenerations.find(shotGen => shotGen.id === pairData.startImage?.id);
+    const overrides = readSegmentOverrides(shotGen?.metadata as Record<string, unknown> | null);
 
     return {
       currentIndex: segmentSlotLightboxIndex,
@@ -233,8 +236,12 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
       } : undefined,
 
       // Callbacks
+      // Frame count changes are handled by useFrameCountUpdater which supports both:
+      // - Normal pairs (shifts subsequent images)
+      // - Trailing segments (updates metadata.end_frame)
       onFrameCountChange: (pairShotGenerationId: string, frameCount: number) => {
         if (effectiveGenerationMode === 'batch') return;
+
         if (frameCountDebounceRef.current) clearTimeout(frameCountDebounceRef.current);
         frameCountDebounceRef.current = setTimeout(() => {
           updatePairFrameCount(pairShotGenerationId, frameCount);
@@ -265,17 +272,17 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
           if (existingStart < newStart) return [{ ...existing, end_frame: newStart }];
           if (existingEnd > newEnd) return [{ ...existing, start_frame: newEnd }];
           return [existing];
-        }).filter(v => (v.end_frame ?? Infinity) > (v.start_frame ?? 0));
+        }).filter(video => (video.end_frame ?? Infinity) > (video.start_frame ?? 0));
         onSetStructureVideos([...updatedVideos, video]);
       },
       onUpdateSegmentStructureVideo: (updates) => {
         if (!onUpdateStructureVideo || !coveringVideo || !structureVideos) return;
-        const index = structureVideos.findIndex(v => v.path === coveringVideo.path);
+        const index = structureVideos.findIndex(video => video.path === coveringVideo.path);
         if (index >= 0) onUpdateStructureVideo(index, updates);
       },
       onRemoveSegmentStructureVideo: () => {
         if (!onRemoveStructureVideo || !coveringVideo || !structureVideos) return;
-        const index = structureVideos.findIndex(v => v.path === coveringVideo.path);
+        const index = structureVideos.findIndex(video => video.path === coveringVideo.path);
         if (index >= 0) onRemoveStructureVideo(index);
       },
 

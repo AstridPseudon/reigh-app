@@ -6,6 +6,7 @@ import { toolsUIManifest, type ToolUIDefinition } from '../tools';
 import { PageFadeIn, FadeInSection } from '@/shared/components/transitions';
 import { useContentResponsive, useContentResponsiveDirection, useContentResponsiveColumns } from '@/shared/hooks/useContentResponsive';
 import React, { memo } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 // Context to share overflow detection across tool cards
 // Tracks both title and description overflow for consistent two-line display
@@ -55,7 +56,7 @@ const processTools = [
     name: 'Generate Images',
     description: 'Create images using a variety of models and styles, with support from LLMs',
     descriptionMobile: 'Create images support from LLMs.',
-    tool: toolsUIManifest.find(t => t.id === 'image-generation'),
+    tool: toolsUIManifest.find(tool => tool.id === 'image-generation'),
     icon: Paintbrush,
     gradient: 'from-wes-vintage-gold via-wes-mustard to-wes-yellow',
     accent: 'wes-pink',
@@ -66,7 +67,7 @@ const processTools = [
     name: 'Travel Between Images',
     description: 'Transform static images into video sequences with controllable transitions',
     descriptionMobile: 'Turn images into video sequences.',
-    tool: toolsUIManifest.find(t => t.id === 'travel-between-images'),
+    tool: toolsUIManifest.find(tool => tool.id === 'travel-between-images'),
     icon: Video,
     gradient: 'from-wes-mint via-wes-sage to-wes-dusty-blue',
     accent: 'wes-mint',
@@ -104,7 +105,7 @@ const assistantTools = [
     description: 'Transform and enhance images.',
     descriptionMobile: 'Refine & enhance',
     subtext: 'Adjust & refine',
-    tool: toolsUIManifest.find(t => t.id === 'edit-images'),
+    tool: toolsUIManifest.find(tool => tool.id === 'edit-images'),
     icon: Edit,
     gradient: 'from-wes-mustard via-wes-vintage-gold to-wes-coral', // Warm gold tones
     accent: 'wes-mustard',
@@ -116,7 +117,7 @@ const assistantTools = [
     description: 'Regenerate video portions.',
     descriptionMobile: 'Fix & regenerate',
     subtext: 'Regenerate portions',
-    tool: toolsUIManifest.find(t => t.id === 'edit-video'),
+    tool: toolsUIManifest.find(tool => tool.id === 'edit-video'),
     icon: Clapperboard,
     gradient: 'from-wes-dusty-blue via-wes-lavender to-wes-mint', // Cool blue-lavender (contrasts with warm Edit Images)
     accent: 'wes-dusty-blue',
@@ -128,7 +129,7 @@ const assistantTools = [
     description: 'Seamlessly connect video clips.',
     descriptionMobile: 'Connect seamlesly',
     subtext: 'Connect together',
-    tool: toolsUIManifest.find(t => t.id === 'join-clips'),
+    tool: toolsUIManifest.find(tool => tool.id === 'join-clips'),
     icon: Link2,
     gradient: 'from-wes-pink via-wes-salmon to-wes-coral', // Warm pink-coral (contrasts with cool Edit Videos)
     accent: 'wes-pink',
@@ -140,7 +141,7 @@ const assistantTools = [
     description: 'Bring characters to life.',
     descriptionMobile: 'Breathe life',
     subtext: 'Bring them to life',
-    tool: toolsUIManifest.find(t => t.id === 'character-animate'),
+    tool: toolsUIManifest.find(tool => tool.id === 'character-animate'),
     icon: Users,
     gradient: 'from-wes-mint via-wes-sage to-wes-dusty-blue', // Cool green-blue (contrasts with warm Join Clips)
     accent: 'wes-mint',
@@ -174,7 +175,22 @@ const assistantTools = [
   },
 ];
 
-const ToolCard = memo(({ item, isSquare = false, index, isVisible }: { item: any, isSquare?: boolean, index?: number, isVisible: boolean }) => {
+interface ToolItem {
+  id: string;
+  name: string;
+  description: string;
+  descriptionMobile?: string;
+  subtext?: string;
+  tool: ToolUIDefinition | undefined | null;
+  icon: LucideIcon;
+  gradient: string;
+  accent: string;
+  darkIconColor?: string;
+  comingSoon?: boolean;
+  isEmpty?: boolean;
+}
+
+const ToolCard = memo(({ item, isSquare = false, index, isVisible }: { item: ToolItem, isSquare?: boolean, index?: number, isVisible: boolean }) => {
   const [isWiggling, setIsWiggling] = useState(false);
   const navigate = useNavigate();
   const { triggerRipple, triggerRippleAtCenter, rippleStyles, isRippleActive } = useClickRipple();
@@ -527,8 +543,8 @@ const ToolSelectorPage: React.FC = () => {
   const bottomMargin = ''; // layoutDirection === 'column' ? 'mb-8' : '';
 
   // Filter visible assistant tools excluding special placeholder items
-  const visibleAssistantTools = assistantTools.filter(t => 
-    t.id !== 'moon-soon' && t.id !== 'empty-placeholder' && isToolVisible(t.tool, t.id)
+  const visibleAssistantTools = assistantTools.filter(tool =>
+    tool.id !== 'moon-soon' && tool.id !== 'empty-placeholder' && isToolVisible(tool.tool, tool.id)
   );
   
   // Determine if "More Soon" and empty placeholder should be shown to avoid gaps in the grid
@@ -542,7 +558,7 @@ const ToolSelectorPage: React.FC = () => {
   // Construct final list of assistant tools to display
   const displayedAssistantTools = [...visibleAssistantTools];
   if (shouldShowMoreSoon) {
-    const moreSoonTool = assistantTools.find(t => t.id === 'moon-soon');
+    const moreSoonTool = assistantTools.find(tool => tool.id === 'moon-soon');
     if (moreSoonTool) {
       displayedAssistantTools.push(moreSoonTool);
     }
@@ -551,7 +567,7 @@ const ToolSelectorPage: React.FC = () => {
     // If so, add an empty placeholder to complete the row
     const newRemainder = displayedAssistantTools.length % columns;
     if (newRemainder !== 0) {
-      const emptyPlaceholder = assistantTools.find(t => t.id === 'empty-placeholder');
+      const emptyPlaceholder = assistantTools.find(tool => tool.id === 'empty-placeholder');
       if (emptyPlaceholder) {
         displayedAssistantTools.push(emptyPlaceholder);
       }

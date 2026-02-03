@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 /** Counts stored per shot */
 interface ShotCounts {
@@ -85,11 +86,11 @@ export function useProjectVideoCountsCache(projectId: string | null) {
   const cacheRef = useRef(globalProjectVideoCountsCache);
 
   // 🎯 SMART POLLING: Use DataFreshnessManager for intelligent polling decisions
-  const smartPollingConfig = useSmartPollingConfig(['project-video-counts', projectId]);
+  const smartPollingConfig = useSmartPollingConfig(queryKeys.projectStats.videos(projectId!));
 
   // Query to fetch all shot video counts for the project
   const { data: projectCounts, isLoading, error, refetch } = useQuery<Map<string, ShotCounts>>({
-    queryKey: ['project-video-counts', projectId],
+    queryKey: queryKeys.projectStats.videos(projectId!),
     queryFn: () => fetchProjectVideoCountsFromDB(projectId!),
     enabled: !!projectId,
     gcTime: 10 * 60 * 1000, // 10 minutes

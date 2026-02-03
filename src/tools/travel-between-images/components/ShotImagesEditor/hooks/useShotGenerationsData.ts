@@ -9,6 +9,7 @@ import { useTimelinePositionUtils } from '@/shared/hooks/useTimelinePositionUtil
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import type { GenerationRow } from '@/types/shots';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 /** Generation row with badge data merged in */
 export interface GenerationWithBadges extends GenerationRow {
@@ -171,7 +172,7 @@ export function useShotGenerationsData({
 
   // Extract generation IDs for variant badge fetching
   const generationIds = useMemo(() =>
-    images.map((img) => img.generation_id || img.id).filter(Boolean) as string[],
+    images.map((img) => getGenerationId(img)).filter(Boolean) as string[],
     [images]
   );
 
@@ -185,7 +186,7 @@ export function useShotGenerationsData({
       return images;
     }
     return images.map((img): GenerationWithBadges => {
-      const generationId = img.generation_id || img.id;
+      const generationId = getGenerationId(img);
       const badgeData = getBadgeData(generationId);
       return {
         ...img,

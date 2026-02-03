@@ -4,6 +4,13 @@ import { handleError } from '@/shared/lib/errorHandler';
 import { GenerationRow } from '@/types/shots';
 import { createImageUpscaleTask } from '@/shared/lib/tasks/imageUpscale';
 import { getDisplayUrl } from '@/shared/lib/utils';
+import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
+
+/** Extended media fields that may be present at runtime from gallery/variant queries */
+interface MediaWithVariantFields {
+  url?: string;
+  variant_type?: string;
+}
 
 export interface UseUpscaleProps {
   media: GenerationRow | undefined;
@@ -46,13 +53,14 @@ export const useUpscale = ({
   // We can detect if it's been upscaled by checking the name or variant info
   // For now, check if name includes 'Upscaled' as a heuristic
   // Guard for undefined media (segment slot mode without video)
+  const mediaExt = media as (GenerationRow & MediaWithVariantFields) | undefined;
   const hasUpscaledVersion = media
-    ? ((media as any).name === 'Upscaled' || (media as any).variant_type === 'upscaled')
+    ? (media.name === 'Upscaled' || mediaExt?.variant_type === 'upscaled')
     : false;
 
   // The URL from media is already the primary variant (upscaled if available)
   const primaryUrl = media
-    ? ((media as any).url || media.imageUrl || media.location || '')
+    ? (getMediaUrl(mediaExt) || media.imageUrl || '')
     : '';
 
   // Track pending upscale tasks using localStorage
@@ -92,7 +100,7 @@ export const useUpscale = ({
       hasUpscaledVersion,
       isPendingUpscale,
       isUpscaling,
-      mediaName: (media as any).name,
+      mediaName: media?.name,
       timestamp: Date.now()
     });
   }, [media?.id, hasUpscaledVersion, isPendingUpscale, isUpscaling, media]);
@@ -141,7 +149,7 @@ export const useUpscale = ({
 
       // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
       // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
-      const actualGenerationId = (media as any).generation_id || media.id;
+      const actualGenerationId = getGenerationId(media);
 
       console.log('[ImageUpscale] Starting upscale for generation:', actualGenerationId);
 
@@ -189,7 +197,7 @@ export const useUpscale = ({
       mediaId: media.id.substring(0, 8),
       effectiveImageUrl: effectiveImageUrl?.substring(0, 50),
       hasUpscaledVersion,
-      mediaName: (media as any).name,
+      mediaName: media?.name,
     });
   }
   

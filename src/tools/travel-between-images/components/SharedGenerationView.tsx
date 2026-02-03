@@ -28,7 +28,7 @@ interface SharedGenerationViewProps {
   shareData: {
     shot_id: string;
     shot_name: string;
-    generation: any;
+    generation: GenerationRow;
     images: GenerationRow[];  // Same format as useShotImages
     settings: VideoTravelSettings;  // Same format as useShotSettings
     creator_id: string | null;
@@ -65,9 +65,9 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
 
   // Debug: Log what we received from RPC
   const videoImages = images?.filter(img => img.type?.includes('video')) || [];
-  const imagesWithParent = images?.filter(img => (img as any).parent_generation_id) || [];
-  const parentVideos = videoImages.filter(v => !(v as any).parent_generation_id);
-  const childVideos = videoImages.filter(v => (v as any).parent_generation_id);
+  const imagesWithParent = images?.filter(img => img.parent_generation_id) || [];
+  const parentVideos = videoImages.filter(v => !v.parent_generation_id);
+  const childVideos = videoImages.filter(v => v.parent_generation_id);
 
   console.log('[SharedGenerationView] Data from RPC:', {
     shot_id: shareData.shot_id,
@@ -87,11 +87,11 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
     childVideos: childVideos.slice(0, 5).map(img => ({
       id: img.id?.substring(0, 8),
       generation_id: img.generation_id?.substring(0, 8),
-      parent_generation_id: (img as any).parent_generation_id?.substring(0, 8),
-      child_order: (img as any).child_order,
+      parent_generation_id: img.parent_generation_id?.substring(0, 8),
+      child_order: img.child_order,
       type: img.type,
       hasLocation: !!img.imageUrl || !!img.location,
-      pair_shot_generation_id: (img as any).pair_shot_generation_id?.substring(0, 8),
+      pair_shot_generation_id: img.pair_shot_generation_id?.substring(0, 8),
     })),
 
     // Parent videos
@@ -99,7 +99,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
       id: img.id?.substring(0, 8),
       generation_id: img.generation_id?.substring(0, 8),
       type: img.type,
-      hasOrchestratorDetails: !!(img.params as any)?.orchestrator_details,
+      hasOrchestratorDetails: !!(img.params as Record<string, unknown>)?.orchestrator_details,
     })),
 
     // All images summary
@@ -109,7 +109,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
       type: img.type,
       timeline_frame: img.timeline_frame,
       hasLocation: !!img.imageUrl || !!img.location,
-      parent_generation_id: (img as any).parent_generation_id?.substring(0, 8),
+      parent_generation_id: img.parent_generation_id?.substring(0, 8),
     }))
   });
 

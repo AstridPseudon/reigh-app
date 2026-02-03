@@ -19,7 +19,7 @@ export interface ShotGenerationMetadata {
   userPositioned?: boolean;
   frameSpacing?: number;
   autoInitialized?: boolean;
-  [key: string]: any; // Allow for future metadata fields
+  [key: string]: unknown; // Allow for future metadata fields
 }
 
 interface UseShotGenerationMetadataOptions {

@@ -35,7 +35,7 @@ export const useAIInteractionService = ({
           includeExistingContext: params.includeExistingContext,
         });
         
-        const data = await invokeWithTimeout<any>('ai-prompt', {
+        const data = await invokeWithTimeout<{ prompts?: string[] }>('ai-prompt', {
           body: {
             task: 'generate_prompts',
             overallPromptText: params.overallPromptText,
@@ -46,10 +46,10 @@ export const useAIInteractionService = ({
           },
           timeoutMs: 20000,
         });
-        
+
         console.log(`[RemixContextDebug] Request sent to edge function with ${params.existingPrompts?.length ?? 0} existing prompts`);
 
-        const generatedTexts: string[] = (data as any)?.prompts ?? [];
+        const generatedTexts: string[] = data?.prompts ?? [];
 
         const newPrompts: AIPromptItem[] = [];
         for (const text of generatedTexts) {
@@ -86,14 +86,14 @@ export const useAIInteractionService = ({
 
       try {
         // Invoke the new edge function
-        const data = await invokeWithTimeout<any>('ai-prompt', {
+        const data = await invokeWithTimeout<{ summary?: string }>('ai-prompt', {
           body: {
             task: 'generate_summary',
             promptText },
           timeoutMs: 20000,
         });
 
-        return (data as any)?.summary || null;
+        return data?.summary || null;
       } catch (error) {
         handleError(error, { context: 'useAIInteractionService', showToast: false });
         return null;
@@ -110,7 +110,7 @@ export const useAIInteractionService = ({
       
       try {
         // Invoke the new edge function
-        const result = await invokeWithTimeout<any>('ai-prompt', {
+        const result = await invokeWithTimeout<{ newText?: string }>('ai-prompt', {
           body: {
             task: 'edit_prompt',
             originalPromptText: params.originalPromptText,

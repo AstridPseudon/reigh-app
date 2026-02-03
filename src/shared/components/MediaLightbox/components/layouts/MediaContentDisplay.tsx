@@ -13,8 +13,11 @@ import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
 import { MediaDisplayWithCanvas } from '../MediaDisplayWithCanvas';
 import VideoEditModeDisplay from '../VideoEditModeDisplay';
 import VideoTrimModeDisplay from '../VideoTrimModeDisplay';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import type { BrushStroke, AnnotationMode } from '../../hooks/useInpainting';
 import type { EditMode } from '../../hooks/useGenerationEditSettings';
+import type { StrokeOverlayHandle } from '../StrokeOverlay';
+import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 
 interface MediaContentDisplayProps {
   // Media type
@@ -32,9 +35,9 @@ interface MediaContentDisplayProps {
   // Video edit mode props
   videoEditing?: {
     videoRef: React.RefObject<HTMLVideoElement>;
-    selections: any[];
+    selections: PortionSelection[];
     activeSelectionId: string | null;
-    handleUpdateSelection: (id: string, updates: any) => void;
+    handleUpdateSelection: (id: string, start: number, end: number) => void;
     setActiveSelectionId: (id: string | null) => void;
     handleRemoveSelection: (id: string) => void;
     handleAddSelection: () => void;
@@ -80,11 +83,11 @@ interface MediaContentDisplayProps {
   brushSize: number;
   annotationMode: AnnotationMode | null;
   selectedShapeId: string | null;
-  onStrokePointerDown: (e: any) => void;
-  onStrokePointerMove: (e: any) => void;
-  onStrokePointerUp: (e: any) => void;
-  onShapeClick: (id: string) => void;
-  strokeOverlayRef: React.RefObject<any>;
+  onStrokePointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
+  onStrokePointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
+  onStrokePointerUp: (e: KonvaEventObject<PointerEvent>) => void;
+  onShapeClick: (strokeId: string, point: { x: number; y: number }) => void;
+  strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
 
   // Layout variant
   variant: 'desktop-side-panel' | 'mobile-stacked' | 'regular-centered';

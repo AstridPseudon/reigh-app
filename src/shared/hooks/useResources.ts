@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
-import { PhaseConfig } from '@/tools/travel-between-images/settings';
+import { PhaseConfig } from '@/shared/types/phaseConfig';
 import { supabase } from '@/integrations/supabase/client';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
@@ -92,7 +92,7 @@ export const useListPublicResources = (type: ResourceType) => {
             console.log('[PublicResources] Fetching public resources (v2 - paginated):', { type, timestamp: Date.now() });
             
             // Manual pagination to bypass 1000 limit
-            let allData: any[] = [];
+            let allData: Resource[] = [];
             let page = 0;
             const pageSize = 1000;
             let hasMore = true;
@@ -153,7 +153,7 @@ export const useListResources = (type: ResourceType) => {
             if (!user) throw new Error('Not authenticated');
             
             // Manual pagination to bypass 1000 limit
-            let allData: any[] = [];
+            let allData: Resource[] = [];
             let page = 0;
             const pageSize = 1000;
             let hasMore = true;
@@ -191,7 +191,7 @@ export const useListResources = (type: ResourceType) => {
 };
 
 // Create a new resource
-interface CreateResourceArgs {
+export interface CreateResourceArgs {
     type: ResourceType;
     metadata: ResourceMetadata;
 }
@@ -204,7 +204,7 @@ export const useCreateResource = () => {
             if (!user) throw new Error('Not authenticated');
             
             // Extract is_public from metadata for the column
-            const isPublic = 'is_public' in metadata ? Boolean((metadata as any).is_public) : false;
+            const isPublic = 'is_public' in metadata ? Boolean((metadata as Record<string, unknown>).is_public) : false;
             
             const { data, error } = await supabase
                 .from('resources')
@@ -231,7 +231,7 @@ export const useCreateResource = () => {
 };
 
 // Update a resource
-interface UpdateResourceArgs {
+export interface UpdateResourceArgs {
     id: string;
     type: ResourceType;
     metadata: ResourceMetadata;
@@ -297,7 +297,7 @@ export const useUpdateResource = () => {
             console.log('[useUpdateResource] Resource verified:', existingResource);
             
             // Extract is_public from metadata for the column
-            const isPublic = 'is_public' in metadata ? Boolean((metadata as any).is_public) : false;
+            const isPublic = 'is_public' in metadata ? Boolean((metadata as Record<string, unknown>).is_public) : false;
             
             // Now perform the update
             const { data, error } = await supabase
@@ -384,7 +384,7 @@ export const useDeleteResource = () => {
         },
         onSuccess: (data, variables) => {
             // Remove the individual resource cache entry
-            queryClient.removeQueries({ queryKey: ['resource', variables.id] });
+            queryClient.removeQueries({ queryKey: queryKeys.resources.detail(variables.id) });
             // Also invalidate the list queries
             queryClient.invalidateQueries({ queryKey: [...queryKeys.resources.all, variables.type] });
             queryClient.invalidateQueries({ queryKey: queryKeys.resources.public(variables.type) });

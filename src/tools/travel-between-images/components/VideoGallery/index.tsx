@@ -13,7 +13,8 @@ import MediaLightbox from '@/shared/components/MediaLightbox';
 import TaskDetailsModal from '../TaskDetailsModal';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUnifiedGenerations, usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import { useVideoOutputs } from '@/shared/hooks/useShotImages';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
 import { useGenerationTaskPreloader, useEnhancedGenerations } from '@/shared/contexts/GenerationTaskContext';
 import { useVideoCountCache } from '@/shared/hooks/useVideoCountCache';
@@ -38,7 +39,6 @@ import { useContainerWidth } from '@/shared/components/MediaGallery/hooks';
 import { getLayoutForAspectRatio, GRID_COLUMN_CLASSES, SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import {
   sortVideoOutputsByDate,
-  transformUnifiedGenerationsData,
   logVideoLoadingStrategy
 } from './utils/video-loading-utils';
 import {
@@ -221,10 +221,10 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     if (typeof window === 'undefined') return isMobile;
     try {
       const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      const ua = (navigator as any)?.userAgent || '';
+      const ua = navigator.userAgent || '';
       const tabletUA = /iPad|Tablet|Android(?!.*Mobile)|Silk|Kindle|PlayBook/i.test(ua);
-      const maxTouchPoints = (navigator as any)?.maxTouchPoints || 0;
-      const isIpadOsLike = (navigator as any)?.platform === 'MacIntel' && maxTouchPoints > 1;
+      const maxTouchPoints = navigator.maxTouchPoints || 0;
+      const isIpadOsLike = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
       const result = Boolean(isMobile || coarsePointer || tabletUA || isIpadOsLike);
       
       // ALWAYS log to help diagnose autoplay issues
@@ -237,7 +237,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
         finalResult: result,
         expectedBehavior: result ? 'STATIC_IMAGES_ONLY' : 'VIDEO_SCRUBBING_ENABLED',
         userAgent: ua.substring(0, 80),
-        platform: (navigator as any)?.platform,
+        platform: navigator.platform,
         timestamp: Date.now()
       });
       
@@ -313,12 +313,6 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     }
   }, [shotId, setCachedCount]);
 
-  // Stable filters object to prevent infinite re-renders
-  const filters = useMemo(() => ({
-    mediaType: 'video' as const, // Only get videos for this gallery
-    starredOnly: showStarredOnly, // Apply starred filter at server level
-  }), [showStarredOnly]);
-
   // Debug logging for hook inputs
   console.log('[VideoGenMissing] VideoOutputsGallery props received:', {
     projectId,
@@ -327,64 +321,57 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     timestamp: Date.now()
   });
 
-  // Use preloaded data if provided, otherwise fetch from database with SERVER-SIDE pagination
-  const { data: fetchedGenerationsData, isLoading: isLoadingGenerations, isFetching: isFetchingGenerations, isPlaceholderData, error: generationsError } = useUnifiedGenerations({
-    projectId,
-    mode: 'shot-specific',
-    shotId,
-    page: currentPage, // Server-side pagination
-    limit: itemsPerPage, // Only fetch current page
-    filters,
-    includeTaskData: false, // We'll load task data on-demand for hover/lightbox
-    preloadTaskData: true, // Background preload for better UX
-    enabled: !preloadedGenerations && !!(projectId && shotId), // Disable if preloaded data provided
-  });
+  // Use useVideoOutputs selector (built on useShotImages)
+  // This fetches all shot data once, then filters to videos client-side
+  const {
+    data: fetchedVideoOutputs,
+    isLoading: isLoadingGenerations,
+    isFetching: isFetchingGenerations,
+    isPlaceholderData,
+    error: generationsError
+  } = useVideoOutputs(preloadedGenerations ? null : shotId);
 
-  // Use preloaded data if provided, otherwise use fetched data
-  const generationsData = preloadedGenerations
-    ? { items: preloadedGenerations, total: preloadedGenerations.length }
-    : fetchedGenerationsData;
+  // All video outputs (preloaded or fetched)
+  const allVideoOutputs = useMemo(() => {
+    const source = preloadedGenerations || fetchedVideoOutputs || [];
 
-
-  // Get video outputs from unified data (already paginated from server)
-  const videoOutputs = useMemo(() => {
     console.log(`[VideoGalleryPreload] VIDEO_OUTPUTS_PROCESSING:`, {
-      hasGenerationsData: !!(generationsData as any)?.items,
-      itemCount: (generationsData as any)?.items?.length || 0,
-      total: (generationsData as any)?.total || 0,
-      currentPage,
-      serverSidePagination: true,
+      hasData: source.length > 0,
+      itemCount: source.length,
+      source: preloadedGenerations ? 'preloaded' : 'fetched',
       processingStarted: Date.now()
     });
 
-    if (!(generationsData as any)?.items) {
-      console.log(`[VideoGalleryPreload] VIDEO_OUTPUTS_EMPTY: No generations data items`);
-      return [];
+    // Apply starred filter client-side
+    if (showStarredOnly) {
+      return source.filter(v => v.starred);
     }
+    return source;
+  }, [preloadedGenerations, fetchedVideoOutputs, showStarredOnly]);
 
-    // Debug log the raw data structure to see thumbnails
-    console.log('[ThumbnailDebug] Raw generationsData.items:', {
-      itemCount: (generationsData as any).items.length,
-      firstItem: (generationsData as any).items[0],
-      itemsWithThumbs: (generationsData as any).items.filter((item: any) => item.thumbUrl && item.thumbUrl !== item.url).length,
+  // Total count for pagination
+  const totalVideoCount = allVideoOutputs.length;
+
+  // Calculate total pages for client-side pagination
+  const totalPages = Math.ceil(totalVideoCount / itemsPerPage);
+
+  // Client-side pagination - get current page items
+  const videoOutputs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageItems = allVideoOutputs.slice(startIndex, endIndex);
+
+    console.log(`[VideoGalleryPreload] VIDEO_OUTPUTS_PAGINATED:`, {
+      totalCount: allVideoOutputs.length,
+      currentPage,
+      startIndex,
+      endIndex,
+      pageItemCount: pageItems.length,
       timestamp: Date.now()
     });
 
-    const transformed = transformUnifiedGenerationsData((generationsData as any).items);
-    console.log(`[VideoGalleryPreload] VIDEO_OUTPUTS_TRANSFORMED:`, {
-      originalCount: (generationsData as any).items.length,
-      transformedCount: transformed.length,
-      transformedItems: transformed.map(item => ({
-        id: item.id?.substring(0, 8),
-        hasThumbUrl: !!item.thumbUrl,
-        thumbUrl: item.thumbUrl?.substring(item.thumbUrl.lastIndexOf('/') + 1) || 'none'
-      })),
-      timestamp: Date.now()
-    });
-
-
-    return transformed;
-  }, [(generationsData as any)?.items, currentPage]);
+    return pageItems;
+  }, [allVideoOutputs, currentPage, itemsPerPage]);
 
   // Enhanced generations with automatic task data preloading via context
   const enhancedVideoOutputs = useEnhancedGenerations(videoOutputs);
@@ -432,19 +419,17 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     setShareSlugs(prev => ({ ...prev, [videoId]: shareSlug }));
   }, []);
 
-  // Server already sorted and filtered data - just use it directly
-  // No need for client-side sorting since database handles it efficiently
+  // Sort videos by date (newest first) since useVideoOutputs returns timeline order
   const sortedVideoOutputs = useMemo(() => {
-    console.log(`[VideoGalleryPreload] VIDEO_OUTPUTS_FROM_SERVER:`, {
-      count: videoOutputs.length,
+    const sorted = sortVideoOutputsByDate(videoOutputs);
+    console.log(`[VideoGalleryPreload] VIDEO_OUTPUTS_SORTED:`, {
+      count: sorted.length,
       currentPage,
       showStarredOnly,
-      serverHandlesSorting: true,
-      serverHandlesFiltering: true,
-      videoIds: videoOutputs.slice(0, 5).map(item => item.id?.substring(0, 8)),
+      videoIds: sorted.slice(0, 5).map(item => item.id?.substring(0, 8)),
       timestamp: Date.now()
     });
-    return videoOutputs; // Already sorted and filtered by server
+    return sorted;
   }, [videoOutputs, currentPage, showStarredOnly]);
 
   // External generations hook (same as ShotImageManager and Timeline)
@@ -464,9 +449,8 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     return [...filtered, ...externalGens.externalGenerations, ...externalGens.tempDerivedGenerations];
   }, [sortedVideoOutputs, optimisticallyRemovedIds, externalGens.externalGenerations, externalGens.tempDerivedGenerations]);
 
-  // Server-side pagination - data is already paginated, just calculate total pages
-  const totalPages = Math.ceil(((generationsData as any)?.total || 0) / itemsPerPage);
-  const currentVideoOutputs = displaySortedVideoOutputs; // Already paginated from server
+  // Client-side pagination - displaySortedVideoOutputs is already sliced to current page
+  const currentVideoOutputs = displaySortedVideoOutputs;
 
   // Page change handler - updates server query
   const handlePageChange = useCallback((page: number) => {
@@ -479,17 +463,16 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
 
   // DEEP DEBUG: Log pagination changes
   useEffect(() => {
-    console.log(`[VideoGalleryPreload] SERVER_PAGINATION_STATE:`, {
+    console.log(`[VideoGalleryPreload] PAGINATION_STATE:`, {
       currentPage,
       totalPages,
       itemsPerPage,
-      totalVideos: (generationsData as any)?.total || 0,
+      totalVideos: totalVideoCount,
       currentPageItemsCount: currentVideoOutputs.length,
       currentVideoIds: currentVideoOutputs.slice(0, 3).map(item => item.id?.substring(0, 8)),
-      serverSidePagination: true,
       timestamp: Date.now()
     });
-  }, [currentPage, totalPages, currentVideoOutputs.length, generationsData]);
+  }, [currentPage, totalPages, currentVideoOutputs.length, totalVideoCount]);
 
   // ===============================================================================
   // BACKGROUND THUMBNAIL GENERATION
@@ -556,32 +539,28 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
   // ===============================================================================
 
 
-  // Track when generationsData becomes available and cache video count
+  // Track when video data becomes available and cache video count
   useEffect(() => {
-    const newTotal = (generationsData as any)?.total;
-    const projectVideoCount = getShotVideoCount?.(shotId) ?? null;
-
-    if (shotId && typeof newTotal === 'number' && newTotal >= 0) {
+    if (shotId && !isLoadingGenerations && !generationsError) {
       // Always update cache immediately when we get valid data (including 0)
-      setCachedCount(shotId, newTotal);
+      setCachedCount(shotId, totalVideoCount);
 
       // Only update lastGoodCountRef if we have a positive count or it's the first time
-      if (newTotal > 0 || lastGoodCountRef.current === null) {
-        lastGoodCountRef.current = newTotal;
+      if (totalVideoCount > 0 || lastGoodCountRef.current === null) {
+        lastGoodCountRef.current = totalVideoCount;
       }
-      // If newTotal is 0 but we had a good count before, don't update lastGoodCountRef
+      // If totalVideoCount is 0 but we had a good count before, don't update lastGoodCountRef
       // (protects against transient data loss during cache invalidation)
     }
-  }, [generationsData, isLoadingGenerations, isFetchingGenerations, generationsError, shotId, setCachedCount, getShotVideoCount, invalidateVideoCountsCache]);
+  }, [totalVideoCount, isLoadingGenerations, generationsError, shotId, setCachedCount]);
 
   // Get cached video count from shot_statistics
   const cachedCountRaw = getShotVideoCount?.(shotId);
   // If project cache hasn't loaded yet but local shot data hints 0 videos, treat as 0
   const cachedCount = (typeof cachedCountRaw === 'number') ? cachedCountRaw : (localZeroHint ? 0 : null);
-  
+
   // Determine if we've received a definitive answer from the server
-  const serverTotal = (generationsData as any)?.total;
-  const hasServerResponse = typeof serverTotal === 'number';
+  const hasServerResponse = !isLoadingGenerations && fetchedVideoOutputs !== undefined;
   
   // Update lastFreshDataShotIdRef when we receive fresh (non-placeholder) data for this shot
   // This tracks which shot's data we're actually displaying
@@ -602,14 +581,14 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     willShowSkeleton: shouldShowSkeleton,
     skeletonCount,
     cachedCount,
-    serverTotal,
+    totalVideoCount,
     actualVideos: videoOutputs.length,
     hasServerResponse,
     isFetching: isFetchingGenerations,
     isPlaceholderData,
     isPlaceholderFromDifferentShot,
     lastFreshDataShotId: lastFreshDataShotIdRef.current?.substring(0, 8),
-    reason: shouldShowSkeleton 
+    reason: shouldShowSkeleton
       ? (isLoadingGenerations ? 'isLoading=true' : 'placeholder from different shot')
       : (videoOutputs.length > 0 ? 'have videos' : 'server says 0'),
   });
@@ -620,8 +599,8 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
     !shouldShowSkeleton &&
     (
       (sortedVideoOutputs.length === 0 && effectiveZero) ||
-      // Only trust serverTotal=0 once we're not actively fetching (prevents placeholder empty flash)
-      (!isFetchingGenerations && hasServerResponse && serverTotal === 0 && sortedVideoOutputs.length === 0)
+      // Only trust totalVideoCount=0 once we're not actively fetching (prevents placeholder empty flash)
+      (!isFetchingGenerations && hasServerResponse && totalVideoCount === 0 && sortedVideoOutputs.length === 0)
     )
   );
 
@@ -697,7 +676,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
 
   // Helper to check if a video has a valid output URL
   const hasOutputUrl = useCallback((video: GenerationRow): boolean => {
-    return !!(video.location || (video as any).url || video.imageUrl);
+    return !!(video.location || video.imageUrl);
   }, []);
 
   // Base lightbox navigation (without derived mode) - skips items without output URLs
@@ -1015,7 +994,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
           totalPages={totalPages}
           currentPage={currentPage}
           cachedCount={cachedCount}
-          totalCount={(generationsData as any)?.total}
+          totalCount={totalVideoCount}
           showStarredOnly={showStarredOnly}
           onStarredFilterChange={setShowStarredOnly}
         />
@@ -1115,7 +1094,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
               totalCount: displaySortedVideoOutputs.length
             });
             // Search in combined videos (sorted + external + derived)
-            const index = displaySortedVideoOutputs.findIndex((video: any) => video.id === generationId);
+            const index = displaySortedVideoOutputs.findIndex((video) => video.id === generationId);
             if (index !== -1) {
               console.log('[VideoGallery:DerivedNav] ✅ Found at index', index);
               setLightboxIndex(index);

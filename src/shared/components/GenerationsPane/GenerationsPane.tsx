@@ -276,14 +276,14 @@ const GenerationsPaneComponent: React.FC = () => {
         performanceMonitoredTimeout(async () => {
           await measureAsync(
             () => queryClient.prefetchQuery({
-              queryKey: ['unified-generations', 'project', selectedProjectId, nextPage, GENERATIONS_PER_PAGE, filters],
+              queryKey: queryKeys.unified.byProject(selectedProjectId, nextPage, GENERATIONS_PER_PAGE, filters),
               queryFn: () => fetchGenerations(selectedProjectId, GENERATIONS_PER_PAGE, (nextPage - 1) * GENERATIONS_PER_PAGE, filters),
               staleTime: 30 * 1000,
             }),
             'Next page query'
           ).then(() => {
-            const cached = queryClient.getQueryData(['unified-generations', 'project', selectedProjectId, nextPage, GENERATIONS_PER_PAGE, filters]) as any;
-            
+            const cached = queryClient.getQueryData(queryKeys.unified.byProject(selectedProjectId, nextPage, GENERATIONS_PER_PAGE, filters)) as { items?: { thumbUrl?: string; url?: string }[] } | null;
+
             // Time-slice the image preloading
             performanceMonitoredTimeout(() => {
               smartPreloadImages(cached, 'next', prefetchId, prefetchOperationsRef);
@@ -297,14 +297,14 @@ const GenerationsPaneComponent: React.FC = () => {
         performanceMonitoredTimeout(async () => {
           await measureAsync(
             () => queryClient.prefetchQuery({
-              queryKey: ['unified-generations', 'project', selectedProjectId, prevPage, GENERATIONS_PER_PAGE, filters],
+              queryKey: queryKeys.unified.byProject(selectedProjectId, prevPage, GENERATIONS_PER_PAGE, filters),
               queryFn: () => fetchGenerations(selectedProjectId, GENERATIONS_PER_PAGE, (prevPage - 1) * GENERATIONS_PER_PAGE, filters),
               staleTime: 30 * 1000,
             }),
             'Previous page query'
           ).then(() => {
-            const cached = queryClient.getQueryData(['unified-generations', 'project', selectedProjectId, prevPage, GENERATIONS_PER_PAGE, filters]) as any;
-            
+            const cached = queryClient.getQueryData(queryKeys.unified.byProject(selectedProjectId, prevPage, GENERATIONS_PER_PAGE, filters)) as { items?: { thumbUrl?: string; url?: string }[] } | null;
+
             // Time-slice the image preloading
             performanceMonitoredTimeout(() => {
               smartPreloadImages(cached, 'prev', prefetchId, prefetchOperationsRef);

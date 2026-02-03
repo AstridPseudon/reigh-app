@@ -56,7 +56,7 @@ export const ModalsSection: React.FC<ModalsSectionProps> = ({
             "Model ID": lora.id,
             Name: lora.name,
             strength: lora.strength,
-          } as any;
+          } as LoraModel & { strength: number };
         })}
         lora_type="Wan 2.1 14b"
       />

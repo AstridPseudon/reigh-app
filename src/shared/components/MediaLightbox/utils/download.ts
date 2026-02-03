@@ -1,12 +1,15 @@
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { isAbortError } from '@/shared/lib/errorUtils';
+import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
 
 /**
  * Detect if running as iOS/iPadOS PWA (standalone mode)
  */
 const isIOSPwa = (): boolean => {
   // Check if running in standalone mode (PWA)
-  const isStandalone = (window.navigator as any).standalone === true ||
+  const nav = window.navigator as NavigatorWithDeviceInfo;
+  const isStandalone = nav.standalone === true ||
     window.matchMedia('(display-mode: standalone)').matches;
   
   // Check if iOS/iPadOS
@@ -203,8 +206,8 @@ export const downloadMedia = async (url: string, mediaId: string, isVideo: boole
       timestamp: Date.now()
     });
     
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (isAbortError(error)) {
       handleError(error, { context: 'downloadMedia', toastTitle: 'Download timed out. Please try again.' });
       return; // Don't try fallback for timeout
     }

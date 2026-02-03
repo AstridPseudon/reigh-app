@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/types/shots';
+import { Task } from '@/types/tasks';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandler';
 
@@ -12,7 +13,7 @@ import { handleError } from '@/shared/lib/errorHandler';
 // 
 // Previously duplicated in:
 // - useGenerations.ts (getTaskIdForGeneration)
-// - useUnifiedGenerations.ts (preloadTaskDataInBackground)
+// - useTaskPrefetch.ts (preloadTaskDataInBackground)
 // - TaskDetailsModal.tsx (getTaskIdMutation)
 // - TaskItem.tsx (generation-for-task lookup)
 // - VideoOutputsGallery.tsx (manual preloading)
@@ -24,7 +25,7 @@ import { handleError } from '@/shared/lib/errorHandler';
 export interface GenerationTaskMapping {
   generationId: string;
   taskId: string | null;
-  taskData?: any; // Full task object when available
+  taskData?: Task; // Full task object when available
 }
 
 export interface TaskGenerationMapping {
@@ -181,7 +182,7 @@ export function useTaskData(taskId: string | null) {
  */
 export async function preloadGenerationTaskMappings(
   generationIds: string[], 
-  queryClient: any,
+  queryClient: QueryClient,
   options: {
     batchSize?: number;
     delayBetweenBatches?: number;
@@ -240,13 +241,13 @@ export async function preloadGenerationTaskMappings(
 /**
  * Invalidate all caches related to a specific generation-task relationship
  */
-export function invalidateGenerationTaskCaches(queryClient: any, generationId: string, taskId?: string) {
+export function invalidateGenerationTaskCaches(queryClient: QueryClient, generationId: string, taskId?: string) {
   // Invalidate the mapping
   queryClient.invalidateQueries({ queryKey: queryKeys.tasks.generationMapping(generationId) });
 
   if (taskId) {
     // Invalidate task data
-    queryClient.invalidateQueries({ queryKey: [...queryKeys.tasks.all, 'single', taskId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.single(taskId) });
     // Invalidate reverse mapping
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.taskMapping(taskId) });
   }
@@ -263,7 +264,7 @@ export function extractTaskIds(generations: (GenerationRow | { tasks?: string[] 
   const taskIds: string[] = [];
   
   generations.forEach(gen => {
-    const tasks = (gen as any).tasks;
+    const tasks = 'tasks' in gen ? gen.tasks : undefined;
     if (Array.isArray(tasks) && tasks.length > 0) {
       taskIds.push(tasks[0]); // First task ID
     }
@@ -277,15 +278,15 @@ export function extractTaskIds(generations: (GenerationRow | { tasks?: string[] 
  */
 export function enhanceGenerationsWithTaskData(
   generations: GenerationRow[],
-  queryClient: any
-): (GenerationRow & { taskId?: string | null; taskData?: any })[] {
+  queryClient: QueryClient
+): (GenerationRow & { taskId?: string | null; taskData?: Task | null })[] {
   return generations.map(generation => {
     // Try to get cached task mapping
-    const cachedMapping = queryClient.getQueryData(queryKeys.tasks.generationMapping(generation.id));
+    const cachedMapping = queryClient.getQueryData<{ taskId: string | null }>(queryKeys.tasks.generationMapping(generation.id));
     const taskId = cachedMapping?.taskId || null;
 
     // Try to get cached task data
-    const taskData = taskId ? queryClient.getQueryData([...queryKeys.tasks.all, 'single', taskId]) : null;
+    const taskData = taskId ? queryClient.getQueryData<Task>([...queryKeys.tasks.all, 'single', taskId]) : null;
     
     return {
       ...generation,

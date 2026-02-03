@@ -123,7 +123,7 @@ export function useTaskLog(
 
       // Get cost information for these tasks
       const taskIds = tasksData?.map(task => task.id) || [];
-      let costsData: any[] = [];
+      let costsData: { task_id: string; amount: number; created_at: string }[] = [];
       
       if (taskIds.length > 0) {
         const { data: costs } = await supabase

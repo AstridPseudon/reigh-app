@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Shot, GenerationRow } from '@/types/shots';
 import { mapShotGenerationToRow } from './mappers';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 // ============================================================================
 // LIST SHOTS
@@ -23,7 +25,7 @@ export const useListShots = (
   const { maxImagesPerShot = 0 } = options;
 
   return useQuery({
-    queryKey: ['shots', projectId, maxImagesPerShot],
+    queryKey: projectId ? queryKeys.shots.list(projectId, maxImagesPerShot) : ['shots', projectId, maxImagesPerShot],
     queryFn: async () => {
       if (!projectId) {
         return [];
@@ -116,7 +118,7 @@ export const useListShots = (
         const positionedGenIds = new Set<string>();
 
         images.forEach(img => {
-          const genId = img.generation_id || img.id;
+          const genId = getGenerationId(img);
           uniqueGenIds.add(genId);
           if (img.timeline_frame == null) {
             unpositionedGenIds.add(genId);
@@ -161,7 +163,7 @@ export const useListShots = (
  */
 export const useProjectImageStats = (projectId?: string | null) => {
   return useQuery({
-    queryKey: ['project-image-stats', projectId],
+    queryKey: queryKeys.projectStats.images(projectId),
     queryFn: async () => {
       if (!projectId) return { allCount: 0, noShotCount: 0 };
 

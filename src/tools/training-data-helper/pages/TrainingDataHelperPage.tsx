@@ -33,7 +33,7 @@ export default function TrainingDataHelperPage() {
 
   // Clear selection if the selected video no longer exists
   useEffect(() => {
-    if (selectedVideo && !videos.find(v => v.id === selectedVideo)) {
+    if (selectedVideo && !videos.find(video => video.id === selectedVideo)) {
       console.log(`[TrainingDataHelperPage] Selected video ${selectedVideo} no longer exists, clearing selection`);
       setSelectedVideo(null);
     }
@@ -64,8 +64,8 @@ export default function TrainingDataHelperPage() {
     }
   };
 
-  const selectedVideoData = selectedVideo ? videos.find(v => v.id === selectedVideo) : null;
-  const videoSegments = selectedVideo ? segments.filter(s => s.trainingDataId === selectedVideo) : [];
+  const selectedVideoData = selectedVideo ? videos.find(video => video.id === selectedVideo) : null;
+  const videoSegments = selectedVideo ? segments.filter(segment => segment.trainingDataId === selectedVideo) : [];
 
 
 

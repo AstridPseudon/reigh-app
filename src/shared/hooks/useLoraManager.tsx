@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useToolSettings } from './useToolSettings';
 import { handleError } from '@/shared/lib/errorHandler';
 import { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/shared/components/ui/tooltip';
 import { Button } from '@/shared/components/ui/button';
 
@@ -39,7 +40,7 @@ export interface UseLoraManagerReturn {
   setIsLoraModalOpen: (open: boolean) => void;
   
   // Core handlers
-  handleAddLora: (lora: any, isManualAction?: boolean, initialStrength?: number) => void;
+  handleAddLora: (lora: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
   handleRemoveLora: (loraId: string) => void;
   handleLoraStrengthChange: (loraId: string, strength: number) => void;
   
@@ -64,7 +65,7 @@ export interface UseLoraManagerReturn {
 }
 
 export const useLoraManager = (
-  availableLoras: any[] = [],
+  availableLoras: LoraModel[] = [],
   options: UseLoraManagerOptions = {}
 ): UseLoraManagerReturn => {
   const {
@@ -150,7 +151,7 @@ export const useLoraManager = (
   }, []);
 
   // Core handlers with universal user tracking
-  const handleAddLora = useCallback((loraToAdd: any, isManualAction = true, initialStrength?: number) => {
+  const handleAddLora = useCallback((loraToAdd: LoraModel, isManualAction = true, initialStrength?: number) => {
     console.log(`[LoRA] handleAddLora called for ${loraToAdd["Model ID"]} (manual: ${isManualAction}, strength: ${initialStrength || 1.0})`);
     // Use the ref to ensure we are checking against the most up-to-date selection.
     if (selectedLorasRef.current.find(sl => sl.id === loraToAdd["Model ID"])) {

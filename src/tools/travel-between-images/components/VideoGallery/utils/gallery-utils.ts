@@ -1,5 +1,8 @@
 import { GenerationRow } from '@/types/shots';
 
+// Re-export from shared for backwards compatibility
+export { extractSegmentImages, type SegmentImageInfo } from '@/shared/lib/galleryUtils';
+
 /**
  * Mobile double-tap detection logic with video preloading on first tap
  */
@@ -73,112 +76,6 @@ export const createMobileTapHandler = (
     }
     
     lastTouchTimeRef.current = currentTime;
-  };
-};
-
-/**
- * Derive input images from task params
- * Strips any surrounding quotes from URLs that may have been improperly stored
- * For segment tasks (child generations), returns empty array since they don't have
- * their own input images - they inherit from the parent orchestrator
- */
-export const deriveInputImages = (task: any): string[] => {
-  const cleanUrl = (url: string): string => {
-    if (typeof url !== 'string') return url;
-    // Remove surrounding quotes if present
-    return url.replace(/^["']|["']$/g, '');
-  };
-  
-  const p = task?.params || {};
-  
-  // For segment tasks, don't show the parent's input images
-  // Segments are generated from the video flow, not from input images
-  if (p.segment_index !== undefined) {
-    return [];
-  }
-  
-  if (Array.isArray(p.input_images) && p.input_images.length > 0) {
-    return p.input_images.map(cleanUrl);
-  }
-  if (p.full_orchestrator_payload && Array.isArray(p.full_orchestrator_payload.input_image_paths_resolved)) {
-    return p.full_orchestrator_payload.input_image_paths_resolved.map(cleanUrl);
-  }
-  // Check orchestrator_details for input images (parent/orchestrator tasks store data here)
-  if (p.orchestrator_details && Array.isArray(p.orchestrator_details.input_image_paths_resolved)) {
-    return p.orchestrator_details.input_image_paths_resolved.map(cleanUrl);
-  }
-  if (Array.isArray(p.input_image_paths_resolved)) {
-    return p.input_image_paths_resolved.map(cleanUrl);
-  }
-  return [];
-};
-
-/**
- * Result of extracting segment input images from params
- */
-export interface SegmentImageInfo {
-  startUrl: string | undefined;
-  endUrl: string | undefined;
-  startGenId: string | undefined;
-  endGenId: string | undefined;
-  hasImages: boolean;
-}
-
-/**
- * Extract segment input images from task/generation params
- *
- * This is the single source of truth for getting start/end images for a segment.
- * It handles multiple storage formats:
- * 1. Explicit URLs (start_image_url, end_image_url) - used by individual segment tasks
- * 2. Array indexing (input_image_paths_resolved[index]) - used by orchestrator tasks
- *
- * @param params - Task or generation params object
- * @param segmentIndex - Optional segment index for array-based extraction (default: 0)
- * @returns SegmentImageInfo with start/end URLs and generation IDs
- */
-export const extractSegmentImages = (params: any, segmentIndex: number = 0): SegmentImageInfo => {
-  const cleanUrl = (url: string | undefined): string | undefined => {
-    if (typeof url !== 'string') return undefined;
-    // Remove surrounding quotes if present
-    return url.replace(/^["']|["']$/g, '');
-  };
-
-  const p = params || {};
-  const orchestratorDetails = p.orchestrator_details || {};
-  const individualSegmentParams = p.individual_segment_params || {};
-
-  // Priority 1: Explicit URLs (set by individual_travel_segment tasks)
-  const explicitStartUrl = cleanUrl(individualSegmentParams.start_image_url || p.start_image_url);
-  const explicitEndUrl = cleanUrl(individualSegmentParams.end_image_url || p.end_image_url);
-  const explicitStartGenId = individualSegmentParams.start_image_generation_id || p.start_image_generation_id;
-  const explicitEndGenId = individualSegmentParams.end_image_generation_id || p.end_image_generation_id;
-
-  // Priority 2: Array-based extraction (orchestrator tasks store all images in arrays)
-  const allUrls = orchestratorDetails.input_image_paths_resolved ||
-                  p.input_image_paths_resolved ||
-                  [];
-  const allGenIds = orchestratorDetails.input_image_generation_ids ||
-                    p.input_image_generation_ids ||
-                    [];
-
-  // For segment at index N, we need images[N] (start) and images[N+1] (end)
-  const arrayStartUrl = cleanUrl(allUrls[segmentIndex]);
-  const arrayEndUrl = cleanUrl(allUrls[segmentIndex + 1]);
-  const arrayStartGenId = allGenIds[segmentIndex];
-  const arrayEndGenId = allGenIds[segmentIndex + 1];
-
-  // Use explicit values if available, otherwise fall back to array
-  const startUrl = explicitStartUrl || arrayStartUrl;
-  const endUrl = explicitEndUrl || arrayEndUrl;
-  const startGenId = explicitStartGenId || arrayStartGenId;
-  const endGenId = explicitEndGenId || arrayEndGenId;
-
-  return {
-    startUrl,
-    endUrl,
-    startGenId,
-    endGenId,
-    hasImages: !!(startUrl || endUrl),
   };
 };
 

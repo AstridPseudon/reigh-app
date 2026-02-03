@@ -34,23 +34,23 @@ import {
  * Migrate LoRA from any format to LoraConfig.
  * Handles both old ShotLora and new LoraConfig formats.
  */
-export function migrateLoraConfig(lora: Record<string, any>): LoraConfig {
+export function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig {
   return {
-    id: lora.id ?? lora.path ?? '',
-    name: lora.name ?? '',
-    path: lora.path ?? '',
-    strength: lora.strength ?? 1.0,
-    lowNoisePath: lora.lowNoisePath,
-    isMultiStage: lora.isMultiStage,
-    previewImageUrl: lora.previewImageUrl,
-    triggerWord: lora.triggerWord ?? lora.trigger_word,
+    id: (lora.id as string) ?? (lora.path as string) ?? '',
+    name: (lora.name as string) ?? '',
+    path: (lora.path as string) ?? '',
+    strength: (lora.strength as number) ?? 1.0,
+    lowNoisePath: lora.lowNoisePath as string | undefined,
+    isMultiStage: lora.isMultiStage as boolean | undefined,
+    previewImageUrl: lora.previewImageUrl as string | undefined,
+    triggerWord: (lora.triggerWord as string) ?? (lora.trigger_word as string),
   };
 }
 
 /**
  * Migrate an array of LoRAs to the new format.
  */
-export function migrateLoras(loras: any[] | undefined | null): LoraConfig[] {
+export function migrateLoras(loras: Record<string, unknown>[] | undefined | null): LoraConfig[] {
   if (!loras || !Array.isArray(loras)) return [];
   return loras.map(migrateLoraConfig);
 }
@@ -87,7 +87,7 @@ export function motionAmountToBackend(value: number): number {
  * @param raw - Raw settings object from shots.settings['travel-between-images']
  * @returns Normalized ShotVideoSettings
  */
-export function readShotSettings(raw: Record<string, any> | null | undefined): ShotVideoSettings {
+export function readShotSettings(raw: Record<string, unknown> | null | undefined): ShotVideoSettings {
   if (!raw) return { ...DEFAULT_SHOT_VIDEO_SETTINGS };
 
   return {
@@ -97,14 +97,14 @@ export function readShotSettings(raw: Record<string, any> | null | undefined): S
 
     // Motion
     motionMode: raw.motionMode ?? DEFAULT_SHOT_VIDEO_SETTINGS.motionMode,
-    amountOfMotion: normalizeMotionAmount(raw.amountOfMotion),
+    amountOfMotion: normalizeMotionAmount(raw.amountOfMotion as number | undefined),
 
     // Advanced config
     phaseConfig: raw.phaseConfig,
     selectedPhasePresetId: raw.selectedPhasePresetId ?? DEFAULT_SHOT_VIDEO_SETTINGS.selectedPhasePresetId,
 
     // LoRAs (unified field name after DB migration)
-    loras: migrateLoras(raw.loras),
+    loras: migrateLoras(raw.loras as Record<string, unknown>[] | undefined | null),
 
     // Video
     numFrames: raw.numFrames ?? DEFAULT_SHOT_VIDEO_SETTINGS.numFrames,
@@ -135,7 +135,7 @@ export function readShotSettings(raw: Record<string, any> | null | undefined): S
  * @param settings - Settings to write
  * @returns Object ready to save to shots.settings['travel-between-images']
  */
-export function writeShotSettings(settings: ShotVideoSettings): Record<string, any> {
+export function writeShotSettings(settings: ShotVideoSettings): Record<string, unknown> {
   return {
     // Core settings (using existing field names for compatibility)
     prompt: settings.prompt,
@@ -173,79 +173,79 @@ export function writeShotSettings(settings: ShotVideoSettings): Record<string, a
  * @param metadata - Raw metadata object from shot_generations.metadata
  * @returns Sparse SegmentOverrides (only fields that were set)
  */
-export function readSegmentOverrides(metadata: Record<string, any> | null | undefined): SegmentOverrides {
+export function readSegmentOverrides(metadata: Record<string, unknown> | null | undefined): SegmentOverrides {
   if (!metadata) return {};
 
   const overrides: SegmentOverrides = {};
-  const segmentOverrides = metadata.segmentOverrides ?? {};
+  const segmentOverrides = (metadata.segmentOverrides ?? {}) as Record<string, unknown>;
 
   // Prompt - include empty strings to distinguish "explicitly empty" from "no override"
   if (segmentOverrides.prompt !== undefined) {
-    overrides.prompt = segmentOverrides.prompt;
+    overrides.prompt = segmentOverrides.prompt as string;
   }
 
   // Negative prompt - include empty strings to distinguish "explicitly empty" from "no override"
   if (segmentOverrides.negativePrompt !== undefined) {
-    overrides.negativePrompt = segmentOverrides.negativePrompt;
+    overrides.negativePrompt = segmentOverrides.negativePrompt as string;
   }
 
   // Motion mode
   if (segmentOverrides.motionMode !== undefined) {
-    overrides.motionMode = segmentOverrides.motionMode;
+    overrides.motionMode = segmentOverrides.motionMode as SegmentSettings['motionMode'];
   }
 
   // Motion amount (normalize to 0-100 scale)
   if (segmentOverrides.amountOfMotion !== undefined) {
-    overrides.amountOfMotion = normalizeMotionAmount(segmentOverrides.amountOfMotion);
+    overrides.amountOfMotion = normalizeMotionAmount(segmentOverrides.amountOfMotion as number);
   }
 
   // Phase config
   if (segmentOverrides.phaseConfig !== undefined) {
-    overrides.phaseConfig = segmentOverrides.phaseConfig;
+    overrides.phaseConfig = segmentOverrides.phaseConfig as SegmentSettings['phaseConfig'];
   }
 
   // Phase preset ID
   if (segmentOverrides.selectedPhasePresetId !== undefined) {
-    overrides.selectedPhasePresetId = segmentOverrides.selectedPhasePresetId;
+    overrides.selectedPhasePresetId = segmentOverrides.selectedPhasePresetId as string | null;
   }
 
   // LoRAs - include empty arrays to distinguish "explicitly no loras" from "no override"
   if (segmentOverrides.loras !== undefined && Array.isArray(segmentOverrides.loras)) {
-    overrides.loras = migrateLoras(segmentOverrides.loras);
+    overrides.loras = migrateLoras(segmentOverrides.loras as Record<string, unknown>[]);
   }
 
   // Frame count
   if (segmentOverrides.numFrames !== undefined) {
-    overrides.numFrames = segmentOverrides.numFrames;
+    overrides.numFrames = segmentOverrides.numFrames as number;
   }
 
   // Random seed
   if (segmentOverrides.randomSeed !== undefined) {
-    overrides.randomSeed = segmentOverrides.randomSeed;
+    overrides.randomSeed = segmentOverrides.randomSeed as boolean;
   }
 
   // Seed
   if (segmentOverrides.seed !== undefined) {
-    overrides.seed = segmentOverrides.seed;
+    overrides.seed = segmentOverrides.seed as number;
   }
 
   // Structure video overrides
   if (segmentOverrides.structureMotionStrength !== undefined) {
-    overrides.structureMotionStrength = segmentOverrides.structureMotionStrength;
+    overrides.structureMotionStrength = segmentOverrides.structureMotionStrength as number;
   }
   if (segmentOverrides.structureTreatment !== undefined) {
-    overrides.structureTreatment = segmentOverrides.structureTreatment;
+    overrides.structureTreatment = segmentOverrides.structureTreatment as string;
   }
   if (segmentOverrides.structureUni3cEndPercent !== undefined) {
-    overrides.structureUni3cEndPercent = segmentOverrides.structureUni3cEndPercent;
+    overrides.structureUni3cEndPercent = segmentOverrides.structureUni3cEndPercent as number;
   }
 
   // Text before/after prompts
   if (segmentOverrides.textBeforePrompts !== undefined) {
-    overrides.textBeforePrompts = segmentOverrides.textBeforePrompts;
+    overrides.textBeforePrompts = segmentOverrides.textBeforePrompts as string;
   }
   if (segmentOverrides.textAfterPrompts !== undefined) {
-    overrides.textAfterPrompts = segmentOverrides.textAfterPrompts;
+    overrides.textAfterPrompts = segmentOverrides.textAfterPrompts as string;
   }
 
   return overrides;
@@ -261,13 +261,13 @@ export function readSegmentOverrides(metadata: Record<string, any> | null | unde
  * @returns Updated metadata object
  */
 export function writeSegmentOverrides(
-  currentMetadata: Record<string, any> | null | undefined,
+  currentMetadata: Record<string, unknown> | null | undefined,
   overrides: SegmentOverrides
-): Record<string, any> {
+): Record<string, unknown> {
   const metadata = { ...(currentMetadata ?? {}) };
 
   // Start with existing segmentOverrides (merge, not replace)
-  const existingOverrides = metadata.segmentOverrides ?? {};
+  const existingOverrides = (metadata.segmentOverrides ?? {}) as Record<string, unknown>;
   const newOverrides = { ...existingOverrides };
 
   // Update each field if present in overrides
@@ -323,14 +323,15 @@ export function writeSegmentOverrides(
   metadata.segmentOverrides = newOverrides;
 
   // Clean up empty segmentOverrides
-  if (Object.keys(metadata.segmentOverrides).length === 0) {
+  if (Object.keys(newOverrides).length === 0) {
     delete metadata.segmentOverrides;
   }
 
+  const savedOverrides = metadata.segmentOverrides as Record<string, unknown> | undefined;
   console.log(`[PairPromptDebug] writeSegmentOverrides result:`, {
-    hasSegmentOverrides: !!metadata.segmentOverrides,
-    segmentOverridesPrompt: metadata.segmentOverrides?.prompt?.substring(0, 30),
-    segmentOverridesNegPrompt: metadata.segmentOverrides?.negativePrompt?.substring(0, 30),
+    hasSegmentOverrides: !!savedOverrides,
+    segmentOverridesPrompt: (savedOverrides?.prompt as string | undefined)?.substring(0, 30),
+    segmentOverridesNegPrompt: (savedOverrides?.negativePrompt as string | undefined)?.substring(0, 30),
   });
 
   return metadata;
@@ -439,7 +440,7 @@ export function extractOverrides(
  * @param settings - Segment settings
  * @returns Object ready for task creation
  */
-export function settingsToTaskParams(settings: SegmentSettings): Record<string, any> {
+export function settingsToTaskParams(settings: SegmentSettings): Record<string, unknown> {
   return {
     // Prompts
     base_prompt: settings.prompt,
@@ -489,7 +490,7 @@ export function settingsToTaskParams(settings: SegmentSettings): Record<string, 
 /**
  * Create a loggable summary of settings for debugging.
  */
-export function summarizeSettings(settings: SegmentSettings | ShotVideoSettings): Record<string, any> {
+export function summarizeSettings(settings: SegmentSettings | ShotVideoSettings): Record<string, unknown> {
   return {
     prompt: settings.prompt?.substring(0, 30) + (settings.prompt?.length > 30 ? '...' : ''),
     negativePrompt: settings.negativePrompt?.substring(0, 30) + (settings.negativePrompt?.length > 30 ? '...' : ''),

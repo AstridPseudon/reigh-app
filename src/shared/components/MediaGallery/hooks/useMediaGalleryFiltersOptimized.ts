@@ -383,7 +383,7 @@ export const useMediaGalleryFiltersOptimized = ({
       currentFiltered = currentFiltered.filter(image => {
         const prompt = image.prompt ||
                       image.metadata?.prompt ||
-                      (image.metadata as any)?.originalParams?.orchestrator_details?.prompt ||
+                      image.metadata?.originalParams?.orchestrator_details?.prompt ||
                       '';
         return prompt.toLowerCase().includes(filtersState.searchTerm.toLowerCase());
       });

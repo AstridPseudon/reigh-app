@@ -10,7 +10,7 @@ export interface TimelineBottomControlsProps {
   setResetGap: (value: number) => void;
   maxGap: number;
   onReset: () => void;
-  onImageDrop?: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   isUploadingImage: boolean;
   uploadProgress: number;
   readOnly?: boolean;
@@ -24,7 +24,7 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
   setResetGap,
   maxGap,
   onReset,
-  onImageDrop,
+  onFileDrop,
   isUploadingImage,
   uploadProgress,
   readOnly = false,
@@ -71,7 +71,7 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
       </div>
 
       {/* Bottom-right: Add Images button with progress */}
-      {onImageDrop ? (
+      {onFileDrop ? (
         <div
           className={`pointer-events-auto ${hasNoImages ? 'opacity-30 blur-[0.5px]' : ''}`}
         >
@@ -82,7 +82,7 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
             onChange={(e) => {
               const files = Array.from(e.target.files || []);
               if (files.length > 0) {
-                onImageDrop(files);
+                onFileDrop(files);
                 e.target.value = '';
               }
             }}

@@ -7,6 +7,8 @@ import { useShotGenerationMetadata } from '@/shared/hooks/useShotGenerationMetad
 import { createBatchMagicEditTasks } from '@/shared/lib/tasks/magicEdit';
 import type { EditAdvancedSettings, QwenEditModel } from './useGenerationEditSettings';
 import { convertToHiresFixApiParams } from './useGenerationEditSettings';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import type { BrushStroke } from './inpainting/types';
 
 interface UseMagicEditModeParams {
   media: GenerationRow;
@@ -17,7 +19,7 @@ interface UseMagicEditModeParams {
   setIsInpaintMode: (value: boolean) => void;
   handleEnterInpaintMode: () => void;
   handleGenerateInpaint: () => Promise<void>;
-  brushStrokes: any[];
+  brushStrokes: BrushStroke[];
   inpaintPrompt: string;
   setInpaintPrompt: (value: string) => void;
   inpaintNumGenerations: number;
@@ -222,7 +224,7 @@ export const useMagicEditMode = ({
         
         // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
         // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
-        const actualGenerationId = (media as any).generation_id || media.id;
+        const actualGenerationId = getGenerationId(media);
         
         const batchParams = {
           project_id: selectedProjectId,

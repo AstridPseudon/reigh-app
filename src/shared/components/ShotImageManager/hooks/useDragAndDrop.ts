@@ -85,7 +85,7 @@ export function useDragAndDrop({
     // Notify parent that drag has started - used to suppress query refetches
     onDragStateChange?.(true);
 
-    const activatorEvent = (event as any)?.activatorEvent as (MouseEvent | PointerEvent | undefined);
+    const activatorEvent = event.activatorEvent as MouseEvent | PointerEvent | undefined;
     const isModifierPressed = activatorEvent?.metaKey || activatorEvent?.ctrlKey;
     
     if (!isModifierPressed && !selectedIds.includes(active.id as string)) {

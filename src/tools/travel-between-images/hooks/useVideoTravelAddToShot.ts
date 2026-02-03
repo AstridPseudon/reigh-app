@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
 import { Shot } from '@/types/shots';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 export interface UseVideoTravelAddToShotParams {
   /** Current project ID */
@@ -29,7 +30,7 @@ export interface UseVideoTravelAddToShotParams {
       project_id: string | null | undefined;
       imageUrl?: string;
       thumbUrl?: string;
-    }) => Promise<any>;
+    }) => Promise<unknown>;
   };
   /** Mutation to add an image to a shot without timeline position */
   addImageToShotWithoutPositionMutation: {
@@ -39,7 +40,7 @@ export interface UseVideoTravelAddToShotParams {
       project_id: string | null | undefined;
       imageUrl?: string;
       thumbUrl?: string;
-    }) => Promise<any>;
+    }) => Promise<unknown>;
   };
 }
 
@@ -71,7 +72,7 @@ export const useVideoTravelAddToShot = ({
   const targetShotInfo = useMemo(() => {
     const targetShotIdForButton = lastAffectedShotId || (shots && shots.length > 0 ? shots[0].id : undefined);
     const targetShotNameForButtonTooltip = targetShotIdForButton 
-      ? (shots?.find(s => s.id === targetShotIdForButton)?.name || 'Selected Shot')
+      ? (shots?.find(shot => shot.id === targetShotIdForButton)?.name || 'Selected Shot')
       : (shots && shots.length > 0 ? shots[0].name : 'Last Shot');
     
     console.log('[VideoTravelAddToShot] targetShotInfo computed:', {
@@ -134,7 +135,7 @@ export const useVideoTravelAddToShot = ({
       
       // Force refresh of generations data to show updated positioning
       console.log('[VideoTravelAddToShot] 🔄 Invalidating unified-generations query');
-      queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId!) });
       
       return true;
     } catch (error) {
@@ -181,7 +182,7 @@ export const useVideoTravelAddToShot = ({
       setLastAffectedShotId(targetShotInfo.targetShotIdForButton);
       
       // Force refresh of generations data to show updated association
-      queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', selectedProjectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId!) });
       
       return true;
     } catch (error) {

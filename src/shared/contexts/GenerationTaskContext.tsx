@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { GenerationRow } from '@/types/shots';
+import type { Task } from '@/types/tasks';
 import { preloadGenerationTaskMappings, enhanceGenerationsWithTaskData } from '@/shared/lib/generationTaskBridge';
 
 // ================================================================
@@ -13,7 +14,7 @@ import { preloadGenerationTaskMappings, enhanceGenerationsWithTaskData } from '@
 interface GenerationTaskContextValue {
   // Methods for working with generation-task relationships
   preloadTaskMappings: (generationIds: string[]) => Promise<void>;
-  enhanceWithTaskData: (generations: GenerationRow[]) => (GenerationRow & { taskId?: string | null; taskData?: any })[];
+  enhanceWithTaskData: (generations: GenerationRow[]) => (GenerationRow & { taskId?: string | null; taskData?: Task | null })[];
   
   // Configuration
   isPreloadingEnabled: boolean;

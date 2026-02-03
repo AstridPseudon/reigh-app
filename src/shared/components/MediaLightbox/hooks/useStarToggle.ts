@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useToggleGenerationStar } from '@/shared/hooks/useProjectGenerations';
+import type { UseMutationResult } from '@tanstack/react-query';
+import { useToggleGenerationStar } from '@/shared/hooks/useGenerationMutations';
 import { GenerationRow } from '@/types/shots';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 export interface UseStarToggleProps {
   media: GenerationRow;
@@ -11,7 +13,7 @@ export interface UseStarToggleProps {
 export interface UseStarToggleReturn {
   localStarred: boolean;
   setLocalStarred: React.Dispatch<React.SetStateAction<boolean>>;
-  toggleStarMutation: any; // From useToggleGenerationStar
+  toggleStarMutation: UseMutationResult<void, Error, { id: string; starred: boolean; shotId?: string }>;
   handleToggleStar: () => void;
 }
 
@@ -32,11 +34,11 @@ export const useStarToggle = ({ media, starred, shotId }: UseStarToggleProps): U
     console.log('[StarPersist] 📥 Calculating initialStarred from props', {
       mediaId: media.id, // shot_generations.id
       shotId,
-      generation_id: (media as any).generation_id,
+      generation_id: media.generation_id,
       starredProp: starred,
-      mediaStarred: (media as any).starred,
+      mediaStarred: media.starred,
       hasStarredProp: typeof starred === 'boolean',
-      hasMediaStarred: typeof (media as any).starred === 'boolean',
+      hasMediaStarred: typeof media.starred === 'boolean',
       allMediaKeys: Object.keys(media),
       fullMediaObject: media,
       timestamp: Date.now()
@@ -46,10 +48,9 @@ export const useStarToggle = ({ media, starred, shotId }: UseStarToggleProps): U
       console.log('[StarPersist] 📥 Using starred prop:', starred);
       return starred;
     }
-    // @ts-ignore – media may include starred even if not in type
-    if (typeof (media as any).starred === 'boolean') {
-      console.log('[StarPersist] 📥 Using media.starred:', (media as any).starred);
-      return (media as any).starred;
+    if (typeof media.starred === 'boolean') {
+      console.log('[StarPersist] 📥 Using media.starred:', media.starred);
+      return media.starred;
     }
     console.log('[StarPersist] 📥 Defaulting to false (no starred data)');
     return false;
@@ -111,7 +112,7 @@ export const useStarToggle = ({ media, starred, shotId }: UseStarToggleProps): U
     console.log('[StarPersist] 🖱️ Star button clicked in UI', {
       mediaId: media.id, // shot_generations.id
       shotId,
-      generation_id: (media as any).generation_id,
+      generation_id: media.generation_id,
       oldLocalStarred: localStarred,
       newStarred,
       willMutateWithId: media.id,
@@ -135,7 +136,7 @@ export const useStarToggle = ({ media, starred, shotId }: UseStarToggleProps): U
     // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
     // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
     // For variants, generation_id is in metadata.generation_id (the parent generation)
-    const actualGenerationId = (media as any).generation_id || (media as any).metadata?.generation_id || media.id;
+    const actualGenerationId = getGenerationId(media);
     
     // Trigger mutation
     console.log('[StarPersist] 🚀 Triggering database mutation', {

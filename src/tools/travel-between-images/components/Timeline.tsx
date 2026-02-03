@@ -17,7 +17,6 @@
  *   • useTimelineDrag.ts - Complex drag-and-drop timeline operations
  * 
  * 🔧 /utils/ - Utility functions and helpers:
- *   • timeline-debug.ts - Centralized logging system with categories and structured output
  *   • timeline-utils.ts - Core calculation functions (dimensions, gaps, pair info)
  * 
  * 🎨 /components/ - UI components:
@@ -51,7 +50,7 @@ import { useDeviceDetection } from "@/shared/hooks/useDeviceDetection";
 import { Image, Upload } from "lucide-react";
 import { transformForTimeline, type RawShotGeneration } from "@/shared/lib/generationTransformers";
 import { isVideoGeneration } from "@/shared/lib/typeGuards";
-import { useTaskFromUnifiedCache } from "@/shared/hooks/useUnifiedGenerations";
+import { useTaskFromUnifiedCache } from "@/shared/hooks/useTaskPrefetch";
 import { useGetTask } from "@/shared/hooks/useTasks";
 import { deriveInputImages } from "@/shared/components/MediaGallery/utils";
 import type { SegmentSlot } from "../hooks/useSegmentOutputsForShot";
@@ -66,7 +65,6 @@ import { useCoordinateSystem } from "./Timeline/hooks/useCoordinateSystem";
 import { useLightbox } from "./Timeline/hooks/useLightbox";
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
 import { useTimelinePositionUtils } from "@/shared/hooks/useTimelinePositionUtils";
-import { timelineDebugger } from "./Timeline/utils/timeline-debug";
 import { calculateMaxGap, validateGaps } from "./Timeline/utils/timeline-utils";
 import { quantizeGap } from "./Timeline/utils/time-utils";
 import { useExternalGenerations } from "@/shared/components/ShotImageManager/hooks/useExternalGenerations";
@@ -85,7 +83,7 @@ export interface TimelineProps {
   frameSpacing: number;
   onImageReorder: (orderedIds: string[], draggedItemId?: string) => void;
   onFramePositionsChange?: (framePositions: Map<string, number>) => void;
-  onImageDrop?: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   pendingPositions?: Map<string, number>;
   onPendingPositionApplied?: (generationId: string) => void;
@@ -178,9 +176,9 @@ export interface TimelineProps {
   onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
   // Multi-select: callback to create a new shot from selected images (returns new shot ID)
   onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
-  // Single image endpoint for setting video duration when there's only one image
-  singleImageEndFrame?: number;
-  onSingleImageEndFrameChange?: (endFrame: number) => void;
+  // Trailing segment endpoint for setting video duration (when last image has no following image)
+  trailingEndFrame?: number;
+  onTrailingEndFrameChange?: (endFrame: number | undefined) => void;
   // Maximum frame limit for timeline gaps (77 with smooth continuations, 81 otherwise)
   maxFrameLimit?: number;
   // Shared output selection state (syncs FinalVideoSection with SegmentOutputStrip)
@@ -212,7 +210,7 @@ const Timeline: React.FC<TimelineProps> = ({
   frameSpacing,
   onImageReorder,
   onFramePositionsChange,
-  onImageDrop,
+  onFileDrop,
   onGenerationDrop,
   pendingPositions,
   onPendingPositionApplied,
@@ -266,8 +264,8 @@ const Timeline: React.FC<TimelineProps> = ({
   onCreateShot,
   onNewShotFromSelection,
   // Single image duration props
-  singleImageEndFrame,
-  onSingleImageEndFrameChange,
+  trailingEndFrame,
+  onTrailingEndFrameChange,
   // Frame limit
   maxFrameLimit = 81,
   // Shared output selection (syncs FinalVideoSection with SegmentOutputStrip)
@@ -361,7 +359,7 @@ const Timeline: React.FC<TimelineProps> = ({
     loadPositions: utilsHookData.loadPositions,
     pairPrompts: utilsHookData.pairPrompts,
     isLoading: utilsHookData.isLoading,
-  } as any : {
+  } as unknown as NonNullable<typeof propHookData> : {
     // Map useTimelineCore output to expected interface
     shotGenerations: coreHookData.positionedItems,
     updateTimelineFrame: coreHookData.updatePosition,
@@ -421,8 +419,8 @@ const Timeline: React.FC<TimelineProps> = ({
     } else {
       // Use shared transformer instead of inline mapping
       result = shotGenerations
-        .filter(sg => sg.generation)
-        .map(sg => transformForTimeline(sg as any as RawShotGeneration))
+        .filter(shotGen => shotGen.generation)
+        .map(shotGen => transformForTimeline(shotGen as unknown as RawShotGeneration))
         .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
     }
     
@@ -478,11 +476,11 @@ const Timeline: React.FC<TimelineProps> = ({
         timeline_frame: img.timeline_frame,
         hasImageUrl: !!img.imageUrl
       })).sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0)),
-      shotGenerationsData: !propImages ? shotGenerations.map(sg => ({
-        id: sg.id.substring(0, 8),
-        generation_id: sg.generation_id?.substring(0, 8),
-        timeline_frame: sg.timeline_frame,
-        hasGeneration: !!sg.generation
+      shotGenerationsData: !propImages ? shotGenerations.map(shotGen => ({
+        id: shotGen.id.substring(0, 8),
+        generation_id: shotGen.generation_id?.substring(0, 8),
+        timeline_frame: shotGen.timeline_frame,
+        hasGeneration: !!shotGen.generation
       })) : 'using propImages'
     });
 
@@ -583,7 +581,7 @@ const Timeline: React.FC<TimelineProps> = ({
 
     // Find the image in the current images array
     const index = currentImages.findIndex(
-      (img: any) => img.id === pendingImageToOpen || img.shotImageEntryId === pendingImageToOpen
+      (img) => img.id === pendingImageToOpen || img.shotImageEntryId === pendingImageToOpen
     );
 
     if (index !== -1) {
@@ -637,8 +635,9 @@ const Timeline: React.FC<TimelineProps> = ({
 
     // Helper to get image URL from images array by position
     const getImageUrl = (position: number): string | undefined => {
-      const img = images[position] as any;
-      return img?.thumbUrl || img?.imageUrl || img?.url || img?.location;
+      const img = images[position];
+      const urlFallback = (img as (typeof img & { url?: string }) | undefined)?.url;
+      return img?.thumbUrl || img?.imageUrl || urlFallback || img?.location;
     };
 
     let prevSegment: { pairIndex: number; hasVideo: boolean; startImageUrl?: string; endImageUrl?: string } | undefined;
@@ -742,7 +741,7 @@ const Timeline: React.FC<TimelineProps> = ({
 
       // Call parent's onAddToShot with the target shot ID from the callback
       // Position is undefined to let the mutation calculate the correct position for the TARGET shot
-      await onAddToShot(targetShotId as any, generationId as any, undefined as any);
+      await onAddToShot(targetShotId, generationId, undefined);
       return true;
     } catch (error) {
       handleError(error, { context: 'Timeline', toastTitle: 'Failed to add to shot' });
@@ -769,7 +768,7 @@ const Timeline: React.FC<TimelineProps> = ({
       });
 
       // Call parent's onAddToShotWithoutPosition with the target shot ID from callback
-      await onAddToShotWithoutPosition(targetShotId as any, generationId as any);
+      await onAddToShotWithoutPosition(targetShotId, generationId);
       return true;
     } catch (error) {
       handleError(error, { context: 'Timeline', toastTitle: 'Failed to add to shot' });
@@ -900,34 +899,34 @@ const Timeline: React.FC<TimelineProps> = ({
   const handleEmptyStateDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check for internal generation drag first
     if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
       setIsDragOver(true);
       setDragType('generation');
-    } else if (e.dataTransfer.types.includes('Files') && onImageUpload) {
+    } else if (e.dataTransfer.types.includes('Files') && onFileDrop) {
       setIsDragOver(true);
       setDragType('file');
     }
-  }, [onImageUpload, onGenerationDrop]);
+  }, [onFileDrop, onGenerationDrop]);
 
   const handleEmptyStateDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check for internal generation drag first
     if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
       setIsDragOver(true);
       setDragType('generation');
       e.dataTransfer.dropEffect = 'copy';
-    } else if (e.dataTransfer.types.includes('Files') && onImageUpload) {
+    } else if (e.dataTransfer.types.includes('Files') && onFileDrop) {
       setIsDragOver(true);
       setDragType('file');
       e.dataTransfer.dropEffect = 'copy';
     } else {
       e.dataTransfer.dropEffect = 'none';
     }
-  }, [onImageUpload, onGenerationDrop]);
+  }, [onFileDrop, onGenerationDrop]);
 
   const handleEmptyStateDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -996,7 +995,7 @@ const Timeline: React.FC<TimelineProps> = ({
       {hasNoImages && (
         <>
           {/* Full-size drop zone overlay */}
-          {(onImageUpload || onGenerationDrop) && (
+          {(onFileDrop || onGenerationDrop) && (
             <div 
               className={`absolute inset-0 z-20 flex items-center justify-center transition-all duration-200 ${
                 isDragOver 
@@ -1064,7 +1063,7 @@ const Timeline: React.FC<TimelineProps> = ({
         onResetFrames={handleResetFrames}
         setFramePositions={setFramePositions}
         onImageReorder={onImageReorder}
-        onImageDrop={onImageDrop}
+        onFileDrop={onFileDrop}
         onGenerationDrop={onGenerationDrop}
         setIsDragInProgress={setIsDragInProgress}
         onPairClick={onPairClick}
@@ -1101,8 +1100,8 @@ const Timeline: React.FC<TimelineProps> = ({
         readOnly={readOnly}
         isUploadingImage={isUploadingImage}
         uploadProgress={uploadProgress}
-        singleImageEndFrame={singleImageEndFrame}
-        onSingleImageEndFrameChange={onSingleImageEndFrameChange}
+        trailingEndFrame={trailingEndFrame}
+        onTrailingEndFrameChange={onTrailingEndFrameChange}
         maxFrameLimit={maxFrameLimit}
         selectedOutputId={selectedOutputId}
         onSelectedOutputChange={onSelectedOutputChange}
@@ -1118,19 +1117,24 @@ const Timeline: React.FC<TimelineProps> = ({
         // For timeline images (non-external gens), check if they have a timeline_frame
         // Use lightboxSelectedShotId instead of selectedShotId so it updates when dropdown changes
         const isExternalGen = lightboxIndex >= images.length;
+        // Extend type to access fields added by generationTransformers at runtime
+        const imageWithAssociations = currentLightboxImage as GenerationRow & {
+          shot_id?: string;
+          all_shot_associations?: Array<{ shot_id: string; position: number | null; timeline_frame?: number | null }>;
+        };
         const isInSelectedShot = !isExternalGen && lightboxSelectedShotId && (
-          shotId === lightboxSelectedShotId || 
-          (currentLightboxImage as any).shot_id === lightboxSelectedShotId ||
-          (Array.isArray((currentLightboxImage as any).all_shot_associations) && 
-           (currentLightboxImage as any).all_shot_associations.some((assoc: any) => assoc.shot_id === lightboxSelectedShotId))
+          shotId === lightboxSelectedShotId ||
+          imageWithAssociations.shot_id === lightboxSelectedShotId ||
+          (Array.isArray(imageWithAssociations.all_shot_associations) &&
+           imageWithAssociations.all_shot_associations.some((assoc) => assoc.shot_id === lightboxSelectedShotId))
         );
-        
+
         const positionedInSelectedShot = isInSelectedShot
-          ? (currentLightboxImage as any).timeline_frame !== null && (currentLightboxImage as any).timeline_frame !== undefined
+          ? currentLightboxImage.timeline_frame !== null && currentLightboxImage.timeline_frame !== undefined
           : undefined;
-        
+
         const associatedWithoutPositionInSelectedShot = isInSelectedShot
-          ? (currentLightboxImage as any).timeline_frame === null || (currentLightboxImage as any).timeline_frame === undefined
+          ? currentLightboxImage.timeline_frame === null || currentLightboxImage.timeline_frame === undefined
           : undefined;
 
         return (
@@ -1170,7 +1174,7 @@ const Timeline: React.FC<TimelineProps> = ({
                 totalImagesCount: currentImages.length
               });
               // Search in combined images (timeline + external + derived)
-              const index = currentImages.findIndex((img: any) => img.id === generationId);
+              const index = currentImages.findIndex((img) => img.id === generationId);
               if (index !== -1) {
                 console.log('[Timeline:DerivedNav] ✅ Found at index', index);
                 openLightbox(index);
@@ -1182,7 +1186,7 @@ const Timeline: React.FC<TimelineProps> = ({
             onOpenExternalGeneration={externalGens.handleOpenExternalGeneration}
             onMagicEdit={(imageUrl, prompt, numImages) => {
               // TODO: Implement magic edit generation
-              timelineDebugger.logEvent('Magic edit requested', { shotId, imageUrl, prompt, numImages });
+              // TODO: Implement magic edit generation
             }}
             // Task details functionality - now shown on all devices including mobile
             showTaskDetails={true}

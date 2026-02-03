@@ -100,7 +100,7 @@ export function useHashDeepLink({
     if (!hashLoadingGrace) return;
 
     // Shot found in cache
-    if (shots?.find(s => s.id === hashShotId)) {
+    if (shots?.find(shot => shot.id === hashShotId)) {
       setHashLoadingGrace(false);
       return;
     }
@@ -179,7 +179,7 @@ export function useHashDeepLink({
   useEffect(() => {
     const shotFromStateValid = shotFromState && shotFromState.id === hashShotId;
 
-    if (hashShotId && shots && !shots.find(s => s.id === hashShotId) && !shotFromStateValid && !isNewlyCreatedShot && !hashLoadingGrace) {
+    if (hashShotId && shots && !shots.find(shot => shot.id === hashShotId) && !shotFromStateValid && !isNewlyCreatedShot && !hashLoadingGrace) {
       navigate('/tools/travel-between-images', { replace: true });
     }
   }, [hashShotId, shots, navigate, shotFromState, isNewlyCreatedShot, hashLoadingGrace]);

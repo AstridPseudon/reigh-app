@@ -1,9 +1,11 @@
 /**
  * Unified Image Loading Priority System
- * 
+ *
  * Single source of truth for all image loading behavior.
  * Progressive loading is the primary mechanism - individual items no longer have separate delays.
  */
+
+import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
 
 export interface LoadingConfig {
   isMobile: boolean;
@@ -21,13 +23,14 @@ export interface ImageLoadingStrategy {
  * Device capability detection for adaptive loading
  */
 const getDeviceCapabilities = () => {
+  const nav = navigator as NavigatorWithDeviceInfo;
   const isMobile = window.innerWidth <= 768;
-  const hasLowMemory = 'deviceMemory' in navigator && (navigator as any).deviceMemory <= 4;
+  const hasLowMemory = nav.deviceMemory !== undefined && nav.deviceMemory <= 4;
   const hasLowEndCPU = 'hardwareConcurrency' in navigator && navigator.hardwareConcurrency <= 2;
   const hasVeryLowEndCPU = 'hardwareConcurrency' in navigator && navigator.hardwareConcurrency === 1;
-  const hasSlowConnection = 'connection' in navigator && 
-    ((navigator as any).connection?.effectiveType === '2g' || 
-     (navigator as any).connection?.effectiveType === 'slow-2g');
+  const hasSlowConnection = nav.connection !== undefined &&
+    (nav.connection.effectiveType === '2g' ||
+     nav.connection.effectiveType === 'slow-2g');
   
   return {
     isMobile,
@@ -65,7 +68,7 @@ export const trackImageLoadTime = (loadTimeMs: number): void => {
   }
   
   // Calculate average
-  const sum = performanceMetrics.loadTimes.reduce((a, b) => a + b, 0);
+  const sum = performanceMetrics.loadTimes.reduce((accumulator, loadTime) => accumulator + loadTime, 0);
   performanceMetrics.avgLoadTime = sum / performanceMetrics.loadTimes.length;
   
   // Adjust delay multiplier based on average load time

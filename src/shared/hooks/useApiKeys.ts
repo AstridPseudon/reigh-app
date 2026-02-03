@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandler';
+import { isNotFoundError } from '@/shared/constants/supabaseErrors';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface ApiKeys {
   fal_api_key?: string;
@@ -22,7 +24,7 @@ const fetchApiKeys = async (): Promise<ApiKeys> => {
   
   if (error) {
     // User might not exist yet, return empty keys
-    if (error.code === 'PGRST116') {
+    if (isNotFoundError(error)) {
       return {};
     }
     throw error;
@@ -79,7 +81,7 @@ export const useApiKeys = () => {
     isLoading,
     error
   } = useQuery({
-    queryKey: ['apiKeys'],
+    queryKey: queryKeys.api.keys,
     queryFn: fetchApiKeys,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -88,7 +90,7 @@ export const useApiKeys = () => {
   const updateMutation = useMutation({
     mutationFn: updateApiKeys,
     onSuccess: (updatedKeys) => {
-      queryClient.setQueryData(['apiKeys'], updatedKeys);
+      queryClient.setQueryData(queryKeys.api.keys, updatedKeys);
 
     },
     onError: (error: Error) => {

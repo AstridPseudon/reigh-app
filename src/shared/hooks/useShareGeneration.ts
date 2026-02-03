@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/shared/hooks/use-toast';
 import { handleError } from '@/shared/lib/errorHandler';
+import { isNotFoundError, isUniqueViolationError } from '@/shared/constants/supabaseErrors';
 
 interface UseShareGenerationResult {
   handleShare: (e: React.MouseEvent | React.TouchEvent) => Promise<void>;
@@ -10,22 +11,29 @@ interface UseShareGenerationResult {
   shareSlug: string | null;
 }
 
+export interface UseShareGenerationOptions {
+  /** Pre-existing share slug (e.g. batch-fetched by parent) */
+  initialShareSlug?: string;
+  /** Called after a new share is successfully created */
+  onShareCreated?: (generationId: string, slug: string) => void;
+}
+
 /**
  * Sanitize task data before caching in shared_generations
  * Removes potentially sensitive fields from params
  */
-function sanitizeTaskDataForSharing(taskData: any): any {
+function sanitizeTaskDataForSharing(taskData: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!taskData) return null;
   
   const sanitized = { ...taskData };
 
-  const redactDeep = (value: any, depth: number = 0): any => {
+  const redactDeep = (value: unknown, depth: number = 0): unknown => {
     if (depth > 6) return null;
     if (value == null) return value;
     if (Array.isArray(value)) return value.map((v) => redactDeep(v, depth + 1));
     if (typeof value !== 'object') return value;
 
-    const out: any = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
       // Strip any obviously sensitive keys
       if (/(api[_-]?key|token|secret|password|service_role|authorization|stripe)/i.test(k)) {
@@ -57,18 +65,19 @@ function sanitizeTaskDataForSharing(taskData: any): any {
 export function useShareGeneration(
   generationId: string | undefined,
   taskId: string | null | undefined,
-  shotId?: string | null
+  shotId?: string | null,
+  options?: UseShareGenerationOptions
 ): UseShareGenerationResult {
-  const [shareSlug, setShareSlug] = useState<string | null>(null);
+  const [shareSlug, setShareSlug] = useState<string | null>(options?.initialShareSlug ?? null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const { toast } = useToast();
 
   // Reset share state when shot/generation changes
   useEffect(() => {
-    setShareSlug(null);
+    setShareSlug(options?.initialShareSlug ?? null);
     setShareCopied(false);
-  }, [generationId, shotId]);
+  }, [generationId, shotId, options?.initialShareSlug]);
 
   // Generate a short, URL-friendly random string
   const generateShareSlug = (length: number = 10): string => {
@@ -162,7 +171,7 @@ export function useShareGeneration(
         .eq('creator_id', session.session.user.id)
         .maybeSingle();
 
-      if (existingError && existingError.code !== 'PGRST116') { // PGRST116 = no rows
+      if (existingError && !isNotFoundError(existingError)) {
         console.error('[Share] Failed to check existing share:', existingError);
         toast({
           title: "Share failed",
@@ -215,20 +224,20 @@ export function useShareGeneration(
       }
 
       // Only fetch task data if taskId is available (optional)
-      let taskResult: { data: any; error: any } = { data: null, error: null };
+      let taskResultData: Record<string, unknown> | null = null;
       if (taskId) {
-        taskResult = await supabase.from('tasks')
+        const { data } = await supabase.from('tasks')
           .select('id, task_type, params, status, created_at')
           .eq('id', taskId)
           .single();
+        taskResultData = data as Record<string, unknown> | null;
         // Don't fail on task fetch error - task data is optional
       }
 
       // Fetch shot data if shotId is available (for final video shares)
       // This provides input images and settings for the share page
-      let augmentedTaskData = taskResult.data;
-      let cachedShotData: any = null;
-      const taskType = taskResult.data?.task_type;
+      let augmentedTaskData: Record<string, unknown> | null = taskResultData;
+      let cachedShotData: Record<string, unknown> | null = null;
 
       if (shotId) {
 
@@ -257,13 +266,13 @@ export function useShareGeneration(
 
           if (!shotError && !genError && shotData && shotGenerations) {
             // Get generation mode from shot settings
-            const travelSettings = (shotData.settings as any)?.travel_between_images || {};
+            const travelSettings = (shotData.settings as Record<string, unknown> | undefined)?.travel_between_images as Record<string, unknown> || {};
             const generationMode = travelSettings.generationMode || 'batch';
 
             // Extract images with their timeline positions
             const images = shotGenerations
-              .filter((sg: any) => sg.generation?.type === 'image' && sg.generation?.location)
-              .map((sg: any) => ({
+              .filter((sg) => sg.generation?.type === 'image' && sg.generation?.location)
+              .map((sg) => ({
                 url: sg.generation.location,
                 thumbnail_url: sg.generation.thumbnail_url,
                 timeline_frame: sg.timeline_frame,
@@ -290,7 +299,7 @@ export function useShareGeneration(
 
             console.log('[Share] Cached shot data:', {
               generationMode: cachedShotData.generation_mode,
-              imagesCount: cachedShotData.images.length,
+              imagesCount: (cachedShotData.images as unknown[])?.length,
               settings: cachedShotData.settings,
             });
           } else {
@@ -304,7 +313,7 @@ export function useShareGeneration(
       // Augment task data with cached_shot_data field
       if (cachedShotData) {
         augmentedTaskData = {
-          ...taskResult.data,
+          ...taskResultData,
           cached_shot_data: cachedShotData,
         };
       }
@@ -331,9 +340,9 @@ export function useShareGeneration(
             task_id: taskId || null,  // Optional - share works without task
             generation_id: generationId,
             creator_id: session.session.user.id,
-            creator_username: (creatorRow as any)?.username ?? null,
-            creator_name: (creatorRow as any)?.name ?? null,
-            creator_avatar_url: (creatorRow as any)?.avatar_url ?? null,
+            creator_username: (creatorRow as Record<string, unknown> | null)?.username as string ?? null,
+            creator_name: (creatorRow as Record<string, unknown> | null)?.name as string ?? null,
+            creator_avatar_url: (creatorRow as Record<string, unknown> | null)?.avatar_url as string ?? null,
             cached_generation_data: generationResult.data,
             cached_task_data: sanitizeTaskDataForSharing(augmentedTaskData),
             shot_id: shotId || null,
@@ -347,7 +356,7 @@ export function useShareGeneration(
         }
 
         // If error is unique constraint violation, retry with new slug
-        if (insertError?.code === '23505') {
+        if (isUniqueViolationError(insertError)) {
           attempts++;
           continue;
         }
@@ -377,6 +386,11 @@ export function useShareGeneration(
 
       setShareSlug(newSlug);
 
+      // Notify caller of newly created share
+      if (generationId) {
+        options?.onShareCreated?.(generationId, newSlug);
+      }
+
       // Copy to clipboard
       const shareUrl = `${window.location.origin}/share/${newSlug}`;
       try {
@@ -402,7 +416,7 @@ export function useShareGeneration(
     } finally {
       setIsCreatingShare(false);
     }
-  }, [shareSlug, generationId, taskId, shotId, toast]);
+  }, [shareSlug, generationId, taskId, shotId, toast, options?.onShareCreated]);
 
   return {
     handleShare,
@@ -411,10 +425,6 @@ export function useShareGeneration(
     shareSlug
   };
 }
-
-
-
-
 
 
 

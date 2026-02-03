@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { toast } from 'sonner';
-import { timelineDebugger } from '../utils/timeline-debug';
 import type { ShotGeneration } from '@/shared/hooks/useTimelineCore';
 import { useTimelinePositions } from './useTimelinePositions';
 
@@ -13,7 +12,7 @@ interface PositionManagementProps {
   isLoading: boolean;
   isPersistingPositions: boolean;
   isDragInProgress: boolean;
-  updateTimelineFrame?: (shotGenerationId: string, frame: number, metadata?: any) => Promise<void>;
+  updateTimelineFrame?: (shotGenerationId: string, frame: number, metadata?: Record<string, unknown>) => Promise<void>;
   onFramePositionsChange?: (framePositions: Map<string, number>) => void;
   setIsPersistingPositions: (persisting: boolean) => void;
 }
@@ -23,9 +22,9 @@ const USE_NEW_POSITION_SYSTEM = true;
 
 interface PositionChangeAnalysis {
   totalAnalyzed: number;
-  significantChanges: Array<[string, any]>;
-  filteredOut: Array<[string, any]>;
-  allChanges: Array<[string, any]>;
+  significantChanges: Array<[string, unknown]>;
+  filteredOut: Array<[string, unknown]>;
+  allChanges: Array<[string, unknown]>;
   syncSummary: {
     db_vs_display_synced: number;
     db_vs_display_out_of_sync: number;
@@ -89,7 +88,7 @@ export function usePositionManagement({
       displayPositions: Map<string, number>,
       stablePositions: Map<string, number>
     ) => {
-      const changes: Array<[string, any]> = [];
+      const changes: Array<[string, unknown]> = [];
       for (const [id, newPos] of newPositions) {
         const oldPos = framePositions.get(id);
         if (oldPos !== newPos) {
@@ -104,8 +103,6 @@ export function usePositionManagement({
         syncSummary: { db_vs_display_synced: 0, db_vs_display_out_of_sync: 0, total_out_of_sync: 0 }
       };
     };
-    
-    console.log('[PositionManagement] 🆕 Using new position system');
     
     return {
       framePositions: newPositionSystem.positions,

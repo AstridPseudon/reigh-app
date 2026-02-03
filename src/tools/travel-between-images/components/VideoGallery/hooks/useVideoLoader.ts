@@ -18,7 +18,7 @@ export const useVideoLoader = (
   const videoRef = useRef<HTMLVideoElement>(null);
   const posterFallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const logVideoEvent = useCallback((phase: string, extraData: Record<string, any> = {}) => {
+  const logVideoEvent = useCallback((phase: string, extraData: Record<string, unknown> = {}) => {
     // Logging removed - too verbose
   }, []);
 

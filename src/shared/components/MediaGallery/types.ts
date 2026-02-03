@@ -1,5 +1,12 @@
 import type { Shot, GenerationRow } from "@/types/shots";
 
+/**
+ * Columns per row can be:
+ * - 'auto': Calculate dynamically based on aspect ratio
+ * - number: Fixed number of columns
+ */
+export type ColumnsPerRow = 'auto' | number;
+
 // Define types here to avoid circular imports
 export interface MetadataLora {
   id: string;
@@ -38,7 +45,7 @@ interface OriginalParams {
   resolution?: string;
 }
 
-export interface DisplayableMetadata extends Record<string, any> {
+export interface DisplayableMetadata extends Record<string, unknown> {
   prompt?: string;
   imagesPerPrompt?: number;
   seed?: number;
@@ -127,7 +134,12 @@ export interface MediaGalleryProps {
   offset?: number;
   totalCount?: number;
   whiteText?: boolean;
-  columnsPerRow?: number;
+  /**
+   * Number of columns per row.
+   * - 'auto': Calculate dynamically based on project aspect ratio (default)
+   * - number: Fixed number of columns
+   */
+  columnsPerRow?: ColumnsPerRow;
   itemsPerPage?: number;
   initialMediaTypeFilter?: 'all' | 'image' | 'video';
   onServerPageChange?: (page: number, fromBottom?: boolean) => void;

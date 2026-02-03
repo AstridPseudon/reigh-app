@@ -1,8 +1,8 @@
 // Safe JSON stringify with cycle handling for diagnostics
 
-export function safeStringify(obj: any, maxDepth = 3): string {
+export function safeStringify(obj: unknown, maxDepth = 3): string {
   const seen = new WeakSet();
-  const replacer = (key: string, value: any, depth = 0): any => {
+  const replacer = (key: string, value: unknown, depth = 0): unknown => {
     if (depth > maxDepth) return '[MAX_DEPTH_REACHED]';
     if (value === null || typeof value !== 'object') return value;
     if (seen.has(value)) return '[CIRCULAR_REFERENCE]';

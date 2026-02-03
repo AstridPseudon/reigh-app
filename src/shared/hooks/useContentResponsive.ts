@@ -51,8 +51,9 @@ export const useContentResponsive = (): ContentBreakpoints => {
   }, []);
 
   // If PanesContext provides contentBreakpoints, use them
-  if ((panes as any).contentBreakpoints && (panes as any).contentBreakpoints.contentWidth > 0) {
-    return (panes as any).contentBreakpoints as ContentBreakpoints;
+  const panesWithBreakpoints = panes as unknown as { contentBreakpoints?: ContentBreakpoints };
+  if (panesWithBreakpoints.contentBreakpoints && panesWithBreakpoints.contentBreakpoints.contentWidth > 0) {
+    return panesWithBreakpoints.contentBreakpoints;
   }
 
   // Fallback to viewport-based breakpoints

@@ -10,6 +10,7 @@
  */
 
 import React from 'react';
+import type { GenerationRow } from '@/types/shots';
 import { VideoEditPanel } from './VideoEditPanel';
 import { EditModePanel } from './EditModePanel';
 import { InfoPanel } from './InfoPanel';
@@ -96,8 +97,8 @@ export interface ControlsPanelProps {
   showImageEditTools: InfoPanelProps['showImageEditTools'];
   taskDetailsData: InfoPanelProps['taskDetailsData'];
   derivedItems: InfoPanelProps['derivedItems'];
-  derivedGenerations: any;
-  paginatedDerived: any;
+  derivedGenerations: GenerationRow[];
+  paginatedDerived: GenerationRow[];
   derivedPage: number;
   derivedTotalPages: number;
   onSetDerivedPage: (page: number | ((prev: number) => number)) => void;

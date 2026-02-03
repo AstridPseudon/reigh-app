@@ -66,7 +66,7 @@ export interface MediaGalleryGridProps {
   hideBottomPagination?: boolean;
 
   // MediaGalleryItem props - passing through all the props it needs
-  [key: string]: any; // This allows passing through all other props
+  [key: string]: unknown; // This allows passing through all other props
 }
 
 // Memoized grid component to prevent unnecessary re-renders from parent

@@ -43,15 +43,17 @@ export function useJoinClips({
     try {
       // Get the video URL from the media object
       // For videos, 'location' is the primary storage field
-      const videoUrl = media.location || (media as any).url || media.imageUrl;
-      const thumbnailUrl = media.thumbUrl || (media as any).thumbnail_url;
+      // 'url' is not a declared field on GenerationRow but may exist at runtime from raw DB data
+      const mediaRecord = media as unknown as Record<string, unknown>;
+      const videoUrl = media.location || (mediaRecord.url as string | undefined) || media.imageUrl;
+      const thumbnailUrl = media.thumbUrl || media.thumbnail_url;
 
       console.log('[JoinClipsDebug] Extracted URLs:', {
         videoUrl,
         thumbnailUrl,
         mediaFields: {
           location: media.location,
-          url: (media as any).url,
+          url: mediaRecord.url,
           imageUrl: media.imageUrl,
           thumbUrl: media.thumbUrl,
         }

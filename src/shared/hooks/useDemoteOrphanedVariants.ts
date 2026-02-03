@@ -56,7 +56,7 @@ export function useDemoteOrphanedVariants() {
           pairSlotId: g.pair_shot_generation_id?.substring(0, 8),
           childOrder: g.child_order,
           storedStartImageId: g.params?.individual_segment_params?.start_image_generation_id?.substring(0, 8),
-          hasPrimaryVariant: g.generation_variants?.some((v: any) => v.is_primary),
+          hasPrimaryVariant: g.generation_variants?.some((v) => v.is_primary),
         })),
       });
 
@@ -70,10 +70,10 @@ export function useDemoteOrphanedVariants() {
       console.log('[DemoteOrphaned] 📊 Current shot_generations state', {
         shotId: shotId.substring(0, 8),
         slotsCount: shotGens?.length || 0,
-        slots: shotGens?.slice(0, 10).map(sg => ({
-          slotId: sg.id.substring(0, 8),
-          genId: sg.generation_id?.substring(0, 8),
-          frame: sg.timeline_frame,
+        slots: shotGens?.slice(0, 10).map(shotGen => ({
+          slotId: shotGen.id.substring(0, 8),
+          genId: shotGen.generation_id?.substring(0, 8),
+          frame: shotGen.timeline_frame,
         })),
       });
 
@@ -121,7 +121,7 @@ export function useDemoteOrphanedVariants() {
             pairSlotId: g.pair_shot_generation_id?.substring(0, 8),
             location: g.location,
             primaryVariantId: g.primary_variant_id?.substring(0, 8),
-            variants: g.generation_variants?.map((v: any) => ({
+            variants: g.generation_variants?.map((v) => ({
               id: v.id.substring(0, 8),
               isPrimary: v.is_primary,
             })),

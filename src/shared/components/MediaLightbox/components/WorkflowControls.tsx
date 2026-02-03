@@ -53,7 +53,7 @@ export interface WorkflowControlsProps {
   isAddingWithoutPosition?: boolean;
   
   // Other actions
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: Record<string, unknown>) => void;
   handleApplySettings: () => void;
   onDelete?: (id: string) => void;
   handleDelete: () => void;

@@ -4,22 +4,23 @@ import { DisplayableMetadata } from '../index';
  * Derive input images from task params
  * Strips any surrounding quotes from URLs that may have been improperly stored
  */
-export const deriveInputImages = (task: any): string[] => {
+export const deriveInputImages = (task: Record<string, unknown> | null | undefined): string[] => {
   const cleanUrl = (url: string): string => {
     if (typeof url !== 'string') return url;
     // Remove surrounding quotes if present
     return url.replace(/^["']|["']$/g, '');
   };
   
-  const p = task?.params || {};
-  if (Array.isArray(p.input_images) && p.input_images.length > 0) {
-    return p.input_images.map(cleanUrl);
+  const params = (task?.params || {}) as Record<string, unknown>;
+  if (Array.isArray(params.input_images) && params.input_images.length > 0) {
+    return (params.input_images as string[]).map(cleanUrl);
   }
-  if (p.full_orchestrator_payload && Array.isArray(p.full_orchestrator_payload.input_image_paths_resolved)) {
-    return p.full_orchestrator_payload.input_image_paths_resolved.map(cleanUrl);
+  const payload = params.full_orchestrator_payload as Record<string, unknown> | undefined;
+  if (payload && Array.isArray(payload.input_image_paths_resolved)) {
+    return (payload.input_image_paths_resolved as string[]).map(cleanUrl);
   }
-  if (Array.isArray(p.input_image_paths_resolved)) {
-    return p.input_image_paths_resolved.map(cleanUrl);
+  if (Array.isArray(params.input_image_paths_resolved)) {
+    return (params.input_image_paths_resolved as string[]).map(cleanUrl);
   }
   return [];
 };
@@ -32,8 +33,8 @@ export const formatMetadataForDisplay = (metadata: DisplayableMetadata): string 
   let displayText = "";
   
   // PROMPT SECTION
-  const prompt = metadata.prompt || 
-                 (metadata as any).originalParams?.orchestrator_details?.prompt;
+  const prompt = metadata.prompt ||
+                 metadata.originalParams?.orchestrator_details?.prompt;
   if (prompt) {
     displayText += `📝 PROMPT\n`;
     displayText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -45,15 +46,15 @@ export const formatMetadataForDisplay = (metadata: DisplayableMetadata): string 
   displayText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   
   // Extract model from nested structure
-  const model = (metadata as any).originalParams?.orchestrator_details?.model || metadata.model;
+  const model = metadata.originalParams?.orchestrator_details?.model || metadata.model;
   if (model) displayText += `Model:       ${model}\n`;
   
   // Extract seed from nested structure if needed
-  const seed = metadata.seed || (metadata as any).originalParams?.orchestrator_details?.seed;
+  const seed = metadata.seed || metadata.originalParams?.orchestrator_details?.seed;
   if (seed) displayText += `Seed:        ${seed}\n`;
   
   // Extract dimensions from multiple possible locations
-  const resolution = (metadata as any).originalParams?.orchestrator_details?.resolution;
+  const resolution = metadata.originalParams?.orchestrator_details?.resolution;
   if (metadata.width && metadata.height) {
     displayText += `Dimensions:  ${metadata.width}×${metadata.height}\n`;
   } else if (resolution) {
@@ -65,7 +66,7 @@ export const formatMetadataForDisplay = (metadata: DisplayableMetadata): string 
   if (metadata.scheduler) displayText += `Scheduler:   ${metadata.scheduler}\n`;
   
   // LORAS SECTION
-  const additionalLoras = (metadata as any).originalParams?.orchestrator_details?.additional_loras;
+  const additionalLoras = metadata.originalParams?.orchestrator_details?.additional_loras;
   const activeLoras = metadata.activeLoras;
   
   if ((additionalLoras && Object.keys(additionalLoras).length > 0) || (activeLoras && activeLoras.length > 0)) {

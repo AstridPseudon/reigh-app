@@ -15,6 +15,7 @@ import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
 
 // Import the converter function
 import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
+import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
 
 /**
  * Task type configuration - captures the differences between inpaint and annotate modes
@@ -96,7 +97,7 @@ export function useTaskGeneration({
   setInpaintGenerateSuccess,
 }: UseTaskGenerationProps) {
   // Get actual generation ID (may differ from media.id for shot_generations)
-  const actualGenerationId = (media as any).generation_id || media.id;
+  const actualGenerationId = getGenerationId(media);
 
   /**
    * Unified task generation function
@@ -153,7 +154,7 @@ export function useTaskGeneration({
       console.log(`${config.logPrefix} Mask uploaded:`, maskUrl);
 
       // Get source image URL
-      const mediaUrl = (media as any).url || media.location || media.imageUrl;
+      const mediaUrl = getMediaUrl(media) || media.imageUrl;
       const sourceUrl = activeVariantLocation || mediaUrl;
 
       console.log(`${config.logPrefix} Creating task`, {

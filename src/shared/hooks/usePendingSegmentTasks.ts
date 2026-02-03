@@ -10,6 +10,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TASK_STATUS } from '@/types/tasks';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface PendingSegmentTask {
   id: string;
@@ -33,20 +34,20 @@ export interface UsePendingSegmentTasksReturn {
 /**
  * Extract pair_shot_generation_id from task params
  */
-function extractPairShotGenId(params: any): string | null {
+function extractPairShotGenId(params: Record<string, unknown> | null): string | null {
   if (!params) return null;
 
   // Direct param (individual_travel_segment)
   if (params.pair_shot_generation_id) {
-    return params.pair_shot_generation_id;
+    return params.pair_shot_generation_id as string;
   }
 
   // From orchestrator_details with segment_index (travel_segment from orchestrator)
-  const orchDetails = params.orchestrator_details;
+  const orchDetails = params.orchestrator_details as Record<string, unknown> | undefined;
   if (orchDetails?.pair_shot_generation_ids && typeof params.segment_index === 'number') {
     const ids = orchDetails.pair_shot_generation_ids;
     if (Array.isArray(ids) && ids[params.segment_index]) {
-      return ids[params.segment_index];
+      return ids[params.segment_index] as string;
     }
   }
 
@@ -66,7 +67,7 @@ export function usePendingSegmentTasks(
 
   // Query pending segment tasks for this shot
   const { data: pendingTasks, isLoading } = useQuery({
-    queryKey: ['pending-segment-tasks', shotId, projectId],
+    queryKey: [...queryKeys.tasks.pendingSegment(shotId!), projectId],
     queryFn: async () => {
       if (!shotId || !projectId) return [];
 
@@ -87,10 +88,10 @@ export function usePendingSegmentTasks(
       }
 
       // Extract pair_shot_generation_id from each task
-      const tasks: PendingSegmentTask[] = (data || []).map((task: any) => ({
+      const tasks: PendingSegmentTask[] = (data || []).map(task => ({
         id: task.id,
         status: task.status,
-        pair_shot_generation_id: extractPairShotGenId(task.params),
+        pair_shot_generation_id: extractPairShotGenId(task.params as Record<string, unknown> | null),
       }));
 
       // Filter to only tasks for this shot (by checking if pair_shot_generation_id exists)

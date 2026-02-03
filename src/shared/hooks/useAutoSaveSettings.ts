@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToolSettings, updateToolSettingsSupabase } from './useToolSettings';
 import { deepEqual } from '@/shared/lib/deepEqual';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 /**
  * Status states for the auto-save settings lifecycle
@@ -97,7 +98,7 @@ export interface UseAutoSaveSettingsReturn<T> {
  * if (settings.status !== 'ready') return <Loading />;
  * ```
  */
-export function useAutoSaveSettings<T extends Record<string, any>>(
+export function useAutoSaveSettings<T extends Record<string, unknown>>(
   options: UseAutoSaveSettingsOptions<T>
 ): UseAutoSaveSettingsReturn<T> {
   const {
@@ -255,13 +256,13 @@ export function useAutoSaveSettings<T extends Record<string, any>>(
             // This ensures that when we switch back to this entity, we fetch fresh data
             // from the DB instead of serving stale cached data.
             const cacheKey = currentScope === 'shot'
-              ? ['toolSettings', currentToolId, projectId, pendingForEntity]
-              : ['toolSettings', currentToolId, pendingForEntity, undefined];
+              ? queryKeys.settings.tool(currentToolId, projectId, pendingForEntity)
+              : queryKeys.settings.tool(currentToolId, pendingForEntity, undefined);
             queryClient.invalidateQueries({ queryKey: cacheKey });
 
             // Also refetch shot-batch-settings used by useSegmentSettings
             if (currentScope === 'shot' && pendingForEntity) {
-              queryClient.refetchQueries({ queryKey: ['shot-batch-settings', pendingForEntity] });
+              queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(pendingForEntity) });
             }
             console.log('[useAutoSaveSettings] ✅ Cleanup flush succeeded, cache invalidated');
           })
@@ -540,8 +541,8 @@ export function useAutoSaveSettings<T extends Record<string, any>>(
       console.log(`${debugTag} 🔍 dbSettings received:`, {
         toolId,
         entityId: entityId?.substring(0, 8),
-        dbPrompt: (dbSettings as any)?.prompt?.substring(0, 30) || '(none)',
-        dbLoraCount: (dbSettings as any)?.loras?.length ?? 0,
+        dbPrompt: String((dbSettings as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
+        dbLoraCount: ((dbSettings as Record<string, unknown>)?.loras as unknown[] | undefined)?.length ?? 0,
         status,
       });
     }
@@ -574,6 +575,9 @@ export function useAutoSaveSettings<T extends Record<string, any>>(
     }
 
     // Apply settings from DB
+    // Note: dbSettings comes from useToolSettings which already merges in priority order:
+    // defaults → user → project → shot (via deepMerge). We layer local defaults on top
+    // only as a fallback for fields not present in the merged settings.
     const loadedSettings: T = {
       ...defaults,
       ...(dbSettings || {}),
@@ -588,8 +592,8 @@ export function useAutoSaveSettings<T extends Record<string, any>>(
         console.log(`${debugTag} ⏭️ Skipping DB load - settings unchanged:`, {
           toolId,
           entityId: entityId.substring(0, 8),
-          promptInLoaded: (loadedSettingsRef.current as any)?.prompt?.substring(0, 30) || '(none)',
-          promptInNew: (clonedSettings as any)?.prompt?.substring(0, 30) || '(none)',
+          promptInLoaded: String((loadedSettingsRef.current as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
+          promptInNew: String((clonedSettings as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
         });
       }
       if (status !== 'ready') {
@@ -603,8 +607,8 @@ export function useAutoSaveSettings<T extends Record<string, any>>(
       console.log(`${debugTag} 📥 Loaded from DB:`, {
         toolId,
         entityId: entityId.substring(0, 8),
-        promptInNew: (clonedSettings as any)?.prompt?.substring(0, 30) || '(none)',
-        loraCountInNew: (clonedSettings as any)?.loras?.length ?? 0,
+        promptInNew: String((clonedSettings as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
+        loraCountInNew: ((clonedSettings as Record<string, unknown>)?.loras as unknown[] | undefined)?.length ?? 0,
       });
     }
 

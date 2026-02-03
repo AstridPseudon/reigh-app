@@ -2,7 +2,7 @@
  * Types for ShotImagesEditor and its sub-components.
  */
 
-import type { GenerationRow } from "@/types/shots";
+import type { GenerationRow, Shot } from "@/types/shots";
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import type { PairData } from "../Timeline/TimelineContainer";
 import type { StructureVideoConfigWithMetadata } from "@/shared/lib/tasks/travelBetweenImages";
@@ -39,7 +39,7 @@ export interface ShotImagesEditorProps {
   /** Timeline frame positions change */
   onFramePositionsChange: (newPositions: Map<string, number>) => void;
   /** Callback when external images are dropped on the timeline */
-  onImageDrop: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop: (files: File[], targetFrame?: number) => Promise<void>;
   /** Callback when generations are dropped from GenerationsPane onto the timeline */
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   /** Callback when external images are dropped on batch mode grid */
@@ -124,9 +124,9 @@ export interface ShotImagesEditorProps {
   onSelectionChange?: (hasSelection: boolean) => void;
 
   /** Shot management for external generation viewing */
-  allShots?: any[];
+  allShots?: Shot[];
   onShotChange?: (shotId: string) => void;
-  onAddToShot?: (shotId: string, generationId: string, position: number) => Promise<void>;
+  onAddToShot?: (shotId: string, generationId: string, position?: number) => Promise<void>;
   onAddToShotWithoutPosition?: (shotId: string, generationId: string) => Promise<boolean>;
   onCreateShot?: (name: string) => Promise<string>;
   onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
@@ -134,7 +134,7 @@ export interface ShotImagesEditorProps {
   /** Callback to notify parent of drag state changes - used to suppress query refetches during drag */
   onDragStateChange?: (isDragging: boolean) => void;
   /** Callback when single-image duration changes (for single-image video generation) */
-  onSingleImageDurationChange?: (durationFrames: number) => void;
+  onTrailingDurationChange?: (durationFrames: number | undefined) => void;
   /** Maximum frame limit for timeline gaps (77 when smoothContinuations enabled, 81 otherwise) */
   maxFrameLimit?: number;
   /** Whether smooth continuations is enabled - used to compact timeline gaps when toggled */

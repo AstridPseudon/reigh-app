@@ -25,10 +25,10 @@ export function normalizeGenerationMode(mode: GenerationModeRaw): GenerationMode
  * Each source should contain tool-specific settings (already extracted from the parent object).
  */
 export interface SettingsSources {
-  defaults?: Record<string, any>;
-  user?: Record<string, any>;
-  project?: Record<string, any>;
-  shot?: Record<string, any>;
+  defaults?: Record<string, unknown>;
+  user?: Record<string, unknown>;
+  project?: Record<string, unknown>;
+  shot?: Record<string, unknown>;
 }
 
 /**
@@ -73,8 +73,8 @@ export function resolveGenerationMode(sources: SettingsSources): GenerationModeN
  * @returns Tool-specific settings or empty object
  */
 export function extractToolSettings(
-  settings: Record<string, any> | null | undefined,
+  settings: Record<string, unknown> | null | undefined,
   toolId: string
-): Record<string, any> {
-  return (settings?.[toolId] as Record<string, any>) ?? {};
+): Record<string, unknown> {
+  return (settings?.[toolId] as Record<string, unknown>) ?? {};
 }

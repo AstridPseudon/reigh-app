@@ -6,6 +6,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 type ShotField = 'name' | 'aspect_ratio';
 
@@ -42,7 +43,7 @@ export const useUpdateShotField = () => {
     },
 
     onSuccess: ({ projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
     },
 
     onError: (error: Error, { field }) => {
@@ -89,7 +90,7 @@ export const useUpdateShotName = () => {
     },
 
     onSuccess: ({ projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
     },
 
     onError: (error: Error) => {
@@ -124,7 +125,7 @@ export const useUpdateShotAspectRatio = () => {
     },
 
     onSuccess: ({ projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
     },
   });
 };

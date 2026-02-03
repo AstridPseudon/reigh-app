@@ -215,7 +215,7 @@ const TaskListComponent: React.FC<TaskListProps> = ({
         if (prevTaskIdsRef.current.has(t.id)) return false;
         
         // Check if task was created recently
-        const createdAt = t.createdAt || (t as any).created_at;
+        const createdAt = t.createdAt;
         if (!createdAt) return false;
         
         const createdTime = new Date(createdAt).getTime();
@@ -276,7 +276,7 @@ const TaskListComponent: React.FC<TaskListProps> = ({
         if (task.taskType !== incoming.taskType) return false;
 
         // Get task creation time
-        const taskCreatedAt = new Date(task.createdAt || (task as any).created_at).getTime();
+        const taskCreatedAt = new Date(task.createdAt).getTime();
 
         // Must be created after the incoming task started (or within 2 seconds before, for clock skew)
         if (taskCreatedAt < incoming.startedAt.getTime() - 2000) return false;

@@ -6,10 +6,12 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { GenerationRow } from '@/types/shots';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import { toast } from 'sonner';
-import { handleError } from '@/shared/lib/errorHandler';
+import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 import { supabase } from '@/integrations/supabase/client';
 import { InlineEditView } from '../components/InlineEditView';
-import { useGenerations, useDeleteVariant } from '@/shared/hooks/useGenerations';
+import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
+import { useDeleteVariant } from '@/shared/hooks/useGenerationMutations';
+import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
@@ -18,9 +20,11 @@ import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/lib/clientThumbnailGenerator';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { useGetTask } from '@/shared/hooks/useTasks';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import { deriveInputImages } from '@/shared/components/MediaGallery/utils';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { parseRatio } from '@/shared/lib/aspectRatios';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 const TOOL_TYPE = 'edit-images';
 const TOOL_TYPE_NAME = 'Edit Images';
@@ -39,8 +43,10 @@ export default function EditImagesPage() {
   const aspectRatioValue = parseRatio(projectAspectRatio);
   const [selectedMedia, setSelectedMedia] = useState<GenerationRow | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<GenerationRow | null>(null); // For viewing results in lightbox
-  const [isUploading, setIsUploading] = useState(false);
   const [resultsPage, setResultsPage] = useState(1);
+
+  // Upload operation with automatic loading state
+  const uploadOperation = useAsyncOperation<GenerationRow>();
   const [showResults, setShowResults] = useState(true);
   const [isLoadingPersistedMedia, setIsLoadingPersistedMedia] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -98,9 +104,10 @@ export default function EditImagesPage() {
         .then(({ data, error }) => {
           if (data && !error) {
             // Preload the image before showing the view to prevent flash
-            const imageUrl = (data as any).location || (data as any).thumbnail_url;
+            const gen = data as GenerationRow;
+            const imageUrl = gen.location || gen.thumbnail_url;
             if (imageUrl) preloadImage(imageUrl);
-            setSelectedMedia(data as any);
+            setSelectedMedia(gen);
           } else {
             // Clear invalid stored ID
             updateUISettings('project', { lastEditedMediaId: undefined });
@@ -127,7 +134,7 @@ export default function EditImagesPage() {
   const {
     data: resultsData,
     isLoading: isResultsLoading,
-  } = useGenerations(
+  } = useProjectGenerations(
     selectedProjectId || null,
     resultsPage,
     12,
@@ -138,6 +145,64 @@ export default function EditImagesPage() {
     }
   );
 
+  // Shared upload logic for both file input and drag-drop
+  const uploadImage = useCallback(async (file: File): Promise<GenerationRow> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) {
+      throw new Error('User not authenticated');
+    }
+    const userId = session.user.id;
+
+    let publicUrl = '';
+    let thumbnailUrl = '';
+
+    try {
+      const thumbnailResult = await generateClientThumbnail(file, 300, 0.8);
+      const uploadResult = await uploadImageWithThumbnail(file, thumbnailResult.thumbnailBlob, userId);
+      publicUrl = uploadResult.imageUrl;
+      thumbnailUrl = uploadResult.thumbnailUrl;
+    } catch (thumbnailError) {
+      console.warn('[EditImages] Client-side thumbnail generation failed:', thumbnailError);
+      publicUrl = await uploadImageToStorage(file, 3);
+      thumbnailUrl = publicUrl;
+    }
+
+    const generationParams = {
+      prompt: 'Uploaded image',
+      status: 'completed',
+      is_uploaded: true,
+      width: 1024,
+      height: 1024,
+      model: 'upload'
+    };
+
+    const { data: generation, error: dbError } = await supabase
+      .from('generations')
+      .insert({
+        project_id: selectedProjectId,
+        location: publicUrl,
+        thumbnail_url: thumbnailUrl,
+        type: 'image',
+        params: generationParams
+      })
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    await supabase.from('generation_variants').insert({
+      generation_id: generation.id,
+      location: publicUrl,
+      thumbnail_url: thumbnailUrl,
+      is_primary: true,
+      variant_type: VARIANT_TYPE.ORIGINAL,
+      name: 'Original',
+      params: generationParams,
+    });
+
+    return generation as GenerationRow;
+  }, [selectedProjectId]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -146,84 +211,12 @@ export default function EditImagesPage() {
       return;
     }
 
-    setIsUploading(true);
-    try {
-      const file = files[0];
-      
-      // Generate and upload thumbnail
-      let publicUrl = '';
-      let thumbnailUrl = '';
-      
-      try {
-        // Get current user ID for storage path
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          throw new Error('User not authenticated');
-        }
-        const userId = session.user.id;
-
-        // Generate thumbnail client-side
-        const thumbnailResult = await generateClientThumbnail(file, 300, 0.8);
-        console.log('[EditImages] Thumbnail generated:', {
-          width: thumbnailResult.thumbnailWidth,
-          height: thumbnailResult.thumbnailHeight,
-          size: thumbnailResult.thumbnailBlob.size
-        });
-        
-        // Upload both main image and thumbnail
-        const uploadResult = await uploadImageWithThumbnail(file, thumbnailResult.thumbnailBlob, userId);
-        publicUrl = uploadResult.imageUrl;
-        thumbnailUrl = uploadResult.thumbnailUrl;
-        
-        console.log('[EditImages] Upload complete - Image:', publicUrl, 'Thumbnail:', thumbnailUrl);
-      } catch (thumbnailError) {
-        console.warn('[EditImages] Client-side thumbnail generation failed:', thumbnailError);
-        // Fallback to original upload flow without thumbnail
-        publicUrl = await uploadImageToStorage(file, 3);
-        thumbnailUrl = publicUrl; // Use main image as fallback
-      }
-
-      const generationParams = {
-        prompt: 'Uploaded image',
-        status: 'completed',
-        is_uploaded: true,
-        width: 1024,
-        height: 1024,
-        model: 'upload'
-      };
-
-      const { data: generation, error: dbError } = await supabase
-        .from('generations')
-        .insert({
-          project_id: selectedProjectId,
-          location: publicUrl,
-          thumbnail_url: thumbnailUrl,
-          type: 'image',
-          params: generationParams
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      // Create the original variant
-      await supabase.from('generation_variants').insert({
-        generation_id: generation.id,
-        location: publicUrl,
-        thumbnail_url: thumbnailUrl,
-        is_primary: true,
-        variant_type: 'original',
-        name: 'Original',
-        params: generationParams,
-      });
-
-      setSelectedMedia(generation as any);
-      // Toast removed as per user request
-
-    } catch (error) {
-      handleError(error, { context: 'EditImagesPage', toastTitle: 'Failed to upload image' });
-    } finally {
-      setIsUploading(false);
+    const result = await uploadOperation.execute(
+      () => uploadImage(files[0]),
+      { context: 'EditImagesPage', toastTitle: 'Failed to upload image' }
+    );
+    if (result) {
+      setSelectedMedia(result);
     }
   };
 
@@ -261,7 +254,7 @@ export default function EditImagesPage() {
 
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
-    
+
     const file = files[0];
     if (!file.type.startsWith('image/')) {
       toast.error("Please drop an image file");
@@ -273,88 +266,26 @@ export default function EditImagesPage() {
       return;
     }
 
-    // Reuse the upload logic
-    setIsUploading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-      const userId = session.user.id;
-
-      // Generate and upload thumbnail
-      let publicUrl = '';
-      let thumbnailUrl = '';
-      
-      try {
-        // Generate thumbnail client-side
-        const thumbnailResult = await generateClientThumbnail(file, 300, 0.8);
-        
-        // Upload both main image and thumbnail
-        const uploadResult = await uploadImageWithThumbnail(file, thumbnailResult.thumbnailBlob, userId);
-        publicUrl = uploadResult.imageUrl;
-        thumbnailUrl = uploadResult.thumbnailUrl;
-      } catch (thumbnailError) {
-        console.warn('[EditImages] Client-side thumbnail generation failed:', thumbnailError);
-        // Fallback to original upload flow without thumbnail
-        publicUrl = await uploadImageToStorage(file, 3);
-        thumbnailUrl = publicUrl;
-      }
-
-      const generationParams = {
-        prompt: 'Uploaded image',
-        status: 'completed',
-        is_uploaded: true,
-        width: 1024,
-        height: 1024,
-        model: 'upload'
-      };
-
-      const { data: generation, error: dbError } = await supabase
-        .from('generations')
-        .insert({
-          project_id: selectedProjectId,
-          location: publicUrl,
-          thumbnail_url: thumbnailUrl,
-          type: 'image',
-          params: generationParams
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      // Create the original variant
-      await supabase.from('generation_variants').insert({
-        generation_id: generation.id,
-        location: publicUrl,
-        thumbnail_url: thumbnailUrl,
-        is_primary: true,
-        variant_type: 'original',
-        name: 'Original',
-        params: generationParams,
-      });
-
-      setSelectedMedia(generation as any);
-
-    } catch (error) {
-      handleError(error, { context: 'EditImagesPage', toastTitle: 'Failed to upload image' });
-    } finally {
-      setIsUploading(false);
+    const result = await uploadOperation.execute(
+      () => uploadImage(file),
+      { context: 'EditImagesPage', toastTitle: 'Failed to upload image' }
+    );
+    if (result) {
+      setSelectedMedia(result);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, uploadOperation, uploadImage]);
 
   // Get results items for navigation
-  const resultsItems = (resultsData as any)?.items || [];
+  const resultsItems = (resultsData as GenerationsPaginatedResponse | undefined)?.items || [];
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
 
   // Store the variant ID separately for lightbox
   const [lightboxVariantId, setLightboxVariantId] = useState<string | null>(null);
 
   // Transform variant data to GenerationRow format for lightbox
-  const transformVariantToGeneration = (media: any): GenerationRow => {
+  const transformVariantToGeneration = (media: GeneratedImageWithMetadata): GenerationRow => {
     return {
-      id: media.metadata?.generation_id || media.id,
+      id: getGenerationId(media),
       location: media.url,
       thumbnail_url: media.thumbUrl,
       type: 'image',
@@ -370,8 +301,8 @@ export default function EditImagesPage() {
     } as GenerationRow;
   };
 
-  const handleResultClick = (media: any) => {
-    const index = resultsItems.findIndex((item: any) => item.id === media.id);
+  const handleResultClick = (media: GeneratedImageWithMetadata) => {
+    const index = resultsItems.findIndex((item) => item.id === media.id);
     setLightboxIndex(index);
     setLightboxVariantId(media.id); // Store the variant ID to pre-select it
     setLightboxMedia(transformVariantToGeneration(media));
@@ -424,7 +355,7 @@ export default function EditImagesPage() {
 
   // Helper to render the results gallery (used in both views)
   const renderResultsGallery = () => {
-    if (!(resultsData as any)?.items?.length) return null;
+    if (!(resultsData as GenerationsPaginatedResponse | undefined)?.items?.length) return null;
     
     return (
       <div className="mt-6 pb-6">
@@ -435,18 +366,18 @@ export default function EditImagesPage() {
           Edited Images
           {showResults ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           <span className="text-sm text-muted-foreground font-normal">
-            ({(resultsData as any)?.total || 0})
+            ({(resultsData as GenerationsPaginatedResponse | undefined)?.total || 0})
           </span>
         </button>
         
         {showResults && (
           <MediaGallery
-            images={(resultsData as any)?.items || []}
+            images={(resultsData as GenerationsPaginatedResponse | undefined)?.items || []}
             allShots={shots || []}
             onImageClick={handleResultClick}
             itemsPerPage={12}
             offset={(resultsPage - 1) * 12}
-            totalCount={(resultsData as any)?.total || 0}
+            totalCount={(resultsData as GenerationsPaginatedResponse | undefined)?.total || 0}
             onServerPageChange={setResultsPage}
             serverPage={resultsPage}
             onDelete={handleDeleteVariant}
@@ -560,7 +491,7 @@ export default function EditImagesPage() {
                 )}
                 
                 {/* Upload loading state */}
-                {isUploading && (
+                {uploadOperation.isLoading && (
                   <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-sm flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4 p-8">
                       <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -569,7 +500,7 @@ export default function EditImagesPage() {
                   </div>
                 )}
                 
-                {!isUploading && !isDraggingOver && (
+                {!uploadOperation.isLoading && !isDraggingOver && (
                  <div className="bg-background/90 backdrop-blur-sm rounded-lg border border-border/50 p-6 md:p-8 flex flex-col items-center justify-center space-y-4 md:space-y-6 max-w-md mx-4">
                   <div className="text-center space-y-1 md:space-y-2">
                     <p className="text-muted-foreground text-xs md:hidden">
@@ -586,9 +517,9 @@ export default function EditImagesPage() {
                       accept="image/*"
                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       onChange={handleFileUpload}
-                      disabled={isUploading}
+                      disabled={uploadOperation.isLoading}
                     />
-                    <Button variant="outline" size="lg" className="w-full gap-2" disabled={isUploading}>
+                    <Button variant="outline" size="lg" className="w-full gap-2" disabled={uploadOperation.isLoading}>
                       <Upload className="w-4 h-4" />
                       Upload Image
                     </Button>
@@ -603,13 +534,13 @@ export default function EditImagesPage() {
                 "bg-background border-t md:border-t-0 md:border-l border-border overflow-hidden relative z-[60] flex flex-col w-full h-[70%] md:w-[40%] md:h-full"
               )}
             >
-               <ImageSelectionModal 
+               <ImageSelectionModal
                  onSelect={(media) => {
                    // Preload the image before showing edit view to prevent flash
-                   const imageUrl = (media as any).location || (media as any).url || (media as any).thumbnail_url;
+                   const imageUrl = media.location || media.thumbnail_url;
                    if (imageUrl) preloadImage(imageUrl);
                    setSelectedMedia(media);
-                 }} 
+                 }}
                />
               </div>
             </div>
@@ -642,7 +573,7 @@ export default function EditImagesPage() {
                       .single();
                     
                     if (data && !error) {
-                      setSelectedMedia(data as any);
+                      setSelectedMedia(data as GenerationRow);
                     }
                   } catch (e) {
                     handleError(e, { context: 'EditImagesPage', showToast: false });
@@ -697,7 +628,7 @@ function ImageSelectionModal({ onSelect }: { onSelect: (media: GenerationRow) =>
   const {
     data: generationsData,
     isLoading: isGalleryLoading,
-  } = useGenerations(
+  } = useProjectGenerations(
     selectedProjectId || null,
     currentPage,
     itemsPerPage,
@@ -706,7 +637,7 @@ function ImageSelectionModal({ onSelect }: { onSelect: (media: GenerationRow) =>
       shotId: shotFilter === 'all' ? undefined : shotFilter,
       mediaType: 'image', // Only show images
       searchTerm: searchTerm.trim() || undefined
-    } 
+    }
   );
 
   // Reset to page 1 when filters change
@@ -728,8 +659,8 @@ function ImageSelectionModal({ onSelect }: { onSelect: (media: GenerationRow) =>
             <ReighLoading />
          ) : (
             <MediaGallery 
-               images={(generationsData as any)?.items || []}
-               onImageClick={(media) => onSelect(media as any)}
+               images={(generationsData as GenerationsPaginatedResponse | undefined)?.items || []}
+               onImageClick={(media) => onSelect(media as GenerationRow)}
                allShots={shots || []}
                showShotFilter={true}
                initialToolTypeFilter={false}
@@ -744,7 +675,7 @@ function ImageSelectionModal({ onSelect }: { onSelect: (media: GenerationRow) =>
                hideShotNotifier={true}
                itemsPerPage={itemsPerPage}
                offset={(currentPage - 1) * itemsPerPage}
-               totalCount={(generationsData as any)?.total || 0}
+               totalCount={(generationsData as GenerationsPaginatedResponse | undefined)?.total || 0}
                onServerPageChange={setCurrentPage}
                serverPage={currentPage}
                showDelete={false}

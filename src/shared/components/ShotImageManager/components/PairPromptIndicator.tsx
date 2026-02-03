@@ -3,7 +3,7 @@ import { MessageSquare, X, Clapperboard, Palette, Settings2 } from 'lucide-react
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
-import type { PhaseConfig } from '@/tools/travel-between-images/settings';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { PairLoraConfig, PairMotionSettings } from '@/types/shots';
 
 interface PairPromptIndicatorProps {

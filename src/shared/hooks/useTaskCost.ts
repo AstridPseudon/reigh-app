@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface CalculateTaskCostRequest {
   task_id: string;
@@ -40,16 +41,16 @@ export function useTaskCost() {
         timeoutMs: 20000,
       });
       
-      if ((data as any).error) {
-        throw new Error((data as any).error);
+      if ((data as Record<string, unknown>).error) {
+        throw new Error((data as Record<string, unknown>).error as string);
       }
       
       return data;
     },
     onSuccess: (data) => {
       // Invalidate credits queries to refresh balance
-      queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });
-      queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.balance });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.ledger });
       
       // Task cost calculated
       const costInDollars = data.cost.toFixed(3);

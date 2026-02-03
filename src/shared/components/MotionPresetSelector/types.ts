@@ -1,4 +1,4 @@
-import { PhaseConfig } from '@/tools/travel-between-images/settings';
+import { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { LoraModel } from '@/shared/hooks/useLoraManager';
 
 // =============================================================================
@@ -76,7 +76,7 @@ export interface MotionPresetSelectorProps {
   
   // === Callbacks ===
   /** Called when a preset is selected */
-  onPresetSelect: (presetId: string, config: PhaseConfig, metadata?: any) => void;
+  onPresetSelect: (presetId: string, config: PhaseConfig, metadata?: PresetMetadata) => void;
   /** Called when preset is removed (going to custom mode) */
   onPresetRemove: () => void;
   /** Called when motion mode changes */

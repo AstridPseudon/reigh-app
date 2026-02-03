@@ -1,4 +1,22 @@
 /**
+ * Generation parameters for image/video generation tasks
+ * Stored in generations.params for task configuration
+ */
+export interface GenerationParams {
+  prompt?: string;
+  base_prompt?: string;
+  negative_prompt?: string;
+  seed?: number;
+  guidance_scale?: number;
+  num_inference_steps?: number;
+  width?: number;
+  height?: number;
+  resolution?: string;
+  // Allow extension for tool-specific parameters
+  [key: string]: unknown;
+}
+
+/**
  * Per-pair LoRA override configuration
  * Stored in GenerationMetadata for per-segment LoRA overrides
  */
@@ -48,7 +66,7 @@ export interface GenerationMetadata {
   pair_motion_settings?: PairMotionSettings;
 
   // Allow additional metadata fields without losing type safety on known keys
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -76,6 +94,7 @@ export interface GenerationRow {
   // Add other relevant properties from your generations table
   imageUrl?: string; // May specifically be for image previews
   thumbUrl?: string;
+  thumbnail_url?: string | null; // DB column name (alias for thumbUrl)
   location?: string | null;
   type?: string | null;
   contentType?: string; // MIME type for proper download file extensions (e.g., 'video/mp4', 'image/png')
@@ -93,7 +112,7 @@ export interface GenerationRow {
   hasUnviewedVariants?: boolean; // Whether any variants have viewed_at === null (for NEW badge)
   unviewedVariantCount?: number; // Count of unviewed variants for tooltip
   based_on?: string | null; // ID of source generation for lineage tracking (magic edits, variations)
-  params?: any; // JSON parameters for the generation (prompt, settings, etc.)
+  params?: GenerationParams; // JSON parameters for the generation (prompt, settings, etc.)
   created_at?: string; // DB column name
   parent_generation_id?: string | null;
   variant_name?: string;

@@ -23,7 +23,7 @@
  * - PreviewTogetherDialog: Video preview dialog
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/card';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
 import { Button } from '@/shared/components/ui/button';
@@ -31,6 +31,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shar
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Download, Loader2, Play, Video } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { SegmentEditorModal } from '@/shared/components/MediaLightbox/components';
@@ -77,7 +78,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     batchVideoFrames,
     onImageReorder,
     onFramePositionsChange,
-    onImageDrop,
+    onFileDrop,
     onGenerationDrop,
     onBatchFileDrop,
     onBatchGenerationDrop,
@@ -122,7 +123,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     onCreateShot,
     onNewShotFromSelection,
     onDragStateChange,
-    onSingleImageDurationChange,
+    onTrailingDurationChange,
     maxFrameLimit = 81,
     smoothContinuations = false,
     selectedOutputId,
@@ -142,7 +143,8 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
   // LOCAL STATE
   // ==========================================================================
 
-  const [singleImageEndFrame, setSingleImageEndFrame] = useState<number | undefined>(undefined);
+  // Local state for responsive drag UI - cleared after drag persists to metadata
+  const [localEndFrame, setLocalEndFrame] = useState<number | undefined>(undefined);
   const [deletingSegmentId, setDeletingSegmentId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -180,6 +182,43 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
   );
 
   const { addOptimisticPending } = usePendingSegmentTasks(selectedShotId, projectId || null);
+
+  // ==========================================================================
+  // DERIVED END FRAME (from last image's metadata)
+  // ==========================================================================
+
+  // Derive end_frame from the last positioned image's metadata
+  // This is the source of truth; localEndFrame is only used during drag for responsive UI
+  const derivedEndFrame = useMemo(() => {
+    const sortedImages = [...(shotGenerations || [])]
+      .filter((img) => img.timeline_frame != null && img.timeline_frame >= 0)
+      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
+
+    if (sortedImages.length === 0) return undefined;
+
+    const lastImage = sortedImages[sortedImages.length - 1];
+    const lastImageFrame = lastImage.timeline_frame ?? 0;
+    const metadata = lastImage.metadata as Record<string, unknown> | null;
+    const endFrame = metadata?.end_frame;
+
+    // Validate: end_frame must be greater than last image's frame to be valid
+    // If not, the settings are stale (e.g., image was added/moved since trailing was configured)
+    if (typeof endFrame !== 'number' || endFrame <= lastImageFrame) {
+      return undefined;
+    }
+
+    return endFrame;
+  }, [shotGenerations]);
+
+  // Effective end frame: prefer local state during drag, fall back to metadata
+  const trailingEndFrame = localEndFrame ?? derivedEndFrame;
+
+  // Clear local state when derived value changes (after persist completes)
+  useEffect(() => {
+    if (derivedEndFrame !== undefined && localEndFrame !== undefined && localEndFrame === derivedEndFrame) {
+      setLocalEndFrame(undefined);
+    }
+  }, [derivedEndFrame, localEndFrame]);
 
   // ==========================================================================
   // UI STATE HOOKS
@@ -220,7 +259,6 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     loadPositions,
     navigateWithTransition,
     addOptimisticPending,
-    singleImageEndFrame,
   });
 
   const {
@@ -256,16 +294,12 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     onDragStateChange?.(isDragging);
   }, [onDragStateChange]);
 
-  const handleSingleImageEndFrameChange = useCallback((endFrame: number) => {
-    setSingleImageEndFrame(endFrame);
-    onSingleImageDurationChange?.(endFrame);
-  }, [onSingleImageDurationChange]);
-
-  useEffect(() => {
-    if (singleImageEndFrame === undefined) {
-      setSingleImageEndFrame(batchVideoFrames);
-    }
-  }, [batchVideoFrames, singleImageEndFrame]);
+  // Updates local state during drag for responsive UI
+  // The actual persistence happens in useTimelineOrchestrator on mouse up
+  const handleTrailingEndFrameChange = useCallback((endFrame: number | undefined) => {
+    setLocalEndFrame(endFrame);
+    onTrailingDurationChange?.(endFrame);
+  }, [onTrailingDurationChange]);
 
   const handleDeleteSegment = useCallback(async (generationId: string) => {
     setDeletingSegmentId(generationId);
@@ -278,9 +312,11 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
 
       if (!beforeData) return;
 
+      const paramsObj = beforeData.params as Record<string, unknown> | null;
+      const individualParams = paramsObj?.individual_segment_params as Record<string, unknown> | undefined;
       const pairShotGenId = beforeData.pair_shot_generation_id ||
-        (beforeData.params as any)?.individual_segment_params?.pair_shot_generation_id ||
-        (beforeData.params as any)?.pair_shot_generation_id;
+        individualParams?.pair_shot_generation_id ||
+        paramsObj?.pair_shot_generation_id;
 
       let idsToDelete = [generationId];
       if (pairShotGenId && beforeData.parent_generation_id) {
@@ -291,9 +327,11 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
 
         idsToDelete = (siblings || [])
           .filter(child => {
+            const childParamsObj = child.params as Record<string, unknown> | null;
+            const childIndividualParams = childParamsObj?.individual_segment_params as Record<string, unknown> | undefined;
             const childPairId = child.pair_shot_generation_id ||
-              (child.params as any)?.individual_segment_params?.pair_shot_generation_id ||
-              (child.params as any)?.pair_shot_generation_id;
+              childIndividualParams?.pair_shot_generation_id ||
+              childParamsObj?.pair_shot_generation_id;
             return childPairId === pairShotGenId;
           })
           .map(child => child.id);
@@ -303,13 +341,18 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
 
       queryClient.setQueriesData(
         { predicate: (query) => query.queryKey[0] === 'segment-child-generations' },
-        (oldData: any) => oldData?.filter?.((item: any) => !idsToDelete.includes(item.id)) ?? oldData
+        (oldData: unknown) => {
+          if (Array.isArray(oldData)) {
+            return oldData.filter((item: { id: string }) => !idsToDelete.includes(item.id));
+          }
+          return oldData;
+        }
       );
       await queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === 'segment-child-generations',
         refetchType: 'all'
       });
-      await queryClient.invalidateQueries({ queryKey: ['unified-generations'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
     } catch (error) {
       handleError(error, { context: 'SegmentDelete', toastTitle: 'Failed to delete segment' });
     } finally {
@@ -321,7 +364,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
   const handleAddToShotAdapter = useCallback(async (targetShotId: string, generationId: string) => {
     if (!onAddToShot || !targetShotId) return false;
     try {
-      await onAddToShot(targetShotId, generationId, undefined as any);
+      await onAddToShot(targetShotId, generationId);
       return true;
     } catch { return false; }
   }, [onAddToShot]);
@@ -371,7 +414,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
       deleteItem: preloadedImages ? (id: string) => onImageDelete?.(id) : deleteItem,
       loadPositions,
       isLoading: positionsLoading,
-    } as any
+    } as Parameters<typeof useEnhancedShotImageReorder>[1]
   );
 
   // ==========================================================================
@@ -483,12 +526,12 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
                 updateTimelineFrame={updateTimelineFrame}
                 pendingPositions={pendingPositions}
                 onPendingPositionApplied={onPendingPositionApplied}
-                singleImageEndFrame={singleImageEndFrame}
-                onSingleImageEndFrameChange={handleSingleImageEndFrameChange}
+                trailingEndFrame={trailingEndFrame}
+                onTrailingEndFrameChange={handleTrailingEndFrameChange}
                 maxFrameLimit={maxFrameLimit}
                 onImageReorder={onImageReorder}
                 onFramePositionsChange={onFramePositionsChange}
-                onImageDrop={onImageDrop}
+                onFileDrop={onFileDrop}
                 onGenerationDrop={onGenerationDrop}
                 onImageDelete={onImageDelete}
                 onImageDuplicate={onImageDuplicate}

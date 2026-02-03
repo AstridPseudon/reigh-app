@@ -5,7 +5,8 @@ import { SliderWithValue } from "@/shared/components/ui/slider-with-value";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import HoverScrubVideo from "@/shared/components/HoverScrubVideo";
 import { X, Plus } from "lucide-react";
-import { getDisplayNameFromUrl } from "@/tools/travel-between-images/utils/loraDisplayUtils";
+import { getDisplayNameFromUrl } from "@/shared/lib/loraUtils";
+import type { LoraModel } from "@/shared/components/LoraSelectorModal";
 
 export interface ActiveLora {
   id: string;
@@ -24,7 +25,7 @@ interface ActiveLoRAsDisplayProps {
   onRemoveLora: (loraId: string) => void;
   onLoraStrengthChange: (loraId: string, newStrength: number) => void;
   isGenerating?: boolean;
-  availableLoras?: any[]; // For video detection logic
+  availableLoras?: LoraModel[]; // For video detection logic
   className?: string;
   onAddTriggerWord?: (triggerWord: string) => void;
   renderHeaderActions?: () => React.ReactNode;

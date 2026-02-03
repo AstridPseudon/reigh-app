@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { TIMELINE_HORIZONTAL_PADDING, TIMELINE_PADDING_OFFSET } from '../constants';
 
 // Timeline sub-components (existing)
@@ -6,13 +6,14 @@ import TimelineRuler from '../TimelineRuler';
 import DropIndicator from '../DropIndicator';
 import PairRegion from '../PairRegion';
 import TimelineItem from '../TimelineItem';
-import SingleImageEndpoint, { SINGLE_IMAGE_ENDPOINT_ID } from '../SingleImageEndpoint';
+import TrailingEndpoint, { TRAILING_ENDPOINT_ID } from '../TrailingEndpoint';
 import { GuidanceVideoStrip } from '../GuidanceVideoStrip';
 import { GuidanceVideoUploader } from '../GuidanceVideoUploader';
 import { GuidanceVideosContainer } from '../GuidanceVideosContainer';
 import { AudioStrip } from '../AudioStrip';
 import { SegmentOutputStrip } from '../SegmentOutputStrip';
 import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
+import { usePendingSegmentTasks } from '@/shared/hooks/usePendingSegmentTasks';
 import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
 
 // Extracted sub-components
@@ -30,6 +31,7 @@ import { useTimelineOrchestrator } from '../hooks/useTimelineOrchestrator';
 
 // Types
 import type { TimelineContainerProps } from './types';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 const TimelineContainer: React.FC<TimelineContainerProps> = ({
   shotId,
@@ -40,7 +42,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   framePositions,
   setFramePositions,
   onImageReorder,
-  onImageDrop,
+  onFileDrop,
   onGenerationDrop,
   setIsDragInProgress,
   onResetFrames,
@@ -75,8 +77,8 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   audioMetadata,
   onAudioChange,
   hasNoImages = false,
-  singleImageEndFrame,
-  onSingleImageEndFrameChange,
+  trailingEndFrame,
+  onTrailingEndFrameChange,
   maxFrameLimit = 81,
   selectedOutputId,
   onSelectedOutputChange,
@@ -85,6 +87,18 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onNewShotFromSelection,
   onShotChange,
 }) => {
+  // State for trailing video URL (for extract final frame feature and timeline dimensions)
+  // This is set by SegmentOutputStrip when it detects an existing trailing video
+  // Must be declared before the orchestrator hook so we can pass hasExistingTrailingVideo to it
+  const [trailingVideoUrl, setTrailingVideoUrl] = React.useState<string | null>(null);
+  const hasExistingTrailingVideo = !!trailingVideoUrl;
+
+  // [TrailingDebug] Log state at render time
+  console.log('[TrailingDebug] 🎬 TimelineContainer RENDER:', {
+    trailingEndFrame,
+    hasExistingTrailingVideo,
+  });
+
   // Use orchestrator hook for all state, effects, and handlers
   const {
     timelineRef,
@@ -149,14 +163,14 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     framePositions,
     setFramePositions,
     onImageReorder,
-    onImageDrop,
+    onFileDrop,
     onGenerationDrop,
     setIsDragInProgress,
     onImageDuplicate,
     readOnly,
     isUploadingImage,
-    singleImageEndFrame,
-    onSingleImageEndFrameChange,
+    trailingEndFrame,
+    onTrailingEndFrameChange,
     maxFrameLimit,
     structureVideos,
     structureVideoType,
@@ -165,30 +179,137 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     onAddStructureVideo,
     onUpdateStructureVideo,
     onStructureVideoChange,
+    hasExistingTrailingVideo,
   });
 
   const numPairs = Math.max(0, images.length - 1);
   const maxAllowedGap = 81;
 
+  // Track the last image ID to detect when it changes (new image added at end)
+  // When the last image changes, clear trailingVideoUrl to prevent showing stale video
+  // Note: trailingEndFrame is handled by derivedEndFrame validation (end_frame > lastImageFrame)
+  const lastImageIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (currentPositions.size === 0) return;
+
+    // Find the current last image (highest frame position)
+    const sortedEntries = [...currentPositions.entries()].sort((a, b) => a[1] - b[1]);
+    const currentLastImageId = sortedEntries[sortedEntries.length - 1]?.[0] || null;
+
+    // If the last image changed, clear trailing video URL
+    if (lastImageIdRef.current !== null &&
+        currentLastImageId !== lastImageIdRef.current) {
+      console.log('[TrailingDebug] Last image changed:', {
+        from: lastImageIdRef.current?.substring(0, 8),
+        to: currentLastImageId?.substring(0, 8),
+      });
+      if (trailingVideoUrl) {
+        setTrailingVideoUrl(null);
+      }
+    }
+
+    lastImageIdRef.current = currentLastImageId;
+  }, [currentPositions, trailingVideoUrl]);
+
+  // Check for pending segment tasks (needed to show trailing slot when pending)
+  const { hasPendingTask } = usePendingSegmentTasks(shotId, projectId);
+
+  // Handler to extract final frame from trailing video and add as next image
+  const handleExtractFinalFrame = useCallback(async () => {
+    if (!trailingVideoUrl || !onFileDrop) return;
+
+    try {
+      // Create video element to extract frame
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.src = trailingVideoUrl;
+
+      await new Promise<void>((resolve, reject) => {
+        video.onloadedmetadata = () => resolve();
+        video.onerror = () => reject(new Error('Failed to load video'));
+        setTimeout(() => reject(new Error('Video load timeout')), 10000);
+      });
+
+      // Seek to the last frame (duration - small epsilon)
+      video.currentTime = Math.max(0, video.duration - 0.01);
+
+      await new Promise<void>((resolve) => {
+        video.onseeked = () => resolve();
+        setTimeout(resolve, 2000);
+      });
+
+      // Extract frame to canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Failed to get canvas context');
+
+      ctx.drawImage(video, 0, 0);
+
+      // Convert to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('Failed to create blob'))),
+          'image/png',
+          1.0
+        );
+      });
+
+      // Create File object
+      const file = new File([blob], `extracted-frame-${Date.now()}.png`, { type: 'image/png' });
+
+      // Calculate target frame (after the trailing endpoint)
+      const sortedPositions = [...currentPositions.values()].sort((a, b) => a - b);
+      const lastImageFrame = sortedPositions[sortedPositions.length - 1] ?? 0;
+      const effectiveEndFrame = trailingEndFrame ?? (lastImageFrame + 17);
+      const targetFrame = effectiveEndFrame + 5; // Add small gap after endpoint
+
+      // Drop the file at the target position
+      await onFileDrop([file], targetFrame);
+
+      // Note: The trailing segment state will be automatically cleared by the useEffect
+      // that watches for last image changes
+
+      // Clean up
+      video.src = '';
+    } catch (error) {
+      console.error('[ExtractFinalFrame] Error:', error);
+    }
+  }, [trailingVideoUrl, onFileDrop, currentPositions, trailingEndFrame]);
+
   const handleReset = useCallback(() => {
     onResetFrames(resetGap);
-    if (images.length === 1 && onSingleImageEndFrameChange) {
-      onSingleImageEndFrameChange(resetGap);
+    if (images.length === 1 && onTrailingEndFrameChange) {
+      onTrailingEndFrameChange(resetGap);
     }
-  }, [onResetFrames, resetGap, images.length, onSingleImageEndFrameChange]);
+  }, [onResetFrames, resetGap, images.length, onTrailingEndFrameChange]);
 
   // Build pair click handler for SegmentOutputStrip
   const handleOpenPairSettings = useCallback((pairIndex: number, passedFrameData?: { frames: number; startFrame: number; endFrame: number }) => {
+    console.log('[TrailingGen] handleOpenPairSettings called:', {
+      pairIndex,
+      hasOnPairClick: !!onPairClick,
+      imagesLength: images.length,
+      trailingEndFrame,
+      pairInfoLength: pairInfo.length,
+      passedFrameData,
+    });
+
     if (!onPairClick) return;
 
-    if (images.length === 1 && singleImageEndFrame !== undefined) {
+    // Handle single-image mode (trailing segment is the only segment)
+    if (images.length === 1 && trailingEndFrame !== undefined) {
       const entry = [...currentPositions.entries()][0];
       if (entry) {
         const [imageId, imageFrame] = entry;
         const image = images[0];
-        const frames = passedFrameData?.frames ?? (singleImageEndFrame - imageFrame);
+        const frames = passedFrameData?.frames ?? (trailingEndFrame - imageFrame);
         const startFrame = passedFrameData?.startFrame ?? imageFrame;
-        const endFrame = passedFrameData?.endFrame ?? singleImageEndFrame;
+        const endFrame = passedFrameData?.endFrame ?? trailingEndFrame;
         onPairClick(pairIndex, {
           index: 0,
           frames,
@@ -203,6 +324,49 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
           },
           endImage: null,
         });
+      }
+      return;
+    }
+
+    // Handle multi-image trailing segment (pairIndex is after all regular pairs)
+    if (pairIndex === pairInfo.length && trailingEndFrame !== undefined && currentPositions.size > 0) {
+      console.log('[TrailingGen] Multi-image trailing segment detected');
+      const sortedEntries = [...currentPositions.entries()].sort((a, b) => a[1] - b[1]);
+      const lastEntry = sortedEntries[sortedEntries.length - 1];
+      if (lastEntry) {
+        const [imageId, imageFrame] = lastEntry;
+        const lastImage = images.find(img => {
+          const imgId = img.shot_generation_id || img.id;
+          return imgId === imageId;
+        }) || images[images.length - 1];
+
+        const defaultOffset = 9; // Same as multi-image default
+        const effectiveEndFrame = trailingEndFrame ?? (imageFrame + defaultOffset);
+        const frames = passedFrameData?.frames ?? (effectiveEndFrame - imageFrame);
+        const startFrame = passedFrameData?.startFrame ?? imageFrame;
+        const endFrame = passedFrameData?.endFrame ?? effectiveEndFrame;
+
+        const pairData = {
+          index: pairIndex,
+          frames,
+          startFrame,
+          endFrame,
+          startImage: lastImage ? {
+            id: imageId,
+            generationId: lastImage.generation_id,
+            url: lastImage.imageUrl || lastImage.thumbUrl,
+            thumbUrl: lastImage.thumbUrl,
+            position: sortedEntries.length,
+          } : null,
+          endImage: null,
+        };
+        console.log('[TrailingGen] Calling onPairClick with:', {
+          pairIndex,
+          frames: pairData.frames,
+          hasStartImage: !!pairData.startImage,
+          hasEndImage: !!pairData.endImage,
+        });
+        onPairClick(pairIndex, pairData);
       }
       return;
     }
@@ -222,7 +386,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     } else if (pairData) {
       onPairClick(pairIndex, pairData);
     }
-  }, [onPairClick, images, singleImageEndFrame, currentPositions, pairDataByIndex, pairInfo]);
+  }, [onPairClick, images, trailingEndFrame, currentPositions, pairDataByIndex, pairInfo]);
 
   // Memoized callbacks for SelectionActionBar
   const handleDeleteSelected = useCallback(() => {
@@ -291,33 +455,61 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
           onDrop={(e) => handleDrop(e, containerRef)}
         >
           {/* Segment output strip */}
-          {shotId && (projectId || (readOnly && videoOutputs)) && (
-            <SegmentOutputStrip
-              shotId={shotId}
-              projectId={projectId}
-              preloadedGenerations={videoOutputs}
-              readOnly={readOnly}
-              projectAspectRatio={projectAspectRatio}
-              pairInfo={pairInfo}
-              fullMin={fullMin}
-              fullMax={fullMax}
-              fullRange={fullRange}
-              containerWidth={containerWidth}
-              zoomLevel={zoomLevel}
-              localShotGenPositions={localShotGenPositions}
-              pairDataByIndex={pairDataByIndex}
-              onOpenPairSettings={onPairClick ? handleOpenPairSettings : undefined}
-              selectedParentId={selectedOutputId}
-              onSelectedParentChange={onSelectedOutputChange}
-              onSegmentFrameCountChange={onSegmentFrameCountChange}
-              singleImageMode={images.length === 1 && singleImageEndFrame !== undefined ? (() => {
-                const entry = [...currentPositions.entries()][0];
-                if (!entry) return undefined;
-                const [imageId, imageFrame] = entry;
-                return { imageId, imageFrame, endFrame: singleImageEndFrame };
-              })() : undefined}
-            />
-          )}
+          {shotId && (projectId || (readOnly && videoOutputs)) && (() => {
+            // Compute trailing segment info for SegmentOutputStrip
+            const sortedEntries = currentPositions.size > 0
+              ? [...currentPositions.entries()].sort((a, b) => a[1] - b[1])
+              : [];
+            const lastEntry = sortedEntries[sortedEntries.length - 1];
+            const isMultiImage = images.length > 1;
+            const lastImageFrame = lastEntry ? lastEntry[1] : undefined;
+
+            return (
+              <SegmentOutputStrip
+                shotId={shotId}
+                projectId={projectId}
+                preloadedGenerations={videoOutputs}
+                readOnly={readOnly}
+                projectAspectRatio={projectAspectRatio}
+                pairInfo={pairInfo}
+                fullMin={fullMin}
+                fullMax={fullMax}
+                fullRange={fullRange}
+                containerWidth={containerWidth}
+                zoomLevel={zoomLevel}
+                localShotGenPositions={localShotGenPositions}
+                pairDataByIndex={pairDataByIndex}
+                onOpenPairSettings={onPairClick ? handleOpenPairSettings : undefined}
+                selectedParentId={selectedOutputId}
+                onSelectedParentChange={onSelectedOutputChange}
+                onSegmentFrameCountChange={onSegmentFrameCountChange}
+                // SIMPLIFIED: Always pass lastImageId so hook can find existing trailing videos
+                lastImageId={lastEntry?.[0]}
+                // SIMPLIFIED: Only pass trailingSegmentMode when user has configured trailing
+                // (trailingEndFrame is set and valid - validation happens in derivedEndFrame)
+                trailingSegmentMode={lastEntry && trailingEndFrame !== undefined ? (() => {
+                  const [imageId, imageFrame] = lastEntry;
+                  console.log('[TrailingDebug] trailingSegmentMode SET:', {
+                    imageId: imageId?.substring(0, 8),
+                    imageFrame,
+                    endFrame: trailingEndFrame,
+                  });
+                  return { imageId, imageFrame, endFrame: trailingEndFrame };
+                })() : undefined}
+                isMultiImage={isMultiImage}
+                lastImageFrame={lastImageFrame}
+                onAddTrailingSegment={onTrailingEndFrameChange && lastImageFrame !== undefined && lastEntry ? () => {
+                  // Initialize trailing segment with default 17-frame duration
+                  onTrailingEndFrameChange(lastImageFrame + 17);
+                } : undefined}
+                onRemoveTrailingSegment={onTrailingEndFrameChange && isMultiImage && trailingEndFrame !== undefined ? () => {
+                  // Remove trailing segment by clearing the end frame
+                  onTrailingEndFrameChange(undefined);
+                } : undefined}
+                onTrailingVideoInfo={setTrailingVideoUrl}
+              />
+            );
+          })()}
 
           {/* Structure video strip(s) */}
           {shotId && (projectId || readOnly) && (
@@ -536,18 +728,56 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
               );
             })}
 
-            {/* Single image endpoint */}
-            {images.length === 1 && currentPositions.size > 0 && onSingleImageEndFrameChange && (() => {
-              const entry = [...currentPositions.entries()][0];
-              if (!entry) return null;
-              const [id, imageFrame] = entry;
-              const defaultEndFrame = imageFrame + 49;
-              const effectiveEndFrame = singleImageEndFrame ?? defaultEndFrame;
+            {/* Trailing endpoint - appears after last image */}
+            {/* For single-image: always show (needed for generation) */}
+            {/* For multi-image: only show when explicitly enabled (trailingEndFrame is set) */}
+            {currentPositions.size > 0 && onTrailingEndFrameChange && (() => {
+              // Find the last image (highest frame position)
+              const sortedEntries = [...currentPositions.entries()].sort((a, b) => a[1] - b[1]);
+              const lastEntry = sortedEntries[sortedEntries.length - 1];
+              if (!lastEntry) return null;
+              const [id, imageFrame] = lastEntry;
+
+              // For multi-image mode, show trailing endpoint when:
+              // 1. trailingEndFrame is explicitly set (user added trailing segment), OR
+              // 2. A trailing video already exists (need to show marker for it)
+              const isMultiImage = images.length > 1;
+              const hasTrailingSegment = trailingEndFrame !== undefined;
+
+              console.log('[TrailingStateDebug] TrailingEndpoint render check:', {
+                isMultiImage,
+                hasTrailingSegment,
+                trailingEndFrame,
+                hasExistingTrailingVideo,
+                trailingVideoUrl: trailingVideoUrl?.substring(0, 30),
+                willRender: !(isMultiImage && !hasTrailingSegment && !hasExistingTrailingVideo),
+              });
+
+              // Don't render anything on the timeline if multi-image without trailing segment
+              // UNLESS a trailing video already exists - then we need to show the marker
+              if (isMultiImage && !hasTrailingSegment && !hasExistingTrailingVideo) {
+                console.log('[TrailingStateDebug] TrailingEndpoint NOT rendering (multi-image, no segment, no video)');
+                return null;
+              }
+
+              // Show the trailing endpoint
+              const defaultEndFrame = imageFrame + (isMultiImage ? 17 : 49);
+              const effectiveEndFrame = trailingEndFrame ?? defaultEndFrame;
               const gapToImage = effectiveEndFrame - imageFrame;
-              const isEndpointDragging = dragState.isDragging && dragState.activeId === SINGLE_IMAGE_ENDPOINT_ID;
+              const isEndpointDragging = dragState.isDragging && dragState.activeId === TRAILING_ENDPOINT_ID;
+
+              // Find the corresponding image for pair data
+              const lastImageIndex = sortedEntries.length - 1;
+              const lastImage = images.find(img => {
+                const imgId = img.shot_generation_id || img.id;
+                return imgId === id;
+              }) || images[lastImageIndex];
+
+              // Trailing segment pair index is after all regular pairs
+              const trailingPairIndex = Math.max(0, sortedEntries.length - 1);
 
               return (
-                <SingleImageEndpoint
+                <TrailingEndpoint
                   framePosition={effectiveEndFrame}
                   imageFramePosition={imageFrame}
                   isDragging={isEndpointDragging}
@@ -560,23 +790,25 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                   gapToImage={gapToImage}
                   maxAllowedGap={maxAllowedGap}
                   readOnly={readOnly}
-                  onDurationClick={onPairClick ? () => {
-                    const image = images[0];
-                    onPairClick(0, {
-                      index: 0,
+                  compact={isMultiImage}
+                  onDurationClick={onPairClick && lastImage ? () => {
+                    onPairClick(trailingPairIndex, {
+                      index: trailingPairIndex,
                       frames: effectiveEndFrame - imageFrame,
                       startFrame: imageFrame,
                       endFrame: effectiveEndFrame,
                       startImage: {
                         id,
-                        generationId: image.generation_id,
-                        url: image.imageUrl || image.thumbUrl,
-                        thumbUrl: image.thumbUrl,
-                        position: 1,
+                        generationId: lastImage.generation_id,
+                        url: lastImage.imageUrl || lastImage.thumbUrl,
+                        thumbUrl: lastImage.thumbUrl,
+                        position: sortedEntries.length,
                       },
                       endImage: null,
                     });
                   } : undefined}
+                  hasTrailingVideo={!!trailingVideoUrl}
+                  onExtractFinalFrame={trailingVideoUrl && onFileDrop ? handleExtractFinalFrame : undefined}
                 />
               );
             })()}
@@ -658,7 +890,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                   projectAspectRatio={projectAspectRatio}
                   readOnly={readOnly}
                   onPrefetch={!isMobile ? () => {
-                    const generationId = image.generation_id || image.id;
+                    const generationId = getGenerationId(image);
                     if (generationId) prefetchTaskData(generationId);
                   } : undefined}
                   isSelected={isSelected(imageKey)}
@@ -676,7 +908,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
           setResetGap={setResetGap}
           maxGap={maxGap}
           onReset={handleReset}
-          onImageDrop={onImageDrop}
+          onFileDrop={onFileDrop}
           isUploadingImage={isUploadingImage}
           uploadProgress={uploadProgress}
           readOnly={readOnly}

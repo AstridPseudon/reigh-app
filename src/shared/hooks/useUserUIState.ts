@@ -4,7 +4,12 @@ import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
 import { handleError } from '@/shared/lib/errorHandler';
 
 // Shared cache to prevent duplicate database calls
-const settingsCache = new Map<string, { data: any; timestamp: number; loading: Promise<any> | null }>();
+interface SettingsCacheEntry {
+  data: { data: { settings?: Record<string, unknown> } | null; error: unknown } | null;
+  timestamp: number;
+  loading: Promise<{ data: { settings?: Record<string, unknown> } | null; error: unknown }> | null;
+}
+const settingsCache = new Map<string, SettingsCacheEntry>();
 const CACHE_DURATION = 30000; // 30 seconds
 
 interface UISettings {
@@ -95,11 +100,12 @@ export function useUserUIState<K extends keyof UISettings>(
   // - inCloud: false, onComputer: false (explicitly disabled, used for warnings)
   // Not allowed:
   // - inCloud: true, onComputer: true → normalize to cloud by default
-  const normalizeIfGenerationMethods = (val: any): UISettings[K] => {
-    if ((key as string) !== 'generationMethods') return val as UISettings[K];
-    if (!val || typeof val !== 'object') return val as UISettings[K];
-    const inCloud = Boolean((val as any).inCloud);
-    const onComputer = Boolean((val as any).onComputer);
+  const normalizeIfGenerationMethods = (val: UISettings[K]): UISettings[K] => {
+    if ((key as string) !== 'generationMethods') return val;
+    if (!val || typeof val !== 'object') return val;
+    const valObj = val as unknown as Record<string, unknown>;
+    const inCloud = Boolean(valObj.inCloud);
+    const onComputer = Boolean(valObj.onComputer);
     if (inCloud && onComputer) {
       return { inCloud: true, onComputer: false } as UISettings[K];
     }
@@ -114,7 +120,7 @@ export function useUserUIState<K extends keyof UISettings>(
   // This automatically backfills existing users with default values when they first load the app
   // IMPORTANT: Only runs when the key is completely missing from database (undefined)
   // Does NOT override explicit user choices (including both options set to false)
-  const saveFallbackToDatabase = async (userId: string, _currentSettings: any) => {
+  const saveFallbackToDatabase = async (userId: string, _currentSettings: Record<string, unknown>) => {
     try {
       const fallbackToSave = normalizeIfGenerationMethods(fallback);
       
@@ -164,7 +170,7 @@ export function useUserUIState<K extends keyof UISettings>(
         if (keyValue !== undefined) {
           // Key exists in database - merge with fallback to backfill any missing fields
           const mergedValue = (typeof fallback === 'object' && fallback !== null)
-            ? ({ ...(fallback as any), ...(keyValue as any) } as UISettings[K])
+            ? ({ ...fallback, ...(keyValue as object) } as UISettings[K])
             : (keyValue as UISettings[K]);
 
           const normalizedValue = normalizeIfGenerationMethods(mergedValue);
@@ -175,7 +181,7 @@ export function useUserUIState<K extends keyof UISettings>(
           if (
             (typeof keyValue === 'object' && keyValue !== null &&
             typeof fallback === 'object' && fallback !== null &&
-            Object.keys(fallback as any).some((k) => (keyValue as any)[k] === undefined)) ||
+            Object.keys(fallback as object).some((k) => (keyValue as Record<string, unknown>)[k] === undefined)) ||
             JSON.stringify(normalizedValue) !== JSON.stringify(keyValue)
           ) {
             // Use the global queue to save - it handles merging
@@ -218,7 +224,7 @@ export function useUserUIState<K extends keyof UISettings>(
   const update = (patch: Partial<UISettings[K]>) => {
     // Immediately update local state for responsive UI (with normalization)
     setValue(prev => {
-      const nextVal = { ...(prev as any), ...(patch as any) } as UISettings[K];
+      const nextVal = { ...(prev as object), ...(patch as object) } as UISettings[K];
       return normalizeIfGenerationMethods(nextVal);
     });
 
@@ -240,18 +246,18 @@ export function useUserUIState<K extends keyof UISettings>(
           .eq('id', userId)
           .single();
 
-        const currentSettings = currentUser?.settings || {};
+        const currentSettings = (currentUser?.settings ?? {}) as Record<string, Record<string, unknown>>;
         const currentUI = currentSettings.ui || {};
         // Merge current DB value over fallback to ensure all fields exist
         const mergedCurrentKeyValue = (typeof fallback === 'object' && fallback !== null)
-          ? { ...(fallback as any), ...((currentUI[key] as any) || {}) }
-          : ((currentUI[key] ?? fallback) as any);
+          ? { ...fallback, ...((currentUI[key] as object) || {}) }
+          : ((currentUI[key] ?? fallback) as object);
 
         // Merge the patch with current value and normalize
         const updatedKeyValue = normalizeIfGenerationMethods({
-          ...(mergedCurrentKeyValue as any),
-          ...(patch as any)
-        });
+          ...(mergedCurrentKeyValue as object),
+          ...(patch as object)
+        } as UISettings[K]);
         
         // Update the database
         const { error } = await supabase

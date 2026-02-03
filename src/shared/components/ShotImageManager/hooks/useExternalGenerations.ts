@@ -7,6 +7,18 @@ import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/ho
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { handleError } from '@/shared/lib/errorHandler';
 
+/** Shape of the joined shot_generations rows returned by the Supabase query */
+interface ShotGenerationJoin {
+  shot_id: string;
+  timeline_frame: number | null;
+}
+
+/** Generation row with the joined shot_generations relation */
+interface GenerationWithShotJoin {
+  shot_generations: ShotGenerationJoin[];
+  [key: string]: unknown;
+}
+
 interface UseExternalGenerationsProps {
   selectedShotId?: string;
   optimisticOrder: GenerationRow[];
@@ -31,8 +43,8 @@ export function useExternalGenerations({
   
   // Listen for realtime generation updates
   useEffect(() => {
-    const handleGenerationUpdate = async (event: any) => {
-      const { payloads = [] } = event.detail || {};
+    const handleGenerationUpdate = async (event: Event) => {
+      const { payloads = [] } = (event as CustomEvent).detail || {};
       console.log('[BasedOnLineage] 🔄 Generation update batch received:', {
         payloadCount: payloads.length,
         timestamp: Date.now()
@@ -64,7 +76,7 @@ export function useExternalGenerations({
             if (error) throw error;
             
             if (data) {
-              const shotGenerations = (data as any).shot_generations || [];
+              const shotGenerations = (data as unknown as GenerationWithShotJoin).shot_generations || [];
               const transformedData = transformExternalGeneration(data, shotGenerations);
               
               if (isInExternal) {
@@ -85,9 +97,9 @@ export function useExternalGenerations({
       }
     };
     
-    window.addEventListener('realtime:generation-update-batch' as any, handleGenerationUpdate as any);
+    window.addEventListener('realtime:generation-update-batch', handleGenerationUpdate);
     return () => {
-      window.removeEventListener('realtime:generation-update-batch' as any, handleGenerationUpdate as any);
+      window.removeEventListener('realtime:generation-update-batch', handleGenerationUpdate);
     };
   }, [externalGenerations, tempDerivedGenerations]);
   
@@ -285,7 +297,7 @@ export function useExternalGenerations({
       if (error) throw error;
       
       if (data) {
-        const shotGenerations = (data as any).shot_generations || [];
+        const shotGenerations = (data as unknown as GenerationWithShotJoin).shot_generations || [];
         const transformedData = transformExternalGeneration(data, shotGenerations);
         
         if (derivedContext && derivedContext.length > 0) {

@@ -494,15 +494,15 @@ export const useMediaGalleryStateOptimized = ({
       // and deep equality check on key properties to avoid unnecessary render cycles
       if (updatedImage && updatedImage !== state.activeLightboxMedia) {
         // Check if relevant fields actually changed to prevent loop
-        const nameChanged = (updatedImage as any).name !== (state.activeLightboxMedia as any).name;
+        const nameChanged = updatedImage.name !== state.activeLightboxMedia.name;
         const starredChanged = updatedImage.starred !== state.activeLightboxMedia.starred;
-        const urlChanged = updatedImage.url !== state.activeLightboxMedia.url;
-        
+        const urlChanged = updatedImage.url !== (state.activeLightboxMedia as GeneratedImageWithMetadata).url;
+
         if (nameChanged || starredChanged || urlChanged) {
           console.log('[LightboxSync] 🔄 Updating active media from list:', {
             id: updatedImage.id,
-            oldName: (state.activeLightboxMedia as any).name,
-            newName: (updatedImage as any).name,
+            oldName: state.activeLightboxMedia.name,
+            newName: updatedImage.name,
             nameChanged,
             starredChanged,
             urlChanged

@@ -14,6 +14,7 @@ import { useProjectVideoCountsCache } from '@/shared/hooks/useProjectVideoCounts
 import { useProjectGenerationModesCache } from '@/shared/hooks/useProjectGenerationModesCache';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useVideoGalleryPreloader } from '@/shared/hooks/useVideoGalleryPreloader';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { ShotSettingsEditor } from '../components/ShotEditor';
 import { VideoTravelSettingsProvider } from '../providers';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
@@ -38,7 +39,7 @@ interface ShotEditorViewProps {
   /** Array of all shots (for navigation) */
   shots: Shot[] | undefined;
   /** Available LoRAs */
-  availableLoras: any[];
+  availableLoras: LoraModel[];
   /** Sort mode for shot navigation */
   shotSortMode?: 'ordered' | 'newest' | 'oldest';
 }

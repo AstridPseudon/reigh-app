@@ -14,6 +14,33 @@ export interface ShotGenerationRow {
   timeline_frame: number;
 }
 
+/** Shape of the joined generation data from Supabase shot_generations query */
+interface JoinedGeneration {
+  id: string;
+  location: string | null;
+  thumbnail_url: string | null;
+  type: string | null;
+  created_at: string;
+  starred: boolean | null;
+  name: string | null;
+  based_on: string | null;
+  params: Record<string, unknown> | null;
+  primary_variant?: {
+    location: string | null;
+    thumbnail_url: string | null;
+  } | null;
+}
+
+/** Shape of a raw Supabase shot_generations row with joined generation data */
+interface RawShotGeneration {
+  id: string;
+  generation_id?: string;
+  timeline_frame: number | null;
+  metadata: Record<string, unknown> | null;
+  generations?: JoinedGeneration | null;
+  generation?: JoinedGeneration | null;
+}
+
 /**
  * Maps a raw Supabase response from shot_generations (with joined generations)
  * to the standardized GenerationRow format used throughout the app.
@@ -21,7 +48,7 @@ export interface ShotGenerationRow {
  * IMPORTANT: This must be used by ALL hooks (useListShots, useShotImages, etc.)
  * to ensure selectors and filters work consistently across the Sidebar and Editor.
  */
-export const mapShotGenerationToRow = (sg: any): GenerationRow | null => {
+export const mapShotGenerationToRow = (sg: RawShotGeneration): GenerationRow | null => {
   const gen = sg.generations || sg.generation; // Handle both aliases
   if (!gen) return null;
 

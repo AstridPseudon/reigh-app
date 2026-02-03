@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/types/shots';
 import { extractTaskParentGenerationId } from '../utils/task-utils';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface UseVideoGenerationsOptions {
   task: Task;
-  taskParams: { parsed: Record<string, any>; promptText: string };
+  taskParams: { parsed: Record<string, unknown>; promptText: string };
   isVideoTask: boolean;
   isCompletedVideoTask: boolean;
   isHovering: boolean;
@@ -54,7 +55,7 @@ export function useVideoGenerations({
 
   // Fetch video generations
   const { data: videoGenerations, isLoading: isLoadingVideoGen } = useQuery({
-    queryKey: ['video-generations-for-task', task.id, task.outputLocation],
+    queryKey: [...queryKeys.generations.videoForTask(task.id), task.outputLocation],
     queryFn: async () => {
       console.log('[useVideoGenerations] Starting query for task:', {
         taskId: task.id,
@@ -78,9 +79,9 @@ export function useVideoGenerations({
           .single();
 
         if (!childError && childGen) {
-          const variants = (childGen as any).generation_variants || [];
-          const taskVariant = variants.find((v: any) => v.params?.source_task_id === task.id);
-          const primaryVariant = variants.find((v: any) => v.is_primary);
+          const variants = ((childGen as Record<string, unknown>).generation_variants as Array<{ id: string; location: string; thumbnail_url: string | null; is_primary: boolean; params: Record<string, unknown> | null }>) || [];
+          const taskVariant = variants.find((v) => v.params?.source_task_id === task.id);
+          const primaryVariant = variants.find((v) => v.is_primary);
           const targetVariant = taskVariant || primaryVariant;
 
           if (targetVariant) {
@@ -175,7 +176,7 @@ export function useVideoGenerations({
           location: task.outputLocation,
           thumbnail_url: null,
           type: 'video',
-          created_at: task.createdAt || (task as any).created_at,
+          created_at: task.createdAt,
           project_id: task.projectId,
           params: task.params,
           _is_fallback: true, // Mark as fallback so we know it's not a real generation
@@ -195,25 +196,25 @@ export function useVideoGenerations({
     const taskParentGenerationId = extractTaskParentGenerationId(taskParams.parsed);
     
     return videoGenerations.map(gen => {
-      const genAny = gen as any;
+      const genRecord = gen as Record<string, unknown>;
       // Individual segments have their parent_generation_id on the generation itself (from DB)
       // Other video tasks may have it in task params or on the generation
-      const effectiveParentGenId = genAny.parent_generation_id || taskParentGenerationId;
+      const effectiveParentGenId = (genRecord.parent_generation_id as string | undefined) || taskParentGenerationId;
 
       return {
         id: gen.id,
         location: gen.location,
         imageUrl: gen.location,
         thumbUrl: gen.thumbnail_url || gen.location,
-        videoUrl: genAny.video_url || gen.location,
+        videoUrl: (genRecord.video_url as string | undefined) || gen.location,
         type: gen.type || 'video',
         createdAt: gen.created_at,
-        taskId: genAny.task_id,
+        taskId: genRecord.task_id as string | undefined,
         metadata: gen.params || {},
-        name: genAny.name || undefined,
+        name: (genRecord.name as string | undefined) || undefined,
         parent_generation_id: effectiveParentGenId || undefined,
-        _variant_id: genAny._variant_id,
-        _variant_is_primary: genAny._variant_is_primary,
+        _variant_id: genRecord._variant_id as string | undefined,
+        _variant_is_primary: genRecord._variant_is_primary as boolean | undefined,
       } as GenerationRow;
     });
   }, [videoGenerations, taskParams.parsed, task.taskType]);

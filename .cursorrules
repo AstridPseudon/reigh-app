@@ -36,6 +36,7 @@
 
 ## Key concepts / correctness
 - Generations vs variants: generations are gallery items; variants are per-generation alternates; use `based_on` for lineage.
+- **Generation IDs**: Use `getGenerationId(media)` from `shared/lib/mediaTypeHelpers.ts` instead of inline `media.generation_id || media.id`. Handles variants, metadata, and null safely.
 - Shots data: use `ShotsContext` via `useShots()`; shot images via `useShotImages(shotId)`.
 - React Query: invalidate after mutations; scope invalidations where possible.
 

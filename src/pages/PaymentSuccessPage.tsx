@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { useCredits } from '@/shared/hooks/useCredits';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -36,8 +37,8 @@ const PaymentSuccessPage: React.FC = () => {
     // Invalidate credits queries to trigger a refetch
     // This will update the user's balance once the webhook processes
     const refreshCredits = () => {
-      queryClient.invalidateQueries({ queryKey: ['credits', 'balance'] });
-      queryClient.invalidateQueries({ queryKey: ['credits', 'ledger'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.balance });
+      queryClient.invalidateQueries({ queryKey: queryKeys.credits.ledger });
     };
 
     // Initial refresh

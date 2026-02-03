@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { getDisplayUrl } from '@/shared/lib/utils';
+import type { GenerationRow } from '@/types/shots';
 
 export interface UseDownloadImagesReturn {
   /** Whether a download is currently in progress */
@@ -16,7 +17,7 @@ export interface UseDownloadImagesReturn {
 
 interface UseDownloadImagesProps {
   /** Array of images to download */
-  images: any[];
+  images: GenerationRow[];
   /** Shot name for the zip filename */
   shotName?: string;
 }

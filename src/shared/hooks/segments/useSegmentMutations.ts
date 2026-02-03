@@ -155,7 +155,7 @@ export function useSegmentMutations({
 
         // Refetch caches
         await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });
-        await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });
+        await queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool('travel-between-images') });
 
         return true;
       } catch (error) {
@@ -187,7 +187,7 @@ export function useSegmentMutations({
         );
 
         await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });
-        await queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-between-images'] });
+        await queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool('travel-between-images') });
 
         return true;
       } catch (error) {

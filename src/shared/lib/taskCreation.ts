@@ -3,6 +3,7 @@ import { ASPECT_RATIO_TO_RESOLUTION } from "./aspectRatios";
 import { nanoid } from "nanoid";
 import { AuthError, NetworkError, ValidationError } from "./errors";
 import { handleError } from '@/shared/lib/errorHandler';
+import { isAbortError } from '@/shared/lib/errorUtils';
 
 /**
  * Default aspect ratio to use when project aspect ratio is not found
@@ -220,7 +221,7 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
     console.log('[PollingBreakageIssue] [createTask] Task created - DataFreshnessManager will handle cache updates via realtime events');
 
     return data;
-  } catch (err: any) {
+  } catch (err: unknown) {
     const context = {
       requestId,
       taskType: taskParams.task_type,
@@ -229,7 +230,7 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
     };
 
     // Normalize abort errors for better UX
-    if (err?.name === 'AbortError') {
+    if (isAbortError(err)) {
       throw new NetworkError('Task creation timed out. Please try again.', {
         isTimeout: true,
         context,
@@ -278,7 +279,7 @@ export function expandArrayToCount<T>(arr: T[] | undefined, targetCount: number)
  * @param requiredFields - Array of required field names
  * @throws TaskValidationError if validation fails
  */
-export function validateRequiredFields(params: Record<string, any>, requiredFields: string[]): void {
+export function validateRequiredFields(params: Record<string, unknown>, requiredFields: string[]): void {
   for (const field of requiredFields) {
     const value = params[field];
     

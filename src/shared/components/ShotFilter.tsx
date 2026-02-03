@@ -4,6 +4,7 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
 import { Shot } from '@/types/shots';
 import { RefObject } from 'react';
+import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants';
 
 interface ShotFilterProps {
   shots: Shot[];
@@ -81,21 +82,21 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
             ref={contentRef}
           >
             {/* System filters - use consistent muted styling */}
-            <SelectItem 
-              variant={whiteText ? "zinc" : "default"} 
-              value="all"
-              className={whiteText 
-                ? "text-zinc-400 font-medium data-[state=checked]:text-zinc-100" 
+            <SelectItem
+              variant={whiteText ? "zinc" : "default"}
+              value={SHOT_FILTER.ALL}
+              className={whiteText
+                ? "text-zinc-400 font-medium data-[state=checked]:text-zinc-100"
                 : "text-slate-500 font-medium data-[state=checked]:text-slate-900"
               }
             >
               All Shots
             </SelectItem>
-            <SelectItem 
-              variant={whiteText ? "zinc" : "default"} 
-              value="no-shot"
-              className={whiteText 
-                ? "text-zinc-400 font-medium data-[state=checked]:text-zinc-100" 
+            <SelectItem
+              variant={whiteText ? "zinc" : "default"}
+              value={SHOT_FILTER.NO_SHOT}
+              className={whiteText
+                ? "text-zinc-400 font-medium data-[state=checked]:text-zinc-100"
                 : "text-slate-500 font-medium data-[state=checked]:text-slate-900"
               }
             >
@@ -118,7 +119,7 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
       </div>
       
       {/* Position filter checkbox - only show when a specific shot is selected (not 'all' or 'no-shot') */}
-      {showPositionFilter && selectedShotId !== 'all' && selectedShotId !== 'no-shot' && onExcludePositionedChange && (
+      {showPositionFilter && !isSpecialFilter(selectedShotId) && onExcludePositionedChange && (
         <div className="flex items-center space-x-2 mt-2">
           <Checkbox 
             id={checkboxId}

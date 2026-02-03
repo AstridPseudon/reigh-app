@@ -126,8 +126,8 @@ export const useVideoGalleryPreloader = (options?: {
       }
 
       const urls = (data || [])
-        .filter((sg: any) => sg.generation)
-        .map((sg: any) => {
+        .filter(sg => sg.generation)
+        .map(sg => {
           const thumbUrl = sg.generation.thumbnail_url;
           const mainUrl = sg.generation.location;
           
@@ -137,7 +137,7 @@ export const useVideoGalleryPreloader = (options?: {
         })
         .filter((url: string) => url) as string[];
       
-      console.log(`[VideoGalleryPreload] Shot ${shotId.slice(0, 8)} URLs - Found ${urls.length} URLs, ${data?.filter((sg: any) => sg.generation?.thumbnail_url && sg.generation.thumbnail_url !== sg.generation.location).length || 0} with separate thumbnails`);
+      console.log(`[VideoGalleryPreload] Shot ${shotId.slice(0, 8)} URLs - Found ${urls.length} URLs, ${data?.filter(sg => sg.generation?.thumbnail_url && sg.generation.thumbnail_url !== sg.generation.location).length || 0} with separate thumbnails`);
       console.log(`[VideoGalleryPreload] ORDER_STRATEGY: created_at desc (matching gallery)`);
       console.log(`[VideoGalleryPreload] Sample URLs:`, urls.slice(0, 2));
       console.log(`[VideoGalleryPreload] Raw URLs from database (no transformation):`, urls.slice(0, 3));

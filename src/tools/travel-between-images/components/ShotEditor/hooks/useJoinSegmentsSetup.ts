@@ -12,6 +12,8 @@
 
 import { useMemo, useCallback } from 'react';
 import { useJoinSegmentsSettings, JoinSegmentsSettings } from '../../../hooks/useJoinSegmentsSettings';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
+import type { LoraModel } from '@/shared/components/LoraSelectorModal/types';
 
 interface SelectedLora {
   id: string;
@@ -39,10 +41,10 @@ interface JoinSettingsForHook {
   keepBridgingImages: boolean;
   enhancePrompt: boolean;
   motionMode: 'basic' | 'advanced';
-  phaseConfig: any;
+  phaseConfig: PhaseConfig | undefined;
   selectedPhasePresetId: string | null;
   randomSeed: boolean;
-  updateField: (field: keyof JoinSegmentsSettings, value: any) => void;
+  updateField: (field: keyof JoinSegmentsSettings, value: JoinSegmentsSettings[keyof JoinSegmentsSettings]) => void;
   updateFields: (fields: Partial<JoinSegmentsSettings>) => void;
 }
 
@@ -51,7 +53,7 @@ interface JoinLoraManager {
   setSelectedLoras: (loras: SelectedLora[]) => void;
   isLoraModalOpen: boolean;
   setIsLoraModalOpen: () => void;
-  handleAddLora: (loraToAdd: any, isManualAction?: boolean, initialStrength?: number) => void;
+  handleAddLora: (loraToAdd: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
   handleRemoveLora: (loraId: string) => void;
   handleLoraStrengthChange: (loraId: string, newStrength: number) => void;
   hasEverSetLoras: boolean;
@@ -76,7 +78,7 @@ interface UseJoinSegmentsSetupReturn {
   joinGuidanceScale: number;
   joinSeed: number;
   joinMotionMode: string;
-  joinPhaseConfig: any;
+  joinPhaseConfig: PhaseConfig | undefined;
   joinSelectedPhasePresetId: string | null;
   joinRandomSeed: boolean;
   joinPriority: number;
@@ -196,7 +198,7 @@ export function useJoinSegmentsSetup({
     },
     isLoraModalOpen: false,
     setIsLoraModalOpen: () => {},
-    handleAddLora: (loraToAdd: any, _isManualAction = true, initialStrength?: number) => {
+    handleAddLora: (loraToAdd: LoraModel, _isManualAction = true, initialStrength?: number) => {
       if (joinSelectedLoras.find(sl => sl.id === loraToAdd["Model ID"])) {
         return; // Already exists
       }

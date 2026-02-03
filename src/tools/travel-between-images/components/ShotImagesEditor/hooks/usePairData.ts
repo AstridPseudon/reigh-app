@@ -16,8 +16,6 @@ export interface UsePairDataProps {
   generationMode: 'batch' | 'timeline';
   /** Frame spacing for batch mode */
   batchVideoFrames: number;
-  /** End frame for single-image mode */
-  singleImageEndFrame?: number;
 }
 
 export interface UsePairDataReturn {
@@ -26,14 +24,27 @@ export interface UsePairDataReturn {
 }
 
 /**
+ * Helper to read end_frame from image metadata.
+ * Returns undefined if not set.
+ */
+function getEndFrameFromMetadata(metadata: Record<string, unknown> | null | undefined): number | undefined {
+  if (!metadata) return undefined;
+  const endFrame = metadata.end_frame;
+  return typeof endFrame === 'number' ? endFrame : undefined;
+}
+
+/**
  * Computes pair data from shot generations.
  * Each pair represents two consecutive images that can generate a video segment.
+ *
+ * For the last image (or single image), if metadata.end_frame is set, a trailing
+ * pair is created with endImage: undefined. This handles both single-image mode
+ * and multi-image timelines with a trailing segment.
  */
 export function usePairData({
   shotGenerations,
   generationMode,
   batchVideoFrames,
-  singleImageEndFrame,
 }: UsePairDataProps): UsePairDataReturn {
   return useMemo(() => {
     const dataMap = new Map<number, PairData>();
@@ -43,30 +54,13 @@ export function usePairData({
       .filter((img) => img.timeline_frame != null && img.timeline_frame >= 0 && !isVideoAny(img))
       .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
 
-    // Handle single-image mode: create a pseudo-pair with just the start image
-    if (sortedImages.length === 1 && singleImageEndFrame !== undefined) {
-      const startImage = sortedImages[0];
-      const startFrame = startImage.timeline_frame ?? 0;
-      dataMap.set(0, {
-        index: 0,
-        frames: singleImageEndFrame - startFrame,
-        startFrame,
-        endFrame: singleImageEndFrame,
-        startImage: {
-          id: startImage.id,
-          generationId: startImage.generation_id,
-          url: startImage.imageUrl || startImage.location,
-          thumbUrl: startImage.thumbUrl || startImage.location,
-          position: 1,
-        },
-        endImage: undefined,
-      });
+    if (sortedImages.length === 0) {
       return { pairDataByIndex: dataMap };
     }
 
-    // Build pairs from consecutive images
     const isBatchMode = generationMode === 'batch';
 
+    // Build pairs from consecutive images
     for (let pairIndex = 0; pairIndex < sortedImages.length - 1; pairIndex++) {
       const startImage = sortedImages[pairIndex];
       const endImage = sortedImages[pairIndex + 1];
@@ -108,6 +102,41 @@ export function usePairData({
       });
     }
 
+    // Check if the last image has an end_frame for a trailing segment
+    // This handles both single-image (sortedImages.length === 1) and multi-image trailing segments
+    const lastImage = sortedImages[sortedImages.length - 1];
+    const lastImageEndFrame = getEndFrameFromMetadata(lastImage.metadata as Record<string, unknown> | null);
+
+    if (lastImageEndFrame !== undefined) {
+      const trailingPairIndex = sortedImages.length - 1;
+      const startFrame = isBatchMode
+        ? trailingPairIndex * batchVideoFrames
+        : (lastImage.timeline_frame ?? 0);
+
+      // Read numFrames override for batch mode
+      const lastImageOverrides = readSegmentOverrides(lastImage.metadata as Record<string, unknown> | null);
+      const trailingNumFrames = lastImageOverrides.numFrames;
+
+      const frames = isBatchMode
+        ? (trailingNumFrames ?? batchVideoFrames)
+        : lastImageEndFrame - startFrame;
+
+      dataMap.set(trailingPairIndex, {
+        index: trailingPairIndex,
+        frames,
+        startFrame,
+        endFrame: lastImageEndFrame,
+        startImage: {
+          id: lastImage.id,
+          generationId: lastImage.generation_id,
+          url: lastImage.imageUrl || lastImage.location,
+          thumbUrl: lastImage.thumbUrl || lastImage.location,
+          position: trailingPairIndex + 1,
+        },
+        endImage: undefined,
+      });
+    }
+
     return { pairDataByIndex: dataMap };
-  }, [shotGenerations, generationMode, batchVideoFrames, singleImageEndFrame]);
+  }, [shotGenerations, generationMode, batchVideoFrames]);
 }

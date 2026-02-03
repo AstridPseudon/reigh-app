@@ -1,46 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-// TypeScript declaration for global mobile video preload map
-declare global {
-  interface Window {
-    mobileVideoPreloadMap?: Map<number, () => void>;
-  }
-}
 import { GenerationRow } from '@/types/shots';
-import { Button } from '@/shared/components/ui/button';
-import { Trash2, Info, CornerDownLeft, Check, Share2, Copy, Loader2, Layers, Film } from 'lucide-react';
+import { Layers, Film } from 'lucide-react';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 import { TimeStamp } from '@/shared/components/TimeStamp';
-import { useVideoLoader, useThumbnailLoader, useVideoElementIntegration } from '../hooks';
+import { useVideoLoader, useThumbnailLoader, useVideoElementIntegration, useMobileVideoPreload, useVideoItemJoinClips } from '../hooks';
+import { JoinClipsModal } from './JoinClipsModal';
+import { VideoItemActions } from './VideoItemActions';
+import { videoItemPropsAreEqual } from './VideoItemMemo';
 import { determineVideoPhase, createLoadingSummary } from '../utils/video-loading-utils';
 import { getDisplayUrl } from '@/shared/lib/utils';
-import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/shared/components/ui/tooltip';
-import { useTaskFromUnifiedCache } from '@/shared/hooks/useUnifiedGenerations';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/shared/hooks/use-toast';
-import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
-import { useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/components/ui/dialog';
-import { Label } from '@/shared/components/ui/label';
-import { Textarea } from '@/shared/components/ui/textarea';
-import { Input } from '@/shared/components/ui/input';
-import { Slider } from '@/shared/components/ui/slider';
-import { Switch } from '@/shared/components/ui/switch';
-import { VariantBadge } from '@/shared/components/VariantBadge';
-import { handleError } from '@/shared/lib/errorHandler';
+import { useTaskFromUnifiedCache } from '@/shared/hooks/useTaskPrefetch';
+import { useShareGeneration } from '@/shared/hooks/useShareGeneration';
 
 interface VideoItemProps {
   video: GenerationRow;
@@ -97,262 +68,18 @@ export const VideoItem = React.memo<VideoItemProps>(({
 }) => {
   // Get task mapping for this video to enable Apply Settings button
   const { data: taskMapping } = useTaskFromUnifiedCache(video.id || '');
-  const queryClient = useQueryClient();
 
-  // Track success state for Apply Settings button
-  const [settingsApplied, setSettingsApplied] = useState(false);
+  // Share functionality (delegated to shared hook)
+  const { handleShare, isCreatingShare, shareCopied, shareSlug } = useShareGeneration(
+    video.id, taskMapping?.taskId, undefined,
+    { initialShareSlug: existingShareSlug, onShareCreated }
+  );
 
-  // Track share state
-  const [shareSlug, setShareSlug] = useState<string | null>(null);
-  const [isCreatingShare, setIsCreatingShare] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
-
-  // Toast notifications
-  const { toast } = useToast();
-
-  // State for join clips feature
-  const [childGenerations, setChildGenerations] = useState<GenerationRow[]>([]);
-  const [isLoadingChildren, setIsLoadingChildren] = useState(false);
-  const [isJoiningClips, setIsJoiningClips] = useState(false);
-  const [joinClipsSuccess, setJoinClipsSuccess] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  
-  // Join settings state (matches JoinClipsPage defaults)
-  const [joinPrompt, setJoinPrompt] = useState('');
-  const [joinNegativePrompt, setJoinNegativePrompt] = useState('');
-  const [joinContextFrames, setJoinContextFrames] = useState(8);
-  const [joinGapFrames, setJoinGapFrames] = useState(12);
-  const [joinReplaceMode, setJoinReplaceMode] = useState(true);
-  const [keepBridgingImages, setKeepBridgingImages] = useState(false);
-
-  // Initialize share slug from prop (batch fetched by parent)
-  useEffect(() => {
-    if (existingShareSlug) {
-      setShareSlug(existingShareSlug);
-    }
-  }, [existingShareSlug]);
-
-  // Fetch child generations for parent videos (to show "View X Segments" CTA)
-  useEffect(() => {
-    const shouldCheckForChildren = !video.parent_generation_id && video.id;
-    
-    if (shouldCheckForChildren) {
-      setIsLoadingChildren(true);
-
-      let cancelled = false;
-
-      const fetchChildren = async () => {
-        try {
-          // Fetch child generations ordered by child_order
-          const { data, error } = await supabase
-            .from('generations')
-            .select('*')
-            .eq('parent_generation_id', video.id)
-            .order('child_order', { ascending: true })
-            .order('created_at', { ascending: false }); // Within same child_order, newest first
-
-          if (cancelled) return;
-
-          if (error) {
-            handleError(error, { context: 'JoinClips', showToast: false });
-            return;
-          }
-
-          if (!data) {
-            setChildGenerations([]);
-            return;
-          }
-
-          // Transform to GenerationRow format
-          const allChildren = data.map(gen => ({
-            id: gen.id,
-            location: gen.location || '',
-            imageUrl: gen.location || '',
-            thumbUrl: gen.thumbnail_url || '',
-            type: gen.type || 'video',
-            created_at: gen.created_at || new Date().toISOString(),
-            createdAt: gen.created_at || new Date().toISOString(),
-            params: gen.params as any,
-            parent_generation_id: gen.parent_generation_id,
-            child_order: (gen as any).child_order,
-          })) as GenerationRow[];
-
-          // Deduplicate by child_order - keep the newest (first) for each unique child_order
-          // This handles the case where a segment was regenerated (creating a variant with the same child_order)
-          const seenChildOrders = new Set<number>();
-          const uniqueChildren = allChildren.filter(child => {
-            const rawChildOrder = (child as any).child_order;
-            if (rawChildOrder === undefined || rawChildOrder === null) {
-              return true; // Keep children without child_order (shouldn't happen but be safe)
-            }
-            const childOrder = typeof rawChildOrder === 'number' ? rawChildOrder : parseInt(String(rawChildOrder), 10);
-            if (Number.isNaN(childOrder)) {
-              return true;
-            }
-            if (seenChildOrders.has(childOrder)) {
-              return false; // Skip duplicates
-            }
-            seenChildOrders.add(childOrder);
-            return true;
-          });
-
-          console.log('[JoinClips] Found child generations:', {
-            parentId: video.id?.substring(0, 8),
-            totalChildren: allChildren.length,
-            uniqueSegments: uniqueChildren.length,
-            deduplicatedCount: allChildren.length - uniqueChildren.length,
-            allHaveLocations: uniqueChildren.every(c => c.location),
-          });
-
-          setChildGenerations(uniqueChildren);
-        } finally {
-          if (!cancelled) {
-            setIsLoadingChildren(false);
-          }
-        }
-      };
-
-      fetchChildren();
-
-      return () => {
-        cancelled = true;
-      };
-    }
-  }, [video.id, video.parent_generation_id, video.location]);
-
-  // Determine if we should show "Join clips" button (always show for parent generations without output)
-  const shouldShowJoinButton = !video.parent_generation_id && !video.location;
-  
-  // Determine if join is ready (all conditions met)
-  const canJoinClips = shouldShowJoinButton && 
-                       childGenerations.length >= 2 && 
-                       childGenerations.every(child => child.location);
-  
-  // Generate helpful tooltip message
-  const getJoinTooltipMessage = () => {
-    if (joinClipsSuccess) {
-      return 'Join task created!';
-    }
-    if (isJoiningClips) {
-      return 'Creating join task...';
-    }
-    if (isLoadingChildren) {
-      return 'Checking for segments...';
-    }
-    if (childGenerations.length === 0) {
-      return 'No segments found - generate segments first';
-    }
-    if (childGenerations.length === 1) {
-      return 'Need at least 2 segments to join';
-    }
-    const segmentsWithoutOutput = childGenerations.filter(c => !c.location).length;
-    if (segmentsWithoutOutput > 0) {
-      return `Waiting for ${segmentsWithoutOutput} segment${segmentsWithoutOutput > 1 ? 's' : ''} to finish generating`;
-    }
-    return `Join ${childGenerations.length} segments into one video`;
-  };
-
-  // Handler for opening join modal
-  const handleJoinClipsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!canJoinClips) {
-      return;
-    }
-    
-    setShowJoinModal(true);
-  };
-  
-  // Handler for confirming join with settings
-  const handleConfirmJoin = async () => {
-    if (!projectId || !canJoinClips) {
-      return;
-    }
-    
-    setIsJoiningClips(true);
-    setShowJoinModal(false);
-    
-    try {
-      // Create clips array from child generations
-      const clips = childGenerations.map((child, index) => ({
-        url: child.location,
-        name: `Segment ${index + 1}`,
-      }));
-      
-      // Calculate resolution from project's aspect ratio
-      let resolutionTuple: [number, number] | undefined;
-      if (projectAspectRatio) {
-        const resolutionStr = ASPECT_RATIO_TO_RESOLUTION[projectAspectRatio];
-        if (resolutionStr) {
-          const [width, height] = resolutionStr.split('x').map(Number);
-          if (width && height) {
-            resolutionTuple = [width, height];
-          }
-        }
-      }
-      
-      // Extract shot_id from video params for "Visit Shot" button in TasksPane
-      const videoParams = video.params as Record<string, any> | undefined;
-      const videoShotId = videoParams?.shot_id || videoParams?.orchestrator_details?.shot_id;
-
-      console.log('[JoinClips] Creating join task for segments:', {
-        parentId: video.id?.substring(0, 8),
-        clipCount: clips.length,
-        prompt: joinPrompt,
-        contextFrames: joinContextFrames,
-        gapFrames: joinGapFrames,
-        replaceMode: joinReplaceMode,
-        keepBridgingImages: keepBridgingImages,
-        clips: clips.map(c => ({ name: c.name, url: c.url?.substring(0, 50) + '...' })),
-        projectAspectRatio,
-        resolution: resolutionTuple,
-        shotId: videoShotId?.substring(0, 8),
-      });
-
-      // Create the join clips task with user settings
-      await createJoinClipsTask({
-        project_id: projectId,
-        ...(videoShotId && { shot_id: videoShotId }), // For "Visit Shot" button in TasksPane
-        clips,
-        prompt: joinPrompt,
-        negative_prompt: joinNegativePrompt,
-        context_frame_count: joinContextFrames,
-        gap_frame_count: joinGapFrames,
-        replace_mode: joinReplaceMode,
-        keep_bridging_images: keepBridgingImages,
-        model: 'wan_2_2_vace_lightning_baseline_2_2_2',
-        num_inference_steps: 6,
-        guidance_scale: 3.0,
-        seed: -1,
-        parent_generation_id: video.id,
-        // IMPORTANT: This join is initiated from within Travel Between Images,
-        // so the resulting output should be attributed to this tool for filtering/counting.
-        tool_type: 'travel-between-images',
-        ...(resolutionTuple && { resolution: resolutionTuple }),
-      });
-      
-      toast({
-        title: 'Join task created',
-        description: `Joining ${clips.length} segments into one video`,
-      });
-      
-      // Show success state
-      setJoinClipsSuccess(true);
-      setTimeout(() => setJoinClipsSuccess(false), 3000);
-      
-      // Invalidate queries to refresh task list
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ 
-        queryKey: ['unified-generations', 'project', projectId]
-      });
-      
-    } catch (error) {
-      handleError(error, { context: 'JoinClips', toastTitle: 'Failed to create join task' });
-    } finally {
-      setIsJoiningClips(false);
-    }
-  };
-
+  // Join clips feature (child generation fetching, join modal state, join task creation)
+  const {
+    childGenerations, showCollage, isJoiningClips, showJoinModal, setShowJoinModal,
+    handleConfirmJoin, joinSettings,
+  } = useVideoItemJoinClips(video, projectId, projectAspectRatio);
 
   // ===============================================================================
   // HOOKS - Use extracted hooks for cleaner separation of concerns
@@ -408,393 +135,8 @@ export const VideoItem = React.memo<VideoItemProps>(({
     }
   }, [video.id]);
 
-  // ===============================================================================
-  // MOBILE PRELOADING STATE - Video preloading on first tap
-  // ===============================================================================
-
-  // Track mobile video preloading state
-  const [isMobilePreloading, setIsMobilePreloading] = useState(false);
-  const preloadVideoRef = useRef<HTMLVideoElement | null>(null);
-
-  // ===============================================================================
-  // MOBILE VIDEO PRELOADING FUNCTION
-  // ===============================================================================
-
-  const startMobileVideoPreload = React.useCallback(() => {
-    if (!isMobile || isMobilePreloading || preloadVideoRef.current) {
-      console.log('[MobilePreload] Skipping preload', {
-        videoId: video.id?.substring(0, 8),
-        isMobile,
-        isMobilePreloading,
-        hasExistingPreloadVideo: !!preloadVideoRef.current,
-        timestamp: Date.now()
-      });
-      return;
-    }
-
-    console.log('[MobilePreload] Starting video preload', {
-      videoId: video.id?.substring(0, 8),
-      videoSrc: video.location?.substring(video.location.lastIndexOf('/') + 1) || 'no-src',
-      timestamp: Date.now()
-    });
-
-    setIsMobilePreloading(true);
-
-    // Create hidden video element for preloading
-    const preloadVideo = document.createElement('video');
-    const resolvedSrc = getDisplayUrl((video.location || video.imageUrl || '') as string);
-    preloadVideo.src = resolvedSrc;
-    preloadVideo.preload = 'auto';
-    preloadVideo.muted = true;
-    preloadVideo.playsInline = true;
-    preloadVideo.style.display = 'none';
-    preloadVideo.style.position = 'absolute';
-    preloadVideo.style.top = '-9999px';
-    preloadVideo.style.left = '-9999px';
-
-    // Add event listeners for preload tracking
-    const handleCanPlay = () => {
-      console.log('[MobilePreload] Video can play - preload successful', {
-        videoId: video.id?.substring(0, 8),
-        readyState: preloadVideo.readyState,
-        timestamp: Date.now()
-      });
-    };
-
-    const handleLoadedData = () => {
-      console.log('[MobilePreload] Video data loaded - preload progressing', {
-        videoId: video.id?.substring(0, 8),
-        readyState: preloadVideo.readyState,
-        timestamp: Date.now()
-      });
-    };
-
-    const handleError = () => {
-      console.warn('[MobilePreload] Video preload failed', {
-        videoId: video.id?.substring(0, 8),
-        error: preloadVideo.error,
-        timestamp: Date.now()
-      });
-    };
-
-    preloadVideo.addEventListener('canplay', handleCanPlay);
-    preloadVideo.addEventListener('loadeddata', handleLoadedData);
-    preloadVideo.addEventListener('error', handleError);
-
-    // Store ref and append to DOM (hidden)
-    preloadVideoRef.current = preloadVideo;
-    document.body.appendChild(preloadVideo);
-
-    // Cleanup function
-    const cleanup = () => {
-      if (preloadVideoRef.current) {
-        preloadVideoRef.current.removeEventListener('canplay', handleCanPlay);
-        preloadVideoRef.current.removeEventListener('loadeddata', handleLoadedData);
-        preloadVideoRef.current.removeEventListener('error', handleError);
-        if (preloadVideoRef.current.parentNode) {
-          preloadVideoRef.current.parentNode.removeChild(preloadVideoRef.current);
-        }
-        preloadVideoRef.current = null;
-      }
-    };
-
-    // Auto-cleanup after 30 seconds if video not opened
-    const timeoutId = setTimeout(() => {
-      console.log('[MobilePreload] Auto-cleanup preload video after timeout', {
-        videoId: video.id?.substring(0, 8),
-        timestamp: Date.now()
-      });
-      cleanup();
-      setIsMobilePreloading(false);
-    }, 30000);
-
-    // Store cleanup function for manual cleanup
-    preloadVideo.dataset.cleanupTimeoutId = timeoutId.toString();
-
-    return cleanup;
-  }, [isMobile, isMobilePreloading, video.id, video.location, video.imageUrl]);
-
-  // Cleanup preload video on unmount or video change
-  useEffect(() => {
-    return () => {
-      if (preloadVideoRef.current) {
-        const timeoutId = preloadVideoRef.current.dataset.cleanupTimeoutId;
-        if (timeoutId) {
-          clearTimeout(parseInt(timeoutId));
-        }
-        if (preloadVideoRef.current.parentNode) {
-          preloadVideoRef.current.parentNode.removeChild(preloadVideoRef.current);
-        }
-        preloadVideoRef.current = null;
-      }
-    };
-  }, [video.id]);
-
-  // ===============================================================================
-  // MOBILE PRELOAD TRIGGER - Connect to parent callback
-  // ===============================================================================
-
-  // Create stable preload handler for this video item
-  const handleMobilePreload = React.useCallback(() => {
-    startMobileVideoPreload();
-  }, [startMobileVideoPreload]);
-
-  // Expose preload function to parent via callback effect
-  React.useEffect(() => {
-    if (onMobilePreload) {
-      // Store this video's preload function globally so parent can call it
-      // We'll use a map keyed by originalIndex
-      if (!window.mobileVideoPreloadMap) {
-        window.mobileVideoPreloadMap = new Map();
-      }
-      window.mobileVideoPreloadMap.set(originalIndex, handleMobilePreload);
-
-      return () => {
-        window.mobileVideoPreloadMap?.delete(originalIndex);
-      };
-    }
-  }, [originalIndex, handleMobilePreload, onMobilePreload]);
-
-  // ===============================================================================
-  // SHARE FUNCTIONALITY
-  // ===============================================================================
-
-  /**
-   * Generate a short, URL-friendly random string (like nanoid)
-   */
-  const generateShareSlug = (length: number = 10): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    const randomValues = new Uint8Array(length);
-    crypto.getRandomValues(randomValues);
-
-    for (let i = 0; i < length; i++) {
-      result += chars[randomValues[i] % chars.length];
-    }
-
-    return result;
-  };
-
-  /**
-   * Sanitize task data before caching in shared_generations
-   * Removes potentially sensitive fields from params
-   */
-  const sanitizeTaskDataForSharing = (taskData: any): any => {
-    if (!taskData) return null;
-    
-    const sanitized = { ...taskData };
-    
-    if (sanitized.params) {
-      const sanitizedParams = { ...sanitized.params };
-      delete sanitizedParams.api_key;
-      delete sanitizedParams.internal_config;
-      delete sanitizedParams.worker_config;
-      sanitized.params = sanitizedParams;
-    }
-    
-    delete sanitized.error_message;
-    return sanitized;
-  };
-
-  /**
-   * Handle share button click - create share link or copy existing
-   * Optimized to avoid Edge Function - handles everything client-side
-   */
-  const handleShare = React.useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (!taskMapping?.taskId) {
-      toast({
-        title: "Cannot create share",
-        description: "Task information not available",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // If share already exists, copy to clipboard
-    if (shareSlug) {
-      const shareUrl = `${window.location.origin}/share/${shareSlug}`;
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setShareCopied(true);
-        toast({
-          title: "Link copied!",
-          description: "Share link copied to clipboard"
-        });
-
-        // Reset copied state after 2 seconds
-        setTimeout(() => {
-          setShareCopied(false);
-        }, 2000);
-      } catch (error) {
-        handleError(error, { context: 'Share', toastTitle: 'Copy failed' });
-      }
-      return;
-    }
-
-    // Create new share (client-side)
-    setIsCreatingShare(true);
-
-    try {
-      const { data: session } = await supabase.auth.getSession();
-
-      if (!session?.session?.access_token) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to create share links",
-          variant: "destructive"
-        });
-        setIsCreatingShare(false);
-        return;
-      }
-
-      // First, check if share already exists
-      const { data: existingShare, error: existingError } = await supabase
-        .from('shared_generations' as any)
-        .select('share_slug')
-        .eq('generation_id', video.id as string)
-        .eq('creator_id', session.session.user.id)
-        .maybeSingle();
-
-      if (existingError && existingError.code !== 'PGRST116') { // PGRST116 = no rows
-        handleError(existingError, { context: 'Share', toastTitle: 'Share failed' });
-        setIsCreatingShare(false);
-        return;
-      }
-
-      if (existingShare) {
-        // Share already exists, just copy it
-        setShareSlug(existingShare.share_slug);
-        const shareUrl = `${window.location.origin}/share/${existingShare.share_slug}`;
-
-        try {
-          await navigator.clipboard.writeText(shareUrl);
-          toast({
-            title: "Link copied!",
-            description: "Existing share link copied to clipboard"
-          });
-        } catch (clipboardError) {
-          toast({
-            title: "Share found",
-            description: "Click the copy button to copy the link",
-          });
-        }
-
-        setIsCreatingShare(false);
-        return;
-      }
-
-      // Fetch only the fields needed for display (not sensitive data)
-      const [generationResult, taskResult] = await Promise.all([
-        supabase.from('generations')
-          .select('id, location, thumbnail_url, type, params, created_at, name')
-          .eq('id', video.id as string)
-          .single(),
-        supabase.from('tasks')
-          .select('id, task_type, params, status, created_at')
-          .eq('id', taskMapping.taskId)
-          .single()
-      ]);
-
-      if (generationResult.error || taskResult.error) {
-        handleError(generationResult.error || taskResult.error, {
-          context: 'Share',
-          toastTitle: 'Share failed',
-          logData: { generationError: generationResult.error, taskError: taskResult.error }
-        });
-        setIsCreatingShare(false);
-        return;
-      }
-
-      // Generate unique slug with retry logic
-      let attempts = 0;
-      const maxAttempts = 5;
-      let newSlug: string | null = null;
-
-      while (attempts < maxAttempts && !newSlug) {
-        const candidateSlug = generateShareSlug(10);
-
-        // Fetch creator profile basics
-        const { data: creatorRow } = await supabase
-          .from('users')
-          .select('username, name, avatar_url')
-          .eq('id', session.session.user.id)
-          .maybeSingle();
-
-        // Try to insert - unique constraint will prevent duplicates
-        const { data: newShare, error: insertError } = await supabase
-          .from('shared_generations' as any)
-          .insert({
-            share_slug: candidateSlug,
-            task_id: taskMapping.taskId,
-            generation_id: video.id as string,
-            creator_id: session.session.user.id,
-            creator_username: (creatorRow as any)?.username ?? null,
-            creator_name: (creatorRow as any)?.name ?? null,
-            creator_avatar_url: (creatorRow as any)?.avatar_url ?? null,
-            cached_generation_data: generationResult.data,
-            cached_task_data: sanitizeTaskDataForSharing(taskResult.data),
-          })
-          .select('share_slug')
-          .single();
-
-        if (!insertError && newShare) {
-          newSlug = newShare.share_slug;
-          break;
-        }
-
-        // If error is unique constraint violation, retry with new slug
-        if (insertError?.code === '23505') { // Unique constraint violation
-          attempts++;
-          continue;
-        }
-
-        // Other error - fail
-        if (insertError) {
-          handleError(insertError, { context: 'Share', toastTitle: 'Share failed' });
-          setIsCreatingShare(false);
-          return;
-        }
-      }
-
-      if (!newSlug) {
-        toast({
-          title: "Share failed",
-          description: "Failed to generate unique link. Please try again.",
-          variant: "destructive"
-        });
-        setIsCreatingShare(false);
-        return;
-      }
-
-      setShareSlug(newSlug);
-
-      // Notify parent to update batch cache
-      if (video.id) {
-        onShareCreated?.(video.id, newSlug);
-      }
-
-      // Automatically copy to clipboard
-      const shareUrl = `${window.location.origin}/share/${newSlug}`;
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({
-          title: "Share created!",
-          description: "Share link copied to clipboard"
-        });
-      } catch (clipboardError) {
-        toast({
-          title: "Share created",
-          description: "Click the copy button to copy the link",
-        });
-      }
-    } catch (error) {
-      handleError(error, { context: 'Share', toastTitle: 'Something went wrong' });
-    } finally {
-      setIsCreatingShare(false);
-    }
-  }, [shareSlug, taskMapping, video.id, toast, onShareCreated]);
+  // Mobile video preloading (hidden <video> element on first tap)
+  useMobileVideoPreload(video, originalIndex, isMobile, onMobilePreload);
 
   // Use ref to persist timeout across re-renders and prevent race conditions
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -899,9 +241,6 @@ export const VideoItem = React.memo<VideoItemProps>(({
     return null; // No source available
   })();
 
-  // NEW: Check if we should show collage (parent with no output but has segments)
-  const showCollage = !video.location && childGenerations.length > 0;
-
   // ALWAYS log to help diagnose autoplay issues
   console.log('[MobileAutoplayDebug]', {
     videoId: video.id?.substring(0, 8),
@@ -994,7 +333,7 @@ export const VideoItem = React.memo<VideoItemProps>(({
             className="absolute inset-0 w-full h-full cursor-pointer bg-gray-100"
             onClick={(e) => {
               // Don't interfere with touches inside action buttons
-              const path = (e as any).nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
+              const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
               const isInsideButton = path ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button')) : !!(e.target as HTMLElement).closest('button');
               if (isInsideButton) {
                 console.log('[MobileTapFlow:VideoItem] onClick - SKIPPED (inside button)', {
@@ -1021,7 +360,7 @@ export const VideoItem = React.memo<VideoItemProps>(({
             }}
             onTouchEnd={isMobile ? (e) => {
               // Don't interfere with touches inside action buttons
-              const path = (e as any).nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
+              const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
               const isInsideButton = path ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button')) : !!(e.target as HTMLElement).closest('button');
               if (isInsideButton) {
                 console.log('[MobileTapFlow:VideoItem] onTouchEnd - SKIPPED (inside button)', {
@@ -1116,7 +455,7 @@ export const VideoItem = React.memo<VideoItemProps>(({
                   }}
                   onTouchEnd={isMobile ? (e) => {
                     // Don't interfere with touches inside action buttons
-                    const path = (e as any).nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
+                    const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
                     const isInsideButton = path ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button')) : !!(e.target as HTMLElement).closest('button');
                     if (isInsideButton) return;
                     e.preventDefault();
@@ -1149,356 +488,38 @@ export const VideoItem = React.memo<VideoItemProps>(({
         </div>
         
         {/* Join Clips Settings Modal */}
-        <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>Join {childGenerations.length} Segments</DialogTitle>
-            <DialogDescription>
-              Configure settings for joining the segments into a single video
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-            {/* Prompts */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="join-prompt">Prompt: (Optional)</Label>
-                <Textarea
-                  id="join-prompt"
-                  value={joinPrompt}
-                  onChange={(e) => setJoinPrompt(e.target.value)}
-                  placeholder="Describe what you want for the transitions between segments"
-                  rows={3}
-                  className="resize-none"
-                  clearable
-                  onClear={() => setJoinPrompt('')}
-                  voiceInput
-                  voiceContext="This is a prompt for video segment transitions. Describe the motion, style, or visual effect you want when joining video clips together. Focus on how elements should move or transform."
-                  onVoiceResult={(result) => {
-                    setJoinPrompt(result.prompt || result.transcription);
-                  }}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="join-negative-prompt">Negative Prompt: (Optional)</Label>
-                <Textarea
-                  id="join-negative-prompt"
-                  value={joinNegativePrompt}
-                  onChange={(e) => setJoinNegativePrompt(e.target.value)}
-                  placeholder="What to avoid in the transitions"
-                  rows={2}
-                  className="resize-none"
-                  clearable
-                  onClear={() => setJoinNegativePrompt('')}
-                  voiceInput
-                  voiceContext="This is a negative prompt - things to AVOID in video transitions. List unwanted qualities like 'jerky, flickering, blurry'. Keep it as a comma-separated list."
-                  onVoiceResult={(result) => {
-                    setJoinNegativePrompt(result.prompt || result.transcription);
-                  }}
-                />
-              </div>
-            </div>
-            
-            {/* Frame Controls */}
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="join-gap-frames" className="text-sm">
-                    Gap Frames
-                  </Label>
-                  <span className="text-sm font-medium">{joinGapFrames}</span>
-                </div>
-                <Slider
-                  id="join-gap-frames"
-                  min={1}
-                  max={Math.max(1, 81 - (joinContextFrames * 2))}
-                  step={1}
-                  value={[Math.max(1, joinGapFrames)]}
-                  onValueChange={(values) => {
-                    const val = Math.max(1, values[0]);
-                    setJoinGapFrames(val);
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">Frames to generate in each transition</p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="join-context-frames" className="text-sm">
-                  Context Frames
-                </Label>
-                <Input
-                  id="join-context-frames"
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={joinContextFrames}
-                  onChange={(e) => {
-                    const val = Math.max(1, parseInt(e.target.value) || 1);
-                    if (!isNaN(val) && val > 0) {
-                      const maxGap = Math.max(1, 81 - (val * 2));
-                      const newGapFrames = joinGapFrames > maxGap ? maxGap : joinGapFrames;
-                      setJoinContextFrames(val);
-                      setJoinGapFrames(newGapFrames);
-                    }
-                  }}
-                  className="text-center"
-                />
-                <p className="text-xs text-muted-foreground">Context frames from each clip</p>
-              </div>
-              
-              <div className="flex items-center justify-between gap-3 px-3 py-3 border rounded-lg">
-                <Label htmlFor="join-replace-mode" className="text-sm text-center flex-1 cursor-pointer">
-                  Replace Frames
-                </Label>
-                <Switch
-                  id="join-replace-mode"
-                  checked={!joinReplaceMode}
-                  onCheckedChange={(checked) => {
-                    setJoinReplaceMode(!checked);
-                  }}
-                />
-                <Label htmlFor="join-replace-mode" className="text-sm text-center flex-1 cursor-pointer">
-                  Generate New
-                </Label>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowJoinModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmJoin}
-              disabled={isJoiningClips}
-            >
-              {isJoiningClips ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating Task...
-                </>
-              ) : (
-                `Join ${childGenerations.length} Segments`
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <JoinClipsModal
+          open={showJoinModal}
+          onOpenChange={setShowJoinModal}
+          segmentCount={childGenerations.length}
+          isJoiningClips={isJoiningClips}
+          onConfirmJoin={handleConfirmJoin}
+          settings={joinSettings}
+        />
 
         {/* Action buttons – positioned directly on the video/poster container */}
         {!hideActions && (
-          <div className="absolute top-1/2 right-2 sm:right-3 flex flex-col items-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity -translate-y-1/2 z-20 pointer-events-auto">
-            {/* Share Button */}
-            {taskMapping?.taskId && (
-              <TooltipProvider>
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={handleShare}
-                      disabled={isCreatingShare}
-                      className={`h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full text-white transition-all ${shareCopied
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-black/50 hover:bg-black/70'
-                        }`}
-                    >
-                      {isCreatingShare ? (
-                        <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" />
-                      ) : shareCopied ? (
-                        <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      ) : shareSlug ? (
-                        <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      ) : (
-                        <Share2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>{shareCopied ? 'Link copied!' : shareSlug ? 'Copy share link' : 'Share this video'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            {/* Variant Count - positioned above Info button */}
-            <VariantBadge
-              derivedCount={(video as any).derivedCount}
-              unviewedVariantCount={(video as any).unviewedVariantCount}
-              hasUnviewedVariants={(video as any).hasUnviewedVariants}
-              variant="inline"
-              size="lg"
-              tooltipSide="left"
-              showNewBadge={false}
-            />
-
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('[MobileButtonDebug] [InfoButton] Button clicked START:', {
-                  isMobile,
-                  videoId: video.id,
-                  timestamp: Date.now()
-                });
-
-                if (isMobile) {
-                  // On mobile, open the modal
-                  console.log('[MobileButtonDebug] [InfoButton] Setting modal state...');
-                  onMobileModalOpen(video);
-                } else {
-                  // On desktop, open the lightbox
-                  console.log('[MobileButtonDebug] [InfoButton] Desktop - opening lightbox');
-                  onLightboxOpen(originalIndex);
-                }
-              }}
-              onMouseEnter={(e) => onHoverStart(video, e)}
-              onMouseLeave={onHoverEnd}
-              className="h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full bg-black/50 hover:bg-black/70 text-white"
-            >
-              <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            </Button>
-
-
-
-            {/* Apply Settings Button */}
-            {taskMapping?.taskId && (
-              <TooltipProvider>
-                <Tooltip delayDuration={300}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('[ApplySettings] Button clicked:', {
-                          videoId: video.id?.substring(0, 8),
-                          taskId: taskMapping.taskId,
-                          settingsApplied,
-                          onApplySettingsFromTaskType: typeof onApplySettingsFromTask,
-                          timestamp: Date.now()
-                        });
-                        if (taskMapping.taskId && !settingsApplied) {
-                          console.log('[ApplySettings] Calling onApplySettingsFromTask...');
-                          // Call with replaceImages=true to include source images, empty array will be populated from task data
-                          onApplySettingsFromTask(taskMapping.taskId, true, []);
-                          // Show success state
-                          setSettingsApplied(true);
-                          // Reset after 2 seconds
-                          setTimeout(() => {
-                            setSettingsApplied(false);
-                          }, 2000);
-                        } else {
-                          console.log('[ApplySettings] Click ignored:', {
-                            hasTaskId: !!taskMapping.taskId,
-                            settingsApplied
-                          });
-                        }
-                      }}
-                      disabled={settingsApplied}
-                      className={`h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full text-white transition-all ${settingsApplied
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-black/50 hover:bg-black/70'
-                        }`}
-                    >
-                      {settingsApplied ? (
-                        <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      ) : (
-                        <CornerDownLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>{settingsApplied ? 'Settings applied!' : 'Apply settings & images from this video to the current shot'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            <TooltipProvider>
-              <Tooltip delayDuration={300}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('[MobileButtonDebug] [DeleteButton] Button clicked:', {
-                        videoId: video.id,
-                        deletingVideoId,
-                        isDisabled: deletingVideoId === video.id,
-                        timestamp: Date.now()
-                      });
-                      onDelete(video.id);
-                      console.log('[MobileButtonDebug] [DeleteButton] onDelete called');
-                    }}
-                    disabled={deletingVideoId === video.id}
-                    className="h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full"
-                  >
-                    <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                  <p>{deleteTooltip || 'Delete video'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <VideoItemActions
+            video={video}
+            originalIndex={originalIndex}
+            isMobile={isMobile}
+            deletingVideoId={deletingVideoId}
+            deleteTooltip={deleteTooltip}
+            taskId={taskMapping?.taskId}
+            onLightboxOpen={onLightboxOpen}
+            onDelete={onDelete}
+            onHoverStart={onHoverStart}
+            onHoverEnd={onHoverEnd}
+            onMobileModalOpen={onMobileModalOpen}
+            onApplySettingsFromTask={onApplySettingsFromTask}
+            handleShare={handleShare}
+            isCreatingShare={isCreatingShare}
+            shareCopied={shareCopied}
+            shareSlug={shareSlug}
+          />
         )}
       </div>
     </div>
 
   );
-}, (prevProps, nextProps) => {
-  // ============================================================================
-  // CUSTOM MEMO COMPARISON - FIX FOR HOVER STATE ISSUE
-  // ============================================================================
-  // 
-  // ROOT CAUSE: The useUnifiedGenerations hook constantly refetches data (every 5s),
-  // causing VideoOutputsGallery to re-render. Without a custom comparison function,
-  // React.memo would allow VideoItem to re-render on every parent render, which:
-  // 1. Recreates event handlers (breaking reference equality)
-  // 2. Potentially disrupts hover state, especially on the first item
-  // 3. Causes unnecessary work and DOM updates
-  //
-  // FIX: This custom comparison function prevents re-renders unless meaningful
-  // props have actually changed. Combined with memoized event handlers in the
-  // parent, this ensures the hover state remains stable even during frequent
-  // query refetches.
-  //
-  // TESTING: Watch for "[HoverIssue] 🔄 VideoItem re-render" logs - with this fix,
-  // the first item should NOT re-render on every query refetch.
-  // ============================================================================
-
-  // Only re-render if meaningful props have changed
-  return (
-    prevProps.video.id === nextProps.video.id &&
-    prevProps.video.location === nextProps.video.location &&
-    prevProps.video.thumbUrl === nextProps.video.thumbUrl &&
-    (prevProps.video as any).name === (nextProps.video as any).name && // Check variant name changes
-    (prevProps.video as any).derivedCount === (nextProps.video as any).derivedCount && // Check variant count changes
-    prevProps.index === nextProps.index &&
-    prevProps.originalIndex === nextProps.originalIndex &&
-    prevProps.shouldPreload === nextProps.shouldPreload &&
-    prevProps.isMobile === nextProps.isMobile &&
-    prevProps.projectAspectRatio === nextProps.projectAspectRatio &&
-    prevProps.projectId === nextProps.projectId &&
-    prevProps.deletingVideoId === nextProps.deletingVideoId &&
-    prevProps.selectedVideoForDetails?.id === nextProps.selectedVideoForDetails?.id &&
-    prevProps.showTaskDetailsModal === nextProps.showTaskDetailsModal &&
-    // Handler functions should be stable via useCallback, so reference equality is fine
-    prevProps.onLightboxOpen === nextProps.onLightboxOpen &&
-    prevProps.onMobileTap === nextProps.onMobileTap &&
-    prevProps.onMobilePreload === nextProps.onMobilePreload &&
-    prevProps.onDelete === nextProps.onDelete &&
-    prevProps.onHoverStart === nextProps.onHoverStart &&
-    prevProps.onHoverEnd === nextProps.onHoverEnd &&
-    prevProps.onMobileModalOpen === nextProps.onMobileModalOpen &&
-    prevProps.onApplySettingsFromTask === nextProps.onApplySettingsFromTask &&
-    prevProps.deleteTooltip === nextProps.deleteTooltip
-  );
-});
+}, videoItemPropsAreEqual);

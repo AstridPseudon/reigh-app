@@ -8,8 +8,8 @@ interface VideoHoverPreviewProps {
   hoverPosition: { x: number; y: number; positioning?: 'above' | 'below' } | null;
   isInitialHover: boolean;
   isLoadingHoverTask: boolean;
-  hoverTaskMapping: any;
-  hoverTask: any;
+  hoverTaskMapping: { taskId?: string } | null;
+  hoverTask: Record<string, unknown> | null;
   hoverInputImages: string[];
   isMobile: boolean;
   onOpenDetailsFromHover: () => void;

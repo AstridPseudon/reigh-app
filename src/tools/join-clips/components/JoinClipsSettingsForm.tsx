@@ -17,6 +17,7 @@ import {
     TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import { PhaseConfig } from '@/tools/travel-between-images/settings';
+import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { MotionPresetSelector } from '@/shared/components/MotionPresetSelector';
 import { SectionHeader } from '@/tools/image-generation/components/ImageGenerationForm/components/SectionHeader';
 import { 
@@ -46,8 +47,8 @@ export const buildJoinClipsPhaseConfig = buildPhaseConfigWithLoras;
  */
 function quantizeTotalFrames(total: number, minTotal: number = 17): number {
     // Round to NEAREST 4N+1 format
-    const n = Math.round((total - 1) / 4);
-    const quantized = n * 4 + 1;
+    const quantizationFactor = Math.round((total - 1) / 4);
+    const quantized = quantizationFactor * 4 + 1;
     return Math.max(minTotal, quantized);
 }
 
@@ -170,7 +171,7 @@ export interface JoinClipsSettingsFormProps {
     
     // Phase preset selection (for Basic mode preset chips)
     selectedPhasePresetId?: string | null;
-    onPhasePresetSelect?: (presetId: string, config: PhaseConfig, presetMetadata?: any) => void;
+    onPhasePresetSelect?: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
     onPhasePresetRemove?: () => void;
     
     // Featured preset IDs for quick-select chips (provided by parent, or uses default)

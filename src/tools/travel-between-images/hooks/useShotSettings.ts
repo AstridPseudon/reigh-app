@@ -222,7 +222,7 @@ export const useShotSettings = (
       
       if (fetchError) throw fetchError;
       
-      const sourceSettings = (data?.settings as any)?.['travel-between-images'] as VideoTravelSettings;
+      const sourceSettings = (data?.settings as Record<string, unknown>)?.['travel-between-images'] as VideoTravelSettings;
       
       if (sourceSettings) {
         // Apply all fields from source
@@ -253,7 +253,7 @@ export const useShotSettings = (
       
       if (fetchError) throw fetchError;
       
-      const projectDefaults = (data?.settings as any)?.['travel-between-images'] as VideoTravelSettings;
+      const projectDefaults = (data?.settings as Record<string, unknown>)?.['travel-between-images'] as VideoTravelSettings;
       
       if (projectDefaults) {
         autoSave.updateFields(projectDefaults);

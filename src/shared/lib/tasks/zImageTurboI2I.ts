@@ -4,6 +4,7 @@ import {
   validateRequiredFields,
   TaskValidationError,
 } from '../taskCreation';
+import type { TaskCreationResult } from '../taskCreation';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandler';
 
@@ -181,7 +182,7 @@ function buildTaskParams(params: ZImageTurboI2ITaskParams): Record<string, unkno
 /**
  * Creates a single Z Image Turbo I2I task
  */
-export async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams): Promise<any> {
+export async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams): Promise<TaskCreationResult> {
   console.log('[createZImageTurboI2ITask] Creating task with params:', params);
 
   try {
@@ -210,7 +211,7 @@ export async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams)
 /**
  * Creates multiple Z Image Turbo I2I tasks in parallel (batch generation)
  */
-export async function createBatchZImageTurboI2ITasks(params: BatchZImageTurboI2ITaskParams): Promise<any[]> {
+export async function createBatchZImageTurboI2ITasks(params: BatchZImageTurboI2ITaskParams): Promise<TaskCreationResult[]> {
   console.log('[createBatchZImageTurboI2ITasks] Creating batch tasks with params:', params);
 
   try {
@@ -270,7 +271,7 @@ export async function createBatchZImageTurboI2ITasks(params: BatchZImageTurboI2I
 
     // 7. Return successful results
     const successfulResults = results
-      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .filter((r): r is PromiseFulfilledResult<TaskCreationResult> => r.status === 'fulfilled')
       .map(r => r.value);
 
     console.log(`[createBatchZImageTurboI2ITasks] Batch completed: ${successfulResults.length} tasks created`);

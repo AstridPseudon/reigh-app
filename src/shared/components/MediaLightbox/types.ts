@@ -1,5 +1,20 @@
 import type { GenerationRow } from '@/types/shots';
+import type { Task } from '@/types/database';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+
+/**
+ * Shared task details data shape used by lightbox components.
+ * Passed through from parent to InfoPanel/TaskDetailsPanelWrapper.
+ */
+export interface TaskDetailsData {
+  task: Task | null;
+  isLoading: boolean;
+  error: Error | null;
+  inputImages: string[];
+  taskId: string | null;
+  onApplySettingsFromTask?: (taskId: string, replaceImages: boolean, inputImages: string[]) => void;
+  onClose?: () => void;
+}
 
 /**
  * Information about an adjacent segment (video) for navigation.
@@ -115,6 +130,10 @@ export interface SegmentSlotModeData {
     segmentEnd: number;
     videoTotalFrames: number;
     videoFps: number;
+    /** Video's output start position on timeline (for "fit to range" calculation) */
+    videoOutputStart?: number;
+    /** Video's output end position on timeline (for "fit to range" calculation) */
+    videoOutputEnd?: number;
   };
 
   /** Callback when frame count changes - for instant timeline updates */

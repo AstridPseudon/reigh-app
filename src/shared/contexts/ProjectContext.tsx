@@ -2,12 +2,11 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useRe
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Project } from '@/types/project'; // Added import
-import { UserPreferences } from '@/shared/settings/userPreferences';
 import { usePrefetchToolSettings } from '@/shared/hooks/usePrefetchToolSettings';
-import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
-import { useQueryClient } from '@tanstack/react-query';
-import { STORAGE_KEYS } from '@/tools/travel-between-images/storageKeys';
 import { handleError } from '@/shared/lib/errorHandler';
+import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
+import { useAuth } from './AuthContext';
+import { useUserSettings } from './UserSettingsContext';
 
 // Type for updating projects
 interface ProjectUpdate {
@@ -64,7 +63,7 @@ const copyTemplateToNewUser = async (newProjectId: string, newShotId: string): P
 // Helper function to create a default shot for a new project
 const createDefaultShot = async (
   projectId: string,
-  initialSettings?: any,
+  initialSettings?: Record<string, unknown>,
   isFirstProject: boolean = false
 ): Promise<string | null> => {
   try {
@@ -116,12 +115,12 @@ const determineProjectIdToSelect = (
 };
 
 // Helper to convert DB row (snake_case) to our Project interface (camelCase)
-const mapDbProjectToProject = (row: any): Project => ({
-  id: row.id,
-  name: row.name,
-  user_id: row.user_id,
-  aspectRatio: row.aspect_ratio ?? undefined,
-  createdAt: row.created_at ?? undefined,
+const mapDbProjectToProject = (row: Record<string, unknown>): Project => ({
+  id: row.id as string,
+  name: row.name as string,
+  user_id: row.user_id as string,
+  aspectRatio: (row.aspect_ratio as string) ?? undefined,
+  createdAt: (row.created_at as string) ?? undefined,
 });
 
 // Helper to sort projects by creation date (newest first)
@@ -136,6 +135,18 @@ const sortProjectsByCreatedAt = (projects: Project[]): Project[] => {
 };
 
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
+  // Get auth state from AuthContext
+  const { userId } = useAuth();
+
+  // Get user settings from UserSettingsContext
+  const { userSettings: userPreferences, isLoadingSettings: isLoadingPreferences, updateUserSettings } = useUserSettings();
+
+  // Keep a ref for synchronous access to latest preferences
+  const userPreferencesRef = useRef(userPreferences);
+  useEffect(() => {
+    userPreferencesRef.current = userPreferences;
+  }, [userPreferences]);
+
   // CRITICAL: Log component mount/unmount to detect tab suspension issues
   React.useEffect(() => {
     console.info('[ProjectContext:FastResume] 🚨 ProjectProvider MOUNTED', {
@@ -143,7 +154,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       visibilityState: document.visibilityState,
       stack: new Error().stack?.split('\n').slice(1, 3)
     });
-    
+
     return () => {
       console.info('[ProjectContext:FastResume] 🚨 ProjectProvider UNMOUNTING', {
         timestamp: Date.now(),
@@ -158,7 +169,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   // If not, we'll update selection from server preferences when they load
   const hadLocalStorageValueRef = useRef<boolean>(false);
   const hasAppliedServerPreferencesRef = useRef<boolean>(false);
-  
+
   // FAST RESUME: Try to restore selectedProjectId from localStorage immediately
   const [selectedProjectId, setSelectedProjectIdState] = useState<string | null>(() => {
     console.log('[ProjectContext:FastResume] ATTEMPTING localStorage restoration');
@@ -184,216 +195,30 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isUpdatingProject, setIsUpdatingProject] = useState(false);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
-  const [userId, setUserId] = useState<string | undefined>(undefined);
-  const [userPreferences, setUserPreferences] = useState<UserPreferences | undefined>(undefined);
-  const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
-  const userPreferencesRef = useRef<UserPreferences | undefined>(undefined);
 
   // [MobileStallFix] Add mobile detection and recovery state
   const isMobileRef = useRef(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-  const preferencesTimeoutRef = useRef<NodeJS.Timeout>();
   const projectsTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Prefetch all tool settings for the currently selected project so that
   // tool pages hydrate instantly without an extra round-trip.
   usePrefetchToolSettings(selectedProjectId);
-  
-  // [MobileStallFix] Cleanup all timeouts on unmount
+
+  // [MobileStallFix] Cleanup timeout on unmount
   useEffect(() => {
     return () => {
-      if (preferencesTimeoutRef.current) {
-        clearTimeout(preferencesTimeoutRef.current);
-      }
       if (projectsTimeoutRef.current) {
         clearTimeout(projectsTimeoutRef.current);
       }
     };
   }, []);
 
-  // [MobileStallFix] Enhanced auth state tracking with mobile recovery
-  // [AuthDebounce] Prevent cascading updates from duplicate auth events
+  // CROSS-DEVICE SYNC: Reset sync flag when user logs out
   useEffect(() => {
-    let authStateChangeCount = 0;
-    let debounceTimeout: NodeJS.Timeout | null = null;
-    let lastProcessedState: { event: string; userId: string | undefined } | null = null;
-    let pendingAuthState: { event: string; session: any } | null = null;
-
-    const processAuthChange = (event: string, session: any) => {
-      const currentUserId = session?.user?.id;
-      
-      // Check if this is a meaningful state transition
-      const isDuplicateEvent = lastProcessedState && 
-        lastProcessedState.event === event && 
-        lastProcessedState.userId === currentUserId;
-      
-      if (isDuplicateEvent) {
-        console.log(`[ProjectContext:MobileDebug] Skipping duplicate auth event: ${event}, userId: ${!!currentUserId}`);
-        return;
-      }
-
-      console.log(`[ProjectContext:MobileDebug] Processing auth change: ${event}, userId: ${!!currentUserId}`);
-      
-      // Update user ID
-      setUserId(currentUserId);
-      
-      // [MobileStallFix] Reset preferences loading state on meaningful auth transitions
-      if (event === 'SIGNED_OUT' || (event === 'SIGNED_IN' && lastProcessedState?.event !== 'SIGNED_IN')) {
-        console.log(`[ProjectContext:MobileDebug] Resetting preferences loading state due to meaningful ${event} transition`);
-        setIsLoadingPreferences(false);
-        if (preferencesTimeoutRef.current) {
-          clearTimeout(preferencesTimeoutRef.current);
-          preferencesTimeoutRef.current = undefined;
-        }
-      }
-      
-      // Track the processed state
-      lastProcessedState = { event, userId: currentUserId };
-    };
-
-    const handleAuthStateChange = (event: string, session: any) => {
-      authStateChangeCount++;
-      console.log(`[ProjectContext:MobileDebug] Auth change #${authStateChangeCount}:`, event, !!session?.user?.id);
-      
-      // Store the latest auth state
-      pendingAuthState = { event, session };
-      
-      // Clear existing debounce timer
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-      }
-      
-      // [AuthDebounce] Wait 150ms for additional auth events before processing
-      debounceTimeout = setTimeout(() => {
-        if (pendingAuthState) {
-          React.startTransition(() => {
-            processAuthChange(pendingAuthState!.event, pendingAuthState!.session);
-          });
-          pendingAuthState = null;
-        }
-        debounceTimeout = null;
-      }, 150);
-    };
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log(`[ProjectContext:MobileDebug] Initial session:`, !!session?.user?.id);
-      setUserId(session?.user?.id);
-      lastProcessedState = { event: 'INITIAL_SESSION', userId: session?.user?.id };
-    });
-
-    // Use centralized auth manager instead of direct listener
-    const authManager = (window as any).__AUTH_MANAGER__;
-    let unsubscribe: (() => void) | null = null;
-    
-    if (authManager) {
-      unsubscribe = authManager.subscribe('ProjectContext', handleAuthStateChange);
-    } else {
-      // Fallback to direct listener if auth manager not available
-      const { data: listener } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-      unsubscribe = () => listener.subscription.unsubscribe();
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-        // Process final pending state on cleanup if needed
-        if (pendingAuthState) {
-          processAuthChange(pendingAuthState.event, pendingAuthState.session);
-        }
-      }
-    };
-  }, []);
-
-  // [MobileStallFix] Enhanced preferences fetching with timeout and recovery
-  const fetchUserPreferences = useCallback(async () => {
-    if (!userId) return;
-
-    console.log(`[ProjectContext:MobileDebug] Starting preferences fetch for user: ${userId}`);
-    setIsLoadingPreferences(true);
-
-    // [MobileStallFix] Set a safety timeout for mobile networks
-    if (preferencesTimeoutRef.current) {
-      clearTimeout(preferencesTimeoutRef.current);
-    }
-    
-    preferencesTimeoutRef.current = setTimeout(() => {
-      console.warn(`[ProjectContext:MobileDebug] Preferences fetch timeout, forcing recovery`);
-      setIsLoadingPreferences(false);
-      setUserPreferences({});
-      userPreferencesRef.current = {};
-    }, isMobileRef.current ? 10000 : 5000); // Longer timeout for mobile
-
-    try {
-      // Read the settings JSON for the current user
-      const { data, error } = await supabase
-        .from('users')
-        .select('settings')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      const preferences = (data?.settings as any)?.['user-preferences'] ?? {};
-      console.log(`[ProjectContext:MobileDebug] Preferences loaded successfully`);
-      setUserPreferences(preferences);
-      userPreferencesRef.current = preferences;
-    } catch (error) {
-      handleError(error, { context: 'ProjectContext', showToast: false });
-      // [MobileStallFix] Set empty preferences on error instead of leaving undefined
-      setUserPreferences({});
-      userPreferencesRef.current = {};
-    } finally {
-      if (preferencesTimeoutRef.current) {
-        clearTimeout(preferencesTimeoutRef.current);
-        preferencesTimeoutRef.current = undefined;
-      }
-      setIsLoadingPreferences(false);
-      console.log(`[ProjectContext:MobileDebug] Preferences loading completed`);
-    }
-  }, [userId]);
-
-  // Update user preferences directly using the global write queue
-  const updateUserPreferences = useCallback(async (_scope: 'user', patch: Partial<UserPreferences>) => {
-    if (!userId) return;
-
-    try {
-      // Use the global queue - it handles read-modify-write internally
-      await updateToolSettingsSupabase({
-        scope: 'user',
-        id: userId,
-        toolId: 'user-preferences',
-        patch,
-      });
-
-      // Update local state optimistically
-      setUserPreferences(prev => {
-        const merged = { ...prev, ...patch };
-        userPreferencesRef.current = merged;
-        return merged;
-      });
-    } catch (error) {
-      handleError(error, { context: 'ProjectContext', showToast: false });
-    }
-  }, [userId]);
-
-  // [MobileStallFix] Enhanced preferences effect with proper cleanup
-  useEffect(() => {
-    if (userId) {
-      fetchUserPreferences();
-    } else {
-      console.log(`[ProjectContext:MobileDebug] No userId, clearing preferences state`);
-      setUserPreferences(undefined);
-      userPreferencesRef.current = undefined;
-      // [MobileStallFix] Critical fix: Reset loading state when no user
-      setIsLoadingPreferences(false);
-      if (preferencesTimeoutRef.current) {
-        clearTimeout(preferencesTimeoutRef.current);
-        preferencesTimeoutRef.current = undefined;
-      }
-      // CROSS-DEVICE SYNC: Reset sync flag so we re-sync on next login
+    if (!userId) {
       hasAppliedServerPreferencesRef.current = false;
     }
-  }, [userId, fetchUserPreferences]);
+  }, [userId]);
 
   // CROSS-DEVICE SYNC: When preferences load on a new device (no localStorage),
   // update the selected project to match the server's lastOpenedProjectId
@@ -454,9 +279,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       timestamp: Date.now(),
       stack: new Error().stack?.split('\n').slice(1, 4)
     });
-    
+
     setSelectedProjectIdState(projectId);
-    
+
     // FAST RESUME: Save to localStorage immediately for fast tab resume
     if (projectId) {
       try {
@@ -467,7 +292,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         console.error(`[ProjectContext:FastResume] Failed to save to localStorage:`, e);
       }
       // Also save to user preferences (slower but persistent across devices)
-      updateUserPreferences('user', { lastOpenedProjectId: projectId });
+      updateUserSettings('user', { lastOpenedProjectId: projectId });
     } else {
       try {
         console.warn(`[ProjectContext:FastResume] REMOVING selectedProjectId from localStorage (projectId is null)`);
@@ -476,9 +301,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       } catch (e) {
         console.error(`[ProjectContext:FastResume] Failed to remove from localStorage:`, e);
       }
-      updateUserPreferences('user', { lastOpenedProjectId: undefined });
+      updateUserSettings('user', { lastOpenedProjectId: undefined });
     }
-  }, [updateUserPreferences, selectedProjectId]);
+  }, [updateUserSettings, selectedProjectId]);
 
   const fetchProjects = useCallback(async () => {
     console.log(`[ProjectContext:MobileDebug] Starting projects fetch`);
@@ -553,7 +378,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       console.log(`[ProjectContext:MobileDebug] Projects loaded successfully`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError(error, { context: 'ProjectContext', toastTitle: 'Failed to load projects' });
       setProjects([]);
       // CRITICAL FIX: DO NOT clear selectedProjectId on fetch error!
@@ -568,7 +393,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       }
       setIsLoadingProjects(false);
     }
-  }, [updateUserPreferences, selectedProjectId, handleSetSelectedProjectId]);
+  }, [updateUserSettings, selectedProjectId, handleSetSelectedProjectId]);
 
   const addNewProject = useCallback(async (projectData: { name: string; aspectRatio: string }) => {
     if (!projectData.name.trim()) {
@@ -604,7 +429,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       // Get settings from the current project to copy to the new project
       // See src/shared/constants/settingsInheritance.ts for full documentation of what inherits
-      let settingsToInherit = {};
+      let settingsToInherit: Record<string, unknown> = {};
       if (selectedProjectId) {
         try {
           const { data: currentProjectData } = await supabase
@@ -618,11 +443,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
             // INHERITANCE POLICY: Content data doesn't inherit, but configuration settings do
             settingsToInherit = {};
             
-            Object.entries(currentProjectData.settings).forEach(([toolId, toolSettings]) => {
+            Object.entries(currentProjectData.settings as Record<string, unknown>).forEach(([toolId, toolSettings]) => {
               if (typeof toolSettings === 'object' && toolSettings !== null) {
                 // Create a copy of tool settings excluding prompts, references, and AI generation details
-                const filteredToolSettings = { ...toolSettings } as any;
-                
+                const filteredToolSettings = { ...toolSettings } as Record<string, unknown>;
+
                 // Remove prompt-related keys
                 delete filteredToolSettings.promptsByShot;
                 delete filteredToolSettings.prompt;  // Main video prompt (renamed from batchVideoPrompt)
@@ -690,8 +515,8 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       // Prepare shot settings to inherit (priority: localStorage -> DB -> project settings)
       // NOTE: LoRAs are now part of travel-between-images settings (selectedLoras field)
-      let shotSettingsToInherit = {};
-      
+      let shotSettingsToInherit: Record<string, unknown> = {};
+
       // 1. Try to get most recent active shot settings from localStorage (most up-to-date)
       if (selectedProjectId) {
         try {
@@ -736,9 +561,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
             .single();
 
           if (latestShot?.settings) {
-            const shotSettings = latestShot.settings as any;
+            const shotSettings = latestShot.settings as Record<string, unknown>;
             if (shotSettings['travel-between-images']) {
-              const mainSettings = shotSettings['travel-between-images'] || {};
+              const mainSettings = (shotSettings['travel-between-images'] as Record<string, unknown>) || {};
               
               shotSettingsToInherit = {
                 'travel-between-images': {
@@ -752,7 +577,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
                 }
               };
               console.log('[ProjectContext] 🧬 Inheriting shot settings from LATEST DB SHOT (scrubbed content)', {
-                loraCount: mainSettings.loras?.length || 0
+                loraCount: (mainSettings.loras as unknown[] | undefined)?.length || 0
               });
             }
           }
@@ -762,9 +587,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // 3. Fallback: If still no settings, try to use the project-level settings
-      if (Object.keys(shotSettingsToInherit).length === 0 && (settingsToInherit as any)['travel-between-images']) {
+      if (Object.keys(shotSettingsToInherit).length === 0 && settingsToInherit['travel-between-images']) {
          shotSettingsToInherit = {
-           'travel-between-images': (settingsToInherit as any)['travel-between-images']
+           'travel-between-images': settingsToInherit['travel-between-images']
          };
          console.log('[ProjectContext] 🧬 Inheriting shot settings from project defaults');
       }
@@ -778,17 +603,17 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       handleSetSelectedProjectId(mappedProject.id);
       
       // Save the new project as last opened in user settings (kept for redundancy)
-      updateUserPreferences('user', { lastOpenedProjectId: mappedProject.id });
+      updateUserSettings('user', { lastOpenedProjectId: mappedProject.id });
 
             
       return mappedProject;
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleError(err, { context: 'ProjectContext', toastTitle: 'Failed to create project' });
       return null;
     } finally {
       setIsCreatingProject(false);
     }
-  }, [updateUserPreferences, selectedProjectId, handleSetSelectedProjectId]);
+  }, [updateUserSettings, selectedProjectId, handleSetSelectedProjectId]);
 
   const updateProject = useCallback(async (projectId: string, updates: ProjectUpdate): Promise<boolean> => {
     if (!updates.name?.trim() && !updates.aspectRatio) {
@@ -801,7 +626,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       if (!user) throw new Error('Not authenticated');
 
       // Convert camelCase updates to snake_case for DB
-      const dbUpdates: any = {};
+      const dbUpdates: Record<string, string | undefined> = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.aspectRatio !== undefined) dbUpdates.aspect_ratio = updates.aspectRatio;
 
@@ -823,7 +648,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );      
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleError(err, { context: 'ProjectContext', toastTitle: 'Failed to update project' });
       return false;
     } finally {
@@ -853,9 +678,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
         // Update user preferences with the new selected project
         if (nextProjectId) {
-          updateUserPreferences('user', { lastOpenedProjectId: nextProjectId });
+          updateUserSettings('user', { lastOpenedProjectId: nextProjectId });
         } else {
-          updateUserPreferences('user', { lastOpenedProjectId: undefined });
+          updateUserSettings('user', { lastOpenedProjectId: undefined });
         }
 
         return updated;
@@ -863,13 +688,13 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
 
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleError(err, { context: 'ProjectContext', toastTitle: 'Failed to delete project' });
       return false;
     } finally {
       setIsDeletingProject(false);
     }
-  }, [updateUserPreferences]);
+  }, [updateUserSettings]);
 
   // [MobileStallFix] Enhanced project loading with fallback recovery
   // [PROFILING] Track fetch invocations to detect triple-fetch issue
@@ -912,24 +737,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       }, isMobileRef.current ? 15000 : 10000); // Longer timeout for mobile
      
       return () => {
-        // REMOVED: timer cleanup since we removed the setTimeout
         if (projectsTimeoutRef.current) {
           clearTimeout(projectsTimeoutRef.current);
           projectsTimeoutRef.current = undefined;
         }
       };
-    } else if (userId && isLoadingPreferences) {
-      // [MobileStallFix] Add emergency fallback if preferences get stuck
-      const emergencyTimer = setTimeout(() => {
-        console.warn(`[ProjectContext:MobileDebug] Emergency fallback: preferences stuck, forcing projects load`);
-        if (isLoadingPreferences) {
-          setIsLoadingPreferences(false);
-          setUserPreferences({});
-          userPreferencesRef.current = {};
-        }
-      }, isMobileRef.current ? 20000 : 15000); // Emergency fallback
-
-      return () => clearTimeout(emergencyTimer);
     }
   }, [userId, isLoadingPreferences, fetchProjects, isLoadingProjects]); // Refetch when user changes or preferences finish loading
 
@@ -981,7 +793,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   // Expose context globally for debugging
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).__PROJECT_CONTEXT__ = { selectedProjectId, projects };
+      window.__PROJECT_CONTEXT__ = { selectedProjectId, projects };
     }
   }, [selectedProjectId, projects]);
 

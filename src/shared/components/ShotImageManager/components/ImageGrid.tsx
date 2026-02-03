@@ -5,15 +5,16 @@ import { cn } from '@/shared/lib/utils';
 import { DEFAULT_BATCH_VIDEO_FRAMES } from '../constants';
 import { AddImagesCard } from './AddImagesCard';
 import { PairPromptIndicator } from './PairPromptIndicator';
-import { InlineSegmentVideo } from '@/tools/travel-between-images/components/Timeline/InlineSegmentVideo';
-import { SegmentSlot } from '@/tools/travel-between-images/hooks/useSegmentOutputsForShot';
-import type { PhaseConfig } from '@/tools/travel-between-images/settings';
+import { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
+import type { SegmentSlot } from '@/shared/hooks/segments';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { UseVideoScrubbingReturn } from '@/shared/hooks/useVideoScrubbing';
-import type { PairData } from '@/tools/travel-between-images/components/Timeline/TimelineContainer';
-import { SingleImageDurationIndicator } from './SingleImageDurationIndicator';
+import type { PairData } from '@/shared/types/pairData';
+import { TrailingDurationIndicator } from './TrailingDurationIndicator';
 import { Loader2 } from 'lucide-react';
-import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { useSourceImageChanges } from '@/shared/hooks/useSourceImageChanges';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 const FPS = 16;
 
@@ -120,13 +121,13 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
       .map(slot => {
         if (slot.type !== 'child') return null;
         const child = slot.child;
-        const params = child.params as Record<string, any> | null;
-        const individualParams = params?.individual_segment_params || {};
-        const orchDetails = params?.orchestrator_details || {};
+        const params = child.params as Record<string, unknown> | null;
+        const individualParams = (params?.individual_segment_params || {}) as Record<string, unknown>;
+        const orchDetails = (params?.orchestrator_details || {}) as Record<string, unknown>;
         const childOrder = child.child_order ?? slot.index;
 
         // Get generation IDs - check multiple locations (individual params, top-level, orchestrator arrays)
-        const orchGenIds = orchDetails.input_image_generation_ids || [];
+        const orchGenIds = (orchDetails.input_image_generation_ids || []) as string[];
         const startGenId = individualParams.start_image_generation_id
           || params?.start_image_generation_id
           || orchGenIds[childOrder]
@@ -174,7 +175,7 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
         // For batch view display: show index × duration per pair in seconds
         const durationPerPairSeconds = batchVideoFrames / FPS;
         const displayTimeSeconds = index * durationPerPairSeconds;
-        const actualTimelineFrame = (image as any).timeline_frame;
+        const actualTimelineFrame = image.timeline_frame;
         const isLastImage = index === images.length - 1;
 
         // Get pair data for the indicator after this image
@@ -207,7 +208,7 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
         const shouldHideIndicator = isDraggingThisItem || isDropTargetGap;
         
         // Get the actual generation ID for prefetching (shot_generations stores generation_id)
-        const generationId = (image as any).generation_id || image.id;
+        const generationId = getGenerationId(image);
 
         return (
           <div
@@ -394,10 +395,10 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
         );
       })}
 
-      {/* Single-image duration indicator - only show when there's exactly 1 image */}
+      {/* Trailing segment duration indicator - only show when there's exactly 1 image */}
       {images.length === 1 && onPairClick && (
         <div className="flex items-center justify-center">
-          <SingleImageDurationIndicator
+          <TrailingDurationIndicator
             frames={batchVideoFrames}
             fps={FPS}
             readOnly={readOnly}
@@ -412,8 +413,8 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
                 startImage: {
                   id: image.id,
                   generationId: image.generation_id || undefined,
-                  url: (image as any).imageUrl || (image as any).thumbUrl,
-                  thumbUrl: (image as any).thumbUrl,
+                  url: image.imageUrl || image.thumbUrl,
+                  thumbUrl: image.thumbUrl,
                   position: 1,
                 },
                 endImage: null,

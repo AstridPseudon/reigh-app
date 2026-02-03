@@ -48,7 +48,7 @@ interface ApplySettingsContext {
   onTextAfterPromptsChange: (text: string) => void;
   handleStructureVideoChange: (
     videoPath: string | null,
-    metadata: any,
+    metadata: Record<string, unknown> | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
     structureType: 'uni3c' | 'flow' | 'canny' | 'depth'
@@ -69,9 +69,12 @@ interface ApplySettingsContext {
   steerableMotionSettings: SteerableMotionSettings;
   
   // Managers/Mutations
-  loraManager: any;
-  addImageToShotMutation: any;
-  removeImageFromShotMutation: any;
+  loraManager: {
+    setSelectedLoras?: (loras: LoraModel[]) => void;
+    handleAddLora: (lora: LoraModel, showToast: boolean, strength: number) => void;
+  };
+  addImageToShotMutation: { mutateAsync: (params: Record<string, unknown>) => Promise<unknown> };
+  removeImageFromShotMutation: { mutateAsync: (params: Record<string, unknown>) => Promise<unknown> };
   updatePairPromptsByIndex: (pairIndex: number, prompt: string, negativePrompt: string) => Promise<void>;
   loadPositions: (opts?: { silent?: boolean; reason?: string }) => Promise<void>;
 }
@@ -120,7 +123,7 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
     let pairPromptSnapshot: Array<{
       id: string;
       timeline_frame: number | null;
-      metadata: any;
+      metadata: Record<string, unknown> | null;
       generation?: {
         id?: string | null;
         type?: string | null;
@@ -283,7 +286,7 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
       console.log('[ApplySettings] Step 4d: Filtering and sorting snapshot...');
       let preparedPairPromptTargets = pairPromptSnapshot
         .filter(row => {
-          const generation = (row as any)?.generation;
+          const generation = row.generation;
           const isVideo = generation?.type === 'video' ||
                           generation?.type === 'video_travel_output' ||
                           generation?.location?.endsWith?.('.mp4');

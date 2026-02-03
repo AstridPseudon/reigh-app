@@ -7,7 +7,9 @@ import { PhaseConfig } from '../settings';
 import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import type { PresetMetadata, PresetSampleGeneration } from '@/shared/types/presetMetadata';
 
 interface SelectedPresetCardProps {
   presetId: string;
@@ -22,7 +24,7 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
 }) => {
   // Fetch preset details from database
   const { data: preset, isLoading } = useQuery({
-    queryKey: ['preset-details', presetId],
+    queryKey: queryKeys.presets.detail(presetId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('resources')
@@ -44,9 +46,9 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
     );
   }
 
-  const metadata = preset.metadata as any;
+  const metadata = preset.metadata as PresetMetadata;
   const sampleGenerations = metadata?.sample_generations || [];
-  const hasVideo = sampleGenerations.some((gen: any) => gen.type === 'video');
+  const hasVideo = sampleGenerations.some((gen: PresetSampleGeneration) => gen.type === 'video');
 
   return (
     <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
@@ -89,9 +91,9 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
         {hasVideo && (
           <div className="flex-shrink-0 w-32">
             {sampleGenerations
-              .filter((gen: any) => gen.type === 'video')
+              .filter((gen: PresetSampleGeneration) => gen.type === 'video')
               .slice(0, 1)
-              .map((gen: any, idx: number) => (
+              .map((gen: PresetSampleGeneration, idx: number) => (
                 <HoverScrubVideo
                   key={idx}
                   src={gen.url}
@@ -108,7 +110,7 @@ const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
 
 interface PresetsSelectorProps {
   selectedPhasePresetId?: string | null;
-  onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: any) => void;
+  onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
   onPhasePresetRemove: () => void;
   phaseConfig?: PhaseConfig;
   onSwitchToAdvanced?: () => void;

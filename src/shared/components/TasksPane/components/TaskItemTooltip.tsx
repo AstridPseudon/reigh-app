@@ -8,13 +8,16 @@ import { cn } from '@/shared/lib/utils';
 import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/types/shots';
 import { GenerationDetails } from '@/shared/components/GenerationDetails';
-import { isImageEditTaskType } from '@/tools/travel-between-images/components/TaskDetails';
-import SharedMetadataDetails from '@/shared/components/SharedMetadataDetails';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
+
+/** Extended GenerationRow with variant tracking fields added by hooks */
+interface GenerationRowWithVariant extends GenerationRow {
+  _variant_id?: string;
+  _variant_is_primary?: boolean;
+}
 
 interface TaskItemTooltipProps {
   task: Task;
-  taskParams: { parsed: Record<string, any>; promptText: string };
   isVideoTask: boolean;
   isCompletedVideoTask: boolean;
   showsTooltip: boolean;
@@ -23,7 +26,6 @@ interface TaskItemTooltipProps {
   travelImageUrls: string[];
   videoOutputs: GenerationRow[] | null;
   generationData: GenerationRow | null;
-  actualGeneration: any;
   // Callbacks
   onOpenVideoLightbox?: (task: Task, media: GenerationRow[], videoIndex: number, initialVariantId?: string) => void;
   onOpenImageLightbox?: (task: Task, media: GenerationRow, initialVariantId?: string) => void;
@@ -36,7 +38,6 @@ interface TaskItemTooltipProps {
 
 export const TaskItemTooltip: React.FC<TaskItemTooltipProps> = ({
   task,
-  taskParams,
   isVideoTask,
   isCompletedVideoTask,
   showsTooltip,
@@ -44,7 +45,6 @@ export const TaskItemTooltip: React.FC<TaskItemTooltipProps> = ({
   travelImageUrls,
   videoOutputs,
   generationData,
-  actualGeneration,
   onOpenVideoLightbox,
   onOpenImageLightbox,
   onResetHoverState,
@@ -67,10 +67,10 @@ export const TaskItemTooltip: React.FC<TaskItemTooltipProps> = ({
     onResetHoverState();
     
     if (isVideoTask && hasClickableContent && onOpenVideoLightbox && videoOutputs && videoOutputs.length > 0) {
-      const initialVariantId = (videoOutputs[0] as any)?._variant_id;
+      const initialVariantId = (videoOutputs[0] as GenerationRowWithVariant)?._variant_id;
       onOpenVideoLightbox(task, videoOutputs, 0, initialVariantId);
     } else if (!isVideoTask && hasClickableContent && onOpenImageLightbox && generationData) {
-      const initialVariantId = (generationData as any)?._variant_id;
+      const initialVariantId = (generationData as GenerationRowWithVariant)?._variant_id;
       onOpenImageLightbox(task, generationData, initialVariantId);
     }
   };
@@ -89,32 +89,19 @@ export const TaskItemTooltip: React.FC<TaskItemTooltipProps> = ({
         sideOffset={15}
         collisionPadding={10}
       >
-        <div 
+        <div
           className="relative cursor-pointer hover:bg-background/90 transition-colors rounded-lg group"
           onClick={handleTooltipClick}
         >
-          {(isVideoTask || isImageEditTaskType(task.taskType)) ? (
-            <GenerationDetails
-              task={task}
-              inputImages={isVideoTask ? travelImageUrls : []}
-              variant="hover"
-              isMobile={false}
-              availableLoras={availableLoras}
-            />
-          ) : (
-            <SharedMetadataDetails
-              metadata={{
-                prompt: taskParams.promptText,
-                tool_type: task.taskType,
-                originalParams: task.params,
-                ...actualGeneration?.metadata
-              }}
-              variant="hover"
-              isMobile={false}
-              showUserImage={true}
-            />
-          )}
-          
+          <GenerationDetails
+            task={task}
+            inputImages={isVideoTask ? travelImageUrls : []}
+            variant="hover"
+            isMobile={false}
+            availableLoras={availableLoras}
+            showCopyButtons={true}
+          />
+
           {/* Click to view indicator */}
           {hasClickableContent && (
             <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-zinc-900/90 via-zinc-800/60 to-transparent p-2 rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity">

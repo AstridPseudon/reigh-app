@@ -6,11 +6,13 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { GenerationRow } from '@/types/shots';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import { toast } from 'sonner';
-import { handleError } from '@/shared/lib/errorHandler';
+import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 import { supabase } from '@/integrations/supabase/client';
 import { storagePaths, getFileExtension, MEDIA_BUCKET } from '@/shared/lib/storagePaths';
 import { InlineEditVideoView } from '../components/InlineEditVideoView';
-import { useGenerations, useDeleteVariant } from '@/shared/hooks/useGenerations';
+import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
+import { useDeleteVariant } from '@/shared/hooks/useGenerationMutations';
+import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
@@ -18,8 +20,10 @@ import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { extractVideoPosterFrame } from '@/shared/utils/videoPosterExtractor';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { parseRatio } from '@/shared/lib/aspectRatios';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 const TOOL_TYPE = 'edit-video';
 
@@ -38,8 +42,10 @@ export default function EditVideoPage() {
   const aspectRatioValue = parseRatio(projectAspectRatio);
   const [selectedMedia, setSelectedMedia] = useState<GenerationRow | null>(null);
   const [savedSegments, setSavedSegments] = useState<PortionSelection[] | undefined>(undefined);
-  const [isUploading, setIsUploading] = useState(false);
   const [resultsPage, setResultsPage] = useState(1);
+
+  // Upload operation with automatic loading state
+  const uploadOperation = useAsyncOperation<GenerationRow>();
   const [showResults, setShowResults] = useState(true);
   const [isLoadingPersistedMedia, setIsLoadingPersistedMedia] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -99,10 +105,11 @@ export default function EditVideoPage() {
         .then(({ data, error }) => {
           if (data && !error) {
             // Preload the poster/thumbnail before showing the view
-            const posterUrl = (data as any).thumbnail_url;
-            const videoUrl = (data as any).location;
-            preloadVideoPoster(posterUrl, videoUrl);
-            setSelectedMedia(data as any);
+            const gen = data as GenerationRow;
+            const posterUrl = gen.thumbnail_url;
+            const videoUrl = gen.location;
+            preloadVideoPoster(posterUrl ?? undefined, videoUrl ?? undefined);
+            setSelectedMedia(gen);
             // Also restore saved segments if they exist
             if (storedSegments && storedSegments.length > 0) {
               setSavedSegments(storedSegments);
@@ -141,9 +148,9 @@ export default function EditVideoPage() {
   const [lightboxVariantId, setLightboxVariantId] = useState<string | null>(null);
 
   // Transform variant data to GenerationRow format for lightbox (using parent generation id)
-  const transformVariantToGeneration = useCallback((media: any): GenerationRow => {
+  const transformVariantToGeneration = useCallback((media: GeneratedImageWithMetadata): GenerationRow => {
     return {
-      id: media.metadata?.generation_id || media.id,
+      id: getGenerationId(media),
       location: media.url,
       thumbnail_url: media.thumbUrl,
       type: 'video',
@@ -163,7 +170,7 @@ export default function EditVideoPage() {
   const {
     data: resultsData,
     isLoading: isResultsLoading,
-  } = useGenerations(
+  } = useProjectGenerations(
     selectedProjectId || null,
     resultsPage,
     12,
@@ -177,13 +184,13 @@ export default function EditVideoPage() {
   );
   
   // All results for lightbox navigation (memoized to prevent callback re-creation)
-  const allResults = useMemo(() => (resultsData as any)?.items || [], [resultsData]);
+  const allResults = useMemo(() => (resultsData as GenerationsPaginatedResponse | undefined)?.items || [], [resultsData]);
   
   // Navigate to previous/next in lightbox
   const handleNavigateLightbox = useCallback((direction: 'prev' | 'next') => {
     if (!lightboxInitialMedia || allResults.length === 0) return;
     // Find by variant ID since lightboxInitialMedia.id is the parent generation id
-    const currentIndex = allResults.findIndex((m: any) => m.id === lightboxVariantId);
+    const currentIndex = allResults.findIndex((m) => m.id === lightboxVariantId);
     if (currentIndex === -1) return;
     
     const newIndex = direction === 'prev' 
@@ -194,6 +201,84 @@ export default function EditVideoPage() {
     setLightboxInitialMedia(transformVariantToGeneration(newMedia));
   }, [lightboxInitialMedia, allResults, lightboxVariantId, transformVariantToGeneration]);
 
+  // Shared upload logic for both file input and drag-drop
+  const uploadVideo = useCallback(async (file: File): Promise<GenerationRow> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) {
+      throw new Error('User not authenticated');
+    }
+    const userId = session.user.id;
+    const timestamp = Date.now();
+
+    // Extract poster frame from video
+    let posterUrl = '';
+    try {
+      const posterBlob = await extractVideoPosterFrame(file);
+      const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-poster.jpg`);
+      const { error: posterError } = await supabase.storage
+        .from(MEDIA_BUCKET)
+        .upload(posterFileName, posterBlob, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: 'image/jpeg'
+        });
+
+      if (!posterError) {
+        const { data: { publicUrl } } = supabase.storage
+          .from(MEDIA_BUCKET)
+          .getPublicUrl(posterFileName);
+        posterUrl = publicUrl;
+      }
+    } catch (posterError) {
+      console.warn('[EditVideo] Poster extraction failed:', posterError);
+    }
+
+    const fileExt = getFileExtension(file.name, file.type, 'mp4');
+    const fileName = storagePaths.upload(userId, `${timestamp}.${fileExt}`);
+
+    const { error: uploadError } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl: videoUrl } } = supabase.storage
+      .from(MEDIA_BUCKET)
+      .getPublicUrl(fileName);
+
+    const generationParams = {
+      prompt: 'Uploaded video',
+      status: 'completed',
+      is_uploaded: true,
+      model: 'upload'
+    };
+
+    const { data: generation, error: dbError } = await supabase
+      .from('generations')
+      .insert({
+        project_id: selectedProjectId,
+        location: videoUrl,
+        thumbnail_url: posterUrl || videoUrl,
+        type: 'video',
+        params: generationParams
+      })
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    await supabase.from('generation_variants').insert({
+      generation_id: generation.id,
+      location: videoUrl,
+      thumbnail_url: posterUrl || videoUrl,
+      is_primary: true,
+      variant_type: VARIANT_TYPE.ORIGINAL,
+      name: 'Original',
+      params: generationParams,
+    });
+
+    return generation as GenerationRow;
+  }, [selectedProjectId]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -202,101 +287,18 @@ export default function EditVideoPage() {
       return;
     }
 
-    setIsUploading(true);
-    try {
-      const file = files[0];
-      
-      if (!file.type.startsWith('video/')) {
-        toast.error("Please upload a video file");
-        return;
-      }
-      
-      // Get current user ID for storage path
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-      const userId = session.user.id;
-      const timestamp = Date.now();
+    const file = files[0];
+    if (!file.type.startsWith('video/')) {
+      toast.error("Please upload a video file");
+      return;
+    }
 
-      // Extract poster frame from video
-      let posterUrl = '';
-      try {
-        const posterBlob = await extractVideoPosterFrame(file);
-        const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-poster.jpg`);
-        const { error: posterError } = await supabase.storage
-          .from(MEDIA_BUCKET)
-          .upload(posterFileName, posterBlob, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: 'image/jpeg'
-          });
-        
-        if (!posterError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from(MEDIA_BUCKET)
-            .getPublicUrl(posterFileName);
-          posterUrl = publicUrl;
-        }
-      } catch (posterError) {
-        console.warn('[EditVideo] Poster extraction failed:', posterError);
-      }
-      
-      // Upload video using centralized path utilities
-      const fileExt = getFileExtension(file.name, file.type, 'mp4');
-      const fileName = storagePaths.upload(userId, `${timestamp}.${fileExt}`);
-      
-      const { error: uploadError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(fileName);
-
-      const generationParams = {
-        prompt: 'Uploaded video',
-        status: 'completed',
-        is_uploaded: true,
-        model: 'upload'
-      };
-
-      const { data: generation, error: dbError } = await supabase
-        .from('generations')
-        .insert({
-          project_id: selectedProjectId,
-          location: videoUrl,
-          thumbnail_url: posterUrl || videoUrl,
-          type: 'video',
-          params: generationParams
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      // Create the original variant
-      await supabase.from('generation_variants').insert({
-        generation_id: generation.id,
-        location: videoUrl,
-        thumbnail_url: posterUrl || videoUrl,
-        is_primary: true,
-        variant_type: 'original',
-        name: 'Original',
-        params: generationParams,
-      });
-
-      setSelectedMedia(generation as any);
-
-    } catch (error: any) {
-      handleError(error, { context: 'EditVideoPage', toastTitle: 'Failed to upload video' });
-    } finally {
-      setIsUploading(false);
+    const result = await uploadOperation.execute(
+      () => uploadVideo(file),
+      { context: 'EditVideoPage', toastTitle: 'Failed to upload video' }
+    );
+    if (result) {
+      setSelectedMedia(result);
     }
   };
 
@@ -334,7 +336,7 @@ export default function EditVideoPage() {
 
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
-    
+
     const file = files[0];
     if (!file.type.startsWith('video/')) {
       toast.error("Please drop a video file");
@@ -346,96 +348,14 @@ export default function EditVideoPage() {
       return;
     }
 
-    // Reuse the upload logic
-    setIsUploading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-      const userId = session.user.id;
-      const timestamp = Date.now();
-
-      // Extract poster frame from video
-      let posterUrl = '';
-      try {
-        const posterBlob = await extractVideoPosterFrame(file);
-        const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-poster.jpg`);
-        const { error: posterError } = await supabase.storage
-          .from(MEDIA_BUCKET)
-          .upload(posterFileName, posterBlob, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: 'image/jpeg'
-          });
-        
-        if (!posterError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from(MEDIA_BUCKET)
-            .getPublicUrl(posterFileName);
-          posterUrl = publicUrl;
-        }
-      } catch (posterError) {
-        console.warn('[EditVideo] Poster extraction failed:', posterError);
-      }
-      
-      // Upload video using centralized path utilities
-      const fileExt = getFileExtension(file.name, file.type, 'mp4');
-      const fileName = storagePaths.upload(userId, `${timestamp}.${fileExt}`);
-      
-      const { error: uploadError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(fileName);
-
-      const generationParams = {
-        prompt: 'Uploaded video',
-        status: 'completed',
-        is_uploaded: true,
-        model: 'upload'
-      };
-
-      const { data: generation, error: dbError } = await supabase
-        .from('generations')
-        .insert({
-          project_id: selectedProjectId,
-          location: videoUrl,
-          thumbnail_url: posterUrl || videoUrl,
-          type: 'video',
-          params: generationParams
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      // Create the original variant
-      await supabase.from('generation_variants').insert({
-        generation_id: generation.id,
-        location: videoUrl,
-        thumbnail_url: posterUrl || videoUrl,
-        is_primary: true,
-        variant_type: 'original',
-        name: 'Original',
-        params: generationParams,
-      });
-
-      setSelectedMedia(generation as any);
-
-    } catch (error: any) {
-      handleError(error, { context: 'EditVideoPage', toastTitle: 'Failed to upload video' });
-    } finally {
-      setIsUploading(false);
+    const result = await uploadOperation.execute(
+      () => uploadVideo(file),
+      { context: 'EditVideoPage', toastTitle: 'Failed to upload video' }
+    );
+    if (result) {
+      setSelectedMedia(result);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, uploadOperation, uploadVideo]);
 
   return (
     <div 
@@ -547,7 +467,7 @@ export default function EditVideoPage() {
                 )}
                 
                 {/* Upload loading state */}
-                {isUploading && (
+                {uploadOperation.isLoading && (
                   <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-sm flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4 p-8">
                       <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -556,7 +476,7 @@ export default function EditVideoPage() {
                   </div>
                 )}
                 
-                {!isUploading && !isDraggingOver && (
+                {!uploadOperation.isLoading && !isDraggingOver && (
                  <div className="bg-background/90 backdrop-blur-sm rounded-lg border border-border/50 p-6 md:p-8 flex flex-col items-center justify-center space-y-4 md:space-y-6 max-w-md mx-4">
                   <div className="text-center space-y-1 md:space-y-2">
                     <p className="text-muted-foreground text-xs md:hidden">
@@ -573,9 +493,9 @@ export default function EditVideoPage() {
                       accept="video/*"
                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
                       onChange={handleFileUpload}
-                      disabled={isUploading}
+                      disabled={uploadOperation.isLoading}
                     />
-                    <Button variant="outline" size="lg" className="w-full gap-2" disabled={isUploading}>
+                    <Button variant="outline" size="lg" className="w-full gap-2" disabled={uploadOperation.isLoading}>
                       <Upload className="w-4 h-4" />
                       Upload Video
                     </Button>
@@ -590,14 +510,14 @@ export default function EditVideoPage() {
                   "bg-background border-t md:border-t-0 md:border-l border-border overflow-hidden relative z-[60] flex flex-col w-full h-[70%] md:w-[40%] md:h-full"
                 )}
               >
-                 <VideoSelectionPanel 
+                 <VideoSelectionPanel
                    onSelect={(media) => {
                      // Preload the poster/thumbnail before showing edit view
-                     const posterUrl = (media as any).thumbnail_url || (media as any).thumbUrl;
-                     const videoUrl = (media as any).location || (media as any).url;
-                     preloadVideoPoster(posterUrl, videoUrl);
+                     const posterUrl = media.thumbnail_url || media.thumbUrl;
+                     const videoUrl = media.location;
+                     preloadVideoPoster(posterUrl ?? undefined, videoUrl ?? undefined);
                      setSelectedMedia(media);
-                   }} 
+                   }}
                  />
               </div>
             </div>
@@ -612,7 +532,7 @@ export default function EditVideoPage() {
                   Edited Videos
                   {showResults ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   <span className="text-sm text-muted-foreground font-normal">
-                    ({(resultsData as any)?.total || 0})
+                    ({(resultsData as GenerationsPaginatedResponse | undefined)?.total || 0})
                   </span>
                 </button>
                 
@@ -627,7 +547,7 @@ export default function EditVideoPage() {
                     }}
                     itemsPerPage={12}
                     offset={(resultsPage - 1) * 12}
-                    totalCount={(resultsData as any)?.total || 0}
+                    totalCount={(resultsData as GenerationsPaginatedResponse | undefined)?.total || 0}
                     onServerPageChange={setResultsPage}
                     serverPage={resultsPage}
                     onDelete={handleDeleteVariant}
@@ -675,7 +595,7 @@ export default function EditVideoPage() {
                       .single();
                     
                     if (data && !error) {
-                      setSelectedMedia(data as any);
+                      setSelectedMedia(data as GenerationRow);
                       setSavedSegments(undefined); // Clear saved segments when navigating to new generation
                     }
                   } catch (e) {
@@ -697,7 +617,7 @@ export default function EditVideoPage() {
                   Edited Videos
                   {showResults ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   <span className="text-sm text-muted-foreground font-normal">
-                    ({(resultsData as any)?.total || 0})
+                    ({(resultsData as GenerationsPaginatedResponse | undefined)?.total || 0})
                   </span>
                 </button>
                 
@@ -712,7 +632,7 @@ export default function EditVideoPage() {
                     }}
                     itemsPerPage={12}
                     offset={(resultsPage - 1) * 12}
-                    totalCount={(resultsData as any)?.total || 0}
+                    totalCount={(resultsData as GenerationsPaginatedResponse | undefined)?.total || 0}
                     onServerPageChange={setResultsPage}
                     serverPage={resultsPage}
                     onDelete={handleDeleteVariant}
@@ -763,7 +683,7 @@ function VideoSelectionPanel({ onSelect }: { onSelect: (media: GenerationRow) =>
   const {
     data: generationsData,
     isLoading: isGalleryLoading,
-  } = useGenerations(
+  } = useProjectGenerations(
     selectedProjectId || null,
     currentPage,
     itemsPerPage,
@@ -772,7 +692,7 @@ function VideoSelectionPanel({ onSelect }: { onSelect: (media: GenerationRow) =>
       shotId: shotFilter === 'all' ? undefined : shotFilter,
       mediaType: 'video', // Only show videos
       searchTerm: searchTerm.trim() || undefined
-    } 
+    }
   );
 
   // Reset to page 1 when filters change
@@ -794,8 +714,8 @@ function VideoSelectionPanel({ onSelect }: { onSelect: (media: GenerationRow) =>
             <ReighLoading />
          ) : (
             <MediaGallery 
-               images={(generationsData as any)?.items || []}
-               onImageClick={(media) => onSelect(media as any)}
+               images={(generationsData as GenerationsPaginatedResponse | undefined)?.items || []}
+               onImageClick={(media) => onSelect(media as GenerationRow)}
                allShots={shots || []}
                showShotFilter={true}
                initialShotFilter={shotFilter}
@@ -809,7 +729,7 @@ function VideoSelectionPanel({ onSelect }: { onSelect: (media: GenerationRow) =>
                initialExcludePositioned={false}
                itemsPerPage={itemsPerPage}
                offset={(currentPage - 1) * itemsPerPage}
-               totalCount={(generationsData as any)?.total || 0}
+               totalCount={(generationsData as GenerationsPaginatedResponse | undefined)?.total || 0}
                onServerPageChange={setCurrentPage}
                serverPage={currentPage}
                showDelete={false}

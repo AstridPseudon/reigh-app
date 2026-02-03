@@ -26,8 +26,8 @@ interface UseSteerableMotionHandlersOptions {
   isShotUISettingsLoading: boolean;
   settingsLoadingFromContext: boolean;
   // Setters
-  updateShotUISettings: (scope: 'shot' | 'project', settings: any) => void;
-  setSteerableMotionSettings: (settings: any) => void;
+  updateShotUISettings: (scope: 'shot' | 'project', settings: Record<string, unknown>) => void;
+  setSteerableMotionSettings: (settings: Partial<{ model_name: string; seed: number; negative_prompt: string; debug: boolean }>) => void;
   setSteps: (steps: number) => void;
   setShowStepsNotification: (show: boolean) => void;
   // Shot ID for change detection

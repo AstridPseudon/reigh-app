@@ -2,16 +2,26 @@ import { __CORRUPTION_TRACE_ENABLED__, __REALTIME_DOWN_FIX_ENABLED__ } from '@/i
 import { captureRealtimeSnapshot, getEffectiveRealtimeSocket } from '@/integrations/supabase/utils/snapshot';
 import { __CORRUPTION_TIMELINE__, addCorruptionEvent } from '@/integrations/supabase/utils/timeline';
 import { handleError } from '@/shared/lib/errorHandler';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export function installRealtimeInstrumentation(supabase: any) {
+// Realtime client with instrumentation properties
+interface RealtimeClientWithInstrumentation {
+  socket: WebSocket | null;
+  conn?: { transport?: { ws?: WebSocket | null } };
+  __REFERENCE_TRACKING_INSTALLED__?: boolean;
+  setAuth: (token: string | null) => void;
+  __setAuth?: (token: string | null) => void;
+}
+
+export function installRealtimeInstrumentation(supabase: SupabaseClient) {
   // InstrumentationManager removed - calling legacy function directly
   return installRealtimeInstrumentationLegacy(supabase);
 }
 
 // Legacy function for backward compatibility - direct implementation
-export function installRealtimeInstrumentationLegacy(supabase: any) {
+export function installRealtimeInstrumentationLegacy(supabase: SupabaseClient) {
   if (typeof window === 'undefined' || !supabase?.realtime) return;
-  const realtime: any = supabase.realtime;
+  const realtime = supabase.realtime as unknown as RealtimeClientWithInstrumentation;
 
   // Reference mutation tracking for realtime.socket and conn.transport
   try {

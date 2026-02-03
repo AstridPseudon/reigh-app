@@ -14,8 +14,9 @@ import { useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
-import { extractSegmentImages } from '@/tools/travel-between-images/components/VideoGallery/utils/gallery-utils';
+import { extractSegmentImages } from '@/shared/lib/galleryUtils';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import type { SegmentRegenerateFormProps } from '../components/SegmentRegenerateForm';
 import type { SegmentSlotModeData } from '../types';
 
@@ -91,7 +92,7 @@ export function useVideoRegenerateMode({
 
   // Fetch shot's aspect ratio AND structure videos for regeneration
   const { data: shotDataForRegen, isLoading: isLoadingShotData } = useQuery({
-    queryKey: ['shot-regen-data', shotId],
+    queryKey: queryKeys.shots.regenData(shotId!),
     queryFn: async () => {
       if (!shotId) return null;
       console.log('[StructureVideoFix] 🔍 [useVideoRegenerateMode] Fetching shot data for:', shotId?.substring(0, 8));
@@ -169,8 +170,8 @@ export function useVideoRegenerateMode({
 
     // Refetch to update UI - await so caller knows when complete
     await Promise.all([
-      queryClient.refetchQueries({ queryKey: ['shot-regen-data', shotId] }),
-      queryClient.refetchQueries({ queryKey: ['toolSettings', 'travel-structure-video'] }),
+      queryClient.refetchQueries({ queryKey: queryKeys.shots.regenData(shotId!) }),
+      queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool('travel-structure-video') }),
     ]);
 
     console.log('[useVideoRegenerateMode] ✅ Structure video defaults updated and caches refreshed');
@@ -398,7 +399,7 @@ export function useVideoRegenerateMode({
     const effectiveFrameCount = segmentSlotMode?.pairData?.frames ?? currentFrameCount;
 
     return {
-      params: taskParams as Record<string, any>,
+      params: taskParams as SegmentRegenerateFormProps['params'],
       projectId: selectedProjectId || null,
       generationId: parentGenerationId,
       shotId,
@@ -412,7 +413,7 @@ export function useVideoRegenerateMode({
       pairShotGenerationId,
       onFrameCountChange: onSegmentFrameCountChange,
       currentFrameCount: effectiveFrameCount,
-      variantParamsToLoad: variantParamsToLoad as Record<string, any> | null,
+      variantParamsToLoad: variantParamsToLoad as SegmentRegenerateFormProps['variantParamsToLoad'],
       onVariantParamsLoaded: () => setVariantParamsToLoad(null),
       structureVideoType,
       structureVideoDefaults,

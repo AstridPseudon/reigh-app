@@ -33,7 +33,7 @@ import { Square, Trash2, Diamond } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { downloadMedia } from '@/shared/components/MediaLightbox/utils';
-import { useVariants } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor';
+import { useVariants } from '@/shared/hooks/useVariants';
 
 interface InlineEditViewProps {
   media: GenerationRow;
@@ -55,7 +55,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   if (!media) return null;
 
   // Uses canonical isVideoAny from typeGuards
-  const isVideo = isVideoAny(media as any);
+  const isVideo = isVideoAny(media);
   
   const upscaleHook = useUpscale({ media, selectedProjectId, isVideo });
   const { 
@@ -85,9 +85,9 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
 
   // Variants hook - moved early so activeVariantId is available for other hooks
   // Detect if this is a shot_generation record (has shotImageEntryId or shot_generation_id matching media.id)
-  const isShotGenerationRecord = (media as any).shotImageEntryId === media.id ||
-                                  (media as any).shot_generation_id === media.id;
-  const actualGenerationId = (media as any).generation_id ||
+  const isShotGenerationRecord = media.shotImageEntryId === media.id ||
+                                  media.shot_generation_id === media.id;
+  const actualGenerationId = media.generation_id ||
                               (!isShotGenerationRecord ? media.id : null);
 
   // Edit settings persistence - for img2img strength, enablePromptExpansion, and editMode
@@ -420,7 +420,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
             >
                <MediaDisplayWithCanvas
                  effectiveImageUrl={effectiveImageUrl}
-                 thumbUrl={(media as any).thumbnail_url || media.thumbUrl}
+                 thumbUrl={media.thumbnail_url || media.thumbUrl}
                  isVideo={isVideo}
                  isFlippedHorizontally={isFlippedHorizontally}
                  isSaving={isSaving}
@@ -613,7 +613,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
           >
             <MediaDisplayWithCanvas
               effectiveImageUrl={effectiveImageUrl}
-              thumbUrl={(media as any).thumbnail_url || media.thumbUrl}
+              thumbUrl={media.thumbnail_url || media.thumbUrl}
               isVideo={isVideo}
               isFlippedHorizontally={isFlippedHorizontally}
               isSaving={isSaving}

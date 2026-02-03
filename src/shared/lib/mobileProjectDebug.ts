@@ -116,11 +116,11 @@ window.forceProjectRecovery = () => {
   }
   
   // Try to trigger auth refresh
-  if ((window as any).supabase) {
+  if (window.supabase) {
     console.log('Refreshing Supabase session...');
-    (window as any).supabase.auth.refreshSession().then(() => {
+    window.supabase.auth.refreshSession().then(() => {
       console.log('Session refresh completed');
-    }).catch((error: any) => {
+    }).catch((error: unknown) => {
       console.log('Session refresh failed:', error);
     });
   }

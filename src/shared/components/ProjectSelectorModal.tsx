@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { useMediumModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
-import { handleError } from '@/shared/lib/errorHandler';
+import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 
 interface Project {
   id: string;
@@ -46,10 +46,12 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [showNewProjectInput, setShowNewProjectInput] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+
+  // Async operations with automatic loading state
+  const loadOperation = useAsyncOperation<Project[]>();
+  const createOperation = useAsyncOperation<Project>();
   
   // Modal styling
   const modal = useMediumModal();
@@ -61,65 +63,46 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
     }
   }, [open]);
 
-  const loadProjects = async () => {
-    try {
-      setLoading(true);
-      
+  const loadProjects = useCallback(async () => {
+    const result = await loadOperation.execute(async () => {
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('[ProjectSelectorModal] Failed to load projects:', error);
-        return;
+      if (error) throw error;
+      return data || [];
+    }, { context: 'ProjectSelectorModal', showToast: false });
+
+    if (result) {
+      setProjects(result);
+      if (result.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(result[0].id);
       }
-
-      setProjects(data || []);
-      
-      // Auto-select first project
-      if (data && data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data[0].id);
-      }
-    } catch (error) {
-      handleError(error, { context: 'ProjectSelectorModal', showToast: false });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [loadOperation, selectedProjectId]);
 
-  const handleCreateProject = async () => {
-    if (!newProjectName.trim()) {
-      return;
-    }
+  const handleCreateProject = useCallback(async () => {
+    if (!newProjectName.trim()) return;
 
-    setCreating(true);
-
-    try {
+    const result = await createOperation.execute(async () => {
       const { data, error } = await supabase
         .from('projects')
-        .insert({
-          name: newProjectName.trim()
-        })
+        .insert({ name: newProjectName.trim() })
         .select('id, name, created_at')
         .single();
 
-      if (error || !data) {
-        console.error('[ProjectSelectorModal] Failed to create project:', error);
-        return;
-      }
+      if (error || !data) throw error || new Error('Failed to create project');
+      return data;
+    }, { context: 'ProjectSelectorModal', showToast: false });
 
-      // Add to list and select
-      setProjects(prev => [data, ...prev]);
-      setSelectedProjectId(data.id);
+    if (result) {
+      setProjects(prev => [result, ...prev]);
+      setSelectedProjectId(result.id);
       setShowNewProjectInput(false);
       setNewProjectName('');
-    } catch (error) {
-      handleError(error, { context: 'ProjectSelectorModal', showToast: false });
-    } finally {
-      setCreating(false);
     }
-  };
+  }, [createOperation, newProjectName]);
 
   const handleConfirm = () => {
     if (selectedProjectId) {
@@ -142,7 +125,7 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
         </div>
 
         <div ref={scrollRef} className={modal.scrollClass}>
-          {loading ? (
+          {loadOperation.isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
@@ -215,9 +198,9 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
                     />
                     <Button
                       onClick={handleCreateProject}
-                      disabled={!newProjectName.trim() || creating}
+                      disabled={!newProjectName.trim() || createOperation.isLoading}
                     >
-                      {creating ? (
+                      {createOperation.isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         'Create'
@@ -261,7 +244,7 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
               variant="retro"
               size="retro-sm"
               onClick={handleConfirm}
-              disabled={!selectedProjectId || loading}
+              disabled={!selectedProjectId || loadOperation.isLoading}
             >
               Confirm
             </Button>

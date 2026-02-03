@@ -8,13 +8,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Shot } from '@/types/shots';
 import { handleError } from '@/shared/lib/errorHandler';
 import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { isNotFoundError } from '@/shared/constants/supabaseErrors';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import {
   cancelShotsQueries,
   findShotsCache,
   updateAllShotsCaches,
   rollbackShotsCaches,
 } from './cacheUtils';
-import { shotDebug, shotError } from './debug';
 
 // ============================================================================
 // DELETE SHOT
@@ -25,8 +26,6 @@ export const useDeleteShot = () => {
 
   return useMutation({
     mutationFn: async ({ shotId, projectId }: { shotId: string; projectId: string }) => {
-      shotDebug('delete', 'mutationFn START', { shotId, projectId });
-
       const { error } = await supabase
         .from('shots')
         .delete()
@@ -34,13 +33,11 @@ export const useDeleteShot = () => {
 
       if (error) throw error;
 
-      shotDebug('delete', 'mutationFn SUCCESS - DB delete complete');
       return { shotId, projectId };
     },
 
     onMutate: async (variables) => {
       const { shotId, projectId } = variables;
-      shotDebug('delete', 'onMutate START - optimistic update', { shotId, projectId });
 
       // Cancel in-flight queries
       await cancelShotsQueries(queryClient, projectId);
@@ -48,28 +45,17 @@ export const useDeleteShot = () => {
       // Find existing cache data
       const previousShots = findShotsCache(queryClient, projectId);
 
-      shotDebug('delete', 'cache state', {
-        hasPreviousShots: !!previousShots,
-        previousCount: previousShots?.length || 0,
-        shotToDeleteExists: previousShots?.some(s => s.id === shotId),
-      });
-
       // Optimistically remove the shot
       if (previousShots) {
         updateAllShotsCaches(queryClient, projectId, (old) =>
           (old || []).filter(s => s.id !== shotId)
         );
-        shotDebug('delete', 'onMutate COMPLETE - cache updated optimistically');
-      } else {
-        shotDebug('delete', 'No previous shots cache found!');
       }
 
       return { previousShots, projectId, shotId };
     },
 
     onSuccess: ({ shotId, projectId }) => {
-      shotDebug('delete', 'onSuccess - mutation completed');
-
       // Invalidate related queries
       invalidateGenerationsSync(queryClient, shotId, {
         reason: 'delete-shot',
@@ -80,11 +66,6 @@ export const useDeleteShot = () => {
     },
 
     onError: (error: Error, variables, context) => {
-      shotError('delete', 'onError - rolling back', error, {
-        shotId: variables.shotId,
-        projectId: variables.projectId,
-      });
-
       // Rollback optimistic update
       if (context?.previousShots && context.projectId) {
         rollbackShotsCaches(queryClient, context.projectId, context.previousShots);
@@ -127,7 +108,7 @@ export const useCreateShot = () => {
           .limit(1)
           .maybeSingle<{ position: number | null }>();
 
-        if (lastShotError && lastShotError.code !== 'PGRST116') {
+        if (lastShotError && !isNotFoundError(lastShotError)) {
           throw lastShotError;
         }
 
@@ -184,7 +165,7 @@ export const useCreateShot = () => {
           }
 
           // Insert at correct position
-          const newShotPosition = (newShot as any).position || 0;
+          const newShotPosition = newShot.position || 0;
           const insertionIndex = oldShots.findIndex(
             shot => (shot.position || 0) > newShotPosition
           );
@@ -199,9 +180,8 @@ export const useCreateShot = () => {
         });
 
         // Cache the shot individually
-        queryClient.setQueryData(['shot', newShot.id], newShot);
+        queryClient.setQueryData(queryKeys.shots.detail(newShot.id), newShot);
 
-        shotDebug('create', 'Manually updated cache for immediate UI feedback');
       }
     },
 
@@ -289,7 +269,7 @@ export const useDuplicateShot = () => {
       }
 
       // Invalidate to ensure full sync
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
     },
 
     onError: (error: Error, variables, context) => {
@@ -368,7 +348,7 @@ export const useReorderShots = () => {
     },
 
     onSuccess: ({ projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
     },
   });
 };

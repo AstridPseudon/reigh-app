@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Upload, Film, Play, X, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useUserPreferences } from '@/shared/hooks/useUserPreferences';
+import { useLocalPreferences } from '@/shared/hooks/useLocalPreferences';
 
 // Media container skeleton loader
 const MediaContainerSkeleton: React.FC = () => (
@@ -68,7 +68,7 @@ export const MediaDropZone: React.FC<MediaDropZoneProps> = ({
   const [mediaLoaded, setMediaLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  const { preferences, setVideoSoundEnabled } = useUserPreferences();
+  const { preferences, setVideoSoundEnabled } = useLocalPreferences();
   const [localMuted, setLocalMuted] = useState(!preferences.videoSoundEnabled);
   
   const fileInputRef = useRef<HTMLInputElement>(null);

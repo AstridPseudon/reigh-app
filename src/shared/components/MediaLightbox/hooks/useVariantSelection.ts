@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import type { GenerationRow } from '@/types/shots';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 // Type for variant from useVariants hook
 interface Variant {
@@ -66,7 +67,7 @@ export function useVariantSelection({
     // Mark variant as viewed when selected (fire-and-forget)
     // Pass generationId for optimistic badge update
     if (variantId) {
-      const generationId = media.generation_id || media.id;
+      const generationId = getGenerationId(media);
       markViewed({ variantId, generationId });
     }
     rawSetActiveVariantId(variantId);
@@ -107,7 +108,7 @@ export function useVariantSelection({
   useEffect(() => {
     if (!media) return;
     if (activeVariant && activeVariant.id && markedViewedVariantRef.current !== activeVariant.id) {
-      const generationId = media.generation_id || media.id;
+      const generationId = getGenerationId(media);
       console.log('[VariantViewed] Marking initial variant as viewed:', {
         variantId: activeVariant.id.substring(0, 8),
         isPrimary: activeVariant.is_primary,

@@ -6,9 +6,19 @@
  * This reduces duplication and keeps the main component cleaner.
  */
 
-import { useMemo, RefObject } from 'react';
+import React, { useMemo, RefObject, ReactNode } from 'react';
 import type { GenerationRow } from '@/types/shots';
+import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { VideoEnhanceSettings } from './useVideoEnhance';
+import type { KonvaEventObject } from 'konva/lib/Node';
+import type { BrushStroke, AnnotationMode } from './inpainting/types';
+import type { StrokeOverlayHandle } from '../components/StrokeOverlay';
+import type { SegmentRegenerateFormProps } from '../components/SegmentRegenerateForm';
+import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
+import type { ImageTransform } from './useRepositionMode';
+import type { EditAdvancedSettings } from './useGenerationEditSettings';
+import type { SourceVariantData } from './useSourceGeneration';
+import type { AdjacentSegmentsData, SegmentSlotModeData } from '../types';
 
 // Input types - all the values needed to build layout props
 export interface UseLightboxLayoutPropsInput {
@@ -29,9 +39,9 @@ export interface UseLightboxLayoutPropsInput {
   effectiveImageDimensions: { width: number; height: number } | null;
 
   // Variants
-  variants: any[] | undefined;
-  activeVariant: any;
-  primaryVariant: any;
+  variants: GenerationVariant[] | undefined;
+  activeVariant: GenerationVariant | null;
+  primaryVariant: GenerationVariant | null;
   isLoadingVariants: boolean;
   setActiveVariantId: (id: string) => void;
   setPrimaryVariant: (id: string) => void;
@@ -42,8 +52,8 @@ export interface UseLightboxLayoutPropsInput {
   isMakingMainVariant: boolean;
   canMakeMainVariant: boolean;
   handleMakeMainVariant: () => Promise<void>;
-  variantParamsToLoad: any;
-  setVariantParamsToLoad: (params: any) => void;
+  variantParamsToLoad: Record<string, unknown> | null;
+  setVariantParamsToLoad: (params: Record<string, unknown> | null) => void;
   variantsSectionRef: RefObject<HTMLDivElement>;
 
   // Video edit
@@ -52,7 +62,13 @@ export interface UseLightboxLayoutPropsInput {
   isInVideoEditMode: boolean;
   videoEditSubMode: 'trim' | 'replace' | 'regenerate' | 'enhance' | null;
   trimVideoRef: RefObject<HTMLVideoElement>;
-  trimState: any;
+  trimState: {
+    videoDuration: number;
+    startTime: number;
+    endTime: number;
+    setStartTime: (time: number) => void;
+    setEndTime: (time: number) => void;
+  };
   setStartTrim: (value: number) => void;
   setEndTrim: (value: number) => void;
   resetTrim: () => void;
@@ -66,14 +82,22 @@ export interface UseLightboxLayoutPropsInput {
   setVideoDuration: (duration: number) => void;
   setTrimCurrentTime: (time: number) => void;
   trimCurrentTime: number;
-  videoEditing: any;
+  videoEditing: {
+    videoRef: RefObject<HTMLVideoElement>;
+    selections: PortionSelection[];
+    activeSelectionId: string | null;
+    handleUpdateSelection: (id: string, start: number, end: number) => void;
+    setActiveSelectionId: (id: string | null) => void;
+    handleRemoveSelection: (id: string) => void;
+    handleAddSelection: () => void;
+  } | null;
   handleEnterVideoTrimMode: () => void;
   handleEnterVideoReplaceMode: () => void;
   handleEnterVideoRegenerateMode: () => void;
   handleEnterVideoEnhanceMode: () => void;
   handleExitVideoEditMode: () => void;
   handleEnterVideoEditMode: () => void;
-  regenerateFormProps: any;
+  regenerateFormProps: SegmentRegenerateFormProps | null;
   // Video enhance
   isCloudMode: boolean;
   enhanceSettings: VideoEnhanceSettings;
@@ -90,8 +114,8 @@ export interface UseLightboxLayoutPropsInput {
   editMode: string;
   setEditMode: (mode: string) => void;
   setIsInpaintMode: (value: boolean) => void;
-  brushStrokes: any[];
-  currentStroke: any;
+  brushStrokes: BrushStroke[];
+  currentStroke: BrushStroke | null;
   isDrawing: boolean;
   isEraseMode: boolean;
   setIsEraseMode: (value: boolean) => void;
@@ -100,20 +124,25 @@ export interface UseLightboxLayoutPropsInput {
   annotationMode: string | null;
   setAnnotationMode: (mode: string | null) => void;
   selectedShapeId: string | null;
-  handleKonvaPointerDown: (e: any) => void;
-  handleKonvaPointerMove: (e: any) => void;
-  handleKonvaPointerUp: (e: any) => void;
-  handleShapeClick: (e: any) => void;
-  strokeOverlayRef: RefObject<any>;
+  handleKonvaPointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
+  handleKonvaPointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
+  handleKonvaPointerUp: (e: KonvaEventObject<PointerEvent>) => void;
+  handleShapeClick: (strokeId: string, point: { x: number; y: number }) => void;
+  strokeOverlayRef: RefObject<StrokeOverlayHandle>;
   handleUndo: () => void;
   handleClearMask: () => void;
   getDeleteButtonPosition: () => { x: number; y: number } | null;
   handleToggleFreeForm: () => void;
   handleDeleteSelected: () => void;
   isRepositionDragging: boolean;
-  repositionDragHandlers: any;
+  repositionDragHandlers: {
+    onPointerDown: (e: React.PointerEvent) => void;
+    onPointerMove: (e: React.PointerEvent) => void;
+    onPointerUp: (e: React.PointerEvent) => void;
+    onPointerCancel: (e: React.PointerEvent) => void;
+  } | null;
   getTransformStyle: () => string;
-  repositionTransform: any;
+  repositionTransform: ImageTransform;
   setTranslateX: (value: number) => void;
   setTranslateY: (value: number) => void;
   setScale: (value: number) => void;
@@ -166,32 +195,32 @@ export interface UseLightboxLayoutPropsInput {
   isGeneratingImg2Img: boolean;
   img2imgGenerateSuccess: boolean;
   handleGenerateImg2Img: () => Promise<void>;
-  img2imgLoraManager: any;
-  availableLoras: any[];
-  editLoraManager: any;
-  advancedSettings: any;
-  setAdvancedSettings: (settings: any) => void;
+  img2imgLoraManager: Record<string, unknown>;
+  availableLoras: Array<{ id: string; name: string; [key: string]: unknown }>;
+  editLoraManager: Record<string, unknown>;
+  advancedSettings: EditAdvancedSettings;
+  setAdvancedSettings: (settings: Partial<EditAdvancedSettings>) => void;
   isLocalGeneration: boolean;
   qwenEditModel: string;
   setQwenEditModel: (model: string) => void;
 
   // Info panel props
   showImageEditTools: boolean;
-  adjustedTaskDetailsData: any;
+  adjustedTaskDetailsData: { taskId?: string | null; [key: string]: unknown } | null;
   generationName: string;
   handleGenerationNameChange: (name: string) => void;
   isEditingGenerationName: boolean;
   setIsEditingGenerationName: (value: boolean) => void;
-  derivedItems: any[];
-  derivedGenerations: any[];
-  paginatedDerived: any[];
+  derivedItems: GenerationRow[];
+  derivedGenerations: GenerationRow[];
+  paginatedDerived: GenerationRow[];
   derivedPage: number;
   derivedTotalPages: number;
   setDerivedPage: (page: number) => void;
   replaceImages: boolean;
   setReplaceImages: (value: boolean) => void;
-  sourceGenerationData: any;
-  sourcePrimaryVariant: any;
+  sourceGenerationData: GenerationRow | null;
+  sourcePrimaryVariant: SourceVariantData | null;
   onOpenExternalGeneration?: (id: string, derivedContext?: string[]) => Promise<void>;
 
   // Navigation
@@ -200,23 +229,32 @@ export interface UseLightboxLayoutPropsInput {
   hasPrevious: boolean;
   handleSlotNavNext: () => void;
   handleSlotNavPrev: () => void;
-  swipeNavigation: any;
+  swipeNavigation: {
+    swipeHandlers: Record<string, unknown>;
+    isSwiping: boolean;
+    swipeOffset: number;
+  };
 
   // Panel
   effectiveTasksPaneOpen: boolean;
   effectiveTasksPaneWidth: number;
 
   // Button group props (pre-built)
-  buttonGroupProps: any;
+  buttonGroupProps: {
+    topLeft: ReactNode;
+    topRight: ReactNode;
+    bottomLeft: ReactNode;
+    bottomRight: ReactNode;
+  };
 
   // Workflow props
-  allShots: any[];
+  allShots: Array<{ id: string; name: string }>;
   selectedShotId?: string;
   shotId?: string;
   onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onDelete?: (id: string) => void;
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: Record<string, unknown>) => void;
   onShotChange?: (shotId: string) => void;
   onCreateShot?: (shotName: string, files: File[]) => Promise<{ shotId?: string; shotName?: string } | void>;
   showTickForImageId?: string | null;
@@ -229,25 +267,25 @@ export interface UseLightboxLayoutPropsInput {
   isAlreadyAssociatedWithoutPosition: boolean;
   contentRef: RefObject<HTMLDivElement>;
   handleApplySettings: () => void;
-  handleNavigateToShotFromSelector: (shot: any) => void;
+  handleNavigateToShotFromSelector: (shot: { id: string; name: string }) => void;
   handleAddVariantAsNewGenerationToShot: (shotId: string, variantId: string, currentTimelineFrame?: number) => Promise<boolean>;
   handleReplaceInShot: () => Promise<void>;
   isDeleting?: string | null;
   handleDelete: () => void;
 
   // Adjacent segment navigation
-  adjacentSegments?: any;
+  adjacentSegments?: AdjacentSegmentsData;
 
   // Segment slot mode (for constituent image navigation)
-  segmentSlotMode?: any;
+  segmentSlotMode?: SegmentSlotModeData;
 }
 
 export interface UseLightboxLayoutPropsReturn {
-  controlsPanelProps: any;
-  workflowBarProps: any;
-  floatingToolProps: any;
-  sidePanelLayoutProps: any;
-  centeredLayoutProps: any;
+  controlsPanelProps: Record<string, unknown>;
+  workflowBarProps: Record<string, unknown>;
+  floatingToolProps: Record<string, unknown>;
+  sidePanelLayoutProps: Record<string, unknown>;
+  centeredLayoutProps: Record<string, unknown>;
 }
 
 export function useLightboxLayoutProps(
@@ -332,7 +370,7 @@ export function useLightboxLayoutProps(
     // ========================================
     currentMediaId: input.media.id,
     currentShotId: input.selectedShotId || input.shotId,
-    taskId: input.adjustedTaskDetailsData?.taskId || (input.media as any)?.source_task_id || null,
+    taskId: input.adjustedTaskDetailsData?.taskId || (input.media as unknown as Record<string, unknown>)?.source_task_id as string | null || null,
   }), [
     // VideoEditPanel deps
     input.isCloudMode, input.regenerateFormProps, input.trimState, input.setStartTrim,

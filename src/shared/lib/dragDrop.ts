@@ -17,13 +17,25 @@ export const GENERATION_MIME_TYPE = 'application/x-generation';
 export const NEW_GROUP_DROPPABLE_ID = 'new-shot-group-dropzone';
 
 /**
+ * Cross-browser types list - may be DOMStringList (contains/item) or string[] (includes).
+ * All properties optional since we check with typeof before calling.
+ */
+interface DataTransferTypesList {
+  contains?: (s: string) => boolean;
+  includes?: (s: string) => boolean;
+  item?: (i: number) => string | null;
+  length?: number;
+  [index: number]: string;
+}
+
+/**
  * Cross-browser safe check for whether a DataTransfer contains a type.
  *
  * In Chromium, `dataTransfer.types` is often a DOMStringList (has `.contains`, may not have `.includes`).
  * In TS typings, it's usually `string[]`.
  */
 function hasDataTransferType(dataTransfer: DataTransfer, type: string): boolean {
-  const types: any = dataTransfer?.types;
+  const types = dataTransfer?.types as DataTransferTypesList | undefined;
   if (!types) return false;
 
   // DOMStringList path

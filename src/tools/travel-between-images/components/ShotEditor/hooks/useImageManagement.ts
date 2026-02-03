@@ -13,17 +13,25 @@ import { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandler';
-import type { GenerationRow } from '@/types/shots';
+import type { GenerationRow, Shot } from '@/types/shots';
+
+interface ReorderUpdate {
+  shotId: string;
+  projectId: string;
+  updates: Array<{ shot_id: string; generation_id: string; timeline_frame: number }>;
+}
 
 interface UseImageManagementOptions {
   queryClient: QueryClient;
-  selectedShotRef: React.MutableRefObject<any>;
+  selectedShotRef: React.MutableRefObject<Shot | null>;
   projectIdRef: React.MutableRefObject<string>;
   allShotImagesRef: React.MutableRefObject<GenerationRow[]>;
   batchVideoFramesRef: React.MutableRefObject<number>;
-  updateShotImageOrderMutation: any;
+  updateShotImageOrderMutation: {
+    mutate: (params: ReorderUpdate, options?: { onSuccess?: () => void; onError?: (error: unknown) => void }) => void;
+  };
   demoteOrphanedVariants: (shotId: string, reason: string) => void;
-  actionsRef: React.MutableRefObject<any>;
+  actionsRef: React.MutableRefObject<{ setPendingFramePositions: (value: Map<string, number>) => void }>;
   pendingFramePositions: Map<string, number>;
 }
 
@@ -107,7 +115,7 @@ export function useImageManagement({
       console.log('[FinalVideoDelete] Clear output SUCCESS - invalidating queries');
 
       // Invalidate queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['segment-parent-generations', selectedShot?.id, projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.parents(selectedShot?.id, projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectStats.videos(projectId!) });
     } catch (error) {
@@ -138,8 +146,8 @@ export function useImageManagement({
     const updates = orderedShotGenerationIds.map((shotGenerationId, index) => ({
       shot_id: shot.id,
       generation_id: (() => {
-        const img = allShotImagesRef.current?.find((i: any) => i.id === shotGenerationId);
-        return (img as any)?.generation_id ?? (img as any)?.generationId ?? shotGenerationId;
+        const img = allShotImagesRef.current?.find((i) => i.id === shotGenerationId);
+        return img?.generation_id ?? shotGenerationId;
       })(),
       timeline_frame: index * batchVideoFramesRef.current,
     }));
@@ -157,7 +165,7 @@ export function useImageManagement({
         });
         demoteOrphanedVariantsRef.current(shot.id, 'image-reorder');
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         handleError(error, { context: 'ShotEditor', showToast: false });
       }
     });

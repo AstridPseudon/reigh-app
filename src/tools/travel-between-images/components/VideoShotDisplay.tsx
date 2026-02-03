@@ -12,7 +12,7 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { useClickRipple } from '@/shared/hooks/useClickRipple';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { isVideoGeneration, isPositioned } from '@/shared/lib/typeGuards';
-import { VideoGenerationModal } from '@/shared/components/VideoGenerationModal';
+import { VideoGenerationModal } from './VideoGenerationModal';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 
@@ -22,7 +22,7 @@ interface VideoShotDisplayProps {
   currentProjectId: string | null; // Needed for mutations
   dragHandleProps?: {
     disabled?: boolean;
-    [key: string]: any; // For drag attributes and listeners
+    [key: string]: unknown; // For drag attributes and listeners
   };
   dragDisabledReason?: string;
   shouldLoadImages?: boolean;

@@ -60,7 +60,7 @@ interface MediaLightboxProps {
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onDelete?: (id: string) => void;
   isDeleting?: string | null;
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: Record<string, unknown>) => void;
   showTickForImageId?: string | null;
   onShowTick?: (imageId: string) => void;
   showTickForSecondaryImageId?: string | null;
@@ -72,9 +72,9 @@ interface MediaLightboxProps {
   // Task details functionality
   showTaskDetails?: boolean;
   taskDetailsData?: {
-    task: any;
+    task: Record<string, unknown> | null;
     isLoading: boolean;
-    error: any;
+    error: Error | null;
     inputImages: string[];
     taskId: string | null;
     onApplySettingsFromTask?: (taskId: string, replaceImages: boolean, inputImages: string[]) => void;
@@ -144,7 +144,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
 
   // Determine if this is a video or segment slot mode (both go to VideoLightbox)
   const isSegmentSlotMode = !!segmentSlotMode;
-  const isVideo = media ? isVideoAny(media as any) : false;
+  const isVideo = media ? isVideoAny(media) : false;
 
   // Segment slot mode always uses VideoLightbox (handles form-only case)
   // media may be undefined in form-only mode - VideoLightbox handles this

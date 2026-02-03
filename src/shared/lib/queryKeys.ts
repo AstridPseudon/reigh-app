@@ -35,12 +35,14 @@ export const queryKeys = {
   shots: {
     /** All shots queries (for broad invalidation) */
     all: ['shots'] as const,
-    /** Shots list for a project */
-    list: (projectId: string) => ['shots', projectId] as const,
+    /** Shots list for a project (optional maxImages for cache variants) */
+    list: (projectId: string, maxImages?: number) => ['shots', projectId, maxImages] as const,
     /** Single shot detail */
     detail: (shotId: string) => ['shot', shotId] as const,
     /** Shot positions within project */
     positions: (projectId: string) => ['shot-positions', projectId] as const,
+    /** All shot positions (predicate invalidation) */
+    positionsAll: ['shot-positions'] as const,
     /** Shot regeneration data */
     regenData: (shotId: string) => ['shot-regen-data', shotId] as const,
     /** Shot batch settings */
@@ -61,6 +63,8 @@ export const queryKeys = {
 
     /** Single generation detail */
     detail: (generationId: string) => ['generation', generationId] as const,
+    /** All generation details (predicate invalidation) */
+    detailAll: ['generation'] as const,
 
     /** Generation metadata (counts, positions) */
     meta: (shotId: string) => ['shot-generations-meta', shotId] as const,
@@ -69,6 +73,8 @@ export const queryKeys = {
 
     /** Generation variants */
     variants: (generationId: string) => ['generation-variants', generationId] as const,
+    /** All generation variants (predicate invalidation) */
+    variantsAll: ['generation-variants'] as const,
     /** Variant badges (new variant indicators) */
     variantBadges: ['variant-badges'] as const,
 
@@ -83,6 +89,8 @@ export const queryKeys = {
 
     /** Project-level generations */
     byProject: (projectId: string) => ['project-generations', projectId] as const,
+    /** All project generations (predicate invalidation) */
+    byProjectAll: ['project-generations'] as const,
 
     /** Lineage chain for a generation */
     lineageChain: (generationId: string) => ['lineage-chain', generationId] as const,
@@ -102,10 +110,9 @@ export const queryKeys = {
   unified: {
     /** Base key for all unified-generations queries */
     all: ['unified-generations'] as const,
-    /** Shot-scoped unified generations */
-    byShot: (shotId: string, page?: number, limit?: number, filters?: string | null, includeTaskData?: boolean) =>
-      ['unified-generations', 'shot', shotId, page, limit, filters, includeTaskData] as const,
-    /** Project-scoped unified generations */
+    /** Project-scoped prefix for invalidation (matches all pages/filters for a project) */
+    projectPrefix: (projectId: string) => ['unified-generations', 'project', projectId] as const,
+    /** Project-scoped unified generations (used by useProjectGenerations) */
     byProject: (projectId: string, page?: number, limit?: number, filters?: string | null, includeTaskData?: boolean) =>
       ['unified-generations', 'project', projectId, page, limit, filters, includeTaskData] as const,
   },
@@ -119,13 +126,15 @@ export const queryKeys = {
     /** All segment children (predicate invalidation) */
     childrenAll: ['segment-child-generations'] as const,
 
-    /** Parent generations for a segment/shot */
-    parents: (shotId: string) => ['segment-parent-generations', shotId] as const,
+    /** Parent generations for a segment/shot (includes projectId for cache scoping) */
+    parents: (shotId: string, projectId?: string) => ['segment-parent-generations', shotId, projectId] as const,
     /** All segment parents (predicate invalidation) */
     parentsAll: ['segment-parent-generations'] as const,
 
     /** Live timeline data for a shot */
     liveTimeline: (shotId: string) => ['segment-live-timeline', shotId] as const,
+    /** All live timeline queries (predicate invalidation) */
+    liveTimelineAll: ['segment-live-timeline'] as const,
 
     /** Source slot generations (for video warnings) */
     sourceSlot: (slotId: string) => ['source-slot-generations', slotId] as const,
@@ -144,16 +153,26 @@ export const queryKeys = {
     all: ['tasks'] as const,
     /** Tasks list for a project */
     list: (projectId: string) => ['tasks', projectId] as const,
+    /** Paginated tasks for a project */
+    paginated: (projectId: string) => ['tasks', 'paginated', projectId] as const,
+    /** All paginated tasks (predicate invalidation) */
+    paginatedAll: ['tasks', 'paginated'] as const,
     /** Single task detail */
     detail: (taskId: string) => ['tasks', taskId] as const,
+    /** Single task (realtime updates pattern) */
+    single: (taskId: string) => ['tasks', 'single', taskId] as const,
     /** Task status counts for a project */
     statusCounts: (projectId: string) => ['task-status-counts', projectId] as const,
+    /** All task status counts (predicate invalidation) */
+    statusCountsAll: ['task-status-counts'] as const,
 
     /** Task result (immutable after completion) */
     result: (taskId: string) => ['task-result', taskId] as const,
     /** Cascaded task error */
     cascadedError: (taskId: string) => ['cascaded-task-error', taskId] as const,
 
+    /** Generation-to-task ID lookup (used by useTaskPrefetch for hover prefetch) */
+    generationTaskId: (generationId: string) => ['tasks', 'taskId', generationId] as const,
     /** Generation-to-task mapping */
     generationMapping: (generationId: string) => ['generation-task-mapping', generationId] as const,
     /** Task-to-generation mapping */
@@ -181,9 +200,15 @@ export const queryKeys = {
   // SETTINGS
   // ==========================================================================
   settings: {
-    /** Tool settings (per-tool, per-project, optional scope) */
-    tool: (toolId: string, projectId: string, shotId?: string) =>
+    /** Tool settings (per-tool, per-project, optional shot scope) */
+    tool: (toolId: string, projectId?: string, shotId?: string) =>
       ['toolSettings', toolId, projectId, shotId] as const,
+
+    /** All tool settings for a specific tool (prefix match for invalidation) */
+    byTool: (toolId: string) => ['toolSettings', toolId] as const,
+
+    /** All tool settings (prefix match for broad invalidation) */
+    all: ['toolSettings'] as const,
 
     /** User-level settings */
     user: ['user-settings'] as const,
@@ -195,6 +220,8 @@ export const queryKeys = {
   resources: {
     /** Resources for a project/type */
     list: (projectId: string, type?: string) => ['resources', projectId, type] as const,
+    /** Single resource by ID */
+    detail: (id: string) => ['resource', id] as const,
     /** All resources (broad invalidation) */
     all: ['resources'] as const,
     /** Public resources */
@@ -207,6 +234,8 @@ export const queryKeys = {
   credits: {
     /** Credit balance */
     balance: ['credits', 'balance'] as const,
+    /** Credit ledger/transactions */
+    ledger: ['credits', 'ledger'] as const,
     /** All credits queries */
     all: ['credits'] as const,
     /** Auto top-up settings */

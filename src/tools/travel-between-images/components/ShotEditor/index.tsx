@@ -3,7 +3,7 @@ import { useUpdateShotImageOrder, useAddImageToShotWithoutPosition } from "@/sha
 import { useShotCreation } from "@/shared/hooks/useShotCreation";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useDeviceDetection } from "@/shared/hooks/useDeviceDetection";
-import { GenerationRow } from '@/types/shots';
+import { GenerationRow, Shot } from '@/types/shots';
 import FinalVideoSection from "../FinalVideoSection";
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
@@ -296,15 +296,25 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
       }
       
       // Filter to video types and sort by created_at in JS
+      // Supabase returns joined relations as unknown-shape objects
+      const asRecord = (gen: unknown): Record<string, unknown> | null =>
+        gen && typeof gen === 'object' ? gen as Record<string, unknown> : null;
+
       const videos = (data || [])
-        .filter(shotGen => (shotGen.generation as any)?.type?.includes('video'))
+        .filter(shotGen => {
+          const gen = asRecord(shotGen.generation);
+          return typeof gen?.type === 'string' && gen.type.includes('video');
+        })
         .sort((a, b) => {
-          const dateA = new Date((a.generation as any)?.created_at || 0).getTime();
-          const dateB = new Date((b.generation as any)?.created_at || 0).getTime();
+          const genA = asRecord(a.generation);
+          const genB = asRecord(b.generation);
+          const dateA = new Date((genA?.created_at as string) || 0).getTime();
+          const dateB = new Date((genB?.created_at as string) || 0).getTime();
           return dateB - dateA; // Descending
         });
-      
-      return videos[0] ? (videos[0].generation as any)?.location : null;
+
+      const firstGen = asRecord(videos[0]?.generation);
+      return firstGen?.location as string | null ?? null;
     },
     enabled: !!selectedShotId,
     staleTime: 30000, // Cache for 30 seconds
@@ -578,18 +588,19 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
 
     // Sample segments to see their state
     const sample = joinSegments.slice(0, 8).map(seg => {
-      const params = seg.params as any;
+      const segParams = seg.params as Record<string, unknown> | null;
       // Prefer FK column, fall back to params for legacy data
-      const pairShotGenId = (seg as any).pair_shot_generation_id
-        || params?.individual_segment_params?.pair_shot_generation_id
-        || params?.pair_shot_generation_id;
+      const individualSegParams = segParams?.individual_segment_params as Record<string, unknown> | undefined;
+      const pairShotGenId = seg.pair_shot_generation_id
+        || (individualSegParams?.pair_shot_generation_id as string | undefined)
+        || (segParams?.pair_shot_generation_id as string | undefined);
       return {
         id: seg.id?.substring(0, 8),
         type: seg.type,
         hasLocation: Boolean(seg.location),
         pairShotGenId: pairShotGenId?.substring(0, 8) || null,
-        segmentIndex: params?.segment_index,
-        childOrder: (seg as any).child_order,
+        segmentIndex: segParams?.segment_index,
+        childOrder: seg.child_order,
       };
     });
 
@@ -649,7 +660,7 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
   const generationActions = useGenerationActions({
     state,
     actions,
-    selectedShot: selectedShot || {} as any,
+    selectedShot: selectedShot || {} as Shot,
     projectId,
     batchVideoFrames: frameSettings.batchVideoFrames,
     onShotImagesUpdate,

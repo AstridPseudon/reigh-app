@@ -8,11 +8,14 @@
 
 import React from 'react';
 import { GenerationRow } from '@/types/shots';
-import type { Variant } from '@/shared/hooks/useVariants';
+import type { GenerationVariant } from '@/shared/hooks/useVariants';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import type { BrushStroke, AnnotationMode } from '../../hooks/useInpainting';
 import type { EditMode } from '../../hooks/useGenerationEditSettings';
 import type { ControlsPanelProps } from '../ControlsPanel';
+import type { StrokeOverlayHandle } from '../StrokeOverlay';
 import type { ImageTransform } from '../../hooks/useRepositionMode';
+import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from '../../types';
 
 /**
@@ -41,9 +44,9 @@ export interface LayoutMediaProps {
  * Variant management props
  */
 export interface LayoutVariantProps {
-  variants: Variant[] | undefined;
-  activeVariant: Variant | undefined;
-  primaryVariant: Variant | undefined;
+  variants: GenerationVariant[] | undefined;
+  activeVariant: GenerationVariant | undefined;
+  primaryVariant: GenerationVariant | undefined;
   isLoadingVariants: boolean;
   setActiveVariantId: (id: string) => void;
   setPrimaryVariant: (id: string) => Promise<void>;
@@ -57,8 +60,8 @@ export interface LayoutVariantProps {
   canMakeMainVariant: boolean;
   handleMakeMainVariant: () => void;
   // Variant params for regenerate form
-  variantParamsToLoad: Record<string, any> | null;
-  setVariantParamsToLoad: (params: Record<string, any> | null) => void;
+  variantParamsToLoad: Record<string, unknown> | null;
+  setVariantParamsToLoad: (params: Record<string, unknown> | null) => void;
   variantsSectionRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -82,9 +85,9 @@ export interface LayoutVideoEditProps {
   // Video editing hook (for regenerate mode)
   videoEditing: {
     videoRef: React.RefObject<HTMLVideoElement>;
-    selections: any[];
+    selections: PortionSelection[];
     activeSelectionId: string | null;
-    handleUpdateSelection: (id: string, updates: any) => void;
+    handleUpdateSelection: (id: string, start: number, end: number) => void;
     setActiveSelectionId: (id: string | null) => void;
     handleRemoveSelection: (id: string) => void;
     handleAddSelection: () => void;
@@ -110,11 +113,11 @@ export interface LayoutEditModeProps {
   annotationMode: AnnotationMode | null;
   setAnnotationMode: (mode: AnnotationMode | null) => void;
   selectedShapeId: string | null;
-  handleKonvaPointerDown: (e: any) => void;
-  handleKonvaPointerMove: (e: any) => void;
-  handleKonvaPointerUp: (e: any) => void;
-  handleShapeClick: (id: string) => void;
-  strokeOverlayRef: React.RefObject<any>;
+  handleKonvaPointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
+  handleKonvaPointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
+  handleKonvaPointerUp: (e: KonvaEventObject<PointerEvent>) => void;
+  handleShapeClick: (strokeId: string, point: { x: number; y: number }) => void;
+  strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
   handleUndo: () => void;
   handleClearMask: () => void;
   getDeleteButtonPosition: () => { x: number; y: number } | null;
@@ -162,10 +165,10 @@ export interface LayoutNavigationProps {
  * Button group props (from useButtonGroupProps)
  */
 export interface LayoutButtonGroupProps {
-  topLeft: any;
-  topRight: any;
-  bottomLeft: any;
-  bottomRight: any;
+  topLeft: React.ReactNode;
+  topRight: React.ReactNode;
+  bottomLeft: React.ReactNode;
+  bottomRight: React.ReactNode;
 }
 
 /**
@@ -174,7 +177,7 @@ export interface LayoutButtonGroupProps {
 export interface LayoutWorkflowBarProps {
   onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onDelete?: (id: string) => void;
-  onApplySettings?: (metadata: any) => void;
+  onApplySettings?: (metadata: Record<string, unknown>) => void;
   allShots: Array<{ id: string; name: string }>;
   selectedShotId: string | undefined;
   onShotChange?: (shotId: string) => void;
@@ -190,7 +193,7 @@ export interface LayoutWorkflowBarProps {
   onOptimisticUnpositioned?: (imageId: string, shotId: string) => void;
   contentRef: React.RefObject<HTMLDivElement>;
   handleApplySettings: () => void;
-  handleNavigateToShotFromSelector?: (shot: any) => void;
+  handleNavigateToShotFromSelector?: (shot: { id: string; name: string }) => void;
   handleAddVariantAsNewGenerationToShot?: (shotId: string, variantId: string, currentTimelineFrame?: number) => Promise<boolean>;
 }
 

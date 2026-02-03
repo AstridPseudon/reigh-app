@@ -24,17 +24,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTaskDetails } from './hooks/useTaskDetails';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
-import { SegmentSlot } from '@/tools/travel-between-images/hooks/useSegmentOutputsForShot';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 import { getDisplayUrl, cn } from '@/shared/lib/utils';
-import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import type { GenerationRow } from '@/types/shots';
+import type { useSelection } from './hooks/useSelection';
+import type { useDragAndDrop } from './hooks/useDragAndDrop';
+import type { useLightbox } from './hooks/useLightbox';
+import type { useBatchOperations } from './hooks/useBatchOperations';
+import type { useOptimisticOrder } from './hooks/useOptimisticOrder';
+import type { useExternalGenerations } from './hooks/useExternalGenerations';
 
 interface ShotImageManagerDesktopProps extends ShotImageManagerProps {
-  selection: any;
-  dragAndDrop: any;
-  lightbox: any;
-  batchOps: any;
-  optimistic: any;
-  externalGens: any;
+  selection: ReturnType<typeof useSelection>;
+  dragAndDrop: ReturnType<typeof useDragAndDrop>;
+  lightbox: ReturnType<typeof useLightbox>;
+  batchOps: ReturnType<typeof useBatchOperations>;
+  optimistic: ReturnType<typeof useOptimisticOrder>;
+  externalGens: ReturnType<typeof useExternalGenerations>;
   getFramePosition: (index: number) => number | undefined;
   lightboxSelectedShotId?: string;
   setLightboxSelectedShotId?: (shotId: string | undefined) => void;
@@ -138,7 +146,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   const currentLightboxImage = lightbox.lightboxIndex !== null
     ? lightbox.currentImages[lightbox.lightboxIndex]
     : null;
-  const currentLightboxImageId = (currentLightboxImage as any)?.generation_id || currentLightboxImage?.id || null;
+  const currentLightboxImageId = getGenerationId(currentLightboxImage) || null;
   const { taskDetailsData } = useTaskDetails({ generationId: currentLightboxImageId });
 
   // Prefetch task data for adjacent items when lightbox is open
@@ -150,7 +158,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
     // Prefetch previous item
     if (lightbox.lightboxIndex > 0) {
       const prevItem = lightbox.currentImages[lightbox.lightboxIndex - 1];
-      const prevGenerationId = (prevItem as any)?.generation_id || prevItem?.id;
+      const prevGenerationId = getGenerationId(prevItem);
       if (prevGenerationId) {
         prefetchTaskData(prevGenerationId);
       }
@@ -159,7 +167,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
     // Prefetch next item
     if (lightbox.lightboxIndex < lightbox.currentImages.length - 1) {
       const nextItem = lightbox.currentImages[lightbox.lightboxIndex + 1];
-      const nextGenerationId = (nextItem as any)?.generation_id || nextItem?.id;
+      const nextGenerationId = getGenerationId(nextItem);
       if (nextGenerationId) {
         prefetchTaskData(nextGenerationId);
       }
@@ -177,7 +185,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
 
     // Find the image in the current images array
     const index = lightbox.currentImages.findIndex(
-      (img: any) => img.id === pendingImageToOpen || img.shotImageEntryId === pendingImageToOpen
+      (img: GenerationRow) => img.id === pendingImageToOpen || img.shotImageEntryId === pendingImageToOpen
     );
 
     if (index !== -1) {
@@ -221,8 +229,8 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
         prev = {
           pairIndex: prevSlot.index,
           hasVideo: prevSlot.type === 'child' && !!prevSlot.child?.location,
-          startImageUrl: getDisplayUrl((startImage as any)?.thumbUrl || (startImage as any)?.imageUrl),
-          endImageUrl: getDisplayUrl((endImage as any)?.thumbUrl || (endImage as any)?.imageUrl),
+          startImageUrl: getDisplayUrl(startImage?.thumbUrl || startImage?.imageUrl),
+          endImageUrl: getDisplayUrl(endImage?.thumbUrl || endImage?.imageUrl),
         };
       }
     }
@@ -239,8 +247,8 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
         next = {
           pairIndex: nextSlot.index,
           hasVideo: nextSlot.type === 'child' && !!nextSlot.child?.location,
-          startImageUrl: getDisplayUrl((currentImage as any)?.thumbUrl || (currentImage as any)?.imageUrl),
-          endImageUrl: endImage ? getDisplayUrl((endImage as any)?.thumbUrl || (endImage as any)?.imageUrl) : undefined,
+          startImageUrl: getDisplayUrl(currentImage?.thumbUrl || currentImage?.imageUrl),
+          endImageUrl: endImage ? getDisplayUrl(endImage?.thumbUrl || endImage?.imageUrl) : undefined,
         };
       }
     }
@@ -421,7 +429,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
       )}
 
       <BatchDropZone
-      onImageDrop={props.onFileDrop}
+      onFileDrop={props.onFileDrop}
       onGenerationDrop={props.onGenerationDrop}
       columns={props.columns || 4}
       itemCount={lightbox.currentImages.length}
@@ -437,7 +445,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
           onDragEnd={dragAndDrop.handleDragEnd}
         >
           <SortableContext
-            items={lightbox.currentImages.map((img: any) => img.shotImageEntryId ?? img.id)}
+            items={lightbox.currentImages.map((img: GenerationRow) => img.shotImageEntryId ?? img.id)}
             strategy={rectSortingStrategy}
           >
             <ImageGrid
@@ -516,24 +524,28 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
             }
             
             const currentImage = lightbox.currentImages[lightbox.lightboxIndex];
-            
+
+            // Extended fields that may be present at runtime from external generation lookups
+            const currentImageShotId = (currentImage as GenerationRow & { shot_id?: string }).shot_id;
+            const currentImageAssociations = (currentImage as GenerationRow & { all_shot_associations?: Array<{ shot_id: string; timeline_frame?: number | null }> }).all_shot_associations;
+
             // Determine if the current image is positioned in the selected shot
             // For non-external gens (images from the shot itself), check if they have a timeline_frame
             // Use lightboxSelectedShotId instead of props.selectedShotId so it updates when dropdown changes
             const effectiveSelectedShotId = lightboxSelectedShotId || props.selectedShotId;
             const isInSelectedShot = !isExternalGen && effectiveSelectedShotId && (
-              props.shotId === effectiveSelectedShotId || 
-              (currentImage as any).shot_id === effectiveSelectedShotId ||
-              (Array.isArray((currentImage as any).all_shot_associations) && 
-               (currentImage as any).all_shot_associations.some((assoc: any) => assoc.shot_id === effectiveSelectedShotId))
+              props.shotId === effectiveSelectedShotId ||
+              currentImageShotId === effectiveSelectedShotId ||
+              (Array.isArray(currentImageAssociations) &&
+               currentImageAssociations.some((assoc) => assoc.shot_id === effectiveSelectedShotId))
             );
-            
+
             const positionedInSelectedShot = isInSelectedShot
-              ? (currentImage as any).timeline_frame !== null && (currentImage as any).timeline_frame !== undefined
+              ? currentImage.timeline_frame !== null && currentImage.timeline_frame !== undefined
               : undefined;
-            
+
             const associatedWithoutPositionInSelectedShot = isInSelectedShot
-              ? (currentImage as any).timeline_frame === null || (currentImage as any).timeline_frame === undefined
+              ? currentImage.timeline_frame === null || currentImage.timeline_frame === undefined
               : undefined;
 
             // [AddToShotDebug] Detailed logging for position detection
@@ -543,8 +555,8 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
             console.log('[AddToShotDebug] effectiveSelectedShotId:', effectiveSelectedShotId?.substring(0, 8));
             console.log('[AddToShotDebug] isExternalGen:', isExternalGen);
             console.log('[AddToShotDebug] isInSelectedShot:', isInSelectedShot);
-            console.log('[AddToShotDebug] currentImage.timeline_frame:', (currentImage as any).timeline_frame);
-            console.log('[AddToShotDebug] currentImage.shot_id:', (currentImage as any).shot_id?.substring(0, 8));
+            console.log('[AddToShotDebug] currentImage.timeline_frame:', currentImage.timeline_frame);
+            console.log('[AddToShotDebug] currentImage.shot_id:', currentImageShotId?.substring(0, 8));
             console.log('[AddToShotDebug] positionedInSelectedShot:', positionedInSelectedShot);
             console.log('[AddToShotDebug] associatedWithoutPositionInSelectedShot:', associatedWithoutPositionInSelectedShot);
             console.log('[AddToShotDebug] showTickForImageId:', showTickForImageId);
@@ -565,9 +577,8 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
               isTempDerived: lightbox.lightboxIndex >= baseImagesCount + externalGens.externalGenerations.length,
               positionedInSelectedShot,
               associatedWithoutPositionInSelectedShot,
-              currentImageTimelineFrame: (currentImage as any).timeline_frame
+              currentImageTimelineFrame: currentImage.timeline_frame
             });
-            
 
             return (
               <MediaLightbox
@@ -609,13 +620,13 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
                 showMagicEdit={true}
                 hasNext={hasNext}
                 hasPrevious={hasPrevious}
-                starred={(lightbox.currentImages[lightbox.lightboxIndex] as any).starred || false}
+                starred={lightbox.currentImages[lightbox.lightboxIndex]?.starred || false}
                 onMagicEdit={props.onMagicEdit}
                 readOnly={props.readOnly}
                 showTaskDetails={true}
                 taskDetailsData={taskDetailsData}
                 onNavigateToGeneration={(generationId: string) => {
-                  const index = lightbox.currentImages.findIndex((img: any) => img.id === generationId);
+                  const index = lightbox.currentImages.findIndex((img: GenerationRow) => img.id === generationId);
                   if (index !== -1) {
                     lightbox.setLightboxIndex(index);
                   }

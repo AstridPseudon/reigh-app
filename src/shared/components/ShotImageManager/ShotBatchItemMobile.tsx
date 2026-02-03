@@ -40,11 +40,14 @@ export const ShotBatchItemMobile: React.FC<ShotBatchItemMobileProps> = ({
   });
 
   // Calculate aspect ratio for consistent sizing
-  const aspectRatioStyle = getImageAspectRatioStyle(image as any, projectAspectRatio);
+  const aspectRatioStyle = getImageAspectRatioStyle(
+    image as unknown as Parameters<typeof getImageAspectRatioStyle>[0],
+    projectAspectRatio
+  );
 
   // Check if an event originated from inside a button using composedPath (more reliable on touch devices)
   const isEventInsideButton = (e: React.MouseEvent | React.TouchEvent): boolean => {
-    const path = (e as any).nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
+    const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
     const result = path
       ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button'))
       : !!(e.target as HTMLElement).closest('button');
@@ -120,9 +123,9 @@ export const ShotBatchItemMobile: React.FC<ShotBatchItemMobileProps> = ({
 
         {/* Variant Count + NEW badge - bottom center */}
         <VariantBadge
-          derivedCount={(image as any).derivedCount}
-          unviewedVariantCount={(image as any).unviewedVariantCount}
-          hasUnviewedVariants={(image as any).hasUnviewedVariants}
+          derivedCount={image.derivedCount}
+          unviewedVariantCount={image.unviewedVariantCount}
+          hasUnviewedVariants={image.hasUnviewedVariants}
           variant="overlay"
           size="sm"
           position="bottom-1 left-1/2 -translate-x-1/2"
@@ -161,7 +164,7 @@ export const ShotBatchItemMobile: React.FC<ShotBatchItemMobileProps> = ({
               console.log('[ShotBatchItemMobile] Copy button onClick', { imageId: image.id?.substring(0, 8) });
               e.stopPropagation();
               // Use id (shot_generations.id) for duplication
-              onDuplicate(image.id, (image as any).timeline_frame ?? index);
+              onDuplicate(image.id, image.timeline_frame ?? index);
             }}
             disabled={isDuplicating || image.id?.startsWith('temp-')}
             title={image.id?.startsWith('temp-') ? "Please wait..." : "Duplicate"}

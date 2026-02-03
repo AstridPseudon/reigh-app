@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateVariantChange } from '@/shared/hooks/useGenerationInvalidation';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 /**
  * A variant of a generation (from generation_variants table)
@@ -22,7 +23,7 @@ export interface GenerationVariant {
   generation_id: string;
   location: string;
   thumbnail_url: string | null;
-  params: Record<string, any> | null;
+  params: Record<string, unknown> | null;
   is_primary: boolean;
   variant_type: string | null;
   name: string | null;
@@ -44,9 +45,6 @@ export interface UseVariantsReturn {
   setPrimaryVariant: (variantId: string) => Promise<void>;
   deleteVariant: (variantId: string) => Promise<void>;
 }
-
-/** Query key for variant queries - use this for cache consistency */
-export const VARIANTS_QUERY_KEY = 'generation-variants';
 
 interface UseVariantsProps {
   generationId: string | null;
@@ -72,7 +70,7 @@ export const useVariants = ({
     error,
     refetch,
   } = useQuery({
-    queryKey: [VARIANTS_QUERY_KEY, generationId],
+    queryKey: queryKeys.generations.variants(generationId),
     queryFn: async () => {
       if (!generationId) return [];
 

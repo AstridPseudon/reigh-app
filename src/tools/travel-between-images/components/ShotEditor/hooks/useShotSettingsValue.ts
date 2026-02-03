@@ -8,6 +8,7 @@
  */
 
 import { useMemo } from 'react';
+import { QueryClient } from '@tanstack/react-query';
 import { Shot, GenerationRow } from '@/types/shots';
 import {
   ShotSettingsContextValue,
@@ -25,19 +26,21 @@ import type { UseStructureVideoReturn } from './useStructureVideo';
 import type { UseAudioReturn } from './useAudio';
 
 // Type for generation actions from useGenerationActions
+// All drop handlers now use unified targetFrame parameter
 interface GenerationActionsReturn {
-  handleTimelineImageDrop: (files: File[], targetFrame: number) => Promise<void>;
+  handleTimelineImageDrop: (files: File[], targetFrame?: number) => Promise<void>;
   handleTimelineGenerationDrop: (
     generationId: string,
     imageUrl: string,
     thumbUrl: string | undefined,
-    targetFrame: number
+    targetFrame?: number
   ) => Promise<void>;
-  handleBatchImageDrop: (files: File[]) => Promise<void>;
+  handleBatchImageDrop: (files: File[], targetFrame?: number) => Promise<void>;
   handleBatchGenerationDrop: (
     generationId: string,
     imageUrl: string,
-    thumbUrl: string | undefined
+    thumbUrl: string | undefined,
+    targetFrame?: number
   ) => Promise<void>;
   handleDeleteImageFromShot: (generationId: string) => Promise<void>;
   handleBatchDeleteImages: (generationIds: string[]) => Promise<void>;
@@ -110,7 +113,7 @@ export interface UseShotSettingsValueProps {
   dimensions: DimensionState;
 
   // Query client
-  queryClient: any;
+  queryClient: QueryClient;
 }
 
 /**
@@ -202,54 +205,50 @@ export function useShotSettingsValue({
   const imageHandlersForContext = useMemo(
     (): ShotSettingsContextValue['imageHandlers'] => ({
       onReorder: handleImageReorder,
-      onImageDrop: async (files: File[], targetFrame?: number) => {
+      onFileDrop: async (files: File[], targetFrame?: number) => {
         await generationActions.handleTimelineImageDrop(files, targetFrame);
       },
-      onGenerationDrop: async (generationId: string, targetFrame: number) => {
-        const gen = allShotImages.find(
-          img => img.id === generationId || img.generation_id === generationId
+      onGenerationDrop: async (
+        generationId: string,
+        imageUrl: string,
+        thumbUrl: string | undefined,
+        targetFrame?: number
+      ) => {
+        await generationActions.handleTimelineGenerationDrop(
+          generationId,
+          imageUrl,
+          thumbUrl,
+          targetFrame ?? 0
         );
-        if (gen) {
-          await generationActions.handleTimelineGenerationDrop(
-            gen.generation_id || gen.id,
-            gen.imageUrl || gen.location || '',
-            gen.thumbUrl || gen.thumbnail_url,
-            targetFrame
-          );
-        }
       },
-      onBatchFileDrop: async (files: File[]) => {
-        await generationActions.handleBatchImageDrop(files);
+      onBatchFileDrop: async (files: File[], targetFrame?: number) => {
+        await generationActions.handleBatchImageDrop(files, targetFrame);
       },
-      onBatchGenerationDrop: async (generationIds: string[]) => {
-        for (const id of generationIds) {
-          const gen = allShotImages.find(
-            img => img.id === id || img.generation_id === id
-          );
-          if (gen) {
-            await generationActions.handleBatchGenerationDrop(
-              gen.generation_id || gen.id,
-              gen.imageUrl || gen.location || '',
-              gen.thumbUrl || gen.thumbnail_url
-            );
-          }
-        }
-      },
-      onDelete: async (generation: GenerationRow) => {
-        await generationActions.handleDeleteImageFromShot(generation.id);
-      },
-      onBatchDelete: async (generations: GenerationRow[]) => {
-        await generationActions.handleBatchDeleteImages(generations.map(g => g.id));
-      },
-      onDuplicate: async (generation: GenerationRow) => {
-        await generationActions.handleDuplicateImage(
-          generation.id,
-          generation.timeline_frame ?? 0
+      onBatchGenerationDrop: async (
+        generationId: string,
+        imageUrl: string,
+        thumbUrl: string | undefined,
+        targetFrame?: number
+      ) => {
+        await generationActions.handleBatchGenerationDrop(
+          generationId,
+          imageUrl,
+          thumbUrl,
+          targetFrame
         );
+      },
+      onDelete: (id: string) => {
+        generationActions.handleDeleteImageFromShot(id);
+      },
+      onBatchDelete: (ids: string[]) => {
+        generationActions.handleBatchDeleteImages(ids);
+      },
+      onDuplicate: (id: string, timeline_frame: number) => {
+        generationActions.handleDuplicateImage(id, timeline_frame);
       },
       onUpload: handleImageUpload,
     }),
-    [generationActions, allShotImages, handleImageReorder, handleImageUpload]
+    [generationActions, handleImageReorder, handleImageUpload]
   );
 
   // Build shot management domain for context

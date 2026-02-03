@@ -6,6 +6,7 @@
  */
 
 import { handleError } from '@/shared/lib/errorHandler';
+import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
 
 export interface NetworkStatus {
   isOnline: boolean;
@@ -26,9 +27,10 @@ export class NetworkStatusManager {
   private initialized = false;
 
   constructor() {
+    const nav = navigator as NavigatorWithDeviceInfo;
     this.status = {
       isOnline: navigator.onLine,
-      effectiveType: (navigator as any).connection?.effectiveType,
+      effectiveType: nav.connection?.effectiveType,
       lastTransitionAt: Date.now(),
       previousOnlineStatus: navigator.onLine
     };
@@ -49,8 +51,9 @@ export class NetworkStatusManager {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    if ((navigator as any).connection) {
-      (navigator as any).connection.addEventListener('change', handleConnectionChange);
+    const nav = navigator as NavigatorWithDeviceInfo;
+    if (nav.connection) {
+      nav.connection.addEventListener('change', handleConnectionChange);
     }
 
     this.initialized = true;
@@ -85,8 +88,9 @@ export class NetworkStatusManager {
   private handleNetworkChange(eventType: NetworkEventType, event?: Event): void {
     const now = Date.now();
     const newIsOnline = navigator.onLine;
-    const newEffectiveType = (navigator as any).connection?.effectiveType;
-    const connection = (navigator as any).connection;
+    const nav = navigator as NavigatorWithDeviceInfo;
+    const newEffectiveType = nav.connection?.effectiveType;
+    const connection = nav.connection;
     
     const onlineStatusChanged = newIsOnline !== this.status.isOnline;
     const connectionChanged = newEffectiveType !== this.status.effectiveType;

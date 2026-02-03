@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useTaskFromUnifiedCache } from '@/shared/hooks/useUnifiedGenerations';
+import { useTaskFromUnifiedCache } from '@/shared/hooks/useTaskPrefetch';
 import { useGetTask } from '@/shared/hooks/useTasks';
 import { deriveInputImages } from '@/shared/utils/taskParamsUtils';
 import { Task } from '@/types/tasks';

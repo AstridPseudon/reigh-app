@@ -1,7 +1,10 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
-import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
+import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { getPairInfo, getTimelineDimensions, applyFluidTimeline, applyFluidTimelineMulti, calculateNewVideoPlacement } from '../utils/timeline-utils';
 import { TIMELINE_PADDING_OFFSET } from '../constants';
 import { useZoom } from './useZoom';
@@ -23,15 +26,17 @@ export interface UseTimelineOrchestratorProps {
   framePositions: Map<string, number>;
   setFramePositions: (positions: Map<string, number>) => Promise<void>;
   onImageReorder: (orderedIds: string[], draggedItemId?: string) => void;
-  onImageDrop?: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   setIsDragInProgress: (dragging: boolean) => void;
   onImageDuplicate: (imageId: string, timeline_frame: number) => void;
   readOnly?: boolean;
   isUploadingImage?: boolean;
-  singleImageEndFrame?: number;
-  onSingleImageEndFrameChange?: (endFrame: number) => void;
+  trailingEndFrame?: number;
+  onTrailingEndFrameChange?: (endFrame: number | undefined) => void;
   maxFrameLimit?: number;
+  /** Whether a trailing video already exists (affects timeline dimensions) */
+  hasExistingTrailingVideo?: boolean;
   // Structure video props for video browser handler
   structureVideos?: StructureVideoConfigWithMetadata[];
   structureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth';
@@ -139,14 +144,14 @@ export function useTimelineOrchestrator({
   framePositions,
   setFramePositions,
   onImageReorder,
-  onImageDrop,
+  onFileDrop,
   onGenerationDrop,
   setIsDragInProgress,
   onImageDuplicate,
   readOnly = false,
   isUploadingImage = false,
-  singleImageEndFrame,
-  onSingleImageEndFrameChange,
+  trailingEndFrame,
+  onTrailingEndFrameChange,
   maxFrameLimit = 81,
   structureVideos,
   structureVideoType = 'flow',
@@ -155,6 +160,7 @@ export function useTimelineOrchestrator({
   onAddStructureVideo,
   onUpdateStructureVideo,
   onStructureVideoChange,
+  hasExistingTrailingVideo = false,
 }: UseTimelineOrchestratorProps): UseTimelineOrchestratorReturn {
   // Local state
   const [resetGap, setResetGap] = useState<number>(50);
@@ -169,6 +175,9 @@ export function useTimelineOrchestrator({
   const dragEndTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartDimensionsRef = useRef<{ fullMin: number; fullMax: number; fullRange: number } | null>(null);
   const isEndpointDraggingRef = useRef(false);
+
+  // Query client for invalidation after metadata updates
+  const queryClient = useQueryClient();
 
   // Device detection
   const isMobile = useIsMobile();
@@ -200,13 +209,27 @@ export function useTimelineOrchestrator({
   } = useTimelineSelection({ isEnabled: !readOnly });
 
   // Calculate coordinate system
+  // Compute effective end frame for trailing segment
+  // For single-image: always include (needed for generation)
+  // For multi-image: include when explicitly enabled OR when a trailing video exists
+  const isMultiImage = images.length > 1;
+  const trailingDefaultOffset = isMultiImage ? 17 : 49;
+  const trailingEffectiveEnd = (() => {
+    if (images.length === 0) return null;
+    // For multi-image, only include trailing in dimensions when:
+    // 1. Explicitly enabled (trailingEndFrame is set), OR
+    // 2. A trailing video already exists (need to show its extent)
+    if (isMultiImage && trailingEndFrame === undefined && !hasExistingTrailingVideo) return null;
+    return trailingEndFrame ?? (Math.max(...Array.from(framePositions.values()), 0) + trailingDefaultOffset);
+  })();
+
   const rawDimensions = getTimelineDimensions(
     framePositions,
     [
       pendingDropFrame,
       pendingDuplicateFrame,
       pendingExternalAddFrame,
-      images.length === 1 && singleImageEndFrame !== undefined ? singleImageEndFrame : null
+      trailingEffectiveEnd
     ]
   );
 
@@ -362,8 +385,8 @@ export function useTimelineOrchestrator({
   // Drop interceptors
   const handleImageDropInterceptor = useCallback(async (files: File[], targetFrame?: number) => {
     if (targetFrame !== undefined) setPendingDropFrame(targetFrame);
-    if (onImageDrop) await onImageDrop(files, targetFrame);
-  }, [onImageDrop, setPendingDropFrame]);
+    if (onFileDrop) await onFileDrop(files, targetFrame);
+  }, [onFileDrop, setPendingDropFrame]);
 
   const handleGenerationDropInterceptor = useCallback(async (
     generationId: string,
@@ -394,14 +417,18 @@ export function useTimelineOrchestrator({
       : null;
     const DEFAULT_DUPLICATE_GAP = 30;
     let duplicateTargetFrame: number;
-    if (nextImage && nextImage.timeline_frame !== undefined) {
+
+    // For single image, duplicate to the trailing endpoint position
+    if (images.length === 1) {
+      duplicateTargetFrame = trailingEndFrame ?? (timeline_frame + 49);
+    } else if (nextImage && nextImage.timeline_frame !== undefined) {
       duplicateTargetFrame = Math.floor((timeline_frame + nextImage.timeline_frame) / 2);
     } else {
       duplicateTargetFrame = timeline_frame + DEFAULT_DUPLICATE_GAP;
     }
     setPendingDuplicateFrame(duplicateTargetFrame);
-    onImageDuplicate(imageId, timeline_frame);
-  }, [images, onImageDuplicate, setPendingDuplicateFrame]);
+    onImageDuplicate(imageId, duplicateTargetFrame);
+  }, [images, onImageDuplicate, setPendingDuplicateFrame, trailingEndFrame]);
 
   // Unified drop hook
   const {
@@ -413,7 +440,7 @@ export function useTimelineOrchestrator({
     handleDragLeave,
     handleDrop,
   } = useUnifiedDrop({
-    onImageDrop: handleImageDropInterceptor,
+    onFileDrop: handleImageDropInterceptor,
     onGenerationDrop: handleGenerationDropInterceptor,
     fullMin,
     fullRange
@@ -525,8 +552,9 @@ export function useTimelineOrchestrator({
   }, [fullMax, structureVideos, structureVideoType, structureVideoTreatment, structureVideoMotionStrength, onAddStructureVideo, onUpdateStructureVideo, onStructureVideoChange]);
 
   // Single image endpoint mouse handler
+  // Persists end_frame to metadata on mouse up
   const handleEndpointMouseDown = useCallback((e: React.MouseEvent, endpointId: string) => {
-    if (readOnly || !onSingleImageEndFrameChange) return;
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -534,7 +562,12 @@ export function useTimelineOrchestrator({
     isEndpointDraggingRef.current = true;
 
     const currentPositionsLocal = dynamicPositions();
-    const imageFrame = [...currentPositionsLocal.values()][0] ?? 0;
+    const sortedEntries = [...currentPositionsLocal.entries()].sort((a, b) => a[1] - b[1]);
+    const lastImageEntry = sortedEntries[sortedEntries.length - 1];
+    if (!lastImageEntry) return;
+
+    const [lastImageId, imageFrame] = lastImageEntry;
+    let currentEndFrame = imageFrame + 49; // Default
 
     const handleMouseMoveLocal = (moveEvent: MouseEvent) => {
       if (!containerRef.current) return;
@@ -551,19 +584,53 @@ export function useTimelineOrchestrator({
       const gap = newFrame - imageFrame;
       const quantizedGap = Math.max(5, Math.round((gap - 1) / 4) * 4 + 1);
       const quantizedFrame = imageFrame + quantizedGap;
-      onSingleImageEndFrameChange(Math.min(quantizedFrame, maxFrame));
+      currentEndFrame = Math.min(quantizedFrame, maxFrame);
+      // Update local state for responsive UI during drag
+      onTrailingEndFrameChange?.(currentEndFrame);
     };
 
-    const handleMouseUpLocal = () => {
+    const handleMouseUpLocal = async () => {
       dragStartDimensionsRef.current = null;
       isEndpointDraggingRef.current = false;
       document.removeEventListener('mousemove', handleMouseMoveLocal);
       document.removeEventListener('mouseup', handleMouseUpLocal);
+
+      // Persist to metadata.end_frame on mouse up
+      try {
+        const { data: current, error: fetchError } = await supabase
+          .from('shot_generations')
+          .select('metadata')
+          .eq('id', lastImageId)
+          .single();
+
+        if (fetchError) {
+          console.error('[useTimelineOrchestrator] Error fetching metadata:', fetchError);
+          return;
+        }
+
+        const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
+        const { error: updateError } = await supabase
+          .from('shot_generations')
+          .update({
+            metadata: {
+              ...currentMetadata,
+              end_frame: currentEndFrame,
+            },
+          })
+          .eq('id', lastImageId);
+
+        // Invalidate shot generations query so derivedEndFrame updates
+        if (!updateError && shotId) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShot(shotId) });
+        }
+      } catch (error) {
+        console.error('[useTimelineOrchestrator] Error persisting end_frame:', error);
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMoveLocal);
     document.addEventListener('mouseup', handleMouseUpLocal);
-  }, [readOnly, fullMin, fullMax, fullRange, containerWidth, maxFrameLimit, onSingleImageEndFrameChange, dynamicPositions]);
+  }, [readOnly, fullMin, fullMax, fullRange, containerWidth, maxFrameLimit, onTrailingEndFrameChange, dynamicPositions, shotId, queryClient]);
 
   // Computed data
   const currentPositions = dynamicPositions();

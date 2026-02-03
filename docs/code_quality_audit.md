@@ -1,138 +1,158 @@
-# Code Quality Audit
+# Code Quality Overview
 
-Present state of the codebase. Last updated: 2026-02-02.
+Present-state reference. Describes how the codebase measures up against its quality principles, with every known exception and reasoning. Not a changelog — only current status matters.
 
----
-
-## Summary
-
-| Category | Status | Verdict |
-|----------|--------|---------|
-| Double-casts | ✅ None | All fixed |
-| Cache/error handling | ✅ Good | Centralized patterns |
-| Hardcoded colors | ✅ Intentional | Brand/retro theme, not bugs |
-| Page hook counts | ✅ Appropriate | Complex orchestration, not a problem |
-| Large components | ⚠️ 4 files | Worth decomposing when touched |
-| Large hooks | ⚠️ 8 files | Split candidates identified |
-| `any` usage | ⚠️ ~1,900 | Mix of fixable and intentional |
+Last verified: 2026-02-03 (automated audit, 702 source files).
 
 ---
 
-## What's Actually Fine
+## At a Glance
 
-### Hardcoded Colors (181 instances)
-**Verdict: Leave as-is.** These are intentional brand colors for the retro/vintage aesthetic.
-
-- `GlobalHeader.tsx` (40): Retro dark palette (`#6a8a8a`, `#3a4a4a`, etc.) - forms cohesive system
-- `HeroSection.tsx` (23): Marketing landing page - performance-critical, uses inline styles intentionally
-- `select.tsx` (11): CVA component variants - part of retro UI system
-
-If the retro palette becomes system-wide, extract to CSS variables. Not urgent.
-
-### Page Hook Counts
-**Verdict: Appropriate complexity.**
-
-| Page | Hooks | Assessment |
-|------|-------|------------|
-| `VideoTravelToolPage` | 12 | ✅ Clean router/orchestrator |
-| `JoinClipsPage` | 18 | ✅ Well-factored, justified by video editor complexity |
-| `ImageGenerationToolPage` | 25+ | ⚠️ Could extract 3 utility hooks for readability |
-
-The hook counts reflect legitimate feature complexity (gallery + form + filtering + pagination). Not a performance issue.
-
-**Optional cleanup for ImageGenerationToolPage:**
-- Extract `useStickyHeaderPosition()` (~60 lines)
-- Extract `useGalleryFiltering()` (9 filter state vars)
-- Extract `useAdjacentPagePrefetch()` (~100 lines)
-
-### SimpleRealtimeManager.ts (39 `any`)
-**Verdict: Leave as-is.** The `any` types here are justified:
-
-- TypeScript types are compile-time only; Supabase websocket payloads need runtime validation for real safety
-- Handlers already use defensive `payload?.new?.id` optional chaining
-- Supabase's `old` record is unreliable (partial data) — types would give false confidence
-- The channel `.on()` API doesn't type cleanly anyway
-
-Type this file only if actively debugging realtime issues or making significant changes.
+| Dimension | Status | Key metric |
+|-----------|--------|------------|
+| Dependency direction | ✅ Clean | Zero `shared/ → tools/` violations; ESLint enforced |
+| Data fetching | ✅ Clean | 3 query scopes; mutations separated. ~25 inline query keys |
+| Type safety | ✅ Clean | 98 `any` (17 `: any`, 81 `as any`), all justified |
+| File size | ⚠️ Acceptable | 6 files over 1,000 LOC; each documented |
+| Explicit contracts | ✅ Clean | 8 implicit patterns replaced with constants/helpers |
+| Code duplication | ✅ Patterns exist | 4 shared patterns for repeated operations |
+| Naming | ✅ Clean | ~20 single-letter vars remain (`w`/`h`, `x`/`y`, `i`/`j`), all conventional |
+| Logging hygiene | ⚠️ Acceptable | 2,994 console statements / 341 files; tagged, stripped in prod |
+| Dead code | ✅ Mostly clean | 2 re-export barrels, 7 cross-tool SectionHeader imports |
 
 ---
 
-## What Needs Attention
+## 1. Dependency Direction
 
-### 1. `any` Usage (~1,900 instances)
+**Principle:** `tools/` → `shared/`, never reverse.
 
-**Medium effort (20-30 hours):**
-
-| File | Count | Issue | Fix |
-|------|-------|-------|-----|
-| `useLightboxLayoutProps.ts` | 41 | Props aggregation hook | Create domain interfaces (video editing, annotation, transform) |
-| `useSegmentOutputsForShot.ts` | 26 | Defensive casts for `parent_generation_id` | Extend `GenerationRow` with optional parent/child fields |
-| `VideoGallery/index.tsx` | 26 | Generic type constraints | Extract hook return types, define `VideoItemData` |
-
-**Leave alone:**
-- `Record<string, any>` for dynamic settings objects is intentional
-- `SimpleRealtimeManager.ts` — defensive coding approach is correct (see above)
-
-### 2. Large Hooks (>800 lines)
-
-| Hook | Lines | Split Strategy |
-|------|-------|----------------|
-| `useGenerationActions.ts` | 906 | Extract deletion, duplication, drop handlers into separate hooks |
-| `useGenerations.ts` | ~920 | Extract filter logic, edit variants, star toggle |
-| `useShotGenerationMutations.ts` | 925 | Extract frame position calculator, batch updater |
-| `useReferenceManagement.ts` | 909 | Extract upload pipeline, mode switching, sync effects |
-
-**Dead code to investigate:**
-- `useGenerationActions.ts` lines 71-120: 50-line ref stabilization block suggests parent component issues
-
-### 3. Large Components (1000-1700 lines)
-
-| Component | Lines | Decomposition Strategy | Effort |
-|-----------|-------|------------------------|--------|
-| `MediaGalleryItem.tsx` | 1,696 | Extract `useImageLoader`, `ShotAddButton`, `ProgressiveImage` | 40-60h |
-| `VideoItem.tsx` | 1,504 | Extract `JoinClipsModal`, `useMobileVideoPreload`, `ShareButton` | 35-50h |
-| `SettingsModal.tsx` | 1,320 | Extract `InstallTab`, `RunTab`, `ConfigOptions`, command generators | 25-35h |
-| `VideoGallery/index.tsx` | 1,202 | Extract pagination, skeleton, navigation hooks | 30-40h |
-
-**Recommended order:** SettingsModal → VideoItem → VideoGallery → MediaGalleryItem (least tangled first)
+**Status:** Zero violations. 4 `shared/` files import from `@/tools/index.ts` (the registry barrel, not tool internals): `ToolsPane.tsx`, `useToolSettings.ts`, `usePrefetchToolSettings.ts`, `usePersistentToolState.ts` — all reading `toolsManifest`/`toolsUIManifest`. ESLint `no-restricted-imports` prevents new violations.
 
 ---
 
-## Established Patterns
+## 2. Data Fetching
 
-| Area | Location | Pattern |
-|------|----------|---------|
-| Hook decomposition | `src/shared/hooks/shots/` | 10 focused files from monolith |
-| Component decomposition | `ShotImagesEditor/` | 32 line index + 13 files |
-| Context for state | `ImageGenerationFormContext` | Eliminates prop drilling |
-| Cache keys | `src/shared/lib/queryKeys.ts` | Centralized registry |
-| Error handling | `src/shared/lib/errorHandler.ts` | `handleError()` with context |
-| Lightbox architecture | `MediaLightbox/` | Shell + orchestrators + contexts |
+**Principle:** Three query scopes (project, shot, variant). Mutations in dedicated files, not mixed with queries.
+
+**Status:** Clean. Mutations in `useGenerationMutations.ts`, invalidation centralized via `useGenerationInvalidation.ts`. Full details in `docs/structure_detail/data_fetching.md`.
+
+**Known gap — inline query keys:** ~25 `useQuery`/`useInfiniteQuery` hooks define keys as inline string arrays instead of `queryKeys.*` (`src/shared/lib/queryKeys.ts`). These are mostly single-use keys in isolated hooks (e.g., `['credits', 'balance']`, `['lineage-chain', variantId]`, `['pending-segment-tasks', ...]`). Mutation invalidation keys use the registry.
 
 ---
 
-## Action Items
+## 3. Type Safety
 
-### Next Up
-1. Decompose `SettingsModal.tsx` - extract Install/Run tabs and command generators
+**Principle:** No unjustified `any`.
 
-### When Touched
-2. Split large hooks when modifying them
-3. Decompose large components when adding features to them
-4. Type `any`-heavy files when working in that area
+**Status:** 98 total (17 `: any`, 81 `as any`). All in instrumentation/debug code — application logic is `any`-free.
+
+| Category | Count | Justification |
+|----------|-------|---------------|
+| Debug/instrumentation/monitoring | ~55 | Intentionally generic — logs arbitrary runtime state |
+| Supabase instrumentation (window + realtime) | ~24 | WebSocket/channel introspection at runtime |
+| Browser API interop | ~16 | `navigator.connection`, `.standalone`, `performance.memory` — no `lib.dom.d.ts` types |
+| Window debug globals | ~15 | Dev-only (`__REALTIME_SNAPSHOT__`, `__VISIBILITY_MANAGER__`, etc.) |
+| Tests | ~7 | `VisibilityManager.test.ts` — white-box access to private methods |
+| Generic function types | ~4 | `errorHandler`, `queryKeys`, `useStableObject`, `logger` |
+
+Heaviest files: `instrumentation/window` (27), `instrumentation/realtime` (11), `NetworkStatusManager` (8), `mobileProjectDebug` (7), `VisibilityManager.test` (7), `snapshot` (7).
 
 ---
 
-## Recent Refactors
+## 4. File Size & Decomposition
 
-| Before | After |
-|--------|-------|
-| `ShotImagesEditor.tsx` (3,775 lines) | 32 line index |
-| `MediaLightbox.tsx` (2,617 lines) | 189 line shell |
-| `PhaseConfigSelectorModal.tsx` (1,973 lines) | 287 lines |
-| `GuidanceVideoStrip.tsx` (1,456 lines) | 683 lines |
-| `ImageGenerationForm/index.tsx` (1,164 lines) | 52 lines |
-| `useGenerationActions.ts` (1,222 lines) | 906 lines |
-| Double-casts (8 files) | 0 files |
-| `SharedMetadataDetails.tsx` (28 `as any`) | 0 casts (interface extended) |
-| `useGenerations.ts` dead code | Removed `shouldSkipCount` branches |
+**Principle:** Orchestrators under 300 LOC. Extract hooks/components into directory structure when files grow.
+
+**Status:** 6 files over 1,000 LOC. Standard decomposition approach: directory with `components/` + `hooks/`, or extract focused modules. Reference pattern: `useRepositionMode` — 859 lines became 161-line orchestrator + 5 hooks (`useRepositionCanvasSetup`, `useRepositionInteractions`, `useRepositionRendering`, `useRepositionState`, `useRepositionValidation`).
+
+### Remaining large files
+
+| File | Lines | Why it stays |
+|------|-------|-------------|
+| `JoinClipsSettingsForm.tsx` | 1,309 | Form sections share validation state; splitting adds prop drilling |
+| `ImageLightbox.tsx` | 1,296 | State aggregation — splitting requires a new context for no benefit |
+| `Timeline.tsx` | 1,227 | Hooks/components/utils already extracted; this is the orchestrator |
+| `ShotEditor/index.tsx` | 1,200 | Already sectioned (Header/Timeline/Generation/Modals) |
+| `ImageGenerationToolPage.tsx` | 1,170 | Uses extracted components; page-level orchestration |
+| `VideoLightbox.tsx` | 1,064 | Same pattern as ImageLightbox |
+
+
+---
+
+## 5. Explicit Over Implicit
+
+**Principle:** No magic strings, no head-knowledge contracts. Encode rules in constants, helpers, or types.
+
+**Status:** All 8 identified implicit contracts replaced.
+
+| Was (implicit) | Now (explicit) |
+|----------------|----------------|
+| `'no-shot'` magic filter string | `SHOT_FILTER.NO_SHOT` constant |
+| `PGRST116` error code check | `isNotFoundError()` helper |
+| `columnsPerRow=5` meaning "dynamic" | `columnsPerRow='auto'` literal type |
+| `variant_type` string literals | `VARIANT_TYPE.ORIGINAL`, `.INPAINT`, etc. |
+| `generation_id \|\| id` fallback | `getGenerationId()` helper |
+| Task params as string OR object | Centralized in `taskParamsUtils.ts` |
+| Settings merge order | Documented in code + `settings_system.md` |
+| Variant `source_task_id` naming | `getSourceTaskId()` helper |
+
+---
+
+## 6. Code Duplication
+
+**Principle:** Shared patterns for operations that appear 3+ times.
+
+| Repeated operation | Pattern | Location | Notes |
+|--------------------|---------|----------|-------|
+| Loading state | `useAsyncOperation` hook | `shared/hooks/useAsyncOperation.ts` | RQ mutations use `mutation.isPending` + `LoadingButton` instead |
+| Query cache keys | `queryKeys.*` registry | `shared/lib/queryKeys.ts` | ~25 inline keys in isolated hooks (§2) |
+| Loading spinner button | `LoadingButton` | `shared/components/ui/loading-button.tsx` | |
+| Confirmation dialogs | `useConfirmDialog()` + `ConfirmDialog` | `shared/components/ConfirmDialog.tsx` | Promise-based `await confirm()` or declarative. Presets: `confirmPresets.delete()`, etc. |
+
+---
+
+## 7. Logging Hygiene
+
+**Principle:** Tagged debug logs, stripped in production, no sensitive data.
+
+**Status:** 2,994 console statements across 341 files. Production builds strip `console.log` via Vite. No sensitive data leaks (API keys masked, auth tokens never logged).
+
+Logs use bracket-prefix tags for filtering via `debug.py logs --tag <Tag>`. Top tags: `[ApplySettings]` (126), `[EDIT_DEBUG]` (82), `[VideoGalleryPreload]` (41), `[BasedOnNav]` (39), `[SimpleRealtime]` (35), `[DataTrace]` (35), `[AddWithoutPosDebug]` (31), `[VariantRelationship]` (30).
+
+Top files: `applySettingsService.ts` (79), `PromptEditorModal.tsx` (53), `SimpleRealtimeManager.ts` (51), `MediaGallery/index.tsx` (35), `ShotListDisplay.tsx` (29).
+
+---
+
+## 8. Dead Code & Backward Compatibility
+
+**Principle:** Delete, don't deprecate-and-keep.
+
+**Status:** Mostly clean. Known residue:
+
+- **2 re-export barrels** — `ImageGenerationForm/hooks/index.ts` and `state/index.ts` re-export from `shared/` for backward compat (migration residue)
+- **7 SectionHeader imports** — Tools import from `@/tools/image-generation/...` instead of `@/shared/...` (wrong path, not architectural)
+- **`useAdjacentPagePreloading`** — Active (used in `ImageGenerationToolPage.tsx`, `GenerationsPane.tsx`), not deprecated
+
+---
+
+## Anti-Patterns
+
+| Don't do this | Why |
+|---------------|-----|
+| Registry/capability pattern for tools | Over-engineering for ~5 tools |
+| `useSafeQuery` wrapper | Fights React Query's design |
+| Facade hooks with deprecation layers | Delete old code instead |
+| Multi-week architecture overhauls | Adds abstractions instead of removing them |
+
+**Core principle:** Every change should make the codebase smaller or more explicit.
+
+---
+
+## Definition of Beautiful
+
+1. **Types encode domain rules** — `'no-shot' | 'all' | ShotId`, not `string`
+2. **One way to do each thing** — 2 generation hooks, not 5
+3. **Dependencies point one direction** — tools → shared, never reverse
+4. **Components do one thing** — orchestrators coordinate; leaves render
+5. **Names communicate intent** — `matchedAssociation`, not `m`
+6. **Implicit rules are explicit** — constants, helpers, types

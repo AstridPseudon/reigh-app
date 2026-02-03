@@ -243,9 +243,9 @@ export const useMediaGalleryActions = ({
           const blobContentType = originalContentType || responseContentType || (isVideo ? 'video/mp4' : 'image/png');
           const blob = new Blob([this.response], { type: blobContentType });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = url;
+          const downloadLink = document.createElement('a');
+          downloadLink.style.display = 'none';
+          downloadLink.href = url;
 
           let fileExtension = blobContentType.split('/')[1];
           if (fileExtension) {
@@ -257,12 +257,12 @@ export const useMediaGalleryActions = ({
             fileExtension = urlParts.length > 1 ? urlParts.pop()! : (isVideo ? 'mp4' : 'png');
           }
           const downloadFilename = filename.includes('.') ? filename : `${filename}.${fileExtension}`;
-          a.download = downloadFilename;
+          downloadLink.download = downloadFilename;
 
-          document.body.appendChild(a);
-          a.click();
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
           URL.revokeObjectURL(url);
-          document.body.removeChild(a);
+          document.body.removeChild(downloadLink);
           toast({ title: "Download Started", description: filename });
         } else {
           throw new Error(`Failed to fetch image: ${this.status} ${this.statusText}`);
@@ -398,18 +398,18 @@ export const useMediaGalleryActions = ({
       const zipBlob = await zip.generateAsync({ type: 'blob' });
 
       const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
+      const downloadLink = document.createElement('a');
+      downloadLink.style.display = 'none';
+      downloadLink.href = url;
 
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
-      a.download = `starred-images-${dateStr}.zip`;
+      downloadLink.download = `starred-images-${dateStr}.zip`;
 
-      document.body.appendChild(a);
-      a.click();
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
       URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      document.body.removeChild(downloadLink);
 
       toast({
         title: "Download complete",

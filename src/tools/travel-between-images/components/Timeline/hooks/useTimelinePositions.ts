@@ -88,7 +88,7 @@ interface UpdateOptions {
   operation?: 'drag' | 'drop' | 'reorder' | 'reset';
   skipOptimistic?: boolean;
   skipDatabase?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -169,9 +169,9 @@ export function useTimelinePositions({
     // 1. First, add positions from shotGenerations (database source)
     // shotGenerations uses sg.id as the key (shot_generations.id)
     // CRITICAL: Also exclude negative values (-1 is used as sentinel for unpositioned in useTimelinePositionUtils)
-    shotGenerations.forEach(sg => {
-      if (sg.timeline_frame !== null && sg.timeline_frame !== undefined && sg.timeline_frame >= 0) {
-        newPositions.set(sg.id, sg.timeline_frame);
+    shotGenerations.forEach(shotGen => {
+      if (shotGen.timeline_frame !== null && shotGen.timeline_frame !== undefined && shotGen.timeline_frame >= 0) {
+        newPositions.set(shotGen.id, shotGen.timeline_frame);
       }
     });
     
@@ -190,7 +190,7 @@ export function useTimelinePositions({
         console.log('[TimelinePositions] 🆕 Adding optimistic item to positions:', {
           id: img.id?.substring(0, 8),
           timeline_frame: img.timeline_frame,
-          isOptimistic: !!(img as any)._optimistic
+          isOptimistic: !!(img as GenerationRow & { _optimistic?: boolean })._optimistic
         });
         newPositions.set(img.id, img.timeline_frame);
       }

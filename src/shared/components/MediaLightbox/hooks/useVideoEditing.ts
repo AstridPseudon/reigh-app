@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { GenerationRow } from '@/types/shots';
 import { createTask, generateUUID, generateRunId } from '@/shared/lib/taskCreation';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { formatTime, PortionSelection } from '@/shared/components/VideoPortionTimeline';
-import { useEditVideoSettings } from '@/tools/edit-video/hooks/useEditVideoSettings';
+import { useEditVideoSettings } from '@/shared/hooks/useEditVideoSettings';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import type { LoraModel } from '@/shared/hooks/useLoraManager';
@@ -112,8 +113,8 @@ export const useVideoEditing = ({
     
     const frameCount = Math.round((end - start) * fps);
     // Quantize to 4N+1 format (required by Wan models)
-    const n = Math.round((frameCount - 1) / 4);
-    const quantized = Math.max(1, n * 4 + 1);
+    const quantizationFactor = Math.round((frameCount - 1) / 4);
+    const quantized = Math.max(1, quantizationFactor * 4 + 1);
     // Also cap at max allowed (81 - context * 2)
     const maxGap = Math.max(1, 81 - (contextFrameCount * 2));
     return Math.min(quantized, maxGap);
@@ -240,22 +241,22 @@ export const useVideoEditing = ({
     
     // Check each selection individually
     for (let i = 0; i < selections.length; i++) {
-      const s = selections[i];
+      const selection = selections[i];
       const selNum = selections.length > 1 ? ` #${i + 1}` : '';
-      
-      if (s.start >= s.end) {
+
+      if (selection.start >= selection.end) {
         errors.push(`Portion${selNum}: Start must be before end`);
       }
-      
-      const duration = s.end - s.start;
+
+      const duration = selection.end - selection.start;
       if (duration < 0.1) {
         errors.push(`Portion${selNum}: Too short (min 0.1s)`);
       }
-      
-      if (s.start < 0) {
+
+      if (selection.start < 0) {
         errors.push(`Portion${selNum}: Starts before video`);
       }
-      if (videoDuration > 0 && s.end > videoDuration) {
+      if (videoDuration > 0 && selection.end > videoDuration) {
         errors.push(`Portion${selNum}: Extends past video end`);
       }
     }
@@ -507,10 +508,8 @@ export const useVideoEditing = ({
       setGenerateSuccess(true);
       setTimeout(() => setGenerateSuccess(false), 3000);
       
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ 
-        queryKey: ['unified-generations', 'project', selectedProjectId]
-      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
     },
     onError: (error) => {
       handleError(error, { context: 'VideoEdit', toastTitle: 'Failed to create regeneration task' });

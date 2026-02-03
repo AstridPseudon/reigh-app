@@ -19,7 +19,7 @@
  */
 
 import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
-import { GenerationRow } from '@/types/shots';
+import { GenerationRow, GenerationMetadata } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
 import { stripQueryParameters } from '@/shared/lib/utils';
 
@@ -66,7 +66,7 @@ export async function calculateDerivedCounts(
     .in('generation_id', generationIds);
 
   if (!variantCountsError && variantCountsData) {
-    variantCountsData.forEach((item: any) => {
+    variantCountsData.forEach((item: { generation_id: string; viewed_at: string | null }) => {
       const genId = item.generation_id;
       derivedCounts[genId] = (derivedCounts[genId] || 0) + 1;
       // If any variant has viewed_at === null, mark as having unviewed variants and count them
@@ -82,6 +82,23 @@ export async function calculateDerivedCounts(
 
 
 /**
+ * Raw variant record from generation_variants table (before transformation)
+ */
+export interface RawVariant {
+  id: string;
+  generation_id: string;
+  location: string;
+  thumbnail_url?: string | null;
+  params?: Record<string, unknown> | null;
+  variant_type?: string | null;
+  name?: string | null;
+  created_at: string;
+  /** Only present for derived-items queries */
+  is_primary?: boolean;
+  viewed_at?: string | null;
+}
+
+/**
  * Raw generation record from database (before transformation)
  */
 export interface RawGeneration {
@@ -91,9 +108,9 @@ export interface RawGeneration {
   type?: string | null;
   created_at: string;
   updated_at?: string | null;
-  params?: any;
+  params?: Record<string, unknown> | null;
   starred?: boolean | null;
-  tasks?: any[] | any | null;
+  tasks?: string[] | string | null;
   based_on?: string | null;
   name?: string | null;
   derivedCount?: number; // Number of generations/variants based on this one
@@ -122,7 +139,7 @@ export interface RawShotGeneration {
   shot_id: string;
   generation_id: string;
   timeline_frame: number | null;
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
   created_at?: string;
   generation?: RawGeneration | RawGeneration[] | null;
   generations?: RawGeneration | RawGeneration[] | null;
@@ -137,7 +154,7 @@ export interface TransformOptions {
   /** Timeline frame position */
   timeline_frame?: number | null;
   /** Additional metadata to merge */
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
   /** Shot ID for filtering */
   shotId?: string;
   /** Whether to include verbose logging */
@@ -147,13 +164,17 @@ export interface TransformOptions {
 /**
  * Extract prompt from various nested param structures
  */
-function extractPrompt(params: any): string {
+function extractPrompt(params: Record<string, unknown> | null | undefined): string {
   if (!params) return 'No prompt';
-  
+
+  const originalParams = params.originalParams as Record<string, unknown> | undefined;
+  const orchestratorDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
+  const metadataBlock = params.metadata as Record<string, unknown> | undefined;
+
   return (
-    params.originalParams?.orchestrator_details?.prompt ||
-    params.prompt ||
-    params.metadata?.prompt ||
+    (orchestratorDetails?.prompt as string) ||
+    (params.prompt as string) ||
+    (metadataBlock?.prompt as string) ||
     'No prompt'
   );
 }
@@ -168,11 +189,16 @@ function extractThumbnailUrl(item: RawGeneration, mainUrl: string): string {
   
   // If no thumbnail in database, check params for travel-between-images videos
   if (!thumbnailUrl && item.params?.tool_type === 'travel-between-images') {
-    thumbnailUrl = 
-      item.params?.thumbnailUrl ||
-      item.params?.originalParams?.orchestrator_details?.thumbnail_url ||
-      item.params?.full_orchestrator_payload?.thumbnail_url ||
-      item.params?.originalParams?.full_orchestrator_payload?.thumbnail_url;
+    const originalParams = item.params?.originalParams as Record<string, unknown> | undefined;
+    const orchestratorDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
+    const fullPayload = item.params?.full_orchestrator_payload as Record<string, unknown> | undefined;
+    const originalFullPayload = originalParams?.full_orchestrator_payload as Record<string, unknown> | undefined;
+
+    thumbnailUrl =
+      (item.params?.thumbnailUrl as string) ||
+      (orchestratorDetails?.thumbnail_url as string) ||
+      (fullPayload?.thumbnail_url as string) ||
+      (originalFullPayload?.thumbnail_url as string);
   }
   
   // Final fallback to main URL
@@ -182,7 +208,7 @@ function extractThumbnailUrl(item: RawGeneration, mainUrl: string): string {
 /**
  * Extract task ID from tasks field (handles both array and single value)
  */
-function extractTaskId(tasks: any[] | any | null | undefined): string | null {
+function extractTaskId(tasks: string[] | string | null | undefined): string | null {
   if (Array.isArray(tasks) && tasks.length > 0) {
     return tasks[0];
   }
@@ -255,7 +281,7 @@ export function transformGeneration(
     based_on: item.based_on, // Top level for easy access
     position: null, // Will be set if shot context provided
     timeline_frame: null, // Will be set if shot context provided
-    name: item.name || item.params?.name || undefined,
+    name: item.name || (item.params?.name as string | undefined) || undefined,
     derivedCount: item.derivedCount || 0, // Number of generations/variants based on this one
     hasUnviewedVariants: item.hasUnviewedVariants || false, // For NEW badge display
     unviewedVariantCount: item.unviewedVariantCount || 0, // Count for tooltip
@@ -313,16 +339,16 @@ export function transformGeneration(
     }
     
     // Multiple shots: include all associations
-    const allAssociations = shotGenerations.map(sg => ({
-      shot_id: sg.shot_id,
-      timeline_frame: sg.timeline_frame,
-      position: normalizePosition(sg.timeline_frame),
+    const allAssociations = shotGenerations.map(shotGen => ({
+      shot_id: shotGen.shot_id,
+      timeline_frame: shotGen.timeline_frame,
+      position: normalizePosition(shotGen.timeline_frame),
     }));
     
     // When filtering by specific shot, use that shot as primary
     let primaryShot = shotGenerations[0];
     if (options.shotId) {
-      const matchingShot = shotGenerations.find(sg => sg.shot_id === options.shotId);
+      const matchingShot = shotGenerations.find(shotGen => shotGen.shot_id === options.shotId);
       if (matchingShot) {
         primaryShot = matchingShot;
       }
@@ -429,10 +455,10 @@ export function transformForTimeline(
     type: genData.type ?? undefined,
     createdAt: genData.created_at,
     timeline_frame: shotGen.timeline_frame ?? undefined,
-    metadata: shotGen.metadata,
+    metadata: (shotGen.metadata as GenerationMetadata | undefined) ?? undefined,
     starred: genData.starred ?? false, // ⭐ Pass through starred status
     based_on: genData.based_on ?? undefined, // 🔗 Pass through based_on for lineage tracking
-    derivedCount: (genData as any).derivedCount ?? 0, // 🔢 Pass through variant count
+    derivedCount: genData.derivedCount ?? 0, // 🔢 Pass through variant count
   };
 }
 
@@ -486,6 +512,65 @@ export function transformForUnifiedGenerations(
     position: normalizePosition(shotGen.timeline_frame),
     taskId,
     name: genData.name || undefined,
+  };
+}
+
+/**
+ * Detect if a URL points to a video based on file extension.
+ * Used for variants which lack a `type` column.
+ */
+function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+  return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+}
+
+/**
+ * Transform a raw variant record from generation_variants table to UI format.
+ *
+ * Mirrors `transformGeneration` but for variants, which have a different
+ * schema (no `type` column, different metadata shape).
+ *
+ * @param variant - Raw variant from database query
+ * @param options - Optional overrides (e.g. toolType fallback)
+ * @returns Transformed variant ready for UI display
+ */
+export function transformVariant(
+  variant: RawVariant,
+  options?: { toolType?: string }
+): GeneratedImageWithMetadata {
+  const isVideo = isVideoUrl(variant.location);
+  const variantParams = (variant.params ?? {}) as Record<string, unknown>;
+  const storedContentType = variantParams.content_type as string | undefined;
+
+  let contentType: string | undefined;
+  if (storedContentType === 'video' || isVideo) {
+    contentType = 'video/mp4';
+  } else if (storedContentType === 'image' || !isVideo) {
+    contentType = 'image/png';
+  }
+
+  return {
+    id: variant.id,
+    url: variant.location,
+    thumbUrl: variant.thumbnail_url || variant.location,
+    isVideo,
+    contentType,
+    createdAt: variant.created_at,
+    starred: false, // Variants don't have starred flag
+    metadata: {
+      prompt: variantParams.prompt as string | undefined,
+      variant_type: variant.variant_type,
+      name: variant.name,
+      generation_id: variant.generation_id,
+      tool_type: (variantParams.tool_type as string) || options?.toolType,
+      created_from: variantParams.created_from as string | undefined,
+      source_task_id: variantParams.source_task_id as string | undefined,
+      content_type: storedContentType,
+    },
+    shot_id: undefined,
+    position: undefined,
+    all_shot_associations: undefined,
   };
 }
 

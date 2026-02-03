@@ -3,6 +3,8 @@ import { useTimelineCore } from './useTimelineCore';
 import { toast } from 'sonner';
 import { analyzeReorderOperation, validateReorderAnalysis } from '@/shared/utils/reorderUtils';
 import { handleError } from '@/shared/lib/errorHandler';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { GenerationRow } from '@/types/shots';
 
 /**
  * Enhanced hook for handling shot image reordering with position exchange support
@@ -11,14 +13,15 @@ import { handleError } from '@/shared/lib/errorHandler';
 export const useEnhancedShotImageReorder = (
   shotId: string | null,
   parentHook?: {
-    shotGenerations: any[];
-    getImagesForMode: (mode: 'batch' | 'timeline') => any[];
+    shotGenerations: GenerationRow[];
+    getImagesForMode: (mode: 'batch' | 'timeline') => GenerationRow[];
     exchangePositions: (genIdA: string, genIdB: string) => Promise<void>;
     exchangePositionsNoReload: (shotGenIdA: string, shotGenIdB: string) => Promise<void>;
     batchExchangePositions: (exchanges: Array<{ generationIdA: string; generationIdB: string }>) => Promise<void>;
     deleteItem: (genId: string) => Promise<void>;
-    loadPositions: () => Promise<void>;
+    loadPositions: (opts?: { reason?: string }) => Promise<void>;
     isLoading: boolean;
+    moveItemsToMidpoint?: (draggedItemIds: string[], newStartIndex: number, allItems: Array<{ id: string; timeline_frame: number | null }>) => Promise<void>;
   }
 ) => {
   // Use parent hook functions if provided, otherwise create own instance
@@ -193,7 +196,7 @@ export const useEnhancedShotImageReorder = (
           };
         });
         
-        await (parentHookRef.current as any).moveItemsToMidpoint(
+        await parentHookRef.current!.moveItemsToMidpoint!(
           detectItemMove.movedItemIds,
           detectItemMove.newStartIndex,
           newOrderItems
@@ -235,10 +238,10 @@ export const useEnhancedShotImageReorder = (
           generationId: img.generation_id?.substring(0, 8),
           timeline_frame: img.timeline_frame
         })),
-        shotGenerations: shotGenerations.map(sg => ({
-          shotGenId: sg.id.substring(0, 8),
-          generationId: sg.generation_id.substring(0, 8),
-          timeline_frame: sg.timeline_frame
+        shotGenerations: shotGenerations.map(shotGen => ({
+          shotGenId: shotGen.id.substring(0, 8),
+          generationId: shotGen.generation_id.substring(0, 8),
+          timeline_frame: shotGen.timeline_frame
         })),
         orderedShotImageEntryIds: orderedShotImageEntryIds.map(id => id.substring(0, 8)),
         timestamp: Date.now()
@@ -310,15 +313,15 @@ export const useEnhancedShotImageReorder = (
           }
           
           // Find the shot_generation data to get timeline_frame values
-          const currentShotGen = shotGenerations.find(sg => sg.generation_id === currentImg.id);
-          const targetShotGen = shotGenerations.find(sg => sg.generation_id === targetImg.id);
+          const currentShotGen = shotGenerations.find(shotGen => shotGen.generation_id === currentImg.id);
+          const targetShotGen = shotGenerations.find(shotGen => shotGen.generation_id === targetImg.id);
           
           if (currentShotGen && targetShotGen) {
             changes.push({
               oldPos,
               newPos,
               id, // shot_generations.id
-              generationId: currentImg.generation_id || currentImg.id,
+              generationId: getGenerationId(currentImg),
               currentTimelineFrame: currentShotGen.timeline_frame || 0,
               targetTimelineFrame: targetShotGen.timeline_frame || 0
             });
@@ -423,7 +426,7 @@ export const useEnhancedShotImageReorder = (
     
     try {
       // Find the shot generation record by its ID
-      const targetItem = shotGenerations.find(sg => sg.id === id);
+      const targetItem = shotGenerations.find(shotGen => shotGen.id === id);
       if (!targetItem) {
         throw new Error('Item not found for deletion');
       }

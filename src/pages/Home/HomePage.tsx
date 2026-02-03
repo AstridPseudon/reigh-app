@@ -11,6 +11,7 @@ import { ConstellationCanvas } from '@/shared/components/ConstellationCanvas';
 import { useDebounce } from '@/shared/hooks/use-debounce';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import usePersistentState from '@/shared/hooks/usePersistentState';
+import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
 
 // Components
 import { HeroSection } from './components/HeroSection';
@@ -121,7 +122,7 @@ export default function HomePage() {
 
   // Redirect check
   useEffect(() => {
-    if ((location.state as any)?.fromProtected) {
+    if ((location.state as { fromProtected?: boolean } | null)?.fromProtected) {
       toast({ description: 'You need to be logged in to view that page.' });
       navigate(location.pathname, { replace: true });
     }
@@ -265,9 +266,10 @@ export default function HomePage() {
     handleHashTokens();
     
     // Check for standalone/PWA mode once
+    const nav = navigator as NavigatorWithDeviceInfo;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                         window.matchMedia('(display-mode: fullscreen)').matches ||
-                        (navigator as any).standalone === true;
+                        nav.standalone === true;
     
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('[AuthDebug] Initial session check:', !!session?.user?.id, 'isStandalone:', isStandalone);
@@ -296,14 +298,15 @@ export default function HomePage() {
       checkSessionAndRedirect();
     }
     
-    const authManager = (window as any).__AUTH_MANAGER__;
+    const authManager = window.__AUTH_MANAGER__;
     let unsubscribe: (() => void) | null = null;
     
     const handleAuthChange = (event: string, session: Session | null) => {
       // Check standalone mode inside the handler so it's fresh
+      const navInner = navigator as NavigatorWithDeviceInfo;
       const isStandaloneNow = window.matchMedia('(display-mode: standalone)').matches ||
                               window.matchMedia('(display-mode: fullscreen)').matches ||
-                              (navigator as any).standalone === true;
+                              navInner.standalone === true;
       
       console.log('[AuthDebug] Auth state change:', event, 'hasSession:', !!session?.user?.id, 'isStandalone:', isStandaloneNow);
       setSession(session);

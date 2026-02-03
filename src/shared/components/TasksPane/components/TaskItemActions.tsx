@@ -120,7 +120,7 @@ export const TaskItemActions: React.FC<TaskItemActionsProps> = ({
       )}
       
       {/* Open Video button - hidden for orchestrator tasks that don't have their own video */}
-      {isCompletedVideoTask && !ORCHESTRATOR_TASK_TYPES.includes(task.taskType as any) && (
+      {isCompletedVideoTask && !(ORCHESTRATOR_TASK_TYPES as readonly string[]).includes(task.taskType) && (
         <Tooltip>
           <TooltipTrigger asChild>
             <button

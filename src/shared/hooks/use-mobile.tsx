@@ -16,11 +16,11 @@ const computeIsTablet = (): boolean => {
   const isLargeTabletSize = width >= TABLET_BREAKPOINT && width < 1200;
   
   // iPadOS 13+ detection (reports as Mac with touch)
-  const maxTouchPoints = (navigator as any)?.maxTouchPoints || 0;
-  const isIpadOsLike = (navigator as any)?.platform === 'MacIntel' && maxTouchPoints > 1;
-  
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+  const isIpadOsLike = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
+
   // Generic tablet UA hints
-  const ua = (navigator as any)?.userAgent || '';
+  const ua = navigator.userAgent || '';
   const tabletUA = /iPad|Tablet|Android(?!.*Mobile)|Silk|Kindle|PlayBook/i.test(ua);
   
   // Coarse pointer (touch device)
@@ -51,11 +51,11 @@ const computeIsMobile = (): boolean => {
   })();
 
   // iPadOS 13+ may report as Mac with touch; detect via maxTouchPoints
-  const maxTouchPoints = (navigator as any)?.maxTouchPoints || 0;
-  const isIpadOsLike = (navigator as any)?.platform === 'MacIntel' && maxTouchPoints > 1;
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+  const isIpadOsLike = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
 
   // Generic tablet UA hints (best-effort, not relied upon exclusively)
-  const ua = (navigator as any)?.userAgent || '';
+  const ua = navigator.userAgent || '';
   const tabletUA = /iPad|Tablet|Android(?!.*Mobile)|Silk|Kindle|PlayBook/i.test(ua);
 
   return Boolean(widthMobile || coarsePointer || isIpadOsLike || tabletUA);

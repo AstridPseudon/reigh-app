@@ -15,7 +15,7 @@ import { cn, getDisplayUrl } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useBatchImageLoading } from '@/shared/hooks/useBatchImageLoading';
 import { getImageAspectRatioStyle } from '@/shared/lib/imageAspectRatio';
-import { framesToSeconds } from '@/tools/travel-between-images/components/Timeline/utils/time-utils';
+import { framesToSeconds } from '@/shared/lib/videoUtils';
 import { VariantBadge } from '@/shared/components/VariantBadge';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 
@@ -77,7 +77,8 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
   });
 
   // Calculate aspect ratio for consistent sizing with skeletons
-  const aspectRatioStyle = getImageAspectRatioStyle(image as any, projectAspectRatio);
+  // getImageAspectRatioStyle expects ImageWithMetadata which is a subset of GenerationRow
+  const aspectRatioStyle = getImageAspectRatioStyle(image as { metadata?: { width?: number; height?: number; originalParams?: { orchestrator_details?: { resolution?: string } } } }, projectAspectRatio);
 
   // Use image.id (shot_generations.id) - unique per entry
   const sortableId = image.id;
@@ -220,9 +221,9 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
         <>
           {/* Variant Count + NEW badge - bottom, above time */}
           <VariantBadge
-            derivedCount={(image as any).derivedCount}
-            unviewedVariantCount={(image as any).unviewedVariantCount}
-            hasUnviewedVariants={(image as any).hasUnviewedVariants}
+            derivedCount={image.derivedCount}
+            unviewedVariantCount={image.unviewedVariantCount}
+            hasUnviewedVariants={image.hasUnviewedVariants}
             variant="overlay"
             size="md"
             position="bottom-5 left-1/2 -translate-x-1/2"

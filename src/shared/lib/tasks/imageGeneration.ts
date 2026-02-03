@@ -6,6 +6,7 @@ import {
   TaskValidationError,
   BaseTaskParams,
 } from '../taskCreation';
+import type { TaskCreationResult } from '../taskCreation';
 import { ASPECT_RATIO_TO_RESOLUTION } from '../aspectRatios';
 import { handleError } from '@/shared/lib/errorHandler';
 
@@ -323,7 +324,7 @@ export async function calculateTaskResolution(
  * @param params - Image generation task parameters
  * @returns Promise resolving to the created task
  */
-export async function createImageGenerationTask(params: ImageGenerationTaskParams): Promise<any> {
+export async function createImageGenerationTask(params: ImageGenerationTaskParams): Promise<TaskCreationResult> {
   console.log("[createImageGenerationTask] Creating task with params:", params);
   console.log("[createImageGenerationTask] Hires fix params check:", {
     hires_scale: params.hires_scale,
@@ -460,7 +461,7 @@ export async function createImageGenerationTask(params: ImageGenerationTaskParam
  * @param params - Batch image generation parameters
  * @returns Promise resolving to array of created tasks
  */
-export async function createBatchImageGenerationTasks(params: BatchImageGenerationTaskParams): Promise<any[]> {
+export async function createBatchImageGenerationTasks(params: BatchImageGenerationTaskParams): Promise<TaskCreationResult[]> {
   console.log("[createBatchImageGenerationTasks] Creating batch tasks with params:", params);
   console.log("[createBatchImageGenerationTasks] Hires fix params check:", {
     hires_scale: params.hires_scale,
@@ -560,7 +561,7 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
 
     // 8. Return successful results
     const successfulResults = results
-      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .filter((r): r is PromiseFulfilledResult<TaskCreationResult> => r.status === 'fulfilled')
       .map(r => r.value);
 
     console.log(`[createBatchImageGenerationTasks] Batch completed: ${successfulResults.length} tasks created`);

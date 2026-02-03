@@ -9,8 +9,10 @@ import { useToast } from '@/shared/hooks/use-toast';
 import { handleError } from '@/shared/lib/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/lib/clientThumbnailGenerator';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 
 interface CharacterEditorProps {
   shot: Shot;
@@ -156,13 +158,13 @@ const CharacterEditor: React.FC<CharacterEditorProps> = ({
         location: url,
         thumbnail_url: thumbnailUrl,
         is_primary: true,
-        variant_type: 'original',
+        variant_type: VARIANT_TYPE.ORIGINAL,
         name: 'Original',
         params: generationParams,
       });
 
       // Invalidate queries to refresh
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
 
       toast({
         title: 'Character image uploaded',
@@ -231,7 +233,7 @@ const CharacterEditor: React.FC<CharacterEditorProps> = ({
     },
     onSuccess: (data) => {
       // Invalidate and refetch shots
-      queryClient.invalidateQueries({ queryKey: ['shots', projectId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
       
       toast({
         title: 'Animation generated',

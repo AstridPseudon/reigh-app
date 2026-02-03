@@ -101,15 +101,17 @@ const GridSkeletonItem: React.FC<{
 
 interface BatchDropZoneProps {
   children: React.ReactNode | ((isDragging: boolean, dropTargetIndex: number | null) => React.ReactNode);
-  onImageDrop?: (files: File[], targetPosition?: number, framePosition?: number) => Promise<void>;
-  onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetPosition?: number, framePosition?: number) => Promise<void>;
+  /** Drop files at calculated frame position */
+  onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
+  /** Drop generation at calculated frame position */
+  onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   columns: number;
   itemCount: number;
   className?: string;
   disabled?: boolean;
-  // Function to calculate frame position for a given index based on surrounding images
+  /** Function to calculate frame position for a given grid index based on surrounding images */
   getFramePositionForIndex?: (index: number) => number | undefined;
-  // Project aspect ratio for skeleton sizing
+  /** Project aspect ratio for skeleton sizing */
   projectAspectRatio?: string;
 }
 
@@ -178,7 +180,7 @@ function calculateDropIndex(
  */
 const BatchDropZone: React.FC<BatchDropZoneProps> = ({
   children,
-  onImageDrop,
+  onFileDrop,
   onGenerationDrop,
   columns,
   itemCount,
@@ -224,7 +226,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     
     console.log('[BatchDropZone] 🚀 handleDragEnter:', {
       disabled,
-      hasOnImageDrop: !!onImageDrop,
+      hasOnImageDrop: !!onFileDrop,
       hasOnGenerationDrop: !!onGenerationDrop,
       timestamp: Date.now()
     });
@@ -237,10 +239,10 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     const type = getDragType(e);
     console.log('[BatchDropZone] 🔍 getDragType result:', type);
     
-    if ((type === 'file' && onImageDrop) || (type === 'generation' && onGenerationDrop)) {
+    if ((type === 'file' && onFileDrop) || (type === 'generation' && onGenerationDrop)) {
       setDragType(type);
     }
-  }, [disabled, onImageDrop, onGenerationDrop]);
+  }, [disabled, onFileDrop, onGenerationDrop]);
 
   // Handle drag over - update indicator position
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -253,7 +255,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     }
 
     const type = getDragType(e);
-    if ((type === 'file' && onImageDrop) || (type === 'generation' && onGenerationDrop)) {
+    if ((type === 'file' && onFileDrop) || (type === 'generation' && onGenerationDrop)) {
       const targetIndex = calculateDropIndex(e, containerRef, columns, itemCount);
       setDropTargetIndex(targetIndex);
       setDragType(type);
@@ -261,7 +263,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     } else {
       e.dataTransfer.dropEffect = 'none';
     }
-  }, [columns, itemCount, disabled, onImageDrop, onGenerationDrop]);
+  }, [columns, itemCount, disabled, onFileDrop, onGenerationDrop]);
 
   // Handle drag leave
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -284,7 +286,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     
     console.log('[BatchDropZone] 💥 handleDrop CALLED:', {
       disabled,
-      hasOnImageDrop: !!onImageDrop,
+      hasOnImageDrop: !!onFileDrop,
       hasOnGenerationDrop: !!onGenerationDrop,
       timestamp: Date.now()
     });
@@ -296,35 +298,39 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     
     const type = getDragType(e);
     console.log('[BatchDropZone] 🔍 Drop type:', type);
-    
+
     // CRITICAL: Calculate position at drop time, not from stale state
     const targetPosition = calculateDropIndex(e, containerRef, columns, itemCount);
-    
+
     // Calculate frame position based on surrounding images
-    const framePosition = targetPosition !== null && getFramePositionForIndex 
-      ? getFramePositionForIndex(targetPosition) 
+    // Use framePosition if available, otherwise fall back to grid position
+    const framePosition = targetPosition !== null && getFramePositionForIndex
+      ? getFramePositionForIndex(targetPosition)
       : undefined;
-    
+
+    // Unified targetFrame: prefer calculated frame, fall back to grid position
+    const targetFrame = framePosition ?? targetPosition ?? undefined;
+
     // Clear visual drop indicator state
     setDropTargetIndex(null);
     setDragType('none');
-    
+
     // Show optimistic skeleton at drop position
     if (targetPosition !== null) {
       console.log('[BatchDropZone] 🦴 Setting pending drop skeleton at index:', targetPosition);
       setPendingDropIndex(targetPosition);
       setIsProcessingDrop(true);
     }
-    
+
     // Handle file drops
-    if (type === 'file' && onImageDrop) {
+    if (type === 'file' && onFileDrop) {
       const files = Array.from(e.dataTransfer.files);
       if (files.length === 0) {
         setPendingDropIndex(null);
         setIsProcessingDrop(false);
         return;
       }
-      
+
       const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
       const validFiles = files.filter(file => {
         if (validImageTypes.includes(file.type)) {
@@ -341,7 +347,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       }
 
       try {
-        await onImageDrop(validFiles, targetPosition ?? undefined, framePosition);
+        await onFileDrop(validFiles, targetFrame);
       } catch (error) {
         handleError(error, { context: 'BatchDropZone', toastTitle: 'Failed to add images' });
         setPendingDropIndex(null);
@@ -349,7 +355,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
         setIsProcessingDrop(false);
       }
     }
-    
+
     // Handle generation drops
     else if (type === 'generation' && onGenerationDrop) {
       const data = getGenerationDropData(e);
@@ -358,9 +364,9 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
         setIsProcessingDrop(false);
         return;
       }
-      
+
       try {
-        await onGenerationDrop(data.generationId, data.imageUrl, data.thumbUrl, targetPosition ?? undefined, framePosition);
+        await onGenerationDrop(data.generationId, data.imageUrl, data.thumbUrl, targetFrame);
       } catch (error) {
         handleError(error, { context: 'BatchDropZone', toastTitle: 'Failed to add generation' });
         setPendingDropIndex(null);
@@ -372,7 +378,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       setPendingDropIndex(null);
       setIsProcessingDrop(false);
     }
-  }, [columns, itemCount, disabled, onImageDrop, onGenerationDrop, getFramePositionForIndex]);
+  }, [columns, itemCount, disabled, onFileDrop, onGenerationDrop, getFramePositionForIndex]);
 
   if (disabled) {
     // Handle function children even when disabled

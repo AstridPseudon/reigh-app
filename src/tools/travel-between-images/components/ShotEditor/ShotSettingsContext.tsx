@@ -16,6 +16,7 @@
  */
 
 import React, { createContext, useContext } from 'react';
+import { QueryClient } from '@tanstack/react-query';
 import { Shot, GenerationRow } from '@/types/shots';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { ShotEditorState } from './state/types';
@@ -23,6 +24,15 @@ import { ShotEditorActions } from './state/useShotEditorState';
 import { LoraManagerReturn } from './hooks/useLoraSync';
 import type { UseStructureVideoReturn } from './hooks/useStructureVideo';
 import type { UseAudioReturn } from './hooks/useAudio';
+import type {
+  ImageDeleteHandler,
+  BatchImageDeleteHandler,
+  ImageDuplicateHandler,
+  ImageReorderHandler,
+  FileDropHandler,
+  GenerationDropHandler,
+  ImageUploadHandler,
+} from '@/shared/types/imageHandlers';
 
 // ============================================================================
 // Domain Types
@@ -53,26 +63,30 @@ export interface ShotImagesState {
   simpleFilteredImages: GenerationRow[];
 }
 
-/** Image manipulation handlers */
+/**
+ * Image manipulation handlers.
+ * Uses shared handler types from @/shared/types/imageHandlers.
+ * Both timeline and batch handlers use targetFrame (component calculates frame before calling).
+ */
 export interface ShotImageHandlers {
   /** Reorder images on timeline */
-  onReorder: (orderedShotGenerationIds: string[], draggedItemId?: string) => void;
+  onReorder: ImageReorderHandler;
   /** Drop external files onto timeline */
-  onImageDrop: (files: File[], targetFrame?: number) => Promise<void>;
+  onFileDrop: FileDropHandler;
   /** Drop existing generation onto timeline */
-  onGenerationDrop: (generationId: string, targetFrame: number) => Promise<void>;
-  /** Batch drop files onto timeline/grid */
-  onBatchFileDrop: (files: File[]) => Promise<void>;
-  /** Batch drop generations onto timeline/grid */
-  onBatchGenerationDrop: (generationIds: string[]) => Promise<void>;
-  /** Delete single image from timeline */
-  onDelete: (generation: GenerationRow) => Promise<void>;
-  /** Delete multiple images from timeline */
-  onBatchDelete: (generations: GenerationRow[]) => Promise<void>;
-  /** Duplicate image on timeline */
-  onDuplicate: (generation: GenerationRow) => Promise<void>;
+  onGenerationDrop: GenerationDropHandler;
+  /** Batch drop files onto batch mode grid (uses targetFrame, not targetPosition) */
+  onBatchFileDrop: FileDropHandler;
+  /** Batch drop generations onto batch mode grid (uses targetFrame, not targetPosition) */
+  onBatchGenerationDrop: GenerationDropHandler;
+  /** Delete single image from timeline - id is shot_generations.id */
+  onDelete: ImageDeleteHandler;
+  /** Delete multiple images from timeline - ids are shot_generations.id values */
+  onBatchDelete: BatchImageDeleteHandler;
+  /** Duplicate image on timeline - id is shot_generations.id */
+  onDuplicate: ImageDuplicateHandler;
   /** Upload image via file input */
-  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onUpload: ImageUploadHandler;
 }
 
 /** Shot management actions */
@@ -135,9 +149,9 @@ export interface StructureVideoHandlers {
 /** Join segments state and handlers */
 export interface JoinState {
   joinSettings: {
-    settings: any;
-    updateField: (field: string, value: any) => void;
-    updateFields: (fields: Record<string, any>) => void;
+    settings: Record<string, unknown>;
+    updateField: (field: string, value: unknown) => void;
+    updateFields: (fields: Record<string, unknown>) => void;
   };
   joinLoraManager: LoraManagerReturn;
   joinValidationData: {
@@ -216,7 +230,7 @@ export interface ShotSettingsContextValue {
   dimensions: DimensionState;
 
   // Query client for invalidations
-  queryClient: any;
+  queryClient: QueryClient;
 }
 
 const ShotSettingsContext = createContext<ShotSettingsContextValue | null>(null);

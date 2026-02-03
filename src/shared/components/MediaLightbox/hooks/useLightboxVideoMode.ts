@@ -15,7 +15,8 @@
 
 import { useRef, useState, useEffect } from 'react';
 import type { GenerationRow } from '@/types/shots';
-import { useVideoTrimming, useTrimSave } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor';
+import type { GenerationVariant } from '@/shared/hooks/useVariants';
+import { useVideoTrimming, useTrimSave } from '@/shared/components/VideoTrimEditor';
 import { useVideoEditing } from './useVideoEditing';
 import { useVideoEnhance, type VideoEnhanceSettings } from './useVideoEnhance';
 import { useVideoEditModeHandlers } from './useVideoEditModeHandlers';
@@ -33,7 +34,7 @@ export interface UseLightboxVideoModeProps {
   effectiveVideoUrl: string;
 
   // Active variant (for source tracking)
-  activeVariant: any;
+  activeVariant: GenerationVariant | null;
 
   // Variant management
   setActiveVariantId: (id: string) => void;

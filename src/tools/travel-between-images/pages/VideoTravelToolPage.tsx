@@ -32,7 +32,7 @@ const VideoTravelToolPage: React.FC = () => {
   const { currentShotId, setCurrentShotId } = useCurrentShot();
 
   // Get current project's aspect ratio
-  const currentProject = projects.find(p => p.id === selectedProjectId);
+  const currentProject = projects.find(project => project.id === selectedProjectId);
   const projectAspectRatio = currentProject?.aspectRatio;
 
   // Scroll to top on initial mount and when returning to main view

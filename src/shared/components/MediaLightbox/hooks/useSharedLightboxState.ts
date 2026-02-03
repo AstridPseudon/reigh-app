@@ -24,11 +24,13 @@
  */
 
 import { useRef, useEffect, useMemo, useCallback } from 'react';
+import type { UseMutationResult } from '@tanstack/react-query';
 import type { GenerationRow, Shot } from '@/types/shots';
-import type { ShotOption } from '../types';
-import {
-  useVariants,
-} from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor';
+import type { GenerationVariant } from '@/shared/hooks/useVariants';
+import type { DerivedItem } from '@/shared/hooks/useDerivedItems';
+import type { SourceVariantData } from './useSourceGeneration';
+import type { ShotOption, QuickCreateSuccess } from '../types';
+import { useVariants } from '@/shared/hooks/useVariants';
 import {
   useVariantSelection,
   useVariantPromotion,
@@ -136,9 +138,9 @@ export interface UseSharedLightboxStateProps {
 export interface UseSharedLightboxStateReturn {
   // Variants
   variants: {
-    list: any[];
-    primaryVariant: any;
-    activeVariant: any;
+    list: GenerationVariant[];
+    primaryVariant: GenerationVariant | null;
+    activeVariant: GenerationVariant | null;
     isLoading: boolean;
     setActiveVariantId: (id: string) => void;
     refetch: () => void;
@@ -166,7 +168,7 @@ export interface UseSharedLightboxStateReturn {
   star: {
     localStarred: boolean;
     setLocalStarred: (v: boolean) => void;
-    toggleStarMutation: any;
+    toggleStarMutation: UseMutationResult<void, Error, { id: string; starred: boolean; shotId?: string }>;
     handleToggleStar: () => void;
   };
 
@@ -183,11 +185,11 @@ export interface UseSharedLightboxStateReturn {
 
   // Lineage
   lineage: {
-    derivedItems: any[];
-    derivedGenerations: any[];
+    derivedItems: DerivedItem[];
+    derivedGenerations: GenerationRow[];
     derivedPage: number;
     derivedTotalPages: number;
-    paginatedDerived: any[];
+    paginatedDerived: DerivedItem[];
     setDerivedPage: (page: number) => void;
   };
 
@@ -200,15 +202,15 @@ export interface UseSharedLightboxStateReturn {
     handleAddToShotWithoutPosition: (shotId: string) => Promise<void>;
     // Creation
     isCreatingShot: boolean;
-    quickCreateSuccess: any;
+    quickCreateSuccess: QuickCreateSuccess;
     handleQuickCreateAndAdd: (name: string, files: File[]) => Promise<void>;
     handleQuickCreateSuccess: () => void;
   };
 
   // Source generation (for child generations)
   sourceGeneration: {
-    data: any;
-    primaryVariant: any;
+    data: GenerationRow | null;
+    primaryVariant: SourceVariantData | null;
   };
 
   // Make main variant

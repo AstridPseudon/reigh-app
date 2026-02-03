@@ -64,7 +64,7 @@ export const isCharacterAnimateTaskType = (taskType: string | null | undefined):
 
 /**
  * Check if a task type should show video-style details UI
- * This determines whether to render GenerationDetails vs SharedMetadataDetails
+ * Used by GenerationDetails to route to VideoTravelDetails vs ImageGenerationDetails
  */
 export const isVideoTaskType = (taskType: string | null | undefined): boolean => {
   if (!taskType) return false;
@@ -95,14 +95,17 @@ export const getTaskTypeCategory = (taskType: string | null | undefined): 'join_
  * Checks all known paths where orchestrator reference might be stored.
  * Matches the backend logic in complete_task/params.ts
  */
-export const extractOrchestratorTaskId = (params: Record<string, any> | null | undefined): string | null => {
+export const extractOrchestratorTaskId = (params: Record<string, unknown> | null | undefined): string | null => {
   if (!params) return null;
 
+  const details = params.orchestrator_details as Record<string, unknown> | undefined;
+  const originalDetails = (params.originalParams as Record<string, unknown> | undefined)?.orchestrator_details as Record<string, unknown> | undefined;
+
   return (
-    params.orchestrator_task_id_ref ||
-    params.orchestrator_details?.orchestrator_task_id ||
-    params.originalParams?.orchestrator_details?.orchestrator_task_id ||
-    params.orchestrator_task_id ||
+    (params.orchestrator_task_id_ref as string) ||
+    (details?.orchestrator_task_id as string) ||
+    (originalDetails?.orchestrator_task_id as string) ||
+    (params.orchestrator_task_id as string) ||
     null
   );
 };
@@ -110,12 +113,14 @@ export const extractOrchestratorTaskId = (params: Record<string, any> | null | u
 /**
  * Extract the orchestrator run ID from task params.
  */
-export const extractOrchestratorRunId = (params: Record<string, any> | null | undefined): string | null => {
+export const extractOrchestratorRunId = (params: Record<string, unknown> | null | undefined): string | null => {
   if (!params) return null;
 
+  const details = params.orchestrator_details as Record<string, unknown> | undefined;
+
   return (
-    params.orchestrator_details?.run_id ||
-    params.orchestrator_run_id ||
+    (details?.run_id as string) ||
+    (params.orchestrator_run_id as string) ||
     null
   );
 };
@@ -123,7 +128,7 @@ export const extractOrchestratorRunId = (params: Record<string, any> | null | un
 /**
  * Parse task params, handling both string and object formats
  */
-export const parseTaskParams = (params: string | Record<string, any> | null | undefined): Record<string, any> => {
+export const parseTaskParams = (params: string | Record<string, unknown> | null | undefined): Record<string, unknown> => {
   if (!params) return {};
   if (typeof params === 'string') {
     try {

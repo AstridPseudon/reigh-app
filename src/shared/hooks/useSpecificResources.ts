@@ -2,6 +2,8 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Resource } from './useResources';
+import { isNotFoundError } from '@/shared/constants/supabaseErrors';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 /**
  * Fetch a single resource by ID
@@ -15,7 +17,7 @@ const fetchResourceById = async (id: string): Promise<Resource | null> => {
     .single();
   
   if (error) {
-    if (error.code === 'PGRST116') {
+    if (isNotFoundError(error)) {
       // Resource not found - return null instead of throwing
       return null;
     }
@@ -41,7 +43,7 @@ export const useSpecificResources = (resourceIds: string[]) => {
   // Use individual queries per resource for normalized caching
   const queries = useQueries({
     queries: uniqueIds.map(id => ({
-      queryKey: ['resource', id],
+      queryKey: queryKeys.resources.detail(id),
       queryFn: () => fetchResourceById(id),
       // Keep data fresh but cache for a while
       staleTime: 5 * 60 * 1000,
@@ -72,7 +74,7 @@ export const useInvalidateResource = () => {
   const queryClient = useQueryClient();
   
   return useCallback((resourceId: string) => {
-    queryClient.removeQueries({ queryKey: ['resource', resourceId] });
+    queryClient.removeQueries({ queryKey: queryKeys.resources.detail(resourceId) });
   }, [queryClient]);
 };
 

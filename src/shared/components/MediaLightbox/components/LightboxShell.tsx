@@ -365,7 +365,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     }
   };
 
-  const handlePointerDownOutside = (event: CustomEvent) => {
+  const handlePointerDownOutside = (event: CustomEvent<{ originalEvent: PointerEvent }>) => {
     const target = event.target as Element;
 
     // Don't close if clicking inside the TasksPane
@@ -520,7 +520,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
                 : "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-auto h-auto data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]"
             )}
             style={contentStyle}
-            onPointerDownOutside={handlePointerDownOutside as any}
+            onPointerDownOutside={handlePointerDownOutside}
           >
             {/* Accessibility: Hidden dialog title for screen readers */}
             <DialogPrimitive.Title className="sr-only">

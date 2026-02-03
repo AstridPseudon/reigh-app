@@ -59,7 +59,7 @@ export function useTaskLogDownload(filters: TaskLogFilters): UseTaskLogDownloadR
 
       // Get cost information for all tasks
       const taskIds = tasksData?.map(task => task.id) || [];
-      let costsData: any[] = [];
+      let costsData: Array<{ task_id: string; amount: number; created_at: string }> = [];
 
       if (taskIds.length > 0) {
         const { data: costs } = await supabase

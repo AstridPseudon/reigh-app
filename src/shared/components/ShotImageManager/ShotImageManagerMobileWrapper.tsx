@@ -5,17 +5,25 @@ import MediaLightbox from '../MediaLightbox';
 import type { AdjacentSegmentsData } from '../MediaLightbox/types';
 import { useTaskDetails } from './hooks/useTaskDetails';
 import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
-import { SegmentSlot } from '@/tools/travel-between-images/hooks/useSegmentOutputsForShot';
-import { usePrefetchTaskData } from '@/shared/hooks/useUnifiedGenerations';
+import type { SegmentSlot } from '@/shared/hooks/segments';
+import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { getDisplayUrl } from '@/shared/lib/utils';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import type { GenerationRow } from '@/types/shots';
+import type { useSelection } from './hooks/useSelection';
+import type { useLightbox } from './hooks/useLightbox';
+import type { useBatchOperations } from './hooks/useBatchOperations';
+import type { useMobileGestures } from './hooks/useMobileGestures';
+import type { useOptimisticOrder } from './hooks/useOptimisticOrder';
+import type { useExternalGenerations } from './hooks/useExternalGenerations';
 
 interface ShotImageManagerMobileWrapperProps extends ShotImageManagerProps {
-  selection: any;
-  lightbox: any;
-  batchOps: any;
-  mobileGestures: any;
-  optimistic: any;
-  externalGens: any;
+  selection: ReturnType<typeof useSelection>;
+  lightbox: ReturnType<typeof useLightbox>;
+  batchOps: ReturnType<typeof useBatchOperations>;
+  mobileGestures: ReturnType<typeof useMobileGestures>;
+  optimistic: ReturnType<typeof useOptimisticOrder>;
+  externalGens: ReturnType<typeof useExternalGenerations>;
   lightboxSelectedShotId?: string;
   setLightboxSelectedShotId?: (shotId: string | undefined) => void;
   // Segment video output props
@@ -80,7 +88,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
 
     // Find the image in current images by ID
     const imageIndex = lightbox.currentImages.findIndex(
-      (img: any) => img.id === pendingImageToOpen || img.generation_id === pendingImageToOpen
+      (img: GenerationRow) => img.id === pendingImageToOpen || img.generation_id === pendingImageToOpen
     );
 
     if (imageIndex !== -1) {
@@ -120,8 +128,8 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
         prev = {
           pairIndex: prevSlot.index,
           hasVideo: prevSlot.type === 'child' && !!prevSlot.child?.location,
-          startImageUrl: getDisplayUrl((startImage as any)?.thumbUrl || (startImage as any)?.imageUrl),
-          endImageUrl: getDisplayUrl((endImage as any)?.thumbUrl || (endImage as any)?.imageUrl),
+          startImageUrl: getDisplayUrl(startImage?.thumbUrl || startImage?.imageUrl),
+          endImageUrl: getDisplayUrl(endImage?.thumbUrl || endImage?.imageUrl),
         };
       }
     }
@@ -136,8 +144,8 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
         next = {
           pairIndex: nextSlot.index,
           hasVideo: nextSlot.type === 'child' && !!nextSlot.child?.location,
-          startImageUrl: getDisplayUrl((currentImage as any)?.thumbUrl || (currentImage as any)?.imageUrl),
-          endImageUrl: endImage ? getDisplayUrl((endImage as any)?.thumbUrl || (endImage as any)?.imageUrl) : undefined,
+          startImageUrl: getDisplayUrl(currentImage?.thumbUrl || currentImage?.imageUrl),
+          endImageUrl: endImage ? getDisplayUrl(endImage?.thumbUrl || endImage?.imageUrl) : undefined,
         };
       }
     }
@@ -201,7 +209,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
   const currentLightboxImage = lightbox.lightboxIndex !== null
     ? lightbox.currentImages[lightbox.lightboxIndex]
     : null;
-  const currentLightboxImageId = (currentLightboxImage as any)?.generation_id || currentLightboxImage?.id || null;
+  const currentLightboxImageId = getGenerationId(currentLightboxImage) || null;
   const { taskDetailsData } = useTaskDetails({ generationId: currentLightboxImageId });
 
   // Prefetch task data for adjacent items when lightbox is open
@@ -213,7 +221,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
     // Prefetch previous item
     if (lightbox.lightboxIndex > 0) {
       const prevItem = lightbox.currentImages[lightbox.lightboxIndex - 1];
-      const prevGenerationId = (prevItem as any)?.generation_id || prevItem?.id;
+      const prevGenerationId = getGenerationId(prevItem);
       if (prevGenerationId) {
         prefetchTaskData(prevGenerationId);
       }
@@ -222,7 +230,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
     // Prefetch next item
     if (lightbox.lightboxIndex < lightbox.currentImages.length - 1) {
       const nextItem = lightbox.currentImages[lightbox.lightboxIndex + 1];
-      const nextGenerationId = (nextItem as any)?.generation_id || nextItem?.id;
+      const nextGenerationId = getGenerationId(nextItem);
       if (nextGenerationId) {
         prefetchTaskData(nextGenerationId);
       }
@@ -290,24 +298,28 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
         }
         
         const currentImage = lightbox.currentImages[lightbox.lightboxIndex];
-        
+
+        // Extended fields that may be present at runtime from external generation lookups
+        const currentImageShotId = (currentImage as GenerationRow & { shot_id?: string }).shot_id;
+        const currentImageAssociations = (currentImage as GenerationRow & { all_shot_associations?: Array<{ shot_id: string; timeline_frame?: number | null }> }).all_shot_associations;
+
         // Determine if the current image is positioned in the selected shot
         // For non-external gens (images from the shot itself), check if they have a timeline_frame
         // Use lightboxSelectedShotId instead of props.selectedShotId so it updates when dropdown changes
         const effectiveSelectedShotId = lightboxSelectedShotId || props.selectedShotId;
         const isInSelectedShot = !isExternalGen && effectiveSelectedShotId && (
-          props.shotId === effectiveSelectedShotId || 
-          (currentImage as any).shot_id === effectiveSelectedShotId ||
-          (Array.isArray((currentImage as any).all_shot_associations) && 
-           (currentImage as any).all_shot_associations.some((assoc: any) => assoc.shot_id === effectiveSelectedShotId))
+          props.shotId === effectiveSelectedShotId ||
+          currentImageShotId === effectiveSelectedShotId ||
+          (Array.isArray(currentImageAssociations) &&
+           currentImageAssociations.some((assoc) => assoc.shot_id === effectiveSelectedShotId))
         );
-        
+
         const positionedInSelectedShot = isInSelectedShot
-          ? (currentImage as any).timeline_frame !== null && (currentImage as any).timeline_frame !== undefined
+          ? currentImage.timeline_frame !== null && currentImage.timeline_frame !== undefined
           : undefined;
-        
+
         const associatedWithoutPositionInSelectedShot = isInSelectedShot
-          ? (currentImage as any).timeline_frame === null || (currentImage as any).timeline_frame === undefined
+          ? currentImage.timeline_frame === null || currentImage.timeline_frame === undefined
           : undefined;
 
         console.log('[BasedOnNav] 📊 MediaLightbox props (Mobile):', {
@@ -326,7 +338,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
           isTempDerived: lightbox.lightboxIndex >= baseImagesCount + externalGens.externalGenerations.length,
           positionedInSelectedShot,
           associatedWithoutPositionInSelectedShot,
-          currentImageTimelineFrame: (currentImage as any).timeline_frame
+          currentImageTimelineFrame: currentImage.timeline_frame
         });
         
         return (
@@ -364,7 +376,7 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
             showMagicEdit={true}
             hasNext={hasNext}
             hasPrevious={hasPrevious}
-            starred={(lightbox.currentImages[lightbox.lightboxIndex] as any).starred || false}
+            starred={lightbox.currentImages[lightbox.lightboxIndex]?.starred || false}
             onMagicEdit={props.onMagicEdit}
             readOnly={props.readOnly}
             showTaskDetails={true}
@@ -376,14 +388,14 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
                 currentImagesCount: lightbox.currentImages.length,
                 currentIndex: lightbox.lightboxIndex
               });
-              const index = lightbox.currentImages.findIndex((img: any) => img.id === generationId);
+              const index = lightbox.currentImages.findIndex((img: GenerationRow) => img.id === generationId);
               if (index !== -1) {
                 console.log('[ShotImageManager:Mobile] ✅ Found generation at index', index);
                 lightbox.setLightboxIndex(index);
               } else {
                 console.error('[ShotImageManager:Mobile] ❌ Generation not found in current images', {
                   searchedId: generationId.substring(0, 8),
-                  availableIds: lightbox.currentImages.map((img: any) => img.id.substring(0, 8))
+                  availableIds: lightbox.currentImages.map((img: GenerationRow) => img.id.substring(0, 8))
                 });
               }
             }}

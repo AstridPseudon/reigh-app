@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toolsManifest } from '@/tools';
 import { handleError } from '@/shared/lib/errorHandler';
+import { deepMerge } from '@/shared/lib/deepEqual';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 // Central list of tool IDs we want to preload. Update when you add more tools.
 const TOOL_IDS = [
@@ -15,29 +17,6 @@ const TOOL_IDS = [
 const toolDefaults: Record<string, unknown> = Object.fromEntries(
   toolsManifest.map(toolSettings => [toolSettings.id, toolSettings.defaults])
 );
-
-// Deep merge helper (duplicated here to avoid circular imports)
-function deepMerge(target: any, ...sources: any[]): any {
-  if (!sources.length) return target;
-  const source = sources.shift();
-
-  if (isObject(target) && isObject(source)) {
-    for (const key in source) {
-      if (isObject(source[key])) {
-        if (!target[key]) Object.assign(target, { [key]: {} });
-        deepMerge(target[key], source[key]);
-      } else {
-        Object.assign(target, { [key]: source[key] });
-      }
-    }
-  }
-
-  return deepMerge(target, ...sources);
-}
-
-function isObject(item: any): boolean {
-  return item && typeof item === 'object' && !Array.isArray(item);
-}
 
 /**
  * Fetch tool settings using Supabase (for prefetching)
@@ -79,9 +58,12 @@ async function fetchToolSettingsSupabase(toolId: string, ctx: { projectId?: stri
     ]);
 
     // Extract tool-specific settings from each scope
-    const userSettings = (userResult.data?.settings as any)?.[toolId] ?? {};
-    const projectSettings = (projectResult.data?.settings as any)?.[toolId] ?? {};
-    const shotSettings = (shotResult.data?.settings as any)?.[toolId] ?? {};
+    const userSettingsData = userResult.data?.settings as Record<string, unknown> | null;
+    const projectSettingsData = projectResult.data?.settings as Record<string, unknown> | null;
+    const shotSettingsData = shotResult.data?.settings as Record<string, unknown> | null;
+    const userSettings = (userSettingsData?.[toolId] as Record<string, unknown>) ?? {};
+    const projectSettings = (projectSettingsData?.[toolId] as Record<string, unknown>) ?? {};
+    const shotSettings = (shotSettingsData?.[toolId] as Record<string, unknown>) ?? {};
 
     // Merge in priority order: defaults → user → project → shot
     return deepMerge(
@@ -92,7 +74,7 @@ async function fetchToolSettingsSupabase(toolId: string, ctx: { projectId?: stri
       shotSettings
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     handleError(error, { context: 'usePrefetchToolSettings', showToast: false });
     throw error;
   }
@@ -121,7 +103,7 @@ export function usePrefetchToolSettings(projectId?: string | null, shotIds: stri
     TOOL_IDS.forEach((toolId) => {
       console.log('[RefLoadingDebug] 📡 Prefetching:', toolId);
       queryClient.prefetchQuery({
-        queryKey: ['toolSettings', toolId, projectId, undefined],
+        queryKey: queryKeys.settings.tool(toolId, projectId, undefined),
         queryFn: () => fetchToolSettingsSupabase(toolId, { projectId }),
         staleTime: 5 * 60 * 1000, // keep fresh for 5 min (same as useToolSettings)
       }).then(() => {
@@ -136,7 +118,7 @@ export function usePrefetchToolSettings(projectId?: string | null, shotIds: stri
       shotIds.forEach((shotId) => {
         TOOL_IDS.forEach((toolId) => {
           queryClient.prefetchQuery({
-            queryKey: ['toolSettings', toolId, projectId, shotId],
+            queryKey: queryKeys.settings.tool(toolId, projectId, shotId),
             queryFn: () => fetchToolSettingsSupabase(toolId, { projectId, shotId }),
             staleTime: 5 * 60 * 1000,
           });

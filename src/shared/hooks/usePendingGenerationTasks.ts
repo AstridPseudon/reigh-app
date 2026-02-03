@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TASK_STATUS } from '@/types/tasks';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 interface PendingGenerationTask {
   id: string;
@@ -31,7 +32,7 @@ export interface UsePendingGenerationTasksReturn {
  * Check if task params reference a specific generation ID as a source.
  * Checks common param fields where source generation is stored.
  */
-function taskReferencesGeneration(params: any, generationId: string): boolean {
+function taskReferencesGeneration(params: Record<string, unknown> | null, generationId: string): boolean {
   if (!params || !generationId) return false;
 
   // Direct source references
@@ -44,7 +45,7 @@ function taskReferencesGeneration(params: any, generationId: string): boolean {
   if (params.pair_shot_generation_id === generationId) return true;
 
   // Check nested in orchestrator_details
-  const orchDetails = params.orchestrator_details;
+  const orchDetails = params.orchestrator_details as Record<string, unknown> | undefined;
   if (orchDetails) {
     if (orchDetails.based_on === generationId) return true;
     if (orchDetails.source_generation_id === generationId) return true;
@@ -56,7 +57,7 @@ function taskReferencesGeneration(params: any, generationId: string): boolean {
   }
 
   // Check full_orchestrator_payload
-  const fullPayload = params.full_orchestrator_payload;
+  const fullPayload = params.full_orchestrator_payload as Record<string, unknown> | undefined;
   if (fullPayload) {
     if (fullPayload.based_on === generationId) return true;
     if (fullPayload.source_generation_id === generationId) return true;
@@ -64,7 +65,7 @@ function taskReferencesGeneration(params: any, generationId: string): boolean {
   }
 
   // Check individual_segment_params (used by individual_travel_segment)
-  const individualParams = params.individual_segment_params;
+  const individualParams = params.individual_segment_params as Record<string, unknown> | undefined;
   if (individualParams) {
     if (individualParams.pair_shot_generation_id === generationId) return true;
   }
@@ -78,7 +79,7 @@ export function usePendingGenerationTasks(
 ): UsePendingGenerationTasksReturn {
   // Query pending tasks for this project
   const { data: pendingTasks, isLoading } = useQuery({
-    queryKey: ['pending-generation-tasks', generationId, projectId],
+    queryKey: [...queryKeys.tasks.pendingGeneration(generationId!), projectId],
     queryFn: async () => {
       if (!generationId || !projectId) return [];
 
@@ -98,8 +99,8 @@ export function usePendingGenerationTasks(
 
       // Filter to tasks that reference this generation
       const matchingTasks: PendingGenerationTask[] = (data || [])
-        .filter((task: any) => taskReferencesGeneration(task.params, generationId))
-        .map((task: any) => ({
+        .filter(task => taskReferencesGeneration(task.params as Record<string, unknown> | null, generationId))
+        .map(task => ({
           id: task.id,
           status: task.status,
           task_type: task.task_type,

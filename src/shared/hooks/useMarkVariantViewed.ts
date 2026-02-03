@@ -76,16 +76,14 @@ export function useMarkVariantViewed() {
       console.log('[useMarkVariantViewed] Marked as viewed:', variantId.substring(0, 8));
 
       // Invalidate variant-level queries (VariantSelector)
-      // Note: Using partial keys for broad invalidation (matches all variants)
-      queryClient.invalidateQueries({ queryKey: ['generation-variants'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantsAll });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedAll });
 
       // Invalidate generation-level queries (gallery, timeline, batch)
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShotAll });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
-      // Note: 'shot-positions' is not in queryKeys yet - leaving as-is for partial match
-      queryClient.invalidateQueries({ queryKey: ['shot-positions'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.positionsAll });
 
       // NOTE: We intentionally do NOT invalidate variant-badges here.
       // The optimistic update in onMutate already updated the badge count.
@@ -138,16 +136,14 @@ export function useMarkVariantViewed() {
       console.log('[useMarkVariantViewed] Marked all viewed for:', generationId.substring(0, 8));
 
       // Invalidate variant-level queries
-      // Note: Using partial keys for broad invalidation (matches all variants)
-      queryClient.invalidateQueries({ queryKey: ['generation-variants'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantsAll });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedAll });
 
       // Invalidate generation-level queries
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShotAll });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
-      // Note: 'shot-positions' is not in queryKeys yet - leaving as-is for partial match
-      queryClient.invalidateQueries({ queryKey: ['shot-positions'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shots.positionsAll });
     },
     onError: (error) => {
       console.error('[useMarkVariantViewed] Bulk failed:', error);

@@ -4,8 +4,8 @@ export type ModalSize = 'small' | 'medium' | 'large' | 'extra-large';
 
 interface ModalStyling {
   className: string;
-  style: Record<string, any>;
-  props: Record<string, any>;
+  style: Record<string, unknown>;
+  props: Record<string, unknown>;
   isMobile: boolean;
   // Container classes - keeping same names for compatibility
   headerClass: string;

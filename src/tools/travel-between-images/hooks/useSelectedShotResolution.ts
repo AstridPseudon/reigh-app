@@ -51,7 +51,7 @@ export function useSelectedShotResolution({
 
     // First try shots array (the source of truth once cached)
     if (shots) {
-      const found = shots.find(s => s.id === currentShotId);
+      const found = shots.find(shot => shot.id === currentShotId);
       if (found) return found;
     }
 
@@ -77,21 +77,21 @@ export function useSelectedShotResolution({
 
     // Priority 2: Use shot from hash if available in shots array
     if (hashShotId && shots) {
-      const hashShot = shots.find(s => s.id === hashShotId);
+      const hashShot = shots.find(shot => shot.id === hashShotId);
       if (hashShot) {
         return hashShot;
       }
     }
 
     // Priority 3: Use selectedShot or find from shots array
-    return selectedShot || (viaShotClick && currentShotId ? shots?.find(s => s.id === currentShotId) : null) || null;
+    return selectedShot || (viaShotClick && currentShotId ? shots?.find(shot => shot.id === currentShotId) : null) || null;
   }, [selectedShot, viaShotClick, currentShotId, shots, hashShotId, shotFromState]);
 
   // Determine whether to show the editor view
   const shouldShowEditor = useMemo(() => {
     // Only show editor if we actually have a valid shot to edit
-    const shotExists = selectedShot || (viaShotClick && currentShotId && shots?.find(s => s.id === currentShotId));
-    const hashShotExists = hashShotId && shots?.find(s => s.id === hashShotId);
+    const shotExists = selectedShot || (viaShotClick && currentShotId && shots?.find(shot => shot.id === currentShotId));
+    const hashShotExists = hashShotId && shots?.find(shot => shot.id === hashShotId);
     const shotFromStateExists = viaShotClick && shotFromState && shotFromState.id === currentShotId;
 
     // Show the section (with loading state) if this is a newly created shot waiting for cache

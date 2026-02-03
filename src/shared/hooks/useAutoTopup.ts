@@ -27,7 +27,7 @@ async function fetchAutoTopupPreferences(): Promise<AutoTopupPreferences> {
   // Fetch auto-topup preferences.
   // IMPORTANT: Stripe IDs are NOT selected client-side (column privileges revoked).
   const { data, error } = await supabase
-    .from('users' as any)
+    .from('users')
     .select(`
       auto_topup_enabled,
       auto_topup_amount,
@@ -37,24 +37,23 @@ async function fetchAutoTopupPreferences(): Promise<AutoTopupPreferences> {
     `)
     .eq('id', user.id)
     .single();
-    
+
   console.log('[AutoTopup:Hook] Query result:', { data, error });
 
   if (error) {
     throw new Error(`Failed to fetch auto-top-up preferences: ${error.message}`);
   }
 
-  const row = data as any;
-  const hasPaymentMethod = !!row?.auto_topup_setup_completed;
+  const hasPaymentMethod = !!data?.auto_topup_setup_completed;
 
   return {
-    enabled: row?.auto_topup_enabled || false,
+    enabled: data?.auto_topup_enabled || false,
     // Setup completed if payment method is configured
     setupCompleted: hasPaymentMethod,
-    amount: row?.auto_topup_amount ? row.auto_topup_amount / 100 : 50, // Convert cents to dollars
-    threshold: row?.auto_topup_threshold ? row.auto_topup_threshold / 100 : 10, // Convert cents to dollars
+    amount: data?.auto_topup_amount ? data.auto_topup_amount / 100 : 50, // Convert cents to dollars
+    threshold: data?.auto_topup_threshold ? data.auto_topup_threshold / 100 : 10, // Convert cents to dollars
     hasPaymentMethod,
-    lastTriggered: row?.auto_topup_last_triggered,
+    lastTriggered: data?.auto_topup_last_triggered ?? undefined,
     // Note: Stripe IDs are intentionally NOT exposed to frontend
   };
 }
@@ -95,9 +94,9 @@ async function updateAutoTopupPreferences(params: UpdateAutoTopupParams): Promis
   
   console.log('[AutoTopup:Hook] Edge function response:', { data });
   
-  if ((data as any)?.error) {
+  if ((data as Record<string, unknown> | null)?.error) {
     console.error('[AutoTopup:Hook] Edge function returned error:', data);
-    throw new Error((data as any).message || 'Failed to update auto-top-up preferences');
+    throw new Error(((data as Record<string, unknown>).message as string) || 'Failed to update auto-top-up preferences');
   }
   
   console.log('[AutoTopup:Hook] Save operation completed successfully');

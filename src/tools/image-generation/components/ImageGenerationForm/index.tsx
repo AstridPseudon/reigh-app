@@ -1,16 +1,18 @@
 /**
- * ImageGenerationForm barrel
+ * ImageGenerationForm - Re-exports from shared
  *
- * Re-exports the main component and related types/components.
- * Main component logic is in ImageGenerationForm.tsx.
+ * This component and all its sub-components have been moved to
+ * shared/components/ImageGenerationForm/ because they're used by
+ * shared/components/ImageGenerationModal and other shared components.
+ *
+ * Re-exported here for backwards compatibility with existing imports.
  */
 
 // Main component
-export { ImageGenerationForm } from './ImageGenerationForm';
-export { ImageGenerationForm as default } from './ImageGenerationForm';
+export { ImageGenerationForm, ImageGenerationForm as default } from '@/shared/components/ImageGenerationForm';
 
 // Sub-components used elsewhere
-export { PromptInputRow } from './components/PromptInputRow';
+export { PromptInputRow } from '@/shared/components/ImageGenerationForm';
 
 // Types
 export type {
@@ -23,7 +25,7 @@ export type {
   HiresFixConfig,
   GenerationSource,
   TextToImageModel,
-} from './types';
+} from '@/shared/components/ImageGenerationForm';
 
 // Context (for sections that need to pull from context)
 export {
@@ -35,7 +37,7 @@ export {
   useFormReferencesContext,
   useFormLorasContext,
   useContextValue,
-} from './ImageGenerationFormContext';
+} from '@/shared/components/ImageGenerationForm';
 export type {
   ImageGenerationFormContextValue,
   FormCoreState,
@@ -45,8 +47,8 @@ export type {
   FormReferenceHandlers,
   FormLoraState,
   FormLoraHandlers,
-} from './ImageGenerationFormContext';
+} from '@/shared/components/ImageGenerationForm';
 
 // State (for advanced usage)
-export { useFormUIState } from './state';
-export type { FormUIActions, ImageGenerationFormUIState } from './state';
+export { useFormUIState } from '@/shared/components/ImageGenerationForm';
+export type { FormUIActions, ImageGenerationFormUIState } from '@/shared/components/ImageGenerationForm';

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { 
-  useListShots, 
-  useRemoveImageFromShot, 
+import {
+  useListShots,
+  useRemoveImageFromShot,
   useUpdateShotImageOrder,
   useAddImageToShot,
   useAddImageToShotWithoutPosition
@@ -16,7 +16,8 @@ import { toast } from 'sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
-import { useAllShotGenerations } from '@/shared/hooks/useShotGenerations';
+import { useShotImages } from '@/shared/hooks/useShotImages';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 const ShotsPage: React.FC = () => {
   const { selectedProjectId } = useProject();
@@ -34,11 +35,11 @@ const ShotsPage: React.FC = () => {
   // DERIVE selectedShot from the single source of truth (the `shots` query)
   const selectedShot = useMemo(() => {
     if (!currentShotId || !shots) return null;
-    return shots.find(s => s.id === currentShotId) || null;
+    return shots.find(shot => shot.id === currentShotId) || null;
   }, [currentShotId, shots]);
 
   // When a shot is selected, fetch full images for that shot to avoid thumbnail-only limitation
-  const { data: fullSelectedShotImages = [] } = useAllShotGenerations(selectedShot?.id ?? null);
+  const { data: fullSelectedShotImages = [] } = useShotImages(selectedShot?.id ?? null);
 
   // Local state for the images being managed, which can be updated optimistically.
   const [managedImages, setManagedImages] = useState<GenerationRow[]>([]);
@@ -58,7 +59,7 @@ const ShotsPage: React.FC = () => {
   useEffect(() => {
     const shotIdFromLocation = location.state?.selectedShotId;
     if (shotIdFromLocation && shots && shots.length > 0) {
-      const shotToSelect = shots.find(s => s.id === shotIdFromLocation);
+      const shotToSelect = shots.find(shot => shot.id === shotIdFromLocation);
       if (shotToSelect) {
         setCurrentShotId(shotIdFromLocation);
         navigate(location.pathname, { replace: true, state: {} });
@@ -76,7 +77,7 @@ const ShotsPage: React.FC = () => {
 
   const refreshSelectedShotImages = async () => {
     if (currentShotId && selectedProjectId) {
-      await queryClient.invalidateQueries({ queryKey: ['shots', selectedProjectId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(selectedProjectId) });
     }
   };
 
@@ -136,7 +137,7 @@ const ShotsPage: React.FC = () => {
 
   // Simplified shot options for the lightbox shot selector
   const simplifiedShotOptions = useMemo(() => 
-    shots ? shots.map(s => ({ id: s.id, name: s.name })) : [],
+    shots ? shots.map(shot => ({ id: shot.id, name: shot.name })) : [],
     [shots]
   );
 

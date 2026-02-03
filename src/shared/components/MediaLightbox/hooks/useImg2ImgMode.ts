@@ -4,6 +4,7 @@ import { handleError } from '@/shared/lib/errorHandler';
 import { GenerationRow } from '@/types/shots';
 import { createBatchZImageTurboI2ITasks, ZImageLoraConfig } from '@/shared/lib/tasks/zImageTurboI2I';
 import { useLoraManager, UseLoraManagerReturn, ActiveLora, LoraModel } from '@/shared/hooks/useLoraManager';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 export interface UseImg2ImgModeProps {
   media: GenerationRow;
@@ -87,10 +88,10 @@ export const useImg2ImgMode = ({
 
   // Derive the base generation prompt from the generation params (best-effort)
   const baseGenerationPrompt = useMemo(() => {
-    const p = (media as any)?.params;
+    const params = media.params;
     const raw =
-      (typeof p?.base_prompt === 'string' && p.base_prompt) ||
-      (typeof p?.prompt === 'string' && p.prompt) ||
+      (typeof params?.base_prompt === 'string' && params.base_prompt) ||
+      (typeof params?.prompt === 'string' && params.prompt) ||
       '';
     return raw.trim();
   }, [media]);
@@ -166,7 +167,7 @@ export const useImg2ImgMode = ({
       });
 
       // Get actual generation ID (handle shot_generations case)
-      const actualGenerationId = (media as any).generation_id || media.id;
+      const actualGenerationId = getGenerationId(media);
 
       // Create tasks based on numGenerations
       await createBatchZImageTurboI2ITasks({

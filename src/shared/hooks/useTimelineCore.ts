@@ -372,7 +372,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
     for (let i = 0; i < positionedItems.length - 1; i++) {
       const firstItem = positionedItems[i];
       // Use migration utility to read from new or old format
-      const overrides = readSegmentOverrides(firstItem.metadata as Record<string, any> | null);
+      const overrides = readSegmentOverrides(firstItem.metadata as Record<string, unknown> | null);
 
       if (overrides.prompt || overrides.negativePrompt) {
         result[i] = {
@@ -398,8 +398,8 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
         }
 
         // Use migration utility to write in new format while preserving other data
-        const currentOverrides = readSegmentOverrides(item.metadata as Record<string, any> | null);
-        const updatedMetadata = writeSegmentOverrides(item.metadata as Record<string, any> | null, {
+        const currentOverrides = readSegmentOverrides(item.metadata as Record<string, unknown> | null);
+        const updatedMetadata = writeSegmentOverrides(item.metadata as Record<string, unknown> | null, {
           ...currentOverrides,
           prompt,
           negativePrompt,
@@ -454,7 +454,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
       }
 
       const firstItem = positionedItems[pairIndex];
-      return readSegmentOverrides(firstItem.metadata as Record<string, any> | null);
+      return readSegmentOverrides(firstItem.metadata as Record<string, unknown> | null);
     },
     [positionedItems]
   );
@@ -468,8 +468,8 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
       if (!firstItem.shotImageEntryId) return;
 
       try {
-        const currentOverrides = readSegmentOverrides(firstItem.metadata as Record<string, any> | null);
-        const updatedMetadata = writeSegmentOverrides(firstItem.metadata as Record<string, any> | null, {
+        const currentOverrides = readSegmentOverrides(firstItem.metadata as Record<string, unknown> | null);
+        const updatedMetadata = writeSegmentOverrides(firstItem.metadata as Record<string, unknown> | null, {
           ...currentOverrides,
           ...overrides,
         });
@@ -501,7 +501,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
       const item = positionedItems.find((g) => g.shotImageEntryId === shotGenerationId);
       if (!item?.metadata) return undefined;
 
-      const metadata = item.metadata as Record<string, any>;
+      const metadata = item.metadata as Record<string, unknown>;
       return metadata.enhanced_prompt || metadata.segmentOverrides?.enhanced_prompt;
     },
     [positionedItems]
@@ -516,7 +516,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
         const item = positionedItems.find((g) => g.shotImageEntryId === shotGenerationId);
         if (!item) return;
 
-        const currentMetadata = (item.metadata as Record<string, any>) || {};
+        const currentMetadata = (item.metadata as Record<string, unknown>) || {};
         const updatedMetadata = {
           ...currentMetadata,
           enhanced_prompt: '',
@@ -524,7 +524,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
 
         // Optimistic update: immediately update the cache
         queryClient.setQueryData<GenerationRow[]>(
-          ['all-shot-generations', shotId],
+          queryKeys.generations.byShot(shotId),
           (oldData) => {
             if (!oldData) return oldData;
             return oldData.map((row) =>
@@ -564,7 +564,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
     try {
       // Get all shot_generations with enhanced prompts
       const itemsWithEnhancedPrompts = positionedItems.filter((g) => {
-        const metadata = g.metadata as Record<string, any>;
+        const metadata = g.metadata as Record<string, unknown>;
         return metadata?.enhanced_prompt;
       });
 
@@ -574,7 +574,7 @@ export function useTimelineCore(shotId: string | null): TimelineCoreResult {
       for (const item of itemsWithEnhancedPrompts) {
         if (!item.shotImageEntryId) continue;
 
-        const currentMetadata = (item.metadata as Record<string, any>) || {};
+        const currentMetadata = (item.metadata as Record<string, unknown>) || {};
         const updatedMetadata = {
           ...currentMetadata,
           enhanced_prompt: '',

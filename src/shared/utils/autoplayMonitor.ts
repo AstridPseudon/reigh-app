@@ -46,8 +46,17 @@ const compareVideoStates = (current: VideoState[], previous: VideoState[]): bool
   });
 };
 
+interface VideoStateChange {
+  type: string;
+  video?: string;
+  isLightbox?: boolean;
+  isGallery?: boolean;
+  from: number | string;
+  to: number | string;
+}
+
 const logVideoStateChanges = (current: VideoState[], previous: VideoState[]) => {
-  const changes: any[] = [];
+  const changes: VideoStateChange[] = [];
   
   // Check for new/removed videos
   if (current.length !== previous.length) {

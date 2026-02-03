@@ -18,10 +18,6 @@ export {
   cancelShotGenerationsQuery,
 } from './cacheUtils';
 
-// Debug utilities
-export { shotDebug, shotError } from './debug';
-export type { ShotOperation } from './debug';
-
 // Mappers
 export { mapShotGenerationToRow } from './mappers';
 export type { ShotGenerationRow } from './mappers';

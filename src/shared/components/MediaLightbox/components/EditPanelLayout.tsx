@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib/utils';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
 import { VariantBadge } from '@/shared/components/VariantBadge';
 import { useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
-import { VariantSelector } from '@/tools/travel-between-images/components/VideoGallery/components/VideoTrimEditor/components/VariantSelector';
+import { VariantSelector } from '@/shared/components/VariantSelector';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 
 export interface EditPanelLayoutProps {
@@ -49,7 +49,7 @@ export interface EditPanelLayoutProps {
   isPromoting?: boolean;
 
   /** Handler to load a variant's settings into the regenerate form */
-  onLoadVariantSettings?: (variantParams: Record<string, any>) => void;
+  onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
 
   /** Handler to delete a variant */
   onDeleteVariant?: (variantId: string) => Promise<void>;
@@ -132,12 +132,12 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>{pendingTaskCount} pending</span>
             </div>
-          ) : unviewedVariantCount > 0 ? (
+          ) : variants && variants.length > 1 && unviewedVariantCount > 0 ? (
             <VariantBadge
               variant="inline"
+              derivedCount={variants.length}
               unviewedVariantCount={unviewedVariantCount}
               hasUnviewedVariants={true}
-              alwaysShowNew={true}
               tooltipSide="bottom"
               onMarkAllViewed={onMarkAllViewed}
               onClick={() => variantsSectionRef?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}

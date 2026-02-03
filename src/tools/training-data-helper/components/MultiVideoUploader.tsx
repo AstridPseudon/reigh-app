@@ -21,6 +21,7 @@ interface VideoFile {
   preview?: string;
   duration?: number;
   thumbnailUrl?: string;
+  detectedScenes?: number[];
 }
 
 interface MultiVideoUploaderProps {
@@ -243,7 +244,7 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
             console.log(`Detected ${scenes.length} scenes for ${videoFile.file.name}:`, scenes);
             
             // Store scene times in the video file for later use
-            (videoFile as any).detectedScenes = scenes;
+            videoFile.detectedScenes = scenes;
             processedVideos.push(videoFile);
           } catch (error) {
             handleError(error, { context: 'MultiVideoUploader', toastTitle: `Scene detection failed for ${videoFile.file.name}, using manual mode` });
@@ -280,10 +281,10 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
-    const k = 1024;
+    const BYTES_PER_KB = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const unitIndex = Math.floor(Math.log(bytes) / Math.log(BYTES_PER_KB));
+    return parseFloat((bytes / Math.pow(BYTES_PER_KB, unitIndex)).toFixed(2)) + ' ' + sizes[unitIndex];
   };
 
   const getSplitModeIcon = (mode: SplitMode) => {

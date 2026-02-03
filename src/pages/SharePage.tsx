@@ -13,7 +13,7 @@ import { GenerationRow } from '@/types/shots';
 interface SharedData {
   shot_id: string;
   shot_name: string;
-  generation: any;
+  generation: GenerationRow;
   images: GenerationRow[];
   settings: VideoTravelSettings;  // Raw settings, same format as useShotSettings
   creator_id: string | null;

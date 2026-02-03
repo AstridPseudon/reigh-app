@@ -5,7 +5,7 @@
  * Both tools regenerate existing video content, so they use VACE mode.
  */
 
-import { PhaseConfig } from '@/tools/travel-between-images/settings';
+import { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { BuiltinPreset } from '@/shared/components/MotionPresetSelector';
 
 // =============================================================================

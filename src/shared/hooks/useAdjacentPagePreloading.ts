@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
+import { QueryClient } from '@tanstack/react-query';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import {
   isImageCached,
@@ -51,7 +52,7 @@ export const initializePrefetchOperations = (
  * @deprecated Use useCacheCleanup hook instead
  */
 export const smartCleanupOldPages = (
-  queryClient: any,
+  queryClient: QueryClient,
   currentPage: number,
   projectId: string,
   baseQueryKey: string = 'generations'
@@ -59,8 +60,8 @@ export const smartCleanupOldPages = (
   const keepRange = 2; // Keep ±2 pages
   const allQueries = queryClient.getQueryCache().getAll();
 
-  allQueries.forEach((query: any) => {
-    const key = query.queryKey as any[];
+  allQueries.forEach((query) => {
+    const key = query.queryKey as unknown[];
     if (!Array.isArray(key)) return;
 
     let page: number | undefined;
@@ -75,7 +76,7 @@ export const smartCleanupOldPages = (
     }
 
     if (typeof page === 'number' && Math.abs(page - currentPage) > keepRange) {
-      const data = query.state?.data;
+      const data = query.state?.data as { items?: PreloadableImage[] } | undefined;
       if (data?.items) {
         clearCacheForImages(data.items);
       }
@@ -95,7 +96,7 @@ export const triggerImageGarbageCollection = () => {
  * @deprecated Use preloadImages from @/shared/lib/imagePreloading instead
  */
 export const smartPreloadImages = (
-  cachedData: any,
+  cachedData: { items?: PreloadableImage[] } | null | undefined,
   priority: 'next' | 'prev',
   currentPrefetchId: string,
   prefetchOperationsRef: React.MutableRefObject<{
@@ -143,7 +144,7 @@ export const useAdjacentPagePreloading = ({
   totalFilteredItems: number;
   itemsPerPage: number;
   onPrefetchAdjacentPages?: (prevPage: number | null, nextPage: number | null) => void;
-  allImages?: any[];
+  allImages?: PreloadableImage[];
   projectId?: string | null;
   isLightboxOpen?: boolean;
 }) => {

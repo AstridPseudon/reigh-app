@@ -20,7 +20,6 @@
  * - 'images': Just image data (all-shot-generations, segment-live-timeline)
  * - 'metadata': Just metadata (shot-generations-meta)
  * - 'counts': Just counts (unpositioned-count)
- * - 'unified': Just unified-generations queries
  *
  * Note: Uses queryKeys registry from @/shared/lib/queryKeys for all key references.
  */
@@ -30,12 +29,11 @@ import { useCallback, useRef } from 'react';
 import { debugConfig } from '../../lib/debugConfig';
 import { queryKeys } from '../../lib/queryKeys';
 
-export type InvalidationScope = 
+export type InvalidationScope =
   | 'all'           // All generation-related queries for a shot
-  | 'images'        // Just image data (all-shot-generations, shot-generations)
+  | 'images'        // Just image data (all-shot-generations)
   | 'metadata'      // Just metadata (shot-generations-meta)
-  | 'counts'        // Just counts (unpositioned-count)
-  | 'unified';      // Just unified-generations queries
+  | 'counts';       // Just counts (unpositioned-count)
 
 export interface InvalidationOptions {
   /** Which queries to invalidate. Default: 'all' */
@@ -118,11 +116,6 @@ function performInvalidation(
     queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimeline(shotId) });
   }
 
-  if (scope === 'all' || scope === 'unified') {
-    // Invalidate shot-scoped unified generations (partial key match)
-    queryClient.invalidateQueries({ queryKey: ['unified-generations', 'shot', shotId] });
-  }
-
   if (scope === 'all' || scope === 'metadata') {
     queryClient.invalidateQueries({ queryKey: queryKeys.generations.meta(shotId) });
   }
@@ -139,7 +132,7 @@ function performInvalidation(
   // Optional: include project-level unified generations
   if (includeProjectUnified && projectId) {
     // Invalidate project-scoped unified generations (partial key match)
-    queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(projectId) });
   }
 }
 
@@ -274,7 +267,7 @@ export async function invalidateVariantChange(
   // 5. If projectId provided, also invalidate project-scoped queries
   if (projectId) {
     // Partial key match for project-scoped unified generations
-    queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(projectId) });
   }
 
   // 6. Invalidate segment output queries (for timeline segment strip)
@@ -332,7 +325,7 @@ export function invalidateGenerationUpdate(
   // 3. If projectId provided, also invalidate project-scoped queries
   if (projectId) {
     // Partial key match for project-scoped unified generations
-    queryClient.invalidateQueries({ queryKey: ['unified-generations', 'project', projectId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(projectId) });
   }
 
   // 4. Invalidate derived-generations (for child/variant galleries)
