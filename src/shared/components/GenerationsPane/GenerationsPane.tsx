@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+import { MediaTypeFilter } from '@/shared/components/MediaTypeFilter';
 import { PANE_CONFIG } from '@/shared/config/panes';
 import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants';
 
@@ -484,92 +485,9 @@ const GenerationsPaneComponent: React.FC = () => {
           )}
         >
           <div className="px-2 pt-3 pb-2 space-y-2">
-            {/* Row 1: Pagination (left) + Media type filter (right) */}
+            {/* Row 1: Shot filter (left) + Media type filter (right) */}
             <div className="flex items-center justify-between min-w-0 mx-2">
-                {/* Left side: Pagination */}
-                <div className="flex items-center gap-2">
-                  {totalCount > GENERATIONS_PER_PAGE ? (
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => handleServerPageChange(Math.max(1, page - 1))}
-                        disabled={page === 1}
-                        className="p-1 rounded hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <ChevronLeft className="h-4 w-4 text-zinc-400" />
-                      </button>
-
-                      {/* Page selector */}
-                      <div className="flex items-center gap-1">
-                        <Select
-                          value={page.toString()}
-                          onValueChange={(value) => handleServerPageChange(parseInt(value))}
-                        >
-                          <SelectTrigger variant="retro-dark" colorScheme="zinc" size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent variant="zinc" className="!min-w-0 w-11">
-                            {Array.from({ length: Math.ceil(totalCount / GENERATIONS_PER_PAGE) }, (_, i) => (
-                              <SelectItem variant="zinc" key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
-                                {i + 1}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <span className="text-xs text-zinc-400">
-                          <span className="hidden sm:inline">of {Math.ceil(totalCount / GENERATIONS_PER_PAGE)} ({totalCount})</span>
-                          <span className="sm:hidden">/ {Math.ceil(totalCount / GENERATIONS_PER_PAGE)}</span>
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => handleServerPageChange(page + 1)}
-                        disabled={page * GENERATIONS_PER_PAGE >= totalCount}
-                        className="p-1 rounded hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <ChevronRight className="h-4 w-4 text-zinc-400" />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-zinc-400">
-                      {totalCount > 0 ? `${totalCount} item${totalCount !== 1 ? 's' : ''}` : 'No items'}
-                    </span>
-                  )}
-                </div>
-
-                {/* Right side: Media type filter */}
-                <div
-                  className={cn(
-                    "flex items-center transition-all duration-200",
-                    isInteractionDisabled && "pointer-events-none opacity-70"
-                  )}
-                >
-                  <Select
-                    value={mediaTypeFilter}
-                    onValueChange={(value: 'all' | 'image' | 'video') => setMediaTypeFilter(value)}
-                    open={mediaTypeFilterOpen}
-                    onOpenChange={(open) => {
-                      if (isInteractionDisabled && open) {
-                        setMediaTypeFilterOpen(false);
-                        return;
-                      }
-                      setMediaTypeFilterOpen(open);
-                    }}
-                  >
-                    <SelectTrigger variant="retro-dark" size="sm" colorScheme="zinc" className="w-[80px] h-8 text-xs" hideIcon>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent variant="zinc" ref={mediaTypeContentRef}>
-                      <SelectItem variant="zinc" value="all">All</SelectItem>
-                      <SelectItem variant="zinc" value="image">Images</SelectItem>
-                      <SelectItem variant="zinc" value="video">Videos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-            </div>
-
-            {/* Row 2: Shot filter + Search + CTA (left) + Star filter (right) */}
-            <div className="flex items-center justify-between min-w-0 gap-2 mx-2">
-                {/* Left side: Shot filter, search, CTA */}
+                {/* Left side: Shot filter */}
                 <div
                   className={cn(
                     "flex items-center gap-2 min-w-0 flex-shrink",
@@ -583,10 +501,9 @@ const GenerationsPaneComponent: React.FC = () => {
                     onShotChange={setSelectedShotFilter}
                     excludePositioned={excludePositioned}
                     onExcludePositionedChange={setExcludePositioned}
-                    size="sm"
-                    whiteText={true}
+                    darkSurface
                     checkboxId="exclude-positioned-generations-pane"
-                    triggerWidth="w-[100px] sm:w-[140px] flex-shrink-0 !text-xs"
+                    triggerWidth="w-[100px] sm:w-[140px]"
                     isMobile={isMobile}
                     contentRef={shotFilterContentRef}
                     showPositionFilter={false}
@@ -669,6 +586,82 @@ const GenerationsPaneComponent: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Right side: Media type filter */}
+                <div
+                  className={cn(
+                    "flex items-center transition-all duration-200",
+                    isInteractionDisabled && "pointer-events-none opacity-70"
+                  )}
+                >
+                  <MediaTypeFilter
+                    value={mediaTypeFilter}
+                    onChange={setMediaTypeFilter}
+                    darkSurface
+                    open={mediaTypeFilterOpen}
+                    onOpenChange={(open) => {
+                      if (isInteractionDisabled && open) {
+                        setMediaTypeFilterOpen(false);
+                        return;
+                      }
+                      setMediaTypeFilterOpen(open);
+                    }}
+                    contentRef={mediaTypeContentRef}
+                  />
+                </div>
+            </div>
+
+            {/* Row 2: Pagination (left) + Star filter (right) */}
+            <div className="flex items-center justify-between min-w-0 gap-2 mx-2">
+                {/* Left side: Pagination */}
+                <div className="flex items-center gap-2">
+                  {totalCount > GENERATIONS_PER_PAGE ? (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleServerPageChange(Math.max(1, page - 1))}
+                        disabled={page === 1}
+                        className="p-1 rounded hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft className="h-4 w-4 text-zinc-400" />
+                      </button>
+
+                      {/* Page selector */}
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={page.toString()}
+                          onValueChange={(value) => handleServerPageChange(parseInt(value))}
+                        >
+                          <SelectTrigger variant="retro-dark" colorScheme="zinc" size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent variant="zinc" className="!min-w-0 w-11">
+                            {Array.from({ length: Math.ceil(totalCount / GENERATIONS_PER_PAGE) }, (_, i) => (
+                              <SelectItem variant="zinc" key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
+                                {i + 1}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span className="text-xs text-zinc-400">
+                          <span className="hidden sm:inline">of {Math.ceil(totalCount / GENERATIONS_PER_PAGE)} ({totalCount})</span>
+                          <span className="sm:hidden">/ {Math.ceil(totalCount / GENERATIONS_PER_PAGE)}</span>
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleServerPageChange(page + 1)}
+                        disabled={page * GENERATIONS_PER_PAGE >= totalCount}
+                        className="p-1 rounded hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight className="h-4 w-4 text-zinc-400" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-zinc-400">
+                      {totalCount > 0 ? `${totalCount} item${totalCount !== 1 ? 's' : ''}` : 'No items'}
+                    </span>
+                  )}
                 </div>
 
                 {/* Right side: Star filter */}

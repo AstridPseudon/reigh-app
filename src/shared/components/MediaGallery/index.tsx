@@ -749,109 +749,69 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             reducedSpacing={reducedSpacing}
             hidePagination={hidePagination}
             onPageChange={paginationHook.handlePageChange}
-            
+
             // Filter props
             hideTopFilters={hideTopFilters}
             hideMediaTypeFilter={hideMediaTypeFilter}
             showStarredOnly={filtersHook.showStarredOnly}
             onStarredFilterChange={(val) => {
               const next = Boolean(val);
-              // Update local filter state immediately to keep UI responsive
               filtersHook.setShowStarredOnly(next);
-              // Explicitly reset to first page when filter changes
               paginationHook.goToFirstPage();
-              // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
               }
-              // Propagate to parent to trigger server-side refetch
               onStarredFilterChange?.(next);
             }}
-            onDownloadStarred={actionsHook.handleDownloadStarred}
-            isDownloadingStarred={stateHook.state.isDownloadingStarred}
-            
+
             // Shot filter props
             showShotFilter={showShotFilter}
             allShots={simplifiedShotOptions}
             shotFilter={filtersHook.shotFilter}
             onShotFilterChange={(shotId) => {
-              // Update local shot filter state immediately
               filtersHook.setShotFilter(shotId);
-              // Explicitly reset to first page when filter changes
               paginationHook.goToFirstPage();
-              // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
               }
-              // Propagate to parent to trigger server-side refetch
               onShotFilterChange?.(shotId);
             }}
             excludePositioned={filtersHook.excludePositioned}
             onExcludePositionedChange={(exclude) => {
-              // Update local exclude positioned state immediately
               filtersHook.setExcludePositioned(exclude);
-              // Explicitly reset to first page when filter changes
               paginationHook.goToFirstPage();
-              // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
               }
-              // Propagate to parent to trigger server-side refetch
               onExcludePositionedChange?.(exclude);
             }}
-            
+
             // Search props
             showSearch={showSearch}
             isSearchOpen={filtersHook.isSearchOpen}
-            setIsSearchOpen={filtersHook.setIsSearchOpen}
             searchTerm={filtersHook.searchTerm}
             searchInputRef={filtersHook.searchInputRef}
             toggleSearch={filtersHook.toggleSearch}
             clearSearch={filtersHook.clearSearch}
             handleSearchChange={(value) => {
-              // Update local search state immediately
               filtersHook.setSearchTerm(value);
-              // Explicitly reset to first page when search changes
               paginationHook.goToFirstPage();
-              // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
               }
-              // Propagate to parent to trigger server-side refetch
               onSearchChange?.(value);
             }}
-            
+
             // Media type filter props
             mediaTypeFilter={filtersHook.mediaTypeFilter}
             onMediaTypeFilterChange={(value) => {
-              // Update local filter state immediately to keep UI responsive
               filtersHook.setMediaTypeFilter(value);
-              // Explicitly reset to first page when filter changes
               paginationHook.goToFirstPage();
-              // If server pagination is enabled, show a brief loading state while new data arrives
               if (paginationHook.isServerPagination) {
                 paginationHook.setIsGalleryLoading(true);
               }
-              // Propagate to parent to trigger server-side refetch
               onMediaTypeFilterChange?.(value);
             }}
-            
-            // Tool type filter props
-            toolTypeFilterEnabled={filtersHook.toolTypeFilterEnabled}
-            onToolTypeFilterChange={(enabled) => {
-              // Update local filter state immediately to keep UI responsive
-              filtersHook.setToolTypeFilterEnabled(enabled);
-              // Explicitly reset to first page when filter changes
-              paginationHook.goToFirstPage();
-              // If server pagination is enabled, show a brief loading state while new data arrives
-              if (paginationHook.isServerPagination) {
-                paginationHook.setIsGalleryLoading(true);
-              }
-              // Propagate to parent to trigger server-side refetch
-              onToolTypeFilterChange?.(enabled);
-            }}
-            currentToolTypeName={currentToolTypeName}
-            isMobile={isMobile}
           />
         </div>
 
@@ -962,25 +922,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
           hideBottomPagination={hideBottomPagination}
           videosAsThumbnails={videosAsThumbnails}
         />
-        
-        {/* Bottom Pagination Controls */}
-        <MediaGalleryPagination
-          totalPages={paginationHook.totalPages}
-          currentPage={paginationHook.page}
-          isServerPagination={paginationHook.isServerPagination}
-          serverPage={serverPage}
-          rangeStart={paginationHook.rangeStart}
-          rangeEnd={paginationHook.rangeEnd}
-          totalFilteredItems={paginationHook.totalFilteredItems}
-          loadingButton={paginationHook.loadingButton}
-          whiteText={whiteText}
-          reducedSpacing={reducedSpacing}
-          hidePagination={hidePagination || hideBottomPagination}
-          onPageChange={paginationHook.handlePageChange}
-          isBottom={true}
-        />
       </div>
-      
+
       {/* Lightbox and Task Details */}
       <MediaGalleryLightbox
         activeLightboxMedia={stateHook.state.activeLightboxMedia}

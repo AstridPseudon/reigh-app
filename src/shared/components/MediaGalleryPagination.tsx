@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/shared/components/ui/button';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -50,9 +49,8 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
   isBottom = false,
 }) => {
   // All hooks must be called before any early returns
-  const [showStickyPagination, setShowStickyPagination] = useState(false);
-  const [dynamicBottom, setDynamicBottom] = useState(60); // Start lower
-  const topPaginationRef = useRef<HTMLDivElement>(null);
+  const [showStickyTopPagination, setShowStickyTopPagination] = useState(false);
+  const compactPaginationRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
   // Get pane states to adjust sticky pagination position
@@ -63,300 +61,238 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
     tasksPaneWidth
   } = usePanes();
 
-  // Scroll detection for sticky pagination and dynamic positioning
+  // Track the original pagination's left position for sticky alignment
+  const [originalLeftPosition, setOriginalLeftPosition] = useState(0);
+
+  // Scroll detection for compact/top sticky pagination
   useEffect(() => {
-    if (!isBottom) return;
+    if (!compact) return;
 
     let rafId: number | null = null;
-    let lastBottom = 60;
 
     const handleScroll = () => {
-      if (rafId) return; // Throttle with RAF
+      if (rafId) return;
 
       rafId = requestAnimationFrame(() => {
         rafId = null;
 
-        // Find the top pagination element
-        const topPagination = document.querySelector('[data-pagination-top]');
-        if (topPagination) {
-          const rect = topPagination.getBoundingClientRect();
-          const threshold = 300;
-          setShowStickyPagination(rect.bottom < threshold);
-        }
+        const paginationEl = compactPaginationRef.current;
+        if (paginationEl) {
+          const rect = paginationEl.getBoundingClientRect();
+          // Header height: 96px desktop, 60px mobile
+          // Add buffer to show sticky earlier (when element is 40px from going under header)
+          const headerHeight = isMobile ? 60 : 96;
+          const buffer = 40;
+          const shouldShow = rect.bottom < headerHeight + buffer;
 
-        // Calculate dynamic bottom position based on proximity to page bottom
-        const scrollTop = window.scrollY;
-        const windowHeight = window.innerHeight;
-        const documentHeight = document.documentElement.scrollHeight;
-        const distanceFromBottom = documentHeight - (scrollTop + windowHeight);
+          // Capture the left position when first detected (for sticky alignment)
+          if (!showStickyTopPagination && shouldShow) {
+            setOriginalLeftPosition(rect.left);
+          }
 
-        // When far from bottom: 60px, when near bottom: 120px
-        const minBottom = 60;
-        const maxBottom = 120;
-        const transitionStart = 300;
-
-        let targetBottom: number;
-        if (distanceFromBottom <= 0) {
-          targetBottom = maxBottom;
-        } else if (distanceFromBottom >= transitionStart) {
-          targetBottom = minBottom;
-        } else {
-          const progress = 1 - (distanceFromBottom / transitionStart);
-          targetBottom = minBottom + (maxBottom - minBottom) * progress;
-        }
-
-        // Only update if changed significantly (reduces jitter)
-        if (Math.abs(targetBottom - lastBottom) > 2) {
-          lastBottom = targetBottom;
-          setDynamicBottom(targetBottom);
+          if (shouldShow !== showStickyTopPagination) {
+            setShowStickyTopPagination(shouldShow);
+          }
         }
       });
     };
 
+    // Capture initial position for sticky alignment
+    const paginationEl = compactPaginationRef.current;
+    if (paginationEl) {
+      const rect = paginationEl.getBoundingClientRect();
+      setOriginalLeftPosition(rect.left);
+    }
+
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
     const timeout = setTimeout(handleScroll, 100);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
       if (rafId) cancelAnimationFrame(rafId);
       clearTimeout(timeout);
     };
-  }, [isBottom]);
+  }, [compact, isMobile, showStickyTopPagination]);
 
   // Don't render if conditions not met - AFTER all hooks
   if (totalPages <= 1 || hidePagination) {
     return null;
   }
 
+  // Bottom pagination is removed - return null
+  if (isBottom) {
+    return null;
+  }
+
   const handlePrevPage = (e: React.MouseEvent, preventScroll = false) => {
-    e.preventDefault(); // Prevent any default scroll behavior
-    const newPage = isServerPagination 
+    e.preventDefault();
+    const newPage = isServerPagination
       ? Math.max(1, serverPage! - 1)
       : Math.max(0, currentPage - 1);
-    // Don't scroll to top when using sticky pagination
-    onPageChange(newPage, 'prev', isBottom && !preventScroll);
+    onPageChange(newPage, 'prev', false);
   };
 
   const handleNextPage = (e: React.MouseEvent, preventScroll = false) => {
-    e.preventDefault(); // Prevent any default scroll behavior
-    const newPage = isServerPagination 
+    e.preventDefault();
+    const newPage = isServerPagination
       ? serverPage! + 1
       : Math.min(totalPages - 1, currentPage + 1);
-    // Don't scroll to top when using sticky pagination
-    onPageChange(newPage, 'next', isBottom && !preventScroll);
+    onPageChange(newPage, 'next', false);
   };
 
   const handlePageSelect = (pageStr: string, preventScroll = false) => {
     const newPage = isServerPagination ? parseInt(pageStr) : parseInt(pageStr) - 1;
     const direction = newPage > (isServerPagination ? serverPage! : currentPage) ? 'next' : 'prev';
-    // Don't scroll to top when using sticky pagination
-    onPageChange(newPage, direction, isBottom && !preventScroll);
+    onPageChange(newPage, direction, false);
   };
 
   const currentDisplayPage = isServerPagination ? serverPage! : currentPage + 1;
   const isPrevDisabled = loadingButton !== null || (isServerPagination ? serverPage === 1 : currentPage === 0);
   const isNextDisabled = loadingButton !== null || (isServerPagination ? serverPage >= totalPages : currentPage >= totalPages - 1);
 
-  // Helper to render button content - now uses icons on all devices
+  // Helper to render button content
   const renderButtonContent = (direction: 'prev' | 'next', isLoading: boolean) => {
     if (isLoading) {
       return <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current"></div>;
     }
-    
-    return direction === 'prev' 
+
+    return direction === 'prev'
       ? <ChevronLeft className="h-4 w-4" />
       : <ChevronRight className="h-4 w-4" />;
   };
 
+  // Header height for sticky positioning
+  const headerHeight = isMobile ? 60 : 96;
+
   if (compact) {
-    // Compact layout for top pagination - no range text, optional right content
-    return (
-      <div className={`flex justify-between items-center ${whiteText ? 'text-white' : 'text-foreground'}`}>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrevPage}
-            disabled={isPrevDisabled}
-            className="px-2"
+    // Compact layout for top pagination
+    // Also renders a sticky version that appears below header when original scrolls out
+
+    const paginationControls = (isSticky = false) => (
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => handlePrevPage(e, isSticky)}
+          disabled={isPrevDisabled}
+          className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText && !isSticky ? 'hover:bg-zinc-700' : ''}`}
+        >
+          {renderButtonContent('prev', loadingButton === 'prev')}
+        </button>
+
+        <div className="flex items-center gap-1">
+          <Select
+            value={currentDisplayPage.toString()}
+            onValueChange={(value) => handlePageSelect(value, isSticky)}
+            disabled={loadingButton !== null}
           >
-            {renderButtonContent('prev', loadingButton === 'prev')}
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <span className={`text-sm ${whiteText ? 'text-white' : 'text-muted-foreground'}`}>
-              Page
-            </span>
-            <Select 
-              value={currentDisplayPage.toString()} 
-              onValueChange={handlePageSelect}
-              disabled={loadingButton !== null}
-            >
-              <SelectTrigger variant={whiteText ? "retro-dark" : "retro"} colorScheme={whiteText ? "zinc" : "default"} size="sm" className="h-8 w-12 text-sm !justify-center [&>span]:!text-center" hideIcon>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent variant={whiteText ? "zinc" : "retro"} className="!min-w-0 w-14">
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <SelectItem variant={whiteText ? "zinc" : "retro"} key={i + 1} value={(i + 1).toString()} className="text-sm !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
-                    {i + 1}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className={`text-sm ${whiteText ? 'text-white' : 'text-muted-foreground'}`}>
-              of {totalPages}
-            </span>
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextPage}
-            disabled={isNextDisabled}
-            className="px-2"
-          >
-            {renderButtonContent('next', loadingButton === 'next')}
-          </Button>
+            <SelectTrigger variant={isSticky ? "retro" : (whiteText ? "retro-dark" : "retro")} colorScheme={isSticky ? "default" : (whiteText ? "zinc" : "default")} size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent variant={isSticky ? "retro" : (whiteText ? "zinc" : "retro")} className="!min-w-0 w-11 text-xs">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <SelectItem variant={isSticky ? "retro" : (whiteText ? "zinc" : "retro")} key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
+                  {i + 1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className={`text-xs ${isSticky ? 'text-muted-foreground' : (whiteText ? 'text-zinc-400' : 'text-muted-foreground')}`}>
+            of {totalPages}
+          </span>
         </div>
-        
-        {rightContent && (
-          <div>
-            {rightContent}
-          </div>
-        )}
+
+        <button
+          onClick={(e) => handleNextPage(e, isSticky)}
+          disabled={isNextDisabled}
+          className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText && !isSticky ? 'hover:bg-zinc-700' : ''}`}
+        >
+          {renderButtonContent('next', loadingButton === 'next')}
+        </button>
       </div>
     );
-  }
 
-  // Full layout for bottom pagination
-  if (isBottom) {
     return (
       <>
-        {/* Sticky navigation buttons - only show when scrolled and >1 page */}
+        {/* Original pagination (scrolls with content) - fades out when sticky appears */}
         <div
-          className={`fixed z-[100] transition-all duration-300 ease-in-out pointer-events-none ${
-            showStickyPagination && totalPages > 1
-              ? 'translate-y-0 opacity-100 scale-100'
-              : 'translate-y-8 opacity-0 scale-95'
+          ref={compactPaginationRef}
+          className={`flex justify-between items-center mt-2 transition-opacity duration-200 ${whiteText ? 'text-white' : 'text-foreground'} ${showStickyTopPagination ? 'opacity-0' : 'opacity-100'}`}
+        >
+          {paginationControls(false)}
+
+          {rightContent && (
+            <div>
+              {rightContent}
+            </div>
+          )}
+        </div>
+
+        {/* Sticky pagination - matches original layout exactly */}
+        <div
+          className={`fixed z-[100] transition-all duration-200 ease-in-out ${
+            showStickyTopPagination && totalPages > 1
+              ? 'translate-y-0 opacity-100 pointer-events-auto'
+              : '-translate-y-2 opacity-0 pointer-events-none'
           }`}
           style={{
-            // Calculate horizontal constraints based on locked panes
-            left: `${isShotsPaneLocked ? shotsPaneWidth : 0}px`,
-            right: `${isTasksPaneLocked ? tasksPaneWidth : 0}px`,
-            bottom: `${dynamicBottom}px`, // Dynamic: lower when high on page, higher when near bottom
-            // Center within the available space
-            display: 'flex',
-            justifyContent: 'center',
-            paddingLeft: '16px',
-            paddingRight: '16px',
-            transition: 'bottom 0.15s ease-out',
+            top: `${headerHeight + 4}px`,
+            left: `${originalLeftPosition}px`,
           }}
         >
-          <div className="bg-card/80 dark:bg-gray-900/80 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-border/50 pointer-events-auto">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => handlePrevPage(e, true)}
-                disabled={isPrevDisabled}
-                className="px-3 py-2 rounded-full"
-              >
-                {renderButtonContent('prev', loadingButton === 'prev')}
-              </Button>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Page
-                </span>
-                <Select 
-                  value={currentDisplayPage.toString()} 
-                  onValueChange={(value) => handlePageSelect(value, true)}
-                  disabled={loadingButton !== null}
-                >
-                  <SelectTrigger variant="retro" size="sm" className="h-8 w-12 text-sm !justify-center [&>span]:!text-center" hideIcon>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent variant="retro" className="!min-w-0 w-14">
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <SelectItem variant="retro" key={i + 1} value={(i + 1).toString()} className="text-sm !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
-                        {i + 1}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">
-                  of {totalPages}
-                </span>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => handleNextPage(e, true)}
-                disabled={isNextDisabled}
-                className="px-3 py-2 rounded-full"
-              >
-                {renderButtonContent('next', loadingButton === 'next')}
-              </Button>
-            </div>
+          <div className="bg-card/95 dark:bg-gray-900/95 backdrop-blur-md rounded-lg px-3 py-1.5 shadow-lg border border-border/50 flex items-center gap-4">
+            {paginationControls(true)}
+            {rightContent}
           </div>
         </div>
       </>
     );
   }
 
-  // Regular layout for non-bottom pagination (top pagination, etc.)
+  // Regular layout for non-compact pagination
   return (
-    <div className={`flex justify-center items-center gap-3 mt-4 ${whiteText ? 'text-white' : 'text-gray-600'}`}>
-      <Button
-        variant="outline"
-        size="sm"
+    <div className={`flex justify-center items-center gap-2 mt-4 ${whiteText ? 'text-white' : 'text-foreground'}`}>
+      <button
         onClick={handlePrevPage}
         disabled={isPrevDisabled}
-        className="px-2"
+        className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText ? 'hover:bg-zinc-700' : ''}`}
       >
         {renderButtonContent('prev', loadingButton === 'prev')}
-      </Button>
-      
-      <div className="flex items-center gap-2">
-        <span className={`text-sm ${whiteText ? 'text-white' : 'text-muted-foreground'}`}>
-          Page
-        </span>
-        <Select 
-          value={currentDisplayPage.toString()} 
+      </button>
+
+      <div className="flex items-center gap-1">
+        <Select
+          value={currentDisplayPage.toString()}
           onValueChange={handlePageSelect}
           disabled={loadingButton !== null}
         >
-          <SelectTrigger variant={whiteText ? "retro-dark" : "default"} colorScheme={whiteText ? "zinc" : "default"} size="sm" className="h-8 w-16 text-sm">
+          <SelectTrigger variant={whiteText ? "retro-dark" : "retro"} colorScheme={whiteText ? "zinc" : "default"} size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent variant={whiteText ? "zinc" : "default"}>
+          <SelectContent variant={whiteText ? "zinc" : "retro"} className="!min-w-0 w-11 text-xs">
             {Array.from({ length: totalPages }, (_, i) => (
-              <SelectItem variant={whiteText ? "zinc" : "default"} key={i + 1} value={(i + 1).toString()} className="text-sm">
+              <SelectItem variant={whiteText ? "zinc" : "retro"} key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
                 {i + 1}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <span className={`text-sm ${whiteText ? 'text-white' : 'text-muted-foreground'}`}>
+        <span className={`text-xs ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'}`}>
           of {totalPages}
         </span>
       </div>
-      
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNextPage}
-          disabled={isNextDisabled}
-          className="px-2"
-        >
-          {renderButtonContent('next', loadingButton === 'next')}
-        </Button>
-        <span className={`text-xs ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'} whitespace-nowrap`}>
-          {rangeStart}-{rangeEnd} of {totalFilteredItems}
-        </span>
-      </div>
+
+      <button
+        onClick={handleNextPage}
+        disabled={isNextDisabled}
+        className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText ? 'hover:bg-zinc-700' : ''}`}
+      >
+        {renderButtonContent('next', loadingButton === 'next')}
+      </button>
+
+      <span className={`text-xs ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'} whitespace-nowrap`}>
+        ({rangeStart}-{rangeEnd} of {totalFilteredItems})
+      </span>
     </div>
   );
-}; 
+};

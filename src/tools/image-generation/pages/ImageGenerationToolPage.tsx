@@ -824,8 +824,8 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       const rect = containerEl.getBoundingClientRect();
       const docTop = window.pageYOffset || document.documentElement.scrollTop || 0;
       const containerDocTop = rect.top + docTop;
-             const headerHeight = isMobile ? 150 : 96; // match actual header heights
-       const extra = isMobile ? 0 : -40; // appears much earlier on desktop (negative value)
+      const headerHeight = isMobile ? 150 : 96; // match actual header heights
+      const extra = isMobile ? 0 : -120; // appears earlier on desktop (negative value)
       stickyThresholdY.current = containerDocTop + headerHeight + extra;
     };
 
@@ -1111,16 +1111,16 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
             </Collapsible>
           </div>
 
-          {/* Sticky form toggle button (appears when scrolled past original) */}
+          {/* Sticky form toggle button (appears when scrolled past original) - DISABLED
           {(hasValidFalApiKey && isFormExpanded === false && (isSticky || isScrollingToForm)) && (() => {
             // Calculate positioning based on header and panes
             const headerHeight = isMobile ? 20 : 96; // Mobile header VERY close to top, desktop is 96px (h-24)
             const topPosition = headerHeight + 8; // Position below header with small gap
-            
+
             // Calculate horizontal constraints based on locked panes
             const leftOffset = isShotsPaneLocked ? shotsPaneWidth : 0;
             const rightOffset = isTasksPaneLocked ? tasksPaneWidth : 0;
-            
+
             return (
               <div
                 className={`fixed z-50 flex justify-center transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-2 pointer-events-none`}
@@ -1151,7 +1151,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
                 </Button>
               </div>
             );
-          })()}
+          })()} */}
 
           <div ref={galleryRef} className="pt-0">
             {/* Show SkeletonGallery on initial load or when filter changes take too long */}

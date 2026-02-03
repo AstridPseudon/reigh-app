@@ -78,11 +78,9 @@ export const MediaGalleryFilters: React.FC<MediaGalleryFiltersProps> = ({
             onShotChange={onShotFilterChange}
             excludePositioned={excludePositioned}
             onExcludePositionedChange={onExcludePositionedChange}
-            size="sm"
-            whiteText={whiteText}
+            darkSurface={whiteText}
             checkboxId="exclude-positioned-media-gallery"
-            triggerWidth="w-[120px] sm:w-[140px]"
-            triggerClassName={`h-8 text-xs ${whiteText ? 'bg-zinc-800 border-zinc-600 text-white' : ''}`}
+            triggerWidth="w-[100px] sm:w-[140px]"
           />
         )}
 

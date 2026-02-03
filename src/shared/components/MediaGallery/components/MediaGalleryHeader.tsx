@@ -1,18 +1,9 @@
 import React from "react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
-import { Star, Download, Loader2 } from "lucide-react";
-import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Label } from "@/shared/components/ui/label";
+import { Star, Search, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { MediaGalleryPagination } from "@/shared/components/MediaGalleryPagination";
+import { MediaTypeFilter } from "@/shared/components/MediaTypeFilter";
 import { ShotFilter } from "@/shared/components/ShotFilter";
-import { MediaGalleryFilters } from "./MediaGalleryFilters";
 
 interface MediaGalleryHeaderProps {
   // Pagination props
@@ -28,15 +19,13 @@ interface MediaGalleryHeaderProps {
   reducedSpacing?: boolean;
   hidePagination?: boolean;
   onPageChange: (newPage: number, direction: 'prev' | 'next', fromBottom?: boolean) => void;
-  
+
   // Filter props
   hideTopFilters?: boolean;
   hideMediaTypeFilter?: boolean;
   showStarredOnly: boolean;
   onStarredFilterChange?: (starredOnly: boolean) => void;
-  onDownloadStarred?: () => void;
-  isDownloadingStarred?: boolean;
-  
+
   // Shot filter props
   showShotFilter?: boolean;
   allShots: Array<{ id: string; name: string }>;
@@ -44,28 +33,19 @@ interface MediaGalleryHeaderProps {
   onShotFilterChange?: (shotId: string) => void;
   excludePositioned: boolean;
   onExcludePositionedChange?: (exclude: boolean) => void;
-  
+
   // Search props
   showSearch?: boolean;
-  isSearchOpen: boolean;
-  setIsSearchOpen: (open: boolean) => void;
-  searchTerm: string;
-  searchInputRef: React.RefObject<HTMLInputElement>;
-  toggleSearch: () => void;
-  clearSearch: () => void;
-  handleSearchChange: (value: string) => void;
-  
+  isSearchOpen?: boolean;
+  searchTerm?: string;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
+  toggleSearch?: () => void;
+  clearSearch?: () => void;
+  handleSearchChange?: (value: string) => void;
+
   // Media type filter props
   mediaTypeFilter: 'all' | 'image' | 'video';
   onMediaTypeFilterChange?: (mediaType: 'all' | 'image' | 'video') => void;
-  
-  // Tool type filter props
-  toolTypeFilterEnabled?: boolean;
-  onToolTypeFilterChange?: (enabled: boolean) => void;
-  currentToolTypeName?: string;
-  
-  // Mobile props
-  isMobile?: boolean;
 }
 
 export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
@@ -82,15 +62,13 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
   reducedSpacing = false,
   hidePagination = false,
   onPageChange,
-  
+
   // Filter props
   hideTopFilters = false,
   hideMediaTypeFilter = false,
   showStarredOnly,
   onStarredFilterChange,
-  onDownloadStarred,
-  isDownloadingStarred = false,
-  
+
   // Shot filter props
   showShotFilter = false,
   allShots,
@@ -98,32 +76,89 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
   onShotFilterChange,
   excludePositioned,
   onExcludePositionedChange,
-  
+
   // Search props
   showSearch = false,
-  isSearchOpen,
-  setIsSearchOpen,
-  searchTerm,
+  isSearchOpen = false,
+  searchTerm = '',
   searchInputRef,
   toggleSearch,
   clearSearch,
   handleSearchChange,
-  
+
   // Media type filter props
   mediaTypeFilter,
   onMediaTypeFilterChange,
-  
-  // Tool type filter props
-  toolTypeFilterEnabled,
-  onToolTypeFilterChange,
-  currentToolTypeName,
-  
-  // Mobile props
-  isMobile = false,
 }) => {
   return (
     <div className="mt-0 space-y-3">
-      {/* Top Pagination */}
+      {/* Row 1: Shot filter + Search (left) + Media type filter (right) */}
+      {showShotFilter && (
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <ShotFilter
+              shots={allShots || []}
+              selectedShotId={shotFilter}
+              onShotChange={onShotFilterChange}
+              excludePositioned={excludePositioned}
+              onExcludePositionedChange={onExcludePositionedChange}
+              darkSurface={whiteText}
+              checkboxId="exclude-positioned-media-gallery"
+              triggerWidth="w-[100px] sm:w-[140px]"
+            />
+
+            {/* Search */}
+            {showSearch && (
+              <div className="flex items-center">
+                {!isSearchOpen ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleSearch}
+                    className={`h-8 px-2 ${whiteText ? 'text-white border-zinc-600 hover:bg-zinc-700' : ''}`}
+                    aria-label="Search prompts"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <div className={`flex items-center space-x-2 border rounded-md px-3 py-1 h-8 ${whiteText ? 'bg-zinc-800 border-zinc-600' : 'bg-background'}`}>
+                    <Search className={`h-4 w-4 ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'}`} />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Search prompts..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearchChange?.(e.target.value)}
+                      className={`bg-transparent border-none outline-none text-base w-32 sm:w-40 preserve-case ${whiteText ? 'text-white placeholder-zinc-400' : ''}`}
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearSearch}
+                        className="h-auto p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {!hideTopFilters && !hideMediaTypeFilter && (
+            <MediaTypeFilter
+              id="media-type-filter"
+              value={mediaTypeFilter}
+              onChange={onMediaTypeFilterChange}
+              whiteText={whiteText}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Row 2: Pagination (left) + Star filter (right) */}
       <div data-pagination-top>
         <MediaGalleryPagination
           totalPages={totalPages}
@@ -141,108 +176,48 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
           compact={true}
           isBottom={false}
           rightContent={!hideTopFilters ? (
-            <div className="flex items-center gap-2">
-              {/* Star filter - show here when media type filter is hidden */}
-              {hideMediaTypeFilter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`p-1 h-8 w-8 ${whiteText ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => onStarredFilterChange?.(!showStarredOnly)}
-                  aria-label={showStarredOnly ? "Show all items" : "Show only starred items"}
-                >
-                  <Star className="h-5 w-5" fill={showStarredOnly ? 'currentColor' : 'none'} />
-                </Button>
-              )}
-              {/* Media type filter */}
-              {!hideMediaTypeFilter && (
-                <Select value={mediaTypeFilter} onValueChange={(value: 'all' | 'image' | 'video') => {
-                  onMediaTypeFilterChange?.(value);
-                }}>
-                  <SelectTrigger id="media-type-filter" variant={whiteText ? "retro-dark" : "default"} colorScheme={whiteText ? "zinc" : "default"} size="sm" className="h-8 text-xs w-[80px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent variant={whiteText ? "zinc" : "default"}>
-                    <SelectItem variant={whiteText ? "zinc" : "default"} value="all" className="text-xs">All</SelectItem>
-                    <SelectItem variant={whiteText ? "zinc" : "default"} value="image" className="text-xs">Images</SelectItem>
-                    <SelectItem variant={whiteText ? "zinc" : "default"} value="video" className="text-xs">Videos</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`p-1 h-8 w-8 ${whiteText ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={() => onStarredFilterChange?.(!showStarredOnly)}
+              aria-label={showStarredOnly ? "Show all items" : "Show only starred items"}
+            >
+              <Star className="h-5 w-5" fill={showStarredOnly ? 'currentColor' : 'none'} />
+            </Button>
           ) : undefined}
         />
       </div>
-      
-      {/* Single page display with starred filter - only show when pagination is hidden */}
-      {totalPages === 1 && !hidePagination && (
+
+      {/* Single page display - only show when pagination is hidden but we have items */}
+      {totalPages === 1 && !hidePagination && !showShotFilter && (
         <div className="flex justify-between items-center">
           <span className={`text-sm ${whiteText ? 'text-white' : 'text-muted-foreground'}`}>
             Showing {rangeStart}-{rangeEnd} of {totalFilteredItems}
           </span>
-        
-          {/* Filters on the right */}
+
           {!hideTopFilters && (
             <div className="flex items-center gap-2">
-              {/* Star filter - show here when media type filter is hidden */}
-              {hideMediaTypeFilter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`p-1 h-8 w-8 ${whiteText ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
-                  onClick={() => onStarredFilterChange?.(!showStarredOnly)}
-                  aria-label={showStarredOnly ? "Show all items" : "Show only starred items"}
-                >
-                  <Star className="h-5 w-5" fill={showStarredOnly ? 'currentColor' : 'none'} />
-                </Button>
-              )}
-              {/* Media type filter */}
               {!hideMediaTypeFilter && (
-                <Select value={mediaTypeFilter} onValueChange={(value: 'all' | 'image' | 'video') => {
-                  onMediaTypeFilterChange?.(value);
-                }}>
-                  <SelectTrigger id="media-type-filter-single" variant={whiteText ? "retro-dark" : "default"} colorScheme={whiteText ? "zinc" : "default"} size="sm" className="h-8 text-xs w-[80px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent variant={whiteText ? "zinc" : "default"}>
-                    <SelectItem variant={whiteText ? "zinc" : "default"} value="all" className="text-xs">All</SelectItem>
-                    <SelectItem variant={whiteText ? "zinc" : "default"} value="image" className="text-xs">Images</SelectItem>
-                    <SelectItem variant={whiteText ? "zinc" : "default"} value="video" className="text-xs">Videos</SelectItem>
-                  </SelectContent>
-                </Select>
+                <MediaTypeFilter
+                  id="media-type-filter-single"
+                  value={mediaTypeFilter}
+                  onChange={onMediaTypeFilterChange}
+                  whiteText={whiteText}
+                />
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`p-1 h-8 w-8 ${whiteText ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => onStarredFilterChange?.(!showStarredOnly)}
+                aria-label={showStarredOnly ? "Show all items" : "Show only starred items"}
+              >
+                <Star className="h-5 w-5" fill={showStarredOnly ? 'currentColor' : 'none'} />
+              </Button>
             </div>
           )}
         </div>
-      )}
-
-      {/* Filters row - hide when star has been moved to pagination row and there's nothing else to show */}
-      {(showShotFilter || showSearch || currentToolTypeName || !hideMediaTypeFilter) && (
-        <MediaGalleryFilters
-          showShotFilter={showShotFilter}
-          allShots={allShots}
-          shotFilter={shotFilter}
-          onShotFilterChange={onShotFilterChange}
-          excludePositioned={excludePositioned}
-          onExcludePositionedChange={onExcludePositionedChange}
-          whiteText={whiteText}
-          showSearch={showSearch}
-          isSearchOpen={isSearchOpen}
-          searchTerm={searchTerm}
-          searchInputRef={searchInputRef}
-          toggleSearch={toggleSearch}
-          clearSearch={clearSearch}
-          handleSearchChange={handleSearchChange}
-          hideTopFilters={hideTopFilters || hideMediaTypeFilter}
-          showStarredOnly={showStarredOnly}
-          onStarredFilterChange={onStarredFilterChange}
-          onDownloadStarred={onDownloadStarred}
-          isDownloadingStarred={isDownloadingStarred}
-          toolTypeFilterEnabled={toolTypeFilterEnabled}
-          onToolTypeFilterChange={onToolTypeFilterChange}
-          currentToolTypeName={currentToolTypeName}
-          isMobile={isMobile}
-        />
       )}
     </div>
   );

@@ -226,26 +226,71 @@ class SimpleRealtimeManager {
             
             resolve(true);
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('[SimpleRealtime] ❌ Subscription failed:', status);
             this.isSubscribed = false;
             this.updateGlobalSnapshot('error');
-            
+
+            // Gather diagnostic information
+            const socketState = (supabase as any)?.realtime?.socket?.readyState;
+            const socketStateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+            const socketStateName = socketState !== undefined ? socketStateNames[socketState] || `UNKNOWN(${socketState})` : 'NO_SOCKET';
+
             // Check authentication state for debugging
-            supabase.auth.getUser().then(({ data: { user }, error }) => {
-              console.log('[SimpleRealtime] 🔍 Auth check after channel error:', {
-                hasUser: !!user,
-                userId: user?.id,
-                authError: error?.message,
+            supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+              const diagnostics = {
                 status,
-                timestamp: Date.now()
-              });
+                topic,
+                socketState: socketStateName,
+                hasSession: !!session,
+                hasAccessToken: !!session?.access_token,
+                tokenExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null,
+                isTokenExpired: session?.expires_at ? Date.now() > session.expires_at * 1000 : null,
+                userId: session?.user?.id,
+                sessionError: sessionError?.message,
+                reconnectAttempts: this.reconnectAttempts,
+                timestamp: new Date().toISOString()
+              };
+
+              // Build a human-readable error message
+              let errorReason = 'Unknown cause';
+              const suggestions: string[] = [];
+
+              if (sessionError) {
+                errorReason = `Session error: ${sessionError.message}`;
+                suggestions.push('Try refreshing the page or logging in again');
+              } else if (!session) {
+                errorReason = 'No active session';
+                suggestions.push('User may be logged out - try logging in again');
+              } else if (diagnostics.isTokenExpired) {
+                errorReason = 'Access token has expired';
+                suggestions.push('Session needs refresh - try refreshing the page');
+              } else if (socketStateName === 'CLOSED' || socketStateName === 'NO_SOCKET') {
+                errorReason = `WebSocket not connected (state: ${socketStateName})`;
+                suggestions.push('Check network connectivity');
+                suggestions.push('Supabase Realtime service may be down');
+              } else if (status === 'TIMED_OUT') {
+                errorReason = 'Connection timed out after 10 seconds';
+                suggestions.push('Check network connectivity');
+                suggestions.push('Supabase may be slow to respond');
+              } else {
+                // CHANNEL_ERROR with valid session - likely RLS or table config issue
+                errorReason = 'Channel rejected by server';
+                suggestions.push('Check Supabase Dashboard → Database → Replication (tables must have realtime enabled)');
+                suggestions.push('Check RLS policies allow SELECT for authenticated users');
+              }
+
+              console.error(
+                `[SimpleRealtime] ❌ Subscription failed: ${status}\n` +
+                `  Reason: ${errorReason}\n` +
+                `  Suggestions:\n${suggestions.map(s => `    • ${s}`).join('\n')}\n` +
+                `  Diagnostics:`, diagnostics
+              );
             }).catch(authErr => {
-              console.error('[SimpleRealtime] ❌ Failed to check auth:', authErr);
+              console.error('[SimpleRealtime] ❌ Subscription failed:', status, '- Also failed to check auth:', authErr);
             });
-            
+
             // Report failure to freshness manager
             dataFreshnessManager.onRealtimeStatusChange('error', `Subscription failed: ${status}`);
-            
+
             resolve(false);
           }
         });
