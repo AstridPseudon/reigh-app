@@ -35,7 +35,7 @@ import { isErrorWithCode, isErrorWithStatus, SUPABASE_ERROR } from '@/shared/lib
  *   ...QUERY_PRESETS.realtimeBacked,
  * })
  */
-export const REALTIME_BACKED_PRESET = {
+const REALTIME_BACKED_PRESET = {
   staleTime: 30_000, // 30 seconds - prevents rapid refetches
   gcTime: 5 * 60 * 1000, // 5 minutes
   refetchOnMount: false, // Realtime handles freshness
@@ -59,7 +59,7 @@ export const REALTIME_BACKED_PRESET = {
  *   ...QUERY_PRESETS.static,
  * })
  */
-export const STATIC_PRESET = {
+const STATIC_PRESET = {
   staleTime: 5 * 60 * 1000, // 5 minutes
   gcTime: 15 * 60 * 1000, // 15 minutes
   refetchOnWindowFocus: false, // Don't refetch just because user tabbed back
@@ -77,7 +77,7 @@ export const STATIC_PRESET = {
  *   ...QUERY_PRESETS.immutable,
  * })
  */
-export const IMMUTABLE_PRESET = {
+const IMMUTABLE_PRESET = {
   staleTime: Infinity, // Never stale
   gcTime: 30 * 60 * 1000, // 30 minutes (keep in cache longer)
   refetchOnMount: false,
@@ -98,7 +98,7 @@ export const IMMUTABLE_PRESET = {
  *   ...QUERY_PRESETS.userConfig,
  * })
  */
-export const USER_CONFIG_PRESET = {
+const USER_CONFIG_PRESET = {
   staleTime: 2 * 60 * 1000, // 2 minutes
   gcTime: 10 * 60 * 1000, // 10 minutes
   refetchOnWindowFocus: false,

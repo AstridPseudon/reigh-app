@@ -999,5 +999,3 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     </div>
   );
 };
-
-export default SegmentOutputStrip;

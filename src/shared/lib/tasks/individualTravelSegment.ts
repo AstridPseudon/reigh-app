@@ -830,8 +830,5 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
   }
 }
 
-/**
- * Re-export types and error class for convenience
- */
-export { TaskValidationError } from "../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally
 export type { TaskCreationResult } from "../taskCreation";

@@ -5,4 +5,4 @@
  * Re-exported here for backwards compatibility with existing imports.
  */
 
-export { PhaseConfigVertical, PhaseConfigVertical as default } from '@/shared/components/PhaseConfigVertical';
+export { PhaseConfigVertical } from '@/shared/components/PhaseConfigVertical';

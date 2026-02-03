@@ -18,7 +18,7 @@ import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { SegmentSettings } from '../../segmentSettingsUtils';
 
-export interface UseStructureVideoUploadOptions {
+interface UseStructureVideoUploadOptions {
   /** Frame range for the segment (required for creating structure video config) */
   structureVideoFrameRange?: {
     segmentStart: number;
@@ -38,7 +38,7 @@ export interface UseStructureVideoUploadOptions {
   onAddSegmentStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
 }
 
-export interface UseStructureVideoUploadReturn {
+interface UseStructureVideoUploadReturn {
   // State
   isUploadingVideo: boolean;
   uploadProgress: number;

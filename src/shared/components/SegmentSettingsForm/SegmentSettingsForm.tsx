@@ -936,5 +936,3 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
     </div>
   );
 };
-
-export default SegmentSettingsForm;

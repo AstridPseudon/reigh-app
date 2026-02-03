@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
-import ShotImageManager from '@/shared/components/ShotImageManager';
+import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager';
 import { BatchGuidanceVideo } from '../../BatchGuidanceVideo';
 import { SectionHeader } from '@/tools/image-generation/components/ImageGenerationForm/components/SectionHeader';
 import type { PairData } from '../../Timeline/TimelineContainer';

@@ -273,5 +273,3 @@ export const useTrimSave = ({
     resetSaveState,
   };
 };
-
-export default useTrimSave;

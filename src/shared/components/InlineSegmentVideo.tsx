@@ -631,5 +631,3 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
     </>
   );
 };
-
-export default InlineSegmentVideo;

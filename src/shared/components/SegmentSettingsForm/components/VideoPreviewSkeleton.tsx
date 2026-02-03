@@ -8,7 +8,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export interface VideoPreviewSkeletonProps {
+interface VideoPreviewSkeletonProps {
   /** Loading message to display */
   message?: string;
   /** Whether to show the loading spinner */
@@ -38,5 +38,3 @@ export const VideoPreviewSkeleton: React.FC<VideoPreviewSkeletonProps> = ({
     </div>
   );
 };
-
-export default VideoPreviewSkeleton;

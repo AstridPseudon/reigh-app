@@ -2,7 +2,7 @@ import React from "react";
 import { Plus, Upload, Search } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
-export interface AddReferenceButtonProps {
+interface AddReferenceButtonProps {
   isDisabled: boolean;
   onAddFiles: (files: File[]) => void;
   onOpenBrowser: () => void;

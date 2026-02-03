@@ -9,7 +9,7 @@ import React from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { StatusBadge } from '@/shared/components/StatusBadge';
 
-export interface EnhancedPromptBadgeProps {
+interface EnhancedPromptBadgeProps {
   onClear: () => void;
   onSetAsDefault?: () => void;
   isSaving?: boolean;
@@ -64,5 +64,3 @@ export const EnhancedPromptBadge: React.FC<EnhancedPromptBadgeProps> = ({
     </div>
   );
 };
-
-export default EnhancedPromptBadge;

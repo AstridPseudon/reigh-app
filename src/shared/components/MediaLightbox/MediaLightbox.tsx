@@ -25,11 +25,6 @@ import { VideoLightbox } from './VideoLightbox';
 // Props Interface (unchanged from original for backwards compatibility)
 // ============================================================================
 
-interface ShotOption {
-  id: string;
-  name: string;
-}
-
 interface MediaLightboxProps {
   /** Media to display. Optional when segmentSlotMode is provided with no video. */
   media?: GenerationRow;
@@ -185,5 +180,5 @@ const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
 
 export default MediaLightbox;
 
-// Export types for re-export
-export type { MediaLightboxProps, ShotOption };
+// Re-export ShotOption for external use
+export type { ShotOption } from './types';

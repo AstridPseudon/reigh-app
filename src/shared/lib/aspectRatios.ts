@@ -62,12 +62,13 @@ export function findClosestAspectRatio(targetRatio: number): string {
 }
 
 /**
- * Gets dimensions from aspect ratio for UI display purposes
+ * Gets dimensions from aspect ratio for UI display purposes.
  * @param aspectRatio The aspect ratio string (e.g., "16:9")
  * @param baseSize The base size for the smaller dimension (default: 128px for thumbnails)
  * @returns Object with width and height for CSS styling
+ * @internal Not currently used externally.
  */
-export function getDisplayDimensions(aspectRatio?: string, baseSize: number = 128): { width: number; height: number } {
+function getDisplayDimensions(aspectRatio?: string, baseSize: number = 128): { width: number; height: number } {
   if (!aspectRatio) {
     // Default to square if no aspect ratio
     return { width: baseSize, height: baseSize };
@@ -93,4 +94,7 @@ export function getDisplayDimensions(aspectRatio?: string, baseSize: number = 12
     const height = Math.round(width / ratio);
     return { width, height };
   }
-} 
+}
+
+// Keep for potential future use
+void getDisplayDimensions;

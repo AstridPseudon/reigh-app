@@ -300,5 +300,3 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
     </div>
   );
 };
-
-export default InfoPanel;

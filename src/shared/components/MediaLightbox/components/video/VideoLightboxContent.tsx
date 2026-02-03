@@ -30,7 +30,7 @@ import { SegmentSlotFormView } from '../SegmentSlotFormView';
 // Props Interface
 // ============================================================================
 
-export interface VideoLightboxContentProps {
+interface VideoLightboxContentProps {
   /** Pre-built props for side panel layout (Desktop and Mobile stacked) */
   sidePanelLayoutProps: SidePanelLayoutProps;
 
@@ -113,5 +113,3 @@ export const VideoLightboxContent: React.FC<VideoLightboxContentProps> = ({
 
   return <CenteredLayout {...centeredLayoutProps} />;
 };
-
-export default VideoLightboxContent;

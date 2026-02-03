@@ -192,5 +192,3 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
     </div>
   );
 };
-
-export default JoinClipsDetails;

@@ -15,7 +15,7 @@ import { SortOption, ModelTypeFilter } from '../types';
 import { CopyIdButton } from './CopyIdButton';
 import { MediaPreview } from './MediaPreview';
 
-export interface BrowsePresetsTabProps {
+interface BrowsePresetsTabProps {
   onSelectPreset: (preset: Resource & { metadata: PhaseConfigMetadata }) => void;
   onRemovePreset: () => void;
   selectedPresetId: string | null;

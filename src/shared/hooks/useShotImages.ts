@@ -81,7 +81,7 @@ import { mapShotGenerationToRow } from '@/shared/hooks/useShots';
  * const { data: images } = useShotImages(shotId, { disableRefetch: isDragging });
  * ```
  */
-export const useAllShotGenerations = (
+const useAllShotGenerations = (
   shotId: string | null,
   options?: {
     // When true, prevents query from refetching during sensitive operations (drag, persist, etc.)
@@ -374,7 +374,7 @@ export const useVideoOutputs = (
  * @param shotId - The shot ID to prime cache for
  * @param contextImages - Images from ShotsContext (selectedShot.images)
  */
-export const usePrimeShotGenerationsCache = (
+const usePrimeShotGenerationsCache = (
   shotId: string | null,
   contextImages: GenerationRow[] | undefined
 ) => {

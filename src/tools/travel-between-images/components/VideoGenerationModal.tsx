@@ -557,5 +557,3 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
     </>
   );
 };
-
-export default VideoGenerationModal;

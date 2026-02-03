@@ -13,7 +13,7 @@ import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
 import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
-export interface MediaGalleryLightboxProps {
+interface MediaGalleryLightboxProps {
   // Lightbox state
   activeLightboxMedia: GenerationRow | null;
   autoEnterEditMode?: boolean;

@@ -18,7 +18,7 @@ Last verified: 2026-02-03 (932 source files).
 | Code duplication | ✅ Patterns exist | 4 shared patterns for repeated operations |
 | Naming | ✅ Clean | ~20 single-letter vars (`w`/`h`, `x`/`y`, `i`/`j`), all conventional |
 | Logging hygiene | ⚠️ Acceptable | 2,974 console statements / 342 files; tagged, stripped in prod |
-| Dead code | ✅ Mostly clean | 7 cross-tool SectionHeader imports |
+| Dead code | ✅ Clean | 35 unused exports, 142 unused types (mostly intentional/false positives) |
 
 ---
 
@@ -132,9 +132,7 @@ Top files: `applySettingsService.ts` (79), `PromptEditorModal.tsx` (53), `Simple
 
 **Principle:** Delete, don't deprecate-and-keep.
 
-**Status:** Mostly clean. Known residue:
-
-- **7 SectionHeader imports** — Tools import from `@/tools/image-generation/...` instead of `@/shared/...` (wrong path, not architectural)
+**Status:** Clean. Components use named exports only (no duplicate `export default`). Knip reports 35 unused exports and 142 unused types — these are intentional (shadcn UI variants, Supabase generated types) or false positives from dynamic imports.
 
 ---
 

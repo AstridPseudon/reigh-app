@@ -15,7 +15,7 @@ import { cn } from '@/shared/lib/utils';
 // Types
 // ============================================================================
 
-export interface ConfirmOptions {
+interface ConfirmOptions {
   /** Dialog title */
   title: string;
   /** Dialog description/message */

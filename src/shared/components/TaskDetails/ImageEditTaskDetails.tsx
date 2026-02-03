@@ -96,5 +96,3 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
     </div>
   );
 };
-
-export default ImageEditTaskDetails;

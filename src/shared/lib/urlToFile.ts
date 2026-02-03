@@ -9,7 +9,7 @@
  * @param filename Optional filename for the created File object
  * @returns Promise<File> The image as a File object
  */
-export const urlToFile = async (url: string, filename?: string): Promise<File> => {
+const urlToFile = async (url: string, filename?: string): Promise<File> => {
   // Validate URL format
   if (!isValidImageUrl(url)) {
     throw new Error('Invalid image URL provided');
@@ -60,7 +60,7 @@ export const urlToFile = async (url: string, filename?: string): Promise<File> =
  * @param url The URL to validate
  * @returns boolean True if the URL appears to be valid for image fetching
  */
-export const isValidImageUrl = (url: string): boolean => {
+const isValidImageUrl = (url: string): boolean => {
   try {
     const urlObj = new URL(url);
     

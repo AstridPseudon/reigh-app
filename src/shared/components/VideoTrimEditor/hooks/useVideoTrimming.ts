@@ -109,5 +109,3 @@ export const useVideoTrimming = ({
     hasTrimChanges,
   };
 };
-
-export default useVideoTrimming;

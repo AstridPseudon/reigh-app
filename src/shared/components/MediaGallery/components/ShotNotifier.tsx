@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Button } from "@/shared/components/ui/button";
 
-export interface ShotNotifierProps {
+interface ShotNotifierProps {
   formAssociatedShotId?: string | null;
   shotFilter: string;
   showShotFilter: boolean;

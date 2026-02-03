@@ -26,7 +26,7 @@ import {
 // Props Interface
 // ============================================================================
 
-export interface ImageLightboxContentProps {
+interface ImageLightboxContentProps {
   /** Pre-built props for side panel layout (Desktop and Mobile stacked) */
   sidePanelLayoutProps: SidePanelLayoutProps;
 
@@ -70,5 +70,3 @@ export const ImageLightboxContent: React.FC<ImageLightboxContentProps> = ({
 
   return <CenteredLayout {...centeredLayoutProps} />;
 };
-
-export default ImageLightboxContent;

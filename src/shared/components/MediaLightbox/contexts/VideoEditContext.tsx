@@ -145,7 +145,7 @@ const VideoEditContext = createContext<VideoEditState | null>(null);
 // Provider
 // ============================================================================
 
-export interface VideoEditProviderProps {
+interface VideoEditProviderProps {
   children: React.ReactNode;
   value: VideoEditState;
 }

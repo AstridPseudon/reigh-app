@@ -565,5 +565,3 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     />
   );
 };
-
-export default SegmentRegenerateForm;

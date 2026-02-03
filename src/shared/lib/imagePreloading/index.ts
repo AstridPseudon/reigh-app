@@ -20,7 +20,7 @@ export type {
 export { PRIORITY_VALUES } from './types';
 
 // Configuration
-export { getPreloadConfig, getPreloadConfigWithOverrides } from './config';
+export { getPreloadConfig } from './config';
 
 // Queue
 export { PreloadQueue } from './PreloadQueue';

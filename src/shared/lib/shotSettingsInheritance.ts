@@ -36,7 +36,7 @@ export interface InheritedSettings {
  * LoRAs are included in mainSettings.selectedLoras (unified with other settings)
  * Join Segments settings are inherited separately in joinSegmentsSettings
  */
-export async function getInheritedSettings(
+async function getInheritedSettings(
   params: InheritSettingsParams
 ): Promise<InheritedSettings> {
   const { projectId, shots } = params;
@@ -207,7 +207,7 @@ export async function getInheritedSettings(
  * Saves main settings (including LoRAs) to sessionStorage for useShotSettings to pick up
  * Also saves Join Segments settings to sessionStorage for useJoinSegmentsSettings to pick up
  */
-export async function applyInheritedSettings(
+async function applyInheritedSettings(
   params: InheritSettingsParams,
   inherited: InheritedSettings
 ): Promise<void> {

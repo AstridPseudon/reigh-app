@@ -16,9 +16,9 @@ import { Label } from '@/shared/components/ui/label';
 import { RotateCcw, Save, Loader2 } from 'lucide-react';
 import { getDefaultableField } from './segmentSettingsUtils';
 
-export type BadgeType = 'default' | 'enhanced' | null;
+type BadgeType = 'default' | 'enhanced' | null;
 
-export interface DefaultableTextareaProps extends Omit<TextareaProps, 'value' | 'onChange'> {
+interface DefaultableTextareaProps extends Omit<TextareaProps, 'value' | 'onChange'> {
   /** Label text for the field */
   label: string;
   /** Current value (undefined = use default, '' = explicitly empty, string = user value) */

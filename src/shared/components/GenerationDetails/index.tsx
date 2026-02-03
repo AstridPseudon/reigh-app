@@ -25,9 +25,9 @@ import { Task } from '@/types/tasks';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 
 // Types
-export type DisplayVariant = 'hover' | 'modal' | 'panel';
+type DisplayVariant = 'hover' | 'modal' | 'panel';
 
-export interface GenerationDetailsProps {
+interface GenerationDetailsProps {
   /** Task ID - component will fetch task data */
   taskId?: string;
   /** Direct task data (for backward compatibility) */

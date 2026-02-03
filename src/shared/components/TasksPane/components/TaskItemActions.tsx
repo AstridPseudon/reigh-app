@@ -199,8 +199,3 @@ export const TaskItemActions: React.FC<TaskItemActionsProps> = ({
     </div>
   );
 };
-
-export default TaskItemActions;
-
-
-

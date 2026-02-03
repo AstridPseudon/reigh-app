@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { CheckCircle, PlusCircle, ImagePlus, Loader2, ArrowRight } from 'lucide-react';
-import ShotSelectorWithAdd from '@/shared/components/ShotSelectorWithAdd';
+import { ShotSelectorWithAdd } from '@/shared/components/ShotSelectorWithAdd';
 import { handleError } from '@/shared/lib/errorHandler';
 
 interface ShotOption {
@@ -10,7 +10,7 @@ interface ShotOption {
   name: string;
 }
 
-export interface ShotSelectorControlsProps {
+interface ShotSelectorControlsProps {
   // Media info
   mediaId: string;
   imageUrl?: string;

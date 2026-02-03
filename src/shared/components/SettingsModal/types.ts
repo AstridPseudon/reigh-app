@@ -58,6 +58,6 @@ export interface PreferencesSectionProps {
   isLoadingPrivacyDefaults: boolean;
 }
 
-export interface TransactionsSectionProps {
+interface TransactionsSectionProps {
   // Currently no props needed - thin wrapper around CreditsManagement
 }

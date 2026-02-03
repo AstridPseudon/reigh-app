@@ -1,4 +1,4 @@
-export const dummyProjectNames = [
+const dummyProjectNames = [
   "Lord of the Onion Rings",
   "Gone with the Wind Turbine",      
   "Pulp Friction",

@@ -664,5 +664,3 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
     </div>
   );
 };
-
-export default PhaseConfigVertical;

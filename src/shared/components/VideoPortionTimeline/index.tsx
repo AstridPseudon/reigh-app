@@ -758,6 +758,3 @@ export function MultiPortionTimeline({
     </div>
   );
 }
-
-export default MultiPortionTimeline;
-

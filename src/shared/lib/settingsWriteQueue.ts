@@ -191,7 +191,7 @@ export function enqueueSettingsWrite(
 /**
  * Flush all pending writes for a specific target immediately.
  */
-export function flushTarget(scope: 'user' | 'project' | 'shot', entityId: string, toolId: string): Promise<unknown> | undefined {
+function flushTarget(scope: 'user' | 'project' | 'shot', entityId: string, toolId: string): Promise<unknown> | undefined {
   const key = `${scope}:${entityId}:${toolId}`;
   const pending = pendingByTarget.get(key);
   
@@ -209,7 +209,7 @@ export function flushTarget(scope: 'user' | 'project' | 'shot', entityId: string
  * Flush all pending writes immediately.
  * Best-effort: returns without waiting.
  */
-export function flushAll(): void {
+function flushAll(): void {
   for (const [key, pending] of pendingByTarget.entries()) {
     if (pending.timerId) {
       clearTimeout(pending.timerId);

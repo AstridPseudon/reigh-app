@@ -211,5 +211,3 @@ export const ConstituentImageNavigation: React.FC<ConstituentImageNavigationProp
     </div>
   );
 };
-
-export default ConstituentImageNavigation;

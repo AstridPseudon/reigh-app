@@ -38,10 +38,10 @@ import {
 } from '../ButtonGroups';
 import { ControlsPanel } from '../ControlsPanel';
 import { MediaDisplayWithCanvas } from '../MediaDisplayWithCanvas';
-import VideoEditModeDisplay from '../VideoEditModeDisplay';
-import VideoTrimModeDisplay from '../VideoTrimModeDisplay';
+import { VideoEditModeDisplay } from '../VideoEditModeDisplay';
+import { VideoTrimModeDisplay } from '../VideoTrimModeDisplay';
 import { WorkflowControlsBar } from '../WorkflowControlsBar';
-import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
+import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 
 export const MobileStackedLayout: React.FC<SidePanelLayoutProps> = (props) => {
   // ========================================
@@ -383,5 +383,3 @@ export const MobileStackedLayout: React.FC<SidePanelLayoutProps> = (props) => {
     </div>
   );
 };
-
-export default MobileStackedLayout;

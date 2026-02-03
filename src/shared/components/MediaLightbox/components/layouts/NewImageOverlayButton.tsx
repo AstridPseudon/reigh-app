@@ -74,5 +74,3 @@ export const NewImageOverlayButton: React.FC<NewImageOverlayButtonProps> = ({
     </div>
   );
 };
-
-export default NewImageOverlayButton;

@@ -12,11 +12,6 @@
  * - `useCreateGeneration` — Create a new generation (external upload)
  * - `useToggleGenerationStar` — Star/unstar with optimistic updates
  *
- * ## Helper functions (also exported)
- * - `updateGenerationLocation(id, location, thumbUrl?)` — Direct Supabase call
- * - `createGeneration(params)` — Direct Supabase call
- * - `toggleGenerationStar(id, starred)` — Direct Supabase call
- *
  * @module useGenerationMutations
  */
 
@@ -29,12 +24,13 @@ import type { GenerationRow } from '@/types/shots';
 import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import type { GenerationsPaginatedResponse } from './useProjectGenerations';
 
-// ===== Helper Functions =====
+// ===== Helper Functions (internal) =====
 
 /**
- * Update generation location using direct Supabase call
+ * Update generation location using direct Supabase call.
+ * @internal Used by useUpdateGenerationLocation hook.
  */
-export async function updateGenerationLocation(id: string, location: string, thumbUrl?: string): Promise<void> {
+async function updateGenerationLocation(id: string, location: string, thumbUrl?: string): Promise<void> {
   const updateData: { location: string; thumbnail_url?: string } = { location };
 
   // If thumbUrl is provided, update it as well (important for flipped images)
@@ -53,9 +49,10 @@ export async function updateGenerationLocation(id: string, location: string, thu
 }
 
 /**
- * Create a new generation using direct Supabase call
+ * Create a new generation using direct Supabase call.
+ * @internal Used by useCreateGeneration hook.
  */
-export async function createGeneration(params: {
+async function createGeneration(params: {
   imageUrl: string;
   fileName: string;
   fileType: string;
@@ -121,9 +118,10 @@ export async function createGeneration(params: {
 }
 
 /**
- * Star/unstar a generation using direct Supabase call
+ * Star/unstar a generation using direct Supabase call.
+ * @internal Used by useToggleGenerationStar hook.
  */
-export async function toggleGenerationStar(id: string, starred: boolean): Promise<void> {
+async function toggleGenerationStar(id: string, starred: boolean): Promise<void> {
   const { data, error } = await supabase
     .from('generations')
     .update({ starred })

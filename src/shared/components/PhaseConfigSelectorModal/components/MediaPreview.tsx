@@ -2,7 +2,7 @@ import React from 'react';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 
-export interface MediaPreviewProps {
+interface MediaPreviewProps {
   url: string;
   type: 'image' | 'video';
   alt?: string;

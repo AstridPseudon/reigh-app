@@ -146,7 +146,7 @@ const ImageEditContext = createContext<ImageEditState | null>(null);
 // Provider
 // ============================================================================
 
-export interface ImageEditProviderProps {
+interface ImageEditProviderProps {
   children: React.ReactNode;
   value: ImageEditState;
 }

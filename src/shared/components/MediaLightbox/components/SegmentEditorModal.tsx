@@ -19,7 +19,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { SegmentSlotModeData } from '../types';
 import { SegmentSlotFormView } from './SegmentSlotFormView';
 
-export interface SegmentEditorModalProps {
+interface SegmentEditorModalProps {
   /** Segment slot data for the form */
   segmentSlotMode: SegmentSlotModeData;
   /** Callback when modal should close */
@@ -93,5 +93,3 @@ export const SegmentEditorModal: React.FC<SegmentEditorModalProps> = ({
     </DialogPrimitive.Root>
   );
 };
-
-export default SegmentEditorModal;

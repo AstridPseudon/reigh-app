@@ -6,7 +6,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ShotFilter } from "@/shared/components/ShotFilter";
 import { ToolTypeFilter } from "./ToolTypeFilter";
 
-export interface MediaGalleryFiltersProps {
+interface MediaGalleryFiltersProps {
   // Shot filter props
   showShotFilter?: boolean;
   allShots: Array<{ id: string; name: string }>;

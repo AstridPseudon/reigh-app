@@ -18,12 +18,12 @@ const colorVariants = {
   orange: 'bg-orange-500 text-white hover:bg-orange-400',
 } as const;
 
-export interface StatusBadgeAction {
+interface StatusBadgeAction {
   label: string;
   onClick: () => void;
 }
 
-export interface StatusBadgeProps {
+interface StatusBadgeProps {
   /** The text to display in the badge */
   label: string;
   /** Color variant */
@@ -94,5 +94,3 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     </TouchableTooltip>
   );
 };
-
-export default StatusBadge;

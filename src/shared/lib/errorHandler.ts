@@ -126,7 +126,7 @@ export function handleError(error: unknown, options: HandleErrorOptions): AppErr
  * }
  * ```
  */
-export function createErrorHandler(context: string) {
+function createErrorHandler(context: string) {
   return (error: unknown, options?: Omit<HandleErrorOptions, 'context'>): AppError => {
     return handleError(error, { context, ...options });
   };
@@ -146,7 +146,7 @@ export function createErrorHandler(context: string) {
  * const result = await safeUpload(file);
  * ```
  */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
+function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   options: HandleErrorOptions
 ): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>> | undefined> {
@@ -163,7 +163,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
 /**
  * Check if an error should trigger a login redirect
  */
-export function shouldRedirectToLogin(error: unknown): boolean {
+function shouldRedirectToLogin(error: unknown): boolean {
   if (isAuthError(error)) {
     return error.needsLogin;
   }
@@ -173,7 +173,7 @@ export function shouldRedirectToLogin(error: unknown): boolean {
 /**
  * Check if an error is likely transient and worth retrying
  */
-export function isRetryableError(error: unknown): boolean {
+function isRetryableError(error: unknown): boolean {
   if (isNetworkError(error)) {
     // Don't retry if offline - wait for connection
     return !error.isOffline;

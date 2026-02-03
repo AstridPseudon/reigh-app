@@ -258,5 +258,3 @@ export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
     </div>
   );
 };
-
-export default TrimTimelineBar;

@@ -115,5 +115,3 @@ export function useVariantBadges(
     isLoading: isEffectivelyLoading,
   };
 }
-
-export default useVariantBadges;

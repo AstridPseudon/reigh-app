@@ -120,7 +120,7 @@ const LightboxStateContext = createContext<LightboxStateValue | null>(null);
 // Provider Component
 // ============================================================================
 
-export interface LightboxStateProviderProps {
+interface LightboxStateProviderProps {
   children: React.ReactNode;
   value: LightboxStateValue;
 }

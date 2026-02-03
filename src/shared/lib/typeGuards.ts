@@ -9,20 +9,11 @@
  * 2. ShotGeneration (nested) - type, location nested under .generation or .generations
  */
 
-import { GenerationRow, TimelineGenerationRow } from '@/types/shots';
+import { GenerationRow } from '@/types/shots';
 
 // ============================================================================
 // TYPE DEFINITIONS for different data structures
 // ============================================================================
-
-/** Minimal interface for nested shot_generation records (singular .generation) */
-export interface ShotGenerationLike {
-  generation?: {
-    type?: string;
-    location?: string;
-  } | null;
-  timeline_frame?: number | null;
-}
 
 /** Minimal interface for nested shot_generation records (plural .generations) */
 export interface ShotGenerationsLike {
@@ -65,19 +56,6 @@ export function isVideoGeneration(gen: GenerationRow): boolean {
     gen.type === 'video_travel_output' ||
     hasVideoExtension(gen.location) ||
     hasVideoExtension(gen.imageUrl)
-  );
-}
-
-/**
- * Check if a nested ShotGeneration (with .generation property) is a video
- * Used by: useEnhancedShotPositions, and other places with nested structure
- */
-export function isVideoShotGeneration(sg: ShotGenerationLike): boolean {
-  if (!sg.generation) return false;
-  return (
-    sg.generation.type === 'video' ||
-    sg.generation.type === 'video_travel_output' ||
-    hasVideoExtension(sg.generation.location)
   );
 }
 
@@ -140,85 +118,4 @@ export function isPositioned(item: PositionedItem): boolean {
   return item.timeline_frame != null && item.timeline_frame !== -1;
 }
 
-/**
- * Check if an item is positioned (alias for backward compat with existing code patterns)
- */
-export function hasValidTimelineFrame(item: PositionedItem): boolean {
-  return isPositioned(item);
-}
-
-// ============================================================================
-// SORTING
-// ============================================================================
-
-/**
- * Sort items by timeline_frame ascending
- * Returns a NEW array (does not mutate)
- */
-export function sortByTimelineFrame<T extends PositionedItem>(items: T[]): T[] {
-  return [...items].sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-}
-
-// ============================================================================
-// COMBINED FILTER + SORT for common use cases
-// ============================================================================
-
-/**
- * Filter and sort GenerationRow array for timeline/batch display
- * Removes videos, keeps only positioned items, sorts by timeline_frame
- * 
- * This is the CANONICAL filter for UI display of images.
- */
-export function filterImagesForDisplay(images: GenerationRow[]): GenerationRow[] {
-  return sortByTimelineFrame(
-    images.filter(img => isPositioned(img) && !isVideoGeneration(img))
-  );
-}
-
-/**
- * Filter ShotGeneration array (nested structure) for display
- * Removes videos, keeps only positioned items, sorts by timeline_frame
- */
-export function filterShotGenerationsForDisplay<T extends ShotGenerationLike>(
-  shotGenerations: T[]
-): T[] {
-  return sortByTimelineFrame(
-    shotGenerations.filter(shotGen =>
-      shotGen.generation &&
-      isPositioned(shotGen) &&
-      !isVideoShotGeneration(shotGen)
-    )
-  );
-}
-
-// ============================================================================
-// INVERSE UTILITIES
-// ============================================================================
-
-/**
- * Type guard to check if a generation is an image (not a video)
- */
-export function isImageGeneration(gen: GenerationRow): boolean {
-  return !isVideoGeneration(gen);
-}
-
-/**
- * Type guard to check if a generation is suitable for timeline display
- * Ensures both timeline_frame and metadata are present
- * 
- * @example
- * ```typescript
- * const timelineImages = allImages.filter(isTimelineGeneration);
- * // TypeScript now knows timelineImages have metadata and timeline_frame
- * timelineImages.forEach(img => {
- *   console.log(img.metadata.pair_prompt); // No type error!
- * });
- * ```
- */
-export function isTimelineGeneration(gen: GenerationRow): gen is TimelineGenerationRow {
-  return (
-    gen.timeline_frame != null && 
-    gen.metadata != null
-  );
-}
 

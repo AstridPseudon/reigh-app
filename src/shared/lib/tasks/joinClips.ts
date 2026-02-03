@@ -446,8 +446,5 @@ export async function createJoinClipsTask(params: JoinClipsTaskParams): Promise<
   }
 }
 
-/**
- * Re-export the error class for convenience
- */
-export { TaskValidationError } from "../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally
 

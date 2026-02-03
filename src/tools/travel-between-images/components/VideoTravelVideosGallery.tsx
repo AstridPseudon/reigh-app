@@ -212,5 +212,3 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
     </div>
   );
 };
-
-export default VideoTravelVideosGallery;

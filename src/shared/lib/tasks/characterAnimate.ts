@@ -144,7 +144,4 @@ export async function createCharacterAnimateTask(params: CharacterAnimateTaskPar
   }
 }
 
-/**
- * Re-export the error class for convenience
- */
-export { TaskValidationError } from "../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally

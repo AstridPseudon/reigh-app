@@ -23,7 +23,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import type { SegmentSlotModeData } from '../types';
 import { NavigationArrows } from './NavigationArrows';
 
-export interface SegmentSlotFormViewProps {
+interface SegmentSlotFormViewProps {
   segmentSlotMode: SegmentSlotModeData;
   onClose: () => void;
   onNavPrev: () => void;
@@ -535,5 +535,3 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     </div>
   );
 };
-
-export default SegmentSlotFormView;

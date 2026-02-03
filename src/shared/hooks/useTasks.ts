@@ -75,7 +75,7 @@ export const mapDbTaskToTask = (row: TaskDbRow): Task => ({
 });
 
 // Hook to update task status
-export const useUpdateTaskStatus = () => {
+const useUpdateTaskStatus = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -548,7 +548,7 @@ async function cancelPendingTasks(projectId: string): Promise<CancelAllPendingTa
 }
 
 // Hook to cancel pending tasks using Supabase
-export const useCancelPendingTasks = () => {
+const useCancelPendingTasks = () => {
   const queryClient = useQueryClient();
 
   return useMutation({

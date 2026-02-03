@@ -22,7 +22,7 @@ import { cn } from '@/shared/lib/utils';
 
 const DOUBLE_TAP_DELAY = 300; // ms
 
-export interface LightboxShellProps {
+interface LightboxShellProps {
   children: React.ReactNode;
   onClose: () => void;
 
@@ -537,5 +537,3 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     </TooltipProvider>
   );
 };
-
-export default LightboxShell;

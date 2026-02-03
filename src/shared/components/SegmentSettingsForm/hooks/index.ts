@@ -3,7 +3,3 @@
  */
 
 export { useStructureVideoUpload } from './useStructureVideoUpload';
-export type {
-  UseStructureVideoUploadOptions,
-  UseStructureVideoUploadReturn,
-} from './useStructureVideoUpload';

@@ -40,5 +40,3 @@ export function LightboxProviders({
     </LightboxStateProvider>
   );
 }
-
-export default LightboxProviders;

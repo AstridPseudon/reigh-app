@@ -276,5 +276,3 @@ export const VideoTravelListHeader: React.FC<VideoTravelListHeaderProps> = ({
     </div>
   );
 };
-
-export default VideoTravelListHeader;

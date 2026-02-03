@@ -3,23 +3,12 @@
  *
  * Specialized components for displaying task details based on task type.
  * These are used by GenerationDetails and other shared components.
+ *
+ * Note: Types and utilities (parseTaskParams, deriveInputImages, etc.) should be
+ * imported directly from their source modules:
+ * - Types: @/shared/types/taskDetailsTypes
+ * - Utilities: @/shared/utils/taskParamsUtils
  */
-
-// Re-export types from shared
-export type { TaskDetailsProps, VariantConfig } from '@/shared/types/taskDetailsTypes';
-export { getVariantConfig } from '@/shared/types/taskDetailsTypes';
-
-// Re-export utilities from shared
-export {
-  parseTaskParams,
-  deriveInputImages,
-  derivePrompt,
-  IMAGE_EDIT_TASK_TYPES,
-  isImageEditTaskType,
-  isVideoEnhanceTaskType,
-  extractLoras,
-  type LoraInfo,
-} from '@/shared/utils/taskParamsUtils';
 
 // Export task detail components
 export { ImageEditTaskDetails } from './ImageEditTaskDetails';

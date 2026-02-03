@@ -121,5 +121,3 @@ export const GuidanceVideosContainer: React.FC<GuidanceVideosContainerProps> = (
     </div>
   );
 };
-
-export default GuidanceVideosContainer;

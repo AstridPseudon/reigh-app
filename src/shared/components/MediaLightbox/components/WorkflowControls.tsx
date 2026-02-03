@@ -6,15 +6,15 @@ import {
   PlusCircle,
   Settings,
 } from 'lucide-react';
-import ShotSelectorWithAdd from '@/shared/components/ShotSelectorWithAdd';
+import { ShotSelectorWithAdd } from '@/shared/components/ShotSelectorWithAdd';
 import { handleError } from '@/shared/lib/errorHandler';
 
-export interface ShotOption {
+interface ShotOption {
   id: string;
   name: string;
 }
 
-export interface WorkflowControlsProps {
+interface WorkflowControlsProps {
   // Media info
   mediaId: string;
   imageUrl?: string;

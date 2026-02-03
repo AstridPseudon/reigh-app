@@ -4,7 +4,7 @@ import { useShotCreation } from "@/shared/hooks/useShotCreation";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { useDeviceDetection } from "@/shared/hooks/useDeviceDetection";
 import { GenerationRow, Shot } from '@/types/shots';
-import FinalVideoSection from "../FinalVideoSection";
+import { FinalVideoSection } from "../FinalVideoSection";
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
 import { useToolSettings } from '@/shared/hooks/useToolSettings';

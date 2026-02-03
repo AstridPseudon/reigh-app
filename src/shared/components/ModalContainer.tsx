@@ -206,5 +206,3 @@ export function ModalFooterButtons({
   );
 }
 
-// Re-export size type for convenience
-export type { ModalSize };

@@ -25,7 +25,7 @@ import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 // HELPER: Create generation for uploaded image
 // ============================================================================
 
-export const createGenerationForUploadedImage = async (
+const createGenerationForUploadedImage = async (
   imageUrl: string,
   fileName: string,
   fileType: string,

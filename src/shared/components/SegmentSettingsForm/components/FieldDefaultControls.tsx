@@ -8,7 +8,7 @@
 import React from 'react';
 import { Loader2, RotateCcw, Save } from 'lucide-react';
 
-export interface FieldDefaultControlsProps {
+interface FieldDefaultControlsProps {
   isUsingDefault: boolean;
   onUseDefault: () => void;
   onSetAsDefault?: () => void;
@@ -61,5 +61,3 @@ export const FieldDefaultControls: React.FC<FieldDefaultControlsProps> = ({
     </div>
   );
 };
-
-export default FieldDefaultControls;

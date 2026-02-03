@@ -13,7 +13,7 @@ import type {
   RealtimePayload,
 } from '@/shared/types/realtimePayloads';
 
-export class SimpleRealtimeManager {
+class SimpleRealtimeManager {
   private channel: RealtimeChannel | null = null;
   private projectId: string | null = null;
   private isSubscribed = false;

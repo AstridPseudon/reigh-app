@@ -29,7 +29,7 @@ const TARGET_ASPECT_RATIOS: TargetAspectRatio[] = [
 // Tolerance for aspect ratio matching - if within this, skip re-encoding
 const ASPECT_RATIO_TOLERANCE = 0.01;
 
-export const cropImageToClosestAspectRatio = async (
+const cropImageToClosestAspectRatio = async (
   inputFile: File
 ): Promise<CropResult | null> => {
   // Mobile browsers (especially iOS) sometimes provide files with an empty MIME type

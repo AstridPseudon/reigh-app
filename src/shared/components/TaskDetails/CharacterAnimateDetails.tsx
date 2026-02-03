@@ -121,5 +121,3 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
     </div>
   );
 };
-
-export default CharacterAnimateDetails;

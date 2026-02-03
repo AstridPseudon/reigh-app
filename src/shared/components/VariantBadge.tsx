@@ -15,7 +15,7 @@ import { cn } from '@/shared/lib/utils';
 import { TouchableTooltip } from '@/shared/components/ui/tooltip';
 import { StatusBadge } from '@/shared/components/StatusBadge';
 
-export interface VariantBadgeProps {
+interface VariantBadgeProps {
   /** Number of total variants (including primary) */
   derivedCount?: number;
   /** Number of variants that haven't been viewed yet */
@@ -170,5 +170,3 @@ export const VariantBadge: React.FC<VariantBadgeProps> = ({
     </div>
   );
 };
-
-export default VariantBadge;

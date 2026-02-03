@@ -205,6 +205,3 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
     </div>
   );
 };
-
-export default SourceGenerationDisplay;
-

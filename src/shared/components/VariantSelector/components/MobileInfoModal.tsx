@@ -57,7 +57,7 @@ const MobileVariantDetails: React.FC<MobileVariantDetailsProps> = ({ variant, av
 
 // --- MobileInfoModal ---
 
-export interface MobileInfoModalProps {
+interface MobileInfoModalProps {
   variant: GenerationVariant;
   activeVariantId: string | null;
   availableLoras?: LoraModel[];
@@ -160,5 +160,3 @@ export const MobileInfoModal: React.FC<MobileInfoModalProps> = ({
     </div>
   );
 };
-
-export default MobileInfoModal;

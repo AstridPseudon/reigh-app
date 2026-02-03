@@ -115,8 +115,3 @@ export const TaskItemTooltip: React.FC<TaskItemTooltipProps> = ({
     </Tooltip>
   );
 };
-
-export default TaskItemTooltip;
-
-
-

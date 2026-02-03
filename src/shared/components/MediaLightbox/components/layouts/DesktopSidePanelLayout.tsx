@@ -38,8 +38,8 @@ import {
 } from '../ButtonGroups';
 import { ControlsPanel } from '../ControlsPanel';
 import { MediaDisplayWithCanvas } from '../MediaDisplayWithCanvas';
-import VideoEditModeDisplay from '../VideoEditModeDisplay';
-import VideoTrimModeDisplay from '../VideoTrimModeDisplay';
+import { VideoEditModeDisplay } from '../VideoEditModeDisplay';
+import { VideoTrimModeDisplay } from '../VideoTrimModeDisplay';
 import { WorkflowControlsBar } from '../WorkflowControlsBar';
 
 export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) => {
@@ -388,5 +388,3 @@ export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) =>
     </div>
   );
 };
-
-export default DesktopSidePanelLayout;

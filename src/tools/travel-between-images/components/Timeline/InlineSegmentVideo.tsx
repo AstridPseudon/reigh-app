@@ -6,4 +6,3 @@
  */
 
 export { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
-export { default } from '@/shared/components/InlineSegmentVideo';

@@ -242,5 +242,3 @@ export const AudioStrip: React.FC<AudioStripProps> = ({
     </div>
   );
 };
-
-export default AudioStrip;

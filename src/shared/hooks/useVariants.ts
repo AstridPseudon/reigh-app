@@ -325,5 +325,3 @@ export const useVariants = ({
   };
 };
 
-export default useVariants;
-

@@ -81,5 +81,3 @@ export const ProfitSplitBar: React.FC<ProfitSplitBarProps> = ({ className }) => 
     </div>
   );
 };
-
-export default ProfitSplitBar;

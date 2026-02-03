@@ -143,22 +143,18 @@ export function derivePrompt(parsedParams: Record<string, unknown>): string | nu
 }
 
 /**
- * Image edit task types
- */
-export const IMAGE_EDIT_TASK_TYPES = [
-  'z_image_turbo_i2i',
-  'image_inpaint',
-  'qwen_image_edit',
-  'magic_edit',
-  'kontext_image_edit',
-  'flux_image_edit',
-  'annotated_image_edit',
-];
-
-/**
  * Check if a task type is an image edit task
  */
 export function isImageEditTaskType(taskType: string | undefined): boolean {
+  const IMAGE_EDIT_TASK_TYPES = [
+    'z_image_turbo_i2i',
+    'image_inpaint',
+    'qwen_image_edit',
+    'magic_edit',
+    'kontext_image_edit',
+    'flux_image_edit',
+    'annotated_image_edit',
+  ];
   return IMAGE_EDIT_TASK_TYPES.includes(taskType || '');
 }
 

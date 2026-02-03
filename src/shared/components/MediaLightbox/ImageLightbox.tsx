@@ -57,7 +57,7 @@ import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 // Props Interface
 // ============================================================================
 
-export interface ImageLightboxProps {
+interface ImageLightboxProps {
   media: GenerationRow;
   onClose: () => void;
   onNext?: () => void;
@@ -1292,5 +1292,3 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     </LightboxProviders>
   );
 };
-
-export default ImageLightbox;

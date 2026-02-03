@@ -16,7 +16,7 @@ import {
   SampleGenerationsSection,
 } from './sections';
 
-export interface AddNewTabProps {
+interface AddNewTabProps {
   createResource: ReturnType<typeof useCreateResource>;
   updateResource: ReturnType<typeof useUpdateResource>;
   onSwitchToBrowse: () => void;

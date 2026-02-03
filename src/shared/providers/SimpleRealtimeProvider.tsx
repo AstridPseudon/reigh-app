@@ -25,7 +25,8 @@ const SimpleRealtimeContext = createContext<SimpleRealtimeContextType>({
   error: null
 });
 
-export const useSimpleRealtime = () => useContext(SimpleRealtimeContext);
+/** @deprecated This hook was previously exported but is unused. Use the provider's context directly if needed. */
+const useSimpleRealtime = () => useContext(SimpleRealtimeContext);
 
 interface SimpleRealtimeProviderProps {
   children: React.ReactNode;

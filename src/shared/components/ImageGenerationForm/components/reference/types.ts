@@ -3,7 +3,7 @@ import { Resource } from "@/shared/hooks/useResources";
 import { ActiveLora } from "@/shared/components/ActiveLoRAsDisplay";
 
 // Shared disabled state
-export interface DisabledState {
+interface DisabledState {
   isGenerating: boolean;
   isUploadingStyleReference: boolean;
 }

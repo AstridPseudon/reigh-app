@@ -15,7 +15,6 @@ export {
   useInvalidateGenerations,
   invalidateGenerationsSync,
   invalidateAllShotGenerations,
-  invalidateVariantChange,
   type InvalidationScope,
   type InvalidationOptions,
   type VariantInvalidationOptions,

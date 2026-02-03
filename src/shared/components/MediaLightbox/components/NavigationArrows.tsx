@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLightboxNavigationSafe } from '../contexts/LightboxStateContext';
 
-export interface NavigationArrowsProps {
+interface NavigationArrowsProps {
   // Visibility - optional, uses context if not provided
   showNavigation?: boolean;
   readOnly?: boolean;

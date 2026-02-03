@@ -818,5 +818,3 @@ const GenerationsPaneComponent: React.FC = () => {
 
 // Memoize GenerationsPane - it has no props so a simple memo is sufficient
 export const GenerationsPane = React.memo(GenerationsPaneComponent);
-
-export default GenerationsPane;

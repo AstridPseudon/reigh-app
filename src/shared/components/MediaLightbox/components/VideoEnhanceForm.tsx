@@ -113,7 +113,7 @@ function useDetectVideoFps(videoUrl: string | undefined): number | null {
   return detectedFps;
 }
 
-export interface VideoEnhanceFormProps {
+interface VideoEnhanceFormProps {
   settings: VideoEnhanceSettings;
   onUpdateSetting: <K extends keyof VideoEnhanceSettings>(
     key: K,
@@ -325,5 +325,3 @@ export const VideoEnhanceForm: React.FC<VideoEnhanceFormProps> = ({
     </div>
   );
 };
-
-export default VideoEnhanceForm;

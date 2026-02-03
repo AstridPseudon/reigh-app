@@ -350,5 +350,3 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
     </div>
   );
 };
-
-export default VideoTravelDetails;

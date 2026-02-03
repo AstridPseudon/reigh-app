@@ -11,7 +11,7 @@ export interface ShotOption {
   name: string;
 }
 
-export interface ShotSelectorProps {
+interface ShotSelectorProps {
   // Core selection props
   value: string;
   onValueChange: (value: string) => void;
@@ -345,5 +345,3 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
     </div>
   );
 };
-
-export default ShotSelector;

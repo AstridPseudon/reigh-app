@@ -5,4 +5,3 @@
  */
 
 export { ImageLightboxContent } from './ImageLightboxContent';
-export type { ImageLightboxContentProps } from './ImageLightboxContent';

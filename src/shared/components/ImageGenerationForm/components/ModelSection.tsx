@@ -16,7 +16,7 @@ import {
   useFormLorasContext,
 } from "../ImageGenerationFormContext";
 
-export interface ModelSectionProps {
+interface ModelSectionProps {
   // Props not in context - generation source and text model selection
   generationSource?: GenerationSource;
   onGenerationSourceChange?: (source: GenerationSource) => void;

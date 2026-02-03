@@ -734,5 +734,3 @@ export function PreviewTogetherDialog({
     </Dialog>
   );
 }
-
-export default PreviewTogetherDialog;

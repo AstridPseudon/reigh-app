@@ -15,7 +15,7 @@ import { useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
 import { VariantSelector } from '@/shared/components/VariantSelector';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 
-export interface EditPanelLayoutProps {
+interface EditPanelLayoutProps {
   /** Layout variant */
   variant: 'desktop' | 'mobile';
 
@@ -211,5 +211,3 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
     </div>
   );
 };
-
-export default EditPanelLayout;

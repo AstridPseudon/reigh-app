@@ -63,7 +63,7 @@ const VariantHoverDetails: React.FC<VariantHoverDetailsProps> = ({ variant, avai
 
 // --- VariantCard ---
 
-export interface VariantCardProps {
+interface VariantCardProps {
   variant: GenerationVariant;
   isActive: boolean;
   isPrimary: boolean;
@@ -377,5 +377,3 @@ export const VariantCard: React.FC<VariantCardProps> = ({
     </HoverCard>
   );
 };
-
-export default VariantCard;

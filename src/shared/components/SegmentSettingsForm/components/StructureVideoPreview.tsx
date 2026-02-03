@@ -13,7 +13,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
-export interface StructureVideoPreviewProps {
+interface StructureVideoPreviewProps {
   videoUrl: string;
   frameRange: {
     segmentStart: number;
@@ -253,5 +253,3 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
     </div>
   );
 };
-
-export default StructureVideoPreview;

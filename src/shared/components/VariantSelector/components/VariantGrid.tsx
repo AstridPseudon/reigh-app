@@ -14,7 +14,7 @@ import { VariantCard } from './VariantCard';
 
 const ITEMS_PER_PAGE = 20;
 
-export interface VariantGridProps {
+interface VariantGridProps {
   filteredVariants: GenerationVariant[];
   allVariants: GenerationVariant[];
   activeVariantId: string | null;
@@ -155,5 +155,3 @@ export const VariantGrid: React.FC<VariantGridProps> = ({
     </>
   );
 };
-
-export default VariantGrid;

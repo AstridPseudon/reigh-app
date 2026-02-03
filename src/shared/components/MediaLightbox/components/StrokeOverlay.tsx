@@ -383,5 +383,3 @@ export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>
 });
 
 StrokeOverlay.displayName = 'StrokeOverlay';
-
-export default StrokeOverlay;

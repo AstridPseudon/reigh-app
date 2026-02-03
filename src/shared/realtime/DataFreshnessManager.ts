@@ -18,7 +18,7 @@ interface DataFreshnessState {
   lastStatusChange: number;
 }
 
-export class DataFreshnessManager {
+class DataFreshnessManager {
   private state: DataFreshnessState = {
     realtimeStatus: 'disconnected',
     lastEventTimes: new Map(),

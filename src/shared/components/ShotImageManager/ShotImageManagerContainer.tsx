@@ -350,6 +350,3 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
     </>
   );
 };
-
-export default ShotImageManagerContainer;
-

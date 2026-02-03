@@ -31,8 +31,8 @@ export interface ReferenceApiParams {
   reference_mode: ReferenceMode;
 }
 
-/** Default reference params */
-export const DEFAULT_REFERENCE_PARAMS: ReferenceApiParams = {
+/** Default reference params (internal use only - not exported) */
+const DEFAULT_REFERENCE_PARAMS: ReferenceApiParams = {
   style_reference_strength: 1.0,
   subject_strength: 0.0,
   subject_description: '',
@@ -254,23 +254,24 @@ export interface CalculateTaskResolutionOptions {
 /**
  * Calculates the final resolution for image generation tasks
  * Applies user-configurable scaling for supported image generation models
+ * (internal use only - not exported)
  * @param options - Resolution calculation options
  * @returns Promise resolving to the final resolution string
  */
-export async function calculateTaskResolution(
+async function calculateTaskResolution(
   options: CalculateTaskResolutionOptions
 ): Promise<string>;
 
 /**
  * @deprecated Use the options object form instead
  */
-export async function calculateTaskResolution(
+async function calculateTaskResolution(
   projectId: string,
   customResolution?: string,
   modelName?: string
 ): Promise<string>;
 
-export async function calculateTaskResolution(
+async function calculateTaskResolution(
   projectIdOrOptions: string | CalculateTaskResolutionOptions,
   customResolution?: string,
   modelName?: string
@@ -320,11 +321,12 @@ export async function calculateTaskResolution(
 /**
  * Creates a single image generation task using the unified approach
  * This replaces the direct call to the single-image-generate edge function
- * 
+ * (internal use only - used by createBatchImageGenerationTasks)
+ *
  * @param params - Image generation task parameters
  * @returns Promise resolving to the created task
  */
-export async function createImageGenerationTask(params: ImageGenerationTaskParams): Promise<TaskCreationResult> {
+async function createImageGenerationTask(params: ImageGenerationTaskParams): Promise<TaskCreationResult> {
   console.log("[createImageGenerationTask] Creating task with params:", params);
   console.log("[createImageGenerationTask] Hires fix params check:", {
     hires_scale: params.hires_scale,
@@ -573,7 +575,4 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
   }
 }
 
-/**
- * Re-export the interface and error class for convenience
- */
-export { TaskValidationError } from "../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally

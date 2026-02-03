@@ -209,5 +209,3 @@ export const AdjacentSegmentNavigation: React.FC<AdjacentSegmentNavigationProps>
     </div>
   );
 };
-
-export default AdjacentSegmentNavigation;

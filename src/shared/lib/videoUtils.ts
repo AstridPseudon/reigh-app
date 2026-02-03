@@ -6,7 +6,7 @@
  * because these are generic utilities used across shared components.
  */
 
-export const FPS = 16;
+const FPS = 16;
 
 // ============================================================================
 // FRAME QUANTIZATION (4N + 1 Constraint)
@@ -44,30 +44,6 @@ export function quantizeFrameCount(frames: number, minFrames: number = 1): numbe
   return Math.max(validMin, quantized);
 }
 
-/**
- * Get the next valid frame count (4N+1) greater than the current value
- * @param frames - Current frame count
- * @returns The next valid frame count
- */
-export function nextValidFrameCount(frames: number): number {
-  const nextQuantizationFactor = Math.floor((frames - 1) / 4) + 1;
-  return nextQuantizationFactor * 4 + 1;
-}
-
-/**
- * Get the previous valid frame count (4N+1) less than the current value
- * @param frames - Current frame count
- * @param minFrames - Minimum allowed frame count (default: 1)
- * @returns The previous valid frame count (or minFrames if at minimum)
- */
-export function prevValidFrameCount(frames: number, minFrames: number = 1): number {
-  const validMin = Math.max(1, Math.ceil((minFrames - 1) / 4) * 4 + 1);
-  if (frames <= validMin) return validMin;
-
-  const prevQuantizationFactor = Math.ceil((frames - 1) / 4) - 1;
-  const prev = Math.max(prevQuantizationFactor, 0) * 4 + 1;
-  return Math.max(validMin, prev);
-}
 
 /**
  * Generate array of all valid frame counts (4N+1) between min and max
@@ -118,11 +94,3 @@ export function framesToSecondsValue(frame: number): number {
   return frame / FPS;
 }
 
-/**
- * Convert seconds to frame number
- * @param seconds - The seconds to convert
- * @returns Frame number (rounded)
- */
-export function secondsToFrames(seconds: number): number {
-  return Math.round(seconds * FPS);
-}

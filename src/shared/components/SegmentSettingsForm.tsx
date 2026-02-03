@@ -8,4 +8,3 @@
  */
 
 export * from './SegmentSettingsForm/index';
-export { default } from './SegmentSettingsForm/index';

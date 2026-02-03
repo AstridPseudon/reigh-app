@@ -272,5 +272,3 @@ export const VideoEditPanel: React.FC<VideoEditPanelProps> = ({
     </EditPanelLayout>
   );
 };
-
-export default VideoEditPanel;

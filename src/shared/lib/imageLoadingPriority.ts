@@ -59,7 +59,7 @@ const performanceMetrics: PerformanceMetrics = {
 /**
  * Track image load time and adjust delays based on performance
  */
-export const trackImageLoadTime = (loadTimeMs: number): void => {
+const trackImageLoadTime = (loadTimeMs: number): void => {
   performanceMetrics.loadTimes.push(loadTimeMs);
   
   // Keep only last 20 measurements
@@ -161,7 +161,7 @@ export const getImageLoadingStrategy = (
 /**
  * Check if an image should be included in the initial batch
  */
-export const shouldIncludeInInitialBatch = (
+const shouldIncludeInInitialBatch = (
   index: number,
   isMobile: boolean
 ): boolean => {

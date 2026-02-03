@@ -18,7 +18,7 @@ export const SEGMENT_OVERLAY_COLORS = [
 ] as const;
 
 // Extended colors for form UI (includes muted bg and border)
-export const SEGMENT_FORM_COLORS = [
+const SEGMENT_FORM_COLORS = [
   { bg: 'bg-primary', bgMuted: 'bg-primary/20', text: 'text-primary', border: 'border-primary' },
   { bg: 'bg-blue-500', bgMuted: 'bg-blue-500/20', text: 'text-blue-500', border: 'border-blue-500' },
   { bg: 'bg-green-500', bgMuted: 'bg-green-500/20', text: 'text-green-500', border: 'border-green-500' },
@@ -27,7 +27,7 @@ export const SEGMENT_FORM_COLORS = [
 ] as const;
 
 // Helper to get color by index (wraps around)
-export const getSegmentOverlayColor = (index: number) =>
+const getSegmentOverlayColor = (index: number) =>
   SEGMENT_OVERLAY_COLORS[index % SEGMENT_OVERLAY_COLORS.length];
 
 export const getSegmentFormColor = (index: number) =>

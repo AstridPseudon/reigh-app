@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/shared/components/ui/tooltip";
-import ShotSelector, { ShotOption } from "@/shared/components/ShotSelector";
+import { ShotSelector, ShotOption } from "@/shared/components/ShotSelector";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useShotNavigation } from "@/shared/hooks/useShotNavigation";
 import { useLastAffectedShot } from "@/shared/hooks/useLastAffectedShot";
@@ -15,7 +15,7 @@ import { cn } from "@/shared/lib/utils";
 import type { Shot } from "@/types/shots";
 import { handleError } from '@/shared/lib/errorHandler';
 
-export interface ShotSelectorWithAddProps {
+interface ShotSelectorWithAddProps {
   // Image data
   imageId: string;
   imageUrl?: string;
@@ -231,6 +231,3 @@ export const ShotSelectorWithAdd: React.FC<ShotSelectorWithAddProps> = ({
     </div>
   );
 };
-
-export default ShotSelectorWithAdd;
-

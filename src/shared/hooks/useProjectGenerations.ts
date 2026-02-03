@@ -436,9 +436,6 @@ export {
   useUpdateGenerationLocation,
   useCreateGeneration,
   useToggleGenerationStar,
-  updateGenerationLocation,
-  createGeneration,
-  toggleGenerationStar,
 } from './useGenerationMutations';
 
 // ===== DERIVED ITEMS (re-exported from useDerivedItems.ts) =====

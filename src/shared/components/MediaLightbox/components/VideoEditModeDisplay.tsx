@@ -13,7 +13,7 @@ import { MultiPortionTimeline, formatTime } from '@/shared/components/VideoPorti
 import { cn } from '@/shared/lib/utils';
 import { SEGMENT_OVERLAY_COLORS } from '@/shared/lib/segmentColors';
 
-export interface VideoEditModeDisplayProps {
+interface VideoEditModeDisplayProps {
   /** Reference to the video element */
   videoRef: React.RefObject<HTMLVideoElement>;
 
@@ -259,5 +259,3 @@ export const VideoEditModeDisplay: React.FC<VideoEditModeDisplayProps> = ({
     </>
   );
 };
-
-export default VideoEditModeDisplay;

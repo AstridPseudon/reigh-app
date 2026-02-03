@@ -14,7 +14,7 @@ import { MediaGalleryPagination } from "@/shared/components/MediaGalleryPaginati
 import { ShotFilter } from "@/shared/components/ShotFilter";
 import { MediaGalleryFilters } from "./MediaGalleryFilters";
 
-export interface MediaGalleryHeaderProps {
+interface MediaGalleryHeaderProps {
   // Pagination props
   totalPages: number;
   page: number;

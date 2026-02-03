@@ -24,6 +24,3 @@ export const TaskTypeConfigInitializer: React.FC<{ children?: React.ReactNode }>
   // Don't block rendering - the hardcoded fallback will work until cache loads
   return <>{children}</>;
 };
-
-export default TaskTypeConfigInitializer;
-

@@ -30,8 +30,9 @@ export interface FrameUpdate {
 /**
  * Normalize a set of final positions: start at 0, compress gaps > MAX_FRAME_GAP.
  * Returns a map of id -> { newFrame, reason } for items that need updating.
+ * @internal Used only within this module by buildAndNormalizeFinalPositions.
  */
-export function normalizePositions(
+function normalizePositions(
   allFinalPositions: Array<{ id: string; frame: number }>
 ): Map<string, { newFrame: number; reason: string }> {
   const normalizedUpdates = new Map<string, { newFrame: number; reason: string }>();

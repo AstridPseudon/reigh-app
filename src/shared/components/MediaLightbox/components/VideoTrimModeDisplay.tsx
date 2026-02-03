@@ -15,7 +15,7 @@ export interface TrimState {
   videoDuration: number;
 }
 
-export interface VideoTrimModeDisplayProps {
+interface VideoTrimModeDisplayProps {
   /** Reference to the video element */
   videoRef: React.RefObject<HTMLVideoElement>;
 
@@ -104,5 +104,3 @@ export const VideoTrimModeDisplay: React.FC<VideoTrimModeDisplayProps> = ({
     />
   );
 };
-
-export default VideoTrimModeDisplay;

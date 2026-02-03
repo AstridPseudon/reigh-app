@@ -169,5 +169,3 @@ export const LineageGifModal: React.FC<LineageGifModalProps> = ({
     </ModalContainer>
   );
 };
-
-export default LineageGifModal;

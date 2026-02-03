@@ -167,5 +167,3 @@ export const VideoTravelFloatingOverlay: React.FC<VideoTravelFloatingOverlayProp
     </div>
   );
 };
-
-export default VideoTravelFloatingOverlay;

@@ -70,8 +70,9 @@ export interface StructureGuidanceConfig {
 
 /**
  * Helper to convert old structure_type to new format
+ * (internal use only - not exported)
  */
-export function convertLegacyStructureType(
+function convertLegacyStructureType(
   structureType: 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | undefined,
   options?: {
     motionStrength?: number;

@@ -15,23 +15,16 @@ export type {
   TravelBetweenImagesTaskResult,
 } from './types';
 
-// Helper function from types
-export { convertLegacyStructureType } from './types';
+// convertLegacyStructureType is internal - import from types.ts if needed externally
 
-// Defaults
+// Defaults - used internally, only export what's needed externally
 export {
   DEFAULT_VIDEO_STRUCTURE_PARAMS,
-  DEFAULT_VIDEO_MOTION_PARAMS,
-  DEFAULT_PROMPT_CONFIG,
-  DEFAULT_MOTION_CONFIG,
-  DEFAULT_MODEL_CONFIG,
 } from './defaults';
 
-// Payload builder (exported for testing / direct use)
-export { buildTravelBetweenImagesPayload } from './payloadBuilder';
+// buildTravelBetweenImagesPayload is internal - used by createTravelBetweenImagesTask
 
 // Main task creator
 export { createTravelBetweenImagesTask } from './createTravelBetweenImagesTask';
 
-// Re-export TaskValidationError for convenience (was re-exported from original file)
-export { TaskValidationError } from "../../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally

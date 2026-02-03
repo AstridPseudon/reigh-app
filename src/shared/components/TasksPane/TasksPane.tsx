@@ -621,5 +621,3 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
 export const TasksPane = React.memo(TasksPaneComponent, (prevProps, nextProps) => {
   return prevProps.onOpenSettings === nextProps.onOpenSettings;
 });
-
-export default TasksPane;

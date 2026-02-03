@@ -26,5 +26,3 @@ export function useTextCase() {
 
   return { preserveUserText, setPreserveUserText, toggle };
 }
-
-export default useTextCase;

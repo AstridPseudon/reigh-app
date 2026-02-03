@@ -244,11 +244,12 @@ function buildMagicEditTaskParams(
 /**
  * Creates a single magic edit task using the unified approach
  * This replaces the direct call to the magic-edit edge function
- * 
+ * (internal use only - used by createBatchMagicEditTasks)
+ *
  * @param params - Magic edit task parameters
  * @returns Promise resolving to the created task
  */
-export async function createMagicEditTask(params: MagicEditTaskParams): Promise<TaskCreationResult> {
+async function createMagicEditTask(params: MagicEditTaskParams): Promise<TaskCreationResult> {
   console.log("[createMagicEditTask] Creating task with params:", params);
 
   try {
@@ -371,8 +372,5 @@ export async function createBatchMagicEditTasks(params: BatchMagicEditTaskParams
   }
 }
 
-/**
- * Re-export the interface and error class for convenience
- */
-export { TaskValidationError } from "../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally
 export type { LoraConfig };

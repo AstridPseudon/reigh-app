@@ -1,22 +1,12 @@
 export { deriveInputImages } from './mediaGallery-utils';
+
+// Only export what's actually used externally
 export {
+  // Used by MediaGallery/index.tsx (internal)
   DEFAULT_ITEMS_PER_PAGE,
-  DEFAULT_ROWS_PER_PAGE,
-  ROW_LIMITS,
-  SERVER_ITEMS_PER_PAGE,
   GRID_COLUMN_CLASSES,
-  SKELETON_COLUMNS,
-  DOUBLE_TAP_DELAY,
-  TIMEOUTS,
-  MOBILE_SCROLL_OFFSET,
-  DESKTOP_SCROLL_OFFSET,
-  TARGET_IMAGE_WIDTH,
-  parseAspectRatio,
-  getColumnsForAspectRatio,
-  getItemsPerPageForColumns,
+  // Used by external consumers (ImageGenerationToolPage, useVideoLayoutConfig, GenerationsPane)
   getLayoutForAspectRatio,
-  getTargetImageWidth,
-  calculateDynamicColumns,
-  calculateDynamicRows,
-  getEffectiveGap,
+  // Used by JoinClipsPage, CharacterAnimatePage, VideoTravelVideosGallery
+  SKELETON_COLUMNS,
 } from './mediaGallery-constants';

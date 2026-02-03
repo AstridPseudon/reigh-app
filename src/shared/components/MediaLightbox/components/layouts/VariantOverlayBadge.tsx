@@ -82,5 +82,3 @@ export const VariantOverlayBadge: React.FC<VariantOverlayBadgeProps> = ({
     </div>
   );
 };
-
-export default VariantOverlayBadge;

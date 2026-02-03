@@ -33,7 +33,7 @@ import { MobileInfoModal } from './components/MobileInfoModal';
 /**
  * Props for VariantSelector component
  */
-export interface VariantSelectorProps {
+interface VariantSelectorProps {
   /** List of variants */
   variants: GenerationVariant[];
   /** Currently active variant ID */
@@ -448,5 +448,3 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     </>
   );
 };
-
-export default VariantSelector;

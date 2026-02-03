@@ -17,8 +17,9 @@ type ShotField = 'name' | 'aspect_ratio';
 /**
  * Generic hook for updating a single shot field.
  * Use the specific wrappers (useUpdateShotName, useUpdateShotAspectRatio) for type safety.
+ * @internal Not currently used externally.
  */
-export const useUpdateShotField = () => {
+const useUpdateShotField = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -101,8 +102,9 @@ export const useUpdateShotName = () => {
 
 /**
  * Update shot aspect ratio.
+ * @internal Not currently used externally.
  */
-export const useUpdateShotAspectRatio = () => {
+const useUpdateShotAspectRatio = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -129,3 +131,7 @@ export const useUpdateShotAspectRatio = () => {
     },
   });
 };
+
+// Keep for potential future use
+void useUpdateShotField;
+void useUpdateShotAspectRatio;

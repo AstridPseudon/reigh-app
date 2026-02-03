@@ -42,9 +42,9 @@ import {
 import { WorkflowControls } from '../WorkflowControls';
 import { WorkflowControlsBar } from '../WorkflowControlsBar';
 import { MediaDisplayWithCanvas } from '../MediaDisplayWithCanvas';
-import VideoEditModeDisplay from '../VideoEditModeDisplay';
-import VideoTrimModeDisplay from '../VideoTrimModeDisplay';
-import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
+import { VideoEditModeDisplay } from '../VideoEditModeDisplay';
+import { VideoTrimModeDisplay } from '../VideoTrimModeDisplay';
+import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 
 export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
   // ========================================
@@ -506,5 +506,3 @@ export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
     </FlexContainer>
   );
 };
-
-export default CenteredLayout;

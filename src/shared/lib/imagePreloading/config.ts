@@ -55,14 +55,3 @@ export function getPreloadConfig(): PreloadConfig {
   };
 }
 
-/**
- * Get config with overrides (useful for testing or specific use cases)
- */
-export function getPreloadConfigWithOverrides(
-  overrides: Partial<PreloadConfig>
-): PreloadConfig {
-  return {
-    ...getPreloadConfig(),
-    ...overrides,
-  };
-}

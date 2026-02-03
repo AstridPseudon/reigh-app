@@ -2,9 +2,9 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from
 import { Outlet, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { handleError } from '@/shared/lib/errorHandler';
 import { GlobalHeader } from '@/shared/components/GlobalHeader';
-import TasksPane from '@/shared/components/TasksPane/TasksPane';
-import ToolsPane from '@/shared/components/ToolsPane/ToolsPane';
-import GenerationsPane from '@/shared/components/GenerationsPane/GenerationsPane';
+import { TasksPane } from '@/shared/components/TasksPane/TasksPane';
+import { ToolsPane } from '@/shared/components/ToolsPane/ToolsPane';
+import { GenerationsPane } from '@/shared/components/GenerationsPane/GenerationsPane';
 import { cn } from '@/shared/lib/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useContentResponsive } from '@/shared/hooks/useContentResponsive';

@@ -1,5 +1,5 @@
 import React from 'react';
-import StyledVideoPlayer from '@/shared/components/StyledVideoPlayer';
+import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 import { StrokeOverlay, BrushStroke, StrokeOverlayHandle } from './StrokeOverlay';
 import type { KonvaEventObject } from 'konva/lib/Node';
 
@@ -552,6 +552,3 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
     </div>
   );
 };
-
-export default MediaDisplayWithCanvas;
-

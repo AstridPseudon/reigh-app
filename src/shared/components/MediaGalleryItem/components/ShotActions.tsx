@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from "@/shared/components/ui/tooltip";
-import ShotSelector from "@/shared/components/ShotSelector";
+import { ShotSelector } from "@/shared/components/ShotSelector";
 import { cn } from "@/shared/lib/utils";
 import type { GeneratedImageWithMetadata } from "../../MediaGallery";
 

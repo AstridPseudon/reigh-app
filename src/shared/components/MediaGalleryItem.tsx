@@ -819,6 +819,4 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       )}
     </DraggableImage>
   );
-};
-
-export default React.memo(MediaGalleryItem); 
+}; 

@@ -275,5 +275,3 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
     </div>
   );
 };
-
-export default HuggingFaceTokenSetup;

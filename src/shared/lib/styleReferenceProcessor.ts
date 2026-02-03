@@ -73,7 +73,7 @@ const getScaledDimensions = (aspectRatioString: string): { width: number; height
  * @param aspectRatioString Optional aspect ratio string for dimension lookup (e.g., "16:9")
  * @returns Promise with the processed image as a data URL (ready for upload)
  */
-export const processStyleReferenceForAspectRatio = async (
+const processStyleReferenceForAspectRatio = async (
   dataURL: string,
   targetAspectRatio: number,
   aspectRatioString?: string

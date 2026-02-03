@@ -3,7 +3,7 @@ import TaskDetailsPanel from '@/shared/components/TaskDetailsPanel';
 import type { GenerationRow } from '@/types/shots';
 import type { TaskDetailsData } from '../types';
 
-export interface VariantInfo {
+interface VariantInfo {
   id: string;
   location: string;
   thumbnail_url: string | null;
@@ -11,7 +11,7 @@ export interface VariantInfo {
   is_primary: boolean;
 }
 
-export interface TaskDetailsPanelWrapperProps {
+interface TaskDetailsPanelWrapperProps {
   // Task details data
   taskDetailsData?: TaskDetailsData;
 

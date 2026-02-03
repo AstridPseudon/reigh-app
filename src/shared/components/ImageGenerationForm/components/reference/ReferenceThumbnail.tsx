@@ -8,7 +8,7 @@ import {
 import { Images, X, Globe, Lock } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
-export interface ReferenceThumbnailProps {
+interface ReferenceThumbnailProps {
   id: string;
   name: string;
   imageUrl: string | null;

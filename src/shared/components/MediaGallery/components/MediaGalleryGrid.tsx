@@ -8,7 +8,7 @@ import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { GeneratedImageWithMetadata } from '../index';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 
-export interface MediaGalleryGridProps {
+interface MediaGalleryGridProps {
   // Data props
   images: GeneratedImageWithMetadata[];
   paginatedImages: GeneratedImageWithMetadata[];

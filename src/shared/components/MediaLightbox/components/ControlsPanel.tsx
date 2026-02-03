@@ -282,5 +282,3 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = (props) => {
     />
   );
 };
-
-export default ControlsPanel;

@@ -55,7 +55,7 @@ interface LoraDataEntry {
   [key: string]: unknown;
 }
 
-export interface LoraData {
+interface LoraData {
   models: LoraDataEntry[];
 }
 
@@ -218,34 +218,7 @@ export type { DisplayableMetadata } from "@/shared/components/MediaGallery";
 // Re-export API types from shared (single source of truth)
 // ============================================================================
 export type { ReferenceApiParams, HiresFixApiParams, ReferenceMode } from '@/shared/lib/tasks/imageGeneration';
-export { DEFAULT_REFERENCE_PARAMS } from '@/shared/lib/tasks/imageGeneration';
 
-/**
- * Helper to convert from HydratedReferenceImage to ReferenceApiParams.
- * Use this when reading from hydrated reference to prepare task params.
- */
-export function toReferenceApiParams(
-  hydrated: {
-    styleReferenceImage?: string;
-    styleReferenceStrength?: number;
-    subjectStrength?: number;
-    subjectDescription?: string;
-    inThisScene?: boolean;
-    inThisSceneStrength?: number;
-    referenceMode?: ReferenceMode;
-  },
-  defaults = DEFAULT_REFERENCE_PARAMS
-): ReferenceApiParams {
-  return {
-    style_reference_image: hydrated.styleReferenceImage,
-    style_reference_strength: hydrated.styleReferenceStrength ?? defaults.style_reference_strength,
-    subject_strength: hydrated.subjectStrength ?? defaults.subject_strength,
-    subject_description: hydrated.subjectDescription ?? defaults.subject_description,
-    in_this_scene: hydrated.inThisScene ?? defaults.in_this_scene,
-    in_this_scene_strength: hydrated.inThisSceneStrength ?? defaults.in_this_scene_strength,
-    reference_mode: hydrated.referenceMode ?? defaults.reference_mode,
-  };
-}
 
 // ============================================================================
 // Hires Fix / Two-Pass Generation Settings (UI config)
@@ -316,8 +289,8 @@ export const DEFAULT_HIRES_FIX_CONFIG: HiresFixConfig = {
   phaseLoraStrengths: [],
 };
 
-/** Model-specific hires fix defaults */
-export const MODEL_HIRES_FIX_DEFAULTS: Record<string, HiresFixConfig> = {
+/** Model-specific hires fix defaults (internal, used by getHiresFixDefaultsForModel) */
+const MODEL_HIRES_FIX_DEFAULTS: Record<string, HiresFixConfig> = {
   // Qwen Image - used for by-reference mode and just-text qwen-image
   'qwen-image': {
     enabled: true,
@@ -375,8 +348,8 @@ export interface ReferenceModeStrengths {
   inThisScene: boolean;
 }
 
-/** Default strength values for each reference mode, by generation environment */
-export const REFERENCE_MODE_DEFAULTS: Record<'local' | 'cloud', Record<ReferenceMode, ReferenceModeStrengths>> = {
+/** Default strength values for each reference mode, by generation environment (internal, used by getReferenceModeDefaults) */
+const REFERENCE_MODE_DEFAULTS: Record<'local' | 'cloud', Record<ReferenceMode, ReferenceModeStrengths>> = {
   local: {
     style: { styleReferenceStrength: 1.1, subjectStrength: 0, inThisSceneStrength: 0, inThisScene: false },
     subject: { styleReferenceStrength: 0.4, subjectStrength: 1.0, inThisSceneStrength: 0, inThisScene: false },

@@ -4,7 +4,7 @@ import { ActiveLoRAsDisplay } from './ActiveLoRAsDisplay';
 import { LoraSelectorModal } from './LoraSelectorModal';
 import { useLoraManager, UseLoraManagerOptions, UseLoraManagerReturn, LoraModel } from '@/shared/hooks/useLoraManager';
 
-export interface LoraManagerProps extends UseLoraManagerOptions {
+interface LoraManagerProps extends UseLoraManagerOptions {
   availableLoras: LoraModel[];
   className?: string;
   title?: string;
@@ -70,6 +70,4 @@ export const LoraManager: React.FC<LoraManagerProps> = ({
       />
     </div>
   );
-};
-
-export default LoraManager; 
+}; 

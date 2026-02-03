@@ -2,7 +2,7 @@
  * Default rows per page for different screen sizes
  * Used as fallback when container height is not available
  */
-export const DEFAULT_ROWS_PER_PAGE = {
+const DEFAULT_ROWS_PER_PAGE = {
   MOBILE: 5,
   DESKTOP: 6,
 } as const;
@@ -10,7 +10,7 @@ export const DEFAULT_ROWS_PER_PAGE = {
 /**
  * Row calculation constraints
  */
-export const ROW_LIMITS = {
+const ROW_LIMITS = {
   /** Minimum rows to show (prevents gallery from being too small) */
   MIN_ROWS: 2,
   /** Maximum rows to show (prevents too many items per page) */
@@ -31,7 +31,7 @@ export const ROW_LIMITS = {
  * The aspect ratio of images will also influence this - tall images
  * naturally appear narrower, so we scale the target width down for them.
  */
-export const TARGET_IMAGE_WIDTH = {
+const TARGET_IMAGE_WIDTH = {
   /** Base target width in pixels - TWEAK THIS to adjust gallery density */
   BASE: 100,
   /** Minimum columns to show (prevents images from getting too large) */
@@ -49,7 +49,7 @@ export const TARGET_IMAGE_WIDTH = {
  *   reducedSpacing ? 'gap-2 sm:gap-4' : 'gap-4'
  * where gap-2 = 8px, gap-4 = 16px, sm breakpoint = 640px.
  */
-export function getEffectiveGap(reducedSpacing: boolean): number {
+function getEffectiveGap(reducedSpacing: boolean): number {
   if (!reducedSpacing) return 16;
   const isSmOrAbove = typeof window !== 'undefined' && window.innerWidth >= 640;
   return isSmOrAbove ? 16 : 8;
@@ -63,18 +63,6 @@ export function getEffectiveGap(reducedSpacing: boolean): number {
 export const DEFAULT_ITEMS_PER_PAGE = {
   MOBILE: 20,
   DESKTOP: 45,
-} as const;
-
-/**
- * Maximum items per page that server pagination should request.
- * This ensures we always have enough items for any column/row combination.
- * MediaGallery will slice to the actual needed amount (columns × rows).
- *
- * Calculated as MAX_COLUMNS × MAX_ROWS = 24 × 12 = 288
- */
-export const SERVER_ITEMS_PER_PAGE = {
-  MOBILE: TARGET_IMAGE_WIDTH.MAX_COLUMNS * ROW_LIMITS.MAX_ROWS,  // 24 × 12 = 288
-  DESKTOP: TARGET_IMAGE_WIDTH.MAX_COLUMNS * ROW_LIMITS.MAX_ROWS, // 24 × 12 = 288
 } as const;
 
 /**
@@ -116,7 +104,7 @@ export const SKELETON_COLUMNS = {
 /**
  * Parse an aspect ratio string (e.g., "16:9") into a numeric ratio (width/height)
  */
-export function parseAspectRatio(aspectRatioStr: string | undefined | null): number {
+function parseAspectRatio(aspectRatioStr: string | undefined | null): number {
   if (!aspectRatioStr) return 16 / 9; // Default to 16:9
   const parts = aspectRatioStr.split(':');
   if (parts.length !== 2) return 16 / 9;
@@ -133,7 +121,7 @@ export function parseAspectRatio(aspectRatioStr: string | undefined | null): num
  * The actual displayed width depends on the grid column count,
  * which is calculated from container width / target width.
  */
-export function getTargetImageWidth(_aspectRatio: number): number {
+function getTargetImageWidth(_aspectRatio: number): number {
   return TARGET_IMAGE_WIDTH.BASE;
 }
 
@@ -144,7 +132,7 @@ export function getTargetImageWidth(_aspectRatio: number): number {
  * @param aspectRatio - width/height ratio of images (e.g., 1.78 for 16:9)
  * @returns Number of columns that fit, clamped to MIN/MAX range
  */
-export function calculateDynamicColumns(
+function calculateDynamicColumns(
   containerWidth: number,
   aspectRatio: number,
   gap: number = 16
@@ -179,7 +167,7 @@ export function calculateDynamicColumns(
  * @param aspectRatio - width/height ratio of images (e.g., 1.78 for 16:9)
  * @returns Number of rows that fit, clamped to MIN/MAX range
  */
-export function calculateDynamicRows(
+function calculateDynamicRows(
   containerWidth: number,
   containerHeight: number,
   columns: number,
@@ -240,25 +228,13 @@ export function calculateDynamicRows(
  * @param aspectRatio - width/height ratio (e.g., 1.78 for 16:9, 0.56 for 9:16)
  * @returns Number of columns (5-9 range)
  */
-export function getColumnsForAspectRatio(aspectRatio: number): number {
+function getColumnsForAspectRatio(aspectRatio: number): number {
   const BASE_COLUMNS = 5;
   // Inverse relationship: wider = fewer columns, taller = more columns
   // Add 2 to shift the range up (user requested +2 to all column counts)
   const computed = Math.round(BASE_COLUMNS / Math.sqrt(aspectRatio)) + 2;
   // Clamp to valid range (5-9)
   return Math.max(5, Math.min(9, computed));
-}
-
-/**
- * Calculate items per page to ensure full rows.
- *
- * @param columns - Number of columns per row
- * @param isMobile - Whether on mobile device
- * @returns Items per page (columns × rows)
- */
-export function getItemsPerPageForColumns(columns: number, isMobile: boolean): number {
-  const rows = isMobile ? DEFAULT_ROWS_PER_PAGE.MOBILE : DEFAULT_ROWS_PER_PAGE.DESKTOP;
-  return columns * rows;
 }
 
 /**
@@ -321,29 +297,3 @@ export function getLayoutForAspectRatio(
 
   return { columns: rawColumns, rows, itemsPerPage, skeletonColumns, gridColumnClasses };
 }
-
-/**
- * Double tap detection timing
- */
-export const DOUBLE_TAP_DELAY = 300;
-
-/**
- * Timeout durations for various operations
- */
-export const TIMEOUTS = {
-  TICK_DISPLAY: 1000,
-  DOUBLE_TAP: 300,
-  GALLERY_SAFETY: 1500,
-  SERVER_PAGINATION_BUTTON: 800,
-  CLIENT_PAGINATION: 100,
-  CLIENT_PAGINATION_BOTTOM: 300,
-  FALLBACK_LOADING: 50,
-  SEARCH_FOCUS: 100,
-  TASK_DETAILS_MODAL: 100,
-} as const;
-
-/**
- * Scroll offset for mobile navigation
- */
-export const MOBILE_SCROLL_OFFSET = 80;
-export const DESKTOP_SCROLL_OFFSET = 20;

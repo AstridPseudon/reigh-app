@@ -145,7 +145,7 @@ const EditFormContext = createContext<EditFormState | null>(null);
 // Provider
 // ============================================================================
 
-export interface EditFormProviderProps {
+interface EditFormProviderProps {
   children: React.ReactNode;
   value: EditFormState;
 }

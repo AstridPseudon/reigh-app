@@ -5,7 +5,7 @@
  */
 
 // Main component
-export { SegmentSettingsForm, default } from './SegmentSettingsForm';
+export { SegmentSettingsForm } from './SegmentSettingsForm';
 
 // Types
 export type { SegmentSettingsFormProps, SegmentSettings, LoraConfig } from './types';

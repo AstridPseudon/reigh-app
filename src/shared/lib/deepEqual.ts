@@ -1,7 +1,8 @@
 /**
- * Type guard for plain objects
+ * Type guard for plain objects.
+ * @internal Used by deepMerge.
  */
-export function isPlainObject(item: unknown): item is Record<string, unknown> {
+function isPlainObject(item: unknown): item is Record<string, unknown> {
   return item !== null && typeof item === 'object' && !Array.isArray(item);
 }
 

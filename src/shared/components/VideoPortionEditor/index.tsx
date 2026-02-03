@@ -188,7 +188,7 @@ function getQuantizedGap(desiredGap: number, context: number, minTotal: number =
     return gap;
 }
 
-export interface VideoPortionEditorProps {
+interface VideoPortionEditorProps {
     // Settings state (global defaults)
     gapFrames: number;
     setGapFrames: (val: number) => void;

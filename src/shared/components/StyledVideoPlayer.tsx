@@ -409,5 +409,3 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
     </div>
   );
 };
-
-export default StyledVideoPlayer;

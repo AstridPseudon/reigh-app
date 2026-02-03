@@ -16,7 +16,7 @@ export type GenerationModeNormalized = 'batch' | 'timeline';
  * - 'by-pair' is treated as 'batch' (both show individual videos, not timeline)
  * - undefined defaults to 'timeline'
  */
-export function normalizeGenerationMode(mode: GenerationModeRaw): GenerationModeNormalized {
+function normalizeGenerationMode(mode: GenerationModeRaw): GenerationModeNormalized {
   return mode === 'batch' || mode === 'by-pair' ? 'batch' : 'timeline';
 }
 
@@ -39,7 +39,7 @@ export interface SettingsSources {
  * @param sources - Settings from each scope (should be tool-specific settings)
  * @returns The resolved value, or undefined if not found in any source
  */
-export function resolveSettingField<T>(
+function resolveSettingField<T>(
   field: string,
   sources: SettingsSources
 ): T | undefined {

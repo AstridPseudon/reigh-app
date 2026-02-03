@@ -148,8 +148,9 @@ export interface SegmentSettings {
 
 /**
  * Create default segment settings.
+ * @internal Used only within this module.
  */
-export function createDefaultSettings(defaults?: {
+function createDefaultSettings(defaults?: {
   prompt?: string;
   negativePrompt?: string;
   numFrames?: number;
@@ -171,8 +172,9 @@ export function createDefaultSettings(defaults?: {
 
 /**
  * Convert MergedSegmentSettings to SegmentSettings for the form.
+ * @internal Unused - kept for potential future use.
  */
-export function mergedToFormSettings(
+function mergedToFormSettings(
   merged: MergedSegmentSettings,
   extras?: {
     numFrames?: number;
@@ -196,6 +198,9 @@ export function mergedToFormSettings(
     makePrimaryVariant: extras?.makePrimaryVariant ?? false,
   };
 }
+
+// Keep for potential future use - referenced in docs
+void mergedToFormSettings;
 
 // =============================================================================
 // DATA SOURCE TYPES
@@ -260,7 +265,7 @@ export interface ShotBatchSettings {
   negativePrompt?: string;
 }
 
-export interface MergedSegmentSettings {
+interface MergedSegmentSettings {
   // Prompts
   prompt: string;
   negativePrompt: string;
@@ -307,12 +312,16 @@ function pairLorasToArray(pairLoras: Array<{ path: string; strength: number }>):
 }
 
 // Convert ActiveLora[] to pair_loras format for saving
-export function lorasToSaveFormat(loras: ActiveLora[]): Array<{ path: string; strength: number }> {
+// @internal Unused - kept for potential future use
+function lorasToSaveFormat(loras: ActiveLora[]): Array<{ path: string; strength: number }> {
   return loras.map((lora) => ({
     path: lora.path,
     strength: lora.strength,
   }));
 }
+
+// Keep for potential future use
+void lorasToSaveFormat;
 
 // Strip mode field from phase config (backend determines mode from model)
 export function stripModeFromPhaseConfig(config: PhaseConfig): PhaseConfig {
@@ -330,8 +339,10 @@ export function stripModeFromPhaseConfig(config: PhaseConfig): PhaseConfig {
  *
  * Note: Shot settings inheritance (from previous shot) is handled separately
  * when a new shot is created - see shotSettingsInheritance.ts
+ *
+ * @internal Unused - kept for potential future use.
  */
-export function mergeSegmentSettings(
+function mergeSegmentSettings(
   pairMetadata: PairMetadata | null | undefined,
   shotBatchSettings: ShotBatchSettings | null | undefined,
   defaults: {
@@ -448,6 +459,9 @@ export function mergeSegmentSettings(
     sources,
   };
 }
+
+// Keep for potential future use
+void mergeSegmentSettings;
 
 /**
  * Build metadata update payload for saving pair settings.

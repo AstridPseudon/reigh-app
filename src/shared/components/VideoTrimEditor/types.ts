@@ -87,7 +87,7 @@ export interface TrimTimelineBarProps {
 /**
  * Props for TrimPreviewPlayer component
  */
-export interface TrimPreviewPlayerProps {
+interface TrimPreviewPlayerProps {
   /** Video source URL */
   src: string;
   /** Poster/thumbnail URL */
@@ -105,7 +105,7 @@ export interface TrimPreviewPlayerProps {
 /**
  * Parameters for video trimming utility
  */
-export interface TrimVideoParams {
+interface TrimVideoParams {
   sourceUrl: string;
   startTime: number;
   endTime: number;
@@ -116,7 +116,7 @@ export interface TrimVideoParams {
 /**
  * Result from video trimming utility
  */
-export interface TrimVideoResult {
+interface TrimVideoResult {
   videoUrl: string;
   thumbnailUrl: string;
 }

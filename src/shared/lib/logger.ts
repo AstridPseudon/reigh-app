@@ -190,7 +190,7 @@ export function log(tag: string, ...args: any[]): void {
   addToBuffer('INFO', tag, args);
 }
 
-export function time(tag: string, label: string): void {
+function time(tag: string, label: string): void {
   if (!shouldLog()) return;
   // eslint-disable-next-line no-console
   console.time(`[${tag}] ${label}`);

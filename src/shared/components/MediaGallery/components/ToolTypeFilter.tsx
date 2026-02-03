@@ -48,7 +48,7 @@ const toolTypeFilterButtonVariants = cva(
   }
 );
 
-export interface ToolTypeFilterProps extends VariantProps<typeof toolTypeFilterVariants> {
+interface ToolTypeFilterProps extends VariantProps<typeof toolTypeFilterVariants> {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
   toolTypeName: string;

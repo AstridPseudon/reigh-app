@@ -46,7 +46,7 @@ export const useTaskType = (taskType: string) => {
  * @param taskTypes - Array of task type names to look up
  * @returns Query result with task type information map
  */
-export const useTaskTypes = (taskTypes: string[]) => {
+const useTaskTypes = (taskTypes: string[]) => {
   return useQuery({
     queryKey: ['task-types', taskTypes.sort()], // Sort for consistent cache key
     queryFn: async (): Promise<Record<string, TaskTypeInfo>> => {
@@ -101,7 +101,7 @@ export function isTaskTypeConfigCacheInitialized(): boolean {
  * Fetch all task types config directly (for initialization)
  * This is called once on app load to populate the cache
  */
-export async function fetchAllTaskTypesConfig(): Promise<Record<string, TaskTypeInfo>> {
+async function fetchAllTaskTypesConfig(): Promise<Record<string, TaskTypeInfo>> {
   const { data, error } = await supabase
     .from('task_types')
     .select('id, name, content_type, tool_type, display_name, category, is_visible, supports_progress')

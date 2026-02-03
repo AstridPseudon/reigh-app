@@ -32,13 +32,6 @@ import { useSegmentPromptMetadata, extractPairPrompts } from './timeline/useSegm
 // Re-export types for convenience
 export type { ShotGeneration, PositionMetadata };
 
-// Re-export sub-modules for direct access
-export { normalizePositions, findGeneration, calculateDistributedFrames, deduplicateUpdates, buildAndNormalizeFinalPositions } from './timeline/timelineFrameCalculators';
-export type { FrameUpdate } from './timeline/timelineFrameCalculators';
-export { useTimelineFrameUpdates } from './timeline/useTimelineFrameUpdates';
-export { useTimelineInitialization } from './timeline/useTimelineInitialization';
-export { useSegmentPromptMetadata, extractPairPrompts } from './timeline/useSegmentPromptMetadata';
-
 interface UseTimelinePositionUtilsOptions {
   shotId: string | null;
   generations: GenerationRow[];

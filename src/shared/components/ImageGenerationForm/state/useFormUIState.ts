@@ -80,7 +80,7 @@ export interface FormUIActions {
 // Hook
 // ============================================================================
 
-export interface UseFormUIStateReturn {
+interface UseFormUIStateReturn {
   uiState: ImageGenerationFormUIState;
   uiActions: FormUIActions;
 }

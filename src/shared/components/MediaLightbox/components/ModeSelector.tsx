@@ -9,7 +9,7 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 
-export interface ModeSelectorItem {
+interface ModeSelectorItem {
   id: string;
   label: string;
   icon: React.ReactNode;
@@ -147,5 +147,3 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     </>
   );
 };
-
-export default ModeSelector;

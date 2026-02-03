@@ -416,5 +416,3 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
     </div>
   );
 };
-
-export default TrimControlsPanel;

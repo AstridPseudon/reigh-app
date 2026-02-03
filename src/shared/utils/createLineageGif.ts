@@ -206,5 +206,3 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-export default createLineageGif;

@@ -9,7 +9,7 @@ interface ShotOption {
   name: string;
 }
 
-export interface WorkflowControlsBarProps {
+interface WorkflowControlsBarProps {
   // Visibility
   // CRITICAL: targetShotId is the shot selected in the DROPDOWN, not the shot being viewed
   onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;

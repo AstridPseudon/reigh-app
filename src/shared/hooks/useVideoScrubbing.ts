@@ -432,5 +432,3 @@ export function useVideoScrubbing(
     reset,
   };
 }
-
-export default useVideoScrubbing;

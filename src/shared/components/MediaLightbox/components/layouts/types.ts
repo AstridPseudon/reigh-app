@@ -21,7 +21,7 @@ import type { AdjacentSegmentsData, SegmentSlotModeData } from '../../types';
 /**
  * Core props needed by all layouts
  */
-export interface LayoutCoreProps {
+interface LayoutCoreProps {
   onClose: () => void;
   readOnly: boolean;
   selectedProjectId: string | null;
@@ -31,7 +31,7 @@ export interface LayoutCoreProps {
 /**
  * Media display props
  */
-export interface LayoutMediaProps {
+interface LayoutMediaProps {
   media: GenerationRow;
   isVideo: boolean;
   effectiveMediaUrl: string;
@@ -43,7 +43,7 @@ export interface LayoutMediaProps {
 /**
  * Variant management props
  */
-export interface LayoutVariantProps {
+interface LayoutVariantProps {
   variants: GenerationVariant[] | undefined;
   activeVariant: GenerationVariant | undefined;
   primaryVariant: GenerationVariant | undefined;
@@ -68,7 +68,7 @@ export interface LayoutVariantProps {
 /**
  * Video edit mode props
  */
-export interface LayoutVideoEditProps {
+interface LayoutVideoEditProps {
   isVideoTrimModeActive: boolean;
   isVideoEditModeActive: boolean;
   videoEditSubMode: 'trim' | 'replace' | 'regenerate' | null;
@@ -97,7 +97,7 @@ export interface LayoutVideoEditProps {
 /**
  * Edit mode (inpaint/annotate/reposition) props
  */
-export interface LayoutEditModeProps {
+interface LayoutEditModeProps {
   isInpaintMode: boolean;
   isAnnotateMode: boolean;
   isSpecialEditMode: boolean;
@@ -143,7 +143,7 @@ export interface LayoutEditModeProps {
 /**
  * Navigation props
  */
-export interface LayoutNavigationProps {
+interface LayoutNavigationProps {
   showNavigation: boolean;
   hasNext: boolean;
   hasPrevious: boolean;
@@ -228,7 +228,7 @@ export interface LayoutFloatingToolProps {
 /**
  * Panel-related props (task pane state)
  */
-export interface LayoutPanelProps {
+interface LayoutPanelProps {
   effectiveTasksPaneOpen: boolean;
   effectiveTasksPaneWidth: number;
 }

@@ -5,4 +5,3 @@
  */
 
 export { VideoLightboxContent } from './VideoLightboxContent';
-export type { VideoLightboxContentProps } from './VideoLightboxContent';

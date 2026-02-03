@@ -8,7 +8,7 @@ import { usePositionStrategy } from '@/shared/hooks/pane-positioning/usePosition
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 
 // Icon type for pane controls
-export type PaneIconType = 'chevron' | 'tools' | 'gallery' | 'tasks';
+type PaneIconType = 'chevron' | 'tools' | 'gallery' | 'tasks';
 
 // Button types that can appear in the control
 type ButtonType = 'third' | 'fourth' | 'lock' | 'unlock' | 'open';

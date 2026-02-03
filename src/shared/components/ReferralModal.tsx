@@ -6,7 +6,7 @@ import { useLargeModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session } from '@supabase/supabase-js';
-import ProfitSplitBar from '@/shared/components/ProfitSplitBar';
+import { ProfitSplitBar } from '@/shared/components/ProfitSplitBar';
 import { handleError } from '@/shared/lib/errorHandler';
 
 interface ReferralModalProps {

@@ -27,8 +27,9 @@ export function useStableObject<T extends Record<string, any>>(
 /**
  * Hook that memoizes a value and only updates when dependencies change.
  * More efficient than useMemo for stable references.
+ * @internal Not currently used externally.
  */
-export function useStableValue<T>(
+function useStableValue<T>(
   factory: () => T,
   deps: React.DependencyList
 ): T {
@@ -50,8 +51,9 @@ export function useStableValue<T>(
 /**
  * Hook that creates a stable callback reference that only updates when dependencies change.
  * More efficient than useCallback for functions with many dependencies.
+ * @internal Not currently used externally.
  */
-export function useStableCallback<T extends (...args: any[]) => any>(
+function useStableCallback<T extends (...args: any[]) => any>(
   callback: T,
   deps: React.DependencyList
 ): T {
@@ -69,3 +71,7 @@ export function useStableCallback<T extends (...args: any[]) => any>(
 
   return callbackRef.current;
 }
+
+// Keep for potential future use
+void useStableValue;
+void useStableCallback;

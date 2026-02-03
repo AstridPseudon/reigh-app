@@ -57,9 +57,9 @@ export interface FlashVsrUpscaleApiParams {
 }
 
 /**
- * Default values for FILM interpolation
+ * Default values for FILM interpolation (internal use only - not exported)
  */
-export const DEFAULT_FILM_PARAMS: Required<Pick<
+const DEFAULT_FILM_PARAMS: Required<Pick<
   FilmInterpolationApiParams,
   'num_frames' | 'use_calculated_fps' | 'video_quality'
 >> = {
@@ -69,9 +69,9 @@ export const DEFAULT_FILM_PARAMS: Required<Pick<
 };
 
 /**
- * Default values for FlashVSR upscaling
+ * Default values for FlashVSR upscaling (internal use only - not exported)
  */
-export const DEFAULT_FLASHVSR_PARAMS: Required<Pick<
+const DEFAULT_FLASHVSR_PARAMS: Required<Pick<
   FlashVsrUpscaleApiParams,
   'upscale_factor' | 'color_fix' | 'output_quality'
 >> = {
@@ -248,7 +248,4 @@ export async function createVideoEnhanceTask(
   }
 }
 
-/**
- * Re-export for convenience
- */
-export { TaskValidationError } from "../taskCreation";
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally

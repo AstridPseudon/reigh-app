@@ -53,7 +53,7 @@ import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 // Props Interface
 // ============================================================================
 
-export interface VideoLightboxProps {
+interface VideoLightboxProps {
   /** Media to display. Optional in segment slot mode when no video exists (form-only). */
   media?: GenerationRow;
   onClose: () => void;
@@ -1060,5 +1060,3 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     </LightboxProviders>
   );
 };
-
-export default VideoLightbox;

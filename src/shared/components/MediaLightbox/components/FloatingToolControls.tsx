@@ -13,7 +13,7 @@ import {
 } from './controls';
 import type { ImageTransform } from '../hooks/useRepositionMode';
 
-export interface FloatingToolControlsProps {
+interface FloatingToolControlsProps {
   variant: 'tablet' | 'mobile';
 
   // Specialized reposition handlers (not contextual state)

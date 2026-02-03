@@ -181,8 +181,9 @@ function buildTaskParams(params: ZImageTurboI2ITaskParams): Record<string, unkno
 
 /**
  * Creates a single Z Image Turbo I2I task
+ * (internal use only - used by createBatchZImageTurboI2ITasks)
  */
-export async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams): Promise<TaskCreationResult> {
+async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams): Promise<TaskCreationResult> {
   console.log('[createZImageTurboI2ITask] Creating task with params:', params);
 
   try {
@@ -283,5 +284,5 @@ export async function createBatchZImageTurboI2ITasks(params: BatchZImageTurboI2I
   }
 }
 
-export { TaskValidationError } from '../taskCreation';
+// TaskValidationError is used internally - import from taskCreation.ts if needed externally
 

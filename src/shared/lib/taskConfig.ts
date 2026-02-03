@@ -131,8 +131,9 @@ export function taskSupportsProgress(taskType: string): boolean {
 
 /**
  * Check if a task type can be cancelled
+ * (internal use only - not exported)
  */
-export function canCancelTask(taskType: string): boolean {
+function canCancelTask(taskType: string): boolean {
   return getTaskConfig(taskType).canCancel !== false; // Default to true
 }
 
@@ -179,5 +180,4 @@ export function filterVisibleTasks<T extends { taskType: string }>(tasks: T[]): 
   return tasks.filter(task => isTaskVisible(task.taskType));
 }
 
-// Re-export for backwards compatibility
-export { HARDCODED_TASK_TYPE_CONFIG as TASK_TYPE_CONFIG };
+// HARDCODED_TASK_TYPE_CONFIG is internal only - not exported

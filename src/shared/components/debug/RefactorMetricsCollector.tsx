@@ -179,13 +179,11 @@ export function RefactorMetricsCollector() {
 export function useRenderCount(componentName: string) {
   const renderCount = useRef(0);
   const enabled = isEnabled();
-  
+
   useEffect(() => {
     if (!enabled) return;
-    
+
     renderCount.current++;
     console.log(`[RefactorMetrics:Render] ${componentName}: ${renderCount.current}`);
   });
 }
-
-export default RefactorMetricsCollector;

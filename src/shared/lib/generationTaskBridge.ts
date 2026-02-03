@@ -41,7 +41,7 @@ export interface TaskGenerationMapping {
 /**
  * Get task ID(s) for a generation using efficient batch lookup
  */
-export async function getTaskIdForGeneration(generationId: string): Promise<{ taskId: string | null }> {
+async function getTaskIdForGeneration(generationId: string): Promise<{ taskId: string | null }> {
   const { data, error } = await supabase
     .from('generations')
     .select('tasks')
@@ -61,7 +61,7 @@ export async function getTaskIdForGeneration(generationId: string): Promise<{ ta
 /**
  * Batch fetch task IDs for multiple generations (more efficient than individual calls)
  */
-export async function getTaskIdsForGenerations(generationIds: string[]): Promise<Map<string, string | null>> {
+async function getTaskIdsForGenerations(generationIds: string[]): Promise<Map<string, string | null>> {
   if (generationIds.length === 0) return new Map();
 
   const { data, error } = await supabase
@@ -87,7 +87,7 @@ export async function getTaskIdsForGenerations(generationIds: string[]): Promise
  * Get generation for a task by output location
  * Includes shot associations for proper UI state
  */
-export async function getGenerationForTask(taskId: string, outputLocation: string, projectId: string): Promise<GenerationRow | null> {
+async function getGenerationForTask(taskId: string, outputLocation: string, projectId: string): Promise<GenerationRow | null> {
   if (!outputLocation) return null;
 
   const { data, error } = await supabase
@@ -115,7 +115,7 @@ export async function getGenerationForTask(taskId: string, outputLocation: strin
 /**
  * Hook to get task ID for a generation with proper caching
  */
-export function useGenerationTaskMapping(generationId: string | null) {
+function useGenerationTaskMapping(generationId: string | null) {
   return useQuery({
     queryKey: queryKeys.tasks.generationMapping(generationId || ''),
     queryFn: () => getTaskIdForGeneration(generationId!),
@@ -128,7 +128,7 @@ export function useGenerationTaskMapping(generationId: string | null) {
 /**
  * Hook to get generation data for a task
  */
-export function useTaskGenerationMapping(taskId: string, outputLocation: string | null, projectId: string) {
+function useTaskGenerationMapping(taskId: string, outputLocation: string | null, projectId: string) {
   return useQuery({
     queryKey: [...queryKeys.tasks.taskMapping(taskId), outputLocation],
     queryFn: () => getGenerationForTask(taskId, outputLocation!, projectId),
@@ -153,7 +153,7 @@ export function useGetTaskIdForGeneration() {
 /**
  * Hook to get full task data once we have the mapping
  */
-export function useTaskData(taskId: string | null) {
+function useTaskData(taskId: string | null) {
   return useQuery({
     queryKey: [...queryKeys.tasks.all, 'single', taskId],
     queryFn: async () => {
@@ -241,7 +241,7 @@ export async function preloadGenerationTaskMappings(
 /**
  * Invalidate all caches related to a specific generation-task relationship
  */
-export function invalidateGenerationTaskCaches(queryClient: QueryClient, generationId: string, taskId?: string) {
+function invalidateGenerationTaskCaches(queryClient: QueryClient, generationId: string, taskId?: string) {
   // Invalidate the mapping
   queryClient.invalidateQueries({ queryKey: queryKeys.tasks.generationMapping(generationId) });
 
@@ -260,7 +260,7 @@ export function invalidateGenerationTaskCaches(queryClient: QueryClient, generat
 /**
  * Extract task IDs from generation objects
  */
-export function extractTaskIds(generations: (GenerationRow | { tasks?: string[] })[]): string[] {
+function extractTaskIds(generations: (GenerationRow | { tasks?: string[] })[]): string[] {
   const taskIds: string[] = [];
   
   generations.forEach(gen => {

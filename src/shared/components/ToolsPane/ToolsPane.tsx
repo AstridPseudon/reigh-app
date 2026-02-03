@@ -360,5 +360,3 @@ const ToolsPaneComponent: React.FC = () => {
 
 export const ToolsPane = React.memo(ToolsPaneComponent);
 
-export default ToolsPane;
-

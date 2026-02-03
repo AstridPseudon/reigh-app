@@ -11,7 +11,7 @@
 import { handleError } from '@/shared/lib/errorHandler';
 
 // MIME type for generation drag data
-export const GENERATION_MIME_TYPE = 'application/x-generation';
+const GENERATION_MIME_TYPE = 'application/x-generation';
 
 // Droppable ID for creating a new shot from a dropped generation
 export const NEW_GROUP_DROPPABLE_ID = 'new-shot-group-dropzone';
@@ -93,9 +93,10 @@ export interface GenerationDropData {
 export type DragType = 'generation' | 'file' | 'none';
 
 /**
- * Check if the drag event contains generation data
+ * Check if the drag event contains generation data.
+ * @internal Used by getDragType.
  */
-export function isGenerationDrag(e: React.DragEvent): boolean {
+function isGenerationDrag(e: React.DragEvent): boolean {
   return hasDataTransferType(e.dataTransfer, GENERATION_MIME_TYPE);
 }
 

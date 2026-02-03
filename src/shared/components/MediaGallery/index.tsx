@@ -48,13 +48,11 @@ import type {
 } from './types';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
-// Re-export types for convenience
+// Re-export types that are used externally
 export type {
   MetadataLora,
   DisplayableMetadata,
   GeneratedImageWithMetadata,
-  MediaGalleryProps,
-  ColumnsPerRow,
 };
 
 /**

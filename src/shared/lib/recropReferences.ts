@@ -175,7 +175,7 @@ export async function recropAllReferences(
  * @param references - Array of references to check
  * @returns Boolean indicating if any references need reprocessing
  */
-export function hasReferencesNeedingRecrop(references: ReferenceImage[]): boolean {
+function hasReferencesNeedingRecrop(references: ReferenceImage[]): boolean {
   return references.some(ref => 
     ref.styleReferenceImageOriginal && 
     !ref.styleReferenceImage

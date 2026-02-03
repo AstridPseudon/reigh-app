@@ -82,7 +82,7 @@ export interface ShotImageManagerProps {
 }
 
 /** Props for segment video outputs in batch view */
-export interface BatchSegmentOutputProps {
+interface BatchSegmentOutputProps {
   segmentSlots: SegmentSlot[];
   onSegmentClick: (slotIndex: number) => void;
   onOpenPairSettings?: (pairIndex: number) => void;

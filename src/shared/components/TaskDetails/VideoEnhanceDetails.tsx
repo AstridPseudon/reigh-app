@@ -64,5 +64,3 @@ export const VideoEnhanceDetails: React.FC<TaskDetailsProps> = ({
     </div>
   );
 };
-
-export default VideoEnhanceDetails;

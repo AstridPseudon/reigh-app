@@ -600,5 +600,3 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
   );
 };
 
-export default FinalVideoSection;
-
