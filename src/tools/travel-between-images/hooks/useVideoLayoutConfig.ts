@@ -37,7 +37,7 @@ export function useVideoLayoutConfig({
 
   const videoLayoutConfig = useMemo(() => {
     // Use the same layout calculation as MediaGallery for reference
-    const layout = getLayoutForAspectRatio(projectAspectRatio, isMobile, windowWidth * 0.95);
+    const layout = getLayoutForAspectRatio(projectAspectRatio, isMobile, windowWidth * 0.95, undefined, false);
 
     // For videos: use fixed 3 columns (videos are larger than images)
     // Mobile gets 2 columns

@@ -80,7 +80,7 @@ const GenerationsPaneComponent: React.FC = () => {
   // Calculate items per page based on actual container width
   // Pane uses fewer rows (PANE_ROWS=3) than full galleries (9 rows)
   const paneLayout = useMemo(() => {
-    const layout = getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth);
+    const layout = getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth, undefined, true);
     // Override rows for the pane (3 rows instead of 9)
     return {
       ...layout,

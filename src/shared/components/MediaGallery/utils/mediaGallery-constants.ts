@@ -38,9 +38,22 @@ export const TARGET_IMAGE_WIDTH = {
   MIN_COLUMNS: 2,
   /** Maximum columns to show (prevents images from getting too small) */
   MAX_COLUMNS: 24,
-  /** Gap between images in pixels (must match Tailwind gap class) */
+  /** @deprecated Use getEffectiveGap() instead — this value (8px) doesn't match the actual CSS gap (16px on sm+). Kept for backward compat. */
   GAP: 8,
 } as const;
+
+/**
+ * Derive the effective CSS gap in pixels.
+ *
+ * Must match the Tailwind gap classes applied in MediaGalleryGrid:
+ *   reducedSpacing ? 'gap-2 sm:gap-4' : 'gap-4'
+ * where gap-2 = 8px, gap-4 = 16px, sm breakpoint = 640px.
+ */
+export function getEffectiveGap(reducedSpacing: boolean): number {
+  if (!reducedSpacing) return 16;
+  const isSmOrAbove = typeof window !== 'undefined' && window.innerWidth >= 640;
+  return isSmOrAbove ? 16 : 8;
+}
 
 /**
  * Default items per page for different screen sizes (legacy, used as fallback)
@@ -133,7 +146,8 @@ export function getTargetImageWidth(_aspectRatio: number): number {
  */
 export function calculateDynamicColumns(
   containerWidth: number,
-  aspectRatio: number
+  aspectRatio: number,
+  gap: number = 16
 ): number {
   if (!containerWidth || containerWidth <= 0) {
     // Fallback to aspect-ratio-only calculation when container width unknown
@@ -143,8 +157,8 @@ export function calculateDynamicColumns(
   const targetWidth = getTargetImageWidth(aspectRatio);
   // Account for gaps: totalWidth = n*imageWidth + (n-1)*gap
   // Solve for n: n = (containerWidth + gap) / (targetWidth + gap)
-  const effectiveWidth = targetWidth + TARGET_IMAGE_WIDTH.GAP;
-  const columns = Math.floor((containerWidth + TARGET_IMAGE_WIDTH.GAP) / effectiveWidth);
+  const effectiveWidth = targetWidth + gap;
+  const columns = Math.floor((containerWidth + gap) / effectiveWidth);
 
   return Math.max(
     TARGET_IMAGE_WIDTH.MIN_COLUMNS,
@@ -169,7 +183,8 @@ export function calculateDynamicRows(
   containerWidth: number,
   containerHeight: number,
   columns: number,
-  aspectRatio: number
+  aspectRatio: number,
+  gap: number = 16
 ): number {
   if (!containerWidth || containerWidth <= 0 || !containerHeight || containerHeight <= 0) {
     return DEFAULT_ROWS_PER_PAGE.DESKTOP;
@@ -178,7 +193,7 @@ export function calculateDynamicRows(
   // Calculate actual image width based on container and columns
   // containerWidth = columns * imageWidth + (columns - 1) * gap
   // imageWidth = (containerWidth - (columns - 1) * gap) / columns
-  const totalGapWidth = (columns - 1) * TARGET_IMAGE_WIDTH.GAP;
+  const totalGapWidth = (columns - 1) * gap;
   const imageWidth = (containerWidth - totalGapWidth) / columns;
 
   // Calculate image height from width and aspect ratio
@@ -188,8 +203,8 @@ export function calculateDynamicRows(
   // Calculate how many rows fit in available height
   // containerHeight = rows * imageHeight + (rows - 1) * gap
   // Solve for rows: rows = (containerHeight + gap) / (imageHeight + gap)
-  const effectiveHeight = imageHeight + TARGET_IMAGE_WIDTH.GAP;
-  const rows = Math.floor((containerHeight + TARGET_IMAGE_WIDTH.GAP) / effectiveHeight);
+  const effectiveHeight = imageHeight + gap;
+  const rows = Math.floor((containerHeight + gap) / effectiveHeight);
 
   return Math.max(
     ROW_LIMITS.MIN_ROWS,
@@ -243,7 +258,8 @@ export function getLayoutForAspectRatio(
   aspectRatioStr: string | undefined | null,
   isMobile: boolean,
   containerWidth?: number,
-  containerHeight?: number
+  containerHeight?: number,
+  reducedSpacing: boolean = false
 ): {
   columns: number;
   rows: number;
@@ -252,10 +268,11 @@ export function getLayoutForAspectRatio(
   gridColumnClasses: string;
 } {
   const ratio = parseAspectRatio(aspectRatioStr);
+  const gap = getEffectiveGap(reducedSpacing);
 
   // Use dynamic calculation if container width is known, otherwise fall back to static
   const rawColumns = containerWidth && containerWidth > 0
-    ? calculateDynamicColumns(containerWidth, ratio)
+    ? calculateDynamicColumns(containerWidth, ratio, gap)
     : getColumnsForAspectRatio(ratio);
 
   // Clamp to valid range for our predefined grid classes (3-12)
@@ -264,7 +281,7 @@ export function getLayoutForAspectRatio(
   // Use dynamic row calculation only on desktop when both width and height are known
   // Mobile always uses fixed rows for consistent scrolling behavior
   const rows = (!isMobile && containerWidth && containerWidth > 0 && containerHeight && containerHeight > 0)
-    ? calculateDynamicRows(containerWidth, containerHeight, rawColumns, ratio)
+    ? calculateDynamicRows(containerWidth, containerHeight, rawColumns, ratio, gap)
     : (isMobile ? DEFAULT_ROWS_PER_PAGE.MOBILE : DEFAULT_ROWS_PER_PAGE.DESKTOP);
 
   const itemsPerPage = rawColumns * rows;

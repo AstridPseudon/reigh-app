@@ -186,7 +186,7 @@ const VideoOutputsGallery: React.FC<VideoOutputsGalleryProps> = ({
 
   // Use the same layout logic as MediaGallery, then scale down for videos (~50% columns)
   const imageLayout = React.useMemo(() => {
-    return getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth);
+    return getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth, undefined, false);
   }, [projectAspectRatio, isMobile, containerWidth]);
 
   // Scale down to ~25% of image columns for videos (videos are larger)

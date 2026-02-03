@@ -18,4 +18,5 @@ export {
   getTargetImageWidth,
   calculateDynamicColumns,
   calculateDynamicRows,
+  getEffectiveGap,
 } from './mediaGallery-constants';

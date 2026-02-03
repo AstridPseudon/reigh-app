@@ -270,7 +270,8 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       projectAspectRatio,
       isMobile,
       containerDimensions.width,
-      containerDimensions.height
+      containerDimensions.height,
+      true // reducedSpacing — this page always uses reducedSpacing={true}
     );
   }, [projectAspectRatio, isMobile, containerDimensions.width, containerDimensions.height]);
 
@@ -282,7 +283,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
     // Height offset of 80 matches useContainerDimensions offset for header + controls
     const estimatedWidth = typeof window !== 'undefined' ? Math.floor(window.innerWidth * 0.9) : 800;
     const estimatedHeight = typeof window !== 'undefined' ? window.innerHeight - 80 : 600;
-    const stableLayout = getLayoutForAspectRatio(projectAspectRatio, isMobile, estimatedWidth, estimatedHeight);
+    const stableLayout = getLayoutForAspectRatio(projectAspectRatio, isMobile, estimatedWidth, estimatedHeight, true);
     stableSkeletonLayout.current = {
       columns: stableLayout.columns,
       itemsPerPage: stableLayout.itemsPerPage
@@ -1105,6 +1106,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
                 fixedColumns={stableSkeletonLayout.current.columns}
                 showControls={true}
                 projectAspectRatio={projectAspectRatio}
+                gapClasses="gap-2 sm:gap-4"
               />
             ) : (
               <div className={isLoadingGenerations && isFilterChange ? 'opacity-60 pointer-events-none transition-opacity duration-200' : ''}>

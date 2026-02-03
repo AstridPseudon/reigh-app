@@ -198,8 +198,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // - Narrower containers → fewer columns fit
   // Tweak TARGET_IMAGE_WIDTH.BASE in mediaGallery-constants.ts to adjust density
   const aspectRatioLayout = React.useMemo(() => {
-    return getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth);
-  }, [projectAspectRatio, isMobile, containerWidth]);
+    return getLayoutForAspectRatio(projectAspectRatio, isMobile, containerWidth, undefined, reducedSpacing);
+  }, [projectAspectRatio, isMobile, containerWidth, reducedSpacing]);
 
   // Use aspect-ratio-aware defaults, but allow explicit override via props
   // 'auto' means dynamic calculation based on aspect ratio, any number is a fixed column count
