@@ -186,6 +186,14 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = (props) => {
   const { isSpecialEditMode } = useImageEditSafe();
   const { isInVideoEditMode, videoEditSubMode } = useVideoEditSafe();
 
+  // [GenerationsSlider] Debug: trace which panel is rendered
+  console.log('[GenerationsSlider] ControlsPanel routing:', {
+    isInVideoEditMode,
+    videoEditSubMode,
+    isSpecialEditMode,
+    willRender: isInVideoEditMode && videoEditSubMode ? 'VideoEditPanel' : isSpecialEditMode ? 'EditModePanel' : 'InfoPanel',
+  });
+
   // Route to VideoEditPanel (uses context for mode, variants, handlers)
   if (isInVideoEditMode && videoEditSubMode) {
     return (
