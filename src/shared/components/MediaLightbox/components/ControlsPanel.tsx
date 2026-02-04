@@ -83,8 +83,7 @@ export interface ControlsPanelProps {
   handleGenerateReposition: EditModePanelProps['handleGenerateReposition'];
   handleSaveAsVariant: EditModePanelProps['handleSaveAsVariant'];
   handleGenerateImg2Img?: EditModePanelProps['handleGenerateImg2Img'];
-  // Image upscale props (cloud mode only)
-  isCloudMode?: EditModePanelProps['isCloudMode'];
+  // Image upscale props (cloud mode only - isCloudMode defined above in VideoEditPanel section)
   handleUpscale?: EditModePanelProps['handleUpscale'];
   isUpscaling?: EditModePanelProps['isUpscaling'];
   isPendingUpscale?: EditModePanelProps['isPendingUpscale'];
@@ -162,8 +161,7 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = (props) => {
     handleGenerateReposition,
     handleSaveAsVariant,
     handleGenerateImg2Img,
-    // Image upscale props
-    isCloudMode,
+    // Image upscale props (isCloudMode already destructured above)
     handleUpscale,
     isUpscaling,
     isPendingUpscale,
