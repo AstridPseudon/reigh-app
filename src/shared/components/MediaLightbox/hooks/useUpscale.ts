@@ -3,6 +3,7 @@ import { handleError } from '@/shared/lib/errorHandler';
 import { GenerationRow } from '@/types/shots';
 import { createImageUpscaleTask } from '@/shared/lib/tasks/imageUpscale';
 import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
+import type { ImageUpscaleSettings } from '../components/ImageUpscaleForm';
 
 export interface UseUpscaleProps {
   media: GenerationRow | undefined;
@@ -13,7 +14,7 @@ export interface UseUpscaleProps {
 export interface UseUpscaleReturn {
   isUpscaling: boolean;
   upscaleSuccess: boolean;
-  handleUpscale: () => Promise<void>;
+  handleUpscale: (settings: ImageUpscaleSettings) => Promise<void>;
   // Kept for backwards compatibility with other components
   showingUpscaled: boolean;
   handleToggleUpscaled: () => void;
@@ -43,7 +44,7 @@ export const useUpscale = ({
   // Get media URL
   const mediaUrl = media ? (getMediaUrl(media) || media.imageUrl || '') : '';
 
-  const handleUpscale = useCallback(async () => {
+  const handleUpscale = useCallback(async (settings: ImageUpscaleSettings) => {
     if (!media || !selectedProjectId || isVideo) {
       return;
     }
@@ -56,12 +57,18 @@ export const useUpscale = ({
 
       const actualGenerationId = getGenerationId(media);
 
-      console.log('[ImageUpscale] Creating task:', { actualGenerationId, mediaUrl: mediaUrl.substring(0, 50) });
+      console.log('[ImageUpscale] Creating task:', {
+        actualGenerationId,
+        mediaUrl: mediaUrl.substring(0, 50),
+        settings,
+      });
 
       await createImageUpscaleTask({
         project_id: selectedProjectId,
         image_url: mediaUrl,
         generation_id: actualGenerationId,
+        scale_factor: settings.scaleFactor,
+        noise_scale: settings.noiseScale,
       });
 
       console.log('[ImageUpscale] Task created successfully');
