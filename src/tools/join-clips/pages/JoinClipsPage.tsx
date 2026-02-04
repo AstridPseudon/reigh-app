@@ -53,7 +53,7 @@ const JoinClipsPage: React.FC = () => {
     replaceMode = true,
     keepBridgingImages = false,
     useIndividualPrompts = false,
-    enhancePrompt = true,
+    enhancePrompt = false,
     useInputVideoResolution = false,
     useInputVideoFps = false,
     noisedInputVideo = 0,
