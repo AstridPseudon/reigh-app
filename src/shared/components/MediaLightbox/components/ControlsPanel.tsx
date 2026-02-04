@@ -86,8 +86,7 @@ export interface ControlsPanelProps {
   // Image upscale props (cloud mode only - isCloudMode defined above in VideoEditPanel section)
   handleUpscale?: EditModePanelProps['handleUpscale'];
   isUpscaling?: EditModePanelProps['isUpscaling'];
-  isPendingUpscale?: EditModePanelProps['isPendingUpscale'];
-  hasUpscaledVersion?: EditModePanelProps['hasUpscaledVersion'];
+  upscaleSuccess?: EditModePanelProps['upscaleSuccess'];
   // Specialized managers
   img2imgLoraManager?: EditModePanelProps['img2imgLoraManager'];
   editLoraManager?: EditModePanelProps['editLoraManager'];
@@ -164,8 +163,7 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = (props) => {
     // Image upscale props (isCloudMode already destructured above)
     handleUpscale,
     isUpscaling,
-    isPendingUpscale,
-    hasUpscaledVersion,
+    upscaleSuccess,
     img2imgLoraManager,
     editLoraManager,
     availableLoras,
@@ -262,8 +260,7 @@ export const ControlsPanel: React.FC<ControlsPanelProps> = (props) => {
         isCloudMode={isCloudMode}
         handleUpscale={handleUpscale}
         isUpscaling={isUpscaling}
-        isPendingUpscale={isPendingUpscale}
-        hasUpscaledVersion={hasUpscaledVersion}
+        upscaleSuccess={upscaleSuccess}
         // Specialized managers
         img2imgLoraManager={img2imgLoraManager}
         editLoraManager={editLoraManager}

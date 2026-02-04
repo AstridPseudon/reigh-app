@@ -62,8 +62,7 @@ export interface EditModePanelProps {
   isCloudMode?: boolean;
   handleUpscale?: () => Promise<void>;
   isUpscaling?: boolean;
-  isPendingUpscale?: boolean;
-  hasUpscaledVersion?: boolean;
+  upscaleSuccess?: boolean;
 
   // Specialized managers (complex objects with methods)
   img2imgLoraManager?: UseLoraManagerReturn;
@@ -138,8 +137,7 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   isCloudMode,
   handleUpscale,
   isUpscaling,
-  isPendingUpscale,
-  hasUpscaledVersion,
+  upscaleSuccess,
   // Specialized managers
   img2imgLoraManager,
   editLoraManager,
@@ -541,8 +539,7 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             <ImageUpscaleForm
               onUpscale={handleUpscale}
               isUpscaling={isUpscaling ?? false}
-              isPendingUpscale={isPendingUpscale ?? false}
-              hasUpscaledVersion={hasUpscaledVersion ?? false}
+              upscaleSuccess={upscaleSuccess ?? false}
               variant={variant}
             />
           )}

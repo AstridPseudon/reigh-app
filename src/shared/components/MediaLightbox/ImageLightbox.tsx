@@ -291,6 +291,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     effectiveImageUrl,
     sourceUrlForTasks,
     isUpscaling,
+    upscaleSuccess,
     showingUpscaled,
     isPendingUpscale,
     hasUpscaledVersion,
@@ -1099,8 +1100,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     // Image upscale
     handleUpscale,
     isUpscaling,
-    isPendingUpscale,
-    hasUpscaledVersion,
+    upscaleSuccess,
     // Edit mode
     isInpaintMode,
     isAnnotateMode,

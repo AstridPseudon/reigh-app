@@ -1,65 +1,29 @@
 /**
  * ImageUpscaleForm Component (displayed as "Enhance")
  *
- * Simple form for image upscaling with a button to trigger the upscale task.
- * Shows when image hasn't been upscaled yet, or shows "already enhanced" state.
+ * Simple form for image enhancement - creates an upscale task.
+ * Follows the same pattern as inpainting: button shows loading, then success briefly.
  */
 
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { ArrowUp, Loader2, Check, Clock } from 'lucide-react';
+import { ArrowUp, Loader2, Check } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 interface ImageUpscaleFormProps {
   onUpscale: () => Promise<void>;
   isUpscaling: boolean;
-  isPendingUpscale: boolean;
-  hasUpscaledVersion: boolean;
+  upscaleSuccess: boolean;
   variant?: 'desktop' | 'mobile';
 }
 
 export const ImageUpscaleForm: React.FC<ImageUpscaleFormProps> = ({
   onUpscale,
   isUpscaling,
-  isPendingUpscale,
-  hasUpscaledVersion,
+  upscaleSuccess,
   variant = 'desktop',
 }) => {
   const isMobile = variant === 'mobile';
-
-  // Already enhanced
-  if (hasUpscaledVersion) {
-    return (
-      <div className={cn("flex flex-col gap-4", isMobile ? "px-3 py-2" : "p-4")}>
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-          <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-          <div>
-            <p className="font-medium text-green-400">Already Enhanced</p>
-            <p className="text-sm text-muted-foreground">
-              This image has been enhanced to higher resolution.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Pending enhance
-  if (isPendingUpscale) {
-    return (
-      <div className={cn("flex flex-col gap-4", isMobile ? "px-3 py-2" : "p-4")}>
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-          <Clock className="h-5 w-5 text-amber-500 flex-shrink-0 animate-pulse" />
-          <div>
-            <p className="font-medium text-amber-400">Enhance in Progress</p>
-            <p className="text-sm text-muted-foreground">
-              Your image is being enhanced. This may take a moment.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={cn("flex flex-col gap-4", isMobile ? "px-3 py-2" : "p-4")}>
@@ -77,14 +41,22 @@ export const ImageUpscaleForm: React.FC<ImageUpscaleFormProps> = ({
       {/* Enhance Button */}
       <Button
         onClick={onUpscale}
-        disabled={isUpscaling}
-        className="w-full"
+        disabled={isUpscaling || upscaleSuccess}
+        className={cn(
+          "w-full",
+          upscaleSuccess && "bg-green-600 hover:bg-green-600"
+        )}
         size={isMobile ? 'default' : 'lg'}
       >
         {isUpscaling ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Creating task...
+          </>
+        ) : upscaleSuccess ? (
+          <>
+            <Check className="mr-2 h-4 w-4" />
+            Task Created
           </>
         ) : (
           <>
