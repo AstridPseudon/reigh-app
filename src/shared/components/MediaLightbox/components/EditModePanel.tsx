@@ -351,8 +351,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
         onDeleteVariant={onDeleteVariant}
         onLoadVariantSettings={onLoadVariantSettings}
       >
-          {/* Prompt Field - Hidden for img2img mode (has its own prompt field) */}
-          {editMode !== 'img2img' && (() => {
+          {/* Prompt Field - Hidden for img2img mode (has its own prompt field) and upscale mode */}
+          {editMode !== 'img2img' && editMode !== 'upscale' && (() => {
             // For reposition mode, show default prompt only if user hasn't interacted with the field yet
             const isRepositionMode = editMode === 'reposition';
             const isUsingDefaultPrompt = isRepositionMode && !inpaintPrompt && !hasUserEditedPrompt;
@@ -491,8 +491,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             </div>
           )}
 
-          {/* Model Selector + LoRA Selector - Shown for non-img2img edit modes */}
-          {editMode !== 'img2img' && editLoraManager && (
+          {/* Model Selector + LoRA Selector - Shown for non-img2img/upscale edit modes */}
+          {editMode !== 'img2img' && editMode !== 'upscale' && editLoraManager && (
             <div className={generationsSpacing}>
               <SectionLabel>Model & LoRAs</SectionLabel>
               <div className={cn("flex items-center gap-2", isMobile ? "mb-1" : "mb-2")}>
@@ -599,8 +599,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
           </div>
           )}
 
-          {/* Advanced Settings - shown for edit modes that support hires fix (not img2img) */}
-          {advancedSettings && setAdvancedSettings && editMode !== 'img2img' && !isMobile && (
+          {/* Advanced Settings - shown for edit modes that support hires fix (not img2img/upscale) */}
+          {advancedSettings && setAdvancedSettings && editMode !== 'img2img' && editMode !== 'upscale' && !isMobile && (
             <EditAdvancedSettings
               settings={advancedSettings}
               onSettingsChange={setAdvancedSettings}
@@ -608,8 +608,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             />
           )}
 
-          {/* Number of Generations + Create as Variant - shown for all image edit modes */}
-          {setCreateAsGeneration && (
+          {/* Number of Generations + Create as Variant - shown for all image edit modes except upscale */}
+          {setCreateAsGeneration && editMode !== 'upscale' && (
             <div className={cn(
               "py-1.5 px-1 rounded-md flex items-center gap-2 overflow-hidden w-[80%]",
               isMobile && "bg-muted/30"
