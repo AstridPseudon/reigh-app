@@ -28,7 +28,7 @@ All providers wrap the **entire** router. Order matters for dependency:
 | `AuthProvider` | Session / user |
 | `UserSettingsProvider` | Persisted UI settings |
 | `ProjectProvider` | `selectedProjectId`, `setSelectedProjectId` |
-| `SimpleRealtimeProvider` | Supabase realtime channels |
+| `RealtimeProvider` | Supabase realtime channels |
 | `ShotsProvider` | `useShots()` data, scoped to selected project |
 | `GenerationTaskProvider` | Active generation tasks |
 | `IncomingTasksProvider` | Incoming task notifications |

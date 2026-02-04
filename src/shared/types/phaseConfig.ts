@@ -128,9 +128,6 @@ export const DEFAULT_VACE_PHASE_CONFIG: PhaseConfig = {
 // PHASE CONFIG UTILITIES
 // =============================================================================
 
-/** Motion LoRA URL - used when amount_of_motion > 0 */
-const MOTION_LORA_URL = 'https://huggingface.co/peteromallet/random_junk/resolve/main/14b-i2v.safetensors';
-
 /**
  * User LoRA input format for buildBasicModePhaseConfig
  */
@@ -168,14 +165,6 @@ export function buildBasicModePhaseConfig(
     phases: baseConfig.phases.map((phase, phaseIndex) => {
       const isLastPhase = phaseIndex === totalPhases - 1;
       const additionalLoras: PhaseLoraConfig[] = [];
-
-      // Add motion LoRA scaled by amount
-      if (amountOfMotion > 0) {
-        additionalLoras.push({
-          url: MOTION_LORA_URL,
-          multiplier: amountOfMotion.toFixed(2)
-        });
-      }
 
       // Add user-selected LoRAs with multi-stage support
       userLoras.forEach(lora => {

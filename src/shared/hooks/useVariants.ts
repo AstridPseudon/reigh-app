@@ -3,7 +3,7 @@
  *
  * Centralized hook for fetching and managing variants for a generation.
  * Allows switching between variants and setting the primary variant.
- * Supports realtime updates via SimpleRealtimeManager.
+ * Supports realtime updates via RealtimeProvider.
  *
  * Used by: MediaLightbox, InlineEditView, and other components that display variants.
  */

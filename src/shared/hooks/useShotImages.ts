@@ -107,7 +107,7 @@ const useAllShotGenerations = (
     queryKey: queryKeys.generations.byShot(stableShotId!),
     enabled: isEnabled,
     // Use realtimeBacked preset - data freshness from realtime + mutations
-    // (invalidated by SimpleRealtimeProvider + useGenerationInvalidation)
+    // (invalidated by RealtimeProvider + useGenerationInvalidation)
     ...QUERY_PRESETS.realtimeBacked,
     staleTime: 0, // CRITICAL: Always refetch from DB when opening shot, even if primed
     retry: STANDARD_RETRY,

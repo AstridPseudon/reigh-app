@@ -14,7 +14,7 @@ import { AppRoutes } from "./routes";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { UserSettingsProvider } from "@/shared/contexts/UserSettingsContext";
 import { ProjectProvider, useProject } from "@/shared/contexts/ProjectContext";
-import { SimpleRealtimeProvider } from '@/shared/providers/SimpleRealtimeProvider';
+import { RealtimeProvider } from '@/shared/providers/RealtimeProvider';
 // Removed RealtimeBoundary - using surgical observer restoration instead
 import { PanesProvider } from '@/shared/contexts/PanesContext';
 import { CurrentShotProvider } from '@/shared/contexts/CurrentShotContext';
@@ -263,7 +263,7 @@ function App() {
       <AuthProvider>
         <UserSettingsProvider>
           <ProjectProvider>
-            <SimpleRealtimeProvider>
+            <RealtimeProvider>
               <ShotsProvider>
                 <GenerationTaskProvider>
                   <IncomingTasksProvider>
@@ -280,7 +280,7 @@ function App() {
                   </IncomingTasksProvider>
                 </GenerationTaskProvider>
               </ShotsProvider>
-            </SimpleRealtimeProvider>
+            </RealtimeProvider>
           </ProjectProvider>
         </UserSettingsProvider>
       </AuthProvider>

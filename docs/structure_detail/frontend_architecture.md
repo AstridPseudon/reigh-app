@@ -82,6 +82,6 @@ When building a new feature:
 - [ ] **Error handling?** Use `handleError()` with typed errors
 - [ ] **Settings?** Use `useToolSettings` with scope cascade
 - [ ] **Types?** Add to `src/types/` if used across files
-- [ ] **Realtime?** Subscribe via `SimpleRealtimeProvider`
+- [ ] **Realtime?** Subscribe via `RealtimeProvider`
 - [ ] **Performance?** Memoize contexts, debounce writes, consider preloading
 - [ ] **Mobile?** Test with `useIsMobile()`, check responsive breakpoints

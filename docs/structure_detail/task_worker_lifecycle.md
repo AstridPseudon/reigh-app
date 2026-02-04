@@ -118,7 +118,7 @@ The worker polls the same task queue but specializes in video generation:
 ### 4. Real-time Updates
 - **Database Triggers** automatically broadcast changes via Supabase Realtime
 - **Instant processing** when tasks complete (no 10-second delay)
-- Client subscribes via the realtime system (`SimpleRealtimeProvider`; see [`realtime_system.md`](realtime_system.md))
+- Client subscribes via the realtime system (`RealtimeProvider`; see [`realtime_system.md`](realtime_system.md))
 - UI updates automatically as task progresses
 
 ## Debugging

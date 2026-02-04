@@ -122,9 +122,9 @@ Heaviest files: `instrumentation/window` (27), `instrumentation/realtime` (11), 
 
 **Status:** 2,974 console statements across 342 files. Production builds strip `console.log` via Vite. No sensitive data leaks (API keys masked, auth tokens never logged).
 
-Logs use bracket-prefix tags for filtering via `debug.py logs --tag <Tag>`. Top tags: `[ApplySettings]` (126), `[EDIT_DEBUG]` (82), `[VideoGalleryPreload]` (41), `[BasedOnNav]` (39), `[SimpleRealtime]` (35), `[DataTrace]` (35), `[AddWithoutPosDebug]` (31), `[VariantRelationship]` (30).
+Logs use bracket-prefix tags for filtering via `debug.py logs --tag <Tag>`. Top tags: `[ApplySettings]` (126), `[EDIT_DEBUG]` (82), `[VideoGalleryPreload]` (41), `[BasedOnNav]` (39), `[DataTrace]` (35), `[RealtimeConnection]`, `[RealtimeEventProcessor]`, `[RealtimeInvalidation]`, `[DataFreshness]` (realtime system), `[AddWithoutPosDebug]` (31), `[VariantRelationship]` (30).
 
-Top files: `applySettingsService.ts` (79), `PromptEditorModal.tsx` (53), `SimpleRealtimeManager.ts` (51), `MediaGallery/index.tsx` (35), `ShotListDisplay.tsx` (29).
+Top files: `applySettingsService.ts` (79), `PromptEditorModal.tsx` (53), `MediaGallery/index.tsx` (35), `ShotListDisplay.tsx` (29).
 
 ---
 

@@ -19,7 +19,7 @@ import { isErrorWithCode, isErrorWithStatus, SUPABASE_ERROR } from '@/shared/lib
  * For queries backed by Supabase realtime subscriptions.
  * 
  * Data freshness comes from:
- * 1. Realtime events → invalidateQueries (via SimpleRealtimeProvider)
+ * 1. Realtime events → invalidateQueries (via RealtimeProvider)
  * 2. Mutations → invalidateQueries (via useGenerationInvalidation)
  * 
  * NOT from:
