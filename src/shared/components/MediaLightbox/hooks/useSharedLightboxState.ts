@@ -30,6 +30,7 @@ import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { DerivedItem } from '@/shared/hooks/useDerivedItems';
 import type { SourceVariantData } from './useSourceGeneration';
 import type { ShotOption, QuickCreateSuccess } from '../types';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { useVariants } from '@/shared/hooks/useVariants';
 import {
   useVariantSelection,
@@ -355,7 +356,9 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
     handleAddVariantAsNewGenerationToShot,
   } = useVariantPromotion({
     selectedProjectId,
-    actualGenerationId: media.id || '',
+    // Use getGenerationId to get the actual generations.id
+    // media.id from shot queries is shot_generations.id, not generations.id
+    actualGenerationId: getGenerationId(media) || '',
   });
 
   // ========================================

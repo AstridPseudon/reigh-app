@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { GenerationRow } from '@/types/shots';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { createTask, generateUUID, generateRunId } from '@/shared/lib/taskCreation';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { formatTime, PortionSelection } from '@/shared/components/VideoPortionTimeline';
@@ -474,7 +475,9 @@ export const useVideoEditing = ({
         phase_config: phaseConfig,
         
         // Parent generation for tracking
-        parent_generation_id: media.id,
+        // Use getGenerationId to get actual generations.id
+        // media.id from shot queries is shot_generations.id, not generations.id
+        parent_generation_id: getGenerationId(media),
       };
 
       // Add LoRAs if provided
@@ -497,7 +500,7 @@ export const useVideoEditing = ({
         params: {
           orchestrator_details: orchestratorDetails,
           tool_type: 'edit-video', // Top level for complete_task variant creation
-          parent_generation_id: media.id, // Top level for complete_task variant creation
+          parent_generation_id: getGenerationId(media), // Top level for complete_task variant creation
         },
       });
       

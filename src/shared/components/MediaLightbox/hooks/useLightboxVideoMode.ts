@@ -16,6 +16,7 @@
 import { useRef, useState, useEffect } from 'react';
 import type { GenerationRow } from '@/types/shots';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
+import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { useVideoTrimming, useTrimSave } from '@/shared/components/VideoTrimEditor';
 import { useVideoEditing } from './useVideoEditing';
 import { useVideoEnhance, type VideoEnhanceSettings } from './useVideoEnhance';
@@ -177,8 +178,10 @@ export function useLightboxVideoMode(props: UseLightboxVideoModeProps): UseLight
   }, [isVideoTrimMode, trimState.startTrim, trimState.endTrim, trimState.videoDuration]);
 
   // Trim save hook
+  // Use getGenerationId to get actual generations.id
+  // media.id from shot queries is shot_generations.id, not generations.id
   const trimSaveHook = useTrimSave({
-    generationId: media.id,
+    generationId: getGenerationId(media),
     projectId: selectedProjectId,
     sourceVideoUrl: effectiveVideoUrl,
     trimState,
