@@ -8,6 +8,7 @@
  */
 
 import { handleError } from '@/shared/lib/errorHandler';
+import { toast } from 'sonner';
 
 type RealtimeStatus = 'connected' | 'disconnected' | 'error';
 type PollingInterval = number | false; // false = no polling
@@ -33,6 +34,10 @@ class DataFreshnessManager {
   // Circuit breaker settings
   private readonly CIRCUIT_BREAKER_THRESHOLD = 3; // failures before backing off
   private readonly CIRCUIT_BREAKER_RESET_MS = 60_000; // 1 minute to reset failure count
+
+  // Toast throttling - prevent spamming error toasts
+  private lastErrorToastTime = 0;
+  private readonly ERROR_TOAST_THROTTLE_MS = 30_000; // Only show error toast every 30 seconds
 
   /**
    * Report realtime connection status change
@@ -206,10 +211,12 @@ class DataFreshnessManager {
 
     const isCircuitBreakerTriggered = newCount >= this.CIRCUIT_BREAKER_THRESHOLD;
 
+    const errorType = this.classifyError(error);
+
     console.log(`[DataFreshness:Error] ${isCircuitBreakerTriggered ? '🔴 CIRCUIT BREAKER' : '⚠️'} Fetch failure`, {
       queryKey: queryKey[0],
       errorMessage: error.message,
-      errorType: this.classifyError(error),
+      errorType,
       failureCount: newCount,
       circuitBreakerTriggered: isCircuitBreakerTriggered,
       timestamp: now
@@ -218,6 +225,40 @@ class DataFreshnessManager {
     // Notify subscribers so polling intervals can adjust
     if (isCircuitBreakerTriggered) {
       this.notifySubscribers();
+
+      // Show user-facing error toast (throttled to prevent spam)
+      if (now - this.lastErrorToastTime > this.ERROR_TOAST_THROTTLE_MS) {
+        this.lastErrorToastTime = now;
+
+        // Customize message based on error type
+        const userMessage = this.getUserFriendlyErrorMessage(errorType, newCount);
+        toast.error(userMessage, {
+          duration: 8000,
+          description: 'Data may be outdated. Will retry automatically.',
+          id: 'network-error-toast', // Prevent duplicate toasts
+        });
+      }
+    }
+  }
+
+  /**
+   * Get a user-friendly error message based on error type
+   */
+  private getUserFriendlyErrorMessage(errorType: string, failureCount: number): string {
+    switch (errorType) {
+      case 'CONNECTION_CLOSED':
+      case 'NETWORK_ERROR':
+        return 'Connection issue detected';
+      case 'TIMEOUT':
+        return 'Server is slow to respond';
+      case 'RATE_LIMITED':
+        return 'Too many requests - slowing down';
+      case 'SERVICE_UNAVAILABLE':
+        return 'Service temporarily unavailable';
+      case 'AUTH_ERROR':
+        return 'Authentication issue - try refreshing';
+      default:
+        return `Connection issues (${failureCount} failures)`;
     }
   }
 
@@ -229,12 +270,23 @@ class DataFreshnessManager {
     const existing = this.state.fetchFailures.get(key);
 
     if (existing && existing.count > 0) {
+      const wasCircuitBreakerActive = existing.count >= this.CIRCUIT_BREAKER_THRESHOLD;
+
       // Reset failure count on success
       this.state.fetchFailures.delete(key);
       console.log('[DataFreshness:Success] ✅ Fetch succeeded, resetting failure count', {
         queryKey: queryKey[0],
-        previousFailureCount: existing.count
+        previousFailureCount: existing.count,
+        wasCircuitBreakerActive
       });
+
+      // Show recovery toast if circuit breaker was active
+      if (wasCircuitBreakerActive) {
+        toast.success('Connection restored', {
+          duration: 3000,
+          id: 'network-recovery-toast',
+        });
+      }
     }
   }
 
