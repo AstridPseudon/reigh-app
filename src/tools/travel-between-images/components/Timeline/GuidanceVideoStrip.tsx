@@ -172,6 +172,11 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   const stripLeftPercent = (startPixel / containerWidth) * 100;
   const stripWidthPercent = (widthPixel / containerWidth) * 100;
 
+  // Minimum width threshold for showing full frame strip vs collapsed indicator
+  // Below this width (in pixels), we show a simplified view
+  const MIN_WIDTH_FOR_FRAMES = 60;
+  const isCollapsed = widthPixel < MIN_WIDTH_FOR_FRAMES;
+
   // Legacy positioning
   const legacyPositionPercent = fullRange > 0 ? ((displayOutputStart - fullMin) / fullRange) * 100 : 0;
   const legacyWidthPercent = fullRange > 0 ? (displayOutputFrameCount / fullRange) * 100 : 100;
@@ -530,8 +535,8 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
             playsInline
           />
 
-          {/* Delete button */}
-          {!readOnly && (
+          {/* Delete button - hidden when collapsed */}
+          {!readOnly && !isCollapsed && (
             <Button
               variant="destructive"
               size="sm"
@@ -552,7 +557,32 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
           )}
 
           {/* Frame strip */}
-          {displayFrameImages.length > 0 ? (
+          {isCollapsed && displayFrameImages.length > 0 ? (
+            /* Collapsed view - show single frame stretched to fill narrow width */
+            <div
+              className={`absolute top-5 bottom-1 border-2 rounded overflow-hidden shadow-md ${
+                isDragging === 'move' ? 'border-primary cursor-grabbing' : isStripActive ? 'border-primary cursor-grab' : 'border-primary/40 cursor-pointer'
+              } ${!readOnly && onRangeChange && !isStripActive ? 'hover:border-primary/60' : ''}`}
+              style={{
+                left: useAbsolutePosition ? '2px' : '16px',
+                right: useAbsolutePosition ? '2px' : '16px',
+              }}
+              onClick={handleStripClick}
+              onMouseDown={(e) => {
+                if ((e.target as HTMLElement).closest('button, select, [role="listbox"]')) return;
+                if (!isStripActive) return;
+                handleDragStart('move', e);
+              }}
+              onTouchStart={handleStripTouchStart}
+              onTouchEnd={handleStripTouchEnd}
+            >
+              <img
+                src={displayFrameImages[0]}
+                alt="Structure video preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : displayFrameImages.length > 0 ? (
             <div
               className={`absolute top-5 bottom-1 flex border-2 rounded overflow-hidden shadow-md ${
                 isDragging === 'move' ? 'border-primary cursor-grabbing' : isStripActive ? 'border-primary cursor-grab' : 'border-primary/40 cursor-pointer'
@@ -614,8 +644,8 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
           )}
         </div>
 
-        {/* Frame range indicator */}
-        {outputStartFrame !== undefined && !readOnly && (
+        {/* Frame range indicator - hidden when collapsed */}
+        {outputStartFrame !== undefined && !readOnly && !isCollapsed && (
           <div
             className="absolute bottom-0 z-50 flex justify-between items-center text-[9px] text-muted-foreground font-mono"
             style={{
