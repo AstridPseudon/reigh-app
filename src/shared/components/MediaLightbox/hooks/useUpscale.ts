@@ -59,6 +59,14 @@ export const useUpscale = ({
 
       const actualGenerationId = getGenerationId(media);
 
+      // Debug: Log the media object to understand which ID we're getting
+      console.log('[ImageUpscale] Media object debug:', {
+        'media.id (shot_generations.id)': media.id?.substring(0, 8),
+        'media.generation_id (generations.id)': media.generation_id?.substring(0, 8),
+        'actualGenerationId (used for based_on)': actualGenerationId?.substring(0, 8),
+        'hasGenerationId': !!media.generation_id,
+      });
+
       console.log('[ImageUpscale] Creating task:', {
         actualGenerationId,
         mediaUrl: mediaUrl.substring(0, 50),
