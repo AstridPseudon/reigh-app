@@ -48,10 +48,10 @@ const JoinClipsPage: React.FC = () => {
   const {
     prompt: globalPrompt = '',
     negativePrompt = '',
-    contextFrameCount = 8,
-    gapFrameCount = 12,
+    contextFrameCount = 15,
+    gapFrameCount = 23,
     replaceMode = true,
-    keepBridgingImages,
+    keepBridgingImages = false,
     useIndividualPrompts = false,
     enhancePrompt = true,
     useInputVideoResolution = false,
@@ -60,7 +60,7 @@ const JoinClipsPage: React.FC = () => {
     loopFirstClip = false,
     motionMode = 'basic',
     phaseConfig,
-    randomSeed = true,
+    randomSeed = false,
     selectedPhasePresetId = BUILTIN_JOIN_CLIPS_DEFAULT_ID,
   } = joinSettings.settings;
 
