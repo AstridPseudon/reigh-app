@@ -207,7 +207,7 @@ export const VariantCard: React.FC<VariantCardProps> = ({
                   className="h-5 w-5 rounded-full bg-black/50 flex items-center justify-center cursor-pointer hover:bg-black/70"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Info className="h-3 w-3 text-white" />
+                  <Info className="h-3 w-3 text-white" strokeWidth={2.5} />
                 </div>
               </TooltipTrigger>
               <TooltipContent
