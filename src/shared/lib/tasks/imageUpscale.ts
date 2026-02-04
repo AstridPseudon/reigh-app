@@ -83,7 +83,7 @@ export async function createImageUpscaleTask(params: ImageUpscaleTaskParams): Pr
     // 3. Create task using unified create-task function
     const result = await createTask({
       project_id: params.project_id,
-      task_type: "image_upscale",
+      task_type: "image-upscale",
       params: taskParams,
     });
 

@@ -22,7 +22,7 @@ export const TASK_TYPES = {
   // Processing tasks
   TRAVEL_STITCH: 'travel_stitch',
   IMAGE_INPAINT: 'image_inpaint',
-  IMAGE_UPSCALE: 'image_upscale',
+  IMAGE_UPSCALE: 'image-upscale',
   IMAGE_EDIT: 'image_edit',
   MAGIC_EDIT: 'magic_edit',
   QWEN_IMAGE_EDIT: 'qwen_image_edit',

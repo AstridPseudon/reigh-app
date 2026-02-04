@@ -25,7 +25,7 @@ export const KNOWN_IMAGE_TASK_TYPES = [
   'kontext_image_edit',
   'flux_image_edit',
   'upscale_image',
-  'image_upscale',
+  'image-upscale',
   'style_transfer',
 ] as const;
 
