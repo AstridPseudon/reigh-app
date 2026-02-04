@@ -10,10 +10,11 @@
 import React from 'react';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useGenerationDetails } from './useGenerationDetails';
-import { isImageEditTaskType, isVideoEnhanceTaskType, parseTaskParams, derivePrompt } from '@/shared/utils/taskParamsUtils';
+import { isImageEditTaskType, isVideoEnhanceTaskType, isImageEnhanceTaskType, parseTaskParams, derivePrompt } from '@/shared/utils/taskParamsUtils';
 import { type TaskDetailsProps } from '@/shared/types/taskDetailsTypes';
 import {
   ImageEditTaskDetails,
+  ImageEnhanceDetails,
   CharacterAnimateDetails,
   JoinClipsDetails,
   VideoTravelDetails,
@@ -120,6 +121,10 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
   // Route to appropriate specialized component based on task type
   if (isVideoEnhanceTaskType(taskType)) {
     return <VideoEnhanceDetails {...detailsProps} />;
+  }
+
+  if (isImageEnhanceTaskType(taskType)) {
+    return <ImageEnhanceDetails {...detailsProps} />;
   }
 
   if (isImageEditTaskType(taskType)) {

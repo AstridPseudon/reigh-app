@@ -9,6 +9,7 @@ export interface UseUpscaleProps {
   media: GenerationRow | undefined;
   selectedProjectId: string | null;
   isVideo: boolean;
+  shotId?: string;
 }
 
 export interface UseUpscaleReturn {
@@ -37,6 +38,7 @@ export const useUpscale = ({
   media,
   selectedProjectId,
   isVideo,
+  shotId,
 }: UseUpscaleProps): UseUpscaleReturn => {
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaleSuccess, setUpscaleSuccess] = useState(false);
@@ -67,6 +69,7 @@ export const useUpscale = ({
         project_id: selectedProjectId,
         image_url: mediaUrl,
         generation_id: actualGenerationId,
+        shot_id: shotId,
         scale_factor: settings.scaleFactor,
         noise_scale: settings.noiseScale,
       });
@@ -84,7 +87,7 @@ export const useUpscale = ({
     } finally {
       setIsUpscaling(false);
     }
-  }, [media, selectedProjectId, isVideo, mediaUrl]);
+  }, [media, selectedProjectId, isVideo, mediaUrl, shotId]);
 
   return {
     isUpscaling,

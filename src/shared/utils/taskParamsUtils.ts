@@ -166,6 +166,13 @@ export function isVideoEnhanceTaskType(taskType: string | undefined): boolean {
 }
 
 /**
+ * Check if a task type is an image enhancement/upscale task
+ */
+export function isImageEnhanceTaskType(taskType: string | undefined): boolean {
+  return taskType === 'image-upscale';
+}
+
+/**
  * LoRA info extracted from task params
  */
 export interface LoraInfo {

@@ -13,9 +13,10 @@ import { handleError } from '@/shared/lib/errorHandler';
 export interface ImageUpscaleTaskParams {
   project_id: string;
   image_url: string; // The source image to upscale
-  generation_id?: string; // Optional: the generation ID to update with upscaled URL
+  generation_id?: string | null; // Optional: the generation ID to update with upscaled URL
+  shot_id?: string; // Optional: shot to link the result to
   scale_factor?: number; // Default to 2x upscaling
-  noise_scale?: number; // Default to 0 (no denoising)
+  noise_scale?: number; // Default to 0.1
   output_format?: string; // Default to "jpeg"
 }
 
@@ -61,6 +62,11 @@ function buildImageUpscaleTaskParams(
   if (params.generation_id) {
     taskParams.generation_id = params.generation_id;
     taskParams.based_on = params.generation_id; // For lineage tracking
+  }
+
+  // Add shot_id if provided (for linking result to shot)
+  if (params.shot_id) {
+    taskParams.shot_id = params.shot_id;
   }
 
   return taskParams;
