@@ -695,12 +695,12 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             />
           )}
 
-          {/* Timestamp - Top Right (hides on hover to show action buttons) */}
+          {/* Timestamp - Top Right (hides on hover for images, stays visible for videos) */}
           <TimeStamp
             createdAt={image.createdAt}
             position="top-right"
             showOnHover={false}
-            hideOnHover={true}
+            hideOnHover={!isVideoContent}
             className="z-30"
           />
 
