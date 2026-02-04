@@ -628,14 +628,29 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Timeline Mode: Add Structure Video (when no video exists and not loading) */}
             {isTimelineMode && !structureVideoType && !videoUpload.isVideoLoading && onAddSegmentStructureVideo && (
               <div
-                className={`space-y-3 pt-3 border-t border-border/50 rounded-lg transition-all ${
-                  isDraggingVideo ? 'bg-primary/10 ring-2 ring-primary ring-dashed' : ''
-                }`}
+                className="relative space-y-3 pt-3 border-t border-border/50"
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
+                {/* Drop overlay - extends slightly beyond form edges */}
+                {isDraggingVideo && (
+                  <div
+                    className="absolute z-20 flex items-center justify-center bg-primary/10 rounded-lg ring-2 ring-primary ring-dashed"
+                    style={{
+                      top: '-4px',
+                      bottom: '-4px',
+                      left: '-8px',
+                      right: '-8px',
+                    }}
+                  >
+                    <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                      <Video className="w-4 h-4" />
+                      Drop video here
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                   <Video className="w-3.5 h-3.5" />
                   <span>Structure Video</span>
@@ -650,53 +665,44 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                     className="hidden"
                     id="segment-structure-video-upload"
                   />
-                  {isDraggingVideo ? (
-                    <div className="flex items-center justify-center py-6 text-sm text-primary font-medium">
-                      <Video className="w-4 h-4 mr-2" />
-                      Drop video here
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex gap-2">
-                        <Label htmlFor="segment-structure-video-upload" className="m-0 cursor-pointer flex-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={videoUpload.isUploadingVideo}
-                            className="w-full"
-                            asChild
-                          >
-                            <span>
-                              {videoUpload.isUploadingVideo ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                  {Math.round(videoUpload.uploadProgress)}%
-                                </>
-                              ) : (
-                                <>
-                                  <Video className="w-3 h-3 mr-2" />
-                                  Upload
-                                </>
-                              )}
-                            </span>
-                          </Button>
-                        </Label>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={videoUpload.isUploadingVideo}
-                          onClick={() => videoUpload.setShowVideoBrowser(true)}
-                          className="flex-1"
-                        >
-                          <Images className="w-3 h-3 mr-2" />
-                          Browse
-                        </Button>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        Drop a video here or click to upload
-                      </p>
-                    </>
-                  )}
+                  <div className="flex gap-2">
+                    <Label htmlFor="segment-structure-video-upload" className="m-0 cursor-pointer flex-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={videoUpload.isUploadingVideo}
+                        className="w-full"
+                        asChild
+                      >
+                        <span>
+                          {videoUpload.isUploadingVideo ? (
+                            <>
+                              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                              {Math.round(videoUpload.uploadProgress)}%
+                            </>
+                          ) : (
+                            <>
+                              <Video className="w-3 h-3 mr-2" />
+                              Upload
+                            </>
+                          )}
+                        </span>
+                      </Button>
+                    </Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={videoUpload.isUploadingVideo}
+                      onClick={() => videoUpload.setShowVideoBrowser(true)}
+                      className="flex-1"
+                    >
+                      <Images className="w-3 h-3 mr-2" />
+                      Browse
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Drop a video here or click to upload
+                  </p>
                 </div>
               </div>
             )}
@@ -704,9 +710,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Structure Video Overrides - shown when segment has structure video */}
             {structureVideoType && (
               <div
-                className={`space-y-3 pt-3 border-t border-border/50 rounded-lg transition-all ${
-                  isDraggingVideo && isTimelineMode ? 'bg-primary/10 ring-2 ring-primary ring-dashed' : ''
-                }`}
+                className="space-y-3 pt-3 border-t border-border/50"
                 onDragOver={isTimelineMode ? handleDragOver : undefined}
                 onDragEnter={isTimelineMode ? handleDragEnter : undefined}
                 onDragLeave={isTimelineMode ? handleDragLeave : undefined}
@@ -723,27 +727,37 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                 {/* 3-Frame Preview with Remove button overlay */}
                 {structureVideoUrl && structureVideoFrameRange && (
                   <div className="relative">
-                    {/* Drop overlay when dragging */}
+                    {/* Drop overlay when dragging - extends slightly beyond preview */}
                     {isDraggingVideo && isTimelineMode && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-primary/20 rounded-lg border-2 border-dashed border-primary">
+                      <div
+                        className="absolute z-20 flex items-center justify-center bg-primary/20 rounded-lg border-2 border-dashed border-primary"
+                        style={{
+                          top: '-4px',
+                          bottom: '-4px',
+                          left: '-8px',
+                          right: '-8px',
+                        }}
+                      >
                         <div className="flex items-center gap-2 text-sm text-primary font-medium">
                           <Video className="w-4 h-4" />
                           Drop to replace
                         </div>
                       </div>
                     )}
-                    {/* Remove button */}
-                    {isTimelineMode && onRemoveSegmentStructureVideo && !videoUpload.isVideoLoading && !isDraggingVideo && (
+                    {/* Remove button - show even while preview is loading, just not during upload */}
+                    {isTimelineMode && onRemoveSegmentStructureVideo && !videoUpload.isUploadingVideo && !isDraggingVideo && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
+                          videoUpload.clearPendingVideo();
                           onRemoveSegmentStructureVideo();
                         }}
                         onTouchEnd={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
+                          videoUpload.clearPendingVideo();
                           onRemoveSegmentStructureVideo();
                         }}
                         disabled={videoUpload.isUploadingVideo}

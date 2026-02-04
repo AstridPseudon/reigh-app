@@ -50,6 +50,7 @@ interface UseStructureVideoUploadReturn {
   handleFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleVideoResourceSelect: (resource: Resource) => void;
   handleVideoPreviewLoaded: () => void;
+  clearPendingVideo: () => void;
 
   // Refs for file inputs
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -93,6 +94,11 @@ export function useStructureVideoUpload(
 
   // Callback when StructureVideoPreview finishes capturing all frames
   const handleVideoPreviewLoaded = useCallback(() => {
+    setPendingVideoUrl(null);
+  }, []);
+
+  // Clear pending state (e.g., when video is removed)
+  const clearPendingVideo = useCallback(() => {
     setPendingVideoUrl(null);
   }, []);
 
@@ -203,8 +209,12 @@ export function useStructureVideoUpload(
     } finally {
       setIsUploadingVideo(false);
       setUploadProgress(0);
+      // Clear both file inputs so the same file can be selected again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+      if (addFileInputRef.current) {
+        addFileInputRef.current.value = '';
       }
     }
   }, [onAddSegmentStructureVideo, structureVideoFrameRange, settings, structureVideoDefaults, createResource, privacyDefaults]);
@@ -229,6 +239,7 @@ export function useStructureVideoUpload(
     handleFileSelect,
     handleVideoResourceSelect,
     handleVideoPreviewLoaded,
+    clearPendingVideo,
 
     // Refs
     fileInputRef: fileInputRef as React.RefObject<HTMLInputElement>,
