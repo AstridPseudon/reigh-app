@@ -5,7 +5,7 @@
  * Used within MediaLightbox when in segment slot mode without a video.
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/components/ui/button';
 import { X } from 'lucide-react';
@@ -45,7 +45,6 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // For background task submission with placeholder
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
@@ -75,7 +74,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
   });
 
   // Use the combined hook for form props
-  const { formProps, getSettingsForTaskCreation, saveSettings, persistedEnhancePromptEnabled, saveEnhancePromptEnabled } = useSegmentSettingsForm({
+  const { formProps, getSettingsForTaskCreation, saveSettings, enhancePromptRef } = useSegmentSettingsForm({
     pairShotGenerationId,
     shotId: segmentSlotMode.shotId,
     defaults: {
@@ -110,24 +109,8 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     maxFrames: segmentSlotMode.maxFrameLimit,
   });
 
-  // Extract enhanced prompt from form props
+  // Extract enhanced prompt from form props (enhancePromptEnabled and onEnhancePromptChange are now included in formProps)
   const { enhancedPrompt } = formProps;
-
-  // Enhance prompt toggle state
-  // Use persisted preference if available, otherwise default based on enhanced prompt existence
-  const defaultEnhanceEnabled = useMemo(() => !enhancedPrompt?.trim(), [enhancedPrompt]);
-  const effectiveEnhanceEnabled = persistedEnhancePromptEnabled ?? defaultEnhanceEnabled;
-
-  // Ref for submit handler - updated synchronously on toggle, not waiting for cache refetch
-  const effectiveEnhanceEnabledRef = useRef(effectiveEnhanceEnabled);
-  // Keep in sync during normal renders
-  effectiveEnhanceEnabledRef.current = effectiveEnhanceEnabled;
-
-  // Handle enhance toggle changes - persist to database AND update ref synchronously
-  const handleEnhancePromptChange = useCallback((enabled: boolean) => {
-    effectiveEnhanceEnabledRef.current = enabled; // Update ref immediately for submit handler
-    saveEnhancePromptEnabled(enabled); // Persist to database
-  }, [saveEnhancePromptEnabled]);
 
   // Build structure video config from props (for task creation)
   // This combines the shot-level structure video with segment-level setting overrides
@@ -234,12 +217,11 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     const promptToEnhance = enhancedPrompt?.trim() || effectiveSettings.prompt?.trim() || '';
 
     // Read current enhance state from ref (avoids stale closure issue when user toggles then immediately submits)
-    const shouldEnhance = effectiveEnhanceEnabledRef.current;
+    const shouldEnhance = enhancePromptRef.current;
 
     // Log the enhance decision
     console.log('[EnhancedPromptSave] 🔍 Submit handler called:', {
       shouldEnhance,
-      effectiveEnhanceEnabled, // May be stale if user just toggled
       hasPromptToEnhance: !!promptToEnhance,
       promptToEnhancePreview: promptToEnhance?.substring(0, 50) || '(empty)',
       pairShotGenerationId: pairShotGenerationId?.substring(0, 8) || '(none)',
@@ -385,53 +367,63 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
       return;
     }
 
-    // Standard submission (no enhancement)
-    setIsSubmitting(true);
+    // Standard submission (no enhancement) - also use background pattern for fast UI
+    const taskLabel = `Segment ${segmentSlotMode.currentIndex + 1}`;
+    const currentBaseline = taskStatusCounts?.processing ?? 0;
+    const incomingTaskId = addIncomingTask({
+      taskType: 'individual_travel_segment',
+      label: taskLabel,
+      baselineCount: currentBaseline,
+    });
 
-    try {
-      // Save settings first
-      if (pairShotGenerationId) {
-        await saveSettings();
+    // Notify parent for optimistic UI
+    segmentSlotMode.onGenerateStarted?.(pairShotGenerationId);
+
+    (async () => {
+      try {
+        // Save settings first
+        if (pairShotGenerationId) {
+          await saveSettings();
+        }
+
+        // Apply before/after text to the prompt
+        const beforeText = effectiveSettings.textBeforePrompts?.trim() || '';
+        const afterText = effectiveSettings.textAfterPrompts?.trim() || '';
+        const basePrompt = effectiveSettings.prompt?.trim() || '';
+        const finalPrompt = [beforeText, basePrompt, afterText].filter(Boolean).join(' ');
+
+        // Build task params using effective settings with final prompt
+        const taskParams = buildTaskParams({ ...effectiveSettings, prompt: finalPrompt }, {
+          projectId: segmentSlotMode.projectId,
+          shotId: segmentSlotMode.shotId,
+          generationId: segmentSlotMode.parentGenerationId,
+          childGenerationId: segmentSlotMode.activeChildGenerationId,
+          segmentIndex: segmentSlotMode.currentIndex,
+          startImageUrl,
+          endImageUrl,
+          startImageGenerationId: segmentSlotMode.pairData.startImage?.generationId,
+          endImageGenerationId: segmentSlotMode.pairData.endImage?.generationId,
+          pairShotGenerationId,
+          projectResolution: segmentSlotMode.projectResolution,
+          structureVideo: structureVideoForTask,
+        });
+
+        // Create task
+        const result = await createIndividualTravelSegmentTask(taskParams);
+
+        if (!result.task_id) {
+          throw new Error(result.error || 'Failed to create task');
+        }
+
+        console.log('[TrailingGen] ✅ Task created successfully:', result.task_id);
+      } catch (error) {
+        handleError(error, { context: 'SegmentSlotFormView', toastTitle: 'Failed to create task' });
+      } finally {
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+        removeIncomingTask(incomingTaskId);
       }
-
-      // Notify parent for optimistic UI
-      segmentSlotMode.onGenerateStarted?.(pairShotGenerationId);
-
-      // Apply before/after text to the prompt
-      const beforeText = effectiveSettings.textBeforePrompts?.trim() || '';
-      const afterText = effectiveSettings.textAfterPrompts?.trim() || '';
-      const basePrompt = effectiveSettings.prompt?.trim() || '';
-      const finalPrompt = [beforeText, basePrompt, afterText].filter(Boolean).join(' ');
-
-      // Build task params using effective settings with final prompt
-      const taskParams = buildTaskParams({ ...effectiveSettings, prompt: finalPrompt }, {
-        projectId: segmentSlotMode.projectId,
-        shotId: segmentSlotMode.shotId,
-        generationId: segmentSlotMode.parentGenerationId,
-        childGenerationId: segmentSlotMode.activeChildGenerationId,
-        segmentIndex: segmentSlotMode.currentIndex,
-        startImageUrl,
-        endImageUrl,
-        startImageGenerationId: segmentSlotMode.pairData.startImage?.generationId,
-        endImageGenerationId: segmentSlotMode.pairData.endImage?.generationId,
-        pairShotGenerationId,
-        projectResolution: segmentSlotMode.projectResolution,
-        structureVideo: structureVideoForTask,
-      });
-
-      // Create task
-      const result = await createIndividualTravelSegmentTask(taskParams);
-
-      if (!result.task_id) {
-        throw new Error(result.error || 'Failed to create task');
-      }
-
-      console.log('[TrailingGen] ✅ Task created successfully:', result.task_id);
-    } catch (error) {
-      handleError(error, { context: 'SegmentSlotFormView', toastTitle: 'Failed to create task' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    })();
   }, [
     segmentSlotMode,
     pairShotGenerationId,
@@ -440,7 +432,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     getSettingsForTaskCreation,
     saveSettings,
     toast,
-    effectiveEnhanceEnabled,
+    enhancePromptRef,
     addIncomingTask,
     removeIncomingTask,
     taskStatusCounts,
@@ -514,10 +506,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
               <SegmentSettingsForm
                 {...formProps}
                 onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
                 onFrameCountChange={handleFrameCountChange}
-                enhancePromptEnabled={effectiveEnhanceEnabled}
-                onEnhancePromptChange={handleEnhancePromptChange}
               />
 
               {/* Show warning if missing context */}

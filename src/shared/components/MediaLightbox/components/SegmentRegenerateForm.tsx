@@ -5,7 +5,7 @@
  * Uses the controlled SegmentSettingsForm pattern.
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/shared/hooks/use-toast';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -134,7 +134,6 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // For background task submission with placeholder
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
@@ -147,8 +146,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     saveSettings,
     updateSettings,
     settings,
-    persistedEnhancePromptEnabled,
-    saveEnhancePromptEnabled,
+    enhancePromptRef,
   } = useSegmentSettingsForm({
     pairShotGenerationId,
     shotId,
@@ -188,74 +186,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     maxFrames,
   });
 
-  // Extract enhanced prompt from form props
+  // Extract enhanced prompt from form props (enhancePromptEnabled and onEnhancePromptChange are now included in formProps)
   const { enhancedPrompt } = formProps;
-
-  // Enhance prompt toggle state - tracks user's current choice for this session
-  // null = not yet initialized, boolean = user's explicit choice (or loaded from DB)
-  const [enhancePromptEnabled, setEnhancePromptEnabled] = useState<boolean | null>(null);
-
-  // Track whether the user has made an explicit choice this session
-  // Once true, we NEVER change enhancePromptEnabled unless the pair changes
-  const userHasExplicitlyChosen = useRef(false);
-
-  // Track previous pair to detect actual pair changes (not just re-renders)
-  const prevPairRef = useRef<string | undefined>(undefined);
-
-  // Default: false if enhanced prompt exists, true if not
-  // This default is ONLY used on initial load if there's no persisted preference
-  const defaultEnhanceEnabled = !enhancedPrompt?.trim();
-
-  // Initialize from persisted preference when switching pairs or on first load
-  // IMPORTANT: This effect does NOT depend on defaultEnhanceEnabled - once initialized,
-  // the value should never change due to enhancedPrompt changes
-  useEffect(() => {
-    // If user has made an explicit choice, never re-initialize
-    if (userHasExplicitlyChosen.current && prevPairRef.current === pairShotGenerationId) {
-      return;
-    }
-
-    if (pairShotGenerationId) {
-      // Use persisted preference if available, otherwise use default
-      // Note: we read defaultEnhanceEnabled here but don't depend on it in the effect
-      const initialValue = persistedEnhancePromptEnabled !== undefined
-        ? persistedEnhancePromptEnabled
-        : defaultEnhanceEnabled;
-      setEnhancePromptEnabled(initialValue);
-      // Mark as having a value, but not as "user explicitly chose"
-      // (the user hasn't interacted yet, this is just initialization)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultEnhanceEnabled intentionally omitted: once initialized, value should never change due to enhancedPrompt changes
-  }, [pairShotGenerationId, persistedEnhancePromptEnabled]);
-
-  // Compute effective enhance state (user's explicit choice, or default)
-  const effectiveEnhanceEnabled = enhancePromptEnabled ?? defaultEnhanceEnabled;
-
-  // Ref for submit handler - updated synchronously on toggle, not waiting for React re-render
-  const effectiveEnhanceEnabledRef = useRef(effectiveEnhanceEnabled);
-  // Keep in sync during normal renders
-  effectiveEnhanceEnabledRef.current = effectiveEnhanceEnabled;
-
-  // Wrapper to update ref synchronously when user toggles (before React re-renders)
-  // Also persists the preference to the database
-  const handleEnhancePromptChange = useCallback((value: boolean) => {
-    effectiveEnhanceEnabledRef.current = value; // Update ref immediately
-    setEnhancePromptEnabled(value); // Then schedule React state update
-    // Mark that user has explicitly chosen - this prevents any future re-initialization
-    userHasExplicitlyChosen.current = true;
-    // Persist the preference so it's remembered for this pair
-    saveEnhancePromptEnabled(value);
-  }, [saveEnhancePromptEnabled]);
-
-  // Reset enhance state ONLY when pair actually changes to a different value
-  useEffect(() => {
-    if (prevPairRef.current !== undefined && prevPairRef.current !== pairShotGenerationId) {
-      // Pair actually changed - reset for new pair
-      setEnhancePromptEnabled(null);
-      userHasExplicitlyChosen.current = false;
-    }
-    prevPairRef.current = pairShotGenerationId;
-  }, [pairShotGenerationId]);
 
   // Handle frame count change - wrap to include pairShotGenerationId
   const handleFrameCountChange = useCallback((frameCount: number) => {
@@ -345,14 +277,11 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     const promptToEnhance = enhancedPrompt?.trim() || effectiveSettings.prompt?.trim() || '';
 
     // Read current enhance state from ref (avoids stale closure issue)
-    const shouldEnhance = effectiveEnhanceEnabledRef.current;
+    const shouldEnhance = enhancePromptRef.current;
 
-    // Log the enhance decision (detailed for debugging)
+    // Log the enhance decision
     console.log('[EnhancedPromptSave] 🔍 Submit handler called:', {
-      shouldEnhance, // actual value used (from ref, always current)
-      effectiveEnhanceEnabled, // closure value (may be stale if race condition)
-      enhancePromptEnabled, // user's explicit choice (null = not set, false = explicitly off, true = explicitly on)
-      defaultEnhanceEnabled, // default based on whether enhanced prompt exists
+      shouldEnhance,
       hasPromptToEnhance: !!promptToEnhance,
       promptToEnhancePreview: promptToEnhance?.substring(0, 50) || '(empty)',
       pairShotGenerationId: pairShotGenerationId?.substring(0, 8) || '(none)',
@@ -495,48 +424,58 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
       return;
     }
 
-    // Standard submission (no enhancement)
-    setIsSubmitting(true);
+    // Standard submission (no enhancement) - also use background pattern for fast UI
+    const taskLabel = `Segment ${segmentIndex + 1}`;
+    const currentBaseline = taskStatusCounts?.processing ?? 0;
+    const incomingTaskId = addIncomingTask({
+      taskType: 'individual_travel_segment',
+      label: taskLabel,
+      baselineCount: currentBaseline,
+    });
 
-    try {
-      // Save settings first
-      if (pairShotGenerationId) {
-        await saveSettings();
+    (async () => {
+      try {
+        // Save settings first
+        if (pairShotGenerationId) {
+          await saveSettings();
+        }
+
+        // Apply before/after text to the prompt
+        const beforeText = effectiveSettings.textBeforePrompts?.trim() || '';
+        const afterText = effectiveSettings.textAfterPrompts?.trim() || '';
+        const basePrompt = effectiveSettings.prompt?.trim() || '';
+        const finalPrompt = [beforeText, basePrompt, afterText].filter(Boolean).join(' ');
+
+        // Build task params using effective settings with final prompt
+        const taskParams = buildTaskParams({ ...effectiveSettings, prompt: finalPrompt }, {
+          projectId,
+          shotId,
+          generationId,
+          childGenerationId,
+          segmentIndex,
+          startImageUrl,
+          endImageUrl,
+          startImageGenerationId,
+          endImageGenerationId,
+          pairShotGenerationId,
+          projectResolution,
+          structureVideo: structureVideoForTask,
+        });
+
+        // Create task
+        const result = await createIndividualTravelSegmentTask(taskParams);
+
+        if (!result.task_id) {
+          throw new Error(result.error || 'Failed to create task');
+        }
+      } catch (error) {
+        handleError(error, { context: 'SegmentRegenerateForm', toastTitle: 'Failed to create task' });
+      } finally {
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+        removeIncomingTask(incomingTaskId);
       }
-
-      // Apply before/after text to the prompt
-      const beforeText = effectiveSettings.textBeforePrompts?.trim() || '';
-      const afterText = effectiveSettings.textAfterPrompts?.trim() || '';
-      const basePrompt = effectiveSettings.prompt?.trim() || '';
-      const finalPrompt = [beforeText, basePrompt, afterText].filter(Boolean).join(' ');
-
-      // Build task params using effective settings with final prompt
-      const taskParams = buildTaskParams({ ...effectiveSettings, prompt: finalPrompt }, {
-        projectId,
-        shotId,
-        generationId,
-        childGenerationId,
-        segmentIndex,
-        startImageUrl,
-        endImageUrl,
-        startImageGenerationId,
-        endImageGenerationId,
-        pairShotGenerationId,
-        projectResolution,
-        structureVideo: structureVideoForTask,
-      });
-
-      // Create task
-      const result = await createIndividualTravelSegmentTask(taskParams);
-
-      if (!result.task_id) {
-        throw new Error(result.error || 'Failed to create task');
-      }
-    } catch (error) {
-      handleError(error, { context: 'SegmentRegenerateForm', toastTitle: 'Failed to create task' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    })();
   }, [
     projectId,
     getSettingsForTaskCreation,
@@ -552,10 +491,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     pairShotGenerationId,
     projectResolution,
     toast,
-    // Note: effectiveEnhanceEnabled kept in deps for logging, but actual behavior uses ref
-    effectiveEnhanceEnabled,
-    enhancePromptEnabled,
-    defaultEnhanceEnabled,
+    enhancePromptRef,
     addIncomingTask,
     removeIncomingTask,
     taskStatusCounts,
@@ -567,10 +503,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     <SegmentSettingsForm
       {...formProps}
       onSubmit={handleSubmit}
-      isSubmitting={isSubmitting}
       onFrameCountChange={handleFrameCountChange}
-      enhancePromptEnabled={effectiveEnhanceEnabled}
-      onEnhancePromptChange={handleEnhancePromptChange}
       edgeExtendAmount={6}
     />
   );
