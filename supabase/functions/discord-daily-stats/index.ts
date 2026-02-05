@@ -10,9 +10,9 @@ const LOG_PREFIX = "[DISCORD-DAILY-STATS]";
 
 // Chart color palette (dark-theme friendly)
 const COLORS = {
-  imagesGenerated: { bg: "rgba(99, 102, 241, 0.8)", border: "rgb(99, 102, 241)" },   // indigo
-  imagesEdited:    { bg: "rgba(244, 114, 182, 0.8)", border: "rgb(244, 114, 182)" },  // pink
-  videosGenerated: { bg: "rgba(52, 211, 153, 0.8)", border: "rgb(52, 211, 153)" },    // emerald
+  imagesGenerated: { bg: "rgba(129, 140, 248, 0.85)", border: "rgb(129, 140, 248)" },   // indigo-400
+  imagesEdited:    { bg: "rgba(251, 146, 191, 0.85)", border: "rgb(251, 146, 191)" },   // pink-300
+  videosGenerated: { bg: "rgba(110, 231, 183, 0.85)", border: "rgb(110, 231, 183)" },   // emerald-300
 };
 
 interface DayBucket {
@@ -59,41 +59,63 @@ serve(async (req) => {
       "func_daily_task_stats"
     );
 
+    // Task type name → bucket classification (derived from task_types table)
+    const IMAGE_GENERATED_TYPES = new Set([
+      "wan_2_2_t2i", "single_image", "qwen_image_style", "qwen_image",
+      "qwen_image_2512", "z_image_turbo",
+    ]);
+    const IMAGE_EDITED_TYPES = new Set([
+      "image_inpaint", "image_upscale", "image-upscale", "annotated_image_edit",
+      "edit_travel_flux", "magic_edit", "image_edit", "qwen_image_edit", "z_image_turbo_i2i",
+    ]);
+    const VIDEO_GENERATED_TYPES = new Set([
+      "animate_character", "individual_travel_segment", "video_enhance",
+      "join_clips_orchestrator", "travel_orchestrator", "edit_video_orchestrator",
+      "join_final_stitch",
+    ]);
+
     let buckets: DayBucket[];
 
     if (statsError || !dailyStats) {
-      // Fallback: query directly if RPC doesn't exist
       logger.warn("RPC func_daily_task_stats not available, using direct query", {
         error: statsError?.message,
       });
 
-      const { data: rawStats, error: rawError } = await supabaseAdmin
-        .from("tasks")
-        .select("created_at, task_type, task_types!inner(tool_type, content_type, category, name)")
-        .eq("status", "Complete")
-        .gte("created_at", "2026-02-09T00:00:00Z");
+      // Paginate to fetch all completed tasks (default limit is 1000)
+      const PAGE_SIZE = 1000;
+      const allTasks: { created_at: string; task_type: string }[] = [];
+      let offset = 0;
+      while (true) {
+        const { data: page, error: rawError } = await supabaseAdmin
+          .from("tasks")
+          .select("created_at, task_type")
+          .eq("status", "Complete")
+          .gte("created_at", "2026-02-08T00:00:00Z")
+          .order("created_at", { ascending: true })
+          .range(offset, offset + PAGE_SIZE - 1);
 
-      if (rawError) throw rawError;
+        if (rawError) throw rawError;
+        if (!page || page.length === 0) break;
+        allTasks.push(...page);
+        if (page.length < PAGE_SIZE) break;
+        offset += PAGE_SIZE;
+      }
 
       // Aggregate in memory
       const dayMap = new Map<string, DayBucket>();
-      for (const task of rawStats || []) {
+      for (const task of allTasks) {
         const date = task.created_at.substring(0, 10); // YYYY-MM-DD
         if (!dayMap.has(date)) {
           dayMap.set(date, { date, images_generated: 0, images_edited: 0, videos_generated: 0 });
         }
         const bucket = dayMap.get(date)!;
-        const tt = task.task_types;
+        const name = task.task_type;
 
-        if (tt.tool_type === "image-generation") {
+        if (IMAGE_GENERATED_TYPES.has(name)) {
           bucket.images_generated++;
-        } else if (tt.content_type === "image" && tt.tool_type !== "image-generation") {
+        } else if (IMAGE_EDITED_TYPES.has(name)) {
           bucket.images_edited++;
-        } else if (
-          tt.content_type === "video" &&
-          (tt.category === "orchestration" ||
-            ["animate_character", "individual_travel_segment", "video_enhance"].includes(tt.name))
-        ) {
+        } else if (VIDEO_GENERATED_TYPES.has(name)) {
           bucket.videos_generated++;
         }
       }
@@ -114,7 +136,17 @@ serve(async (req) => {
 
     // Determine if we should aggregate by week (>90 days of data)
     const shouldAggregateWeekly = buckets.length > 90;
-    const chartData = shouldAggregateWeekly ? aggregateByWeek(buckets) : buckets;
+    const periodData = shouldAggregateWeekly ? aggregateByWeek(buckets) : buckets;
+
+    // Convert to cumulative
+    const chartData: DayBucket[] = [];
+    let cumImg = 0, cumEdit = 0, cumVid = 0;
+    for (const b of periodData) {
+      cumImg += b.images_generated;
+      cumEdit += b.images_edited;
+      cumVid += b.videos_generated;
+      chartData.push({ date: b.date, images_generated: cumImg, images_edited: cumEdit, videos_generated: cumVid });
+    }
 
     // Calculate yesterday's stats
     const yesterday = new Date();
@@ -171,7 +203,7 @@ serve(async (req) => {
       ],
       image: chartUrl ? { url: chartUrl } : undefined,
       footer: {
-        text: `Total (since Feb 9): ${totals.images_generated.toLocaleString()} images generated · ${totals.images_edited.toLocaleString()} images edited · ${totals.videos_generated.toLocaleString()} videos generated`,
+        text: `All time: ${totals.images_generated.toLocaleString()} imgs generated · ${totals.images_edited.toLocaleString()} imgs edited · ${totals.videos_generated.toLocaleString()} videos`,
       },
       timestamp: new Date().toISOString(),
     };
@@ -257,53 +289,66 @@ async function generateChart(
   });
 
   const chartConfig = {
-    type: "bar",
+    type: "line",
     data: {
       labels,
       datasets: [
         {
           label: "Images Generated",
           data: data.map((d) => d.images_generated),
-          backgroundColor: COLORS.imagesGenerated.bg,
           borderColor: COLORS.imagesGenerated.border,
-          borderWidth: 1,
+          backgroundColor: COLORS.imagesGenerated.bg.replace("0.85", "0.15"),
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
         },
         {
           label: "Images Edited",
           data: data.map((d) => d.images_edited),
-          backgroundColor: COLORS.imagesEdited.bg,
           borderColor: COLORS.imagesEdited.border,
-          borderWidth: 1,
+          backgroundColor: COLORS.imagesEdited.bg.replace("0.85", "0.15"),
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
         },
         {
           label: "Videos Generated",
           data: data.map((d) => d.videos_generated),
-          backgroundColor: COLORS.videosGenerated.bg,
           borderColor: COLORS.videosGenerated.border,
-          borderWidth: 1,
+          backgroundColor: COLORS.videosGenerated.bg.replace("0.85", "0.15"),
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
         },
       ],
     },
     options: {
       plugins: {
         title: {
-          display: true,
-          text: isWeekly ? "Weekly Trend (since Feb 9)" : "Daily Trend (since Feb 9)",
-          color: "#e2e8f0",
-          font: { size: 14 },
+          display: false,
         },
         legend: {
-          labels: { color: "#e2e8f0" },
+          position: "bottom",
+          labels: {
+            color: "#cbd5e1",
+            padding: 16,
+            usePointStyle: true,
+            pointStyle: "circle",
+            font: { size: 11 },
+          },
         },
       },
       scales: {
         x: {
-          ticks: { color: "#94a3b8", maxRotation: 45 },
-          grid: { color: "rgba(148, 163, 184, 0.1)" },
+          ticks: { color: "#64748b", maxRotation: 45, font: { size: 10 } },
+          grid: { display: false },
         },
         y: {
-          ticks: { color: "#94a3b8" },
-          grid: { color: "rgba(148, 163, 184, 0.1)" },
+          ticks: { color: "#64748b", font: { size: 10 } },
+          grid: { color: "rgba(148, 163, 184, 0.08)" },
           beginAtZero: true,
         },
       },
@@ -315,9 +360,9 @@ async function generateChart(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        backgroundColor: "#1e1b2e",
+        backgroundColor: "#1a1a2e",
         width: 800,
-        height: 400,
+        height: 350,
         format: "png",
         chart: chartConfig,
       }),
