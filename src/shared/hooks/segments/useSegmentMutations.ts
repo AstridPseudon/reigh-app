@@ -218,10 +218,9 @@ export function useSegmentMutations({
       }
 
       const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { enhance_prompt_enabled: _removed, ...rest } = currentMetadata;
+      // Only clear the enhanced_prompt, preserve enhance_prompt_enabled preference
       const updatedMetadata = {
-        ...rest,
+        ...currentMetadata,
         enhanced_prompt: '',
       };
 
