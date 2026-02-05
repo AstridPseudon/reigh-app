@@ -1,6 +1,6 @@
 // Re-exports the unified toast API backed by Base UI Toast.
 // This file exists for backwards compatibility with code that imports from
-// "@/shared/hooks/use-toast" (the old Radix toast hook location).
+// "@/shared/hooks/use-toast".
 
 import { toast } from "@/shared/components/ui/toast"
 

@@ -393,7 +393,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                             <span className="text-sm font-medium">{(structureVideo?.motionStrength ?? 1.0).toFixed(1)}x</span>
                           </div>
                           <Slider
-                            value={[structureVideo?.motionStrength ?? 1.0]}
+                            value={structureVideo?.motionStrength ?? 1.0}
                             disabled
                             min={0}
                             max={2}
@@ -414,7 +414,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                             <span className="text-sm font-medium">{((structureVideos[0]?.uni3c_end_percent ?? 0.1) * 100).toFixed(0)}%</span>
                           </div>
                           <Slider
-                            value={[structureVideos[0]?.uni3c_end_percent ?? 0.1]}
+                            value={structureVideos[0]?.uni3c_end_percent ?? 0.1}
                             disabled
                             min={0}
                             max={1}

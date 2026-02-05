@@ -72,7 +72,7 @@ const ToggleGroup = React.forwardRef<
   HTMLDivElement,
   ToggleGroupProps
 >(({ className, variant, size, children, type = "single", value, defaultValue, onValueChange, ...props }, ref) => {
-  // Adapt Radix-style single/multiple API to Base UI's array-based API
+  // Adapt single/multiple API to Base UI's array-based API
   const multiple = type === "multiple"
   const baseValue = value !== undefined
     ? (Array.isArray(value) ? value : value ? [value] : [])

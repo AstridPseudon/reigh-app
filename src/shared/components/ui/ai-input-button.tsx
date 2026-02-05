@@ -321,14 +321,11 @@ export const AIInputButton = React.forwardRef<
         <PopoverTrigger asChild>
           {textButtonTrigger}
         </PopoverTrigger>
-        <PopoverContent 
-          side="top" 
-          align="end" 
+        <PopoverContent
+          side="top"
+          align="end"
           sideOffset={8}
           className="w-72 p-2"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onPointerDownOutside={() => textState !== "processing" && setIsPopoverOpen(false)}
-          onInteractOutside={() => textState !== "processing" && setIsPopoverOpen(false)}
         >
           <div className="flex flex-col gap-1.5">
             <div className="text-xs text-muted-foreground">
@@ -397,14 +394,11 @@ export const AIInputButton = React.forwardRef<
             {textButtonTrigger}
           </PopoverTrigger>
         </TooltipTrigger>
-        <PopoverContent 
-          side="top" 
-          align="end" 
+        <PopoverContent
+          side="top"
+          align="end"
           sideOffset={8}
           className="w-72 p-2"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onPointerDownOutside={() => textState !== "processing" && setIsPopoverOpen(false)}
-          onInteractOutside={() => textState !== "processing" && setIsPopoverOpen(false)}
         >
           <div className="flex flex-col gap-1.5">
             <div className="text-xs text-muted-foreground">

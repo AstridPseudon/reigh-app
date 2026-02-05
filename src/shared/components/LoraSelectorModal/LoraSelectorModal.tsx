@@ -104,7 +104,6 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
       <DialogContent
         className={modal.className}
         style={modal.style}
-        {...{ ...modal.props }}
       >
         <div className={modal.headerClass}>
           <DialogHeader className={`${modal.isMobile ? 'px-2 pt-1 pb-2' : 'px-6 pt-2 pb-2'} flex-shrink-0`}>

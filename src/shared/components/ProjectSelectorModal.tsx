@@ -115,7 +115,6 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
       <DialogContent 
         className={modal.className}
         style={modal.style}
-        {...modal.props}
       >
         <div className={modal.headerClass}>
           <DialogHeader>

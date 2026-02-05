@@ -10,7 +10,7 @@ import {
 } from '@/shared/components/ui/dialog';
 import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { Input } from '@/shared/components/ui/input';
+import { NumberInput } from '@/shared/components/ui/number-input';
 import { Slider } from '@/shared/components/ui/slider';
 import { Switch } from '@/shared/components/ui/switch';
 import type { JoinSettings } from '../hooks/useVideoItemJoinClips';
@@ -106,10 +106,9 @@ export function JoinClipsModal({
                 min={1}
                 max={Math.max(1, 81 - (joinContextFrames * 2))}
                 step={1}
-                value={[Math.max(1, joinGapFrames)]}
-                onValueChange={(values) => {
-                  const val = Math.max(1, values[0]);
-                  setJoinGapFrames(val);
+                value={Math.max(1, joinGapFrames)}
+                onValueChange={(value) => {
+                  setJoinGapFrames(Math.max(1, value));
                 }}
               />
               <p className="text-xs text-muted-foreground">Frames to generate in each transition</p>
@@ -119,22 +118,17 @@ export function JoinClipsModal({
               <Label htmlFor="join-context-frames" className="text-sm">
                 Context Frames
               </Label>
-              <Input
+              <NumberInput
                 id="join-context-frames"
-                type="number"
                 min={1}
                 max={30}
                 value={joinContextFrames}
-                onChange={(e) => {
-                  const val = Math.max(1, parseInt(e.target.value) || 1);
-                  if (!isNaN(val) && val > 0) {
-                    const maxGap = Math.max(1, 81 - (val * 2));
-                    const newGapFrames = joinGapFrames > maxGap ? maxGap : joinGapFrames;
-                    setJoinContextFrames(val);
-                    setJoinGapFrames(newGapFrames);
-                  }
+                onChange={(val) => {
+                  const maxGap = Math.max(1, 81 - (val * 2));
+                  const newGapFrames = joinGapFrames > maxGap ? maxGap : joinGapFrames;
+                  setJoinContextFrames(val);
+                  setJoinGapFrames(newGapFrames);
                 }}
-                className="text-center"
               />
               <p className="text-xs text-muted-foreground">Context frames from each clip</p>
             </div>

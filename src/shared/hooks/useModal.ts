@@ -6,9 +6,7 @@ export type ModalSize = 'small' | 'medium' | 'large' | 'extra-large';
 interface ModalStyling {
   className: string;
   style: Record<string, unknown>;
-  props: Record<string, unknown>;
   isMobile: boolean;
-  // Container classes - keeping same names for compatibility
   headerClass: string;
   scrollClass: string;
   footerClass: string;
@@ -45,17 +43,10 @@ export const useModal = (size: ModalSize = 'medium'): ModalStyling => {
       : undefined,
   } : {};
 
-  // Mobile props to prevent auto-focus (prevents keyboard popup)
-  const mobileProps = isMobile ? { 
-    onOpenAutoFocus: (e: Event) => e.preventDefault() 
-  } : {};
-
   return {
     className: `${sizeClasses} ${baseClasses}`,
     style: mobileStyle,
-    props: mobileProps,
     isMobile,
-    // Standard container classes - these never change
     headerClass: 'flex-shrink-0',
     scrollClass: 'flex-1 overflow-y-auto min-h-0',
     footerClass: 'flex-shrink-0'

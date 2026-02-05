@@ -87,9 +87,9 @@ export function ToastItem({ toast: t }: { toast: any }) {
 //   toast.error("title", { description, ... })  – error with options
 //   toast.success("message")                    – success toast
 //   toast.success("msg", { description, ... })  – success with options
-//   toast({ title, description, variant })      – Radix-compat object form
+//   toast({ title, description, variant })      – object form
 
-interface RadixToastOptions {
+interface ToastObjectOptions {
   title?: React.ReactNode
   description?: React.ReactNode
   variant?: "default" | "destructive"
@@ -117,7 +117,7 @@ function addToast(
   })
 }
 
-type ToastInput = string | RadixToastOptions
+type ToastInput = string | ToastObjectOptions
 
 function toastFn(input: ToastInput, opts?: SonnerMethodOptions): string {
   if (typeof input === "string") {
@@ -125,7 +125,7 @@ function toastFn(input: ToastInput, opts?: SonnerMethodOptions): string {
     return addToast("default", input, undefined, opts)
   }
 
-  // Radix-compat: toast({ title, description, variant })
+  // Object form: toast({ title, description, variant })
   const { title, description, variant, ...rest } = input
   const type = variant === "destructive" ? "error" : "default"
   return toastManager.add({

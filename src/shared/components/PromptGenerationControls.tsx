@@ -223,8 +223,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
   const temperatureValues = temperatureOptions.map(opt => opt.value);
   const currentIndex = temperatureValues.indexOf(temperature);
 
-  const handleTemperatureChange = (values: number[]) => {
-    const newValue = values[0];
+  const handleTemperatureChange = (newValue: number) => {
     // Find the closest temperature option
     const closest = temperatureOptions.reduce((prev, curr) => 
       Math.abs(curr.value - newValue) < Math.abs(prev.value - newValue) ? curr : prev
@@ -300,11 +299,10 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
               </div>
               <Slider
                 id="gen_numberToGenerate"
-                value={[numberToGenerate]}
-                onValueChange={(values) => {
-                  const next = values[0];
-                  setNumberToGenerate(next);
-                  emitChange({ numberToGenerate: next });
+                value={numberToGenerate}
+                onValueChange={(value) => {
+                  setNumberToGenerate(value);
+                  emitChange({ numberToGenerate: value });
                 }}
                 min={1}
                 max={32}
@@ -505,7 +503,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                   <div className="relative mb-0">
                     <Slider
                       id="gen_temperature_mobile"
-                      value={[temperature]}
+                      value={temperature}
                       onValueChange={handleTemperatureChange}
                       min={0.4}
                       max={1.2}
@@ -738,7 +736,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                   <div className="relative mb-0">
                     <Slider
                       id="gen_temperature"
-                      value={[temperature]}
+                      value={temperature}
                       onValueChange={handleTemperatureChange}
                       min={0.4}
                       max={1.2}

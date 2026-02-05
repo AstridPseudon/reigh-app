@@ -31,8 +31,8 @@ const SliderWithValue = ({
   formatValue,
   numberInputClassName = "w-20",
 }: SliderWithValueProps) => {
-  const handleValueChange = (values: number[]) => {
-    onChange(values[0]);
+  const handleValueChange = (value: number) => {
+    onChange(value);
   };
 
   const sliderContent = (
@@ -82,7 +82,7 @@ const SliderWithValue = ({
           </NumberField.Root>
         )}
         <Slider
-          value={[value]}
+          value={value}
           min={min}
           max={max}
           step={step}

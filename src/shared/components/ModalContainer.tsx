@@ -89,7 +89,6 @@ export function ModalContainer({
       <DialogContent
         className={cn(modal.className, className)}
         style={modal.style}
-        {...modal.props}
         // Override close button visibility via CSS if needed
         data-hide-close={hideCloseButton || undefined}
       >

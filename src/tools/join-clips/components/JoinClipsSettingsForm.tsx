@@ -1013,9 +1013,9 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                                     min={1}
                                     max={maxGapFrames}
                                     step={1}
-                                    value={[Math.min(Math.max(1, gapFrames), maxGapFrames)]}
-                                    onValueChange={(values) => {
-                                        setGapFrames(Math.min(values[0], maxGapFrames));
+                                    value={Math.min(Math.max(1, gapFrames), maxGapFrames)}
+                                    onValueChange={(value) => {
+                                        setGapFrames(Math.min(value, maxGapFrames));
                                     }}
                                     className="py-2"
                                 />
@@ -1032,8 +1032,8 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                                     min={4}
                                     max={maxContextFrames}
                                     step={1}
-                                    value={[Math.min(contextFrames, maxContextFrames)]}
-                                    onValueChange={(values) => handleContextFramesChange(Math.min(values[0], maxContextFrames))}
+                                    value={Math.min(contextFrames, maxContextFrames)}
+                                    onValueChange={(value) => handleContextFramesChange(Math.min(value, maxContextFrames))}
                                     className="py-2"
                                 />
                             </div>
@@ -1206,8 +1206,8 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                                                             min={0}
                                                             max={1}
                                                             step={0.05}
-                                                            value={[noisedInputVideo]}
-                                                            onValueChange={(values) => setNoisedInputVideo(values[0])}
+                                                            value={noisedInputVideo}
+                                                            onValueChange={(value) => setNoisedInputVideo(value)}
                                                             className="py-2"
                                                         />
                                                     </div>

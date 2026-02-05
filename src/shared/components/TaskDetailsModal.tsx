@@ -177,7 +177,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
       <DialogContent
         className={modal.className}
         style={modal.style}
-        {...modal.props}
         aria-describedby="task-details-description"
       >
         <div className={modal.headerClass}>

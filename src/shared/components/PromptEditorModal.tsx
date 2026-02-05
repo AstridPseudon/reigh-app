@@ -540,46 +540,14 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
     isMobile: modal.isMobile
   });
 
-  // More debug info before rendering - memoize mobile props to prevent recreation
-  const mobileProps = useMemo(() => ({ ...modal.props }), [modal.isMobile]);
-  console.log(`[PromptEditorModal:DIALOG_DEBUG] About to render Dialog with:`, {
-    open: isOpen,
-    isMobile,
-    'modal.isMobile': modal.isMobile,
-    createMobileModalPropsResult: mobileProps
-  });
-  
-  // Log individual mobile props
-  console.log(`[PromptEditorModal:MOBILE_PROPS_DEBUG] createMobileModalProps detailed:`, mobileProps);
-
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onOpenChange={handleModalClose}
     >
       <DialogContent
         className={`${modal.className} gap-2`}
         style={modal.style}
-        {...mobileProps}
-        onInteractOutside={(e) => {
-          const target = e.target as Element;
-          const isInputElement = target.matches('input, textarea, [contenteditable="true"]') ||
-                                target.closest('input, textarea, [contenteditable="true"]');
-          if (isInputElement) {
-            console.log(`[PromptEditorModal:INTERACT_OUTSIDE_DEBUG] Prevented close due to input interaction.`);
-            e.preventDefault();
-          }
-        }}
-        onPointerDownOutside={(e) => {
-          // Prevent modal from closing when interacting with input fields
-          const target = e.target as Element;
-          const isInputElement = target.matches('input, textarea, [contenteditable="true"]') ||
-                                target.closest('input, textarea, [contenteditable="true"]');
-          if (isInputElement) {
-            console.log(`[PromptEditorModal:POINTER_DOWN_DEBUG] Preventing close on input element:`, target);
-            e.preventDefault();
-          }
-        }}
         ref={(el) => {
           modalContentRef.current = el;
           if (el && isOpen) {

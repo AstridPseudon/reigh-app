@@ -8,7 +8,7 @@ const Select = SelectPrimitive.Root
 
 const SelectGroup = SelectPrimitive.Group
 
-// Wrapper around Base UI's SelectValue to support the Radix-style `placeholder` prop.
+// Wrapper around Base UI's SelectValue to support a `placeholder` prop.
 // Base UI uses a render function children pattern instead of a dedicated placeholder prop.
 const SelectValue = React.forwardRef<
   HTMLSpanElement,

@@ -69,8 +69,8 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
               min={5}
               max={maxGap}
               step={4}
-              value={[quantizeGap(resetGap, 5)]}
-              onValueChange={(value) => setResetGap(quantizeGap(value[0], 5))}
+              value={quantizeGap(resetGap, 5)}
+              onValueChange={(value) => setResetGap(quantizeGap(value, 5))}
               className="w-full mt-1"
             />
           </div>

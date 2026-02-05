@@ -142,11 +142,6 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
           ...modal.style,
           maxWidth: '900px',
         }}
-        // During tour, don't handle outside interactions - let clicks pass through to Joyride
-        onPointerDownOutside={(e) => !isTourActive() && onClose()}
-        onInteractOutside={(e) => !isTourActive() && onClose()}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        {...modal.props}
       >
         <DialogHeader className={modal.headerClass}>
           <div className="flex items-center gap-2">

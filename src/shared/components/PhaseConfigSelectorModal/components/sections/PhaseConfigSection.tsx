@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
+import { NumberInput } from '@/shared/components/ui/number-input';
 import { Label } from '@/shared/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Slider } from '@/shared/components/ui/slider';
@@ -228,13 +229,12 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
                 {/* Guidance Scale */}
                 <div className="space-y-1.5">
                   <Label className="text-sm font-light">Guidance Scale:</Label>
-                  <Input
-                    type="number"
+                  <NumberInput
                     min={0}
                     max={10}
                     step={0.1}
                     value={phase.guidance_scale}
-                    onChange={(e) => updatePhase(phaseIdx, { guidance_scale: parseFloat(e.target.value) || 0 })}
+                    onChange={(val) => updatePhase(phaseIdx, { guidance_scale: val })}
                   />
                 </div>
               </div>
@@ -319,15 +319,14 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
                           </Button>
                         </div>
                       </div>
-                      <Input
-                        type="number"
+                      <NumberInput
                         placeholder="Multiplier"
-                        value={lora.multiplier}
+                        value={parseFloat(lora.multiplier) || 0}
                         min={0}
                         max={2}
                         step={0.1}
-                        onChange={(e) => updatePhaseLora(phaseIdx, loraIdx, { multiplier: e.target.value })}
-                        className="w-16 sm:w-20 flex-shrink-0 text-center"
+                        onChange={(val) => updatePhaseLora(phaseIdx, loraIdx, { multiplier: String(val) })}
+                        className="w-20 flex-shrink-0"
                       />
                     </div>
                   );

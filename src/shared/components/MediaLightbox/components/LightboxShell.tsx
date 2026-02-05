@@ -367,7 +367,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     }
   };
 
-  // Focus the content element on mount (replaces Radix's onOpenAutoFocus)
+  // Focus the content element on mount
   useEffect(() => {
     contentRef.current?.focus();
   }, [contentRef]);

@@ -167,8 +167,8 @@ export const BatchGuidanceVideo: React.FC<BatchGuidanceVideoProps> = ({
   }, [videoMetadata, treatment, minFrame, maxFrame]);
 
   // Handle slider change
-  const handleFrameChange = useCallback((value: number[]) => {
-    const newFrame = value[0];
+  const handleFrameChange = useCallback((value: number) => {
+    const newFrame = value;
     setCurrentTimelineFrame(newFrame);
     drawTimelineFrame(newFrame);
   }, [drawTimelineFrame]);
@@ -456,7 +456,7 @@ export const BatchGuidanceVideo: React.FC<BatchGuidanceVideoProps> = ({
               <span>{minFrame} - {maxFrame}</span>
             </div>
             <Slider
-              value={[currentTimelineFrame]}
+              value={currentTimelineFrame}
               onValueChange={handleFrameChange}
               min={minFrame}
               max={maxFrame}

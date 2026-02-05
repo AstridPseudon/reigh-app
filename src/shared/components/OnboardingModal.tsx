@@ -548,7 +548,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       <DialogContent 
         className={modal.className}
         style={modal.style}
-        {...modal.props}
       >
         <style>
           {`

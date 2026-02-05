@@ -401,9 +401,9 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
                                             min={1}
                                             max={Math.max(1, 81 - (contextFrames * 2))}
                                             step={4}
-                                            value={[Math.max(1, segmentFrameCount)]}
-                                            onValueChange={(values) => {
-                                                const quantizedGap = getQuantizedGap(values[0], contextFrames);
+                                            value={Math.max(1, segmentFrameCount)}
+                                            onValueChange={(value) => {
+                                                const quantizedGap = getQuantizedGap(value, contextFrames);
                                                 onUpdateSelectionSettings?.(selection.id, { gapFrameCount: quantizedGap });
                                             }}
                                             className="w-full"
@@ -495,8 +495,8 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
                             min={4}
                             max={maxContextFrames !== undefined ? Math.min(30, maxContextFrames) : 30}
                             step={1}
-                            value={[contextFrames]}
-                            onValueChange={(values) => handleContextFramesChange(values[0])}
+                            value={contextFrames}
+                            onValueChange={(value) => handleContextFramesChange(value)}
                         />
                         <p className="text-xs text-muted-foreground">
                             Frames from preserved sections used for context on each side of edits

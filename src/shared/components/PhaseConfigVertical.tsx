@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Label } from '@/shared/components/ui/label';
 import { Input } from '@/shared/components/ui/input';
+import { NumberInput } from '@/shared/components/ui/number-input';
 import { Button } from '@/shared/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Slider } from '@/shared/components/ui/slider';
@@ -313,10 +314,10 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                   min={1}
                   max={10}
                   step={0.1}
-                  value={[phaseConfig.flow_shift]}
+                  value={phaseConfig.flow_shift}
                   onValueChange={(value) => onPhaseConfigChange({
                     ...phaseConfig,
-                    flow_shift: value[0]
+                    flow_shift: value
                   })}
                 />
               </div>
@@ -357,10 +358,10 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                     min={1}
                     max={15}
                     step={1}
-                    value={[phaseConfig.steps_per_phase[phaseIdx]]}
+                    value={phaseConfig.steps_per_phase[phaseIdx]}
                     onValueChange={(value) => {
                       const newSteps = [...phaseConfig.steps_per_phase];
-                      newSteps[phaseIdx] = value[0];
+                      newSteps[phaseIdx] = value;
                       onPhaseConfigChange({
                         ...phaseConfig,
                         steps_per_phase: newSteps
@@ -374,18 +375,16 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                   <Label htmlFor={`guidance_scale_${phaseIdx}`} className="text-sm font-light block mb-1.5">
                     Guidance Scale:
                   </Label>
-                  <Input
+                  <NumberInput
                     id={`guidance_scale_${phaseIdx}`}
-                    type="number"
                     min={0}
                     max={10}
                     step={0.1}
                     value={phase.guidance_scale}
-                    onChange={(e) => {
-                      // IMMUTABLE UPDATE: Create new phase object instead of mutating
+                    onChange={(val) => {
                       const newPhases = phaseConfig.phases.map((p, idx) =>
                         idx === phaseIdx
-                          ? { ...p, guidance_scale: parseFloat(e.target.value) || 0 }
+                          ? { ...p, guidance_scale: val }
                           : p
                       );
                       onPhaseConfigChange({
@@ -527,23 +526,20 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                           </Button>
                         </div>
                       </div>
-                      <Input
-                        type="number"
+                      <NumberInput
                         placeholder="Multiplier"
-                        value={lora.multiplier}
+                        value={parseFloat(lora.multiplier) || 0}
                         min={0}
                         max={2}
                         step={0.1}
-                        onChange={(e) => {
-                          // IMMUTABLE UPDATE: Create new lora and phase objects
-                          // This prevents changes from affecting the same LoRA in other phases
+                        onChange={(val) => {
                           const newPhases = phaseConfig.phases.map((p, pIdx) =>
                             pIdx === phaseIdx
                               ? {
                                   ...p,
                                   loras: p.loras.map((l, lIdx) =>
                                     lIdx === loraIdx
-                                      ? { ...l, multiplier: e.target.value }
+                                      ? { ...l, multiplier: String(val) }
                                       : l
                                   )
                                 }
@@ -554,8 +550,7 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                             phases: newPhases
                           });
                         }}
-                        onBlur={() => onBlurSave?.()}
-                        className="w-16 sm:w-20 flex-shrink-0 text-center"
+                        className="w-20 flex-shrink-0"
                       />
                     </div>
                   );

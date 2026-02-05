@@ -478,8 +478,8 @@ const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
                 min={9}
                 max={81}
                 step={4}
-                value={[quantizeFrameCount(batchVideoFrames, 9)]}
-                onValueChange={(value) => onBatchVideoFramesChange(quantizeFrameCount(value[0], 9))}
+                value={quantizeFrameCount(batchVideoFrames, 9)}
+                onValueChange={(value) => onBatchVideoFramesChange(quantizeFrameCount(value, 9))}
                 disabled={turboMode || isTimelineMode}
                 className={(turboMode || isTimelineMode) ? 'opacity-50' : ''}
               />

@@ -334,14 +334,10 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && !isLoraModalOpen && onClose()}>
         <DialogContent
           className={modal.className}
           style={{ ...modal.style, maxWidth: '1000px' }}
-          onPointerDownOutside={() => !isLoraModalOpen && onClose()}
-          onInteractOutside={() => !isLoraModalOpen && onClose()}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          {...modal.props}
         >
           <DialogHeader className={modal.headerClass}>
             <div className="flex items-center justify-between gap-3">

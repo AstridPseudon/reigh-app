@@ -337,7 +337,7 @@ export const MotionControl: React.FC<MotionControlProps> = ({
   // Parent keeps motionMode and advancedMode in sync, so we just call onMotionModeChange
   const handleModeChange = useCallback((newMode: string) => {
     // GUARD: Ignore if the mode hasn't actually changed
-    // This prevents spurious calls from Radix Tabs on mount/remount
+    // This prevents spurious calls from Tabs on mount/remount
     if (newMode === motionMode) {
       console.log('[VTDebug] ⏭️ handleModeChange ignored - already in', newMode, 'mode');
       return;

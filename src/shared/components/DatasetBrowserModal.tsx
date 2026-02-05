@@ -380,8 +380,6 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
       <DialogContent 
         className={modal.className}
         style={modal.style}
-        {...modal.props}
-        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className={modal.headerClass}>
           <DialogHeader>

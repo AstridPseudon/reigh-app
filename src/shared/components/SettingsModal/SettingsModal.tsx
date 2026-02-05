@@ -151,7 +151,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           ...modal.style,
           ...(lockedHeight !== null ? { height: lockedHeight, maxHeight: '90vh', overflow: 'hidden' } : { maxHeight: '90vh' })
         }}
-        {...modal.props}
       >
 
         <div className={modal.headerClass}>

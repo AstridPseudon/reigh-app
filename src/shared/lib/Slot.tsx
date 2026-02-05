@@ -1,8 +1,8 @@
 import * as React from "react"
 
 /**
- * Local Slot implementation replacing @radix-ui/react-slot.
- * Merges props onto a single React element child, enabling the `asChild` pattern.
+ * Slot component that merges props onto a single React element child,
+ * enabling the `asChild` pattern.
  */
 const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>(
   ({ children, ...props }, forwardedRef) => {

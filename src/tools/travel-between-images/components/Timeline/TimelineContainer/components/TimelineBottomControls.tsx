@@ -48,8 +48,8 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
         <div className="flex items-center gap-1.5">
           <Label className="text-xs text-muted-foreground whitespace-nowrap">Gap: {framesToSeconds(resetGap)}</Label>
           <Slider
-            value={[resetGap]}
-            onValueChange={readOnly ? undefined : ([value]) => setResetGap(value)}
+            value={resetGap}
+            onValueChange={readOnly ? undefined : (value) => setResetGap(value)}
             min={1}
             max={maxGap}
             step={1}
