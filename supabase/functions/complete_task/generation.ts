@@ -1,44 +1,19 @@
 /**
- * Generation and variant creation for complete_task
- * Handles creating generations, variants, and parent/child relationships
+ * Generation routing for complete_task
  *
- * This is the main entry point - sub-modules handle specific concerns:
- * - generation-core.ts: Basic CRUD operations
- * - generation-parent.ts: Parent/child relationships
- * - generation-segments.ts: Travel segment logic
- * - generation-variants.ts: Edit/upscale variant handlers
- * - generation-handlers.ts: Params-driven completion handlers
+ * This file contains the main routing logic. Handlers are in generation-handlers.ts.
+ * File structure:
+ * - generation.ts: Routing (this file)
+ * - generation-handlers.ts: All handlers
+ * - generation-child.ts: Child generation + segment helpers
+ * - generation-core.ts: CRUD primitives
+ * - generation-parent.ts: Parent relationship helpers
  */
 
-import {
-  extractShotAndPosition,
-} from './params.ts';
-
-// Import from sub-modules
-import {
-  findExistingGeneration,
-  findSourceGenerationByImageUrl,
-  insertGeneration,
-  createVariant,
-  linkGenerationToShot,
-} from './generation-core.ts';
-
-import {
-  getOrCreateParentGeneration,
-  createVariantOnParent,
-  getChildVariantViewedAt,
-} from './generation-parent.ts';
-
-import {
-  logSegmentMasterState,
-  extractSegmentSpecificParams,
-} from './generation-segments.ts';
-
+import { extractShotAndPosition, extractBasedOn } from './params.ts';
+import { findExistingGeneration, createVariant, linkGenerationToShot } from './generation-core.ts';
 import {
   handleVariantCreation,
-} from './generation-variants.ts';
-
-import {
   handleVariantOnParent,
   handleVariantOnChild,
   handleChildGeneration,
@@ -46,100 +21,21 @@ import {
   type HandlerContext,
 } from './generation-handlers.ts';
 
-// Re-export everything for backward compatibility
-export {
-  // From generation-core.ts
-  findExistingGeneration,
-  findSourceGenerationByImageUrl,
-  insertGeneration,
-  createVariant,
-  linkGenerationToShot,
-  // From generation-parent.ts
-  getOrCreateParentGeneration,
-  createVariantOnParent,
-  getChildVariantViewedAt,
-  // From generation-segments.ts
-  logSegmentMasterState,
-  extractSegmentSpecificParams,
-  // From generation-variants.ts
-  handleVariantCreation,
-  // From generation-handlers.ts
-  handleVariantOnParent,
-  handleVariantOnChild,
-  handleChildGeneration,
-  handleStandaloneGeneration,
-};
-
-// ===== TOOL TYPE RESOLUTION =====
-
-/**
- * Resolve the final tool_type for a task, considering both default mapping and potential overrides
- */
-export async function resolveToolType(
-  supabase: any,
-  taskType: string,
-  taskParams: any
-): Promise<{
-  toolType: string;
-  category: string;
-  contentType: 'image' | 'video';
-} | null> {
-  // Get default tool_type from task_types table
-  const { data: taskTypeData, error: taskTypeError } = await supabase
-    .from("task_types")
-    .select("category, tool_type, content_type")
-    .eq("name", taskType)
-    .single();
-
-  if (taskTypeError || !taskTypeData) {
-    console.error(`[ToolTypeResolver] Failed to fetch task_types metadata for '${taskType}':`, taskTypeError);
-    return null;
-  }
-
-  let finalToolType = taskTypeData.tool_type;
-  const finalContentType = taskTypeData.content_type || 'image';
-  const category = taskTypeData.category;
-
-  console.log(`[ToolTypeResolver] Base task_type '${taskType}' has content_type: ${finalContentType}`);
-
-  // Check for tool_type override in params
-  const paramsToolType = taskParams?.tool_type;
-  if (paramsToolType) {
-    console.log(`[ToolTypeResolver] Found tool_type override in params: ${paramsToolType}`);
-
-    // Validate that the override tool_type is a known valid tool type
-    const { data: validToolTypes } = await supabase
-      .from("task_types")
-      .select("tool_type")
-      .not("tool_type", "is", null)
-      .eq("is_active", true);
-
-    const validToolTypeSet = new Set(validToolTypes?.map((t: any) => t.tool_type) || []);
-
-    if (validToolTypeSet.has(paramsToolType)) {
-      console.log(`[ToolTypeResolver] Using tool_type override: ${paramsToolType} (was: ${finalToolType})`);
-      finalToolType = paramsToolType;
-    } else {
-      console.log(`[ToolTypeResolver] Invalid tool_type override '${paramsToolType}', using default: ${finalToolType}`);
-    }
-  }
-
-  return {
-    toolType: finalToolType,
-    category,
-    contentType: finalContentType
-  };
-}
+// Re-export for orchestrator.ts
+export { createVariant } from './generation-core.ts';
 
 // ===== MAIN GENERATION CREATION =====
 
 /**
  * Main function to create generation from completed task
  *
- * PARAMS-DRIVEN ROUTING (no config needed):
- * - child_generation_id present → variant on existing child
- * - parent_generation_id present → child generation under parent
- * - neither → standalone generation
+ * PARAMS-DRIVEN ROUTING - all 6 cases in one place:
+ * 1. Regeneration: existing generation for this task → add variant
+ * 2. Variant on source: based_on present → variant on that generation
+ * 3. Variant on child: child_generation_id present → variant on existing child
+ * 4. Stitch task: travel_stitch/join_final_stitch → variant on parent
+ * 5. Child generation: parent_generation_id present → child under parent
+ * 6. Standalone: neither → independent generation
  *
  * Single-item detection: is_single_item param OR (is_first_segment && is_last_segment)
  * Child order: child_order OR segment_index OR join_index
@@ -154,7 +50,15 @@ export async function createGenerationFromTask(
 ): Promise<any> {
   const params = taskData.params || {};
 
-  // Extract routing params from multiple possible locations
+  // Skip orchestration tasks (they coordinate, don't produce output)
+  if (taskData.category === 'orchestration') {
+    console.log(`[GenMigration] SKIP: Task ${taskId} is orchestration`);
+    return null;
+  }
+
+  // Extract all routing params from multiple possible locations
+  const basedOn = extractBasedOn(params);
+  const createAsGeneration = params.create_as_generation === true;
   const childGenerationId = params.child_generation_id;
   const parentGenerationId = params.parent_generation_id ||
                              params.orchestrator_details?.parent_generation_id ||
@@ -163,9 +67,10 @@ export async function createGenerationFromTask(
   const isSingleItem = params.is_single_item === true ||
                        (params.is_first_segment === true && params.is_last_segment === true);
 
-  console.log(`[GenMigration] Task ${taskId}: child_generation_id=${childGenerationId || 'none'}, parent_generation_id=${parentGenerationId || 'none'}, child_order=${childOrder}, is_single_item=${isSingleItem}`);
+  console.log(`[GenMigration] Task ${taskId}: based_on=${basedOn || 'none'}, child_generation_id=${childGenerationId || 'none'}, parent_generation_id=${parentGenerationId || 'none'}, child_order=${childOrder}, is_single_item=${isSingleItem}`);
   logger?.debug("Generation routing", {
     task_id: taskId,
+    based_on: basedOn,
     child_generation_id: childGenerationId,
     parent_generation_id: parentGenerationId,
     child_order: childOrder,
@@ -173,13 +78,21 @@ export async function createGenerationFromTask(
   });
 
   try {
-    // 1. Check for regeneration (existing generation for this task)
+    // 1. REGENERATION: existing generation for this task → add variant
     const existingGeneration = await findExistingGeneration(supabase, taskId);
     if (existingGeneration) {
       return handleRegeneration(supabase, taskId, taskData, existingGeneration, publicUrl, thumbnailUrl, logger);
     }
 
-    // 2. Build context for handlers
+    // 2. VARIANT ON SOURCE: based_on present → variant on that generation
+    if (basedOn && !createAsGeneration) {
+      console.log(`[GenMigration] VARIANT: Task ${taskId} on ${basedOn}`);
+      const success = await handleVariantCreation(supabase, taskId, taskData, basedOn, publicUrl, thumbnailUrl);
+      if (success) return { id: basedOn }; // Return generation that received variant
+      console.log(`[GenMigration] Variant creation failed, falling back to generation`);
+    }
+
+    // 3. Build context for remaining handlers
     const ctx: HandlerContext = {
       supabase,
       taskId,
@@ -194,10 +107,9 @@ export async function createGenerationFromTask(
       isSingleItem,
     };
 
-    // 3. Route based on params
     let result: any = null;
 
-    // VARIANT ON CHILD: regenerating an existing child generation
+    // 4. VARIANT ON CHILD: child_generation_id present → update existing child
     if (childGenerationId) {
       console.log(`[GenMigration] VARIANT_ON_CHILD: Task ${taskId} updating child ${childGenerationId}`);
       result = await handleVariantOnChild(ctx);
@@ -205,7 +117,17 @@ export async function createGenerationFromTask(
       // Fall through to child generation if variant failed
     }
 
-    // CHILD GENERATION: creating segment under parent
+    // 5. STITCH TASK: variant on parent (travel_stitch, join_final_stitch)
+    // These have parent_generation_id but create a variant on parent, not a child under it
+    const isStitchTask = taskData.task_type === 'travel_stitch' || taskData.task_type === 'join_final_stitch';
+    if (isStitchTask && parentGenerationId) {
+      console.log(`[GenMigration] STITCH: Task ${taskId} creating variant on parent ${parentGenerationId}`);
+      result = await handleVariantOnParent(ctx);
+      if (result) return result;
+      console.log(`[GenMigration] Stitch variant creation failed, falling back`);
+    }
+
+    // 6. CHILD GENERATION: parent_generation_id present → child under parent
     if (parentGenerationId) {
       console.log(`[GenMigration] CHILD: Task ${taskId} under parent ${parentGenerationId}`);
       result = await handleChildGeneration(ctx);
@@ -213,7 +135,7 @@ export async function createGenerationFromTask(
       console.log(`[GenMigration] Child creation failed, falling back to standalone`);
     }
 
-    // STANDALONE: no parent/child relationship
+    // 6. STANDALONE: no parent/child relationship
     console.log(`[GenMigration] STANDALONE: Task ${taskId}`);
     return handleStandaloneGeneration(ctx);
 

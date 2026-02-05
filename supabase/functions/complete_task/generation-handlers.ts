@@ -1,18 +1,15 @@
 /**
- * Task Completion Handlers
+ * Task Completion Handlers - ALL handlers in one place
  *
  * PARAMS-DRIVEN (no config needed):
- * - handleVariantOnChild: Has child_generation_id → update existing child
- * - handleChildGeneration: Has parent_generation_id → create child under parent
- * - handleStandaloneGeneration: Neither → create independent generation
+ * - handleVariantCreation: Has based_on → variant on source generation
+ * - handleVariantOnChild: Has child_generation_id → variant on existing child
+ * - handleVariantOnParent: Stitch task → variant on parent generation
+ * - handleChildGeneration: Has parent_generation_id → child under parent (in generation-child.ts)
+ * - handleStandaloneGeneration: Neither → independent generation
  *
- * All routing is determined by params extracted in createGenerationFromTask:
- * - childGenerationId, parentGenerationId, childOrder, isSingleItem
+ * All routing is determined by params extracted in createGenerationFromTask
  */
-
-import {
-  TASK_TYPES,
-} from './constants.ts';
 
 import {
   extractBasedOn,
@@ -33,10 +30,13 @@ import {
   getChildVariantViewedAt,
 } from './generation-parent.ts';
 
-import {
-  extractSegmentSpecificParams,
-  logSegmentMasterState,
-} from './generation-segments.ts';
+// Re-export child generation handlers for backward compatibility
+export {
+  handleChildGeneration,
+  createSingleItemVariant,
+  findExistingGenerationAtPosition,
+  createChildGenerationRecord,
+} from './generation-child.ts';
 
 // ===== TYPES =====
 
@@ -52,6 +52,68 @@ export interface HandlerContext {
   parentGenerationId?: string;
   childOrder?: number | null;
   isSingleItem?: boolean;
+}
+
+// ===== HANDLER: VARIANT ON SOURCE =====
+
+/**
+ * Create variant on source generation (for edit/upscale tasks with based_on)
+ * Reads is_primary and variant_type from task data
+ */
+export async function handleVariantCreation(
+  supabase: any,
+  taskId: string,
+  taskData: any,
+  basedOnGenerationId: string,
+  publicUrl: string,
+  thumbnailUrl: string | null
+): Promise<boolean> {
+  const isPrimary = taskData.params?.is_primary === true;
+  const variantType = taskData.variant_type || 'edit';
+
+  console.log(`[Variant] Task ${taskId} creating ${variantType} variant on ${basedOnGenerationId} (is_primary=${isPrimary})`);
+
+  try {
+    const { data: sourceGen, error: fetchError } = await supabase
+      .from('generations')
+      .select('id, params, thumbnail_url, project_id')
+      .eq('id', basedOnGenerationId)
+      .single();
+
+    if (fetchError || !sourceGen) {
+      console.error(`[Variant] Source generation ${basedOnGenerationId} not found:`, fetchError);
+      return false;
+    }
+
+    const variantParams = {
+      ...taskData.params,
+      source_task_id: taskId,
+      source_variant_id: taskData.params?.source_variant_id || null,
+      created_from: taskData.task_type,
+      tool_type: taskData.tool_type,
+      content_type: taskData.content_type,
+    };
+
+    await createVariant(
+      supabase,
+      basedOnGenerationId,
+      publicUrl,
+      thumbnailUrl,
+      variantParams,
+      isPrimary,
+      variantType,
+      null
+    );
+
+    console.log(`[Variant] Successfully created ${variantType} variant on ${basedOnGenerationId} (is_primary=${isPrimary})`);
+
+    await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
+    return true;
+
+  } catch (variantErr) {
+    console.error(`[Variant] Error creating variant for task ${taskId}:`, variantErr);
+    return false;
+  }
 }
 
 // ===== HANDLER: VARIANT ON PARENT =====
@@ -270,364 +332,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
 
   await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
   return childGen;
-}
-
-// ===== HANDLER: CHILD GENERATION =====
-
-/**
- * Creates a child generation under a parent (for segment tasks)
- * All behavior is params-driven via ctx.isSingleItem
- * Used by: travel_segment, join_clips_segment, individual_travel_segment (fallback)
- */
-export async function handleChildGeneration(ctx: HandlerContext): Promise<any | null> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger, parentGenerationId, childOrder, isSingleItem } = ctx;
-
-  // Must have parent generation to create child
-  if (!parentGenerationId) {
-    console.log(`[GenHandler] No parent generation found for child_generation task ${taskId}`);
-    return null;
-  }
-
-  // Use childOrder from context (already extracted from params)
-  const finalChildOrder = childOrder ?? null;
-
-  console.log(`[GenHandler] Child generation: parent=${parentGenerationId}, childOrder=${finalChildOrder}, isSingleItem=${isSingleItem}`);
-  logger?.info("Creating child generation", {
-    task_id: taskId,
-    parent_generation_id: parentGenerationId,
-    child_order: finalChildOrder,
-    is_single_item: isSingleItem,
-    task_type: taskData.task_type,
-  });
-
-  // Handle single-item case
-  // For single items, also create variant on parent so the main generation updates
-  // NOTE: Join clips single-item should pass is_single_item: false (or not send it)
-  // because join single-item behavior is "variant_only" (no child needed)
-  if (isSingleItem) {
-    taskData.params._isSingleSegmentCase = true;
-    console.log(`[GenHandler] Single-item detected from params`);
-
-    logger?.info("Single-item: variant on parent and child", {
-      task_id: taskId,
-      parent_generation_id: parentGenerationId,
-    });
-
-    await createSingleItemVariant(ctx, parentGenerationId);
-    console.log(`[GenHandler] Single-item parent variant created, continuing to create child`);
-  }
-
-  // Extract segment-specific params from orchestrator details
-  const orchDetails = taskData.params?.orchestrator_details ||
-                      taskData.params?.full_orchestrator_payload || {};
-  if (Object.keys(orchDetails).length > 0 && finalChildOrder !== null && !isNaN(finalChildOrder)) {
-    taskData.params = extractSegmentSpecificParams(taskData.params, orchDetails, finalChildOrder);
-    if (isSingleItem) {
-      taskData.params._isSingleSegmentCase = true;
-    }
-  }
-
-  // Extract pair_shot_generation_id from multiple nested locations
-  // (individual_travel_segment stores it in individual_segment_params)
-  const segmentIndex = taskData.params?.segment_index ?? finalChildOrder ?? 0;
-  const orchPairIds = taskData.params?.orchestrator_details?.pair_shot_generation_ids;
-  const pairShotGenId = taskData.params?.pair_shot_generation_id ||
-                        taskData.params?.individual_segment_params?.pair_shot_generation_id ||
-                        (Array.isArray(orchPairIds) && orchPairIds[segmentIndex]);
-
-  // Check for existing generation at same position (always check for segment tasks)
-  if (finalChildOrder !== null && !isNaN(finalChildOrder)) {
-    const existingGenId = await findExistingGenerationAtPosition(
-      supabase, parentGenerationId, finalChildOrder, pairShotGenId
-    );
-
-    if (existingGenId) {
-      const variantViewedAt = await getChildVariantViewedAt(supabase, {
-        taskParams: taskData.params,
-        parentGenerationId,
-      });
-
-      console.log(`[GenHandler] Found existing generation ${existingGenId} - adding as variant${variantViewedAt ? ' (auto-viewed)' : ''}`);
-      logger?.info("Adding segment as variant to existing generation", {
-        task_id: taskId,
-        existing_generation_id: existingGenId,
-        child_order: finalChildOrder,
-      });
-
-      const variantTypeForExisting = taskData.variant_type || 'edit';
-
-      const variantResult = await createVariantOnParent(
-        supabase, existingGenId, publicUrl, thumbnailUrl, taskData, taskId,
-        variantTypeForExisting,
-        {
-          tool_type: taskData.tool_type,
-          created_from: 'segment_variant_at_position',
-          segment_index: finalChildOrder,
-          pair_shot_generation_id: pairShotGenId
-        },
-        null,
-        false,
-        variantViewedAt
-      );
-
-      if (variantResult) return variantResult;
-      console.error(`[GenHandler] Failed to create variant, falling through to new generation`);
-    }
-  }
-
-  // Create the child generation
-  return createChildGenerationRecord(ctx, parentGenerationId, finalChildOrder, isSingleItem || false, pairShotGenId);
-}
-
-// ===== SINGLE-ITEM VARIANT CREATION =====
-
-/**
- * Create variant on parent for single-item cases
- */
-async function createSingleItemVariant(
-  ctx: HandlerContext,
-  parentGenerationId: string
-): Promise<any | null> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, childOrder } = ctx;
-
-  // Check if this is first variant on parent
-  const { count: existingVariantCount } = await supabase
-    .from('generation_variants')
-    .select('id', { count: 'exact', head: true })
-    .eq('generation_id', parentGenerationId);
-  const isFirstVariant = (existingVariantCount || 0) === 0;
-
-  const toolType = taskData.params?.full_orchestrator_payload?.tool_type ||
-                   taskData.params?.tool_type ||
-                   taskData.tool_type;
-
-  const variantType = taskData.variant_type || 'edit';
-
-  const result = await createVariantOnParent(
-    supabase, parentGenerationId, publicUrl, thumbnailUrl, taskData, taskId,
-    variantType,
-    {
-      tool_type: toolType,
-      created_from: 'single_item_completion',
-      is_single_item: true,
-      child_order: childOrder ?? 0,
-    },
-    null,
-    isFirstVariant
-  );
-
-  return result;
-}
-
-/**
- * Find existing generation at a position (for variant creation)
- */
-async function findExistingGenerationAtPosition(
-  supabase: any,
-  parentGenerationId: string,
-  childOrder: number,
-  pairShotGenId?: string
-): Promise<string | null> {
-  console.log(`[GenHandler] Checking for existing generation at segment_index=${childOrder}, pair_shot_gen_id=${pairShotGenId || 'none'}`);
-
-  // Strategy 1: Try to find by pair_shot_generation_id column
-  if (pairShotGenId) {
-    // Match by the FK column (source of truth with referential integrity)
-    const { data: matchByColumn, error: matchByColumnError } = await supabase
-      .from('generations')
-      .select('id')
-      .eq('parent_generation_id', parentGenerationId)
-      .eq('is_child', true)
-      .eq('pair_shot_generation_id', pairShotGenId)
-      .maybeSingle();
-
-    if (!matchByColumnError && matchByColumn?.id) {
-      console.log(`[GenHandler] Found match by pair_shot_generation_id column: ${matchByColumn.id}`);
-      return matchByColumn.id;
-    }
-
-    // NOTE: We intentionally DON'T fall back to params JSONB here.
-    // Pre-migration generations have already been migrated to the column.
-    // Any generation with NULL column but non-NULL params is orphaned
-    // (FK cascade set column to NULL when shot_generation was deleted).
-    console.log(`[GenHandler] No match by pair_shot_generation_id column`);
-  }
-
-  // Strategy 2: Fallback to child_order match
-  // IMPORTANT: Only use this fallback when NO pair_shot_generation_id was provided
-  // If pairShotGenId was provided but no match found, DON'T fall back to child_order
-  // because the existing child at that index may be for a different timeline layout
-  if (!pairShotGenId) {
-    const { data: matchByChildOrder, error: matchByChildOrderError } = await supabase
-      .from('generations')
-      .select('id')
-      .eq('parent_generation_id', parentGenerationId)
-      .eq('is_child', true)
-      .eq('child_order', childOrder)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!matchByChildOrderError && matchByChildOrder?.id) {
-      console.log(`[GenHandler] Found match by child_order=${childOrder}: ${matchByChildOrder.id}`);
-      return matchByChildOrder.id;
-    }
-  } else {
-    console.log(`[GenHandler] No match by pair_shot_generation_id, skipping child_order fallback (would match wrong slot after timeline rearrangement)`);
-  }
-
-  console.log(`[GenHandler] No existing generation found at position`);
-  return null;
-}
-
-/**
- * Create the child generation record and its initial variant
- */
-async function createChildGenerationRecord(
-  ctx: HandlerContext,
-  parentGenerationId: string,
-  childOrder: number | null,
-  isSingleItemCase: boolean,
-  pairShotGenerationId?: string | null | false
-): Promise<any> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger } = ctx;
-
-  const { shotId } = extractShotAndPosition(taskData.params);
-  const generationType = taskData.content_type || 'video';
-  const toolType = taskData.tool_type;
-  let generationParams = buildGenerationParams(
-    taskData.params, toolType, generationType, shotId, thumbnailUrl || undefined, taskId
-  );
-
-  // Ensure pair_shot_generation_id is at top level of params (for slot matching)
-  if (pairShotGenerationId && !generationParams.pair_shot_generation_id) {
-    generationParams = { ...generationParams, pair_shot_generation_id: pairShotGenerationId };
-    console.log(`[GenHandler] Added pair_shot_generation_id to child generation params: ${pairShotGenerationId}`);
-  }
-
-  const newGenerationId = crypto.randomUUID();
-
-  const generationName = taskData.params?.generation_name ||
-    taskData.params?.orchestrator_details?.generation_name ||
-    taskData.params?.full_orchestrator_payload?.generation_name;
-
-  // Find based_on
-  let basedOnGenerationId: string | null = extractBasedOn(taskData.params);
-  if (basedOnGenerationId) {
-    const { data: basedOnGen, error: basedOnError } = await supabase
-      .from('generations')
-      .select('id')
-      .eq('id', basedOnGenerationId)
-      .maybeSingle();
-
-    if (basedOnError || !basedOnGen) {
-      console.warn(`[GenHandler] based_on generation ${basedOnGenerationId} not found, clearing reference`);
-      basedOnGenerationId = null;
-    }
-  }
-  if (!basedOnGenerationId) {
-    const sourceImageUrl = taskData.params?.image;
-    if (sourceImageUrl) {
-      basedOnGenerationId = await findSourceGenerationByImageUrl(supabase, sourceImageUrl);
-    }
-  }
-
-  logger?.info("Creating child generation record", {
-    task_id: taskId,
-    generation_id: newGenerationId,
-    parent_generation_id: parentGenerationId,
-    child_order: childOrder,
-    is_single_item: isSingleItemCase,
-    based_on: basedOnGenerationId,
-    pair_shot_generation_id: pairShotGenerationId || null,
-  });
-
-  // Verify pair_shot_generation_id still exists before inserting (FK constraint check)
-  // If the shot_generation was deleted between task creation and completion, set to NULL
-  let validatedPairShotGenId = pairShotGenerationId || null;
-  if (validatedPairShotGenId) {
-    const { data: shotGenExists } = await supabase
-      .from('shot_generations')
-      .select('id')
-      .eq('id', validatedPairShotGenId)
-      .maybeSingle();
-
-    if (!shotGenExists) {
-      console.log(`[GenHandler] pair_shot_generation_id ${validatedPairShotGenId} no longer exists, setting to NULL`);
-      validatedPairShotGenId = null;
-    }
-  }
-
-  const generationRecord: Record<string, any> = {
-    id: newGenerationId,
-    tasks: [taskId],
-    params: generationParams,
-    type: generationType,
-    project_id: taskData.project_id,
-    name: generationName,
-    based_on: basedOnGenerationId,
-    parent_generation_id: parentGenerationId,
-    is_child: true,
-    child_order: childOrder,
-    // Store pair_shot_generation_id as proper column (not just in params)
-    // This enables FK constraint and ON DELETE SET NULL behavior
-    // Validated above to prevent FK violation if shot_generation was deleted
-    pair_shot_generation_id: validatedPairShotGenId,
-    created_at: new Date().toISOString()
-  };
-
-  const newGeneration = await insertGeneration(supabase, generationRecord);
-  console.log(`[GenHandler] Created child generation ${newGeneration.id}`);
-
-  // Log segment state for debugging (travel segments only)
-  const isTravelSegmentTask = taskData.task_type === TASK_TYPES.TRAVEL_SEGMENT ||
-                               taskData.task_type === TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT;
-  const orchDetails = taskData.params?.orchestrator_details ||
-                      taskData.params?.full_orchestrator_payload || {};
-
-  if (isTravelSegmentTask && childOrder !== null) {
-    try {
-      logSegmentMasterState({
-        taskId,
-        generationId: newGeneration.id,
-        segmentIndex: childOrder,
-        parentGenerationId,
-        orchDetails,
-        segmentParams: taskData.params,
-        shotId,
-      });
-    } catch (logError) {
-      console.warn('[GenHandler] Error logging segment state:', logError);
-    }
-  }
-
-  // Create "original" variant
-  let autoViewedAt: string | null = null;
-  let createdFrom = 'child_generation_original';
-
-  if (isSingleItemCase) {
-    autoViewedAt = new Date().toISOString();
-    createdFrom = 'single_segment_child_original';
-  } else {
-    autoViewedAt = await getChildVariantViewedAt(supabase, {
-      taskParams: taskData.params,
-    });
-    if (autoViewedAt) {
-      createdFrom = 'single_segment_child_original';
-    }
-  }
-
-  console.log(`[GenHandler] Creating original variant${autoViewedAt ? ' (auto-viewed)' : ''}`);
-  await createVariant(
-    supabase, newGeneration.id, publicUrl, thumbnailUrl,
-    { ...generationParams, source_task_id: taskId, created_from: createdFrom },
-    true, 'original', null, autoViewedAt
-  );
-
-  await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
-
-  console.log(`[GenHandler] Child generation creation complete`);
-  return newGeneration;
 }
 
 // ===== HANDLER: STANDALONE GENERATION =====

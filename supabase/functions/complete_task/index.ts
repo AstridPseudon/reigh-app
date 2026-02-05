@@ -9,18 +9,8 @@ import { SystemLogger } from "../_shared/systemLogger.ts";
 // Import from refactored modules
 import { parseCompleteTaskRequest, validateStoragePathSecurity } from './request.ts';
 import { handleStorageOperations, verifyFileExists, cleanupFile } from './storage.ts';
-import {
-  extractOrchestratorTaskId,
-  extractBasedOn,
-  extractParentGenerationId,
-  setThumbnailInParams,
-  getContentType
-} from './params.ts';
-import {
-  resolveToolType,
-  createGenerationFromTask,
-  handleVariantCreation,
-} from './generation.ts';
+import { setThumbnailInParams } from './params.ts';
+import { createGenerationFromTask } from './generation.ts';
 import { checkOrchestratorCompletion } from './orchestrator.ts';
 import { validateAndCleanupShotId } from './shotValidation.ts';
 import { triggerCostCalculationIfNotSubTask } from './billing.ts';
@@ -282,7 +272,23 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     const CREATE_GENERATION_IN_EDGE = Deno.env.get("CREATE_GENERATION_IN_EDGE") !== "false";
     if (CREATE_GENERATION_IN_EDGE) {
       try {
-        await handleGenerationCreation(supabaseAdmin, taskContext, publicUrl, thumbnailUrl, logger);
+        await createGenerationFromTask(
+          supabaseAdmin,
+          taskContext.id,
+          {
+            id: taskContext.id,
+            task_type: taskContext.task_type,
+            project_id: taskContext.project_id,
+            params: taskContext.params,
+            tool_type: taskContext.tool_type,
+            content_type: taskContext.content_type,
+            variant_type: taskContext.variant_type,
+            category: taskContext.category,
+          },
+          publicUrl,
+          thumbnailUrl,
+          logger
+        );
       } catch (genErr: any) {
         const msg = genErr?.message || String(genErr);
         logger.error("Generation creation failed", { error: msg });
@@ -362,73 +368,5 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
 // Some TS envs don't know about import.meta.main; Deno does.
 if ((import.meta as any).main) {
   serve((req) => completeTaskHandler(req));
-}
-
-/**
- * Handle generation creation based on task type
- * Uses pre-fetched TaskContext to avoid duplicate DB queries
- *
- * THREE OUTPUT MODES (determined by params):
- * 1. VARIANT: based_on present → variant on that generation
- * 2. CHILD: parent_generation_id present → child generation under parent
- * 3. STANDALONE: neither → new generation
- */
-async function handleGenerationCreation(
-  supabase: any,
-  taskContext: TaskContext,
-  publicUrl: string,
-  thumbnailUrl: string | null,
-  logger?: any
-): Promise<void> {
-  const taskId = taskContext.id;
-  const params = taskContext.params;
-
-  // Extract all lineage params - these determine output mode
-  const basedOn = extractBasedOn(params);
-  const parentGenerationId = extractParentGenerationId(params);
-  const createAsGeneration = params?.create_as_generation === true;
-
-  logger?.debug("Output mode routing", {
-    task_id: taskId,
-    task_type: taskContext.task_type,
-    based_on: basedOn,
-    parent_generation_id: parentGenerationId,
-    create_as_generation: createAsGeneration,
-    is_primary: params?.is_primary,
-  });
-  console.log(`[GenMigration] Task ${taskId}: based_on=${basedOn || 'none'}, parent_generation_id=${parentGenerationId || 'none'}, is_primary=${params?.is_primary || false}`);
-
-  // Build combined task data object expected by generation functions
-  const combinedTaskData = {
-    id: taskContext.id,
-    task_type: taskContext.task_type,
-    project_id: taskContext.project_id,
-    params: taskContext.params,
-    tool_type: taskContext.tool_type,
-    content_type: taskContext.content_type,
-    variant_type: taskContext.variant_type,
-  };
-
-  // ========== 1. VARIANT PATH ==========
-  // Task is editing/transforming an existing generation
-  if (basedOn && !createAsGeneration) {
-    console.log(`[GenMigration] VARIANT: Task ${taskId} on ${basedOn}`);
-    const success = await handleVariantCreation(
-      supabase, taskId, combinedTaskData, basedOn, publicUrl, thumbnailUrl
-    );
-    if (success) return;
-    console.log(`[GenMigration] Variant creation failed, falling back to generation`);
-  }
-
-  // ========== 2. GENERATION PATH ==========
-  // Config-based routing handles child vs standalone
-  // Skip orchestration tasks (they coordinate, don't produce output)
-  if (taskContext.category === 'orchestration') {
-    console.log(`[GenMigration] SKIP: Task ${taskId} is orchestration`);
-    return;
-  }
-
-  console.log(`[GenMigration] GENERATION: Task ${taskId}`);
-  await createGenerationFromTask(supabase, taskId, combinedTaskData, publicUrl, thumbnailUrl, logger);
 }
 
