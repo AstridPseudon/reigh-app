@@ -63,13 +63,12 @@ Heaviest files: `instrumentation/window` (27), `instrumentation/realtime` (11), 
 
 **Principle:** Orchestrators under 300 LOC. Extract hooks/components into directory structure when files grow.
 
-**Status:** 11 files over 1,000 LOC. Standard decomposition approach: directory with `components/` + `hooks/`, or extract focused modules. Reference pattern: `useRepositionMode` — 161-line orchestrator coordinating 5 focused hooks (`useRepositionCanvasSetup`, `useRepositionInteractions`, `useRepositionRendering`, `useRepositionState`, `useRepositionValidation`).
+**Status:** 10 files over 1,000 LOC. Standard decomposition approach: directory with `components/` + `hooks/`, or extract focused modules. Reference pattern: `useRepositionMode` — 161-line orchestrator coordinating 5 focused hooks (`useRepositionCanvasSetup`, `useRepositionInteractions`, `useRepositionRendering`, `useRepositionState`, `useRepositionValidation`).
 
 ### Remaining large files
 
 | File | Lines | Why it stays |
 |------|-------|-------------|
-| `JoinClipsSettingsForm.tsx` | 1,309 | Form sections share validation state; splitting adds prop drilling |
 | `ImageLightbox.tsx` | 1,296 | State aggregation — splitting requires a new context for no benefit |
 | `Timeline.tsx` | 1,226 | Hooks/components/utils already extracted; this is the orchestrator |
 | `ShotEditor/index.tsx` | 1,200 | Already sectioned (Header/Timeline/Generation/Modals) |

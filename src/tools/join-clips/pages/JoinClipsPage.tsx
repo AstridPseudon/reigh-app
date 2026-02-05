@@ -31,7 +31,7 @@ import {
 import { useJoinClipsSettings } from '../hooks/useJoinClipsSettings';
 import { useClipManager } from '../hooks/useClipManager';
 import { useJoinClipsGenerate } from '../hooks/useJoinClipsGenerate';
-import { JoinClipsSettingsForm, type ClipPairInfo, DEFAULT_JOIN_CLIPS_PHASE_CONFIG } from '../components/JoinClipsSettingsForm';
+import { JoinClipsSettingsForm, type ClipPairInfo, DEFAULT_JOIN_CLIPS_PHASE_CONFIG } from '@/shared/components/JoinClipsSettingsForm';
 import { SortableClip } from '../components/SortableClip';
 
 const JoinClipsPage: React.FC = () => {

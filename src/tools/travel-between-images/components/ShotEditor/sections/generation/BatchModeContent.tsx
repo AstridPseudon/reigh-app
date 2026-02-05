@@ -42,8 +42,8 @@ import {
 import BatchSettingsForm from '../../../BatchSettingsForm';
 import { MotionControl } from '../../../MotionControl';
 import { GenerateVideoCTA } from '../../../GenerateVideoCTA';
-import { SectionHeader } from '@/tools/image-generation/components/ImageGenerationForm/components/SectionHeader';
-import { JoinClipsSettingsForm, DEFAULT_JOIN_CLIPS_PHASE_CONFIG, BUILTIN_JOIN_CLIPS_DEFAULT_ID } from '@/tools/join-clips/components/JoinClipsSettingsForm';
+import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
+import { JoinClipsSettingsForm, DEFAULT_JOIN_CLIPS_PHASE_CONFIG, BUILTIN_JOIN_CLIPS_DEFAULT_ID } from '@/shared/components/JoinClipsSettingsForm';
 
 export interface BatchModeContentProps {
   // Refs - must be passed from parent for DOM positioning

@@ -163,6 +163,21 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
       return;
     }
 
+    // Close logic lives here (not in onClick) because preventDefault() on
+    // pointerdown suppresses compatibility mouse events including click.
+    // Pointer events still fire, so we detect a "click" as pointerdown +
+    // pointerup on the same overlay element.
+    if (!isInpaintMode) {
+      const clickStartedOnOverlay = pointerDownTargetRef.current === e.currentTarget;
+      const clickEndedOnOverlay = e.target === e.currentTarget;
+
+      if (clickStartedOnOverlay && clickEndedOnOverlay) {
+        onClose();
+      }
+    }
+
+    pointerDownTargetRef.current = null;
+
     e.preventDefault();
     e.stopPropagation();
     if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
@@ -175,13 +190,13 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
       return;
     }
 
-    // Prevent closing when in inpaint mode to avoid accidental data loss
+    // Primary close logic is in handleOverlayPointerUp (see comment there).
+    // This handler is a fallback for any edge cases where click still fires.
     if (isInpaintMode) {
       pointerDownTargetRef.current = null;
       return;
     }
 
-    // Close on single click if both pointer down and click are on the overlay itself
     const clickStartedOnOverlay = pointerDownTargetRef.current === e.currentTarget;
     const clickEndedOnOverlay = e.target === e.currentTarget;
 
