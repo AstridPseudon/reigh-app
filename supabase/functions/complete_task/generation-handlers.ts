@@ -1,31 +1,30 @@
 /**
  * Task Completion Handlers
  *
- * Each handler implements a specific completion behavior:
- * - handleVariantOnParent: For final steps (stitch tasks) that update the parent generation
- * - handleVariantOnChild: For regenerating existing child generations
- * - handleChildGeneration: For segment tasks that create children under a parent
- * - handleStandaloneGeneration: For regular tasks that create independent generations
+ * PARAMS-DRIVEN (no config needed):
+ * - handleVariantOnChild: Has child_generation_id → update existing child
+ * - handleChildGeneration: Has parent_generation_id → create child under parent
+ * - handleStandaloneGeneration: Neither → create independent generation
+ *
+ * All routing is determined by params extracted in createGenerationFromTask:
+ * - childGenerationId, parentGenerationId, childOrder, isSingleItem
  */
 
 import {
-  TaskCompletionConfig,
   TASK_TYPES,
-  TOOL_TYPES,
 } from './constants.ts';
 
 import {
-  extractOrchestratorTaskId,
   extractBasedOn,
   extractShotAndPosition,
   buildGenerationParams,
 } from './params.ts';
 
 import {
-  findSourceGenerationByImageUrl,
   insertGeneration,
   createVariant,
   linkGenerationToShot,
+  findSourceGenerationByImageUrl,
 } from './generation-core.ts';
 
 import {
@@ -35,8 +34,8 @@ import {
 } from './generation-parent.ts';
 
 import {
-  logSegmentMasterState,
   extractSegmentSpecificParams,
+  logSegmentMasterState,
 } from './generation-segments.ts';
 
 // ===== TYPES =====
@@ -47,8 +46,12 @@ export interface HandlerContext {
   taskData: any;
   publicUrl: string;
   thumbnailUrl: string | null;
-  config: TaskCompletionConfig;
   logger?: any;
+  // Extracted params for routing (set by createGenerationFromTask)
+  childGenerationId?: string;
+  parentGenerationId?: string;
+  childOrder?: number | null;
+  isSingleItem?: boolean;
 }
 
 // ===== HANDLER: VARIANT ON PARENT =====
@@ -58,7 +61,7 @@ export interface HandlerContext {
  * Used by: travel_stitch, join_final_stitch
  */
 export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | null> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, config, logger } = ctx;
+  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger } = ctx;
 
   const orchTaskId = taskData.params?.orchestrator_task_id_ref ||
                      taskData.params?.orchestrator_task_id ||
@@ -85,7 +88,6 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
     action: "create_variant_on_parent"
   });
 
-  // Prefer variant_type from task_types table, fall back to config
   const variantType = taskData.variant_type || 'edit';
 
   const result = await createVariantOnParent(
@@ -97,7 +99,7 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
     taskId,
     variantType,
     {
-      tool_type: config.toolType,
+      tool_type: taskData.tool_type,
       created_from: `${taskData.task_type}_completion`,
     }
   );
@@ -131,7 +133,7 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
         {
           ...taskData.params,
           source_task_id: taskId,
-          tool_type: config.toolType,
+          tool_type: taskData.tool_type,
           created_from: 'loop_variant',
         },
         true, // is_primary - make this the new primary variant
@@ -154,13 +156,14 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
  * Used by: individual_travel_segment (when child_generation_id is present)
  */
 export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | null> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, config, logger } = ctx;
+  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger, childGenerationId } = ctx;
 
-  const childGenId = taskData.params?.child_generation_id;
-  if (!childGenId) {
-    console.log(`[GenHandler] individual_travel_segment - no child_generation_id, falling back to child_generation behavior`);
+  if (!childGenerationId) {
+    console.log(`[GenHandler] No child_generation_id, falling back to child_generation behavior`);
     return null; // Fall back to child_generation behavior
   }
+
+  const childGenId = childGenerationId;
 
   console.log(`[GenHandler] individual_travel_segment - creating variant for child generation ${childGenId}`);
   logger?.info("individual_travel_segment with child_generation_id", {
@@ -189,7 +192,7 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
 
   const variantParams = {
     ...taskData.params,
-    tool_type: config.toolType,
+    tool_type: taskData.tool_type,
     source_task_id: taskId,
     created_from: 'individual_segment_regeneration',
     ...(pairShotGenerationId && { pair_shot_generation_id: pairShotGenerationId }),
@@ -210,7 +213,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
   // For the child variant, only auto-view if makePrimary is true
   const childViewedAt = makePrimary ? singleSegmentViewedAt : null;
 
-  // Prefer variant_type from task_types table, fall back to config
   const variantType = taskData.variant_type || 'edit';
 
   await createVariant(
@@ -274,110 +276,69 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
 
 /**
  * Creates a child generation under a parent (for segment tasks)
- * Single-item detection and behavior is config-driven via singleItemDetection
+ * All behavior is params-driven via ctx.isSingleItem
  * Used by: travel_segment, join_clips_segment, individual_travel_segment (fallback)
  */
-export async function handleChildGeneration(
-  ctx: HandlerContext,
-  overrideParentId?: string | null,
-  overrideChildOrder?: number | null
-): Promise<any | null> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, config, logger } = ctx;
+export async function handleChildGeneration(ctx: HandlerContext): Promise<any | null> {
+  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger, parentGenerationId, childOrder, isSingleItem } = ctx;
 
-  // Extract orchestrator info
-  const orchestratorTaskId = extractOrchestratorTaskId(taskData.params, 'GenHandler');
-  let parentGenerationId = overrideParentId ?? null;
-  let childOrder = overrideChildOrder ?? null;
-
-  // Get parent generation from orchestrator if not overridden
-  if (!parentGenerationId && orchestratorTaskId) {
-    console.log(`[GenHandler] Task ${taskId} is a sub-task of orchestrator ${orchestratorTaskId}`);
-    const parentGen = await getOrCreateParentGeneration(supabase, orchestratorTaskId, taskData.project_id, taskData.params);
-    if (parentGen) {
-      parentGenerationId = parentGen.id;
-    }
-  }
-
+  // Must have parent generation to create child
   if (!parentGenerationId) {
     console.log(`[GenHandler] No parent generation found for child_generation task ${taskId}`);
     return null;
   }
 
-  // Extract child order from config field
-  const childOrderField = config.childOrderField || 'segment_index';
-  if (childOrder === null) {
-    const extractedOrder = taskData.params?.[childOrderField] ??
-                           taskData.params?.index ??
-                           taskData.params?.sequence_index;
-    if (extractedOrder !== undefined && extractedOrder !== null) {
-      childOrder = parseInt(String(extractedOrder), 10);
-    }
-  }
+  // Use childOrder from context (already extracted from params)
+  const finalChildOrder = childOrder ?? null;
 
-  console.log(`[GenHandler] Child generation: parent=${parentGenerationId}, childOrder=${childOrder}`);
+  console.log(`[GenHandler] Child generation: parent=${parentGenerationId}, childOrder=${finalChildOrder}, isSingleItem=${isSingleItem}`);
   logger?.info("Creating child generation", {
     task_id: taskId,
     parent_generation_id: parentGenerationId,
-    child_order: childOrder,
+    child_order: finalChildOrder,
+    is_single_item: isSingleItem,
     task_type: taskData.task_type,
   });
 
-  // Detect single-item case using config-driven detection
-  const singleItemResult = detectSingleItem(taskData.params, config, childOrder);
-
-  if (singleItemResult.isSingleItem) {
+  // Handle single-item case
+  // For single items, also create variant on parent so the main generation updates
+  // NOTE: Join clips single-item should pass is_single_item: false (or not send it)
+  // because join single-item behavior is "variant_only" (no child needed)
+  if (isSingleItem) {
     taskData.params._isSingleSegmentCase = true;
-    console.log(`[GenHandler] Single-item detected: ${singleItemResult.reason}`);
+    console.log(`[GenHandler] Single-item detected from params`);
 
-    // Handle based on configured behavior
-    if (singleItemResult.behavior === 'variant_only') {
-      // Create variant on parent and return (no child generation)
-      logger?.info("Single-item: variant on parent only", {
-        task_id: taskId,
-        parent_generation_id: parentGenerationId,
-        reason: singleItemResult.reason,
-      });
+    logger?.info("Single-item: variant on parent and child", {
+      task_id: taskId,
+      parent_generation_id: parentGenerationId,
+    });
 
-      const result = await createSingleItemVariant(
-        ctx, parentGenerationId, orchestratorTaskId, singleItemResult.extraParams
-      );
-      if (result) return result;
-      // Fall through if variant creation failed
-    } else {
-      // Create variant on parent AND continue to create child
-      logger?.info("Single-item: variant on parent and child", {
-        task_id: taskId,
-        parent_generation_id: parentGenerationId,
-        reason: singleItemResult.reason,
-      });
-
-      await createSingleItemVariant(ctx, parentGenerationId, orchestratorTaskId);
-      console.log(`[GenHandler] Single-item parent variant created, continuing to create child`);
-    }
+    await createSingleItemVariant(ctx, parentGenerationId);
+    console.log(`[GenHandler] Single-item parent variant created, continuing to create child`);
   }
 
   // Extract segment-specific params from orchestrator details
   const orchDetails = taskData.params?.orchestrator_details ||
                       taskData.params?.full_orchestrator_payload || {};
-  if (Object.keys(orchDetails).length > 0 && childOrder !== null && !isNaN(childOrder)) {
-    taskData.params = extractSegmentSpecificParams(taskData.params, orchDetails, childOrder);
-    if (singleItemResult.isSingleItem) {
+  if (Object.keys(orchDetails).length > 0 && finalChildOrder !== null && !isNaN(finalChildOrder)) {
+    taskData.params = extractSegmentSpecificParams(taskData.params, orchDetails, finalChildOrder);
+    if (isSingleItem) {
       taskData.params._isSingleSegmentCase = true;
     }
   }
 
   // Extract pair_shot_generation_id from multiple nested locations
   // (individual_travel_segment stores it in individual_segment_params)
-  const segmentIndex = taskData.params?.segment_index ?? childOrder ?? 0;
+  const segmentIndex = taskData.params?.segment_index ?? finalChildOrder ?? 0;
   const orchPairIds = taskData.params?.orchestrator_details?.pair_shot_generation_ids;
   const pairShotGenId = taskData.params?.pair_shot_generation_id ||
                         taskData.params?.individual_segment_params?.pair_shot_generation_id ||
                         (Array.isArray(orchPairIds) && orchPairIds[segmentIndex]);
 
-  // Check for existing generation at same position (config-driven)
-  if (config.checkExistingAtPosition && childOrder !== null && !isNaN(childOrder)) {
+  // Check for existing generation at same position (always check for segment tasks)
+  if (finalChildOrder !== null && !isNaN(finalChildOrder)) {
     const existingGenId = await findExistingGenerationAtPosition(
-      supabase, parentGenerationId, childOrder, pairShotGenId
+      supabase, parentGenerationId, finalChildOrder, pairShotGenId
     );
 
     if (existingGenId) {
@@ -390,19 +351,18 @@ export async function handleChildGeneration(
       logger?.info("Adding segment as variant to existing generation", {
         task_id: taskId,
         existing_generation_id: existingGenId,
-        child_order: childOrder,
+        child_order: finalChildOrder,
       });
 
-      // Prefer variant_type from task_types table, fall back to config
       const variantTypeForExisting = taskData.variant_type || 'edit';
 
       const variantResult = await createVariantOnParent(
         supabase, existingGenId, publicUrl, thumbnailUrl, taskData, taskId,
         variantTypeForExisting,
         {
-          tool_type: config.toolType,
+          tool_type: taskData.tool_type,
           created_from: 'segment_variant_at_position',
-          segment_index: childOrder,
+          segment_index: finalChildOrder,
           pair_shot_generation_id: pairShotGenId
         },
         null,
@@ -416,70 +376,19 @@ export async function handleChildGeneration(
   }
 
   // Create the child generation
-  return createChildGenerationRecord(ctx, parentGenerationId, childOrder, singleItemResult.isSingleItem, pairShotGenId);
+  return createChildGenerationRecord(ctx, parentGenerationId, finalChildOrder, isSingleItem || false, pairShotGenId);
 }
 
-// ===== SINGLE-ITEM DETECTION (CONFIG-DRIVEN) =====
-
-interface SingleItemResult {
-  isSingleItem: boolean;
-  behavior: 'variant_only' | 'variant_and_child';
-  reason?: string;
-  extraParams?: Record<string, any>;
-}
-
-/**
- * Config-driven single-item detection
- * Checks both count-based and flag-based detection from config
- */
-function detectSingleItem(
-  params: any,
-  config: TaskCompletionConfig,
-  childOrder: number | null
-): SingleItemResult {
-  const orchDetails = params?.orchestrator_details || params?.full_orchestrator_payload || {};
-
-  // Check count-based detection (e.g., num_new_segments_to_generate === 1)
-  if (config.singleItemDetection && childOrder === 0) {
-    const countValue = orchDetails[config.singleItemDetection.countField] ??
-                       params?.[config.singleItemDetection.countField];
-    if (countValue === config.singleItemDetection.expectedCount) {
-      return {
-        isSingleItem: true,
-        behavior: config.singleItemDetection.behavior,
-        reason: `${config.singleItemDetection.countField}=${countValue}`,
-        extraParams: config.singleItemDetection.extraParams,
-      };
-    }
-  }
-
-  // Check flag-based detection (e.g., is_first_join && is_last_join)
-  if (config.singleItemFlags) {
-    const firstFlag = params?.[config.singleItemFlags.firstFlag] === true;
-    const lastFlag = params?.[config.singleItemFlags.lastFlag] === true;
-    if (firstFlag && lastFlag) {
-      return {
-        isSingleItem: true,
-        behavior: config.singleItemFlags.behavior,
-        reason: `${config.singleItemFlags.firstFlag} && ${config.singleItemFlags.lastFlag}`,
-        extraParams: config.singleItemFlags.extraParams,
-      };
-    }
-  }
-
-  return { isSingleItem: false, behavior: 'variant_and_child' };
-}
+// ===== SINGLE-ITEM VARIANT CREATION =====
 
 /**
  * Create variant on parent for single-item cases
  */
 async function createSingleItemVariant(
   ctx: HandlerContext,
-  parentGenerationId: string,
-  orchestratorTaskId: string | null,
-  extraParams?: Record<string, any>
+  parentGenerationId: string
 ): Promise<any | null> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, config } = ctx;
+  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, childOrder } = ctx;
 
   // Check if this is first variant on parent
   const { count: existingVariantCount } = await supabase
@@ -490,13 +399,8 @@ async function createSingleItemVariant(
 
   const toolType = taskData.params?.full_orchestrator_payload?.tool_type ||
                    taskData.params?.tool_type ||
-                   config.toolType;
+                   taskData.tool_type;
 
-  // Extract runtime values based on childOrderField (e.g., join_index, segment_index)
-  const childOrderField = config.childOrderField || 'segment_index';
-  const childOrderValue = taskData.params?.[childOrderField] ?? 0;
-
-  // Prefer variant_type from task_types table, fall back to config
   const variantType = taskData.variant_type || 'edit';
 
   const result = await createVariantOnParent(
@@ -506,16 +410,11 @@ async function createSingleItemVariant(
       tool_type: toolType,
       created_from: 'single_item_completion',
       is_single_item: true,
-      [childOrderField]: childOrderValue,  // e.g., join_index: 0 or segment_index: 0
-      ...extraParams,
+      child_order: childOrder ?? 0,
     },
     null,
     isFirstVariant
   );
-
-  if (result && orchestratorTaskId) {
-    await supabase.from('tasks').update({ generation_created: true }).eq('id', orchestratorTaskId);
-  }
 
   return result;
 }
@@ -591,12 +490,11 @@ async function createChildGenerationRecord(
   isSingleItemCase: boolean,
   pairShotGenerationId?: string | null | false
 ): Promise<any> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, config, logger } = ctx;
+  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger } = ctx;
 
   const { shotId } = extractShotAndPosition(taskData.params);
   const generationType = taskData.content_type || 'video';
-  // Use taskData.tool_type (resolved from DB) for consistency, fall back to config
-  const toolType = taskData.tool_type || config.toolType;
+  const toolType = taskData.tool_type;
   let generationParams = buildGenerationParams(
     taskData.params, toolType, generationType, shotId, thumbnailUrl || undefined, taskId
   );
@@ -739,7 +637,7 @@ async function createChildGenerationRecord(
  * Used by: single_image, wan_2_2_i2v, image_inpaint, etc.
  */
 export async function handleStandaloneGeneration(ctx: HandlerContext): Promise<any> {
-  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, config, logger } = ctx;
+  const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger } = ctx;
 
   const { shotId, addInPosition } = extractShotAndPosition(taskData.params);
 

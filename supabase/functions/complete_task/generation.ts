@@ -7,17 +7,12 @@
  * - generation-parent.ts: Parent/child relationships
  * - generation-segments.ts: Travel segment logic
  * - generation-variants.ts: Edit/upscale variant handlers
- * - generation-handlers.ts: Config-driven completion handlers
+ * - generation-handlers.ts: Params-driven completion handlers
  */
 
 import {
-  extractBasedOn,
   extractShotAndPosition,
 } from './params.ts';
-import {
-  TASK_TYPES,
-  getCompletionConfig,
-} from './constants.ts';
 
 // Import from sub-modules
 import {
@@ -141,10 +136,13 @@ export async function resolveToolType(
 /**
  * Main function to create generation from completed task
  *
- * Uses configuration-driven dispatch to route tasks to appropriate handlers:
- * 1. Check for regeneration (existing generation for this task)
- * 2. Get completion config for the task type
- * 3. Route to handler based on completion behavior
+ * PARAMS-DRIVEN ROUTING (no config needed):
+ * - child_generation_id present → variant on existing child
+ * - parent_generation_id present → child generation under parent
+ * - neither → standalone generation
+ *
+ * Single-item detection: is_single_item param OR (is_first_segment && is_last_segment)
+ * Child order: child_order OR segment_index OR join_index
  */
 export async function createGenerationFromTask(
   supabase: any,
@@ -154,83 +152,69 @@ export async function createGenerationFromTask(
   thumbnailUrl: string | null | undefined,
   logger?: any
 ): Promise<any> {
-  console.log(`[GenMigration] Starting generation creation for task ${taskId}`);
-  logger?.debug("Starting generation creation", {
+  const params = taskData.params || {};
+
+  // Extract routing params from multiple possible locations
+  const childGenerationId = params.child_generation_id;
+  const parentGenerationId = params.parent_generation_id ||
+                             params.orchestrator_details?.parent_generation_id ||
+                             params.full_orchestrator_payload?.parent_generation_id;
+  const childOrder = params.child_order ?? params.segment_index ?? params.join_index ?? null;
+  const isSingleItem = params.is_single_item === true ||
+                       (params.is_first_segment === true && params.is_last_segment === true);
+
+  console.log(`[GenMigration] Task ${taskId}: child_generation_id=${childGenerationId || 'none'}, parent_generation_id=${parentGenerationId || 'none'}, child_order=${childOrder}, is_single_item=${isSingleItem}`);
+  logger?.debug("Generation routing", {
     task_id: taskId,
-    task_type: taskData.task_type,
-    tool_type: taskData.tool_type,
-    content_type: taskData.content_type,
-    has_orchestrator_task_id: !!taskData.params?.orchestrator_task_id,
-    has_parent_generation_id: !!taskData.params?.parent_generation_id,
-    has_child_generation_id: !!taskData.params?.child_generation_id,
-    has_based_on: !!extractBasedOn(taskData.params),
+    child_generation_id: childGenerationId,
+    parent_generation_id: parentGenerationId,
+    child_order: childOrder,
+    is_single_item: isSingleItem,
   });
 
   try {
-    // 1. Check for regeneration case (generation already exists for this task)
+    // 1. Check for regeneration (existing generation for this task)
     const existingGeneration = await findExistingGeneration(supabase, taskId);
     if (existingGeneration) {
       return handleRegeneration(supabase, taskId, taskData, existingGeneration, publicUrl, thumbnailUrl, logger);
     }
 
-    // 2. Get completion config for this task type
-    const config = getCompletionConfig(taskData.task_type);
-    console.log(`[GenMigration] Task type '${taskData.task_type}' has completion behavior: ${config.completionBehavior}`);
-
-    // 3. Build handler context
+    // 2. Build context for handlers
     const ctx: HandlerContext = {
       supabase,
       taskId,
       taskData,
       publicUrl,
       thumbnailUrl: thumbnailUrl || null,
-      config,
       logger,
+      // Extracted params for easy access
+      childGenerationId,
+      parentGenerationId,
+      childOrder,
+      isSingleItem,
     };
 
-    // 4. Route to appropriate handler based on completion behavior
+    // 3. Route based on params
     let result: any = null;
 
-    switch (config.completionBehavior) {
-      case 'variant_on_parent':
-        result = await handleVariantOnParent(ctx);
-        if (result) return result;
-        // Fall through to standalone if variant creation failed
-        console.log(`[GenMigration] variant_on_parent failed, falling back to standalone`);
-        break;
-
-      case 'variant_on_child':
-        // individual_travel_segment: try variant_on_child first, then child_generation
-        result = await handleVariantOnChild(ctx);
-        if (result) return result;
-        // Fall through to child_generation behavior
-        console.log(`[GenMigration] variant_on_child not applicable, trying child_generation`);
-        // Extract parent info for fallback
-        const parentGenId = taskData.params?.parent_generation_id ||
-                            taskData.params?.orchestrator_details?.parent_generation_id ||
-                            taskData.params?.full_orchestrator_payload?.parent_generation_id;
-        const segmentIndex = taskData.params?.segment_index;
-        const childOrder = segmentIndex !== undefined && segmentIndex !== null
-          ? parseInt(String(segmentIndex), 10)
-          : null;
-        result = await handleChildGeneration(ctx, parentGenId, childOrder);
-        if (result) return result;
-        break;
-
-      case 'child_generation':
-        result = await handleChildGeneration(ctx);
-        if (result) return result;
-        // Fall through to standalone if child creation failed
-        console.log(`[GenMigration] child_generation failed, falling back to standalone`);
-        break;
-
-      case 'standalone_generation':
-      default:
-        // Standalone is the default, handled below
-        break;
+    // VARIANT ON CHILD: regenerating an existing child generation
+    if (childGenerationId) {
+      console.log(`[GenMigration] VARIANT_ON_CHILD: Task ${taskId} updating child ${childGenerationId}`);
+      result = await handleVariantOnChild(ctx);
+      if (result) return result;
+      // Fall through to child generation if variant failed
     }
 
-    // 5. Default: create standalone generation
+    // CHILD GENERATION: creating segment under parent
+    if (parentGenerationId) {
+      console.log(`[GenMigration] CHILD: Task ${taskId} under parent ${parentGenerationId}`);
+      result = await handleChildGeneration(ctx);
+      if (result) return result;
+      console.log(`[GenMigration] Child creation failed, falling back to standalone`);
+    }
+
+    // STANDALONE: no parent/child relationship
+    console.log(`[GenMigration] STANDALONE: Task ${taskId}`);
     return handleStandaloneGeneration(ctx);
 
   } catch (error) {
