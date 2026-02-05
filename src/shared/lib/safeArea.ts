@@ -23,3 +23,7 @@ safeAreaCalc.verticalCenter = (): string => {
 safeAreaCalc.marginBottom = (remOffset: number): string => {
   return `calc(${remOffset}rem + env(safe-area-inset-bottom, 0px))`;
 };
+
+safeAreaCalc.paddingBottom = (base: string): string => {
+  return `calc(${base} + env(safe-area-inset-bottom, 0px))`;
+};
