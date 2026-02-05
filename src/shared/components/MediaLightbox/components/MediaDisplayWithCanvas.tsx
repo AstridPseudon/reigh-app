@@ -282,8 +282,10 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
       ref={imageContainerRef}
       className={`relative flex items-center justify-center w-full h-full ${containerClassName}`}
       onClick={(e) => {
-        // Don't close if actively drawing to prevent accidental data loss
-        if (isDrawing) {
+        // Don't close if in inpaint mode or actively drawing to prevent accidental data loss
+        // The isInpaintMode check is critical because isDrawing may become false (via global pointerup
+        // handler) before the click event fires, causing a race condition when dragging outside the canvas
+        if (isInpaintMode || isDrawing) {
           return;
         }
         // Close if clicking directly on the container background (not on children)

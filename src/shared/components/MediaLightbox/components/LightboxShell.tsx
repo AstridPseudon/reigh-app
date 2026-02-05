@@ -401,11 +401,9 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
       event.stopImmediatePropagation();
     }
 
-    // In special edit modes with side panel, don't close if clicking on panel elements
-    if (isInpaintMode && shouldShowSidePanel) {
-      if (target.closest('[data-task-details-panel]') || target.closest('[role="button"]')) {
-        return;
-      }
+    // Don't close if in inpaint mode to prevent accidental data loss
+    if (isInpaintMode) {
+      return;
     }
 
     // Close the lightbox

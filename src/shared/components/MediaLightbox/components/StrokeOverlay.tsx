@@ -214,22 +214,54 @@ export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>
     },
   }), [strokes, imageWidth, imageHeight]);
 
-  const handlePointerDown = (e: KonvaEventObject<PointerEvent>) => {
+  // Helper to get pointer position relative to stage, clamped to bounds
+  // This allows drawing at edges even when pointer is outside the canvas
+  const getClampedPointerPosition = (e: KonvaEventObject<PointerEvent>): { x: number; y: number } | null => {
     const stage = e.target.getStage();
-    if (!stage) return;
+    if (!stage) return null;
 
+    // First try Konva's built-in position (works when pointer is inside)
     const pos = stage.getPointerPosition();
+    if (pos) {
+      return {
+        x: Math.max(0, Math.min(displayWidth, pos.x)),
+        y: Math.max(0, Math.min(displayHeight, pos.y)),
+      };
+    }
+
+    // If pointer is outside, calculate from native event
+    const container = stage.container();
+    if (!container) return null;
+
+    const rect = container.getBoundingClientRect();
+    const nativeEvent = e.evt;
+    const x = Math.max(0, Math.min(displayWidth, nativeEvent.clientX - rect.left));
+    const y = Math.max(0, Math.min(displayHeight, nativeEvent.clientY - rect.top));
+
+    return { x, y };
+  };
+
+  const handlePointerDown = (e: KonvaEventObject<PointerEvent>) => {
+    const pos = getClampedPointerPosition(e);
     if (!pos) return;
+
+    // Capture pointer to receive events even when outside the canvas
+    const stage = e.target.getStage();
+    const container = stage?.container();
+    if (container && e.evt.pointerId !== undefined) {
+      try {
+        container.setPointerCapture(e.evt.pointerId);
+      } catch {
+        // Pointer capture may fail in some browsers/situations, continue anyway
+      }
+    }
 
     const imagePoint = stageToImage(pos.x, pos.y);
     onPointerDown(imagePoint, e);
   };
 
   const handlePointerMove = (e: KonvaEventObject<PointerEvent>) => {
-    const stage = e.target.getStage();
-    if (!stage) return;
-
-    const pos = stage.getPointerPosition();
+    const pos = getClampedPointerPosition(e);
     if (!pos) return;
 
     const imagePoint = stageToImage(pos.x, pos.y);
@@ -237,6 +269,17 @@ export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>
   };
 
   const handlePointerUp = (e: KonvaEventObject<PointerEvent>) => {
+    // Release pointer capture
+    const stage = e.target.getStage();
+    const container = stage?.container();
+    if (container && e.evt.pointerId !== undefined) {
+      try {
+        container.releasePointerCapture(e.evt.pointerId);
+      } catch {
+        // May fail if not captured, ignore
+      }
+    }
+
     onPointerUp(e);
   };
 
