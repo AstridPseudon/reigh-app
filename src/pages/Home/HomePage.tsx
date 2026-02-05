@@ -102,7 +102,7 @@ export default function HomePage() {
     };
 
     const img = new Image();
-    img.src = '/apple-touch-icon.png';
+    img.src = '/favicon-16x16.png';
     img.onload = markLoaded;
     img.onerror = markLoaded;
 
