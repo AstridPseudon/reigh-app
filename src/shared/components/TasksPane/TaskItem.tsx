@@ -22,7 +22,7 @@ import { useTaskType } from '@/shared/hooks/useTaskType';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 
 // Import from new modules
-import { parseTaskParamsForDisplay, getAbbreviatedTaskName, extractShotId, extractPairShotGenerationId, isSegmentVideoTask } from './utils/task-utils';
+import { parseTaskParamsForDisplay, getAbbreviatedTaskName, extractShotId, extractPairShotGenerationId, isSegmentVideoTask, checkSegmentConnection } from './utils/task-utils';
 import { useTaskContentType } from './hooks/useTaskContentType';
 import { useVideoGenerations } from './hooks/useVideoGenerations';
 import { useImageGeneration } from './hooks/useImageGeneration';
@@ -327,58 +327,14 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
     e.preventDefault();
     setIsHoveringTaskItem(false);
 
-    console.log('[VideoQueryDebug] handleViewVideo clicked:', {
-      taskId: task.id.substring(0, 8),
-      hasVideoOutputs: !!videoOutputs,
-      videoOutputsLength: videoOutputs?.length || 0,
-      isCompletedVideoTask: taskInfo.isCompletedVideoTask,
-      isVideoTask: taskInfo.isVideoTask,
-      isSegmentVideo: isSegmentVideoTask(task),
-      shotId: shotId?.substring(0, 8),
-    });
-
     // For segment videos, try to open in shot context for full timeline integration
     // First check if the segment's position still exists in the shot
     if (isSegmentVideoTask(task) && shotId) {
       const pairShotGenerationId = extractPairShotGenerationId(task);
-
-      console.log('[DeepLink] 🔍 Checking if segment position still exists:', {
-        taskId: task.id.substring(0, 8),
-        shotId: shotId.substring(0, 8),
-        pairShotGenerationId: pairShotGenerationId,
-        hasPairShotGenerationId: !!pairShotGenerationId,
-      });
-
-      // Check if the pair_shot_generation_id still exists in the shot's timeline
-      let isConnected = false;
-      if (pairShotGenerationId) {
-        const { data, error } = await supabase
-          .from('shot_generations')
-          .select('id, shot_id, timeline_frame')
-          .eq('id', pairShotGenerationId)
-          .maybeSingle();
-
-        console.log('[DeepLink] 📋 Query result:', {
-          data,
-          error: error?.message,
-          expectedShotId: shotId,
-          actualShotId: data?.shot_id,
-          timelineFrame: data?.timeline_frame,
-        });
-
-        // Check if it exists, belongs to the right shot, and is on timeline
-        isConnected = !!data && data.shot_id === shotId && (data.timeline_frame ?? -1) >= 0;
-      }
-
-      console.log('[DeepLink] 📋 Segment connection check result:', {
-        pairShotGenerationId: pairShotGenerationId?.substring(0, 8),
-        isConnected,
-      });
+      const isConnected = await checkSegmentConnection(pairShotGenerationId, shotId);
 
       if (isConnected) {
         // Segment is still connected to shot - navigate for full context
-        console.log('[DeepLink] 🚀 Navigating to shot for connected segment');
-
         // Close any open TasksPane lightbox before navigating
         onCloseLightbox?.();
 
@@ -395,15 +351,12 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           }
         });
         return;
-      } else {
-        // Segment is orphaned - fall back to simple video viewer
-        console.log('[DeepLink] 📺 Segment orphaned, using simple video viewer');
       }
+      // Segment is orphaned - fall through to simple video viewer
     }
 
     // Default path: simple video lightbox
     if (onOpenVideoLightbox && videoOutputs && videoOutputs.length > 0) {
-      console.log('[VideoQueryDebug] Opening lightbox with existing videoOutputs');
       const initialVariantId = (videoOutputs[0] as GenerationRowWithVariant)?._variant_id;
       onOpenVideoLightbox(task, videoOutputs, 0, initialVariantId);
     } else {

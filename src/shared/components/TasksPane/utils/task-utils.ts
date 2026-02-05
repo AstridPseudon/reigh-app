@@ -1,5 +1,6 @@
 import { Task } from '@/types/tasks';
 import { TASK_NAME_ABBREVIATIONS } from '../constants';
+import { supabase } from '@/integrations/supabase/client';
 
 // TODO: type properly — task params are deeply nested JSON with varying shapes per task type
 // Using index signature to allow deep property access without full structural typing
@@ -135,6 +136,27 @@ export const extractPairShotGenerationId = (task: Task): string | null => {
  */
 export const isSegmentVideoTask = (task: Task): boolean => {
   return task.taskType === 'individual_travel_segment';
+};
+
+/**
+ * Check if a segment is still connected to its shot's timeline.
+ * Returns true if the pair_shot_generation_id exists in shot_generations
+ * for the given shot and is positioned on the timeline.
+ */
+export const checkSegmentConnection = async (
+  pairShotGenerationId: string | null,
+  shotId: string
+): Promise<boolean> => {
+  if (!pairShotGenerationId) return false;
+
+  const { data } = await supabase
+    .from('shot_generations')
+    .select('id, shot_id, timeline_frame')
+    .eq('id', pairShotGenerationId)
+    .maybeSingle();
+
+  // Check if it exists, belongs to the right shot, and is on timeline
+  return !!data && data.shot_id === shotId && (data.timeline_frame ?? -1) >= 0;
 };
 
 
