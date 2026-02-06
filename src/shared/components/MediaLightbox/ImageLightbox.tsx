@@ -1014,7 +1014,11 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   // LAYOUT DECISIONS
   // ========================================
 
-  const needsFullscreenLayout = isMobile || layout.shouldShowSidePanel;
+  // Always fullscreen so click-to-close on content background works the same
+  // as videos (where DesktopSidePanelLayout handles it). Without fullscreen,
+  // the Popup is w-auto/h-auto and the dark area is the Backdrop, which has
+  // a broken click path due to preventDefault on pointerdown killing click events.
+  const needsFullscreenLayout = true;
   // Check both effectiveTasksPaneOpen AND isTasksPaneLocked as a defensive measure
   // in case they're temporarily out of sync (e.g., during hydration)
   const needsTasksPaneOffset = needsFullscreenLayout && (effectiveTasksPaneOpen || isTasksPaneLocked) && !layout.isPortraitMode && layout.isTabletOrLarger;
@@ -1274,17 +1278,13 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
         <EditFormProvider value={editFormValue}>
           <LightboxShell
             onClose={onClose}
-            isInpaintMode={isInpaintMode}
-            isSelectOpen={isSelectOpen}
-            shouldShowSidePanel={layout.shouldShowSidePanel}
+            hasCanvasOverlay={isInpaintMode}
+            isRepositionMode={isInpaintMode && editMode === 'reposition'}
             isMobile={isMobile}
             isTabletOrLarger={layout.isTabletOrLarger}
             effectiveTasksPaneOpen={effectiveTasksPaneOpen}
             effectiveTasksPaneWidth={effectiveTasksPaneWidth}
-            cancellableTaskCount={cancellableTaskCount}
             isTasksPaneLocked={isTasksPaneLocked}
-            setIsTasksPaneLocked={setIsTasksPaneLocked}
-            setTasksPaneOpenContext={setTasksPaneOpenContext}
             needsFullscreenLayout={needsFullscreenLayout}
             needsTasksPaneOffset={needsTasksPaneOffset}
             contentRef={contentRef}

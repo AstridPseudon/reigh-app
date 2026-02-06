@@ -1028,17 +1028,13 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
       <VideoEditProvider value={videoEditValue}>
         <LightboxShell
           onClose={onClose}
-          isInpaintMode={false}
-          isSelectOpen={isSelectOpen}
-          shouldShowSidePanel={layout.shouldShowSidePanel}
+          hasCanvasOverlay={false}
+          isRepositionMode={false}
           isMobile={isMobile}
           isTabletOrLarger={layout.isTabletOrLarger}
           effectiveTasksPaneOpen={effectiveTasksPaneOpen}
           effectiveTasksPaneWidth={effectiveTasksPaneWidth}
-          cancellableTaskCount={cancellableTaskCount}
           isTasksPaneLocked={isTasksPaneLocked}
-          setIsTasksPaneLocked={setIsTasksPaneLocked}
-          setTasksPaneOpenContext={setTasksPaneOpenContext}
           needsFullscreenLayout={needsFullscreenLayout}
           needsTasksPaneOffset={needsTasksPaneOffset}
           contentRef={contentRef}

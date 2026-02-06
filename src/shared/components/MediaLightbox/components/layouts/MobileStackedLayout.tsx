@@ -113,9 +113,10 @@ export const MobileStackedLayout: React.FC<SidePanelLayoutProps> = (props) => {
   } = props;
 
   return (
-    <div className="w-full h-full flex flex-col bg-black/90">
+    <div data-lightbox-bg className="w-full h-full flex flex-col bg-black/90">
       {/* Media section - Top (50% height) with swipe navigation */}
       <div
+        data-lightbox-bg
         className="flex-none flex items-center justify-center relative touch-pan-y z-10 overflow-hidden"
         style={{
           height: '50%',
@@ -124,10 +125,6 @@ export const MobileStackedLayout: React.FC<SidePanelLayoutProps> = (props) => {
         }}
         onClick={(e) => {
           e.stopPropagation();
-          // Close if clicking directly on the background (not on children)
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
         }}
         {...swipeNavigation.swipeHandlers}
       >
@@ -191,7 +188,7 @@ export const MobileStackedLayout: React.FC<SidePanelLayoutProps> = (props) => {
             canvasRef={canvasRef}
             maskCanvasRef={maskCanvasRef}
             onImageLoad={setImageDimensions}
-            onContainerClick={onClose}
+
             variant="mobile-stacked"
             containerClassName="w-full h-full"
             debugContext="Mobile Stacked"

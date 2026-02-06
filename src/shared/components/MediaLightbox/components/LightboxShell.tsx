@@ -26,24 +26,24 @@ interface LightboxShellProps {
   children: React.ReactNode;
   onClose: () => void;
 
-  // Edit mode state - prevents accidental closing
-  isInpaintMode: boolean;
-  isSelectOpen: boolean;
-  shouldShowSidePanel: boolean;
+  // Edit mode
+  /** Canvas/brush edit overlay is active (inpaint, annotate, reposition, text).
+   *  Used to allow canvas touch events to pass through. */
+  hasCanvasOverlay: boolean;
+  /** Reposition (move) mode — the only edit mode that blocks background click-to-close
+   *  (because dragging could cause accidental closes). */
+  isRepositionMode: boolean;
 
-  // Responsive state
+  // Responsive
   isMobile: boolean;
   isTabletOrLarger: boolean;
 
-  // Tasks pane state
+  // Tasks pane (for overlay/content sizing)
   effectiveTasksPaneOpen: boolean;
   effectiveTasksPaneWidth: number;
-  cancellableTaskCount: number;
   isTasksPaneLocked: boolean;
-  setIsTasksPaneLocked: (locked: boolean) => void;
-  setTasksPaneOpenContext: (open: boolean) => void;
 
-  // Layout mode
+  // Layout
   needsFullscreenLayout: boolean;
   needsTasksPaneOffset: boolean;
 
@@ -100,17 +100,13 @@ function isInteractiveElement(target: HTMLElement): boolean {
 export const LightboxShell: React.FC<LightboxShellProps> = ({
   children,
   onClose,
-  isInpaintMode,
-  isSelectOpen,
-  shouldShowSidePanel,
+  hasCanvasOverlay,
+  isRepositionMode,
   isMobile,
   isTabletOrLarger,
   effectiveTasksPaneOpen,
   effectiveTasksPaneWidth,
-  cancellableTaskCount,
   isTasksPaneLocked,
-  setIsTasksPaneLocked,
-  setTasksPaneOpenContext,
   needsFullscreenLayout,
   needsTasksPaneOffset,
   contentRef,
@@ -119,6 +115,9 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
 }) => {
   // Track where pointer/click started to prevent accidental modal closure on drag
   const pointerDownTargetRef = useRef<EventTarget | null>(null);
+
+  // Track pointerdown target for capture-phase background click detection
+  const bgPointerDownTargetRef = useRef<EventTarget | null>(null);
 
   // Track double-tap on mobile/iPad
   const lastTapTimeRef = useRef<number>(0);
@@ -167,7 +166,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     // pointerdown suppresses compatibility mouse events including click.
     // Pointer events still fire, so we detect a "click" as pointerdown +
     // pointerup on the same overlay element.
-    if (!isInpaintMode) {
+    if (!isRepositionMode) {
       const clickStartedOnOverlay = pointerDownTargetRef.current === e.currentTarget;
       const clickEndedOnOverlay = e.target === e.currentTarget;
 
@@ -192,7 +191,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
 
     // Primary close logic is in handleOverlayPointerUp (see comment there).
     // This handler is a fallback for any edge cases where click still fires.
-    if (isInpaintMode) {
+    if (isRepositionMode) {
       pointerDownTargetRef.current = null;
       return;
     }
@@ -212,7 +211,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
       return;
     }
 
-    if (isInpaintMode) {
+    if (isRepositionMode) {
       return;
     }
 
@@ -231,8 +230,8 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
 
     const target = e.target as HTMLElement;
 
-    // Allow touch events on canvas when in inpaint mode
-    if (isInpaintMode && target.tagName === 'CANVAS') {
+    // Allow touch events on canvas when edit overlay is active
+    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
       return;
     }
 
@@ -247,7 +246,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   const handleOverlayTouchMove = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
 
-    if (isInpaintMode && target.tagName === 'CANVAS') {
+    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
       return;
     }
 
@@ -261,7 +260,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   const handleOverlayTouchEnd = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
 
-    if (isInpaintMode && target.tagName === 'CANVAS') {
+    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
       return;
     }
 
@@ -273,7 +272,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     const touchEndedOnOverlay = e.target === e.currentTarget;
     const validOverlayTap = touchStartedOnOverlayRef.current && touchEndedOnOverlay;
 
-    if (!isInpaintMode && validOverlayTap) {
+    if (!isRepositionMode && validOverlayTap) {
       const currentTime = Date.now();
       const timeSinceLastTap = currentTime - lastTapTimeRef.current;
 
@@ -309,6 +308,38 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   };
 
   // ========================================
+  // STANDARDIZED BACKGROUND CLICK-TO-CLOSE
+  // ========================================
+  // Uses capture phase on the Popup so it fires before any child handler.
+  // Layouts mark their background elements with data-lightbox-bg.
+  // This is the ONE place that handles click-to-close for all layouts.
+
+  const handleBgPointerDownCapture = (e: React.PointerEvent) => {
+    bgPointerDownTargetRef.current = e.target;
+  };
+
+  const handleBgClickCapture = (e: React.MouseEvent) => {
+    const downTarget = bgPointerDownTargetRef.current as HTMLElement | null;
+    const upTarget = e.target as HTMLElement;
+    bgPointerDownTargetRef.current = null;
+
+    if (hasHigherZIndexDialog() || targetHasHigherZIndex(upTarget)) return;
+    // Only reposition mode blocks background close (dragging could cause accidental closes).
+    // All other edit modes (inpaint, annotate, magic edit, etc.) allow background close.
+    if (isRepositionMode) return;
+
+    // Both pointerdown and click must land directly on a background element
+    // (not on a child of one — the target itself must have the attribute)
+    if (
+      downTarget?.hasAttribute?.('data-lightbox-bg') &&
+      upTarget.hasAttribute?.('data-lightbox-bg')
+    ) {
+      e.stopPropagation();
+      onClose();
+    }
+  };
+
+  // ========================================
   // CONTENT EVENT HANDLERS
   // ========================================
 
@@ -331,7 +362,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   const handleContentTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
 
-    if (isInpaintMode && target.tagName === 'CANVAS') {
+    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
       return;
     }
 
@@ -345,7 +376,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   const handleContentTouchMove = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
 
-    if (isInpaintMode && target.tagName === 'CANVAS') {
+    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
       return;
     }
 
@@ -359,7 +390,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   const handleContentTouchEnd = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
 
-    if (isInpaintMode && target.tagName === 'CANVAS') {
+    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
       return;
     }
 
@@ -472,6 +503,8 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
           <DialogPrimitive.Popup
             ref={contentRef}
             tabIndex={-1}
+            onPointerDownCapture={handleBgPointerDownCapture}
+            onClickCapture={handleBgClickCapture}
             onPointerDown={handleContentPointerDown}
             onClick={handleContentClick}
             onTouchStart={handleContentTouchStart}

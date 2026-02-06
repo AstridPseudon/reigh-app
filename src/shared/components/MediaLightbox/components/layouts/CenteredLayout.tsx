@@ -122,28 +122,16 @@ export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
 
   return (
     <FlexContainer
+      data-lightbox-bg
       onClick={(e) => {
         e.stopPropagation();
-        // Don't close in edit modes to prevent accidental data loss
-        if (isInpaintMode) {
-          return;
-        }
-        // Close if clicking directly on the container background (not children)
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
       }}
     >
       {/* Media Container with Controls - includes swipe navigation */}
       <MediaWrapper
+        data-lightbox-bg
         onClick={(e) => {
           e.stopPropagation();
-          // Don't close in edit modes
-          if (isInpaintMode) return;
-          // Close if clicking directly on the wrapper background (not the video/image)
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
         }}
         className={cn(
           isMobile && isInpaintMode && "pointer-events-auto",
@@ -216,7 +204,7 @@ export const CenteredLayout: React.FC<CenteredLayoutProps> = (props) => {
             canvasRef={canvasRef}
             maskCanvasRef={maskCanvasRef}
             onImageLoad={setImageDimensions}
-            onContainerClick={onClose}
+
             variant="regular-centered"
             containerClassName="w-full h-full"
             debugContext="Regular Centered"

@@ -35,8 +35,6 @@ interface MediaDisplayWithCanvasProps {
   // Handlers
   onImageLoad?: (dimensions: { width: number; height: number }) => void;
   onVideoLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
-  /** Called when clicking on the container background (not on media content) */
-  onContainerClick?: () => void;
 
   // Styling variants
   variant?: 'desktop-side-panel' | 'mobile-stacked' | 'regular-centered';
@@ -87,7 +85,6 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   maskCanvasRef,
   onImageLoad,
   onVideoLoadedMetadata,
-  onContainerClick,
   variant = 'regular-centered',
   className = '',
   containerClassName = '',
@@ -279,20 +276,9 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   
   return (
     <div
+      data-lightbox-bg
       ref={imageContainerRef}
       className={`relative flex items-center justify-center w-full h-full ${containerClassName}`}
-      onClick={(e) => {
-        // Don't close if in inpaint mode or actively drawing to prevent accidental data loss
-        // The isInpaintMode check is critical because isDrawing may become false (via global pointerup
-        // handler) before the click event fires, causing a race condition when dragging outside the canvas
-        if (isInpaintMode || isDrawing) {
-          return;
-        }
-        // Close if clicking directly on the container background (not on children)
-        if (e.target === e.currentTarget && onContainerClick) {
-          onContainerClick();
-        }
-      }}
       style={{
         touchAction: 'none',
         // Checkered pattern background for reposition mode

@@ -115,25 +115,19 @@ export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) =>
 
   return (
     <div
+      data-lightbox-bg
       className="w-full h-full flex bg-black/90"
       onClick={(e) => {
         e.stopPropagation();
-        // Close if clicking directly on the background (not on children)
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
       }}
     >
       {/* Media section - Left side (60% width) */}
       <div
+        data-lightbox-bg
         className="flex-1 flex items-center justify-center relative overflow-hidden"
         style={{ width: '60%' }}
         onClick={(e) => {
           e.stopPropagation();
-          // Close if clicking directly on the background (not on children)
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
         }}
       >
         {/* Navigation Arrows */}
@@ -193,7 +187,7 @@ export const DesktopSidePanelLayout: React.FC<SidePanelLayoutProps> = (props) =>
                 setVideoDuration(video.duration);
               }
             }}
-            onContainerClick={onClose}
+
             variant="desktop-side-panel"
             containerClassName="max-w-full max-h-full"
             tasksPaneWidth={effectiveTasksPaneOpen && !isMobile ? effectiveTasksPaneWidth : 0}
