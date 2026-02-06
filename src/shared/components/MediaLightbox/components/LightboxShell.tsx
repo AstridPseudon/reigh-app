@@ -128,37 +128,49 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
 
   // Lock body scroll when lightbox is open.
   // On phones, modal={true} handles scroll locking. On desktop and iPad,
-  // modal={false} (to allow TasksPane interaction), so we lock via CSS.
+  // modal={false} (to allow TasksPane interaction), so we lock manually.
   //
-  // We use overflow:hidden + overscroll-behavior:none on html/body instead of
-  // position:fixed on body.  The position:fixed approach fights with iOS Safari's
-  // keyboard viewport management — when the on-screen keyboard appears, the body's
-  // artificial repositioning (top: -scrollY) conflicts with the visual viewport
-  // shift, causing the overlay to displace and dirty state to accumulate.
+  // Layers of scroll prevention:
+  //   1. touch-action:none on non-scrollable regions (backdrop, media area)
+  //   2. overscroll-behavior:none on scrollable regions (panels)
+  //   3. overflow:hidden on <body> via CSS class (NOT on <html> — that
+  //      blocks iOS Safari's visual viewport restoration after keyboard dismiss)
   //
-  // The overlay's own touch-action:none (backdrop, image area) and
-  // overscroll-behavior:contain (panel) provide the primary scroll prevention;
-  // the CSS class is a safety net.
+  // IMPORTANT: No scroll event listener! Safari's keyboard dismiss self-repair
+  // works by scrolling the page to recalculate the visual viewport. A scroll
+  // listener that forces scrollTo() prevents this, causing permanent viewport
+  // offset (the "dead space at bottom" bug). Instead we use a focusout handler
+  // with a micro-scroll to nudge Safari into recalculating when it gets stuck.
   const isActuallyModal = isMobile && !isTabletOrLarger;
   useEffect(() => {
     if (isActuallyModal) return; // modal={true} handles scroll locking
 
     const savedScrollY = window.scrollY;
-    document.documentElement.classList.add('lightbox-open');
+    const html = document.documentElement;
+    html.classList.add('lightbox-open');
 
-    // iOS Safari can scroll the body despite overflow:hidden (WebKit bug #153852).
-    // Actively undo any scroll that sneaks through while the lightbox is open.
-    // The overlay covers the viewport so this is invisible to the user.
-    const lockScroll = () => window.scrollTo(0, savedScrollY);
-    window.addEventListener('scroll', lockScroll);
+    // iOS Safari bug: visualViewport.offsetTop can get stuck after keyboard
+    // dismiss. A micro-scroll on focusout forces Safari to recalculate.
+    const handleFocusOut = (e: FocusEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
+      setTimeout(() => {
+        const vv = window.visualViewport;
+        if (vv && vv.offsetTop !== 0) {
+          window.scrollBy(0, -1);
+          window.scrollBy(0, 1);
+        }
+      }, 100);
+    };
+    document.addEventListener('focusout', handleFocusOut);
 
     return () => {
-      window.removeEventListener('scroll', lockScroll);
+      document.removeEventListener('focusout', handleFocusOut);
       // Dismiss keyboard to reset visual viewport offset before removing lock.
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
-      document.documentElement.classList.remove('lightbox-open');
+      html.classList.remove('lightbox-open');
       // Restore scroll position in case iOS moved it.
       window.scrollTo(0, savedScrollY);
     };

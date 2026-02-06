@@ -310,7 +310,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
             "flex items-center justify-center relative overflow-hidden",
             isDesktopPanel
               ? "flex-1 touch-none"
-              : "flex-none touch-pan-y z-10"
+              : "flex-none touch-none z-10"
           )}
           style={isDesktopPanel
             ? { width: '60%' }
@@ -446,7 +446,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         <div
           data-task-details-panel
           className={cn(
-            "bg-background overflow-hidden relative z-[60] overscroll-contain",
+            "bg-background overflow-hidden relative z-[60] overscroll-none",
             isDesktopPanel
               ? "border-l border-border h-full"
               : "border-t border-border overflow-y-auto"
@@ -466,7 +466,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
   return (
     <div
       data-lightbox-bg
-      className="relative flex flex-col items-center gap-3 sm:gap-4 md:gap-6 px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 w-full h-full"
+      className="relative flex flex-col items-center gap-3 sm:gap-4 md:gap-6 px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 w-full h-full touch-none"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Media Container with swipe navigation */}
@@ -475,7 +475,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         className={cn(
           "relative flex items-center justify-center max-w-full my-auto",
           isMobile && isInpaintMode && "pointer-events-auto",
-          "touch-pan-y"
+          "touch-none"
         )}
         style={{
           height: 'calc(100vh - 220px)',

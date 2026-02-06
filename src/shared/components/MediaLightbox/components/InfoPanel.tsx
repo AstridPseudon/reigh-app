@@ -297,7 +297,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
       {renderHeader()}
 
       {/* Scrollable content area - contains both task details and variants */}
-      <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
+      <div className="flex-1 overflow-y-auto min-h-0 overscroll-none">
         {renderTaskDetails()}
         {renderVariants()}
       </div>

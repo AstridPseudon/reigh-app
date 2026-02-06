@@ -316,15 +316,22 @@
     overflow-x: hidden;
   }
 
-  /* Lightbox body scroll lock — CSS-only approach.
-     Uses overflow:hidden + overscroll-behavior:none instead of position:fixed
-     on body.  position:fixed fights with iOS Safari's keyboard viewport management,
-     causing fixed overlays to shift when the on-screen keyboard appears.
-     The overlay's own touch-action:none (backdrop) and overscroll-behavior:contain
-     (panel) provide the primary scroll prevention; this is the safety net. */
-  html.lightbox-open,
+  /* Lightbox body scroll lock.
+     overflow:hidden on <html> is set via inline style in LightboxShell on open.
+     This CSS class handles the persistent properties:
+       • overscroll-behavior:none prevents bounce at the page level
+       • overflow:hidden on body prevents content scroll
+     Additional layers in LightboxShell:
+       • touch-action:none on non-scrollable regions (backdrop, media area)
+       • overscroll-behavior:none on scrollable regions (panels)
+       • Scroll event listener snaps back any body scroll (WebKit #153852)
+     Auto-zoom prevention (font-size:16px on touch devices) is handled by
+     the unlayered @media (pointer:coarse) rule below, so overflow:hidden
+     stays stable during keyboard interactions — no focusin/focusout toggle needed. */
+  html.lightbox-open {
+    overscroll-behavior: none;
+  }
   html.lightbox-open body {
-    overflow: hidden;
     overscroll-behavior: none;
   }
 
@@ -1126,6 +1133,18 @@
   /* Eliminate the 300 ms mobile tap-delay everywhere (still allows pinch-zoom) */
   body {
     touch-action: manipulation;
+  }
+}
+
+/* Prevent iOS Safari auto-zoom on input focus (MUST be outside @layer base).
+   iOS zooms inputs with font-size < 16px, shifting the visual viewport.
+   This floors all form fields at 16px on touch devices (coarse pointer).
+   Desktop (fine pointer) is unaffected.
+   Unlayered !important rule = highest cascade priority — beats Tailwind utilities.
+   Note: iPad reports hover:hover, so we use pointer:coarse (not hover:none). */
+@media (pointer: coarse) {
+  input, textarea, select, [contenteditable="true"] {
+    font-size: 16px !important;
   }
 }
 

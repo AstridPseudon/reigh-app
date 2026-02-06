@@ -427,11 +427,11 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
 
                                 {/* Prompt for this segment */}
                                 <div>
-                                    <Input
+                                    <Textarea
                                         value={selection.prompt || ''}
                                         onChange={(e) => onUpdateSelectionSettings?.(selection.id, { prompt: e.target.value })}
                                         placeholder="Describe what should happen in this segment..."
-                                        className="h-8 text-xs"
+                                        className="min-h-0 h-16 resize-none"
                                         clearable
                                         onClear={() => onUpdateSelectionSettings?.(selection.id, { prompt: '' })}
                                         voiceInput

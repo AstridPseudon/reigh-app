@@ -446,9 +446,9 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
 
   return (
     <div className="w-full h-full relative">
-      {/* Backdrop - click/tap to close */}
+      {/* Backdrop - click/tap to close. touch-none prevents iOS rubber-banding. */}
       <div
-        className="absolute inset-0 bg-black/90"
+        className="absolute inset-0 bg-black/90 touch-none"
         onClick={onClose}
         onTouchEnd={(e) => {
           e.preventDefault();
@@ -474,7 +474,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
           />
         </div>
 
-        <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto relative pointer-events-auto">
+        <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto overscroll-none relative pointer-events-auto touch-auto">
         {/* Header */}
         <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-center z-10">
           <div className="text-center">
