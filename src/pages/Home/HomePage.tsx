@@ -471,7 +471,7 @@ export default function HomePage() {
   const barTransitionCompleted = useDebounce(assetsLoaded, 200);
 
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="min-h-screen overflow-hidden" style={{ backgroundColor: '#010E00' }}>
       {/* Background Videos - Two-video system for seamless looping on desktop */}
       {/* Wrapped in video-reveal container for painterly mask animation */}
       <div ref={videoRevealRef} className="fixed inset-0 video-reveal" style={{ zIndex: 0 }}>
