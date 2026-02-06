@@ -26,10 +26,12 @@ const TooltipContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Popup> & {
     sideOffset?: number
     side?: "top" | "bottom" | "left" | "right"
+    align?: "start" | "center" | "end"
+    collisionPadding?: number
   }
->(({ className, sideOffset = 4, side, ...props }, ref) => (
+>(({ className, sideOffset = 4, side, align, collisionPadding, ...props }, ref) => (
   <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Positioner side={side} sideOffset={sideOffset} className="z-[100010]">
+    <TooltipPrimitive.Positioner side={side} sideOffset={sideOffset} align={align} collisionPadding={collisionPadding} className="z-[100010]">
       <TooltipPrimitive.Popup
         ref={ref}
         className={cn(

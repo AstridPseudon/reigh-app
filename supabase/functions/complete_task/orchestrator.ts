@@ -384,8 +384,10 @@ async function markOrchestratorComplete(
   // Trigger billing
   await triggerCostCalculation(supabaseUrl, serviceKey, orchestratorTaskId, 'OrchestratorComplete');
   
-  // Update parent_generation_id for join_clips_segment
-  if (taskType === TASK_TYPES.JOIN_CLIPS_SEGMENT) {
+  // Create variant on parent generation for join_clips completion.
+  // This runs for both join_clips_segment (when stitch isn't needed) and
+  // join_final_stitch (the normal path — stitch completes last).
+  if (taskType === TASK_TYPES.JOIN_CLIPS_SEGMENT || taskType === TASK_TYPES.JOIN_FINAL_STITCH) {
     await handleJoinClipsParentUpdate(supabase, orchestratorTask, publicUrl, thumbnailUrl, taskIdString, orchestratorTaskId);
   }
 }
