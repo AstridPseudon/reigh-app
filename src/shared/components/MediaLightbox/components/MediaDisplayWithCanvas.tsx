@@ -183,6 +183,10 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   // --- Native event listeners for reposition mode ---
   const dragContainerRef = useRef<HTMLDivElement>(null);
 
+  // Use a ref for current scale so the touch pinch effect doesn't re-attach on every scale change
+  const scaleRef = useRef(repositionScale);
+  scaleRef.current = repositionScale;
+
   useEffect(() => {
     const el = dragContainerRef.current;
     if (!isInpaintMode || editMode !== 'reposition' || !el) return;
@@ -200,18 +204,54 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
       cleanups.push(() => el.removeEventListener('wheel', nativeWheelHandler));
     }
 
-    // Touchmove: passive:false + preventDefault to suppress Safari's native
-    // pinch-to-zoom on the page (touch-action:none alone isn't enough on iOS Safari)
-    const nativeTouchmoveHandler = (e: TouchEvent) => {
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
-    };
-    el.addEventListener('touchmove', nativeTouchmoveHandler, { passive: false });
-    cleanups.push(() => el.removeEventListener('touchmove', nativeTouchmoveHandler));
+    // Touch pinch-to-zoom via native touch events.
+    // Pointer Events multi-touch is unreliable on iOS Safari, so we use
+    // the Touch Events API directly — it's been solid on iOS since day one.
+    if (onRepositionScaleChange) {
+      let pinchStartDistance = 0;
+      let pinchStartScale = 1;
+
+      const handleTouchStart = (e: TouchEvent) => {
+        if (e.touches.length === 2) {
+          const dx = e.touches[1].clientX - e.touches[0].clientX;
+          const dy = e.touches[1].clientY - e.touches[0].clientY;
+          pinchStartDistance = Math.hypot(dx, dy);
+          pinchStartScale = scaleRef.current;
+        }
+      };
+
+      const handleTouchMove = (e: TouchEvent) => {
+        if (e.touches.length >= 2) {
+          e.preventDefault(); // Suppress Safari's native pinch zoom
+        }
+        if (e.touches.length === 2 && pinchStartDistance > 0) {
+          const dx = e.touches[1].clientX - e.touches[0].clientX;
+          const dy = e.touches[1].clientY - e.touches[0].clientY;
+          const distance = Math.hypot(dx, dy);
+          const ratio = distance / pinchStartDistance;
+          const newScale = Math.max(0.25, Math.min(2.0, pinchStartScale * ratio));
+          onRepositionScaleChange(newScale);
+        }
+      };
+
+      const handleTouchEnd = () => {
+        pinchStartDistance = 0;
+      };
+
+      el.addEventListener('touchstart', handleTouchStart, { passive: true });
+      el.addEventListener('touchmove', handleTouchMove, { passive: false });
+      el.addEventListener('touchend', handleTouchEnd);
+      el.addEventListener('touchcancel', handleTouchEnd);
+      cleanups.push(() => {
+        el.removeEventListener('touchstart', handleTouchStart);
+        el.removeEventListener('touchmove', handleTouchMove);
+        el.removeEventListener('touchend', handleTouchEnd);
+        el.removeEventListener('touchcancel', handleTouchEnd);
+      });
+    }
 
     return () => cleanups.forEach(fn => fn());
-  }, [isInpaintMode, editMode, repositionDragHandlers]);
+  }, [isInpaintMode, editMode, repositionDragHandlers, onRepositionScaleChange]);
 
   // Progressive loading: show thumbnail first, then swap to full image when loaded
   const [fullImageLoaded, setFullImageLoaded] = React.useState(() => {

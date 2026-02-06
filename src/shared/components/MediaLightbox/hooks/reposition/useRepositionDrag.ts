@@ -26,18 +26,15 @@ const WHEEL_ZOOM_SPEED = 0.002;
 const PINCH_ZOOM_SPEED = 0.01;
 
 /**
- * Hook for drag-to-move and scroll/pinch-to-zoom in reposition mode.
+ * Hook for drag-to-move and scroll-to-zoom in reposition mode.
  *
- * Input methods:
- * - Mouse drag: pointer capture for reliable tracking outside element
- * - Touch drag: single finger, no pointer capture (touch-action:none handles it)
- * - Mouse wheel: onWheel handler (caller wraps in native listener with passive:false)
- * - Trackpad pinch: same as wheel but with ctrlKey and finer speed
- * - Touch pinch: two-pointer tracking via pointer events (no capture needed)
+ * Handles:
+ * - Mouse/touch drag to pan (pointer events, capture for mouse only)
+ * - Mouse wheel / trackpad pinch zoom (onWheel, caller wraps with passive:false)
  *
- * Key: we only use setPointerCapture for mouse. On touch, capturing the first
- * pointer prevents the second pointer's events from dispatching correctly on
- * iOS Safari, breaking pinch-to-zoom.
+ * Touch pinch-to-zoom is NOT handled here — iOS Safari doesn't reliably dispatch
+ * multi-touch pointer events. Pinch is handled via native touch event listeners
+ * in MediaDisplayWithCanvas instead.
  */
 export function useRepositionDrag({
   transform,
@@ -47,79 +44,58 @@ export function useRepositionDrag({
 }: UseRepositionDragProps): UseRepositionDragReturn {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{
+    pointerId: number;
     x: number;
     y: number;
     translateX: number;
     translateY: number;
+    pointerType: string;
   } | null>(null);
 
-  // Track active pointers for pinch-to-zoom
-  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const pinchStartRef = useRef<{ distance: number; scale: number } | null>(null);
-
-  // --- Drag-to-move / pinch-to-zoom ---
+  // Track number of active touch pointers to suppress drag during pinch
+  const activeTouchCountRef = useRef(0);
 
   const handleDragPointerDown = useCallback((e: React.PointerEvent) => {
-    // Track all pointers for pinch detection
-    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // Two pointers = start pinch, cancel any active drag
-    if (activePointersRef.current.size === 2) {
-      // Release any mouse pointer capture from a prior drag
-      if (dragStartRef.current) {
-        try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    if (e.pointerType === 'touch') {
+      activeTouchCountRef.current++;
+      // Two+ fingers down = pinch in progress, cancel any drag
+      if (activeTouchCountRef.current >= 2) {
+        if (isDragging) {
+          setIsDragging(false);
+          dragStartRef.current = null;
+        }
+        return;
       }
-      setIsDragging(false);
-      dragStartRef.current = null;
-
-      const points = Array.from(activePointersRef.current.values());
-      const distance = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y);
-      pinchStartRef.current = { distance, scale: transform.scale };
-
-      e.preventDefault();
-      e.stopPropagation();
-      return;
     }
 
-    // Single pointer: start drag (only primary button for mouse)
+    // Only primary button for mouse
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-    // Only capture for mouse — touch capture breaks multi-touch on iOS Safari
+    // Capture for mouse only — touch capture breaks multi-touch on iOS Safari
     if (e.pointerType === 'mouse') {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     }
 
     setIsDragging(true);
     dragStartRef.current = {
+      pointerId: e.pointerId,
       x: e.clientX,
       y: e.clientY,
       translateX: transform.translateX,
       translateY: transform.translateY,
+      pointerType: e.pointerType,
     };
 
     e.preventDefault();
     e.stopPropagation();
-  }, [transform.translateX, transform.translateY, transform.scale]);
+  }, [transform.translateX, transform.translateY, isDragging]);
 
   const handleDragPointerMove = useCallback((e: React.PointerEvent) => {
-    // Update tracked pointer position
-    if (activePointersRef.current.has(e.pointerId)) {
-      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    }
-
-    // Pinch-to-zoom: two active pointers
-    if (activePointersRef.current.size === 2 && pinchStartRef.current) {
-      const points = Array.from(activePointersRef.current.values());
-      const currentDistance = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y);
-      const ratio = currentDistance / pinchStartRef.current.distance;
-      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, pinchStartRef.current.scale * ratio));
-
-      onTransformChange({ scale: newScale });
-      return;
-    }
-
-    // Single pointer drag
     if (!isDragging || !dragStartRef.current || !imageDimensions) return;
+    // Only track the pointer that started the drag
+    if (e.pointerId !== dragStartRef.current.pointerId) return;
+    // Suppress drag if pinch is active
+    if (e.pointerType === 'touch' && activeTouchCountRef.current >= 2) return;
 
     const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
@@ -152,16 +128,13 @@ export function useRepositionDrag({
   }, [isDragging, imageDimensions, imageContainerRef, transform.scale, onTransformChange]);
 
   const handleDragPointerUp = useCallback((e: React.PointerEvent) => {
-    activePointersRef.current.delete(e.pointerId);
-
-    // If we were pinching and one finger lifts, clear pinch state
-    if (pinchStartRef.current) {
-      pinchStartRef.current = null;
+    if (e.pointerType === 'touch') {
+      activeTouchCountRef.current = Math.max(0, activeTouchCountRef.current - 1);
     }
 
     if (!isDragging) return;
+    if (dragStartRef.current && e.pointerId !== dragStartRef.current.pointerId) return;
 
-    // Release capture (only set for mouse, but safe to call regardless)
     if (e.pointerType === 'mouse') {
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
