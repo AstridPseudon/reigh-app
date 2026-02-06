@@ -4,7 +4,7 @@
  * Replaces DesktopSidePanelLayout, MobileStackedLayout, and CenteredLayout.
  * All conditional rendering derives from two values:
  *   - showPanel: whether the controls panel renders
- *   - isMobile (from context): whether the panel goes bottom (mobile) or right (desktop)
+ *   - shouldShowSidePanel: whether the panel goes right (side-by-side) or bottom (stacked)
  */
 
 import React from 'react';
@@ -65,6 +65,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
   // ========================================
   const {
     showPanel,
+    shouldShowSidePanel,
 
     // Video edit
     isVideoTrimModeActive,
@@ -134,23 +135,27 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
   // ========================================
   // DERIVED LAYOUT VALUES
   // ========================================
-  const enableSwipe = !showPanel || isMobile;
-  const navArrowVariant = showPanel && !isMobile ? 'desktop' : 'mobile';
+  // shouldShowSidePanel = side-by-side (iPad landscape, desktop); !shouldShowSidePanel && showPanel = stacked (mobile/portrait)
+  const isSidePanelLayout = showPanel && shouldShowSidePanel;
+  const isStackedLayout = showPanel && !shouldShowSidePanel;
+
+  const enableSwipe = !showPanel || !shouldShowSidePanel;
+  const navArrowVariant = isSidePanelLayout ? 'desktop' : 'mobile';
   const floatingToolVariant = isMobile ? 'mobile' : 'tablet';
 
   // MediaDisplayWithCanvas variant/container
   const mediaDisplayVariant = showPanel
-    ? (isMobile ? 'mobile-stacked' : 'desktop-side-panel')
+    ? (isSidePanelLayout ? 'desktop-side-panel' : 'mobile-stacked')
     : 'regular-centered';
-  const mediaDisplayContainerClassName = showPanel && !isMobile
+  const mediaDisplayContainerClassName = isSidePanelLayout
     ? 'max-w-full max-h-full'
     : 'w-full h-full';
   const mediaDisplayDebugContext = showPanel
-    ? (isMobile ? 'Mobile Stacked' : 'Desktop')
+    ? (isSidePanelLayout ? 'Desktop' : 'Mobile Stacked')
     : 'Regular Centered';
 
-  // Top center offset: mobile stacked uses responsive top-4 md:top-16
-  const topCenterClassName = showPanel && isMobile
+  // Top center offset: stacked layout uses responsive top-4 md:top-16
+  const topCenterClassName = isStackedLayout
     ? 'absolute top-4 md:top-16 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col items-center gap-2'
     : 'absolute top-4 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col items-center gap-2';
 
@@ -218,7 +223,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         }}
         variant={mediaDisplayVariant}
         containerClassName={mediaDisplayContainerClassName}
-        tasksPaneWidth={showPanel && !isMobile && effectiveTasksPaneOpen ? effectiveTasksPaneWidth : 0}
+        tasksPaneWidth={isSidePanelLayout && effectiveTasksPaneOpen ? effectiveTasksPaneWidth : 0}
         debugContext={mediaDisplayDebugContext}
         // Konva-based stroke overlay props
         imageDimensions={effectiveImageDimensions}
@@ -287,7 +292,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
 
   if (showPanel) {
     // ======== PANEL LAYOUT (Desktop side panel / Mobile stacked) ========
-    const isDesktopPanel = !isMobile;
+    const isDesktopPanel = isSidePanelLayout;
 
     return (
       <div
@@ -316,7 +321,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
               }
           }
           onClick={(e) => e.stopPropagation()}
-          {...(isMobile ? swipeNavigation.swipeHandlers : {})}
+          {...(!isDesktopPanel ? swipeNavigation.swipeHandlers : {})}
         >
           {/* Desktop: nav arrows before media */}
           {isDesktopPanel && (
@@ -423,8 +428,8 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
             currentTimelineFrame={media.timeline_frame}
           />
 
-          {/* Mobile: nav arrows after media */}
-          {isMobile && (
+          {/* Stacked: nav arrows after media */}
+          {!isDesktopPanel && (
             <NavigationArrows
               showNavigation={showNavigation}
               readOnly={readOnly}

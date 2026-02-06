@@ -1049,6 +1049,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
 
   const { layoutProps } = useLightboxLayoutProps({
     showPanel,
+    shouldShowSidePanel: layout.shouldShowSidePanel,
     // Core
     onClose,
     readOnly,

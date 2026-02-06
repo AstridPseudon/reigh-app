@@ -157,6 +157,8 @@ export interface LightboxLayoutProps extends
   LayoutEditModeProps,
   LayoutPanelProps {
   showPanel: boolean;
+  /** True when panel should be side-by-side (tablet+ landscape); false = stacked (mobile/portrait) */
+  shouldShowSidePanel: boolean;
 
   // Button groups
   buttonGroupProps: LayoutButtonGroupProps;

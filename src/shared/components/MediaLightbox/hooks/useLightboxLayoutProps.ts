@@ -244,6 +244,8 @@ export interface UseLightboxLayoutPropsInput {
 
   // showPanel - whether the controls panel should render
   showPanel: boolean;
+  // shouldShowSidePanel - true when panel should be side-by-side (tablet+ landscape)
+  shouldShowSidePanel: boolean;
 
   // Button group props (pre-built)
   buttonGroupProps: {
@@ -436,6 +438,7 @@ export function useLightboxLayoutProps(
   // Build unified layout props
   const layoutProps: LightboxLayoutProps = useMemo(() => ({
     showPanel: input.showPanel,
+    shouldShowSidePanel: input.shouldShowSidePanel,
     // Video edit
     isVideoTrimModeActive: input.isVideoTrimModeActive,
     isVideoEditModeActive: input.isVideoEditModeActive,
@@ -496,7 +499,7 @@ export function useLightboxLayoutProps(
     adjacentSegments: input.adjacentSegments,
     segmentSlotMode: input.segmentSlotMode,
   }), [
-    input.showPanel,
+    input.showPanel, input.shouldShowSidePanel,
     input.isVideoTrimModeActive, input.isVideoEditModeActive,
     input.trimVideoRef, input.trimState, input.setVideoDuration, input.setTrimCurrentTime,
     input.videoEditing, input.isInpaintMode, input.isAnnotateMode, input.isSpecialEditMode,

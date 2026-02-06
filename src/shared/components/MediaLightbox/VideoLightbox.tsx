@@ -801,6 +801,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
   const { layoutProps } = useLightboxLayoutProps({
     showPanel,
+    shouldShowSidePanel: shouldShowSidePanelWithTrim,
     // Core
     onClose,
     readOnly,
