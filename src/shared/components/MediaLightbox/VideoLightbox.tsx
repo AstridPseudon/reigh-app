@@ -50,6 +50,7 @@ import { VideoEditProvider, type VideoEditState } from './contexts/VideoEditCont
 import { downloadMedia } from './utils';
 import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { useLoadVariantImages } from '@/shared/hooks/useLoadVariantImages';
 
 // ============================================================================
 // Props Interface
@@ -606,6 +607,32 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   }, [markAllViewedMutation, variantFetchGenerationId]);
 
   // ========================================
+  // LOAD VARIANT IMAGES
+  // ========================================
+
+  // Build currentSegmentImages for variant comparison
+  // In segment slot mode, use pairData from timeline; otherwise use the prop
+  const variantSegmentImages = useMemo(() => {
+    if (segmentSlotMode?.pairData) {
+      return {
+        startUrl: segmentSlotMode.pairData.startImage?.url,
+        endUrl: segmentSlotMode.pairData.endImage?.url,
+        startGenerationId: segmentSlotMode.pairData.startImage?.generationId,
+        endGenerationId: segmentSlotMode.pairData.endImage?.generationId,
+        startShotGenerationId: segmentSlotMode.pairData.startImage?.id,
+        endShotGenerationId: segmentSlotMode.pairData.endImage?.id,
+        startVariantId: segmentSlotMode.pairData.startImage?.primaryVariantId,
+        endVariantId: segmentSlotMode.pairData.endImage?.primaryVariantId,
+      };
+    }
+    return currentSegmentImages;
+  }, [segmentSlotMode?.pairData, currentSegmentImages]);
+
+  const { loadVariantImages } = useLoadVariantImages({
+    currentSegmentImages: variantSegmentImages,
+  });
+
+  // ========================================
   // CONTEXT VALUE
   // ========================================
 
@@ -631,6 +658,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     setPrimaryVariant: variants.setPrimaryVariant,
     deleteVariant: variants.deleteVariant,
     onLoadVariantSettings: setVariantParamsToLoad,
+    onLoadVariantImages: variantSegmentImages ? loadVariantImages : undefined,
+    currentSegmentImages: variantSegmentImages,
     promoteSuccess: variants.promoteSuccess,
     isPromoting: variants.isPromoting,
     handlePromoteToGeneration: variants.handlePromoteToGeneration,

@@ -66,6 +66,9 @@ export const VideoItem = React.memo<VideoItemProps>(({
   deleteTooltip,
   dataTour
 }) => {
+  // Track touch start position to distinguish taps from drags/scrolls
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const TOUCH_MOVE_THRESHOLD = 10; // px - movement beyond this = drag, not tap
   // Get task mapping for this video to enable Apply Settings button
   const { data: taskMapping } = useTaskFromUnifiedCache(video.id || '');
 
@@ -291,7 +294,22 @@ export const VideoItem = React.memo<VideoItemProps>(({
               onLightboxOpen(originalIndex);
             }}
             // On mobile/touch devices, use onTouchEnd for immediate response (no double-tap needed)
+            onTouchStart={isMobile ? (e) => {
+              const touch = e.touches[0];
+              touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+            } : undefined}
             onTouchEnd={isMobile ? (e) => {
+              // Ignore drags/scrolls - only handle taps
+              const touch = e.changedTouches[0];
+              if (touchStartRef.current) {
+                const dx = Math.abs(touch.clientX - touchStartRef.current.x);
+                const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+                if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+                  touchStartRef.current = null;
+                  return;
+                }
+              }
+              touchStartRef.current = null;
               e.stopPropagation();
               e.preventDefault();
               onLightboxOpen(originalIndex);
@@ -335,55 +353,37 @@ export const VideoItem = React.memo<VideoItemProps>(({
               // Don't interfere with touches inside action buttons
               const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
               const isInsideButton = path ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button')) : !!(e.target as HTMLElement).closest('button');
-              if (isInsideButton) {
-                console.log('[MobileTapFlow:VideoItem] onClick - SKIPPED (inside button)', {
-                  videoId: video.id?.substring(0, 8),
-                  originalIndex,
-                  timestamp: Date.now()
-                });
-                return;
-              }
+              if (isInsideButton) return;
               e.preventDefault();
               e.stopPropagation();
-              console.log('[MobileTapFlow:VideoItem] onClick - calling onMobileTap', {
-                videoId: video.id?.substring(0, 8),
-                originalIndex,
-                onMobileTapType: typeof onMobileTap,
-                timestamp: Date.now()
-              });
               onMobileTap(originalIndex);
-              console.log('[MobileTapFlow:VideoItem] onClick - onMobileTap RETURNED', {
-                videoId: video.id?.substring(0, 8),
-                originalIndex,
-                timestamp: Date.now()
-              });
             }}
+            onTouchStart={isMobile ? (e) => {
+              const touch = e.touches[0];
+              touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+            } : undefined}
             onTouchEnd={isMobile ? (e) => {
               // Don't interfere with touches inside action buttons
               const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
               const isInsideButton = path ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button')) : !!(e.target as HTMLElement).closest('button');
               if (isInsideButton) {
-                console.log('[MobileTapFlow:VideoItem] onTouchEnd - SKIPPED (inside button)', {
-                  videoId: video.id?.substring(0, 8),
-                  originalIndex,
-                  timestamp: Date.now()
-                });
+                touchStartRef.current = null;
                 return;
               }
+              // Ignore drags/scrolls - only handle taps
+              const touch = e.changedTouches[0];
+              if (touchStartRef.current) {
+                const dx = Math.abs(touch.clientX - touchStartRef.current.x);
+                const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+                if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+                  touchStartRef.current = null;
+                  return;
+                }
+              }
+              touchStartRef.current = null;
               e.preventDefault();
               e.stopPropagation();
-              console.log('[MobileTapFlow:VideoItem] onTouchEnd - calling onMobileTap', {
-                videoId: video.id?.substring(0, 8),
-                originalIndex,
-                onMobileTapType: typeof onMobileTap,
-                timestamp: Date.now()
-              });
               onMobileTap(originalIndex);
-              console.log('[MobileTapFlow:VideoItem] onTouchEnd - onMobileTap RETURNED', {
-                videoId: video.id?.substring(0, 8),
-                originalIndex,
-                timestamp: Date.now()
-              });
             } : undefined}
           >
             {posterImageSrc ? (
@@ -437,7 +437,14 @@ export const VideoItem = React.memo<VideoItemProps>(({
 
             {/* Only render video when it's time to load */}
             {shouldLoad && (
-              <div ref={containerRef} className="relative w-full h-full">
+              <div
+                ref={containerRef}
+                className="relative w-full h-full"
+                onTouchStart={isMobile ? (e) => {
+                  const touch = e.touches[0];
+                  touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                } : undefined}
+              >
                 {/* HoverScrubVideo with loading optimization integration */}
                 <HoverScrubVideo
                   key={`video-${video.id}`}
@@ -457,7 +464,21 @@ export const VideoItem = React.memo<VideoItemProps>(({
                     // Don't interfere with touches inside action buttons
                     const path = e.nativeEvent?.composedPath?.() as HTMLElement[] | undefined;
                     const isInsideButton = path ? path.some((el) => (el as HTMLElement)?.tagName === 'BUTTON' || (el as HTMLElement)?.closest?.('button')) : !!(e.target as HTMLElement).closest('button');
-                    if (isInsideButton) return;
+                    if (isInsideButton) {
+                      touchStartRef.current = null;
+                      return;
+                    }
+                    // Ignore drags/scrolls - only handle taps
+                    const touch = e.changedTouches[0];
+                    if (touchStartRef.current) {
+                      const dx = Math.abs(touch.clientX - touchStartRef.current.x);
+                      const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+                      if (dx > TOUCH_MOVE_THRESHOLD || dy > TOUCH_MOVE_THRESHOLD) {
+                        touchStartRef.current = null;
+                        return;
+                      }
+                    }
+                    touchStartRef.current = null;
                     e.preventDefault();
                     onMobileTap(originalIndex);
                   } : undefined}

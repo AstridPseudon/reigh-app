@@ -40,6 +40,10 @@ export interface SegmentRegenerateFormProps {
   startImageGenerationId?: string;
   /** End image generation ID */
   endImageGenerationId?: string;
+  /** Start image variant ID (generation_variants.id) */
+  startImageVariantId?: string;
+  /** End image variant ID (generation_variants.id) */
+  endImageVariantId?: string;
   /** Shot generation ID for the start image (for video-to-timeline tethering) */
   pairShotGenerationId?: string;
   /** Project resolution for output */
@@ -109,6 +113,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
   endImageUrl,
   startImageGenerationId,
   endImageGenerationId,
+  startImageVariantId,
+  endImageVariantId,
   pairShotGenerationId,
   projectResolution,
   onFrameCountChange,
@@ -397,6 +403,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
               endImageUrl,
               startImageGenerationId,
               endImageGenerationId,
+              startImageVariantId,
+              endImageVariantId,
               pairShotGenerationId,
               projectResolution,
               enhancedPrompt: enhancedPromptWithPrefixes,
@@ -457,6 +465,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
           endImageUrl,
           startImageGenerationId,
           endImageGenerationId,
+          startImageVariantId,
+          endImageVariantId,
           pairShotGenerationId,
           projectResolution,
           structureVideo: structureVideoForTask,
@@ -488,6 +498,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     endImageUrl,
     startImageGenerationId,
     endImageGenerationId,
+    startImageVariantId,
+    endImageVariantId,
     pairShotGenerationId,
     projectResolution,
     toast,

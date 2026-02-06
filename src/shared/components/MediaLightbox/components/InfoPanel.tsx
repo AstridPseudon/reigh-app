@@ -98,6 +98,8 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
     isPromoting,
     handleDeleteVariant: onDeleteVariant,
     onLoadVariantSettings,
+    onLoadVariantImages,
+    currentSegmentImages,
   } = useLightboxVariantsSafe();
 
   const hasVariants = variants && variants.length >= 1;
@@ -281,6 +283,8 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
           isPromoting={isPromoting}
           onDeleteVariant={onDeleteVariant}
           onLoadVariantSettings={onLoadVariantSettings}
+          onLoadVariantImages={onLoadVariantImages}
+          currentSegmentImages={currentSegmentImages}
           readOnly={readOnly}
         />
       </div>

@@ -80,6 +80,7 @@ export interface SegmentSlotModeData {
     startImage: {
       id: string;           // shot_generation.id
       generationId?: string; // generation_id
+      primaryVariantId?: string; // generation_variants.id of primary variant
       url?: string;
       thumbUrl?: string;
       position: number;
@@ -87,6 +88,7 @@ export interface SegmentSlotModeData {
     endImage: {
       id: string;
       generationId?: string;
+      primaryVariantId?: string;
       url?: string;
       thumbUrl?: string;
       position: number;

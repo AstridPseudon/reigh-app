@@ -517,6 +517,8 @@ export function buildTaskParams(
     startImageGenerationId?: string;
     endImageGenerationId?: string;
     pairShotGenerationId?: string;
+    startImageVariantId?: string;
+    endImageVariantId?: string;
     projectResolution?: string;
     // Optional enhanced prompt (AI-enhanced version, kept separate from base_prompt)
     enhancedPrompt?: string;
@@ -550,6 +552,8 @@ export function buildTaskParams(
     start_image_generation_id: context.startImageGenerationId,
     end_image_generation_id: context.endImageGenerationId,
     pair_shot_generation_id: context.pairShotGenerationId,
+    start_image_variant_id: context.startImageVariantId,
+    end_image_variant_id: context.endImageVariantId,
     // Settings
     base_prompt: settings.prompt,
     negative_prompt: settings.negativePrompt,

@@ -10,6 +10,7 @@ import { useMemo, RefObject } from 'react';
 import type { GenerationRow } from '@/types/shots';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { LightboxStateValue } from '../contexts/LightboxStateContext';
+import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/utils';
 
 export interface UseLightboxStateValueInput {
   // Core
@@ -38,6 +39,8 @@ export interface UseLightboxStateValueInput {
   setPrimaryVariant: (id: string) => void;
   deleteVariant: (id: string) => void;
   onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
+  onLoadVariantImages?: (variant: GenerationVariant) => void;
+  currentSegmentImages?: CurrentSegmentImagesData;
   promoteSuccess: boolean;
   isPromoting: boolean;
   handlePromoteToGeneration: (variantId: string) => Promise<void>;
@@ -125,6 +128,8 @@ export function useLightboxStateValue(
     handleMakePrimary: async (id: string) => input.setPrimaryVariant(id),
     handleDeleteVariant: async (id: string) => input.deleteVariant(id),
     onLoadVariantSettings: input.onLoadVariantSettings,
+    onLoadVariantImages: input.onLoadVariantImages,
+    currentSegmentImages: input.currentSegmentImages,
     promoteSuccess: input.promoteSuccess,
     isPromoting: input.isPromoting,
     handlePromoteToGeneration: input.handlePromoteToGeneration,
@@ -144,6 +149,8 @@ export function useLightboxStateValue(
     input.setPrimaryVariant,
     input.deleteVariant,
     input.onLoadVariantSettings,
+    input.onLoadVariantImages,
+    input.currentSegmentImages,
     input.promoteSuccess,
     input.isPromoting,
     input.handlePromoteToGeneration,

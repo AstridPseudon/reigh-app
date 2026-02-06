@@ -90,7 +90,7 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
   const variantsSectionRef = useRef<HTMLDivElement>(null);
 
   // Get variant state from context (avoids prop drilling)
-  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed } = useLightboxVariantsSafe();
+  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed, onLoadVariantImages, currentSegmentImages } = useLightboxVariantsSafe();
 
   // Handle ID copy with simple approach that works on all devices
   const handleCopyId = () => {
@@ -240,6 +240,8 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
               onPromoteToGeneration={onPromoteToGeneration}
               isPromoting={isPromoting}
               onLoadVariantSettings={onLoadVariantSettings}
+              onLoadVariantImages={onLoadVariantImages}
+              currentSegmentImages={currentSegmentImages}
               onDeleteVariant={onDeleteVariant}
             />
           </div>

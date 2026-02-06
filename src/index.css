@@ -316,6 +316,18 @@
     overflow-x: hidden;
   }
 
+  /* Lightbox body scroll lock — CSS-only approach.
+     Uses overflow:hidden + overscroll-behavior:none instead of position:fixed
+     on body.  position:fixed fights with iOS Safari's keyboard viewport management,
+     causing fixed overlays to shift when the on-screen keyboard appears.
+     The overlay's own touch-action:none (backdrop) and overscroll-behavior:contain
+     (panel) provide the primary scroll prevention; this is the safety net. */
+  html.lightbox-open,
+  html.lightbox-open body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   /* Fix scroll lock interfering with Select scroll on mobile */
   /* When body scroll is locked, it can prevent scrolling within Select dropdowns */
   body[data-scroll-locked] [role="listbox"] {

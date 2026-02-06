@@ -307,6 +307,8 @@ export function useVideoRegenerateMode({
       endUrl?: string;
       startGenId?: string;
       endGenId?: string;
+      startVariantId?: string;
+      endVariantId?: string;
       hasImages: boolean;
     };
 
@@ -317,6 +319,8 @@ export function useVideoRegenerateMode({
         endUrl: segmentSlotMode.pairData.endImage?.url,
         startGenId: segmentSlotMode.pairData.startImage?.generationId,
         endGenId: segmentSlotMode.pairData.endImage?.generationId,
+        startVariantId: segmentSlotMode.pairData.startImage?.primaryVariantId,
+        endVariantId: segmentSlotMode.pairData.endImage?.primaryVariantId,
         hasImages: !!(segmentSlotMode.pairData.startImage?.url || segmentSlotMode.pairData.endImage?.url),
       };
       console.log('[SegmentImageFix] Using pairData from timeline:', {
@@ -331,6 +335,8 @@ export function useVideoRegenerateMode({
         endUrl: currentSegmentImages.endUrl,
         startGenId: currentSegmentImages.startGenerationId,
         endGenId: currentSegmentImages.endGenerationId,
+        startVariantId: currentSegmentImages.startVariantId,
+        endVariantId: currentSegmentImages.endVariantId,
         hasImages: !!(currentSegmentImages.startUrl || currentSegmentImages.endUrl),
       };
     } else {
@@ -409,6 +415,8 @@ export function useVideoRegenerateMode({
       endImageUrl: segmentImageInfo.endUrl,
       startImageGenerationId: segmentImageInfo.startGenId,
       endImageGenerationId: segmentImageInfo.endGenId,
+      startImageVariantId: segmentImageInfo.startVariantId,
+      endImageVariantId: segmentImageInfo.endVariantId,
       projectResolution: effectiveRegenerateResolution,
       pairShotGenerationId,
       onFrameCountChange: onSegmentFrameCountChange,

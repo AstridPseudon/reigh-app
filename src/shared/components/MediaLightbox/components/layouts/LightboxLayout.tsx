@@ -309,7 +309,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
           className={cn(
             "flex items-center justify-center relative overflow-hidden",
             isDesktopPanel
-              ? "flex-1"
+              ? "flex-1 touch-none"
               : "flex-none touch-pan-y z-10"
           )}
           style={isDesktopPanel

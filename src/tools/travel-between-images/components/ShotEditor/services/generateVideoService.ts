@@ -194,7 +194,8 @@ const SHOT_GEN_QUERY = `
   generation:generations!shot_generations_generation_id_generations_id_fk (
     id,
     location,
-    type
+    type,
+    primary_variant_id
   )
 `;
 
@@ -203,7 +204,7 @@ type ShotGenRow = {
   generation_id: string | null;
   timeline_frame: number | null;
   metadata: Record<string, unknown> | null;
-  generation: { id: string; location: string | null; type: string | null } | null;
+  generation: { id: string; location: string | null; type: string | null; primary_variant_id?: string | null } | null;
 };
 
 /** Filter shot_generations to positioned image rows with valid locations */
@@ -321,6 +322,7 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
   const freshImagesWithIds = filteredForUrls.map(shotGen => ({
     location: shotGen.generation?.location,
     generationId: shotGen.generation?.id || shotGen.generation_id,
+    primaryVariantId: shotGen.generation?.primary_variant_id || undefined,
     shotGenerationId: shotGen.id,
   })).filter(item => Boolean(item.location));
 
@@ -335,6 +337,11 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
 
   const imageGenerationIds = filteredImages
     .map(item => item.generationId)
+    .filter((id): id is string => Boolean(id));
+
+  // Extract primary variant IDs for future-proofing (stored in task params for Load Images feature)
+  const imageVariantIds = filteredImages
+    .map(item => item.primaryVariantId)
     .filter((id): id is string => Boolean(id));
 
   // Each pair_shot_generation_id is the shot_generations.id of the START image of that pair
@@ -554,6 +561,9 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     image_urls: absoluteImageUrls,
     ...(imageGenerationIds.length > 0 && imageGenerationIds.length === absoluteImageUrls.length
       ? { image_generation_ids: imageGenerationIds }
+      : {}),
+    ...(imageVariantIds.length > 0 && imageVariantIds.length === absoluteImageUrls.length
+      ? { image_variant_ids: imageVariantIds }
       : {}),
     ...(pairShotGenerationIds.length > 0 ? { pair_shot_generation_ids: pairShotGenerationIds } : {}),
     ...(parentGenerationId ? { parent_generation_id: parentGenerationId } : {}),

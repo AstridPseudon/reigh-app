@@ -128,40 +128,39 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
 
   // Lock body scroll when lightbox is open.
   // On phones, modal={true} handles scroll locking. On desktop and iPad,
-  // modal={false} (to allow TasksPane interaction), so we lock manually.
-  // We use position:fixed on body + scroll-position save/restore so that:
-  //   1. iOS Safari can't touch-scroll the body (overflow:hidden alone doesn't work)
-  //   2. The body scroll state is always clean between lightbox open/close cycles
+  // modal={false} (to allow TasksPane interaction), so we lock via CSS.
+  //
+  // We use overflow:hidden + overscroll-behavior:none on html/body instead of
+  // position:fixed on body.  The position:fixed approach fights with iOS Safari's
+  // keyboard viewport management — when the on-screen keyboard appears, the body's
+  // artificial repositioning (top: -scrollY) conflicts with the visual viewport
+  // shift, causing the overlay to displace and dirty state to accumulate.
+  //
+  // The overlay's own touch-action:none (backdrop, image area) and
+  // overscroll-behavior:contain (panel) provide the primary scroll prevention;
+  // the CSS class is a safety net.
   const isActuallyModal = isMobile && !isTabletOrLarger;
   useEffect(() => {
     if (isActuallyModal) return; // modal={true} handles scroll locking
 
-    const scrollY = window.scrollY;
-    const body = document.body;
-    const saved = {
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      overflow: body.style.overflow,
-      width: body.style.width,
-    };
+    const savedScrollY = window.scrollY;
+    document.documentElement.classList.add('lightbox-open');
 
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.overflow = 'hidden';
-    body.style.width = '100%';
+    // iOS Safari can scroll the body despite overflow:hidden (WebKit bug #153852).
+    // Actively undo any scroll that sneaks through while the lightbox is open.
+    // The overlay covers the viewport so this is invisible to the user.
+    const lockScroll = () => window.scrollTo(0, savedScrollY);
+    window.addEventListener('scroll', lockScroll);
 
     return () => {
-      body.style.position = saved.position;
-      body.style.top = saved.top;
-      body.style.left = saved.left;
-      body.style.right = saved.right;
-      body.style.overflow = saved.overflow;
-      body.style.width = saved.width;
-      window.scrollTo(0, scrollY);
+      window.removeEventListener('scroll', lockScroll);
+      // Dismiss keyboard to reset visual viewport offset before removing lock.
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      document.documentElement.classList.remove('lightbox-open');
+      // Restore scroll position in case iOS moved it.
+      window.scrollTo(0, savedScrollY);
     };
   }, [isActuallyModal]);
 
@@ -330,9 +329,6 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     left: 0,
     right: shouldAccountForTasksPane ? `${effectiveTasksPaneWidth}px` : 0,
     bottom: 0,
-    // Use inset (top/bottom: 0) for height instead of 100dvh.
-    // 100dvh changes dynamically on iOS Safari as the address bar shows/hides,
-    // causing the lightbox to resize and leave gaps.
     transition: 'right 300ms cubic-bezier(0.22, 1, 0.36, 1), width 300ms cubic-bezier(0.22, 1, 0.36, 1)',
     ...(shouldAccountForTasksPane
       ? { width: `calc(100vw - ${effectiveTasksPaneWidth}px)` }
@@ -343,10 +339,6 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   // CONTENT STYLES
   // ========================================
 
-  // For fullscreen layouts the Popup already has `inset-0 h-full` which fills
-  // the fixed-position containing block (the viewport) — no explicit height needed.
-  // Avoid 100dvh: it changes dynamically on iOS Safari as the address bar
-  // shows/hides, causing the lightbox to resize and leave gaps at the bottom.
   const contentStyle: React.CSSProperties = {
     transition: 'width 300ms cubic-bezier(0.22, 1, 0.36, 1)',
     ...(needsTasksPaneOffset

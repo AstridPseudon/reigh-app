@@ -40,7 +40,11 @@ export interface IndividualTravelSegmentParams {
   // Generation IDs for the input images (for clickable images in SegmentCard)
   start_image_generation_id?: string;
   end_image_generation_id?: string;
-  
+
+  // Primary variant IDs for the input images (for "Load Images" feature)
+  start_image_variant_id?: string;
+  end_image_variant_id?: string;
+
   // Shot generation ID for the start image (for video-to-timeline tethering)
   // This allows videos to move with their source image when timeline is reordered
   pair_shot_generation_id?: string;
@@ -570,6 +574,10 @@ function buildIndividualTravelSegmentParams(
     ...(params.start_image_generation_id && { start_image_generation_id: params.start_image_generation_id }),
     ...(params.end_image_generation_id && { end_image_generation_id: params.end_image_generation_id }),
     ...(params.pair_shot_generation_id && { pair_shot_generation_id: params.pair_shot_generation_id }),
+
+    // Primary variant IDs (for "Load Images" feature to restore source images)
+    ...(params.start_image_variant_id && { start_image_variant_id: params.start_image_variant_id }),
+    ...(params.end_image_variant_id && { end_image_variant_id: params.end_image_variant_id }),
     
     // Prompts
     base_prompt: basePrompt,
