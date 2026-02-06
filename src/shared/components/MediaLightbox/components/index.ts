@@ -12,8 +12,6 @@ export { SegmentEditorModal } from './SegmentEditorModal';
 // ============================================================================
 export { LightboxShell } from './LightboxShell';
 export { LightboxProviders } from './LightboxProviders';
-export { ImageLightboxContent } from './image';
-export { VideoLightboxContent } from './video';
 
 // ============================================================================
 // Note: The following components are NOT exported from the barrel file:

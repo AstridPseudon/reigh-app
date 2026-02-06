@@ -44,7 +44,8 @@ import {
 } from './hooks';
 
 // Import components
-import { LightboxShell, LightboxProviders, ImageLightboxContent } from './components';
+import { LightboxShell, LightboxProviders } from './components';
+import { LightboxLayout } from './components/layouts';
 import { ImageEditProvider, type ImageEditState } from './contexts/ImageEditContext';
 import { EditFormProvider, type EditFormState } from './contexts/EditFormContext';
 
@@ -1037,10 +1038,17 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   const isSaving = false;
 
   // ========================================
+  // SHOW PANEL DECISION
+  // ========================================
+  // showPanel = true when the controls panel should render (desktop side panel or mobile stacked)
+  const showPanel = layout.shouldShowSidePanel || ((showTaskDetails || isSpecialEditMode) && isMobile);
+
+  // ========================================
   // BUILD LAYOUT PROPS (via hook)
   // ========================================
 
-  const { sidePanelLayoutProps, centeredLayoutProps } = useLightboxLayoutProps({
+  const { layoutProps } = useLightboxLayoutProps({
+    showPanel,
     // Core
     onClose,
     readOnly,
@@ -1054,7 +1062,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     effectiveVideoUrl: '',
     imageDimensions,
     setImageDimensions,
-    effectiveImageDimensions: effectiveMedia.imageDimensions,
     // Variants
     variants: variants.list,
     activeVariant: variants.activeVariant,
@@ -1076,7 +1083,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isVideoTrimModeActive: false,
     isVideoEditModeActive: false,
     isInVideoEditMode: false,
-    videoEditSubMode: null,
     trimVideoRef: { current: null },
     trimState: { startTrim: 0, endTrim: 0, videoDuration: 0 },
     setStartTrim: () => {},
@@ -1291,12 +1297,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
             accessibilityTitle={accessibilityTitle}
             accessibilityDescription={accessibilityDescription}
           >
-            <ImageLightboxContent
-              sidePanelLayoutProps={sidePanelLayoutProps}
-              centeredLayoutProps={centeredLayoutProps}
-              showTaskDetails={showTaskDetails}
-              shouldShowSidePanel={layout.shouldShowSidePanel}
-            />
+            <LightboxLayout {...layoutProps} />
           </LightboxShell>
         </EditFormProvider>
       </ImageEditProvider>

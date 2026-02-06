@@ -72,12 +72,13 @@ export interface UseRepositionModeReturn {
   // For rendering
   getTransformStyle: () => React.CSSProperties;
 
-  // Drag-to-move handlers (for touch/mouse dragging)
+  // Drag-to-move + scroll/pinch-to-zoom handlers
   isDragging: boolean;
   dragHandlers: {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
+    onWheel: (e: React.WheelEvent) => void;
   };
 }

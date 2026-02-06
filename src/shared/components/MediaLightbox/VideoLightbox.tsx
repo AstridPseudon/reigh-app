@@ -24,7 +24,9 @@ import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePendingGenerationTasks } from '@/shared/hooks/usePendingGenerationTasks';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
-import { LightboxProviders, VideoLightboxContent } from './components';
+import { LightboxProviders } from './components';
+import { LightboxLayout } from './components/layouts';
+import { SegmentSlotFormView } from './components/SegmentSlotFormView';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 
 // Import hooks
@@ -772,6 +774,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
   const isAnyVideoEditMode = isVideoTrimModeActive || isVideoEditModeActive;
   const shouldShowSidePanelWithTrim = layout.shouldShowSidePanel || ((!layout.isPortraitMode && layout.isTabletOrLarger) && isAnyVideoEditMode);
+  // showPanel = true when the controls panel should render (desktop side panel or mobile stacked)
+  const showPanel = shouldShowSidePanelWithTrim || ((showTaskDetails || isAnyVideoEditMode || (isSegmentSlotMode && hasSegmentVideo)) && isMobile);
   const needsFullscreenLayout = isMobile || isFormOnlyMode || layout.shouldShowSidePanel || shouldShowSidePanelWithTrim;
   // Check both effectiveTasksPaneOpen AND isTasksPaneLocked as a defensive measure
   // in case they're temporarily out of sync (e.g., during hydration)
@@ -795,7 +799,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   // BUILD LAYOUT PROPS (via hook)
   // ========================================
 
-  const { sidePanelLayoutProps, centeredLayoutProps } = useLightboxLayoutProps({
+  const { layoutProps } = useLightboxLayoutProps({
+    showPanel,
     // Core
     onClose,
     readOnly,
@@ -809,7 +814,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     effectiveVideoUrl: effectiveMedia.videoUrl,
     imageDimensions,
     setImageDimensions,
-    effectiveImageDimensions: effectiveMedia.imageDimensions,
     // Variants
     variants: variants.list,
     activeVariant: variants.activeVariant,
@@ -831,7 +835,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     isVideoTrimModeActive,
     isVideoEditModeActive,
     isInVideoEditMode,
-    videoEditSubMode,
     trimVideoRef,
     trimState,
     setStartTrim,
@@ -1041,16 +1044,19 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
           accessibilityTitle={accessibilityTitle}
           accessibilityDescription={accessibilityDescription}
         >
-          <VideoLightboxContent
-            sidePanelLayoutProps={sidePanelLayoutProps}
-            centeredLayoutProps={centeredLayoutProps}
-            showTaskDetails={showTaskDetails}
-            shouldShowSidePanelWithTrim={shouldShowSidePanelWithTrim}
-            segmentSlotMode={segmentSlotMode}
-            isFormOnlyMode={isFormOnlyMode}
-            isSegmentSlotMode={isSegmentSlotMode}
-            hasSegmentVideo={hasSegmentVideo}
-          />
+          {isFormOnlyMode && segmentSlotMode ? (
+            <SegmentSlotFormView
+              segmentSlotMode={segmentSlotMode}
+              onClose={onClose}
+              onNavPrev={handleSlotNavPrev}
+              onNavNext={handleSlotNavNext}
+              hasPrevious={hasPrevious}
+              hasNext={hasNext}
+              readOnly={readOnly}
+            />
+          ) : (
+            <LightboxLayout {...layoutProps} />
+          )}
         </LightboxShell>
       </VideoEditProvider>
     </LightboxProviders>

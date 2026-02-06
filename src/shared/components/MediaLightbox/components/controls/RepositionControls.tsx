@@ -89,10 +89,10 @@ export const RepositionControls: React.FC<RepositionControlsProps> = ({
         </button>
       </div>
       
-      {/* Zoom and Rotation - side by side on mobile, stacked on tablet */}
-      <div className={cn(variant === 'mobile' ? "flex gap-2" : "space-y-2")}>
+      {/* Zoom and Rotation - always side by side */}
+      <div className="flex gap-2">
         {/* Zoom */}
-        <div className={cn("space-y-0.5", variant === 'mobile' && "flex-1")}>
+        <div className={"space-y-0.5 flex-1"}>
           <div className="flex items-center gap-1.5">
             <Maximize2 className={cn("text-muted-foreground shrink-0", sliderIconSize)} />
             <div className="flex-1 flex items-center justify-between">
@@ -111,7 +111,7 @@ export const RepositionControls: React.FC<RepositionControlsProps> = ({
         </div>
 
         {/* Rotation */}
-        <div className={cn("space-y-0.5", variant === 'mobile' && "flex-1")}>
+        <div className={"space-y-0.5 flex-1"}>
           <div className="flex items-center gap-1.5">
             <RotateCw className={cn("text-muted-foreground shrink-0", sliderIconSize)} />
             <div className="flex-1 flex items-center justify-between">

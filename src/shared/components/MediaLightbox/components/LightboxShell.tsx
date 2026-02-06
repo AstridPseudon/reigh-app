@@ -4,7 +4,6 @@
  * Encapsulates all the complex event handling for the lightbox modal:
  * - Dialog root/portal/overlay
  * - Pointer/touch/click event handling with z-index awareness
- * - Double-tap to close on mobile
  * - Body scroll locking
  * - Accessibility elements
  *
@@ -19,8 +18,6 @@ import React, { useRef, useEffect } from 'react';
 import { Dialog as DialogPrimitive } from "@base-ui-components/react/dialog";
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { cn } from '@/shared/lib/utils';
-
-const DOUBLE_TAP_DELAY = 300; // ms
 
 interface LightboxShellProps {
   children: React.ReactNode;
@@ -97,6 +94,16 @@ function isInteractiveElement(target: HTMLElement): boolean {
   );
 }
 
+/**
+ * Check if a touch event should pass through to the element
+ * (canvas in edit mode, or interactive elements like buttons/inputs).
+ */
+function shouldAllowTouchThrough(target: HTMLElement, hasCanvasOverlay: boolean): boolean {
+  if (hasCanvasOverlay && target.tagName === 'CANVAS') return true;
+  if (isInteractiveElement(target)) return true;
+  return false;
+}
+
 export const LightboxShell: React.FC<LightboxShellProps> = ({
   children,
   onClose,
@@ -119,12 +126,6 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   // Track pointerdown target for capture-phase background click detection
   const bgPointerDownTargetRef = useRef<EventTarget | null>(null);
 
-  // Track double-tap on mobile/iPad
-  const lastTapTimeRef = useRef<number>(0);
-  const lastTapTargetRef = useRef<EventTarget | null>(null);
-  const touchStartTargetRef = useRef<EventTarget | null>(null);
-  const touchStartedOnOverlayRef = useRef<boolean>(false);
-
   // Lock body scroll when lightbox is open on desktop
   // (On mobile, modal={true} handles this, but on desktop we use modal={false}
   // to allow TasksPane interaction, so we need manual scroll locking)
@@ -140,8 +141,11 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
   }, [isMobile]);
 
   // ========================================
-  // OVERLAY EVENT HANDLERS
+  // OVERLAY EVENT HANDLERS (Backdrop layer)
   // ========================================
+  // Active when needsFullscreenLayout=false (non-fullscreen video layouts).
+  // In fullscreen layouts the Popup covers the Backdrop, so these don't fire —
+  // close-on-click is handled by the capture-phase handlers below instead.
 
   const handleOverlayPointerDown = (e: React.PointerEvent) => {
     pointerDownTargetRef.current = e.target;
@@ -206,107 +210,6 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     pointerDownTargetRef.current = null;
   };
 
-  const handleOverlayDoubleClick = (e: React.MouseEvent) => {
-    if (hasHigherZIndexDialog() || targetHasHigherZIndex(e.target)) {
-      return;
-    }
-
-    if (isRepositionMode) {
-      return;
-    }
-
-    const clickStartedOnOverlay = pointerDownTargetRef.current === e.currentTarget;
-    const clickEndedOnOverlay = e.target === e.currentTarget;
-
-    if (clickStartedOnOverlay && clickEndedOnOverlay) {
-      onClose();
-    }
-  };
-
-  const handleOverlayTouchStart = (e: React.TouchEvent) => {
-    touchStartTargetRef.current = e.target;
-    const touchedDirectlyOnOverlay = e.target === e.currentTarget;
-    touchStartedOnOverlayRef.current = touchedDirectlyOnOverlay;
-
-    const target = e.target as HTMLElement;
-
-    // Allow touch events on canvas when edit overlay is active
-    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
-      return;
-    }
-
-    // Allow touch events on interactive elements
-    if (isInteractiveElement(target)) {
-      return;
-    }
-
-    if (isMobile) e.stopPropagation();
-  };
-
-  const handleOverlayTouchMove = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-
-    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
-      return;
-    }
-
-    if (isInteractiveElement(target)) {
-      return;
-    }
-
-    if (isMobile) e.stopPropagation();
-  };
-
-  const handleOverlayTouchEnd = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-
-    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
-      return;
-    }
-
-    if (isInteractiveElement(target)) {
-      return;
-    }
-
-    // Detect double-tap to close on mobile/iPad (only on overlay background)
-    const touchEndedOnOverlay = e.target === e.currentTarget;
-    const validOverlayTap = touchStartedOnOverlayRef.current && touchEndedOnOverlay;
-
-    if (!isRepositionMode && validOverlayTap) {
-      const currentTime = Date.now();
-      const timeSinceLastTap = currentTime - lastTapTimeRef.current;
-
-      if (timeSinceLastTap < DOUBLE_TAP_DELAY && lastTapTargetRef.current === e.currentTarget) {
-        onClose();
-        lastTapTimeRef.current = 0;
-        lastTapTargetRef.current = null;
-      } else {
-        lastTapTimeRef.current = currentTime;
-        lastTapTargetRef.current = e.currentTarget;
-      }
-    }
-
-    touchStartTargetRef.current = null;
-    touchStartedOnOverlayRef.current = false;
-
-    if (isMobile) e.stopPropagation();
-  };
-
-  const handleOverlayTouchCancel = (e: React.TouchEvent) => {
-    touchStartTargetRef.current = null;
-    touchStartedOnOverlayRef.current = false;
-
-    if (hasHigherZIndexDialog()) {
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
-      e.nativeEvent.stopImmediatePropagation();
-    }
-  };
-
   // ========================================
   // STANDARDIZED BACKGROUND CLICK-TO-CLOSE
   // ========================================
@@ -359,53 +262,19 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
     e.stopPropagation();
   };
 
-  const handleContentTouchStart = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
+  // ========================================
+  // SHARED TOUCH HANDLERS (Backdrop + Popup)
+  // ========================================
+  // Used on both layers. Allow canvas/interactive element touches through;
+  // otherwise stop propagation on mobile to prevent Base UI interference.
 
-    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
-      return;
-    }
-
-    if (isInteractiveElement(target)) {
-      return;
-    }
-
+  const handleTouchEvent = (e: React.TouchEvent) => {
+    if (shouldAllowTouchThrough(e.target as HTMLElement, hasCanvasOverlay)) return;
     if (isMobile) e.stopPropagation();
   };
 
-  const handleContentTouchMove = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-
-    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
-      return;
-    }
-
-    if (isInteractiveElement(target)) {
-      return;
-    }
-
-    if (isMobile) e.stopPropagation();
-  };
-
-  const handleContentTouchEnd = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-
-    if (hasCanvasOverlay && target.tagName === 'CANVAS') {
-      return;
-    }
-
-    if (isInteractiveElement(target)) {
-      return;
-    }
-
-    if (isMobile) e.stopPropagation();
-  };
-
-  const handleContentTouchCancel = (e: React.TouchEvent) => {
-    if (hasHigherZIndexDialog()) {
-      return;
-    }
-
+  const handleTouchCancel = (e: React.TouchEvent) => {
+    if (hasHigherZIndexDialog()) return;
     e.preventDefault();
     e.stopPropagation();
     if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
@@ -481,18 +350,17 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
           <DialogPrimitive.Backdrop
             data-dialog-backdrop
             className={cn(
-              "fixed z-[100000] bg-black/80 data-[open]:animate-in data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[open]:fade-in-0",
-              isMobile ? "" : "duration-200 data-[open]:animate-in data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[open]:fade-in-0",
-              "p-0 border-none shadow-none"
+              "fixed z-[100000] bg-black/80 p-0 border-none shadow-none",
+              "data-[open]:animate-in data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[open]:fade-in-0",
+              !isMobile && "duration-200"
             )}
             onPointerDown={handleOverlayPointerDown}
             onPointerUp={handleOverlayPointerUp}
             onClick={handleOverlayClick}
-            onDoubleClick={handleOverlayDoubleClick}
-            onTouchStart={handleOverlayTouchStart}
-            onTouchMove={handleOverlayTouchMove}
-            onTouchEnd={handleOverlayTouchEnd}
-            onTouchCancel={handleOverlayTouchCancel}
+            onTouchStart={handleTouchEvent}
+            onTouchMove={handleTouchEvent}
+            onTouchEnd={handleTouchEvent}
+            onTouchCancel={handleTouchCancel}
             style={overlayStyle}
           />
 
@@ -507,10 +375,10 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
             onClickCapture={handleBgClickCapture}
             onPointerDown={handleContentPointerDown}
             onClick={handleContentClick}
-            onTouchStart={handleContentTouchStart}
-            onTouchMove={handleContentTouchMove}
-            onTouchEnd={handleContentTouchEnd}
-            onTouchCancel={handleContentTouchCancel}
+            onTouchStart={handleTouchEvent}
+            onTouchMove={handleTouchEvent}
+            onTouchEnd={handleTouchEvent}
+            onTouchCancel={handleTouchCancel}
             className={cn(
               "fixed z-[100000]",
               isMobile

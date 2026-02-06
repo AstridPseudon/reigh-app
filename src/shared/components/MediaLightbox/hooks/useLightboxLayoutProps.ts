@@ -1,9 +1,8 @@
 /**
- * useLightboxLayoutProps - Builds all layout props for MediaLightbox
+ * useLightboxLayoutProps - Builds layout props for the unified LightboxLayout
  *
- * Centralizes the building of props objects for layout components
- * (DesktopSidePanelLayout, MobileStackedLayout, CenteredLayout).
- * This reduces duplication and keeps the main component cleaner.
+ * Centralizes the building of props for LightboxLayout.
+ * Outputs a single `layoutProps` object with `showPanel` included.
  */
 
 import React, { useMemo, RefObject, ReactNode } from 'react';
@@ -19,6 +18,7 @@ import type { ImageTransform } from './useRepositionMode';
 import type { EditAdvancedSettings } from './useGenerationEditSettings';
 import type { SourceVariantData } from './useSourceGeneration';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from '../types';
+import type { LightboxLayoutProps } from '../components/layouts/types';
 
 // Input types - all the values needed to build layout props
 export interface UseLightboxLayoutPropsInput {
@@ -36,7 +36,6 @@ export interface UseLightboxLayoutPropsInput {
   effectiveVideoUrl: string;
   imageDimensions: { width: number; height: number } | null;
   setImageDimensions: (dims: { width: number; height: number }) => void;
-  effectiveImageDimensions: { width: number; height: number } | null;
 
   // Variants
   variants: GenerationVariant[] | undefined;
@@ -60,7 +59,6 @@ export interface UseLightboxLayoutPropsInput {
   isVideoTrimModeActive: boolean;
   isVideoEditModeActive: boolean;
   isInVideoEditMode: boolean;
-  videoEditSubMode: 'trim' | 'replace' | 'regenerate' | 'enhance' | null;
   trimVideoRef: RefObject<HTMLVideoElement>;
   trimState: {
     videoDuration: number;
@@ -144,6 +142,7 @@ export interface UseLightboxLayoutPropsInput {
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
+    onWheel: (e: React.WheelEvent) => void;
   } | null;
   getTransformStyle: () => string;
   repositionTransform: ImageTransform;
@@ -243,6 +242,9 @@ export interface UseLightboxLayoutPropsInput {
   effectiveTasksPaneOpen: boolean;
   effectiveTasksPaneWidth: number;
 
+  // showPanel - whether the controls panel should render
+  showPanel: boolean;
+
   // Button group props (pre-built)
   buttonGroupProps: {
     topLeft: ReactNode;
@@ -285,25 +287,17 @@ export interface UseLightboxLayoutPropsInput {
 }
 
 export interface UseLightboxLayoutPropsReturn {
-  controlsPanelProps: Record<string, unknown>;
-  workflowBarProps: Record<string, unknown>;
-  floatingToolProps: Record<string, unknown>;
-  sidePanelLayoutProps: Record<string, unknown>;
-  centeredLayoutProps: Record<string, unknown>;
+  layoutProps: LightboxLayoutProps;
 }
 
 export function useLightboxLayoutProps(
   input: UseLightboxLayoutPropsInput
 ): UseLightboxLayoutPropsReturn {
-  // Build ControlsPanel props (used by DesktopSidePanelLayout and MobileStackedLayout)
-  // SIGNIFICANTLY REDUCED after context migration - child components now read from context
+  // Build ControlsPanel props (only used when showPanel=true)
   const controlsPanelProps = useMemo(() => ({
-    // ========================================
     // VideoEditPanel specialized props
-    // ========================================
     isCloudMode: input.isCloudMode,
     regenerateFormProps: input.regenerateFormProps,
-    // Trim mode (specialized refs, handlers, save state)
     trimState: input.trimState,
     onStartTrimChange: input.setStartTrim,
     onEndTrimChange: input.setEndTrim,
@@ -318,24 +312,18 @@ export function useLightboxLayoutProps(
     videoUrl: input.effectiveVideoUrl,
     trimCurrentTime: input.trimCurrentTime,
     trimVideoRef: input.trimVideoRef,
-    // Replace (portion) mode (specialized manager)
     videoEditing: input.videoEditing,
     projectId: input.selectedProjectId,
-    // Enhance mode (specialized handlers)
     enhanceSettings: input.enhanceSettings,
     onUpdateEnhanceSetting: input.onUpdateEnhanceSetting,
     onEnhanceGenerate: input.onEnhanceGenerate,
     isEnhancing: input.isEnhancing,
     enhanceSuccess: input.enhanceSuccess,
     canEnhance: input.canEnhance,
-    // Image upscale mode (cloud only)
     handleUpscale: input.handleUpscale,
     isUpscaling: input.isUpscaling,
     upscaleSuccess: input.upscaleSuccess,
-
-    // ========================================
     // EditModePanel specialized props
-    // ========================================
     sourceGenerationData: input.sourceGenerationData,
     onOpenExternalGeneration: input.onOpenExternalGeneration,
     allShots: input.allShots,
@@ -344,23 +332,18 @@ export function useLightboxLayoutProps(
     sourcePrimaryVariant: input.sourcePrimaryVariant,
     onMakeMainVariant: input.handleMakeMainVariant,
     canMakeMainVariant: input.canMakeMainVariant,
-    // Specialized async handlers
     handleUnifiedGenerate: input.handleUnifiedGenerate,
     handleGenerateAnnotatedEdit: input.handleGenerateAnnotatedEdit,
     handleGenerateReposition: input.handleGenerateReposition,
     handleSaveAsVariant: input.handleSaveAsVariant,
     handleGenerateImg2Img: input.handleGenerateImg2Img,
-    // Specialized managers
     img2imgLoraManager: input.img2imgLoraManager,
     editLoraManager: input.editLoraManager,
     availableLoras: input.availableLoras,
     advancedSettings: input.advancedSettings,
     setAdvancedSettings: input.setAdvancedSettings,
     isLocalGeneration: input.isLocalGeneration,
-
-    // ========================================
     // InfoPanel specialized props
-    // ========================================
     showImageEditTools: input.showImageEditTools,
     taskDetailsData: input.adjustedTaskDetailsData,
     derivedItems: input.derivedItems,
@@ -372,15 +355,11 @@ export function useLightboxLayoutProps(
     replaceImages: input.replaceImages,
     onReplaceImagesChange: input.setReplaceImages,
     onSwitchToPrimary: input.primaryVariant ? () => input.setActiveVariantId(input.primaryVariant.id) : undefined,
-
-    // ========================================
     // Shared props
-    // ========================================
     currentMediaId: input.media.id,
     currentShotId: input.selectedShotId || input.shotId,
     taskId: input.adjustedTaskDetailsData?.taskId || (input.media as unknown as Record<string, unknown>)?.source_task_id as string | null || null,
   }), [
-    // VideoEditPanel deps
     input.isCloudMode, input.regenerateFormProps, input.trimState, input.setStartTrim,
     input.setEndTrim, input.resetTrim, input.trimmedDuration, input.hasTrimChanges,
     input.saveTrimmedVideo, input.isSavingTrim, input.trimSaveProgress, input.trimSaveError,
@@ -388,19 +367,16 @@ export function useLightboxLayoutProps(
     input.videoEditing, input.selectedProjectId, input.enhanceSettings, input.onUpdateEnhanceSetting,
     input.onEnhanceGenerate, input.isEnhancing, input.enhanceSuccess, input.canEnhance,
     input.handleUpscale, input.isUpscaling, input.upscaleSuccess,
-    // EditModePanel deps
     input.sourceGenerationData, input.onOpenExternalGeneration, input.allShots,
     input.isAlreadyPositionedInSelectedShot, input.handleReplaceInShot, input.sourcePrimaryVariant,
     input.handleMakeMainVariant, input.canMakeMainVariant, input.handleUnifiedGenerate,
     input.handleGenerateAnnotatedEdit, input.handleGenerateReposition, input.handleSaveAsVariant,
     input.handleGenerateImg2Img, input.img2imgLoraManager, input.editLoraManager,
     input.availableLoras, input.advancedSettings, input.setAdvancedSettings, input.isLocalGeneration,
-    // InfoPanel deps
     input.showImageEditTools, input.adjustedTaskDetailsData, input.derivedItems,
     input.derivedGenerations, input.paginatedDerived, input.derivedPage, input.derivedTotalPages,
     input.setDerivedPage, input.replaceImages, input.setReplaceImages, input.primaryVariant,
     input.setActiveVariantId,
-    // Shared deps
     input.media.id, input.selectedShotId, input.shotId,
   ]);
 
@@ -437,10 +413,8 @@ export function useLightboxLayoutProps(
     input.handleAddVariantAsNewGenerationToShot,
   ]);
 
-  // Build floating tool props (for edit mode controls)
-  // Now simplified - most state comes from ImageEditContext, only specialized handlers here
+  // Build floating tool props (for edit mode controls, panel layouts only)
   const floatingToolProps = useMemo(() => ({
-    // Specialized reposition handlers (not contextual state)
     repositionTransform: input.repositionTransform,
     onRepositionScaleChange: input.setScale,
     onRepositionRotationChange: input.setRotation,
@@ -452,43 +426,19 @@ export function useLightboxLayoutProps(
     input.toggleFlipH, input.toggleFlipV, input.resetTransform,
   ]);
 
-  // Build side panel layout props (for Desktop and Mobile stacked layouts)
-  const sidePanelLayoutProps = useMemo(() => ({
-    // Core
-    onClose: input.onClose,
-    readOnly: input.readOnly,
-    selectedProjectId: input.selectedProjectId,
-    isMobile: input.isMobile,
-    actualGenerationId: input.actualGenerationId,
-    // Media
-    media: input.media,
-    isVideo: input.isVideo,
-    effectiveMediaUrl: input.effectiveMediaUrl,
-    effectiveVideoUrl: input.effectiveVideoUrl,
-    imageDimensions: input.imageDimensions,
-    setImageDimensions: input.setImageDimensions,
-    effectiveImageDimensions: input.effectiveImageDimensions,
-    // Variants
-    variants: input.variants,
-    activeVariant: input.activeVariant,
-    primaryVariant: input.primaryVariant,
-    isLoadingVariants: input.isLoadingVariants,
-    setActiveVariantId: input.setActiveVariantId,
-    setPrimaryVariant: input.setPrimaryVariant,
-    deleteVariant: input.deleteVariant,
-    promoteSuccess: input.promoteSuccess,
-    isPromoting: input.isPromoting,
-    handlePromoteToGeneration: input.handlePromoteToGeneration,
-    isMakingMainVariant: input.isMakingMainVariant,
-    canMakeMainVariant: input.canMakeMainVariant,
-    handleMakeMainVariant: input.handleMakeMainVariant,
-    variantParamsToLoad: input.variantParamsToLoad,
-    setVariantParamsToLoad: input.setVariantParamsToLoad,
-    variantsSectionRef: input.variantsSectionRef,
+  // Build workflow controls props (below-media, centered layout only)
+  const workflowControlsProps = useMemo(() => ({
+    ...workflowBarProps,
+    isDeleting: input.isDeleting,
+    handleDelete: input.handleDelete,
+  }), [workflowBarProps, input.isDeleting, input.handleDelete]);
+
+  // Build unified layout props
+  const layoutProps: LightboxLayoutProps = useMemo(() => ({
+    showPanel: input.showPanel,
     // Video edit
     isVideoTrimModeActive: input.isVideoTrimModeActive,
     isVideoEditModeActive: input.isVideoEditModeActive,
-    videoEditSubMode: input.videoEditSubMode,
     trimVideoRef: input.trimVideoRef,
     trimState: input.trimState,
     setVideoDuration: input.setVideoDuration,
@@ -527,156 +477,27 @@ export function useLightboxLayoutProps(
     maskCanvasRef: input.maskCanvasRef,
     isFlippedHorizontally: input.isFlippedHorizontally,
     isSaving: input.isSaving,
-    // Navigation
-    showNavigation: input.showNavigation,
-    hasNext: input.hasNext,
-    hasPrevious: input.hasPrevious,
-    handleSlotNavNext: input.handleSlotNavNext,
-    handleSlotNavPrev: input.handleSlotNavPrev,
-    swipeNavigation: input.swipeNavigation,
     // Panel
     effectiveTasksPaneOpen: input.effectiveTasksPaneOpen,
     effectiveTasksPaneWidth: input.effectiveTasksPaneWidth,
+    // Reposition rotation (for corner handles)
+    onRepositionRotationChange: input.setRotation,
+    repositionRotation: input.repositionTransform?.rotation ?? 0,
+    // Reposition scale (for +/- zoom buttons on image)
+    onRepositionScaleChange: input.setScale,
+    repositionScale: input.repositionTransform?.scale ?? 1,
     // Composed props
     buttonGroupProps: input.buttonGroupProps,
     workflowBarProps,
-    floatingToolProps,
-    controlsPanelProps,
-    // Adjacent segment navigation
-    adjacentSegments: input.adjacentSegments,
-    // Segment slot mode (for constituent image navigation)
-    segmentSlotMode: input.segmentSlotMode,
-  }), [
-    input.onClose, input.readOnly, input.selectedProjectId, input.isMobile,
-    input.actualGenerationId, input.media, input.isVideo, input.effectiveMediaUrl,
-    input.effectiveVideoUrl, input.imageDimensions, input.setImageDimensions,
-    input.effectiveImageDimensions, input.variants, input.activeVariant, input.primaryVariant,
-    input.isLoadingVariants, input.setActiveVariantId, input.setPrimaryVariant,
-    input.deleteVariant, input.promoteSuccess, input.isPromoting, input.handlePromoteToGeneration,
-    input.isMakingMainVariant, input.canMakeMainVariant, input.handleMakeMainVariant,
-    input.variantParamsToLoad, input.setVariantParamsToLoad, input.variantsSectionRef,
-    input.isVideoTrimModeActive, input.isVideoEditModeActive, input.videoEditSubMode,
-    input.trimVideoRef, input.trimState, input.setVideoDuration, input.setTrimCurrentTime,
-    input.videoEditing, input.isInpaintMode, input.isAnnotateMode, input.isSpecialEditMode,
-    input.editMode, input.brushStrokes, input.currentStroke, input.isDrawing, input.isEraseMode,
-    input.setIsEraseMode, input.brushSize, input.setBrushSize, input.annotationMode,
-    input.setAnnotationMode, input.selectedShapeId, input.handleKonvaPointerDown,
-    input.handleKonvaPointerMove, input.handleKonvaPointerUp, input.handleShapeClick,
-    input.strokeOverlayRef, input.handleUndo, input.handleClearMask, input.getDeleteButtonPosition,
-    input.handleToggleFreeForm, input.handleDeleteSelected, input.isRepositionDragging,
-    input.repositionDragHandlers, input.getTransformStyle, input.imageContainerRef,
-    input.canvasRef, input.maskCanvasRef, input.isFlippedHorizontally, input.isSaving,
-    input.showNavigation, input.hasNext, input.hasPrevious, input.handleSlotNavNext,
-    input.handleSlotNavPrev, input.swipeNavigation, input.effectiveTasksPaneOpen,
-    input.effectiveTasksPaneWidth, input.buttonGroupProps, workflowBarProps,
-    floatingToolProps, controlsPanelProps, input.adjacentSegments, input.segmentSlotMode,
-  ]);
-
-  // Build centered layout props (simpler, no controls panel)
-  const centeredLayoutProps = useMemo(() => ({
-    // Core
-    onClose: input.onClose,
-    readOnly: input.readOnly,
-    selectedProjectId: input.selectedProjectId,
-    isMobile: input.isMobile,
-    actualGenerationId: input.actualGenerationId,
-    // Media
-    media: input.media,
-    isVideo: input.isVideo,
-    effectiveMediaUrl: input.effectiveMediaUrl,
-    effectiveVideoUrl: input.effectiveVideoUrl,
-    imageDimensions: input.imageDimensions,
-    setImageDimensions: input.setImageDimensions,
-    effectiveImageDimensions: input.effectiveImageDimensions,
-    // Variants
-    variants: input.variants,
-    activeVariant: input.activeVariant,
-    primaryVariant: input.primaryVariant,
-    isLoadingVariants: input.isLoadingVariants,
-    setActiveVariantId: input.setActiveVariantId,
-    setPrimaryVariant: input.setPrimaryVariant,
-    deleteVariant: input.deleteVariant,
-    promoteSuccess: input.promoteSuccess,
-    isPromoting: input.isPromoting,
-    handlePromoteToGeneration: input.handlePromoteToGeneration,
-    isMakingMainVariant: input.isMakingMainVariant,
-    canMakeMainVariant: input.canMakeMainVariant,
-    handleMakeMainVariant: input.handleMakeMainVariant,
-    variantParamsToLoad: input.variantParamsToLoad,
-    setVariantParamsToLoad: input.setVariantParamsToLoad,
-    variantsSectionRef: input.variantsSectionRef,
-    // Video edit (minimal for centered)
-    isVideoTrimModeActive: input.isVideoTrimModeActive,
-    isVideoEditModeActive: input.isVideoEditModeActive,
-    videoEditSubMode: input.videoEditSubMode,
-    trimVideoRef: input.trimVideoRef,
-    trimState: input.trimState,
-    setVideoDuration: input.setVideoDuration,
-    setTrimCurrentTime: input.setTrimCurrentTime,
-    videoEditing: input.videoEditing,
-    // Edit mode
-    isInpaintMode: input.isInpaintMode,
-    isAnnotateMode: input.isAnnotateMode,
-    isSpecialEditMode: input.isSpecialEditMode,
-    editMode: input.editMode,
-    brushStrokes: input.brushStrokes,
-    currentStroke: input.currentStroke,
-    isDrawing: input.isDrawing,
-    isEraseMode: input.isEraseMode,
-    setIsEraseMode: input.setIsEraseMode,
-    brushSize: input.brushSize,
-    setBrushSize: input.setBrushSize,
-    annotationMode: input.annotationMode,
-    setAnnotationMode: input.setAnnotationMode,
-    selectedShapeId: input.selectedShapeId,
-    handleKonvaPointerDown: input.handleKonvaPointerDown,
-    handleKonvaPointerMove: input.handleKonvaPointerMove,
-    handleKonvaPointerUp: input.handleKonvaPointerUp,
-    handleShapeClick: input.handleShapeClick,
-    strokeOverlayRef: input.strokeOverlayRef,
-    handleUndo: input.handleUndo,
-    handleClearMask: input.handleClearMask,
-    getDeleteButtonPosition: input.getDeleteButtonPosition,
-    handleToggleFreeForm: input.handleToggleFreeForm,
-    handleDeleteSelected: input.handleDeleteSelected,
-    isRepositionDragging: input.isRepositionDragging,
-    repositionDragHandlers: input.repositionDragHandlers,
-    getTransformStyle: input.getTransformStyle,
-    imageContainerRef: input.imageContainerRef,
-    canvasRef: input.canvasRef,
-    maskCanvasRef: input.maskCanvasRef,
-    isFlippedHorizontally: input.isFlippedHorizontally,
-    isSaving: input.isSaving,
+    floatingToolProps: input.showPanel ? floatingToolProps : undefined,
+    controlsPanelProps: input.showPanel ? controlsPanelProps : undefined,
+    workflowControlsProps: input.showPanel ? undefined : workflowControlsProps,
     // Navigation
-    showNavigation: input.showNavigation,
-    hasNext: input.hasNext,
-    hasPrevious: input.hasPrevious,
-    handleSlotNavNext: input.handleSlotNavNext,
-    handleSlotNavPrev: input.handleSlotNavPrev,
-    swipeNavigation: input.swipeNavigation,
-    // Composed props
-    buttonGroupProps: input.buttonGroupProps,
-    workflowBarProps,
-    // Workflow controls (below media)
-    workflowControlsProps: {
-      ...workflowBarProps,
-      isDeleting: input.isDeleting,
-      handleDelete: input.handleDelete,
-    },
-    // Adjacent segment navigation
     adjacentSegments: input.adjacentSegments,
-    // Segment slot mode (for constituent image navigation)
     segmentSlotMode: input.segmentSlotMode,
   }), [
-    input.onClose, input.readOnly, input.selectedProjectId, input.isMobile,
-    input.actualGenerationId, input.media, input.isVideo, input.effectiveMediaUrl,
-    input.effectiveVideoUrl, input.imageDimensions, input.setImageDimensions,
-    input.effectiveImageDimensions, input.variants, input.activeVariant, input.primaryVariant,
-    input.isLoadingVariants, input.setActiveVariantId, input.setPrimaryVariant,
-    input.deleteVariant, input.promoteSuccess, input.isPromoting, input.handlePromoteToGeneration,
-    input.isMakingMainVariant, input.canMakeMainVariant, input.handleMakeMainVariant,
-    input.variantParamsToLoad, input.setVariantParamsToLoad, input.variantsSectionRef,
-    input.isVideoTrimModeActive, input.isVideoEditModeActive, input.videoEditSubMode,
+    input.showPanel,
+    input.isVideoTrimModeActive, input.isVideoEditModeActive,
     input.trimVideoRef, input.trimState, input.setVideoDuration, input.setTrimCurrentTime,
     input.videoEditing, input.isInpaintMode, input.isAnnotateMode, input.isSpecialEditMode,
     input.editMode, input.brushStrokes, input.currentStroke, input.isDrawing, input.isEraseMode,
@@ -687,16 +508,11 @@ export function useLightboxLayoutProps(
     input.handleToggleFreeForm, input.handleDeleteSelected, input.isRepositionDragging,
     input.repositionDragHandlers, input.getTransformStyle, input.imageContainerRef,
     input.canvasRef, input.maskCanvasRef, input.isFlippedHorizontally, input.isSaving,
-    input.showNavigation, input.hasNext, input.hasPrevious, input.handleSlotNavNext,
-    input.handleSlotNavPrev, input.swipeNavigation, input.buttonGroupProps,
-    workflowBarProps, input.isDeleting, input.handleDelete, input.adjacentSegments, input.segmentSlotMode,
+    input.effectiveTasksPaneOpen, input.effectiveTasksPaneWidth,
+    input.setRotation, input.repositionTransform,
+    input.buttonGroupProps, workflowBarProps, floatingToolProps, controlsPanelProps,
+    workflowControlsProps, input.adjacentSegments, input.segmentSlotMode,
   ]);
 
-  return {
-    controlsPanelProps,
-    workflowBarProps,
-    floatingToolProps,
-    sidePanelLayoutProps,
-    centeredLayoutProps,
-  };
+  return { layoutProps };
 }

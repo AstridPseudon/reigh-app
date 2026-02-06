@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { RotateCw, Plus, Minus } from 'lucide-react';
 import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 import { StrokeOverlay, BrushStroke, StrokeOverlayHandle } from './StrokeOverlay';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -18,14 +19,24 @@ interface MediaDisplayWithCanvasProps {
   // Reposition mode transform style
   repositionTransformStyle?: React.CSSProperties;
 
-  // Reposition drag-to-move handlers
+  // Reposition drag-to-move + scroll/pinch-to-zoom handlers
   repositionDragHandlers?: {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
+    onWheel: (e: React.WheelEvent) => void;
   };
   isRepositionDragging?: boolean;
+
+  // Reposition rotation change handler (for corner drag-to-rotate)
+  onRepositionRotationChange?: (degrees: number) => void;
+  // Current rotation for corner handles
+  repositionRotation?: number;
+  // Reposition scale change handler (for +/- zoom buttons on image)
+  onRepositionScaleChange?: (value: number) => void;
+  // Current scale for zoom buttons
+  repositionScale?: number;
 
   // Refs
   imageContainerRef: React.RefObject<HTMLDivElement>;
@@ -80,6 +91,10 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   repositionTransformStyle,
   repositionDragHandlers,
   isRepositionDragging = false,
+  onRepositionRotationChange,
+  repositionRotation = 0,
+  onRepositionScaleChange,
+  repositionScale = 1,
   imageContainerRef,
   canvasRef,
   maskCanvasRef,
@@ -114,6 +129,75 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   const imageWrapperRef = React.useRef<HTMLDivElement>(null);
   const imageRef = React.useRef<HTMLImageElement>(null);
   const [imageLoadError, setImageLoadError] = React.useState(false);
+
+  // --- Corner rotation drag state ---
+  const rotationDragRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
+
+  const handleCornerRotateStart = useCallback((e: React.PointerEvent) => {
+    if (!onRepositionRotationChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+    // Compute angle from the image center to the pointer
+    const wrapper = imageWrapperRef.current;
+    const img = imageRef.current;
+    if (!wrapper || !img) return;
+
+    const rect = img.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const angle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+
+    rotationDragRef.current = { startAngle: angle, startRotation: repositionRotation };
+  }, [onRepositionRotationChange, repositionRotation]);
+
+  const handleCornerRotateMove = useCallback((e: React.PointerEvent) => {
+    if (!rotationDragRef.current || !onRepositionRotationChange) return;
+
+    const img = imageRef.current;
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const currentAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+    const deltaAngle = currentAngle - rotationDragRef.current.startAngle;
+
+    let newRotation = rotationDragRef.current.startRotation + deltaAngle;
+    // Clamp to -180..180
+    if (newRotation > 180) newRotation -= 360;
+    if (newRotation < -180) newRotation += 360;
+
+    onRepositionRotationChange(Math.round(newRotation));
+  }, [onRepositionRotationChange]);
+
+  const handleCornerRotateEnd = useCallback((e: React.PointerEvent) => {
+    if (!rotationDragRef.current) return;
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch { /* already released */ }
+    rotationDragRef.current = null;
+  }, []);
+
+  // --- Native wheel listener (passive: false) for trackpad pinch-to-zoom ---
+  const dragContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = dragContainerRef.current;
+    const handler = repositionDragHandlers?.onWheel;
+    if (!isInpaintMode || editMode !== 'reposition' || !el || !handler) return;
+
+    const nativeHandler = (e: WheelEvent) => {
+      e.preventDefault();
+      // Create a synthetic-like object for the callback
+      handler(e as unknown as React.WheelEvent);
+    };
+
+    el.addEventListener('wheel', nativeHandler, { passive: false });
+    return () => el.removeEventListener('wheel', nativeHandler);
+  }, [isInpaintMode, editMode, repositionDragHandlers]);
+
   // Progressive loading: show thumbnail first, then swap to full image when loaded
   const [fullImageLoaded, setFullImageLoaded] = React.useState(() => {
     // If there's no thumbnail (or thumb equals full), we can render full immediately.
@@ -318,6 +402,7 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
         // Image with Canvas Overlays
         // Use a single relative container with the image and canvas both using same centering/constraints
         <div
+          ref={dragContainerRef}
           className={`relative w-full h-full flex items-center justify-center ${!isRepositionMode ? 'pointer-events-none' : ''}`}
           style={{
             // Black background for reposition mode (shows where empty areas will be)
@@ -333,7 +418,7 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
             WebkitUserSelect: isRepositionMode ? 'none' : undefined,
             touchAction: isRepositionMode ? 'none' : undefined,
           }}
-          // Apply drag handlers in reposition mode
+          // Apply drag handlers in reposition mode (wheel is native via useEffect)
           {...(isRepositionMode && repositionDragHandlers ? {
             onPointerDown: repositionDragHandlers.onPointerDown,
             onPointerMove: repositionDragHandlers.onPointerMove,
@@ -488,12 +573,11 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
             />
           )}
 
-          {/* Original Image Bounds Outline - Shows the canvas boundary in reposition mode */}
+          {/* Original Image Bounds Outline - Shows the canvas/crop boundary in reposition mode */}
           {isRepositionMode && displaySize.width > 0 && displaySize.height > 0 && (
             <div
               className="absolute pointer-events-none z-[45]"
               style={{
-                // Position exactly over the image element
                 left: imageOffset.left,
                 top: imageOffset.top,
                 width: displaySize.width,
@@ -510,10 +594,104 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
               <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-blue-500" />
 
               {/* Center crosshair */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                 <div className="w-6 h-0.5 bg-blue-500/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                 <div className="w-0.5 h-6 bg-blue-500/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
+            </div>
+          )}
+
+          {/* Rotation corner handles + zoom buttons - follows the transformed image */}
+          {isRepositionMode && displaySize.width > 0 && displaySize.height > 0 && (
+            <div
+              className="absolute z-[46] pointer-events-none"
+              style={{
+                left: imageOffset.left,
+                top: imageOffset.top,
+                width: displaySize.width,
+                height: displaySize.height,
+                // Same transform as the image so handles track its visual corners
+                transform: repositionTransformStyle?.transform,
+                transformOrigin: 'center center',
+              }}
+            >
+              {/* Zoom +/- buttons at 10% from top, centered */}
+              {onRepositionScaleChange && (
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 flex items-center rounded-full bg-white/60 border border-black/30 px-0.5 py-0.5"
+                  style={{ pointerEvents: 'auto', top: '5%' }}
+                >
+                  <div
+                    className="w-7 h-7 flex items-center justify-center cursor-pointer rounded-full hover:bg-white/20 transition-colors"
+                    onClick={() => repositionScale > 0.25 && onRepositionScaleChange(Math.max(0.25, repositionScale - 0.05))}
+                    title="Zoom out"
+                  >
+                    <Minus className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div className="w-px h-4 bg-black/30" />
+                  <div
+                    className="w-7 h-7 flex items-center justify-center cursor-pointer rounded-full hover:bg-white/20 transition-colors"
+                    onClick={() => repositionScale < 2.0 && onRepositionScaleChange(Math.min(2.0, repositionScale + 0.05))}
+                    title="Zoom in"
+                  >
+                    <Plus className="h-4 w-4 text-blue-400" />
+                  </div>
+                </div>
+              )}
+
+              {/* Corner rotation handles */}
+              {onRepositionRotationChange && (
+                <>
+                  {/* Top-left */}
+                  <div
+                    className="absolute -top-4 -left-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                    style={{ pointerEvents: 'auto', transform: 'rotate(-90deg)' }}
+                    onPointerDown={handleCornerRotateStart}
+                    onPointerMove={handleCornerRotateMove}
+                    onPointerUp={handleCornerRotateEnd}
+                    onPointerCancel={handleCornerRotateEnd}
+                    title="Drag to rotate"
+                  >
+                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                  </div>
+                  {/* Top-right */}
+                  <div
+                    className="absolute -top-4 -right-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                    style={{ pointerEvents: 'auto' }}
+                    onPointerDown={handleCornerRotateStart}
+                    onPointerMove={handleCornerRotateMove}
+                    onPointerUp={handleCornerRotateEnd}
+                    onPointerCancel={handleCornerRotateEnd}
+                    title="Drag to rotate"
+                  >
+                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                  </div>
+                  {/* Bottom-left */}
+                  <div
+                    className="absolute -bottom-4 -left-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                    style={{ pointerEvents: 'auto', transform: 'rotate(180deg)' }}
+                    onPointerDown={handleCornerRotateStart}
+                    onPointerMove={handleCornerRotateMove}
+                    onPointerUp={handleCornerRotateEnd}
+                    onPointerCancel={handleCornerRotateEnd}
+                    title="Drag to rotate"
+                  >
+                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                  </div>
+                  {/* Bottom-right */}
+                  <div
+                    className="absolute -bottom-4 -right-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
+                    style={{ pointerEvents: 'auto', transform: 'rotate(90deg)' }}
+                    onPointerDown={handleCornerRotateStart}
+                    onPointerMove={handleCornerRotateMove}
+                    onPointerUp={handleCornerRotateEnd}
+                    onPointerCancel={handleCornerRotateEnd}
+                    title="Drag to rotate"
+                  >
+                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                  </div>
+                </>
+              )}
             </div>
           )}
 

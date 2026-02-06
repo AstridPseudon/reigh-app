@@ -1,14 +1,8 @@
 /**
  * Shared types for MediaLightbox layout components
- *
- * These types define the props needed by each layout component.
- * Rather than trying to abstract everything, we import the actual prop types
- * from the components that need them.
  */
 
 import React from 'react';
-import { GenerationRow } from '@/types/shots';
-import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { BrushStroke, AnnotationMode } from '../../hooks/useInpainting';
 import type { EditMode } from '../../hooks/useGenerationEditSettings';
@@ -19,59 +13,11 @@ import type { PortionSelection } from '@/shared/components/VideoPortionTimeline'
 import type { AdjacentSegmentsData, SegmentSlotModeData } from '../../types';
 
 /**
- * Core props needed by all layouts
- */
-interface LayoutCoreProps {
-  onClose: () => void;
-  readOnly: boolean;
-  selectedProjectId: string | null;
-  isMobile: boolean;
-}
-
-/**
- * Media display props
- */
-interface LayoutMediaProps {
-  media: GenerationRow;
-  isVideo: boolean;
-  effectiveMediaUrl: string;
-  effectiveVideoUrl: string;
-  imageDimensions: { width: number; height: number } | null;
-  setImageDimensions: (dims: { width: number; height: number }) => void;
-}
-
-/**
- * Variant management props
- */
-interface LayoutVariantProps {
-  variants: GenerationVariant[] | undefined;
-  activeVariant: GenerationVariant | undefined;
-  primaryVariant: GenerationVariant | undefined;
-  isLoadingVariants: boolean;
-  setActiveVariantId: (id: string) => void;
-  setPrimaryVariant: (id: string) => Promise<void>;
-  deleteVariant: (id: string) => Promise<void>;
-  // Promotion
-  promoteSuccess: boolean;
-  isPromoting: boolean;
-  handlePromoteToGeneration: (variantId: string) => void;
-  // Make main variant
-  isMakingMainVariant: boolean;
-  canMakeMainVariant: boolean;
-  handleMakeMainVariant: () => void;
-  // Variant params for regenerate form
-  variantParamsToLoad: Record<string, unknown> | null;
-  setVariantParamsToLoad: (params: Record<string, unknown> | null) => void;
-  variantsSectionRef: React.RefObject<HTMLDivElement>;
-}
-
-/**
  * Video edit mode props
  */
 interface LayoutVideoEditProps {
   isVideoTrimModeActive: boolean;
   isVideoEditModeActive: boolean;
-  videoEditSubMode: 'trim' | 'replace' | 'regenerate' | null;
   trimVideoRef: React.RefObject<HTMLVideoElement>;
   trimState: {
     videoDuration: number;
@@ -82,7 +28,6 @@ interface LayoutVideoEditProps {
   };
   setVideoDuration: (duration: number) => void;
   setTrimCurrentTime: (time: number) => void;
-  // Video editing hook (for regenerate mode)
   videoEditing: {
     videoRef: React.RefObject<HTMLVideoElement>;
     selections: PortionSelection[];
@@ -102,16 +47,15 @@ interface LayoutEditModeProps {
   isAnnotateMode: boolean;
   isSpecialEditMode: boolean;
   editMode: EditMode | null;
-  // Inpainting/annotation
   brushStrokes: BrushStroke[];
   currentStroke: BrushStroke | null;
   isDrawing: boolean;
   isEraseMode: boolean;
-  setIsEraseMode: (value: boolean) => void;
+  setIsEraseMode?: (value: boolean) => void;
   brushSize: number;
-  setBrushSize: (size: number) => void;
+  setBrushSize?: (size: number) => void;
   annotationMode: AnnotationMode | null;
-  setAnnotationMode: (mode: AnnotationMode | null) => void;
+  setAnnotationMode?: (mode: AnnotationMode | null) => void;
   selectedShapeId: string | null;
   handleKonvaPointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
   handleKonvaPointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
@@ -123,42 +67,20 @@ interface LayoutEditModeProps {
   getDeleteButtonPosition: () => { x: number; y: number } | null;
   handleToggleFreeForm: () => void;
   handleDeleteSelected: () => void;
-  // Reposition
   isRepositionDragging: boolean;
   repositionDragHandlers: {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
+    onWheel: (e: React.WheelEvent) => void;
   } | null;
   getTransformStyle: () => React.CSSProperties;
-  // Canvas/image refs
   imageContainerRef: React.RefObject<HTMLDivElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   maskCanvasRef: React.RefObject<HTMLCanvasElement>;
   isFlippedHorizontally: boolean;
   isSaving: boolean;
-}
-
-/**
- * Navigation props
- */
-interface LayoutNavigationProps {
-  showNavigation: boolean;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  handleSlotNavNext: () => void;
-  handleSlotNavPrev: () => void;
-  // Swipe navigation (mobile)
-  swipeNavigation: {
-    isSwiping: boolean;
-    swipeOffset: number;
-    swipeHandlers: {
-      onTouchStart: (e: React.TouchEvent) => void;
-      onTouchMove: (e: React.TouchEvent) => void;
-      onTouchEnd: (e: React.TouchEvent) => void;
-    };
-  };
 }
 
 /**
@@ -198,34 +120,6 @@ export interface LayoutWorkflowBarProps {
 }
 
 /**
- * Floating tool controls props (for edit modes)
- */
-export interface LayoutFloatingToolProps {
-  editMode: EditMode | null;
-  setEditMode: (mode: EditMode | null) => void;
-  brushSize: number;
-  isEraseMode: boolean;
-  setBrushSize: (size: number) => void;
-  setIsEraseMode: (value: boolean) => void;
-  annotationMode: AnnotationMode | null;
-  setAnnotationMode: (mode: AnnotationMode | null) => void;
-  repositionTransform: ImageTransform;
-  setTranslateX: (x: number) => void;
-  setTranslateY: (y: number) => void;
-  setScale: (scale: number) => void;
-  setRotation: (rotation: number) => void;
-  toggleFlipH: () => void;
-  toggleFlipV: () => void;
-  resetTransform: () => void;
-  effectiveImageDimensions: { width: number; height: number } | null;
-  brushStrokes: BrushStroke[];
-  handleUndo: () => void;
-  handleClearMask: () => void;
-  inpaintPanelPosition: 'left' | 'right';
-  setInpaintPanelPosition: (position: 'left' | 'right') => void;
-}
-
-/**
  * Panel-related props (task pane state)
  */
 interface LayoutPanelProps {
@@ -234,75 +128,63 @@ interface LayoutPanelProps {
 }
 
 /**
- * Props for layouts that use ControlsPanel (Desktop and Mobile stacked)
- * Includes all props needed for ControlsPanel plus layout-specific props
+ * Simplified floating tool props as consumed by LightboxLayout
+ * (FloatingToolControls reads most state from ImageEditContext)
  */
-export interface SidePanelLayoutProps extends
-  LayoutCoreProps,
-  LayoutMediaProps,
-  LayoutVariantProps,
-  LayoutVideoEditProps,
-  LayoutEditModeProps,
-  LayoutNavigationProps,
-  LayoutPanelProps {
-  // Actual generation ID (may differ from media.id for variants)
-  actualGenerationId: string;
-
-  // Effective image dimensions (resolved from media or variants)
-  effectiveImageDimensions: { width: number; height: number } | null;
-
-  // Button groups
-  buttonGroupProps: LayoutButtonGroupProps;
-
-  // Workflow controls bar
-  workflowBarProps: LayoutWorkflowBarProps;
-
-  // Floating tool controls (for edit modes in tablet/desktop)
-  floatingToolProps: LayoutFloatingToolProps;
-
-  // Controls panel props - the full set for ControlsPanel component
-  controlsPanelProps: Omit<ControlsPanelProps, 'variant'>;
-
-  // Adjacent segment navigation (for jumping to video segments from image lightbox)
-  adjacentSegments?: AdjacentSegmentsData;
-
-  // Segment slot mode (for showing constituent image navigation when viewing segments)
-  segmentSlotMode?: SegmentSlotModeData;
+export interface LayoutFloatingToolPropsSimple {
+  repositionTransform: ImageTransform;
+  onRepositionScaleChange: (value: number) => void;
+  onRepositionRotationChange: (value: number) => void;
+  onRepositionFlipH: () => void;
+  onRepositionFlipV: () => void;
+  onRepositionReset: () => void;
 }
 
 /**
- * Props for the centered layout (no side panel)
- * Uses WorkflowControls below media instead of ControlsPanel
+ * Workflow controls props for below-media controls (centered layout only)
  */
-export interface CenteredLayoutProps extends
-  LayoutCoreProps,
-  LayoutMediaProps,
-  LayoutVariantProps,
+export interface LayoutWorkflowControlsProps extends LayoutWorkflowBarProps {
+  isDeleting?: string | null;
+  handleDelete: () => void;
+}
+
+/**
+ * Unified layout props for LightboxLayout
+ * Combines panel and centered layout needs with a `showPanel` flag.
+ */
+export interface LightboxLayoutProps extends
   LayoutVideoEditProps,
   LayoutEditModeProps,
-  LayoutNavigationProps {
-  // Actual generation ID
-  actualGenerationId: string;
-
-  // Effective image dimensions
-  effectiveImageDimensions: { width: number; height: number } | null;
+  LayoutPanelProps {
+  showPanel: boolean;
 
   // Button groups
   buttonGroupProps: LayoutButtonGroupProps;
 
-  // Workflow controls bar (floating)
+  // Workflow controls bar (always present)
   workflowBarProps: LayoutWorkflowBarProps;
 
-  // Workflow controls (below media) - different from workflowBarProps
-  workflowControlsProps: {
-    isDeleting?: string | null;
-    handleDelete: () => void;
-  } & LayoutWorkflowBarProps;
+  // Reposition rotation (for corner drag-to-rotate on image bounds)
+  onRepositionRotationChange?: (degrees: number) => void;
+  repositionRotation?: number;
 
-  // Adjacent segment navigation (for jumping to video segments from image lightbox)
+  // Reposition scale (for +/- zoom buttons on image)
+  onRepositionScaleChange?: (value: number) => void;
+  repositionScale?: number;
+
+  // Floating tool controls (panel layouts only)
+  floatingToolProps?: LayoutFloatingToolPropsSimple;
+
+  // Controls panel props (panel layouts only)
+  controlsPanelProps?: Omit<ControlsPanelProps, 'variant'>;
+
+  // Workflow controls below media (centered layout only)
+  workflowControlsProps?: LayoutWorkflowControlsProps;
+
+  // Adjacent segment navigation
   adjacentSegments?: AdjacentSegmentsData;
 
-  // Segment slot mode (for showing constituent image navigation when viewing segments)
+  // Segment slot mode
   segmentSlotMode?: SegmentSlotModeData;
 }
 
