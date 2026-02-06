@@ -32,6 +32,7 @@ import { Plus, Upload, Loader2 } from 'lucide-react';
 import { getDragType, getGenerationDropData, isFileDrag, type GenerationDropData, type DragType } from '@/shared/lib/dragDrop';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { queryKeys } from '@/shared/lib/queryKeys';
+import { useShotFinalVideos } from '../hooks/useShotFinalVideos';
 
 interface ShotListDisplayProps {
   onSelectShot: (shot: Shot) => void;
@@ -74,6 +75,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
   const currentProject = useCurrentProject();
   const reorderShotsMutation = useReorderShots();
   const queryClient = useQueryClient();
+  const { finalVideoMap } = useShotFinalVideos(currentProjectId);
   const [optimisticShots, setOptimisticShots] = React.useState<Shot[] | null>(null);
   
   // Always use props shots to ensure single source of truth, with optional local optimistic overlay
@@ -806,6 +808,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
                   setNewlyCreatedShotBaselineNonVideoCount(0);
                 } : undefined}
                 dataTour={index === 0 ? 'first-shot' : undefined}
+                finalVideo={finalVideoMap.get(shot.id)}
               />
             );
           })}

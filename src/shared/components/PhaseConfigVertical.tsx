@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Slider } from '@/shared/components/ui/slider';
 import { Switch } from '@/shared/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
+import { TextAction } from '@/shared/components/ui/text-action';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { Info, RotateCcw, Trash2, Download, Search, Save, Library, FilePlus, AlertTriangle } from 'lucide-react';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
@@ -557,7 +558,7 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                 })}
 
                 {/* Add LoRA button */}
-                <button
+                <TextAction
                   onClick={() => {
                     // IMMUTABLE UPDATE: Create new phase with filtered loras + new one
                     const newPhases = phaseConfig.phases.map((p, pIdx) =>
@@ -576,11 +577,10 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                       phases: newPhases
                     });
                   }}
-                  className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer"
-                  type="button"
+                  className="cursor-pointer"
                 >
                   + Add LoRA
-                </button>
+                </TextAction>
               </div>
             </div>
           </CardContent>

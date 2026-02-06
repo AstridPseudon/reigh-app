@@ -1,7 +1,8 @@
 import * as React from "react"
 import { Mic, Square, Loader2, X, Check, Wand2, Send } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger, TouchableTooltip } from "./tooltip"
+import { TextAction } from "./text-action"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { useVoiceRecording } from "@/shared/hooks/use-voice-recording"
 import { useIsMobile } from "@/shared/hooks/use-mobile"
@@ -29,7 +30,7 @@ export const AIInputButton = React.forwardRef<
   AIInputButtonProps
 >(({ onResult, onError, onActiveStateChange, task = "transcribe_and_write", context, example, existingValue = "", disabled = false, className }, ref) => {
   const isMobile = useIsMobile()
-  const { mode } = useAIInputMode()
+  const { mode, setMode } = useAIInputMode()
   
   // Voice recording state
   const { state: voiceState, audioLevel, remainingSeconds, isActive: isVoiceActive, toggleRecording, cancelRecording } = useVoiceRecording({
@@ -371,17 +372,30 @@ export const AIInputButton = React.forwardRef<
     )
   }
 
-  // Voice mode: standard tooltip wrapper
+  // Voice mode: touchable tooltip with mode switch action
   if (mode === "voice") {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {voiceButtonContent}
-        </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={5}>
-          {getTooltipText()}
-        </TooltipContent>
-      </Tooltip>
+      <TouchableTooltip
+        side="top"
+        contentClassName="flex flex-col gap-1"
+        content={
+          <>
+            <p className="text-xs">{getTooltipText()}</p>
+            <TextAction
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setMode("text");
+              }}
+              className="text-left"
+            >
+              Switch to text input
+            </TextAction>
+          </>
+        }
+      >
+        {voiceButtonContent}
+      </TouchableTooltip>
     )
   }
 
@@ -446,8 +460,18 @@ export const AIInputButton = React.forwardRef<
           </div>
         </PopoverContent>
       </Popover>
-      <TooltipContent side="top" sideOffset={5}>
-        {getTooltipText()}
+      <TooltipContent side="top" sideOffset={5} className="flex flex-col gap-1">
+        <p className="text-xs">{getTooltipText()}</p>
+        <TextAction
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setMode("voice");
+          }}
+          className="text-left"
+        >
+          Switch to voice input
+        </TextAction>
       </TooltipContent>
     </Tooltip>
   )

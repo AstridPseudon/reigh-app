@@ -343,6 +343,9 @@ function invalidateGenerationUpdate(
   queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === queryKeys.segments.parentsAll[0]
   });
+
+  // 6. Invalidate shot final videos (for shot list video previews)
+  queryClient.invalidateQueries({ queryKey: queryKeys.finalVideos.all });
 }
 
 // Keep for potential future use - referenced in docs

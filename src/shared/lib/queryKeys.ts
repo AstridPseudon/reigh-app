@@ -118,6 +118,16 @@ export const queryKeys = {
   },
 
   // ==========================================================================
+  // FINAL VIDEOS (shot list preview)
+  // ==========================================================================
+  finalVideos: {
+    /** Final videos for all shots in a project */
+    byProject: (projectId: string) => ['shot-final-videos', projectId] as const,
+    /** All final video queries (predicate invalidation) */
+    all: ['shot-final-videos'] as const,
+  },
+
+  // ==========================================================================
   // SEGMENTS (timeline segments)
   // ==========================================================================
   segments: {

@@ -49,6 +49,7 @@ export interface UseSegmentSlotModeReturn {
   setActivePairData: (data: PairData | null) => void;
   pendingImageToOpen: string | null;
   setPendingImageToOpen: (id: string | null) => void;
+  pendingImageVariantId: string | null;
   pairDataByIndex: Map<number, PairData>;
   segmentSlotModeData: SegmentSlotModeData | null;
   handlePairClick: (pairIndex: number, passedPairData?: PairData) => void;
@@ -88,7 +89,14 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
 
   const [segmentSlotLightboxIndex, setSegmentSlotLightboxIndex] = useState<number | null>(null);
   const [activePairData, setActivePairData] = useState<PairData | null>(null);
-  const [pendingImageToOpen, setPendingImageToOpen] = useState<string | null>(null);
+  // Initialize from location state so the value is available on first render (prevents flash)
+  const initialState = location.state as { openImageGenerationId?: string; openImageVariantId?: string } | null;
+  const [pendingImageToOpen, setPendingImageToOpen] = useState<string | null>(
+    initialState?.openImageGenerationId ?? null
+  );
+  const [pendingImageVariantId, setPendingImageVariantId] = useState<string | null>(
+    initialState?.openImageVariantId ?? null
+  );
   const frameCountDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // ==========================================================================
@@ -112,6 +120,18 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
   // ==========================================================================
   // DEEP-LINKING: Open segment from URL state
   // ==========================================================================
+
+  // Deep-linking: Clear openImageGenerationId from URL state after initialization
+  // (pendingImageToOpen is initialized from location.state above, so just clean up the URL)
+  useEffect(() => {
+    const state = location.state as { openImageGenerationId?: string; fromShotClick?: boolean } | null;
+    if (!state?.openImageGenerationId) return;
+
+    navigate(location.pathname + location.hash, {
+      replace: true,
+      state: { fromShotClick: state.fromShotClick }
+    });
+  }, [location.state, navigate, location.pathname, location.hash]);
 
   useEffect(() => {
     const state = location.state as { openSegmentSlot?: string; fromShotClick?: boolean } | null;
@@ -318,6 +338,7 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     setActivePairData,
     pendingImageToOpen,
     setPendingImageToOpen,
+    pendingImageVariantId,
     pairDataByIndex,
     segmentSlotModeData,
     handlePairClick,

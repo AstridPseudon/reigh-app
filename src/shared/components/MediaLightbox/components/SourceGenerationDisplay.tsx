@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
+import { TextAction } from '@/shared/components/ui/text-action';
 import { Star, Loader2 } from 'lucide-react';
 import { handleError } from '@/shared/lib/errorHandler';
 import type { SourceVariantData } from '../hooks/useSourceGeneration';
@@ -195,12 +196,12 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
       
       {/* Show "Replace in shot" CTA if parent is positioned but current item is not */}
       {showReplaceCTA && (
-        <button
+        <TextAction
           onClick={handleReplace}
-          className="text-xs text-muted-foreground hover:text-foreground underline self-start"
+          className="self-start"
         >
           Replace in {shotName}
-        </button>
+        </TextAction>
       )}
     </div>
   );

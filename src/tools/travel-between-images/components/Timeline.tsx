@@ -576,9 +576,9 @@ const Timeline: React.FC<TimelineProps> = ({
   useEffect(() => {
     if (!pendingImageToOpen || !currentImages?.length) return;
 
-    // Find the image in the current images array
+    // Find the image in the current images array (by shot_generations.id, shotImageEntryId, or generation_id)
     const index = currentImages.findIndex(
-      (img) => img.id === pendingImageToOpen || img.shotImageEntryId === pendingImageToOpen
+      (img) => img.id === pendingImageToOpen || img.shotImageEntryId === pendingImageToOpen || img.generation_id === pendingImageToOpen
     );
 
     if (index !== -1) {

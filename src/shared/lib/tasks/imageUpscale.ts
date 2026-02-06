@@ -18,6 +18,7 @@ export interface ImageUpscaleTaskParams {
   scale_factor?: number; // Default to 2x upscaling
   noise_scale?: number; // Default to 0.1
   output_format?: string; // Default to "jpeg"
+  shot_id?: string; // Optional: associate with shot for navigation from TasksPane
 }
 
 /**
@@ -69,6 +70,10 @@ function buildImageUpscaleTaskParams(
   // Track source variant if enhancing from a specific variant
   if (params.source_variant_id) {
     taskParams.source_variant_id = params.source_variant_id;
+  }
+
+  if (params.shot_id) {
+    taskParams.shot_id = params.shot_id;
   }
 
   return taskParams;

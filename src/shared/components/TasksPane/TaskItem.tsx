@@ -155,20 +155,8 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
   const imagesToShow = travelImageUrls.slice(0, 4);
   const extraImageCount = Math.max(0, travelImageUrls.length - imagesToShow.length);
 
-  // Extract shot_id for video tasks and travel-related tasks
-  // Travel tasks (orchestrators, segments, stitch) always have shot_id
-  const shotId = useMemo(() => {
-    // Always try to extract for travel-related task types (regardless of isVideoTask status)
-    const isTravelTask = [
-      'travel_orchestrator',
-      'join_clips_orchestrator',
-      'wan_2_2_i2v',
-      'individual_travel_segment',
-      'travel_stitch',
-    ].includes(task.taskType);
-    if (!taskInfo.isVideoTask && !isTravelTask) return null;
-    return extractShotId(task);
-  }, [task, taskInfo.isVideoTask]);
+  // Extract shot_id from task params (video tasks, travel tasks, and image edit tasks all may have it)
+  const shotId = useMemo(() => extractShotId(task), [task]);
 
   // Cascaded error handling
   const cascadedTaskIdMatch = task.errorMessage?.match(/Cascaded failed from related task ([a-f0-9-]+)/i);
@@ -374,6 +362,25 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
     e.preventDefault();
     setIsHoveringTaskItem(false);
 
+    // If image belongs to a shot, navigate to the shot and open it in context
+    if (shotId && generationData) {
+      onCloseLightbox?.();
+
+      // Switch to the task's project if different from current
+      if (task.projectId && task.projectId !== selectedProjectId) {
+        setSelectedProjectId(task.projectId);
+      }
+
+      setCurrentShotId(shotId);
+      navigate(`/tools/travel-between-images#${shotId}`, {
+        state: {
+          fromShotClick: true,
+          openImageGenerationId: generationData.generation_id || generationData.id,
+        }
+      });
+      return;
+    }
+
     if (generationData && onOpenImageLightbox) {
       // Pass variant ID if available (for edit tasks that create variants)
       const initialVariantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
@@ -414,10 +421,27 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           return;
         }
         
-        if (taskInfo.isImageTask && generationData && onOpenImageLightbox) {
+        if (taskInfo.isImageTask && generationData) {
           onMobileActiveChange?.(null);
-          const initialVariantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
-          onOpenImageLightbox(task, generationData, initialVariantId);
+          // Navigate to shot context if applicable
+          if (shotId) {
+            onCloseLightbox?.();
+            if (task.projectId && task.projectId !== selectedProjectId) {
+              setSelectedProjectId(task.projectId);
+            }
+            setCurrentShotId(shotId);
+            navigate(`/tools/travel-between-images#${shotId}`, {
+              state: {
+                fromShotClick: true,
+                openImageGenerationId: generationData.generation_id || generationData.id,
+              }
+            });
+            return;
+          }
+          if (onOpenImageLightbox) {
+            const initialVariantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
+            onOpenImageLightbox(task, generationData, initialVariantId);
+          }
           return;
         }
       } else {

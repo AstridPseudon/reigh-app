@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Shot } from '../../../types/shots';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Shot, GenerationRow } from '../../../types/shots';
 import { useUpdateShotName, useDeleteShot, useDuplicateShot } from '../../../shared/hooks/useShots';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
-import { Pencil, Trash2, Check, X, Copy, GripVertical, Loader2, Video, ChevronDown, ChevronUp } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Copy, GripVertical, Loader2, Video, ChevronDown, ChevronUp, Images } from 'lucide-react';
 import { toast } from '@/shared/components/ui/sonner';
 import { getDisplayUrl, cn } from '@/shared/lib/utils';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -15,6 +15,9 @@ import { isVideoGeneration, isPositioned } from '@/shared/lib/typeGuards';
 import { VideoGenerationModal } from './VideoGenerationModal';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import MediaLightbox from '@/shared/components/MediaLightbox';
+import type { ShotFinalVideo } from '../hooks/useShotFinalVideos';
 
 interface VideoShotDisplayProps {
   shot: Shot;
@@ -33,11 +36,12 @@ interface VideoShotDisplayProps {
   imagesOverlay?: React.ReactNode; // Optional overlay to render over the images area
   dropLoadingState?: 'idle' | 'loading' | 'success'; // Loading state for drops with position
   dataTour?: string; // Data attribute for product tour
+  finalVideo?: ShotFinalVideo; // Final video data for this shot (if available)
 }
 
 const SKIP_DELETE_CONFIRMATION_KEY = 'reigh-skip-delete-shot-confirmation';
 
-const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot, currentProjectId, dragHandleProps, dragDisabledReason, shouldLoadImages = true, shotIndex = 0, projectAspectRatio, isHighlighted = false, pendingUploads = 0, imagesOverlay, dropLoadingState = 'idle', dataTour }) => {
+const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot, currentProjectId, dragHandleProps, dragDisabledReason, shouldLoadImages = true, shotIndex = 0, projectAspectRatio, isHighlighted = false, pendingUploads = 0, imagesOverlay, dropLoadingState = 'idle', dataTour, finalVideo }) => {
   // Check if this is a temp shot (optimistic duplicate waiting for real ID)
   const isTempShot = shot.id.startsWith('temp-');
   
@@ -64,6 +68,27 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isImagesExpanded, setIsImagesExpanded] = useState(false);
+  const [showVideo, setShowVideo] = useState(false); // Toggle to show final video preview
+  const [isFinalVideoLightboxOpen, setIsFinalVideoLightboxOpen] = useState(false);
+
+  // Build a minimal GenerationRow for the lightbox
+  const finalVideoRow = useMemo((): GenerationRow | null => {
+    if (!finalVideo) return null;
+    return {
+      id: finalVideo.id,
+      location: finalVideo.location,
+      thumbUrl: finalVideo.thumbnailUrl ?? undefined,
+      type: 'video',
+    };
+  }, [finalVideo]);
+
+  const handleFinalVideoLightboxOpen = useCallback(() => {
+    setIsFinalVideoLightboxOpen(true);
+  }, []);
+
+  const handleFinalVideoLightboxClose = useCallback(() => {
+    setIsFinalVideoLightboxOpen(false);
+  }, []);
 
   const updateShotNameMutation = useUpdateShotName();
   const deleteShotMutation = useDeleteShot();
@@ -432,96 +457,151 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
         <div className="flex-grow relative">
           {/* Optional overlay for loading states etc. */}
           {imagesOverlay}
-          {/* Built-in loading indicator for drops - only show when collapsed with >3 images */}
-          {dropLoadingState !== 'idle' && displayImages.length > IMAGES_PER_ROW && !isImagesExpanded && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+
+          {/* Final video preview (shown when toggled on) */}
+          {finalVideo && showVideo ? (
+            <div className="relative group/video">
               <div
-                className={cn(
-                  'px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg',
-                  dropLoadingState === 'loading' && 'bg-primary text-primary-foreground',
-                  dropLoadingState === 'success' && 'bg-green-600 text-white'
-                )}
+                className="rounded border border-border bg-muted shadow-sm overflow-hidden cursor-pointer"
+                style={{
+                  aspectRatio: projectAspectRatio
+                    ? projectAspectRatio.replace(':', '/')
+                    : '16/9',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFinalVideoLightboxOpen();
+                }}
               >
-                {dropLoadingState === 'loading' && (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                )}
-                {dropLoadingState === 'success' && (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Added
-                  </>
-                )}
+                <HoverScrubVideo
+                  src={finalVideo.location}
+                  poster={finalVideo.thumbnailUrl ?? undefined}
+                  loadOnDemand
+                  preload="metadata"
+                  className="w-full h-full"
+                  videoClassName="object-cover pointer-events-none"
+                />
               </div>
+              {/* Toggle back to shot images */}
+              <button
+                className="absolute bottom-1 left-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowVideo(false);
+                }}
+              >
+                <Images className="w-3 h-3" />
+                Shot images
+              </button>
             </div>
+          ) : (
+            <>
+              {/* Built-in loading indicator for drops - only show when collapsed with >3 images */}
+              {dropLoadingState !== 'idle' && displayImages.length > IMAGES_PER_ROW && !isImagesExpanded && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                  <div
+                    className={cn(
+                      'px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg',
+                      dropLoadingState === 'loading' && 'bg-primary text-primary-foreground',
+                      dropLoadingState === 'success' && 'bg-green-600 text-white'
+                    )}
+                  >
+                    {dropLoadingState === 'loading' && (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    )}
+                    {dropLoadingState === 'success' && (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Added
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-2 relative">
+                {/* When collapsed: show first row of existing images */}
+                {/* When expanded: show all existing images */}
+                {(isImagesExpanded ? displayImages : displayImages.slice(0, IMAGES_PER_ROW)).map((image, index) => (
+                  <img
+                    key={`${image.thumbUrl || image.imageUrl || image.location || 'img'}-${index}`}
+                    src={getDisplayUrl(image.thumbUrl || image.imageUrl || image.location)}
+                    alt={`Shot image ${index + 1}`}
+                    className="w-full aspect-square object-cover rounded border border-border bg-muted shadow-sm"
+                    title={`Image ${index + 1}`}
+                  />
+                ))}
+
+                {/* Show skeletons for pending uploads (with spinner) */}
+                {collapsedSkeletonCount > 0 && Array.from({ length: collapsedSkeletonCount }).map((_, index) => (
+                  <div
+                    key={`pending-collapsed-${index}`}
+                    className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
+                  >
+                    <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
+                  </div>
+                ))}
+
+                {/* Empty placeholder slots to fill up to 3 when collapsed (no spinner) */}
+                {emptyPlaceholderCount > 0 && Array.from({ length: emptyPlaceholderCount }).map((_, index) => (
+                  <div
+                    key={`empty-${index}`}
+                    className="w-full aspect-square rounded border-2 border-dashed border-border"
+                  />
+                ))}
+
+                {/* Skeleton items for pending uploads - always appended at end, only visible when expanded */}
+                {pendingUploads > 0 && isImagesExpanded && Array.from({ length: pendingUploads }).map((_, index) => (
+                  <div
+                    key={`pending-${index}`}
+                    className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
+                  >
+                    <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
+                  </div>
+                ))}
+
+                {hasMultipleRows && !isImagesExpanded && (
+                  <button
+                    className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsImagesExpanded(true);
+                    }}
+                  >
+                    Show All ({totalImageCount}) <ChevronDown className="w-3 h-3" />
+                  </button>
+                )}
+
+                {isImagesExpanded && hasMultipleRows && (
+                  <button
+                    className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsImagesExpanded(false);
+                    }}
+                  >
+                    Hide <ChevronUp className="w-3 h-3" />
+                  </button>
+                )}
+
+                {/* Toggle to final video */}
+                {finalVideo && !showVideo && (
+                  <button
+                    className="absolute bottom-1 left-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowVideo(true);
+                    }}
+                  >
+                    <Video className="w-3 h-3" />
+                    Final video
+                  </button>
+                )}
+              </div>
+            </>
           )}
-          <div className="grid grid-cols-3 gap-2 relative">
-            {/* When collapsed: show first row of existing images */}
-            {/* When expanded: show all existing images */}
-            {(isImagesExpanded ? displayImages : displayImages.slice(0, IMAGES_PER_ROW)).map((image, index) => (
-              <img
-                key={`${image.thumbUrl || image.imageUrl || image.location || 'img'}-${index}`}
-                src={getDisplayUrl(image.thumbUrl || image.imageUrl || image.location)}
-                alt={`Shot image ${index + 1}`}
-                className="w-full aspect-square object-cover rounded border border-border bg-muted shadow-sm"
-                title={`Image ${index + 1}`}
-              />
-            ))}
-
-            {/* Show skeletons for pending uploads (with spinner) */}
-            {collapsedSkeletonCount > 0 && Array.from({ length: collapsedSkeletonCount }).map((_, index) => (
-              <div
-                key={`pending-collapsed-${index}`}
-                className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
-              >
-                <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
-              </div>
-            ))}
-            
-            {/* Empty placeholder slots to fill up to 3 when collapsed (no spinner) */}
-            {emptyPlaceholderCount > 0 && Array.from({ length: emptyPlaceholderCount }).map((_, index) => (
-              <div
-                key={`empty-${index}`}
-                className="w-full aspect-square rounded border-2 border-dashed border-border"
-              />
-            ))}
-            
-            {/* Skeleton items for pending uploads - always appended at end, only visible when expanded */}
-            {pendingUploads > 0 && isImagesExpanded && Array.from({ length: pendingUploads }).map((_, index) => (
-              <div
-                key={`pending-${index}`}
-                className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
-              >
-                <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
-              </div>
-            ))}
-
-            {hasMultipleRows && !isImagesExpanded && (
-              <button
-                className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsImagesExpanded(true);
-                }}
-              >
-                Show All ({totalImageCount}) <ChevronDown className="w-3 h-3" />
-              </button>
-            )}
-
-            {isImagesExpanded && hasMultipleRows && (
-              <button
-                className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsImagesExpanded(false);
-                }}
-              >
-                Hide <ChevronUp className="w-3 h-3" />
-              </button>
-            )}
-          </div>
           
           {/* Select this shot button - shows when GenerationsPane is locked (mobile/tablet only) */}
           {isGenerationsPaneLocked && isMobile && (
@@ -594,6 +674,22 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
           isOpen={isVideoModalOpen}
           onClose={() => setIsVideoModalOpen(false)}
           shot={shot}
+        />
+      )}
+
+      {/* Lightbox for final video preview */}
+      {isFinalVideoLightboxOpen && finalVideoRow && (
+        <MediaLightbox
+          media={finalVideoRow}
+          onClose={handleFinalVideoLightboxClose}
+          showNavigation={false}
+          showImageEditTools={false}
+          showDownload={true}
+          hasNext={false}
+          hasPrevious={false}
+          starred={false}
+          shotId={shot.id}
+          showVideoTrimEditor={true}
         />
       )}
     </>

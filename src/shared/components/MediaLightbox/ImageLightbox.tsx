@@ -287,7 +287,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   // UPSCALE HOOK
   // ========================================
 
-  const upscaleHook = useUpscale({ media, selectedProjectId, isVideo: false });
+  const upscaleHook = useUpscale({ media, selectedProjectId, isVideo: false, shotId });
   const {
     effectiveImageUrl,
     sourceUrlForTasks,
@@ -680,6 +680,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     numGenerations: persistedNumGenerations,
     activeVariantLocation: variants.activeVariant?.location,
     activeVariantId: variants.activeVariant?.id,
+    shotId,
   });
 
   const {

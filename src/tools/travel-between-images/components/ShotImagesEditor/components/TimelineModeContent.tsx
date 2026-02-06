@@ -97,6 +97,7 @@ export interface TimelineModeContentProps {
 
   // Lightbox transitions
   pendingImageToOpen: string | null;
+  pendingImageVariantId?: string | null;
   onClearPendingImageToOpen: () => void;
   navigateWithTransition: (doNavigation: () => void) => void;
 

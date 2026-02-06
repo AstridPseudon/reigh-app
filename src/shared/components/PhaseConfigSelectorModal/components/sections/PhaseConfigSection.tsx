@@ -7,6 +7,7 @@ import { Label } from '@/shared/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Slider } from '@/shared/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
+import { TextAction } from '@/shared/components/ui/text-action';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { Info, Trash2, RotateCcw, Search, Download } from 'lucide-react';
 import { PhaseConfig } from '@/shared/types/phaseConfig';
@@ -333,13 +334,12 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
                 })}
 
                 {/* Add LoRA button */}
-                <button
+                <TextAction
                   onClick={() => addLoraToPhase(phaseIdx)}
-                  className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer focus:outline-none"
-                  type="button"
+                  className="cursor-pointer focus:outline-none"
                 >
                   + Add LoRA
-                </button>
+                </TextAction>
               </div>
             </div>
           </CardContent>

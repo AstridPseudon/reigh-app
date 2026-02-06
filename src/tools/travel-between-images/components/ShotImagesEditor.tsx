@@ -203,6 +203,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     setSegmentSlotLightboxIndex,
     pendingImageToOpen,
     setPendingImageToOpen,
+    pendingImageVariantId,
     pairDataByIndex,
     segmentSlotModeData,
     handlePairClick,
@@ -599,12 +600,12 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
       {/* OVERLAYS & DIALOGS                                                 */}
       {/* ================================================================== */}
 
-      {/* Transition overlay */}
+      {/* Transition overlay - starts visible when opening an image from external navigation (e.g. TasksPane) */}
       <div
         ref={transitionOverlayRef}
         className="fixed inset-0 z-[99999] bg-black pointer-events-none"
         aria-hidden="true"
-        style={{ opacity: 0, display: 'none' }}
+        style={pendingImageToOpen ? { opacity: 1, display: 'block' } : { opacity: 0, display: 'none' }}
       />
 
       {/* Segment Slot Editor */}

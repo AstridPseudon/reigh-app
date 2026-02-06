@@ -8,6 +8,7 @@
 import React from 'react';
 import { cn } from '@/shared/lib/utils';
 import { TouchableTooltip } from '@/shared/components/ui/tooltip';
+import { TextAction } from '@/shared/components/ui/text-action';
 
 const colorVariants = {
   yellow: 'bg-yellow-500 text-black hover:bg-yellow-400',
@@ -65,16 +66,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         <>
           <p className="text-xs">{tooltipText}</p>
           {action && (
-            <button
+            <TextAction
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 action.onClick();
               }}
-              className="text-xs text-muted-foreground hover:text-foreground underline text-left"
+              className="text-left"
             >
               {action.label}
-            </button>
+            </TextAction>
           )}
         </>
       }

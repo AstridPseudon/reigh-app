@@ -36,6 +36,8 @@ interface SortableShotItemProps {
   onInitialPendingUploadsConsumed?: () => void;
   // Data attribute for product tour
   dataTour?: string;
+  // Final video data for this shot (if available)
+  finalVideo?: import('../hooks/useShotFinalVideos').ShotFinalVideo;
 }
 
 const SortableShotItem: React.FC<SortableShotItemProps> = ({
@@ -54,6 +56,7 @@ const SortableShotItem: React.FC<SortableShotItemProps> = ({
   initialPendingBaselineNonVideoCount,
   onInitialPendingUploadsConsumed,
   dataTour,
+  finalVideo,
 }) => {
   // [ShotReorderDebug] Debug tag for shot reordering issues
   const REORDER_DEBUG_TAG = '[ShotReorderDebug]';
@@ -516,6 +519,7 @@ const SortableShotItem: React.FC<SortableShotItemProps> = ({
         pendingUploads={pendingSkeletonCount}
         dropLoadingState={withPositionDropState}
         dataTour={dataTour}
+        finalVideo={finalVideo}
       />
       
       {/* "Without Position" drop zone - appears when dragging over the shot or during loading/success */}

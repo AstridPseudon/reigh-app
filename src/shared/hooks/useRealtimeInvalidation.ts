@@ -118,6 +118,9 @@ function handleTasksUpdated(queryClient: QueryClient, event: TasksUpdatedEvent):
     queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedGenerationsAll });
     queryClient.invalidateQueries({ queryKey: queryKeys.generations.derivedAll });
 
+    // Shot final videos (for shot list video previews)
+    queryClient.invalidateQueries({ queryKey: queryKeys.finalVideos.all });
+
     // Project-level unified queries
     queryClient.invalidateQueries({
       predicate: (query) =>

@@ -9,6 +9,7 @@ export interface UseUpscaleProps {
   media: GenerationRow | undefined;
   selectedProjectId: string | null;
   isVideo: boolean;
+  shotId?: string;
 }
 
 export interface UseUpscaleReturn {
@@ -43,6 +44,7 @@ export const useUpscale = ({
   media,
   selectedProjectId,
   isVideo,
+  shotId,
 }: UseUpscaleProps): UseUpscaleReturn => {
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaleSuccess, setUpscaleSuccess] = useState(false);
@@ -94,6 +96,7 @@ export const useUpscale = ({
         source_variant_id: activeVariantId || undefined,
         scale_factor: settings.scaleFactor,
         noise_scale: settings.noiseScale,
+        shot_id: shotId,
       });
 
       console.log('[ImageUpscale] Task created successfully');
@@ -109,7 +112,7 @@ export const useUpscale = ({
     } finally {
       setIsUpscaling(false);
     }
-  }, [media, selectedProjectId, isVideo, mediaUrl]);
+  }, [media, selectedProjectId, isVideo, mediaUrl, shotId]);
 
   return {
     isUpscaling,

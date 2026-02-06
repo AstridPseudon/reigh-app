@@ -29,6 +29,8 @@ export interface UseImg2ImgModeProps {
   activeVariantLocation?: string | null;
   // Active variant ID - for tracking source_variant_id in task params
   activeVariantId?: string | null;
+  // Shot ID for associating task with shot (enables navigation from TasksPane)
+  shotId?: string;
 }
 
 export interface UseImg2ImgModeReturn {
@@ -81,6 +83,8 @@ export const useImg2ImgMode = ({
   activeVariantLocation,
   // Active variant ID for tracking source
   activeVariantId,
+  // Shot association
+  shotId,
 }: UseImg2ImgModeProps): UseImg2ImgModeReturn => {
   // Local state (not persisted)
   const [isGeneratingImg2Img, setIsGeneratingImg2Img] = useState(false);
@@ -182,6 +186,7 @@ export const useImg2ImgMode = ({
         source_variant_id: activeVariantId || undefined, // Track source variant if editing from a variant
         create_as_generation: createAsGeneration,
         tool_type: toolTypeOverride,
+        shot_id: shotId,
       });
 
       console.log('[Img2Img] ✅ Tasks created successfully');
@@ -214,6 +219,7 @@ export const useImg2ImgMode = ({
     loraManager.selectedLoras,
     createAsGeneration,
     toolTypeOverride,
+    shotId,
   ]);
 
   return {
