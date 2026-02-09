@@ -192,54 +192,54 @@ export const VariantCard: React.FC<VariantCardProps> = ({
           </div>
         )}
 
-        {/* Top-left: star button + relationship badges */}
-        <div className="absolute top-0.5 left-0.5 flex items-center gap-0.5">
-          {/* Star button */}
-          {onToggleStar && (
-            <div
-              className={cn(
-                'rounded-full p-0.5 transition-opacity cursor-pointer pointer-events-auto',
-                variant.starred
-                  ? 'opacity-100 bg-yellow-500/80'
-                  : 'opacity-0 group-hover/variant:opacity-100 bg-black/50 hover:bg-black/70'
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleStar(variant.id, !variant.starred);
-              }}
-            >
-              <Star className={cn('w-2 h-2', variant.starred ? 'text-white fill-white' : 'text-white')} />
-            </div>
-          )}
+        {/* Top-left: star button */}
+        {onToggleStar && (
+          <div
+            className={cn(
+              'absolute top-0.5 left-0.5 rounded-full p-0.5 transition-opacity cursor-pointer pointer-events-auto',
+              variant.starred
+                ? 'opacity-100 bg-yellow-500/80'
+                : 'opacity-0 group-hover/variant:opacity-100 bg-black/50 hover:bg-black/70'
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStar(variant.id, !variant.starred);
+            }}
+          >
+            <Star className={cn('w-2 h-2', variant.starred ? 'text-white fill-white' : 'text-white')} />
+          </div>
+        )}
 
+        {/* Bottom-left: relationship badge + time/NEW */}
+        <div className="absolute bottom-0.5 left-0.5 flex flex-col items-start gap-0.5 pointer-events-none">
           {/* Parent relationship badge */}
           {isParent && !isActive && (
-            <div className="bg-blue-500 rounded-full p-0.5 pointer-events-none" title="Current is based on this">
+            <div className="bg-blue-500 rounded-full p-0.5" title="Current is based on this">
               <ArrowUp className="w-2 h-2 text-white" />
             </div>
           )}
 
           {/* Child relationship badge */}
           {isChild && !isActive && (
-            <div className="bg-purple-500 rounded-full p-0.5 pointer-events-none" title="Based on current">
+            <div className="bg-purple-500 rounded-full p-0.5" title="Based on current">
               <ArrowDown className="w-2 h-2 text-white" />
+            </div>
+          )}
+
+          {/* NEW badge or time ago */}
+          {isNewVariant(variant, activeVariantId) ? (
+            <div className="bg-yellow-500 text-black text-[8px] font-bold px-1 rounded">
+              NEW
+            </div>
+          ) : (
+            <div className="bg-black/70 text-white text-[8px] px-1 rounded">
+              {getTimeAgo(variant.created_at)}
             </div>
           )}
         </div>
 
-        {/* NEW badge or time ago */}
-        {isNewVariant(variant, activeVariantId) ? (
-          <div className="absolute bottom-0.5 left-0.5 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded pointer-events-none">
-            NEW
-          </div>
-        ) : (
-          <div className="absolute bottom-0.5 left-0.5 bg-black/70 text-white text-[8px] px-1 rounded pointer-events-none">
-            {getTimeAgo(variant.created_at)}
-          </div>
-        )}
-
         {/* Info button - bottom right, shows on hover (desktop only) */}
-        {!isMobile && variant.params && variant.variant_type !== 'trimmed' && (
+        {!isMobile && (
           <div className="absolute bottom-0.5 right-0.5 opacity-0 group-hover/variant:opacity-100 transition-opacity pointer-events-auto">
             <HoverCard openDelay={0} closeDelay={0}>
               <HoverCardTrigger asChild>
@@ -285,29 +285,27 @@ export const VariantCard: React.FC<VariantCardProps> = ({
                     </div>
                     <div className="flex items-center gap-0.5">
                       {/* Copy ID button */}
-                      {variant.variant_type !== 'trimmed' && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onCopyId(variant.id);
-                              }}
-                              className={cn(
-                                "px-1.5 py-0.5 rounded text-[10px] transition-all duration-150",
-                                copiedVariantId === variant.id
-                                  ? "text-green-400 bg-green-400/10"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80 active:scale-95"
-                              )}
-                            >
-                              {copiedVariantId === variant.id ? 'copied' : 'id'}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="text-xs">
-                            Copy ID
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCopyId(variant.id);
+                            }}
+                            className={cn(
+                              "px-1.5 py-0.5 rounded text-[10px] transition-all duration-150",
+                              copiedVariantId === variant.id
+                                ? "text-green-400 bg-green-400/10"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/80 active:scale-95"
+                            )}
+                          >
+                            {copiedVariantId === variant.id ? 'copied' : 'id'}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-xs">
+                          Copy ID
+                        </TooltipContent>
+                      </Tooltip>
                       {/* Lineage GIF button */}
                       {lineageDepth >= 5 && (
                         <Tooltip>
@@ -354,13 +352,15 @@ export const VariantCard: React.FC<VariantCardProps> = ({
                     </div>
                   </div>
 
-                  {/* Full task details */}
-                  <div className="border-t border-border/50 pt-2">
-                    <VariantHoverDetails
-                      variant={variant}
-                      availableLoras={availableLoras}
-                    />
-                  </div>
+                  {/* Full task details (skip for variants with no params) */}
+                  {variant.params && (
+                    <div className="border-t border-border/50 pt-2">
+                      <VariantHoverDetails
+                        variant={variant}
+                        availableLoras={availableLoras}
+                      />
+                    </div>
+                  )}
 
                   {/* Action buttons row */}
                   {!readOnly && ((!isPrimary && onMakePrimary) || (onLoadVariantSettings && hasLoadableSettings(variant)) || (onLoadImages && hasDifferentSourceImages(variant, currentSegmentImages))) && (
