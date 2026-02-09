@@ -387,6 +387,11 @@ export const useAddImageToShot = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.unified.projectPrefix(project_id),
       });
+      // Invalidate byShot to ensure timeline refetches with complete data.
+      // Critical when the target shot's cache wasn't populated at mutation time
+      // (e.g., adding to a different shot than the one currently viewed),
+      // since no optimistic item would have been created in that case.
+      queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShot(shot_id) });
     },
   });
 };
