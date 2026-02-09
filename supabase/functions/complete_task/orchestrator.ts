@@ -4,7 +4,6 @@
  */
 
 import { extractOrchestratorTaskId, extractOrchestratorRunId } from './params.ts';
-import { createVariant } from './generation.ts';
 import { triggerCostCalculation } from './billing.ts';
 import { TASK_TYPES, SEGMENT_TYPE_CONFIG } from './constants.ts';
 
@@ -18,7 +17,6 @@ export async function checkOrchestratorCompletion(
   taskIdString: string,
   completedTask: any,
   publicUrl: string,
-  thumbnailUrl: string | null,
   supabaseUrl: string,
   serviceKey: string
 ): Promise<void> {
@@ -79,9 +77,7 @@ export async function checkOrchestratorCompletion(
       orchestratorTask,
       segmentTasks || [],
       publicUrl,
-      thumbnailUrl,
       taskType,
-      taskIdString,
       supabaseUrl,
       serviceKey
     );
@@ -178,9 +174,7 @@ export async function checkOrchestratorCompletion(
       orchestratorTask,
       allSegments,
       publicUrl,
-      thumbnailUrl,
       taskType,
-      taskIdString,
       supabaseUrl,
       serviceKey
     );
@@ -331,9 +325,7 @@ async function markOrchestratorComplete(
   orchestratorTask: any,
   allSegments: any[],
   publicUrl: string,
-  thumbnailUrl: string | null,
   taskType: string,
-  taskIdString: string,
   supabaseUrl: string,
   serviceKey: string
 ): Promise<void> {
@@ -383,51 +375,5 @@ async function markOrchestratorComplete(
   
   // Trigger billing
   await triggerCostCalculation(supabaseUrl, serviceKey, orchestratorTaskId, 'OrchestratorComplete');
-  
-  // Create variant on parent generation for join_clips completion.
-  // This runs for both join_clips_segment (when stitch isn't needed) and
-  // join_final_stitch (the normal path — stitch completes last).
-  if (taskType === TASK_TYPES.JOIN_CLIPS_SEGMENT || taskType === TASK_TYPES.JOIN_FINAL_STITCH) {
-    await handleJoinClipsParentUpdate(supabase, orchestratorTask, publicUrl, thumbnailUrl, taskIdString, orchestratorTaskId);
-  }
-}
-
-/**
- * Handle variant creation for join_clips completion
- * Note: We only create a variant - we do NOT update the parent generation's location
- * Each task output has its own unique URL via the variant system
- */
-async function handleJoinClipsParentUpdate(
-  supabase: any,
-  orchestratorTask: any,
-  publicUrl: string,
-  thumbnailUrl: string | null,
-  taskIdString: string,
-  orchestratorTaskId: string
-): Promise<void> {
-  const parentGenId = orchestratorTask.params?.orchestrator_details?.parent_generation_id || 
-                      orchestratorTask.params?.parent_generation_id;
-  
-  if (!parentGenId) {
-    return;
-  }
-
-  console.log(`[OrchestratorComplete] Creating variant for parent generation ${parentGenId}`);
-  
-  try {
-    const variantParams = {
-      ...orchestratorTask.params,
-      tool_type: orchestratorTask.params?.tool_type || orchestratorTask.params?.orchestrator_details?.tool_type || 'join-clips',
-      source_task_id: taskIdString,
-      orchestrator_task_id: orchestratorTaskId,
-      created_from: 'join_clips_complete',
-    };
-
-    await createVariant(supabase, parentGenId, publicUrl, thumbnailUrl, variantParams, true, 'clip_join', null);
-    
-    console.log(`[OrchestratorComplete] Successfully created variant for parent generation ${parentGenId}`);
-  } catch (genUpdateErr) {
-    console.error(`[OrchestratorComplete] Exception creating variant:`, genUpdateErr);
-  }
 }
 

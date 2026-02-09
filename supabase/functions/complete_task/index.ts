@@ -319,7 +319,6 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
         taskIdString,
         taskContext, // Pass context instead of fetching again
         publicUrl,
-        thumbnailUrl,
         supabaseUrl,
         serviceKey
       );
