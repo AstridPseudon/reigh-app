@@ -26,6 +26,7 @@ const LazyLineageGifModal = React.lazy(() =>
 );
 import { getLineageDepth } from '@/shared/hooks/useLineageChain';
 import { getSourceTaskId } from '@/shared/lib/taskIdHelpers';
+import { useToggleVariantStar } from '@/shared/hooks/useToggleVariantStar';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { RelationshipFilter, CurrentSegmentImagesData } from './utils';
 import { VariantGrid } from './components/VariantGrid';
@@ -89,6 +90,9 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
   const [variantLineageDepth, setVariantLineageDepth] = useState<Record<string, number>>({});
   const isMobile = useIsMobile();
   const { data: availableLoras } = usePublicLoras();
+  const { toggleStar } = useToggleVariantStar();
+
+  const starredCount = useMemo(() => variants.filter(v => v.starred).length, [variants]);
 
   const checkedLineageIdsRef = React.useRef<Set<string>>(new Set());
   const prefetchTaskData = usePrefetchTaskData();
@@ -198,6 +202,9 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     if (relationshipFilter === 'children') {
       return sortedVariants.filter(variant => childVariants.has(variant.id) || variant.id === activeVariantId);
     }
+    if (relationshipFilter === 'starred') {
+      return sortedVariants.filter(variant => variant.starred || variant.id === activeVariantId);
+    }
     return sortedVariants;
   }, [sortedVariants, relationshipFilter, parentVariants, childVariants, activeVariantId]);
 
@@ -207,6 +214,7 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
   }, [relationshipFilter]);
 
   const hasRelationships = parentVariants.size > 0 || childVariants.size > 0;
+  const showFilterRow = hasRelationships || starredCount > 0;
 
   // Don't show if no variants at all
   if (!isLoading && variants.length === 0) {
@@ -258,6 +266,12 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     setLoadedImagesVariantId(variant.id);
     setTimeout(() => setLoadedImagesVariantId(null), 2000);
   };
+
+  const handleToggleStar = useCallback((variantId: string, starred: boolean) => {
+    const variant = variants.find(v => v.id === variantId);
+    if (!variant) return;
+    toggleStar({ variantId, generationId: variant.generation_id, starred });
+  }, [variants, toggleStar]);
 
   const handleDeleteVariant = (variantId: string) => {
     if (!onDeleteVariant) return;
@@ -352,52 +366,78 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
             )}
           </div>
 
-          {/* Relationship filter buttons */}
-          {hasRelationships && (
+          {/* Filter buttons (relationships + starred) */}
+          {showFilterRow && (
             <div className="flex items-center gap-1 justify-start">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setRelationshipFilter(relationshipFilter === 'parents' ? 'all' : 'parents')}
-                    className={cn(
-                      'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors',
-                      relationshipFilter === 'parents'
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted',
-                      parentVariants.size === 0 && 'opacity-50 cursor-not-allowed'
-                    )}
-                    disabled={parentVariants.size === 0}
-                  >
-                    <ArrowUp className="w-2.5 h-2.5" />
-                    <span>Based on ({parentVariants.size})</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="z-[100001]">
-                  <p>Show variants this is based on</p>
-                </TooltipContent>
-              </Tooltip>
+              {hasRelationships && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setRelationshipFilter(relationshipFilter === 'parents' ? 'all' : 'parents')}
+                        className={cn(
+                          'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors',
+                          relationshipFilter === 'parents'
+                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                            : 'bg-muted/50 text-muted-foreground hover:bg-muted',
+                          parentVariants.size === 0 && 'opacity-50 cursor-not-allowed'
+                        )}
+                        disabled={parentVariants.size === 0}
+                      >
+                        <ArrowUp className="w-2.5 h-2.5" />
+                        <span>Based on ({parentVariants.size})</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="z-[100001]">
+                      <p>Show variants this is based on</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setRelationshipFilter(relationshipFilter === 'children' ? 'all' : 'children')}
-                    className={cn(
-                      'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors',
-                      relationshipFilter === 'children'
-                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted',
-                      childVariants.size === 0 && 'opacity-50 cursor-not-allowed'
-                    )}
-                    disabled={childVariants.size === 0}
-                  >
-                    <ArrowDown className="w-2.5 h-2.5" />
-                    <span>Based on this ({childVariants.size})</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="z-[100001]">
-                  <p>Show variants based on this one</p>
-                </TooltipContent>
-              </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setRelationshipFilter(relationshipFilter === 'children' ? 'all' : 'children')}
+                        className={cn(
+                          'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors',
+                          relationshipFilter === 'children'
+                            ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                            : 'bg-muted/50 text-muted-foreground hover:bg-muted',
+                          childVariants.size === 0 && 'opacity-50 cursor-not-allowed'
+                        )}
+                        disabled={childVariants.size === 0}
+                      >
+                        <ArrowDown className="w-2.5 h-2.5" />
+                        <span>Based on this ({childVariants.size})</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="z-[100001]">
+                      <p>Show variants based on this one</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+
+              {starredCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setRelationshipFilter(relationshipFilter === 'starred' ? 'all' : 'starred')}
+                      className={cn(
+                        'flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors',
+                        relationshipFilter === 'starred'
+                          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50'
+                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                      )}
+                    >
+                      <Star className={cn('w-2.5 h-2.5', relationshipFilter === 'starred' && 'fill-current')} />
+                      <span>Starred ({starredCount})</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="z-[100001]">
+                    <p>Show starred variants</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
 
               {relationshipFilter !== 'all' && (
                 <button
@@ -429,6 +469,7 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
           onMakePrimary={onMakePrimary}
           onDeleteVariant={onDeleteVariant ? handleDeleteVariant : undefined}
           onLoadVariantSettings={onLoadVariantSettings}
+          onToggleStar={handleToggleStar}
           onMouseEnter={handleVariantMouseEnter}
           onShowMobileInfo={setMobileInfoVariantId}
           onShowLineageGif={setLineageGifVariantId}

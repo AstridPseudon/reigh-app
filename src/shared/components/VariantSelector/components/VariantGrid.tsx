@@ -33,6 +33,7 @@ interface VariantGridProps {
   onMakePrimary?: (variantId: string) => Promise<void>;
   onDeleteVariant?: (variantId: string) => void;
   onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
+  onToggleStar?: (variantId: string, starred: boolean) => void;
   onMouseEnter: (variant: GenerationVariant) => void;
   onShowMobileInfo: (variantId: string) => void;
   onShowLineageGif: (variantId: string) => void;
@@ -61,6 +62,7 @@ export const VariantGrid: React.FC<VariantGridProps> = ({
   onMakePrimary,
   onDeleteVariant,
   onLoadVariantSettings,
+  onToggleStar,
   onMouseEnter,
   onShowMobileInfo,
   onShowLineageGif,
@@ -143,6 +145,7 @@ export const VariantGrid: React.FC<VariantGridProps> = ({
               onMakePrimary={onMakePrimary}
               onDeleteVariant={onDeleteVariant}
               onLoadVariantSettings={onLoadVariantSettings}
+              onToggleStar={onToggleStar}
               onMouseEnter={onMouseEnter}
               onShowMobileInfo={onShowMobileInfo}
               onShowLineageGif={onShowLineageGif}

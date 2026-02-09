@@ -25,6 +25,7 @@ export interface GenerationVariant {
   thumbnail_url: string | null;
   params: Record<string, unknown> | null;
   is_primary: boolean;
+  starred: boolean;
   variant_type: string | null;
   name: string | null;
   created_at: string;

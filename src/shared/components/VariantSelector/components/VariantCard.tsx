@@ -89,6 +89,7 @@ interface VariantCardProps {
   onMakePrimary?: (variantId: string) => Promise<void>;
   onDeleteVariant?: (variantId: string) => void;
   onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
+  onToggleStar?: (variantId: string, starred: boolean) => void;
   onMouseEnter: (variant: GenerationVariant) => void;
   onShowMobileInfo: (variantId: string) => void;
   onShowLineageGif: (variantId: string) => void;
@@ -117,6 +118,7 @@ export const VariantCard: React.FC<VariantCardProps> = ({
   onMakePrimary,
   onDeleteVariant,
   onLoadVariantSettings,
+  onToggleStar,
   onMouseEnter,
   onShowMobileInfo,
   onShowLineageGif,
@@ -190,19 +192,40 @@ export const VariantCard: React.FC<VariantCardProps> = ({
           </div>
         )}
 
-        {/* Parent relationship badge */}
-        {isParent && !isActive && (
-          <div className="absolute top-0.5 left-0.5 bg-blue-500 rounded-full p-0.5 pointer-events-none" title="Current is based on this">
-            <ArrowUp className="w-2 h-2 text-white" />
-          </div>
-        )}
+        {/* Top-left: star button + relationship badges */}
+        <div className="absolute top-0.5 left-0.5 flex items-center gap-0.5">
+          {/* Star button */}
+          {onToggleStar && (
+            <div
+              className={cn(
+                'rounded-full p-0.5 transition-opacity cursor-pointer pointer-events-auto',
+                variant.starred
+                  ? 'opacity-100 bg-yellow-500/80'
+                  : 'opacity-0 group-hover/variant:opacity-100 bg-black/50 hover:bg-black/70'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleStar(variant.id, !variant.starred);
+              }}
+            >
+              <Star className={cn('w-2 h-2', variant.starred ? 'text-white fill-white' : 'text-white')} />
+            </div>
+          )}
 
-        {/* Child relationship badge */}
-        {isChild && !isActive && (
-          <div className="absolute top-0.5 left-0.5 bg-purple-500 rounded-full p-0.5 pointer-events-none" title="Based on current">
-            <ArrowDown className="w-2 h-2 text-white" />
-          </div>
-        )}
+          {/* Parent relationship badge */}
+          {isParent && !isActive && (
+            <div className="bg-blue-500 rounded-full p-0.5 pointer-events-none" title="Current is based on this">
+              <ArrowUp className="w-2 h-2 text-white" />
+            </div>
+          )}
+
+          {/* Child relationship badge */}
+          {isChild && !isActive && (
+            <div className="bg-purple-500 rounded-full p-0.5 pointer-events-none" title="Based on current">
+              <ArrowDown className="w-2 h-2 text-white" />
+            </div>
+          )}
+        </div>
 
         {/* NEW badge or time ago */}
         {isNewVariant(variant, activeVariantId) ? (

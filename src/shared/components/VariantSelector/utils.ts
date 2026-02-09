@@ -227,4 +227,4 @@ function checkImageDiffers(
   return !urlsMatch(variantUrl, currentUrl);
 }
 
-export type RelationshipFilter = 'all' | 'parents' | 'children';
+export type RelationshipFilter = 'all' | 'parents' | 'children' | 'starred';
