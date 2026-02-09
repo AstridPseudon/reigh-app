@@ -333,7 +333,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
                 <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
                 <div className="ml-2 space-y-1">
                   <div className="flex gap-3">
-                    <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{phase.guidance_scale}</span></span>
+                    <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
                     {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
                       <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{phaseConfig.steps_per_phase[phaseIndex]}</span></span>
                     )}
@@ -401,7 +401,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
                   <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
                   <div className="ml-2 space-y-1">
                     <div className="flex gap-3">
-                      <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{phase.guidance_scale}</span></span>
+                      <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
                       {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
                         <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{phaseConfig.steps_per_phase[phaseIndex]}</span></span>
                       )}
