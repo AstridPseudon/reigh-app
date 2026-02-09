@@ -207,24 +207,26 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>
                   {structureGuidance?.target ? 'Structure' : 'Video'}
                 </p>
-                <div className="relative group cursor-pointer" style={{ width: '80px' }} onClick={() => setVideoLoaded(true)}>
-                  {!videoLoaded ? (
-                    <div className="w-full aspect-video bg-black rounded border flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                  ) : (
-                    <video src={videoPath} className="w-full rounded border" loop muted playsInline autoPlay />
-                  )}
-                </div>
-                <div className={`${config.textSize} ${config.fontWeight} space-y-0.5`}>
-                  {structureGuidance?.strength != null && (
-                    <div><span className="text-muted-foreground">Str: </span>{structureGuidance.strength}</div>
-                  )}
-                  {structureGuidance?.step_window && Array.isArray(structureGuidance.step_window) && (
-                    <div><span className="text-muted-foreground">Window: </span>{structureGuidance.step_window[0]}→{structureGuidance.step_window[1]}</div>
-                  )}
-                  {videoTreatment && <div className="text-muted-foreground capitalize">{videoTreatment}</div>}
-                  {motionStrength != null && <div><span className="text-muted-foreground">Motion: </span>{Math.round(motionStrength * 100)}%</div>}
+                <div className="flex items-start gap-2">
+                  <div className="relative group cursor-pointer shrink-0" style={{ width: '80px' }} onClick={() => setVideoLoaded(true)}>
+                    {!videoLoaded ? (
+                      <div className="w-full aspect-video bg-black rounded border flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                    ) : (
+                      <video src={videoPath} className="w-full rounded border" loop muted playsInline autoPlay />
+                    )}
+                  </div>
+                  <div className={`${config.textSize} ${config.fontWeight} space-y-0.5`}>
+                    {structureGuidance?.strength != null && (
+                      <div><span className="text-muted-foreground">Str: </span>{structureGuidance.strength}</div>
+                    )}
+                    {structureGuidance?.step_window && Array.isArray(structureGuidance.step_window) && (
+                      <div><span className="text-muted-foreground">Window: </span>{structureGuidance.step_window[0]}→{structureGuidance.step_window[1]}</div>
+                    )}
+                    {videoTreatment && <div className="text-muted-foreground capitalize">{videoTreatment}</div>}
+                    {motionStrength != null && <div><span className="text-muted-foreground">Motion: </span>{Math.round(motionStrength * 100)}%</div>}
+                  </div>
                 </div>
               </div>
             )}
