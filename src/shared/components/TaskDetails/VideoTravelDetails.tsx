@@ -91,11 +91,6 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
     return `${stepsArray.join(' → ')} (${total} total)`;
   }, [phaseConfig?.steps_per_phase]);
 
-  const phasesWithLoras = useMemo(() => {
-    if (!phaseConfig?.phases || !Array.isArray(phaseConfig.phases)) return [];
-    return phaseConfig.phases.filter((phase: PhaseSettings) => phase.loras && phase.loras.length > 0);
-  }, [phaseConfig?.phases]);
-
   const additionalLoras = (
     individualSegmentParams?.additional_loras ||
     orchestratorPayload?.additional_loras ||
@@ -316,16 +311,31 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
           </div>
         )}
 
-        {/* LoRAs (when not in right column) */}
-        {/* In advanced mode: show "LoRAs by Phase" if we have phases with loras */}
-        {!showPhaseContentInRightColumn && isAdvancedMode && phasesWithLoras.length > 0 && (
+        {/* Phase details (when not in right column) */}
+        {!showPhaseContentInRightColumn && isAdvancedMode && phaseConfig?.phases && phaseConfig.phases.length > 0 && (
           <div className="pt-2 border-t border-muted-foreground/20 space-y-2">
-            <p className={`${config.textSize} font-medium text-muted-foreground`}>LoRAs by Phase</p>
-            {phasesWithLoras.map((phase: PhaseSettings) => (
+            {(phaseConfig.flow_shift !== undefined || phaseConfig.sample_solver) && (
+              <div className="flex gap-4">
+                {phaseConfig.flow_shift !== undefined && (
+                  <div><span className={`${config.textSize} text-muted-foreground`}>Flow Shift: </span><span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.flow_shift}</span></div>
+                )}
+                {phaseConfig.sample_solver && (
+                  <div><span className={`${config.textSize} text-muted-foreground`}>Solver: </span><span className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseConfig.sample_solver}</span></div>
+                )}
+              </div>
+            )}
+            <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
+            {phaseConfig.phases.map((phase: PhaseSettings, phaseIndex: number) => (
               <div key={phase.phase} className="space-y-1">
                 <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
-                <div className="space-y-1 ml-2">
-                  {phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
+                <div className="ml-2 space-y-1">
+                  <div className="flex gap-3">
+                    <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{phase.guidance_scale}</span></span>
+                    {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
+                      <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{phaseConfig.steps_per_phase[phaseIndex]}</span></span>
+                    )}
+                  </div>
+                  {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
                     <div key={idx} className={`flex justify-between items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
                       <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}</span>
                       <span className="text-muted-foreground shrink-0">{lora.multiplier}</span>
@@ -338,7 +348,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
         )}
 
         {/* In basic mode OR no phases with loras: show "LoRAs" from additional_loras */}
-        {!showPhaseContentInRightColumn && (!isAdvancedMode || !phasesWithLoras.length) && additionalLoras && Object.keys(additionalLoras).length > 0 && (
+        {!showPhaseContentInRightColumn && (!isAdvancedMode || !phaseConfig?.phases?.length) && additionalLoras && Object.keys(additionalLoras).length > 0 && (
           <div className="pt-2 border-t border-muted-foreground/20 space-y-2">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>LoRAs</p>
             {Object.entries(additionalLoras).slice(0, config.maxLoras).map(([url, strength]) => (
@@ -366,14 +376,20 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
             </div>
           )}
 
-          {phasesWithLoras.length > 0 && (
+          {phaseConfig.phases.length > 0 && (
             <div className="pt-3 border-t border-muted-foreground/20 space-y-2">
-              <p className={`${config.textSize} font-medium text-muted-foreground`}>LoRAs by Phase</p>
-              {phasesWithLoras.map((phase: PhaseSettings) => (
+              <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
+              {phaseConfig.phases.map((phase: PhaseSettings, phaseIndex: number) => (
                 <div key={phase.phase} className="space-y-1">
                   <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
-                  <div className="space-y-1 ml-2">
-                    {phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
+                  <div className="ml-2 space-y-1">
+                    <div className="flex gap-3">
+                      <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{phase.guidance_scale}</span></span>
+                      {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
+                        <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{phaseConfig.steps_per_phase[phaseIndex]}</span></span>
+                      )}
+                    </div>
+                    {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
                       <div key={idx} className={`flex justify-between items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
                         <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}</span>
                         <span className="text-muted-foreground shrink-0">{lora.multiplier}</span>
