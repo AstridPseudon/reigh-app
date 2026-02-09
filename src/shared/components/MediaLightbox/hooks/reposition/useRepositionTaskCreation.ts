@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { createImageInpaintTask } from '@/shared/lib/tasks/imageInpaint';
 import { generateMaskFromCanvas, createCanvasWithBackground } from '@/shared/lib/maskGeneration';
@@ -9,6 +11,7 @@ import type { GenerationRow } from '@/types/shots';
 import type { EditAdvancedSettings, QwenEditModel } from '../useGenerationEditSettings';
 import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 export interface UseRepositionTaskCreationProps {
   media: GenerationRow;
@@ -58,6 +61,8 @@ export function useRepositionTaskCreation({
 }: UseRepositionTaskCreationProps): UseRepositionTaskCreationReturn {
   const [isGeneratingReposition, setIsGeneratingReposition] = useState(false);
   const [repositionGenerateSuccess, setRepositionGenerateSuccess] = useState(false);
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const queryClient = useQueryClient();
 
   // Generate transformed image and mask, then create inpaint task
   const handleGenerateReposition = useCallback(async () => {
@@ -70,6 +75,11 @@ export function useRepositionTaskCreation({
       toast.error('Please move, scale, or rotate the image first');
       return;
     }
+
+    const incomingTaskId = addIncomingTask({
+      taskType: 'image_inpaint',
+      label: inpaintPrompt.trim() || 'Fill edges...',
+    });
 
     setIsGeneratingReposition(true);
 
@@ -169,6 +179,9 @@ export function useRepositionTaskCreation({
     } catch (error) {
       handleError(error, { context: 'useRepositionTaskCreation', toastTitle: 'Failed to create reposition task' });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsGeneratingReposition(false);
     }
   }, [
@@ -187,6 +200,9 @@ export function useRepositionTaskCreation({
     advancedSettings,
     activeVariantId,
     qwenEditModel,
+    addIncomingTask,
+    removeIncomingTask,
+    queryClient,
   ]);
 
   return {

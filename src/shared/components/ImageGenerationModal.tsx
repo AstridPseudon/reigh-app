@@ -17,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { ExternalLink } from 'lucide-react';
@@ -41,6 +42,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
   const queryClient = useQueryClient();
   const { getApiKey } = useApiKeys();
   const navigate = useNavigate();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
@@ -64,16 +66,20 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
     }
 
     setIsGenerating(true);
+    const incomingTaskId = addIncomingTask({
+      taskType: 'image_generation',
+      label: taskParams.prompts?.[0]?.text?.substring(0, 50) || 'Generating images...',
+    });
     try {
       console.log('[ImageGenerationModal] Creating batch image generation tasks with params:', taskParams);
       await createBatchImageGenerationTasks(taskParams);
 
       // Invalidate generations to ensure they refresh when tasks complete
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
-      
+
       console.log('[ImageGenerationModal] Image generation tasks created successfully');
       setJustQueued(true);
-      
+
       if (justQueuedTimeoutRef.current) {
         clearTimeout(justQueuedTimeoutRef.current);
       }
@@ -81,13 +87,16 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
         setJustQueued(false);
         justQueuedTimeoutRef.current = null;
       }, 3000);
-      
+
     } catch (error) {
       handleError(error, { context: 'ImageGenerationModal', toastTitle: 'Failed to create tasks' });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsGenerating(false);
     }
-  }, [selectedProjectId, queryClient]);
+  }, [selectedProjectId, queryClient, addIncomingTask, removeIncomingTask]);
 
   // Cleanup timeout on unmount
   React.useEffect(() => {

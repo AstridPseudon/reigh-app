@@ -4,8 +4,10 @@
  */
 
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import type { GenerationRow } from '@/types/shots';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { createImageInpaintTask } from '@/shared/lib/tasks/imageInpaint';
@@ -16,6 +18,7 @@ import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
 // Import the converter function
 import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
 import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 /**
  * Task type configuration - captures the differences between inpaint and annotate modes
@@ -98,6 +101,8 @@ export function useTaskGeneration({
 }: UseTaskGenerationProps) {
   // Get actual generation ID (may differ from media.id for shot_generations)
   const actualGenerationId = getGenerationId(media);
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const queryClient = useQueryClient();
 
   /**
    * Unified task generation function
@@ -133,6 +138,12 @@ export function useTaskGeneration({
       toast.error(config.overlayNotReadyError);
       return;
     }
+
+    const incomingTaskType = taskType === 'inpaint' ? 'image_inpaint' : 'annotated_image_edit';
+    const incomingTaskId = addIncomingTask({
+      taskType: incomingTaskType,
+      label: inpaintPrompt.trim() || 'Editing...',
+    });
 
     setIsGeneratingInpaint(true);
     try {
@@ -192,6 +203,9 @@ export function useTaskGeneration({
     } catch (error) {
       handleError(error, { context: 'useTaskGeneration', toastTitle: config.taskCreationError });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsGeneratingInpaint(false);
     }
   }, [
@@ -199,7 +213,8 @@ export function useTaskGeneration({
     media, handleExitInpaintMode, shotId, toolTypeOverride, loras,
     activeVariantLocation, activeVariantId, createAsGeneration, advancedSettings,
     qwenEditModel, strokeOverlayRef, actualGenerationId,
-    setIsGeneratingInpaint, setInpaintGenerateSuccess
+    setIsGeneratingInpaint, setInpaintGenerateSuccess,
+    addIncomingTask, removeIncomingTask, queryClient
   ]);
 
   // Stable callbacks that preserve the original API

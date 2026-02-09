@@ -1,10 +1,13 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   createVideoEnhanceTask,
   type VideoEnhanceTaskParams,
 } from '@/shared/lib/tasks/videoEnhance';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import type { VideoEnhanceSettings } from './useGenerationEditSettings';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 export interface UseVideoEnhanceProps {
   projectId: string | undefined;
@@ -57,6 +60,8 @@ export function useVideoEnhance({
 }: UseVideoEnhanceProps): UseVideoEnhanceReturn {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateSuccess, setGenerateSuccess] = useState(false);
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const queryClient = useQueryClient();
 
   // Adapter to match the expected interface
   const updateSetting = useCallback(<K extends keyof VideoEnhanceSettings>(
@@ -83,6 +88,15 @@ export function useVideoEnhance({
 
     setIsGenerating(true);
     setGenerateSuccess(false);
+
+    const enhanceLabel = [
+      settings.enableInterpolation && 'Interpolation',
+      settings.enableUpscale && 'Upscale',
+    ].filter(Boolean).join(' + ');
+    const incomingTaskId = addIncomingTask({
+      taskType: 'video_enhance',
+      label: enhanceLabel || 'Video Enhance',
+    });
 
     try {
       const params: VideoEnhanceTaskParams = {
@@ -120,6 +134,9 @@ export function useVideoEnhance({
       console.error('[useVideoEnhance] Error creating task:', error);
       handleError(error, { context: 'useVideoEnhance', toastTitle: 'Failed to create video enhancement task' });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsGenerating(false);
     }
   }, [
@@ -130,6 +147,9 @@ export function useVideoEnhance({
     generationId,
     activeVariantId,
     settings,
+    addIncomingTask,
+    removeIncomingTask,
+    queryClient,
   ]);
 
   return {

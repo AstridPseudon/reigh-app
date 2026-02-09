@@ -1,9 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { GenerationRow } from '@/types/shots';
 import { createImageUpscaleTask } from '@/shared/lib/tasks/imageUpscale';
 import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
 import type { ImageUpscaleSettings } from '../components/ImageUpscaleForm';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 export interface UseUpscaleProps {
   media: GenerationRow | undefined;
@@ -48,6 +51,8 @@ export const useUpscale = ({
 }: UseUpscaleProps): UseUpscaleReturn => {
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaleSuccess, setUpscaleSuccess] = useState(false);
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const queryClient = useQueryClient();
 
   // Get media URL
   const mediaUrl = media ? (getMediaUrl(media) || media.imageUrl || '') : '';
@@ -74,6 +79,10 @@ export const useUpscale = ({
     const effectiveImageUrl = activeVariantLocation || mediaUrl;
 
     setIsUpscaling(true);
+    const incomingTaskId = addIncomingTask({
+      taskType: 'image-upscale',
+      label: `Upscale ${settings.scaleFactor}x`,
+    });
     try {
       if (!effectiveImageUrl) {
         throw new Error('No image URL available');
@@ -110,9 +119,12 @@ export const useUpscale = ({
     } catch (error) {
       handleError(error, { context: 'useUpscale', toastTitle: 'Failed to create enhance task' });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsUpscaling(false);
     }
-  }, [media, selectedProjectId, isVideo, mediaUrl, shotId]);
+  }, [media, selectedProjectId, isVideo, mediaUrl, shotId, addIncomingTask, removeIncomingTask, queryClient]);
 
   return {
     isUpscaling,

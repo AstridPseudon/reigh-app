@@ -8,6 +8,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { handleError } from '@/shared/lib/errorHandler';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 export interface JoinSettings {
   joinPrompt: string;
@@ -46,6 +47,7 @@ export function useVideoItemJoinClips(
 ): UseVideoItemJoinClipsResult {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
 
   // State for join clips feature
   const [childGenerations, setChildGenerations] = useState<GenerationRow[]>([]);
@@ -205,6 +207,11 @@ export function useVideoItemJoinClips(
     setIsJoiningClips(true);
     setShowJoinModal(false);
 
+    const incomingTaskId = addIncomingTask({
+      taskType: 'join_clips',
+      label: `Join ${childGenerations.length} segments`,
+    });
+
     try {
       // Create clips array from child generations
       const clips = childGenerations.map((child, idx) => ({
@@ -280,6 +287,9 @@ export function useVideoItemJoinClips(
     } catch (error) {
       handleError(error, { context: 'JoinClips', toastTitle: 'Failed to create join task' });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsJoiningClips(false);
     }
   };

@@ -13,6 +13,7 @@ import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import type { LoraModel } from '@/shared/hooks/useLoraManager';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 export interface UseVideoEditingProps {
   media: GenerationRow | null;
@@ -78,6 +79,8 @@ export const useVideoEditing = ({
   onExitVideoEditMode,
 }: UseVideoEditingProps): UseVideoEditingReturn => {
   const queryClient = useQueryClient();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const incomingTaskIdRef = useRef<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // Video edit mode state
@@ -335,6 +338,12 @@ export const useVideoEditing = ({
   
   // Generate mutation - creates an edit_video_orchestrator task
   const generateMutation = useMutation({
+    onMutate: () => {
+      incomingTaskIdRef.current = addIncomingTask({
+        taskType: 'edit_video_orchestrator',
+        label: editSettings.settings.prompt?.substring(0, 50) || 'Video edit...',
+      });
+    },
     mutationFn: async () => {
       if (!selectedProjectId) throw new Error('No project selected');
       if (!videoUrl) throw new Error('No video URL');
@@ -517,6 +526,14 @@ export const useVideoEditing = ({
     },
     onError: (error) => {
       handleError(error, { context: 'VideoEdit', toastTitle: 'Failed to create regeneration task' });
+    },
+    onSettled: async () => {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      if (incomingTaskIdRef.current) {
+        removeIncomingTask(incomingTaskIdRef.current);
+        incomingTaskIdRef.current = null;
+      }
     },
   });
   

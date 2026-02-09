@@ -1,10 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { handleError } from '@/shared/lib/errorHandler';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { joinClipsSettings } from '../settings';
 import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID, VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import type { VideoClip, TransitionPrompt } from '../types';
@@ -33,6 +34,8 @@ export function useJoinClipsGenerate({
 }: UseJoinClipsGenerateParams) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const incomingTaskIdRef = useRef<string | null>(null);
 
   const [showSuccessState, setShowSuccessState] = useState(false);
 
@@ -54,6 +57,14 @@ export function useJoinClipsGenerate({
   } = joinSettings.settings;
 
   const generateJoinClipsMutation = useMutation({
+    onMutate: () => {
+      const validClips = clips.filter(c => c.url);
+      const isLooping = loopFirstClip && validClips.length === 1;
+      incomingTaskIdRef.current = addIncomingTask({
+        taskType: 'join_clips',
+        label: isLooping ? 'Loop video' : `Join ${validClips.length} clips`,
+      });
+    },
     mutationFn: async () => {
       if (!selectedProjectId) throw new Error('No project selected');
 
@@ -152,6 +163,14 @@ export function useJoinClipsGenerate({
     },
     onError: (error) => {
       handleError(error, { context: 'JoinClipsPage', toastTitle: 'Failed to create task' });
+    },
+    onSettled: async () => {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      if (incomingTaskIdRef.current) {
+        removeIncomingTask(incomingTaskIdRef.current);
+        incomingTaskIdRef.current = null;
+      }
     },
   });
 

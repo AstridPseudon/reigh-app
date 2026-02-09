@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { GenerationRow } from '@/types/shots';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShotGenerationMetadata } from '@/shared/hooks/useShotGenerationMetadata';
 import { createBatchMagicEditTasks } from '@/shared/lib/tasks/magicEdit';
@@ -9,6 +11,7 @@ import type { EditAdvancedSettings, QwenEditModel } from './useGenerationEditSet
 import { convertToHiresFixApiParams } from './useGenerationEditSettings';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import type { BrushStroke } from './inpainting/types';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 interface UseMagicEditModeParams {
   media: GenerationRow;
@@ -100,6 +103,8 @@ export const useMagicEditMode = ({
   const [inpaintPanelPosition, setInpaintPanelPosition] = useState<'top' | 'bottom'>('top');
 
   const { currentShotId } = useCurrentShot();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const queryClient = useQueryClient();
 
   // Prompt persistence for magic edit mode
   const {
@@ -207,6 +212,10 @@ export const useMagicEditMode = ({
     } else {
       // No brush strokes -> magic edit
       console.log('[MediaLightbox] Routing to magic edit (no brush strokes)');
+      const incomingTaskId = addIncomingTask({
+        taskType: 'qwen_image_edit',
+        label: prompt || 'Magic edit...',
+      });
       setIsCreatingMagicEditTasks(true);
       setMagicEditTasksCreated(false);
       
@@ -276,6 +285,9 @@ export const useMagicEditMode = ({
       } catch (error) {
         handleError(error, { context: 'useMagicEditMode', toastTitle: 'Failed to create magic edit tasks' });
       } finally {
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+        removeIncomingTask(incomingTaskId);
         setIsCreatingMagicEditTasks(false);
       }
     }
@@ -298,6 +310,9 @@ export const useMagicEditMode = ({
     activeVariantId,
     activeVariantLocation,
     editModeLoRAs,
+    addIncomingTask,
+    removeIncomingTask,
+    queryClient,
   ]);
 
   return {

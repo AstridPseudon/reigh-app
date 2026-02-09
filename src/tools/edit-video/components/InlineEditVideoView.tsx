@@ -18,6 +18,7 @@ import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { generateUUID, generateRunId, createTask } from '@/shared/lib/taskCreation';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { MultiPortionTimeline, formatTime, PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { SEGMENT_OVERLAY_COLORS } from '@/shared/lib/segmentColors';
 import { DEFAULT_VACE_PHASE_CONFIG, buildPhaseConfigWithLoras, BUILTIN_VACE_DEFAULT_ID, VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
@@ -94,6 +95,8 @@ export function InlineEditVideoView({
   const useStackedLayout = isMobile || isTablet;
   const { selectedProjectId, projects } = useProject();
   const queryClient = useQueryClient();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const incomingTaskIdRef = useRef<string | null>(null);
 
   // Video edit sub-mode state: 'trim', 'replace', or 'enhance'
   const [videoEditSubMode, setVideoEditSubMode] = useState<'trim' | 'replace' | 'enhance'>('replace');
@@ -559,6 +562,12 @@ export function InlineEditVideoView({
   
   // Generate mutation using join clips task
   const generateMutation = useMutation({
+    onMutate: () => {
+      incomingTaskIdRef.current = addIncomingTask({
+        taskType: 'edit_video_orchestrator',
+        label: prompt?.substring(0, 50) || 'Video edit...',
+      });
+    },
     mutationFn: async () => {
       if (!selectedProjectId) throw new Error('No project selected');
       if (!videoUrl) throw new Error('No video URL');
@@ -725,6 +734,14 @@ export function InlineEditVideoView({
     },
     onError: (error) => {
       handleError(error, { context: 'InlineEditVideoView', toastTitle: 'Failed to create regeneration task' });
+    },
+    onSettled: async () => {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      if (incomingTaskIdRef.current) {
+        removeIncomingTask(incomingTaskIdRef.current);
+        incomingTaskIdRef.current = null;
+      }
     },
   });
   

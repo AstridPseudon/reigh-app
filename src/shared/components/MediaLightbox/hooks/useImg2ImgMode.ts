@@ -1,10 +1,13 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { GenerationRow } from '@/types/shots';
 import { createBatchZImageTurboI2ITasks, ZImageLoraConfig } from '@/shared/lib/tasks/zImageTurboI2I';
 import { useLoraManager, UseLoraManagerReturn, ActiveLora, LoraModel } from '@/shared/hooks/useLoraManager';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 export interface UseImg2ImgModeProps {
   media: GenerationRow;
@@ -89,6 +92,8 @@ export const useImg2ImgMode = ({
   // Local state (not persisted)
   const [isGeneratingImg2Img, setIsGeneratingImg2Img] = useState(false);
   const [img2imgGenerateSuccess, setImg2imgGenerateSuccess] = useState(false);
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const queryClient = useQueryClient();
 
   // Derive the base generation prompt from the generation params (best-effort)
   const baseGenerationPrompt = useMemo(() => {
@@ -145,6 +150,10 @@ export const useImg2ImgMode = ({
     }
 
     isSubmittingRef.current = true;
+    const incomingTaskId = addIncomingTask({
+      taskType: 'z_image_turbo_i2i',
+      label: img2imgPrompt.trim() || 'Img2Img...',
+    });
     setIsGeneratingImg2Img(true);
 
     try {
@@ -202,6 +211,9 @@ export const useImg2ImgMode = ({
     } catch (error) {
       handleError(error, { context: 'useImg2ImgMode', toastTitle: 'Failed to create Img2Img tasks' });
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setIsGeneratingImg2Img(false);
       isSubmittingRef.current = false;
     }
@@ -220,6 +232,9 @@ export const useImg2ImgMode = ({
     createAsGeneration,
     toolTypeOverride,
     shotId,
+    addIncomingTask,
+    removeIncomingTask,
+    queryClient,
   ]);
 
   return {

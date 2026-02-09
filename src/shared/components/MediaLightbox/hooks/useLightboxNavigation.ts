@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 export interface UseLightboxNavigationProps {
   onNext?: () => void;
@@ -62,79 +62,52 @@ export const useLightboxNavigation = ({
   }, [activateClickShield, onClose]);
 
   /**
-   * Global key handler
+   * Global key handler (capture phase)
    * --------------------------------------------------
-   * We register a document-level keydown listener so that
-   * arrow navigation still works even when an embedded
-   * <video> element (which is focusable) steals keyboard
-   * focus.
-   * 
-   * IMPORTANT: Don't handle keys if another dialog is open on top
+   * Registered on the capture phase so it fires before any intermediate
+   * stopPropagation calls (Base-UI dialog internals swallow keydown
+   * during bubble phase in edit mode).
+   *
+   * Callbacks are stored in refs so the listener is registered once
+   * and never re-attached (avoids effect thrashing when parent re-renders).
    */
-  useEffect(() => {
-    const handleWindowKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Escape') {
-        const activeEl = document.activeElement;
-        console.log('[LightboxNav] keydown:', e.key, {
-          activeElement: activeEl?.tagName,
-          activeElementType: (activeEl as HTMLInputElement)?.type,
-          activeElementClass: (activeEl as HTMLElement)?.className?.slice(0, 80),
-          onNext: !!onNext,
-          onPrevious: !!onPrevious,
-          defaultPrevented: e.defaultPrevented,
-        });
-      }
+  const onNextRef = useRef(onNext);
+  const onPreviousRef = useRef(onPrevious);
+  const onCloseRef = useRef(onClose);
+  onNextRef.current = onNext;
+  onPreviousRef.current = onPrevious;
+  onCloseRef.current = onClose;
 
-      // Check if another dialog/modal is open on top by looking for higher z-index dialog overlays
+  useEffect(() => {
+    /**
+     * CAPTURE-phase handler so arrow navigation works even when something
+     * in the DOM tree (e.g. Base-UI internals) calls stopPropagation on
+     * the keydown event during the bubble phase.
+     */
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if another dialog/modal is open on top
       const dialogOverlays = document.querySelectorAll('[data-dialog-backdrop]');
       const hasHigherZIndexDialog = Array.from(dialogOverlays).some((overlay) => {
         const zIndex = parseInt(window.getComputedStyle(overlay as Element).zIndex || '0', 10);
-        // MediaLightbox uses z-[100000], check if any higher z-index dialogs are open
         return zIndex > 100000;
       });
+      if (hasHigherZIndexDialog) return;
 
-      // Don't handle keys if a higher z-index dialog is open
-      if (hasHigherZIndexDialog) {
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          console.log('[LightboxNav] BLOCKED by higher z-index dialog');
-        }
-        return;
-      }
-
-      if (e.key === 'ArrowLeft' && onPrevious) {
-        console.log('[LightboxNav] → navigating previous');
+      if (e.key === 'ArrowLeft' && onPreviousRef.current) {
         e.preventDefault();
-        onPrevious();
-      } else if (e.key === 'ArrowRight' && onNext) {
-        console.log('[LightboxNav] → navigating next');
+        onPreviousRef.current();
+      } else if (e.key === 'ArrowRight' && onNextRef.current) {
         e.preventDefault();
-        onNext();
+        onNextRef.current();
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
     };
 
-    // Capture-phase listener to detect if events are being swallowed
-    const handleCaptureKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        console.log('[LightboxNav] CAPTURE phase:', e.key, 'defaultPrevented:', e.defaultPrevented);
-      }
-    };
-
-    console.log('[LightboxNav] MOUNT — registering keydown listeners', {
-      hasOnNext: !!onNext,
-      hasOnPrevious: !!onPrevious,
-    });
-
-    document.addEventListener('keydown', handleCaptureKeyDown, true);
-    document.addEventListener('keydown', handleWindowKeyDown);
-    return () => {
-      console.log('[LightboxNav] UNMOUNT — removing keydown listeners');
-      document.removeEventListener('keydown', handleCaptureKeyDown, true);
-      document.removeEventListener('keydown', handleWindowKeyDown);
-    };
-  }, [onNext, onPrevious, onClose]);
+    document.addEventListener('keydown', handleKeyDown, true); // capture phase
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, []); // stable — callbacks read from refs
 
   return {
     safeClose,

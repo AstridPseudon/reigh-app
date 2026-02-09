@@ -42,6 +42,7 @@ import { usePersistentToolState } from '@/shared/hooks/usePersistentToolState';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useStableObject } from '@/shared/hooks/useStableObject';
 import { handleError } from '@/shared/lib/errorHandler';
+import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
 // Remove unnecessary environment detection - tool should work in all environments
 
@@ -142,6 +143,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
   
   // Need queryClient for cache invalidation
   const queryClient = useQueryClient();
+  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
 
   // Page UI preferences (separate from form generation settings)
   // Uses shot-scoped settings with 'image-gen-page-prefs' toolId
@@ -467,6 +469,10 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
     }
 
     setLocalIsGenerating(true);
+    const incomingTaskId = addIncomingTask({
+      taskType: 'image_generation',
+      label: taskParams.prompts?.[0]?.text?.substring(0, 50) || 'Generating images...',
+    });
     let createdTaskIds: string[] = [];
     try {
       console.log('[ImageGeneration] Using unified batch task creation for model:', taskParams.model_name);
@@ -503,6 +509,9 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
       handleError(error, { context: 'ImageGenerationToolPage.handleNewGenerate', toastTitle: error instanceof Error ? error.message : 'Failed to create tasks.' });
       return [];
     } finally {
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
       setLocalIsGenerating(false);
     }
   };
