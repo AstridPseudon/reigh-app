@@ -1,10 +1,18 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/components/ui/button';
 import { Copy, Check } from 'lucide-react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
 import { parseTaskParams, deriveInputImages, derivePrompt } from '@/shared/utils/taskParamsUtils';
 import { getDisplayNameFromUrl } from '@/shared/lib/loraUtils';
+import { supabase } from '@/integrations/supabase/client';
 import type { PhaseSettings, PhaseLoraConfig } from '@/shared/types/phaseConfig';
+
+// Built-in preset ID → name mapping (matches segmentSettingsUtils.ts)
+const BUILTIN_PRESET_NAMES: Record<string, string> = {
+  '__builtin_default_i2v__': 'Basic',
+  '__builtin_default_vace__': 'Basic',
+};
 
 /**
  * Task details for video travel/generation tasks
@@ -128,6 +136,34 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
   const styleImage = parsedParams?.style_reference_image || orchestratorDetails?.style_reference_image;
   const styleStrength = parsedParams?.style_reference_strength ?? orchestratorDetails?.style_reference_strength;
 
+  // Preset
+  const presetId = (
+    individualSegmentParams?.selected_phase_preset_id ||
+    orchestratorDetails?.selected_phase_preset_id ||
+    orchestratorPayload?.selected_phase_preset_id ||
+    parsedParams?.selected_phase_preset_id
+  ) as string | null | undefined;
+
+  const isDbPreset = presetId && !presetId.startsWith('__builtin_');
+
+  const { data: dbPresetName } = useQuery({
+    queryKey: ['preset-name', presetId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('resources')
+        .select('metadata')
+        .eq('id', presetId!)
+        .single();
+      return (data?.metadata as { name?: string })?.name || null;
+    },
+    enabled: !!isDbPreset,
+    staleTime: Infinity,
+  });
+
+  const presetName = presetId
+    ? (BUILTIN_PRESET_NAMES[presetId] || dbPresetName || null)
+    : null;
+
   // Technical settings
   const modelName = orchestratorDetails?.model_name || orchestratorPayload?.model_name || parsedParams?.model_name;
   const steps = orchestratorDetails?.steps || orchestratorPayload?.steps || parsedParams?.num_inference_steps;
@@ -210,6 +246,14 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
               <img src={styleImage} alt="Style" className="w-[80px] object-cover rounded border" />
               {styleStrength != null && <span className={`${config.textSize} ${config.fontWeight}`}>Strength: {Math.round(styleStrength * 100)}%</span>}
             </div>
+          </div>
+        )}
+
+        {/* Preset */}
+        {presetName && (
+          <div className="space-y-1">
+            <p className={`${config.textSize} font-medium text-muted-foreground`}>Motion Preset</p>
+            <p className={`${config.textSize} ${config.fontWeight}`}>{presetName}</p>
           </div>
         )}
 

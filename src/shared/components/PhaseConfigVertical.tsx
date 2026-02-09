@@ -28,6 +28,7 @@ import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import { LoraSelectorModal } from '@/shared/components/LoraSelectorModal';
 import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal';
 import { PREDEFINED_LORAS, getDisplayNameFromUrl } from '@/shared/lib/loraUtils';
+import { validateHuggingFaceUrl } from '@/shared/components/LoraSelectorModal/utils/validation-utils';
 
 interface PhaseConfigVerticalProps {
   phaseConfig: PhaseConfig;
@@ -471,12 +472,15 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                 {phase.loras.map((lora, loraIdx) => {
                   const inputId = `lora-${phaseIdx}-${loraIdx}`;
                   const isFocused = focusedLoraInput === inputId;
+                  const loraValidation = lora.url ? validateHuggingFaceUrl(lora.url) : null;
                   return (
-                    <div key={loraIdx} className="flex items-center gap-2 mb-1.5">
+                    <div key={loraIdx} className="space-y-0.5 mb-1.5">
+                      <div className="flex items-center gap-2">
                       <div className="relative flex-1 min-w-0">
                         <Input
                           placeholder="LoRA URL"
                           value={isFocused ? lora.url : getDisplayNameFromUrl(lora.url, availableLoras)}
+                          className={`pr-8 ${loraValidation && !loraValidation.isValid ? 'border-yellow-500 focus-visible:ring-yellow-500' : ''}`}
                           onChange={(e) => {
                             // IMMUTABLE UPDATE: Create new lora and phase objects
                             const newPhases = phaseConfig.phases.map((p, pIdx) =>
@@ -501,7 +505,6 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                             setFocusedLoraInput(null);
                             onBlurSave?.();
                           }}
-                          className="pr-8"
                           title={lora.url} // Show full URL on hover
                         />
                         <div className="absolute right-1 top-1/2 -translate-y-1/2">
@@ -553,6 +556,13 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
                         }}
                         className="w-20 flex-shrink-0"
                       />
+                      </div>
+                      {loraValidation && !loraValidation.isValid && (
+                        <div className="flex items-center gap-1 text-yellow-500 text-xs px-1">
+                          <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                          <span>{loraValidation.message}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
