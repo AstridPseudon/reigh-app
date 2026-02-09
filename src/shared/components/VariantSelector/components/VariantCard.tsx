@@ -272,29 +272,8 @@ export const VariantCard: React.FC<VariantCardProps> = ({
                 sideOffset={4}
               >
                 <div className="flex flex-col max-h-[85vh]">
-                  {/* Scrollable area: header + details */}
-                  <div className="relative min-h-0 flex-1">
-                  <div
-                    className="p-2 pb-0 space-y-2 overflow-y-auto max-h-[calc(85vh-3rem)]"
-                    onScroll={(e) => {
-                      const el = e.currentTarget;
-                      const fade = el.nextElementSibling as HTMLElement | null;
-                      if (fade) {
-                        const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
-                        fade.style.opacity = isAtBottom ? '0' : '1';
-                      }
-                    }}
-                    ref={(el) => {
-                      if (!el) return;
-                      const fade = el.nextElementSibling as HTMLElement | null;
-                      if (fade) {
-                        const isScrollable = el.scrollHeight > el.clientHeight;
-                        fade.style.opacity = isScrollable ? '1' : '0';
-                      }
-                    }}
-                  >
-                    {/* Header with label, status badges, id copy, delete button */}
-                  <div className="flex items-center justify-between gap-2">
+                  {/* Header - pinned at top */}
+                  <div className="flex items-center justify-between gap-2 p-2 pb-1.5 shrink-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{label}</p>
                       {isPrimary && (
@@ -387,18 +366,38 @@ export const VariantCard: React.FC<VariantCardProps> = ({
                     </div>
                   </div>
 
-                    {/* Full task details (skip for variants with no params) */}
-                    {variant.params && (
-                      <div className="border-t border-border/50 pt-2">
-                        <VariantHoverDetails
-                          variant={variant}
-                          availableLoras={availableLoras}
-                        />
+                  {/* Scrollable area: task details only */}
+                  {variant.params && (
+                    <div className="relative min-h-0 flex-1">
+                      <div
+                        className="px-2 pb-2 overflow-y-auto max-h-[calc(85vh-5rem)]"
+                        onScroll={(e) => {
+                          const el = e.currentTarget;
+                          const fade = el.nextElementSibling as HTMLElement | null;
+                          if (fade) {
+                            const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+                            fade.style.opacity = isAtBottom ? '0' : '1';
+                          }
+                        }}
+                        ref={(el) => {
+                          if (!el) return;
+                          const fade = el.nextElementSibling as HTMLElement | null;
+                          if (fade) {
+                            const isScrollable = el.scrollHeight > el.clientHeight;
+                            fade.style.opacity = isScrollable ? '1' : '0';
+                          }
+                        }}
+                      >
+                        <div className="border-t border-border/50 pt-2">
+                          <VariantHoverDetails
+                            variant={variant}
+                            availableLoras={availableLoras}
+                          />
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-popover to-transparent transition-opacity duration-150" />
-                  </div>
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-popover to-transparent transition-opacity duration-150" />
+                    </div>
+                  )}
 
                   {/* Action buttons row - pinned at bottom */}
                   {!readOnly && ((!isPrimary && onMakePrimary) || (onLoadVariantSettings && hasLoadableSettings(variant)) || (onLoadImages && hasDifferentSourceImages(variant, currentSegmentImages))) && (
