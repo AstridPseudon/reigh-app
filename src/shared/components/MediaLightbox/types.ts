@@ -159,4 +159,13 @@ export interface SegmentSlotModeData {
 
   /** Callback to navigate to a constituent image by shot_generation.id */
   onNavigateToImage?: (shotGenerationId: string) => void;
+
+  /** Adjacent video thumbnails for preview sequence pill (video lightbox only) */
+  adjacentVideoThumbnails?: {
+    prev?: { thumbUrl: string; pairIndex: number };
+    current?: { thumbUrl: string; pairIndex: number };
+    next?: { thumbUrl: string; pairIndex: number };
+  };
+  /** Callback to open the preview-together dialog starting at a given pair index */
+  onOpenPreviewDialog?: (startAtPairIndex: number) => void;
 }

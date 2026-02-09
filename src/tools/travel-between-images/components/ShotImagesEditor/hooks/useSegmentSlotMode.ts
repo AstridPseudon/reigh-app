@@ -15,6 +15,7 @@ import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travel
 import type { GenerationRow } from '@/types/shots';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { getDisplayUrl } from '@/shared/lib/utils';
 import { usePairData } from './usePairData';
 import { useFrameCountUpdater } from './useFrameCountUpdater';
 
@@ -40,6 +41,8 @@ export interface UseSegmentSlotModeProps {
   addOptimisticPending: (pairShotGenerationId: string) => void;
   /** Ref to trailing end frame updater from position system (for instant optimistic updates) */
   trailingFrameUpdateRef?: RefObject<((endFrame: number) => void) | null>;
+  /** Callback to open preview-together dialog starting at a given pair index */
+  onOpenPreviewDialog?: (startAtPairIndex: number) => void;
 }
 
 export interface UseSegmentSlotModeReturn {
@@ -207,6 +210,7 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
 
   const handlePairClick = useCallback((pairIndex: number, passedPairData?: PairData) => {
     const pairData = passedPairData || pairDataByIndex.get(pairIndex);
+    console.log('[PreviewLightbox] handlePairClick:', { pairIndex, hasPairData: !!pairData, pairDataByIndexSize: pairDataByIndex.size });
     if (pairData) {
       setActivePairData(pairData);
     }
@@ -237,6 +241,44 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     // Get prompts from metadata
     const shotGen = shotGenerations.find(shotGen => shotGen.id === pairData.startImage?.id);
     const overrides = readSegmentOverrides(shotGen?.metadata as Record<string, unknown> | null);
+
+    // Compute adjacent video thumbnails for preview sequence pill
+    const adjacentVideoThumbnails = (() => {
+      // Only show pill when current segment has a video
+      if (!segmentVideo) return undefined;
+
+      const getVideoThumb = (slot: typeof pairSlot) => {
+        if (slot?.type !== 'child' || !slot.child?.location) return null;
+        return getDisplayUrl(slot.child.thumbUrl || slot.child.location);
+      };
+
+      const currentThumb = getVideoThumb(pairSlot);
+      if (!currentThumb) return undefined;
+
+      // Search outward for prev/next video neighbors
+      let prevInfo: { thumbUrl: string; pairIndex: number } | undefined;
+      for (let i = segmentSlotLightboxIndex - 1; i >= 0; i--) {
+        const slot = segmentSlots.find(s => s.index === i);
+        const thumb = getVideoThumb(slot);
+        if (thumb) { prevInfo = { thumbUrl: thumb, pairIndex: i }; break; }
+      }
+
+      let nextInfo: { thumbUrl: string; pairIndex: number } | undefined;
+      for (let i = segmentSlotLightboxIndex + 1; i < pairDataByIndex.size; i++) {
+        const slot = segmentSlots.find(s => s.index === i);
+        const thumb = getVideoThumb(slot);
+        if (thumb) { nextInfo = { thumbUrl: thumb, pairIndex: i }; break; }
+      }
+
+      // Only show pill if at least one neighbor has video
+      if (!prevInfo && !nextInfo) return undefined;
+
+      return {
+        prev: prevInfo,
+        current: { thumbUrl: currentThumb, pairIndex: segmentSlotLightboxIndex },
+        next: nextInfo,
+      };
+    })();
 
     return {
       currentIndex: segmentSlotLightboxIndex,
@@ -361,6 +403,10 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
           setPendingImageToOpen(shotGenerationId);
         });
       },
+
+      // Preview sequence pill
+      adjacentVideoThumbnails,
+      onOpenPreviewDialog: props.onOpenPreviewDialog,
     };
   }, [
     segmentSlotLightboxIndex, activePairData, segmentSlots, pairDataByIndex,
@@ -369,6 +415,7 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     resolvedProjectResolution, addOptimisticPending, maxFrameLimit,
     navigateWithTransition, updatePairFrameCount, onAddStructureVideo,
     onUpdateStructureVideo, onRemoveStructureVideo, onSetStructureVideos,
+    props.onOpenPreviewDialog,
   ]);
 
   return {

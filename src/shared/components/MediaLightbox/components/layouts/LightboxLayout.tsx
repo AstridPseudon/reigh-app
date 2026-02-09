@@ -27,6 +27,7 @@ import {
 import { VariantOverlayBadge } from './VariantOverlayBadge';
 import { NewImageOverlayButton } from './NewImageOverlayButton';
 import { AdjacentSegmentNavigation } from './AdjacentSegmentNavigation';
+import { PreviewSequencePill } from './PreviewSequencePill';
 import { ConstituentImageNavigation } from './ConstituentImageNavigation';
 
 // Existing components
@@ -344,6 +345,12 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
             {adjacentSegments && !isVideo && (
               <AdjacentSegmentNavigation adjacentSegments={adjacentSegments} />
             )}
+            {isVideo && segmentSlotMode?.adjacentVideoThumbnails && segmentSlotMode?.onOpenPreviewDialog && (
+              <PreviewSequencePill
+                adjacentVideoThumbnails={segmentSlotMode.adjacentVideoThumbnails}
+                onOpenPreviewDialog={segmentSlotMode.onOpenPreviewDialog}
+              />
+            )}
             <VariantOverlayBadge
               activeVariant={activeVariant}
               variants={variants}
@@ -493,6 +500,12 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col items-center gap-2">
           {adjacentSegments && !isVideo && (
             <AdjacentSegmentNavigation adjacentSegments={adjacentSegments} />
+          )}
+          {isVideo && segmentSlotMode?.adjacentVideoThumbnails && segmentSlotMode?.onOpenPreviewDialog && (
+            <PreviewSequencePill
+              adjacentVideoThumbnails={segmentSlotMode.adjacentVideoThumbnails}
+              onOpenPreviewDialog={segmentSlotMode.onOpenPreviewDialog}
+            />
           )}
           <VariantOverlayBadge
             activeVariant={activeVariant}

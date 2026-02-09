@@ -13,7 +13,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from "@/shared/components/ui/button";
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Play, Pause, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, ChevronLeft, ChevronRight, Volume2, VolumeX, Expand } from "lucide-react";
 
 export interface PreviewSegment {
   hasVideo: boolean;
@@ -31,6 +31,9 @@ export interface PreviewTogetherDialogProps {
   previewableSegments: PreviewSegment[];
   projectAspectRatio?: string;
   audioUrl?: string | null;
+  onOpenInLightbox?: (segmentIndex: number) => void;
+  /** When set, open the dialog starting at this pair index instead of 0 */
+  initialPairIndex?: number | null;
 }
 
 export function PreviewTogetherDialog({
@@ -39,6 +42,8 @@ export function PreviewTogetherDialog({
   previewableSegments,
   projectAspectRatio,
   audioUrl,
+  onOpenInLightbox,
+  initialPairIndex,
 }: PreviewTogetherDialogProps) {
   // Core state
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
@@ -89,6 +94,16 @@ export function PreviewTogetherDialog({
       preloadingIndexRef.current = null;
     }
   }, [isOpen]);
+
+  // Jump to initial pair index when dialog opens with one specified
+  useEffect(() => {
+    if (isOpen && initialPairIndex != null && previewableSegments.length > 0) {
+      const targetIdx = previewableSegments.findIndex(s => s.index === initialPairIndex);
+      if (targetIdx >= 0) {
+        setCurrentPreviewIndex(targetIdx);
+      }
+    }
+  }, [isOpen, initialPairIndex, previewableSegments]);
 
   // Auto-start playback when dialog opens or segment changes
   useEffect(() => {
@@ -192,8 +207,8 @@ export function PreviewTogetherDialog({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true); // capture phase — fires before dialog internals swallow the event
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [isOpen, previewableSegments.length]);
 
   // Preload next video for seamless cuts
@@ -523,6 +538,23 @@ export function PreviewTogetherDialog({
                       {...createVideoHandlers('B')}
                     />
                   </>
+                )}
+
+                {/* Open in Lightbox button */}
+                {currentSegment.hasVideo && onOpenInLightbox && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('[PreviewLightbox] Expand clicked:', { segmentIndex: currentSegment.index, hasVideo: currentSegment.hasVideo });
+                      onOpenInLightbox(currentSegment.index);
+                    }}
+                    className="absolute top-3 right-3 z-20 bg-black/50 hover:bg-black/70 text-white rounded-lg h-9 w-9"
+                    title="Open in lightbox"
+                  >
+                    <Expand className="h-4 w-4" />
+                  </Button>
                 )}
 
                 {/* Image crossfade */}

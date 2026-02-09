@@ -144,6 +144,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
   // ==========================================================================
 
   const [deletingSegmentId, setDeletingSegmentId] = useState<string | null>(null);
+  const [previewInitialPairIndex, setPreviewInitialPairIndex] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   // Ref for trailing end frame updates through the position system.
@@ -247,6 +248,12 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     navigateWithTransition,
   } = useLightboxTransition();
 
+  // Ref-based callback: avoids circular dependency between useSegmentSlotMode and usePreviewSegments
+  const openPreviewRef = useRef<((startAtPairIndex: number) => void) | null>(null);
+  const handleOpenPreviewFromLightbox = useCallback((startAtPairIndex: number) => {
+    openPreviewRef.current?.(startAtPairIndex);
+  }, []);
+
   const {
     segmentSlotLightboxIndex,
     setSegmentSlotLightboxIndex,
@@ -278,6 +285,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     navigateWithTransition,
     addOptimisticPending,
     trailingFrameUpdateRef,
+    onOpenPreviewDialog: handleOpenPreviewFromLightbox,
   });
 
   const {
@@ -291,6 +299,13 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     shotGenerations,
     segmentSlots,
   });
+
+  // Wire up the ref-based callback now that both hooks are available
+  openPreviewRef.current = (startAtPairIndex: number) => {
+    setSegmentSlotLightboxIndex(null);
+    setPreviewInitialPairIndex(startAtPairIndex);
+    setIsPreviewTogetherOpen(true);
+  };
 
   const { isDownloadingImages, handleDownloadAllImages } = useDownloadImages({
     images: imagesWithBadges,
@@ -700,10 +715,19 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
       {/* Preview Together Dialog */}
       <PreviewTogetherDialog
         isOpen={isPreviewTogetherOpen}
-        onOpenChange={setIsPreviewTogetherOpen}
+        onOpenChange={(open) => {
+          setIsPreviewTogetherOpen(open);
+          if (!open) setPreviewInitialPairIndex(null);
+        }}
         previewableSegments={previewableSegments as PreviewSegment[]}
         projectAspectRatio={projectAspectRatio}
         audioUrl={audioUrl}
+        initialPairIndex={previewInitialPairIndex}
+        onOpenInLightbox={(segmentIndex) => {
+          console.log('[PreviewLightbox] Opening segment in lightbox:', { segmentIndex });
+          setIsPreviewTogetherOpen(false);
+          handlePairClick(segmentIndex);
+        }}
       />
     </Card>
   );
