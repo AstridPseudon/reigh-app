@@ -42,9 +42,7 @@ export const PreviewSequencePill: React.FC<PreviewSequencePillProps> = ({
                   />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="z-[100001]">
-                <p>Preview from previous</p>
-              </TooltipContent>
+              <TooltipContent className="z-[100001]">Preview from previous</TooltipContent>
             </Tooltip>
           ) : (
             <div className="relative z-10 h-full w-8 md:w-9 flex-shrink-0 bg-white/5" />
@@ -75,9 +73,7 @@ export const PreviewSequencePill: React.FC<PreviewSequencePillProps> = ({
                 </div>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="z-[100001]">
-              <p>Preview from here</p>
-            </TooltipContent>
+            <TooltipContent className="z-[100001]">Preview from current</TooltipContent>
           </Tooltip>
 
           {/* Next slot */}
@@ -96,9 +92,7 @@ export const PreviewSequencePill: React.FC<PreviewSequencePillProps> = ({
                   />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="z-[100001]">
-                <p>Preview from next</p>
-              </TooltipContent>
+              <TooltipContent className="z-[100001]">Preview from next</TooltipContent>
             </Tooltip>
           ) : (
             <div className="relative z-10 h-full w-8 md:w-9 flex-shrink-0 bg-white/5" />

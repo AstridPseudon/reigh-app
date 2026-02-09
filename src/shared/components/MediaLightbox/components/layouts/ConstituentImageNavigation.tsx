@@ -100,7 +100,6 @@ export const ConstituentImageNavigation: React.FC<ConstituentImageNavigationProp
       <button
         onClick={onClick}
         disabled={isDisabled}
-        title={imageId ? `View ${label.toLowerCase()}` : undefined}
         className={cn(
           'relative overflow-hidden transition-all',
           buttonSize,

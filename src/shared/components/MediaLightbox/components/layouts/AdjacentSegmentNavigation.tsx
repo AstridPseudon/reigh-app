@@ -87,7 +87,6 @@ export const AdjacentSegmentNavigation: React.FC<AdjacentSegmentNavigationProps>
       <button
         onClick={onClick}
         disabled={!segment}
-        title={segment ? label : undefined}
         className={cn(
           'relative w-9 h-9 md:w-10 md:h-10 rounded-md overflow-hidden shadow-md transition-all',
           segment && 'hover:scale-105 hover:shadow-lg hover:ring-2 hover:ring-white/40',
