@@ -18,7 +18,6 @@
  * - useSmoothContinuations: Timeline gap compaction
  *
  * Components (in ./ShotImagesEditor/components/):
- * - TimelineModeContent: Timeline component wrapper
  * - BatchModeContent: ShotImageManager + BatchGuidanceVideo
  * - PreviewTogetherDialog: Video preview dialog
  */
@@ -39,10 +38,11 @@ import { SectionHeader } from '@/tools/image-generation/components/ImageGenerati
 
 import {
   PreviewTogetherDialog,
-  TimelineModeContent,
   BatchModeContent,
   type PreviewSegment,
 } from './ShotImagesEditor/components';
+
+import Timeline from './Timeline';
 
 import { useEnhancedShotImageReorder } from '@/shared/hooks/useEnhancedShotImageReorder';
 import { useSegmentOutputsForShot } from '../hooks/useSegmentOutputsForShot';
@@ -177,25 +177,30 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     preloadedImages,
   });
 
-  // Compute last image's shot_generation_id for trailing segment matching
-  const lastImageShotGenId = useMemo(() => {
+  // Compute positions map + last image ID from shotGenerations (for hook)
+  const { localShotGenPositions, lastImageShotGenId } = useMemo(() => {
     const positioned = shotGenerations
-      .filter(g => g.timeline_frame !== null && g.timeline_frame !== undefined && g.timeline_frame >= 0)
+      .filter(g => g.timeline_frame != null && g.timeline_frame >= 0)
       .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-    return positioned[positioned.length - 1]?.id ?? null;
+    const posMap = new Map<string, number>();
+    positioned.forEach((g, index) => posMap.set(g.id, index));
+    return {
+      localShotGenPositions: posMap.size > 0 ? posMap : undefined,
+      lastImageShotGenId: positioned[positioned.length - 1]?.id ?? null,
+    };
   }, [shotGenerations]);
 
-  const { segmentSlots, selectedParentId } = useSegmentOutputsForShot(
+  const { segmentSlots, selectedParentId, isLoading: isSegmentsLoading } = useSegmentOutputsForShot(
     selectedShotId,
     projectId || '',
-    undefined,
+    localShotGenPositions,
     selectedOutputId,
     onSelectedOutputChange,
     readOnly ? preloadedImages : undefined,
     lastImageShotGenId ?? undefined
   );
 
-  const { addOptimisticPending } = usePendingSegmentTasks(selectedShotId, projectId || null);
+  const { addOptimisticPending, hasPendingTask } = usePendingSegmentTasks(selectedShotId, projectId || null);
 
   // ==========================================================================
   // UI STATE HOOKS
@@ -487,69 +492,87 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
         ) : (
           <div className="p-1">
             {effectiveGenerationMode === 'timeline' ? (
-              <TimelineModeContent
-                selectedShotId={selectedShotId}
-                projectId={projectId}
-                readOnly={readOnly}
-                images={imagesWithBadges}
-                memoizedShotGenerations={memoizedShotGenerations}
-                preloadedImages={preloadedImages}
-                batchVideoFrames={batchVideoFrames}
-                updateTimelineFrame={updateTimelineFrame}
-                pendingPositions={pendingPositions}
-                onPendingPositionApplied={onPendingPositionApplied}
-                maxFrameLimit={maxFrameLimit}
-                onImageReorder={onImageReorder}
-                onFramePositionsChange={onFramePositionsChange}
-                onFileDrop={onFileDrop}
-                onGenerationDrop={onGenerationDrop}
-                onImageDelete={onImageDelete}
-                onImageDuplicate={onImageDuplicate}
-                duplicatingImageId={duplicatingImageId}
-                duplicateSuccessImageId={duplicateSuccessImageId}
-                defaultPrompt={defaultPrompt}
-                defaultNegativePrompt={defaultNegativePrompt}
-                onClearEnhancedPrompt={handleClearEnhancedPromptByIndex}
-                onTimelineChange={handleTimelineChange}
-                onDragStateChange={handleDragStateChange}
-                onPairClick={handlePairClick}
-                structureVideoPath={structureVideoPath}
-                structureVideoMetadata={structureVideoMetadata}
-                structureVideoTreatment={structureVideoTreatment}
-                structureVideoMotionStrength={structureVideoMotionStrength}
-                structureVideoType={structureVideoType}
-                uni3cEndPercent={uni3cEndPercent}
-                onStructureVideoChange={onStructureVideoChange}
-                onUni3cEndPercentChange={onUni3cEndPercentChange}
-                structureVideos={structureVideos}
-                onAddStructureVideo={onAddStructureVideo}
-                onUpdateStructureVideo={onUpdateStructureVideo}
-                onRemoveStructureVideo={onRemoveStructureVideo}
-                audioUrl={audioUrl}
-                audioMetadata={audioMetadata}
-                onAudioChange={onAudioChange}
-                onImageUpload={onImageUpload}
-                isUploadingImage={isUploadingImage}
-                uploadProgress={uploadProgress}
-                allShots={allShots}
-                onShotChange={onShotChange}
-                onAddToShot={onAddToShot ? handleAddToShotAdapter : undefined}
-                onAddToShotWithoutPosition={onAddToShotWithoutPosition ? handleAddToShotWithoutPositionAdapter : undefined}
-                onCreateShot={onCreateShot ? handleCreateShotAdapter : undefined}
-                onNewShotFromSelection={onNewShotFromSelection}
-                segmentSlots={segmentSlots}
-                selectedOutputId={selectedOutputId}
-                onSelectedOutputChange={onSelectedOutputChange}
-                onSegmentFrameCountChange={updatePairFrameCount}
-                pendingImageToOpen={pendingImageToOpen}
-                pendingImageVariantId={pendingImageVariantId}
-                onClearPendingImageToOpen={handleClearPendingImageToOpen}
-                navigateWithTransition={navigateWithTransition}
-                projectAspectRatio={projectAspectRatio}
-                unpositionedGenerationsCount={unpositionedGenerationsCount}
-                onOpenUnpositionedPane={onOpenUnpositionedPane}
-                onRegisterTrailingUpdater={registerTrailingUpdater}
-              />
+              <>
+                <Timeline
+                  key={`timeline-${selectedShotId}`}
+                  shotId={selectedShotId}
+                  projectId={projectId}
+                  frameSpacing={batchVideoFrames}
+                  onImageReorder={onImageReorder}
+                  onFramePositionsChange={onFramePositionsChange}
+                  onFileDrop={onFileDrop}
+                  onGenerationDrop={onGenerationDrop}
+                  pendingPositions={pendingPositions}
+                  onPendingPositionApplied={onPendingPositionApplied}
+                  onImageDelete={onImageDelete}
+                  onImageDuplicate={onImageDuplicate}
+                  duplicatingImageId={duplicatingImageId}
+                  duplicateSuccessImageId={duplicateSuccessImageId}
+                  projectAspectRatio={projectAspectRatio}
+                  readOnly={readOnly}
+                  shotGenerations={preloadedImages ? undefined : memoizedShotGenerations}
+                  updateTimelineFrame={updateTimelineFrame}
+                  allGenerations={preloadedImages}
+                  images={imagesWithBadges}
+                  onTimelineChange={handleTimelineChange}
+                  onDragStateChange={handleDragStateChange}
+                  onPairClick={handlePairClick}
+                  defaultPrompt={defaultPrompt}
+                  defaultNegativePrompt={defaultNegativePrompt}
+                  onClearEnhancedPrompt={handleClearEnhancedPromptByIndex}
+                  structureVideoPath={structureVideoPath}
+                  structureVideoMetadata={structureVideoMetadata}
+                  structureVideoTreatment={structureVideoTreatment}
+                  structureVideoMotionStrength={structureVideoMotionStrength}
+                  structureVideoType={structureVideoType}
+                  onStructureVideoChange={onStructureVideoChange}
+                  uni3cEndPercent={uni3cEndPercent}
+                  onUni3cEndPercentChange={onUni3cEndPercentChange}
+                  structureVideos={structureVideos}
+                  onAddStructureVideo={onAddStructureVideo}
+                  onUpdateStructureVideo={onUpdateStructureVideo}
+                  onRemoveStructureVideo={onRemoveStructureVideo}
+                  audioUrl={audioUrl}
+                  audioMetadata={audioMetadata}
+                  onAudioChange={onAudioChange}
+                  onImageUpload={onImageUpload}
+                  isUploadingImage={isUploadingImage}
+                  uploadProgress={uploadProgress}
+                  allShots={allShots}
+                  selectedShotId={selectedShotId}
+                  onShotChange={onShotChange}
+                  onAddToShot={onAddToShot ? handleAddToShotAdapter : undefined}
+                  onAddToShotWithoutPosition={onAddToShotWithoutPosition ? handleAddToShotWithoutPositionAdapter : undefined}
+                  onCreateShot={onCreateShot ? handleCreateShotAdapter : undefined}
+                  maxFrameLimit={maxFrameLimit}
+                  selectedOutputId={selectedOutputId}
+                  onSelectedOutputChange={onSelectedOutputChange}
+                  onSegmentFrameCountChange={updatePairFrameCount}
+                  segmentSlots={segmentSlots}
+                  isSegmentsLoading={isSegmentsLoading}
+                  hasPendingTask={hasPendingTask}
+                  onOpenSegmentSlot={(pairIndex) => handlePairClick(pairIndex)}
+                  pendingImageToOpen={pendingImageToOpen}
+                  pendingImageVariantId={pendingImageVariantId}
+                  onClearPendingImageToOpen={handleClearPendingImageToOpen}
+                  navigateWithTransition={navigateWithTransition}
+                  onNewShotFromSelection={onNewShotFromSelection}
+                  onRegisterTrailingUpdater={registerTrailingUpdater}
+                />
+
+                {unpositionedGenerationsCount > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-dashed">
+                      <div className="text-sm text-muted-foreground">
+                        {unpositionedGenerationsCount} unpositioned generation{unpositionedGenerationsCount !== 1 ? 's' : ''}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={onOpenUnpositionedPane} className="text-xs">
+                        View & Position
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <BatchModeContent
                 selectedShotId={selectedShotId}

@@ -97,8 +97,6 @@ export interface TimelineProps {
   allGenerations?: GenerationRow[]; // ALL generations for lookups (unfiltered)
   // Callback to reload parent data after timeline changes
   onTimelineChange?: () => Promise<void>;
-  // Shared hook data to prevent creating duplicate hook instances
-  hookData?: import("@/shared/hooks/useEnhancedShotPositions").UseEnhancedShotPositionsReturn;
   // Pair-specific prompt editing
   onPairClick?: (pairIndex: number, pairData: {
     index: number;
@@ -120,9 +118,6 @@ export interface TimelineProps {
       position: number;
     } | null;
   }) => void;
-  // Pair prompt data for display (optional - will use database if not provided)
-  pairPrompts?: Record<number, { prompt: string; negativePrompt: string }>;
-  enhancedPrompts?: Record<number, string>;
   defaultPrompt?: string;
   defaultNegativePrompt?: string;
   onClearEnhancedPrompt?: (pairIndex: number) => void;
@@ -130,7 +125,7 @@ export interface TimelineProps {
   onDragStateChange?: (isDragging: boolean) => void;
   // Action handlers
   onImageDelete: (imageId: string) => void;
-  onImageDuplicate: (imageId: string, timeline_frame: number) => void;
+  onImageDuplicate?: (imageId: string, timeline_frame: number) => void;
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
   projectAspectRatio?: string;
@@ -186,6 +181,10 @@ export interface TimelineProps {
   onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
   // Segment slots for adjacent segment navigation in lightbox
   segmentSlots?: SegmentSlot[];
+  // Loading state for segment slots (from consolidated hook in ShotImagesEditor)
+  isSegmentsLoading?: boolean;
+  // Pending task checker (from consolidated hook in ShotImagesEditor — includes optimistic state)
+  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
   // Callback to open segment slot in unified lightbox
   onOpenSegmentSlot?: (pairIndex: number) => void;
   // Request to open lightbox for specific image (from segment constituent navigation)
@@ -199,9 +198,6 @@ export interface TimelineProps {
   // Position system: register trailing end frame updater from TimelineContainer
   onRegisterTrailingUpdater?: (fn: (endFrame: number) => void) => void;
 }
-
-// Stable empty object to avoid creating new references when enhancedPrompts is undefined
-const EMPTY_ENHANCED_PROMPTS: Record<number, string> = {};
 
 /**
  * Refactored Timeline component with extracted hooks and modular architecture
@@ -223,10 +219,7 @@ const Timeline: React.FC<TimelineProps> = ({
   images: propImages,
   allGenerations: propAllGenerations,
   onTimelineChange,
-  hookData: propHookData,
   onPairClick,
-  pairPrompts,
-  enhancedPrompts,
   defaultPrompt,
   defaultNegativePrompt,
   onClearEnhancedPrompt,
@@ -274,6 +267,8 @@ const Timeline: React.FC<TimelineProps> = ({
   onSegmentFrameCountChange,
   // Segment slots for adjacent segment navigation
   segmentSlots,
+  isSegmentsLoading,
+  hasPendingTask,
   onOpenSegmentSlot,
   // Constituent image navigation support
   pendingImageToOpen,
@@ -352,8 +347,8 @@ const Timeline: React.FC<TimelineProps> = ({
     projectId: projectId, // Pass projectId to invalidate ShotsPane cache
   });
   
-  // Choose data source: prefer propHookData, then utility hook if allGenerations provided, else core hook
-  const hookData = propHookData || (propAllGenerations ? {
+  // Choose data source: utility hook if allGenerations provided, else core hook
+  const hookData = propAllGenerations ? {
     shotGenerations: utilsHookData.shotGenerations,
     updateTimelineFrame: utilsHookData.updateTimelineFrame,
     batchExchangePositions: utilsHookData.batchExchangePositions,
@@ -361,7 +356,7 @@ const Timeline: React.FC<TimelineProps> = ({
     loadPositions: utilsHookData.loadPositions,
     pairPrompts: utilsHookData.pairPrompts,
     isLoading: utilsHookData.isLoading,
-  } as unknown as NonNullable<typeof propHookData> : {
+  } : {
     // Map useTimelineCore output to expected interface
     shotGenerations: coreHookData.positionedItems,
     updateTimelineFrame: coreHookData.updatePosition,
@@ -370,7 +365,7 @@ const Timeline: React.FC<TimelineProps> = ({
     loadPositions: coreHookData.refetch,
     pairPrompts: coreHookData.pairPrompts,
     isLoading: coreHookData.isLoading,
-  });
+  };
   
   const shotGenerations = propShotGenerations || hookData.shotGenerations;
   const updateTimelineFrame = propUpdateTimelineFrame || hookData.updateTimelineFrame;
@@ -384,32 +379,20 @@ const Timeline: React.FC<TimelineProps> = ({
       propShotGenerationsCount: propShotGenerations?.length ?? 0,
       propImagesCount: propImages?.length ?? 0,
       shotGenerationsCount: shotGenerations.length,
-      hasPropHookData: !!propHookData,
       hasPropImages: !!propImages,
-      dataSource: propHookData ? 'shared hookData' : propImages ? 'utility hook (two-phase)' : 'legacy hook',
+      dataSource: propImages ? 'utility hook (two-phase)' : 'legacy hook',
       timestamp: Date.now()
     });
-  }, [shotId, propShotGenerations, propImages, shotGenerations, propHookData]);
-  
-  // Log data source for debugging
-  console.log('[UnifiedDataFlow] Timeline data source:', {
-    shotId: shotId?.substring(0, 8) ?? 'none',
-    hasPropHookData: !!propHookData,
-    hasPropImages: !!propImages,
-    dataSource: propHookData ? 'shared hookData' : propImages ? 'utility hook (two-phase)' : 'legacy hook',
-    imageCount: shotGenerations.length,
-  });
-  
+  }, [shotId, propShotGenerations, propImages, shotGenerations]);
+
   console.log('[DataTrace] 📥 Timeline received data:', {
     shotId: shotId?.substring(0, 8) ?? 'none',
     shotGenerationsCount: shotGenerations.length,
     propImagesCount: propImages?.length || 0,
     usingPropImages: !!propImages,
   });
-  
-  // Get pair prompts from database instead of props (now reactive)
-  const databasePairPrompts = hookData.pairPrompts;
-  const actualPairPrompts = pairPrompts || databasePairPrompts; // Fallback to props for backward compatibility
+
+  const actualPairPrompts = hookData.pairPrompts;
   const isLoading = propShotGenerations ? false : hookData.isLoading; // If props provided, never show loading (shared data)
   
   // Use provided images or generate from shotGenerations
@@ -1058,7 +1041,6 @@ const Timeline: React.FC<TimelineProps> = ({
         setIsDragInProgress={setIsDragInProgress}
         onPairClick={onPairClick}
         pairPrompts={actualPairPrompts}
-        enhancedPrompts={enhancedPrompts || EMPTY_ENHANCED_PROMPTS}
         defaultPrompt={defaultPrompt}
         defaultNegativePrompt={defaultNegativePrompt}
         onClearEnhancedPrompt={readOnly ? undefined : onClearEnhancedPrompt}
@@ -1094,6 +1076,9 @@ const Timeline: React.FC<TimelineProps> = ({
         selectedOutputId={selectedOutputId}
         onSelectedOutputChange={onSelectedOutputChange}
         onSegmentFrameCountChange={onSegmentFrameCountChange}
+        segmentSlots={segmentSlots}
+        isSegmentsLoading={isSegmentsLoading}
+        hasPendingTask={hasPendingTask}
         videoOutputs={allGenerationsForReadOnly}
         onNewShotFromSelection={onNewShotFromSelection}
         onShotChange={onShotChange}

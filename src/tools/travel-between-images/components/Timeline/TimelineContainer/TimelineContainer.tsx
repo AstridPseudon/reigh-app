@@ -14,7 +14,6 @@ import { GuidanceVideosContainer } from '../GuidanceVideosContainer';
 import { AudioStrip } from '../AudioStrip';
 import { SegmentOutputStrip } from '../SegmentOutputStrip';
 import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
-import { usePendingSegmentTasks } from '@/shared/hooks/usePendingSegmentTasks';
 import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
 
 // Extracted sub-components
@@ -50,7 +49,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onResetFrames,
   onPairClick,
   pairPrompts,
-  enhancedPrompts,
   defaultPrompt,
   defaultNegativePrompt,
   onClearEnhancedPrompt,
@@ -83,6 +81,9 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   selectedOutputId,
   onSelectedOutputChange,
   onSegmentFrameCountChange,
+  segmentSlots: parentSegmentSlots,
+  isSegmentsLoading,
+  hasPendingTask: parentHasPendingTask,
   videoOutputs,
   onNewShotFromSelection,
   onShotChange,
@@ -264,9 +265,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
 
     lastImageIdRef.current = currentLastImageId;
   }, [imagePositions, trailingVideoUrl]);
-
-  // Check for pending segment tasks (needed to show trailing slot when pending)
-  const { hasPendingTask } = usePendingSegmentTasks(shotId, projectId);
 
   // Handler to extract final frame from trailing video and add as next image
   const handleExtractFinalFrame = useCallback(async () => {
@@ -535,7 +533,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
               <SegmentOutputStrip
                 shotId={shotId}
                 projectId={projectId}
-                preloadedGenerations={videoOutputs}
                 readOnly={readOnly}
                 projectAspectRatio={projectAspectRatio}
                 pairInfo={pairInfoWithPending}
@@ -544,11 +541,13 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                 fullRange={fullRange}
                 containerWidth={containerWidth}
                 zoomLevel={zoomLevel}
+                segmentSlots={parentSegmentSlots ?? []}
+                isLoading={isSegmentsLoading}
                 localShotGenPositions={localShotGenPositions}
+                hasPendingTask={parentHasPendingTask}
                 pairDataByIndex={pairDataByIndex}
                 onOpenPairSettings={onPairClick ? handleOpenPairSettings : undefined}
                 selectedParentId={selectedOutputId}
-                onSelectedParentChange={onSelectedOutputChange}
                 onSegmentFrameCountChange={onSegmentFrameCountChange}
                 // SIMPLIFIED: Always pass lastImageId so hook can find existing trailing videos
                 lastImageId={lastEntry?.[0]}
@@ -742,9 +741,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
               const pairPromptData = pairPrompts?.[index];
               const pairPromptFromMetadata = pairPromptData?.prompt || '';
               const pairNegativePromptFromMetadata = pairPromptData?.negativePrompt || '';
-              const enhancedPromptFromProps = enhancedPrompts?.[index] || '';
-              const enhancedPromptFromMetadata = startImage?.metadata?.enhanced_prompt || '';
-              const actualEnhancedPrompt = enhancedPromptFromProps || enhancedPromptFromMetadata;
+              const actualEnhancedPrompt = startImage?.metadata?.enhanced_prompt || '';
 
               return (
                 <PairRegion

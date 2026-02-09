@@ -7,14 +7,13 @@
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Loader2, X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import MediaLightbox from '@/shared/components/MediaLightbox';
-import { useSegmentOutputsForShot } from '../../hooks/useSegmentOutputsForShot';
 import { InlineSegmentVideo } from './InlineSegmentVideo';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { usePendingSegmentTasks } from '@/shared/hooks/usePendingSegmentTasks';
 import { useSourceImageChanges } from '@/shared/hooks/useSourceImageChanges';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import { GenerationRow } from '@/types/shots';
@@ -43,14 +42,18 @@ interface SegmentOutputStripProps {
   fullRange: number;
   containerWidth: number;
   zoomLevel: number;
+  /** Segment slots from consolidated hook (passed from ShotImagesEditor) */
+  segmentSlots: SegmentSlot[];
+  /** Loading state for segment slots */
+  isLoading?: boolean;
   /** Map from shot_generation_id to position index (0, 1, 2...) - for instant updates during drag */
   localShotGenPositions?: Map<string, number>;
+  /** Check if a pair has a pending task (includes optimistic state from ShotImagesEditor) */
+  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
   /** Callback to open pair settings modal for a specific pair index, with frame data from pairInfo */
   onOpenPairSettings?: (pairIndex: number, pairFrameData?: { frames: number; startFrame: number; endFrame: number }) => void;
   /** Optional controlled selected parent ID (shared with FinalVideoSection) */
   selectedParentId?: string | null;
-  /** Optional callback when selected parent changes (for controlled mode) */
-  onSelectedParentChange?: (id: string | null) => void;
   /** Current pair data by index (shared with SegmentSettingsModal for fresh regeneration data) */
   pairDataByIndex?: Map<number, PairData>;
   /** Callback when segment frame count changes (for instant timeline updates) */
@@ -63,8 +66,6 @@ interface SegmentOutputStripProps {
     imageFrame: number;
     endFrame: number;
   };
-  /** Preloaded generations for readOnly mode (bypasses database queries) */
-  preloadedGenerations?: GenerationRow[];
   /** Read-only mode - disables interactions */
   readOnly?: boolean;
   /** Callback to add a trailing segment (for multi-image mode when no trailing yet) */
@@ -89,15 +90,16 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   fullRange,
   containerWidth,
   zoomLevel,
+  segmentSlots: rawSegmentSlots,
+  isLoading = false,
   localShotGenPositions,
+  hasPendingTask: hasPendingTaskProp,
   onOpenPairSettings,
-  selectedParentId: controlledSelectedParentId,
-  onSelectedParentChange,
+  selectedParentId,
   pairDataByIndex,
   onSegmentFrameCountChange,
   lastImageId,
   trailingSegmentMode,
-  preloadedGenerations,
   readOnly = false,
   onAddTrailingSegment,
   onRemoveTrailingSegment,
@@ -108,20 +110,8 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   // ===== ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP =====
   const isMobile = useIsMobile();
 
-  // [TrailingDebug] Log received props
-  console.log('[TrailingDebug] 📥 SegmentOutputStrip RECEIVED:', {
-    lastImageId: lastImageId?.substring(0, 8),
-    trailingSegmentMode: trailingSegmentMode ? {
-      imageId: trailingSegmentMode.imageId?.substring(0, 8),
-      endFrame: trailingSegmentMode.endFrame,
-    } : 'undefined',
-    isMultiImage,
-    lastImageFrame,
-  });
-
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [isParentLightboxOpen, setIsParentLightboxOpen] = useState(false);
 
   // Deletion state
   const [deletingSegmentId, setDeletingSegmentId] = useState<string | null>(null);
@@ -165,36 +155,18 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeScrubbingIndex, scrubbing]);
 
-  // Fetch segment outputs data - uses controlled state if provided
-  const {
-    parentGenerations,
-    selectedParentId,
-    setSelectedParentId,
-    selectedParent,
-    hasFinalOutput,
-    segmentSlots,
-    segmentProgress,
-    isLoading,
-  } = useSegmentOutputsForShot(
-    shotId,
-    projectId || null,
-    localShotGenPositions,
-    controlledSelectedParentId,
-    onSelectedParentChange,
-    preloadedGenerations,
-    lastImageId // Always pass so hook can find existing trailing videos
-  );
-
-  // [TrailingDebug] Log what hook returns
-  console.log('[TrailingDebug] 🎣 useSegmentOutputsForShot RETURNED:', {
-    segmentSlotsCount: segmentSlots.length,
-    segmentSlots: segmentSlots.map(s => ({
-      index: s.index,
-      type: s.type,
-      pairShotGenId: s.pairShotGenerationId?.substring(0, 8),
-    })),
-    lastImageIdPassed: lastImageId?.substring(0, 8),
-  });
+  // Remap slot indices to match current drag positions (instant during drag).
+  // The hook in ShotImagesEditor uses DB-derived order, but during drag the orchestrator
+  // tracks the live order. Re-index slots so segments follow their images during drag.
+  const segmentSlots = useMemo(() => {
+    if (!localShotGenPositions || localShotGenPositions.size === 0) return rawSegmentSlots;
+    return rawSegmentSlots.map(slot => {
+      if (!slot.pairShotGenerationId) return slot;
+      const newIndex = localShotGenPositions.get(slot.pairShotGenerationId);
+      if (newIndex === undefined) return slot;
+      return { ...slot, index: newIndex };
+    });
+  }, [rawSegmentSlots, localShotGenPositions]);
 
   // Get the active segment's video URL (must be after segmentSlots is defined)
   const activeSegmentSlot = activeScrubbingIndex !== null ? segmentSlots[activeScrubbingIndex] : null;
@@ -207,8 +179,8 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     }
   }, [activeScrubbingIndex, activeSegmentVideoUrl, scrubbing.setVideoElement]);
 
-  // Check for pending segment tasks (Queued/In Progress)
-  const { hasPendingTask } = usePendingSegmentTasks(shotId, projectId);
+  // Pending task checker — prefer the prop (includes optimistic state), fall back to always-false
+  const hasPendingTask = hasPendingTaskProp ?? (() => false);
 
   // Build segment info for source image change detection
   const segmentSourceInfo = useMemo(() => {
@@ -594,15 +566,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     [currentLightboxSlot]
   );
   
-  // Transform selected parent for VideoItem/Lightbox
-  const parentVideoRow = useMemo(() => {
-    if (!selectedParent) return null;
-    return {
-      ...selectedParent,
-      type: 'video',
-    } as GenerationRow;
-  }, [selectedParent]);
-
   // ============================================================================
   // MEMOIZED LIGHTBOX PROPS
   // These prevent creating new object references on every render which would
@@ -982,22 +945,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
         />
       )}
       
-      {/* Lightbox for parent video */}
-      {isParentLightboxOpen && parentVideoRow && (
-        <MediaLightbox
-          media={parentVideoRow}
-          onClose={() => setIsParentLightboxOpen(false)}
-          showNavigation={false}
-          showImageEditTools={false}
-          showDownload={true}
-          hasNext={false}
-          hasPrevious={false}
-          starred={parentVideoRow?.starred ?? false}
-          shotId={shotId}
-          showTaskDetails={true}
-          showVideoTrimEditor={true}
-        />
-      )}
     </div>
   );
 };

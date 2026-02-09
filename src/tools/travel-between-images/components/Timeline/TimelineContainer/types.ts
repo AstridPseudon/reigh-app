@@ -8,6 +8,7 @@ import type {
   FileDropHandler,
   GenerationDropHandler,
 } from '@/shared/types/imageHandlers';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 
 // Re-export PairData from shared for backwards compatibility
 export type { PairData } from '@/shared/types/pairData';
@@ -27,7 +28,6 @@ export interface TimelineContainerProps {
   // Pair-specific props
   onPairClick?: (pairIndex: number, pairData: PairData) => void;
   pairPrompts?: Record<number, { prompt: string; negativePrompt: string }>;
-  enhancedPrompts?: Record<number, string>;
   defaultPrompt?: string;
   defaultNegativePrompt?: string;
   onClearEnhancedPrompt?: (pairIndex: number) => void;
@@ -85,6 +85,12 @@ export interface TimelineContainerProps {
   onSelectedOutputChange?: (id: string | null) => void;
   // Callback when segment frame count changes (for instant timeline updates)
   onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
+  // Segment slots from consolidated hook (passed through to SegmentOutputStrip)
+  segmentSlots?: SegmentSlot[];
+  // Loading state for segment slots
+  isSegmentsLoading?: boolean;
+  // Pending task checker (from consolidated hook — includes optimistic state)
+  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
   // Preloaded video outputs for readOnly mode (bypasses database query)
   videoOutputs?: GenerationRow[];
   // Multi-select: callback to create a new shot from selected images (returns new shot ID)

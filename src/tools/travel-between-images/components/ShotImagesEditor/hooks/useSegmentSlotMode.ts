@@ -228,11 +228,27 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
     const pairEndFrame = pairData.endFrame ?? 0;
 
     // Find covering structure video
-    const coveringVideo = (structureVideos || []).find(video => {
+    const allVideos = structureVideos || [];
+    const coveringVideo = allVideos.find(video => {
       const videoStart = video.start_frame ?? 0;
       const videoEnd = video.end_frame ?? Infinity;
-      return pairEndFrame > videoStart && pairStartFrame < videoEnd;
+      const overlaps = pairEndFrame > videoStart && pairStartFrame < videoEnd;
+      return overlaps;
     }) ?? (effectiveGenerationMode === 'batch' && structureVideos?.[0]);
+
+    console.log('[StructureVideoCoverage] segment', segmentSlotLightboxIndex, {
+      segmentRange: [pairStartFrame, pairEndFrame],
+      videos: allVideos.map((v, i) => ({
+        index: i,
+        range: [v.start_frame ?? 0, v.end_frame ?? '∞'],
+        type: v.structure_type,
+        path: v.path?.substring(v.path.lastIndexOf('/') + 1),
+      })),
+      coveringVideoIndex: coveringVideo ? allVideos.indexOf(coveringVideo as typeof allVideos[0]) : null,
+      coveringVideoRange: coveringVideo ? [coveringVideo.start_frame ?? 0, coveringVideo.end_frame ?? '∞'] : null,
+      result: coveringVideo ? coveringVideo.structure_type : 'none',
+      mode: effectiveGenerationMode,
+    });
 
     // Get prompts from metadata
     const shotGen = shotGenerations.find(shotGen => shotGen.id === pairData.startImage?.id);
