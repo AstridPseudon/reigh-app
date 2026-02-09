@@ -33,6 +33,27 @@ interface StructureVideoPreviewProps {
   onLoadComplete?: () => void;
 }
 
+/**
+ * Seek a video element to a target time, with a timeout to prevent hanging
+ * if the browser doesn't fire 'seeked' (e.g. already at the target time).
+ */
+function seekVideo(video: HTMLVideoElement, targetTime: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    // If already within ~1ms of target, skip the seek entirely
+    if (Math.abs(video.currentTime - targetTime) < 0.001) {
+      resolve();
+      return;
+    }
+
+    const timeout = setTimeout(resolve, 2000);
+    video.addEventListener('seeked', () => {
+      clearTimeout(timeout);
+      resolve();
+    }, { once: true });
+    video.currentTime = targetTime;
+  });
+}
+
 export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
   videoUrl,
   frameRange,
@@ -43,8 +64,8 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
   // Stable refs array - doesn't change between renders
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([null, null, null]);
   const [capturedCount, setCapturedCount] = useState(0);
-  // Track which URL + treatment the captures are for - prevents showing stale frames
-  const [capturedFor, setCapturedFor] = useState<{ url: string; treatment: string } | null>(null);
+  // Track which URL the captures are for - prevents showing stale frames on URL change
+  const [capturedForUrl, setCapturedForUrl] = useState<string | null>(null);
   // Track if we're currently extracting (to show loading state without clearing frames)
   const [isExtracting, setIsExtracting] = useState(false);
 
@@ -101,7 +122,7 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
     ];
   }, [frameRange, treatment]);
 
-  // Track previous URL to detect URL changes without adding capturedFor to effect deps
+  // Track previous URL to detect URL changes without adding capturedForUrl to effect deps
   const prevUrlRef = useRef<string | null>(null);
 
   // Single effect to handle entire capture flow with proper cancellation
@@ -112,11 +133,11 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
     let cancelled = false;
 
     // Only clear frames immediately if URL changed (completely different video)
-    // For treatment changes, keep showing old frames until new ones are ready
+    // For treatment/position changes, keep showing old frames until new ones are ready
     const urlChanged = prevUrlRef.current !== null && prevUrlRef.current !== videoUrl;
     if (urlChanged) {
       setCapturedCount(0);
-      setCapturedFor(null);
+      setCapturedForUrl(null);
     }
     prevUrlRef.current = videoUrl;
 
@@ -139,11 +160,8 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
       for (let i = 0; i < 3; i++) {
         if (cancelled) return;
 
-        // Seek to frame position
-        video.currentTime = framePositions[i].time;
-        await new Promise<void>(resolve => {
-          video.addEventListener('seeked', () => resolve(), { once: true });
-        });
+        // Seek to frame position (with timeout to prevent hanging)
+        await seekVideo(video, framePositions[i].time);
 
         if (cancelled) return;
 
@@ -159,9 +177,9 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
         }
       }
 
-      // All frames captured - update state atomically to prevent flicker
+      // All frames captured
       if (!cancelled) {
-        setCapturedFor({ url: videoUrl, treatment });
+        setCapturedForUrl(videoUrl);
         setCapturedCount(3);
         setIsExtracting(false);
         if (urlChanged) {
@@ -182,36 +200,20 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
     };
   }, [videoUrl, framePositions, treatment, onLoadComplete]);
 
-  // Track last successfully captured frame positions for stable display
-  const [displayPositions, setDisplayPositions] = useState(framePositions);
-
-  // Check if current captures match current URL + treatment
-  const capturesMatch = capturedFor?.url === videoUrl && capturedFor?.treatment === treatment;
-  // Only show as fully loaded if captures match current state
-  const isFullyLoaded = capturedCount >= 3 && capturesMatch;
-  // Helper to check if a specific frame should be visible (show old frames while re-extracting)
-  const isFrameCaptured = (i: number) => capturedFor !== null && capturedCount > i;
-
-  // Show frames if we have any captured (even if for different treatment)
-  const hasFramesToShow = capturedFor !== null && capturedCount >= 3;
-
-  // Update display positions only when fully loaded (prevents text flicker during updates)
-  useEffect(() => {
-    if (isFullyLoaded) {
-      setDisplayPositions(framePositions);
-    }
-  }, [isFullyLoaded, framePositions]);
+  // Canvas visibility: show canvases once we have ANY captures for this URL
+  const hasCapturesForUrl = capturedForUrl === videoUrl && capturedCount >= 3;
+  const isFrameCaptured = (i: number) => capturedForUrl !== null && capturedCount > i;
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2 text-[10px]">
-        {hasFramesToShow ? (
+        {hasCapturesForUrl || isExtracting ? (
           <>
-            {isExtracting && !isFullyLoaded && (
+            {isExtracting && !hasCapturesForUrl && (
               <Loader2 className="w-3 h-3 animate-spin text-primary" />
             )}
             <span className="text-muted-foreground">
-              Frames {displayPositions[0].frame} - {displayPositions[2].frame} of structure video
+              Frames {framePositions[0].frame} - {framePositions[2].frame} of structure video
             </span>
             <span className="text-primary/70 italic">Make changes on the timeline</span>
           </>

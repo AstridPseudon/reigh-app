@@ -565,7 +565,7 @@ export function buildTaskParams(
     seed: settings.seed,
     amount_of_motion: settings.amountOfMotion / 100, // Convert 0-100 to 0-1
     motion_mode: settings.motionMode,
-    phase_config: settings.motionMode === 'basic' ? undefined : settings.phaseConfig,
+    phase_config: settings.motionMode === 'basic' && !settings.selectedPhasePresetId ? undefined : settings.phaseConfig,
     selected_phase_preset_id: settings.selectedPhasePresetId,
     loras: settings.loras.map(l => ({ path: l.path, strength: l.strength })),
     make_primary_variant: settings.makePrimaryVariant,

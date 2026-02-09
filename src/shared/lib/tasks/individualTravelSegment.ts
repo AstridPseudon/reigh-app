@@ -610,6 +610,11 @@ function buildIndividualTravelSegmentParams(
   // Always add phase_config
   individualSegmentParams.phase_config = phaseConfig;
 
+  // Preserve selected_phase_preset_id for UI state restoration
+  if (params.selected_phase_preset_id) {
+    individualSegmentParams.selected_phase_preset_id = params.selected_phase_preset_id;
+  }
+
   // Add the individual_segment_params to task params
   taskParams.individual_segment_params = individualSegmentParams;
 

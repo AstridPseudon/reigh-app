@@ -9,7 +9,7 @@
  * - Mobile: plain button (info shown via MobileInfoModal on re-tap)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, ArrowDown, ArrowUp, Info, Loader2, Trash2, GitBranch, Star, Download, Image } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
@@ -128,6 +128,7 @@ export const VariantCard: React.FC<VariantCardProps> = ({
   currentSegmentImages,
   loadedImagesVariantId,
 }) => {
+  const [infoOpen, setInfoOpen] = useState(false);
   const Icon = getVariantIcon(variant.variant_type);
   const label = getVariantLabel(variant);
 
@@ -255,11 +256,19 @@ export const VariantCard: React.FC<VariantCardProps> = ({
         {/* Info button - bottom right, shows on hover (desktop only) */}
         {!isMobile && (
           <div className="absolute bottom-0.5 right-0.5 opacity-0 group-hover/variant:opacity-100 transition-opacity pointer-events-auto">
-            <HoverCard openDelay={0} closeDelay={0}>
+            <HoverCard
+              open={infoOpen}
+              onOpenChange={setInfoOpen}
+              openDelay={150}
+              closeDelay={0}
+            >
               <HoverCardTrigger asChild>
                 <div
                   className="h-5 w-5 rounded-full bg-black/50 flex items-center justify-center cursor-pointer hover:bg-black/70"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInfoOpen(true);
+                  }}
                 >
                   <Info className="h-3 w-3 text-white" strokeWidth={2.5} />
                 </div>

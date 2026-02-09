@@ -172,9 +172,12 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   const handleMotionModeChange = useCallback((mode: 'basic' | 'advanced') => {
     onChange({
       motionMode: mode,
-      phaseConfig: mode === 'basic' ? undefined : (settings.phaseConfig ?? shotDefaults?.phaseConfig),
+      // Preserve phaseConfig when a preset is selected (it carries the preset's config)
+      phaseConfig: mode === 'basic' && !settings.selectedPhasePresetId
+        ? undefined
+        : (settings.phaseConfig ?? shotDefaults?.phaseConfig),
     });
-  }, [onChange, settings.phaseConfig, shotDefaults?.phaseConfig]);
+  }, [onChange, settings.phaseConfig, settings.selectedPhasePresetId, shotDefaults?.phaseConfig]);
 
   const handlePhaseConfigChange = useCallback((config: PhaseConfig) => {
     onChange({
@@ -190,8 +193,12 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   }, [onChange]);
 
   const handlePhasePresetRemove = useCallback(() => {
-    onChange({ selectedPhasePresetId: null });
-  }, [onChange]);
+    onChange({
+      selectedPhasePresetId: null,
+      // In basic mode, phaseConfig only existed because of the preset — clear it
+      ...(settings.motionMode !== 'advanced' && { phaseConfig: undefined }),
+    });
+  }, [onChange, settings.motionMode]);
 
   const handleRandomSeedChange = useCallback((value: boolean) => {
     onChange({ randomSeed: value });
