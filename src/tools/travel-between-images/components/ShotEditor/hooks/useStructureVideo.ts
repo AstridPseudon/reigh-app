@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import {
-  VideoStructureApiParams,
   DEFAULT_VIDEO_STRUCTURE_PARAMS,
   StructureVideoConfig,
   StructureVideoConfigWithMetadata,
@@ -23,7 +22,17 @@ export type { StructureVideoConfig, StructureVideoConfigWithMetadata };
  * Legacy structure video configuration with snake_case fields matching API params.
  * @deprecated Use StructureVideoConfigWithMetadata[] array instead
  */
-export interface LegacyStructureVideoConfig extends VideoStructureApiParams {
+export interface LegacyStructureVideoConfig {
+  /** Path to structure video (S3/Storage URL) */
+  structure_video_path?: string | null;
+  /** How to handle frame count mismatches between structure video and generation */
+  structure_video_treatment?: 'adjust' | 'clip';
+  /** Motion strength: 0.0 = no motion, 1.0 = full motion, >1.0 = amplified */
+  structure_video_motion_strength?: number;
+  /** Type of structure extraction from video */
+  structure_video_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
+  /** Uni3C end percent (0-1, only used when structure_video_type is 'uni3c') */
+  uni3c_end_percent?: number;
   /** Video metadata (frame count, duration, etc.) - UI only */
   metadata?: VideoMetadata | null;
   /** Resource ID for tracking which resource this video came from - UI only */

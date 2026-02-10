@@ -1,7 +1,6 @@
 // Types
 export type {
   StructureGuidanceConfig,
-  VideoStructureApiParams,
   StructureVideoConfig,
   StructureVideoConfigWithMetadata,
   VideoMotionApiParams,

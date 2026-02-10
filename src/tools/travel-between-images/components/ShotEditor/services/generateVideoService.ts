@@ -14,9 +14,17 @@ import {
   DEFAULT_VIDEO_STRUCTURE_PARAMS,
 } from '@/shared/lib/tasks/travelBetweenImages';
 import {
-  type LegacyStructureVideoConfig as StructureVideoConfig,
   DEFAULT_STRUCTURE_VIDEO_CONFIG,
 } from '../hooks/useStructureVideo';
+
+/** Legacy single-video structure config shape (used by buildStructureGuidance fallback) */
+interface LegacyStructureVideoParams {
+  structure_video_path?: string | null;
+  structure_video_treatment?: 'adjust' | 'clip';
+  structure_video_motion_strength?: number;
+  structure_video_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
+  uni3c_end_percent?: number;
+}
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { DEFAULT_RESOLUTION } from '../utils/dimension-utils';
 import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '../state/types';
@@ -30,7 +38,7 @@ import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import type { Shot } from '@/types/shots';
 
 // Re-export types used by consumers (VideoGenerationModal, etc.)
-export type { StructureVideoConfig, StitchConfig };
+export type { StitchConfig };
 export { DEFAULT_STRUCTURE_VIDEO_CONFIG };
 
 /** Strip 'mode' field from phaseConfig - backend determines mode from actual model */
@@ -87,7 +95,7 @@ const PREPROCESSING_MAP: Record<string, string> = {
  */
 function buildStructureGuidance(
   structureVideos: StructureVideoConfigWithMetadata[] | undefined,
-  structureVideoConfig: StructureVideoConfig,
+  structureVideoConfig: LegacyStructureVideoParams,
   uni3cEndPercent: number | undefined,
   totalFrames: number,
 ): Record<string, unknown> | null {
@@ -168,7 +176,7 @@ interface GenerateVideoParams {
   motionConfig: MotionConfig;
   modelConfig: ModelConfig;
   /** Legacy single-video config (deprecated - use structureVideos instead) */
-  structureVideoConfig: StructureVideoConfig;
+  structureVideoConfig: LegacyStructureVideoParams;
   structureVideos?: StructureVideoConfigWithMetadata[];
   batchVideoFrames: number;
   selectedLoras: Array<{ id: string; path: string; strength: number; name: string }>;

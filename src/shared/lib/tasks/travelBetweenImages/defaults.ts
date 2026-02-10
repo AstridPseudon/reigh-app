@@ -1,5 +1,4 @@
 import type {
-  VideoStructureApiParams,
   VideoMotionApiParams,
   PromptConfig,
   MotionConfig,
@@ -7,9 +6,13 @@ import type {
 } from './types';
 
 /**
- * Default values for video structure API params
+ * Default values for video structure API params (legacy single-video format)
  */
-export const DEFAULT_VIDEO_STRUCTURE_PARAMS: Required<Pick<VideoStructureApiParams, 'structure_video_treatment' | 'structure_video_motion_strength' | 'structure_video_type'>> = {
+export const DEFAULT_VIDEO_STRUCTURE_PARAMS: {
+  structure_video_treatment: 'adjust' | 'clip';
+  structure_video_motion_strength: number;
+  structure_video_type: 'uni3c' | 'flow' | 'canny' | 'depth';
+} = {
   structure_video_treatment: 'adjust',
   structure_video_motion_strength: 1.2,
   structure_video_type: 'uni3c',  // Hardcoded to uni3c - only supported option now

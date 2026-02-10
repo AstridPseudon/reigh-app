@@ -13,7 +13,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { ShotEditorState } from '../state/types';
-import { isGenerationVideo } from '../utils/generation-utils';
+import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import {
   cropImagesToShotAspectRatio,
   calculateNextAvailableFrame,
@@ -163,7 +163,7 @@ export const useGenerationActions = ({
     // Check if we're deleting the first positioned item on the timeline
     // If so, we need to shift all remaining items back proportionally
     const positionedImages = currentOrderedImages
-      .filter(img => img.timeline_frame != null && img.timeline_frame >= 0 && !isGenerationVideo(img))
+      .filter(img => img.timeline_frame != null && img.timeline_frame >= 0 && !isVideoGeneration(img))
       .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
     
     const deletedItemFrame = imageToDelete?.timeline_frame;
