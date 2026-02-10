@@ -4,7 +4,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as moduleNamespace from '../VisibilityManager';
 
 // Mock DOM APIs
 const mockDocument = {

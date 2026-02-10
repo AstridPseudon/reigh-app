@@ -198,9 +198,6 @@ export function useEntityState<T extends Record<string, unknown>>(
   // Save implementation
   const saveImmediate = useCallback(async (dataToSave?: T): Promise<void> => {
     if (!entityId) {
-      if (debug) {
-        console.warn(`${debugTag} Cannot save - no entity selected`);
-      }
       return;
     }
 
@@ -208,16 +205,7 @@ export function useEntityState<T extends Record<string, unknown>>(
 
     // Don't save if nothing changed
     if (deepEqual(toSave, loadedStateRef.current)) {
-      if (debug) {
-        console.log(`${debugTag} ⏭️ Skipping save - no changes`);
-      }
       return;
-    }
-
-    if (debug) {
-      console.log(`${debugTag} 💾 Saving state:`, {
-        entityId: entityId.substring(0, 8),
-      });
     }
 
     setStatus('saving');
@@ -231,10 +219,6 @@ export function useEntityState<T extends Record<string, unknown>>(
 
       setStatus('ready');
       setError(null);
-
-      if (debug) {
-        console.log(`${debugTag} ✅ Save successful`);
-      }
 
       onSaveSuccess?.();
     } catch (err) {
@@ -266,19 +250,11 @@ export function useEntityState<T extends Record<string, unknown>>(
       const pendingForEntity = pendingEntityIdRef.current;
 
       if (pending && pendingForEntity && pendingForEntity === currentEntityIdValue) {
-        if (debug) {
-          console.log(`${debugTag} 🚿 Flushing pending save in cleanup:`, {
-            entityId: pendingForEntity.substring(0, 8),
-          });
-        }
 
         // Fire-and-forget; cleanup cannot be async
         saveToStorageRef.current(pendingForEntity, pending)
           .then(() => {
             onFlushRef.current?.(pendingForEntity, pending);
-            if (debug) {
-              console.log(`${debugTag} ✅ Cleanup flush succeeded`);
-            }
           })
           .catch(err => {
             console.error(`${debugTag} Cleanup flush failed:`, err);
@@ -302,11 +278,6 @@ export function useEntityState<T extends Record<string, unknown>>(
       const pendingForEntity = pendingEntityIdRef.current;
 
       if (pending && pendingForEntity) {
-        if (debug) {
-          console.log(`${debugTag} 🚿 Flushing pending save on page unload:`, {
-            entityId: pendingForEntity.substring(0, 8),
-          });
-        }
 
         // Fire-and-forget save
         saveToStorageRef.current(pendingForEntity, pending).catch(err => {
@@ -334,12 +305,6 @@ export function useEntityState<T extends Record<string, unknown>>(
 
       // During loading, don't schedule saves - just update local state
       if (status !== 'ready' && status !== 'saving') {
-        if (debug) {
-          console.log(`${debugTag} 📝 updateField during loading - UI only (protected):`, {
-            key,
-            status,
-          });
-        }
         return updated;
       }
 
@@ -387,12 +352,6 @@ export function useEntityState<T extends Record<string, unknown>>(
       pendingEntityIdRef.current = entityId ?? null;
 
       if (status !== 'ready' && status !== 'saving') {
-        if (debug) {
-          console.log(`${debugTag} 📝 updateFields during loading - UI only (protected):`, {
-            keys: Object.keys(updates),
-            status,
-          });
-        }
         return updated;
       }
 
@@ -428,9 +387,6 @@ export function useEntityState<T extends Record<string, unknown>>(
   // Revert to last saved state
   const revert = useCallback(() => {
     if (loadedStateRef.current) {
-      if (debug) {
-        console.log(`${debugTag} ↩️ Reverting to last saved state`);
-      }
       setState(loadedStateRef.current);
       pendingStateRef.current = null;
       pendingEntityIdRef.current = null;
@@ -458,9 +414,6 @@ export function useEntityState<T extends Record<string, unknown>>(
     }
 
     const resetTo = newDefaults || defaults;
-    if (debug) {
-      console.log(`${debugTag} 🔄 Resetting to defaults`);
-    }
 
     setState(resetTo);
     loadedStateRef.current = JSON.parse(JSON.stringify(resetTo));
@@ -473,14 +426,7 @@ export function useEntityState<T extends Record<string, unknown>>(
   const initializeFrom = useCallback((data: Partial<T>) => {
     // Only apply if we don't have persisted data and aren't loading
     if (hasPersistedData || isLoadingRef.current) {
-      if (debug) {
-        console.log(`${debugTag} ⏭️ Skipping initializeFrom - has persisted data or loading`);
-      }
       return;
-    }
-
-    if (debug) {
-      console.log(`${debugTag} 🔄 Initializing from external source`);
     }
 
     setState(prev => ({ ...prev, ...data }));
@@ -507,12 +453,6 @@ export function useEntityState<T extends Record<string, unknown>>(
     }
 
     if (previousEntityId && previousEntityId !== entityId) {
-      if (debug) {
-        console.log(`${debugTag} 🔄 Entity changed:`, {
-          from: previousEntityId.substring(0, 8),
-          to: entityId.substring(0, 8),
-        });
-      }
 
       setState(defaults);
       setStatus('idle');
@@ -538,9 +478,6 @@ export function useEntityState<T extends Record<string, unknown>>(
 
     // Don't reload if we have pending edits for this entity
     if (pendingStateRef.current && pendingEntityIdRef.current === entityId) {
-      if (debug) {
-        console.log(`${debugTag} ⏳ Skipping load - user has pending edits`);
-      }
       setStatus('ready');
       // Schedule save for pending edits
       if (saveTimeoutRef.current) {
@@ -569,9 +506,6 @@ export function useEntityState<T extends Record<string, unknown>>(
 
         // Check again for pending edits (user may have typed during load)
         if (pendingStateRef.current && pendingEntityIdRef.current === entityId) {
-          if (debug) {
-            console.log(`${debugTag} ⏳ Load completed but user has pending edits - keeping user input`);
-          }
           setStatus('ready');
           isLoadingRef.current = false;
           return;
@@ -581,19 +515,10 @@ export function useEntityState<T extends Record<string, unknown>>(
           const mergedState = { ...defaults, ...loaded };
           const cloned = JSON.parse(JSON.stringify(mergedState));
 
-          if (debug) {
-            console.log(`${debugTag} 📥 Loaded from storage:`, {
-              entityId: entityId.substring(0, 8),
-            });
-          }
-
           setState(cloned);
           loadedStateRef.current = JSON.parse(JSON.stringify(cloned));
           setHasPersistedData(true);
         } else {
-          if (debug) {
-            console.log(`${debugTag} ⚠️ No persisted data found, using defaults`);
-          }
           setState(defaults);
           loadedStateRef.current = JSON.parse(JSON.stringify(defaults));
           setHasPersistedData(false);

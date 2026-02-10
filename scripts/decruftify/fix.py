@@ -15,10 +15,6 @@ from .utils import PROJECT_ROOT, c, rel
 
 # ── Debug log fixer ─────────────────────────────────────────
 
-CONSOLE_LOG_RE = re.compile(
-    r"""console\.(log|warn|info|debug)\s*\(\s*['"`].{0,4}\["""
-)
-
 
 def fix_debug_logs(entries: list[dict], *, dry_run: bool = False) -> list[dict]:
     """Remove tagged console.log lines from source files.

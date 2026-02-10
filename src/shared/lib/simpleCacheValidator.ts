@@ -80,11 +80,6 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
         const currentMediaCount = images.length + videos.length;
         
         if (currentMediaCount !== lastMediaCount) {
-          console.log(`🔍 [CacheWatch] Media count changed: ${lastMediaCount} → ${currentMediaCount}`, {
-            images: images.length,
-            videos: videos.length,
-            timestamp: new Date().toISOString()
-          });
           lastMediaCount = currentMediaCount;
         }
       } catch (e) {

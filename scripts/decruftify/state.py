@@ -154,7 +154,13 @@ def make_finding(detector: str, file: str, name: str, *,
 # ── Merge (scan diffing) ────────────────────────────────────
 
 def merge_scan(state: dict, current_findings: list[dict]) -> dict:
-    """Merge a fresh scan into existing state. Returns diff summary."""
+    """Merge a fresh scan into existing state. Returns diff summary.
+
+    Protections against detector instability:
+    - If a detector previously had findings but now returns zero, its open
+      findings are NOT auto-resolved (likely a transient detector failure).
+    - The note for reopened findings correctly captures the previous status.
+    """
     now = _now()
     state["last_scan"] = now
     state["scan_count"] = state.get("scan_count", 0) + 1
@@ -165,11 +171,15 @@ def merge_scan(state: dict, current_findings: list[dict]) -> dict:
     new_count = 0
     reopened_count = 0
 
+    # Track current findings per detector to detect empty-detector anomalies
+    current_by_detector: dict[str, int] = {}
     for f in current_findings:
         fid = f["id"]
         if is_ignored(fid, f["file"], ignore):
             continue
         current_ids.add(fid)
+        det = f.get("detector", "unknown")
+        current_by_detector[det] = current_by_detector.get(det, 0) + 1
 
         if fid in existing:
             old = existing[fid]
@@ -182,8 +192,9 @@ def merge_scan(state: dict, current_findings: list[dict]) -> dict:
 
             # Reopen if it was auto-resolved/fixed but reappeared
             if old["status"] in ("fixed", "auto_resolved"):
+                prev_status = old["status"]
                 old["status"] = "open"
-                old["note"] = f"Reopened — reappeared in scan (was {old['status']})"
+                old["note"] = f"Reopened — reappeared in scan (was {prev_status})"
                 old["resolved_at"] = None
                 reopened_count += 1
             # wontfix / false_positive stay as-is even if finding reappears
@@ -191,10 +202,27 @@ def merge_scan(state: dict, current_findings: list[dict]) -> dict:
             existing[fid] = f
             new_count += 1
 
-    # Disappeared findings → auto-resolve if open
+    # Build set of previous open counts per detector
+    prev_by_detector: dict[str, int] = {}
+    for f in existing.values():
+        if f["status"] == "open":
+            det = f.get("detector", "unknown")
+            prev_by_detector[det] = prev_by_detector.get(det, 0) + 1
+
+    # Detectors that previously had findings but now returned zero are likely
+    # experiencing a transient failure — skip auto-resolving their findings
+    suspect_detectors = set()
+    for det, prev_count in prev_by_detector.items():
+        if prev_count >= 5 and current_by_detector.get(det, 0) == 0:
+            suspect_detectors.add(det)
+
+    # Disappeared findings → auto-resolve if open (unless detector is suspect)
     auto_resolved = 0
     for fid, old in existing.items():
         if fid not in current_ids and old["status"] == "open":
+            det = old.get("detector", "unknown")
+            if det in suspect_detectors:
+                continue  # skip — detector likely failed, not a real fix
             old["status"] = "auto_resolved"
             old["resolved_at"] = now
             old["note"] = "Disappeared from scan — likely fixed"
@@ -207,6 +235,7 @@ def merge_scan(state: dict, current_findings: list[dict]) -> dict:
         "auto_resolved": auto_resolved,
         "reopened": reopened_count,
         "total_current": len(current_ids),
+        "suspect_detectors": sorted(suspect_detectors) if suspect_detectors else [],
     }
 
 

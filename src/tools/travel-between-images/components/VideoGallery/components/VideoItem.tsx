@@ -141,15 +141,6 @@ export const VideoItem = React.memo<VideoItemProps>(({
       // Delay hiding thumbnail until video transition completes
       transitionTimeoutRef.current = setTimeout(() => {
         setVideoFullyVisible(true);
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🎬 [VideoLifecycle] Video ${index + 1} - TRANSITION_COMPLETE:`, {
-            videoId: video.id,
-            phase: 'TRANSITION_COMPLETE',
-            thumbnailWillHide: true,
-            videoFullyVisible: true,
-            timestamp: Date.now()
-          });
-        }
         transitionTimeoutRef.current = null;
       }, 350); // Slightly longer than the 200ms transition
 

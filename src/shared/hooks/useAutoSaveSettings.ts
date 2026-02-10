@@ -157,9 +157,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
   // Save implementation
   const saveImmediate = useCallback(async (settingsToSave?: T): Promise<void> => {
     if (!entityId) {
-      if (debug) {
-        console.warn(`${debugTag} Cannot save - no entity selected`);
-      }
       return;
     }
 
@@ -167,17 +164,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
     // Don't save if nothing changed
     if (deepEqual(toSave, loadedSettingsRef.current)) {
-      if (debug) {
-        console.log(`${debugTag} ⏭️ Skipping save - no changes`);
-      }
       return;
-    }
-
-    if (debug) {
-      console.log(`${debugTag} 💾 Saving settings:`, {
-        toolId,
-        entityId: entityId.substring(0, 8),
-      });
     }
 
     setStatus('saving');
@@ -193,10 +180,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
       setStatus('ready');
       setError(null);
-
-      if (debug) {
-        console.log(`${debugTag} ✅ Save successful`);
-      }
 
       onSaveSuccess?.();
     } catch (err) {
@@ -321,12 +304,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
       // During loading, don't schedule saves - just update local state
       // The pending ref will prevent DB load from overwriting user input
       if (status !== 'ready' && status !== 'saving') {
-        if (debug) {
-          console.log(`${debugTag} 📝 updateField during loading - UI only (protected):`, {
-            key,
-            status,
-          });
-        }
         return updated;
       }
 
@@ -378,12 +355,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
       // During loading, don't schedule saves - just update local state
       if (status !== 'ready' && status !== 'saving') {
-        if (debug) {
-          console.log(`${debugTag} 📝 updateFields during loading - UI only (protected):`, {
-            keys: Object.keys(updates),
-            status,
-          });
-        }
         return updated;
       }
 
@@ -423,9 +394,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
   // Revert to last saved settings
   const revert = useCallback(() => {
     if (loadedSettingsRef.current) {
-      if (debug) {
-        console.log(`${debugTag} ↩️ Reverting to last saved state`);
-      }
       setSettings(loadedSettingsRef.current);
       pendingSettingsRef.current = null;
       pendingEntityIdRef.current = null;
@@ -453,9 +421,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     }
 
     const resetTo = newDefaults || defaults;
-    if (debug) {
-      console.log(`${debugTag} 🔄 Resetting to defaults`);
-    }
 
     setSettings(resetTo);
     loadedSettingsRef.current = JSON.parse(JSON.stringify(resetTo));
@@ -486,12 +451,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
     // Entity changed to a different one
     if (previousEntityId && previousEntityId !== entityId) {
-      if (debug) {
-        console.log(`${debugTag} 🔄 Entity changed:`, {
-          from: previousEntityId.substring(0, 8),
-          to: entityId.substring(0, 8),
-        });
-      }
 
       // Reset for new entity
       setSettings(defaults);
@@ -527,24 +486,12 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     }
 
     // Log what we received from useToolSettings
-    if (debug) {
-      console.log(`${debugTag} 🔍 dbSettings received:`, {
-        toolId,
-        entityId: entityId?.substring(0, 8),
-        dbPrompt: String((dbSettings as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
-        dbLoraCount: ((dbSettings as Record<string, unknown>)?.loras as unknown[] | undefined)?.length ?? 0,
-        status,
-      });
-    }
 
     // Don't overwrite if user has pending edits for THIS entity (debounce hasn't fired yet)
     // This prevents React Query refetches from "unwriting" user input
     // IMPORTANT: We now protect pending edits even on first load - losing user's typing
     // is worse than the theoretical risk of saving defaults over DB values
     if (pendingSettingsRef.current && pendingEntityIdRef.current === entityId) {
-      if (debug) {
-        console.log(`${debugTag} ⏳ Skipping DB load - user has pending edits for this entity`);
-      }
       // Still transition to ready and schedule save for pending edits
       if (status !== 'ready') {
         setStatus('ready');
@@ -578,14 +525,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
     // Avoid setState loops when dbSettings identity changes but values don't.
     if (loadedSettingsRef.current && deepEqual(clonedSettings, loadedSettingsRef.current)) {
-      if (debug) {
-        console.log(`${debugTag} ⏭️ Skipping DB load - settings unchanged:`, {
-          toolId,
-          entityId: entityId.substring(0, 8),
-          promptInLoaded: String((loadedSettingsRef.current as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
-          promptInNew: String((clonedSettings as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
-        });
-      }
       if (status !== 'ready') {
         setStatus('ready');
       }
@@ -593,14 +532,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     }
 
     // No pending edits for this entity - safe to apply DB settings
-    if (debug) {
-      console.log(`${debugTag} 📥 Loaded from DB:`, {
-        toolId,
-        entityId: entityId.substring(0, 8),
-        promptInNew: String((clonedSettings as Record<string, unknown>)?.prompt ?? '').substring(0, 30) || '(none)',
-        loraCountInNew: ((clonedSettings as Record<string, unknown>)?.loras as unknown[] | undefined)?.length ?? 0,
-      });
-    }
 
     setSettings(clonedSettings);
     loadedSettingsRef.current = JSON.parse(JSON.stringify(clonedSettings));

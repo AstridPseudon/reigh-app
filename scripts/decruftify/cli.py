@@ -36,6 +36,8 @@ def cmd_scan(args):
     print(f"  New findings:     {c(str(diff['new']), 'yellow' if diff['new'] else 'dim')}")
     print(f"  Auto-resolved:    {c(str(diff['auto_resolved']), 'green' if diff['auto_resolved'] else 'dim')}")
     print(f"  Reopened:         {c(str(diff['reopened']), 'red' if diff['reopened'] else 'dim')}")
+    if diff.get("suspect_detectors"):
+        print(c(f"  ⚠ Skipped auto-resolve for: {', '.join(diff['suspect_detectors'])} (returned 0 — likely transient)", "yellow"))
     print(c("  " + "─" * 50, "dim"))
     print(f"  Open: {stats['open']}  |  Total: {stats['total']}")
 
@@ -614,21 +616,23 @@ def cmd_detect(args):
     """Run a single detector directly (bypass state tracking)."""
     detector = args.detector
 
-    # Lazy-load each detector's cmd_ function
+    # Lazy-load each detector's cmd_ function via importlib (supports -m invocation)
+    from importlib import import_module
+    _det = lambda mod, fn: lambda: getattr(import_module(f".detectors.{mod}", __package__), fn)
     detector_cmds = {
-        "logs":       lambda: __import__("decruftify.detectors.logs", fromlist=["cmd_logs"]).cmd_logs,
-        "unused":     lambda: __import__("decruftify.detectors.unused", fromlist=["cmd_unused"]).cmd_unused,
-        "exports":    lambda: __import__("decruftify.detectors.exports", fromlist=["cmd_exports"]).cmd_exports,
-        "deprecated": lambda: __import__("decruftify.detectors.deprecated", fromlist=["cmd_deprecated"]).cmd_deprecated,
-        "large":      lambda: __import__("decruftify.detectors.large", fromlist=["cmd_large"]).cmd_large,
-        "complexity": lambda: __import__("decruftify.detectors.complexity", fromlist=["cmd_complexity"]).cmd_complexity,
-        "gods":       lambda: __import__("decruftify.detectors.gods", fromlist=["cmd_god_components"]).cmd_god_components,
-        "single-use": lambda: __import__("decruftify.detectors.single_use", fromlist=["cmd_single_use"]).cmd_single_use,
-        "props":      lambda: __import__("decruftify.detectors.props", fromlist=["cmd_props"]).cmd_props,
-        "concerns":   lambda: __import__("decruftify.detectors.concerns", fromlist=["cmd_concerns"]).cmd_concerns,
-        "deps":       lambda: __import__("decruftify.detectors.deps", fromlist=["cmd_deps"]).cmd_deps,
-        "dupes":      lambda: __import__("decruftify.detectors.dupes", fromlist=["cmd_dupes"]).cmd_dupes,
-        "smells":     lambda: __import__("decruftify.detectors.smells", fromlist=["cmd_smells"]).cmd_smells,
+        "logs":       _det("logs", "cmd_logs"),
+        "unused":     _det("unused", "cmd_unused"),
+        "exports":    _det("exports", "cmd_exports"),
+        "deprecated": _det("deprecated", "cmd_deprecated"),
+        "large":      _det("large", "cmd_large"),
+        "complexity": _det("complexity", "cmd_complexity"),
+        "gods":       _det("gods", "cmd_god_components"),
+        "single-use": _det("single_use", "cmd_single_use"),
+        "props":      _det("props", "cmd_props"),
+        "concerns":   _det("concerns", "cmd_concerns"),
+        "deps":       _det("deps", "cmd_deps"),
+        "dupes":      _det("dupes", "cmd_dupes"),
+        "smells":     _det("smells", "cmd_smells"),
     }
 
     if detector not in detector_cmds:

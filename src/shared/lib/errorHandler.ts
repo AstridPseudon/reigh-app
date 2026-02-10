@@ -65,11 +65,6 @@ export function handleError(error: unknown, options: HandleErrorOptions): AppErr
 
   // Log the error with context
   if (appError instanceof SilentError) {
-    // Silent errors get warn-level logging
-    console.warn(`${tag} Silent error:`, appError.message, {
-      errorType: appError.name,
-      ...appError.context,
-    });
   } else {
     // Regular errors get error-level logging
     console.error(`${tag} ${appError.name}:`, appError.message, {

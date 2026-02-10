@@ -67,7 +67,10 @@ def _categorize_unused(filepath: str, lineno: int) -> str:
             src_line = lines[lineno - 1].strip()
             if src_line.startswith("import ") or "from '" in src_line or 'from "' in src_line:
                 return "imports"
-            # Walk back to check if this line is within an import block
+            # If the line starts with a declaration keyword, it's definitely not an import
+            if src_line.startswith(("const ", "let ", "var ", "export ", "function ", "class ", "type ", "interface ")):
+                return "vars"
+            # Walk back to check if this line is within a multi-line import block
             for back in range(1, 10):
                 idx = lineno - 1 - back
                 if idx < 0:
@@ -75,7 +78,8 @@ def _categorize_unused(filepath: str, lineno: int) -> str:
                 prev = lines[idx].strip()
                 if prev.startswith("import "):
                     return "imports"
-                if prev and not prev.startswith("{") and not prev.startswith(",") and "," not in prev:
+                # Stop at blank lines or non-import-continuation lines
+                if not prev or (not prev.startswith("{") and not prev.startswith(",") and "," not in prev):
                     break
     except Exception:
         pass

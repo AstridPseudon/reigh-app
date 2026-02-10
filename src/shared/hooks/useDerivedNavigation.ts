@@ -46,17 +46,8 @@ export function useDerivedNavigation({
       const currentId = currentImages[lightboxIndex]?.id;
       const currentDerivedIndex = derivedNavContext.derivedGenerationIds.indexOf(currentId);
       
-      console.log(`${logPrefix} ➡️ Next in derived context`, {
-        currentId: currentId?.substring(0, 8),
-        currentDerivedIndex,
-        totalDerived: derivedNavContext.derivedGenerationIds.length
-      });
-      
       if (currentDerivedIndex !== -1 && currentDerivedIndex < derivedNavContext.derivedGenerationIds.length - 1) {
         const nextId = derivedNavContext.derivedGenerationIds[currentDerivedIndex + 1];
-        console.log(`${logPrefix} 🎯 Navigating to next derived generation`, {
-          nextId: nextId.substring(0, 8)
-        });
         handleOpenExternalGeneration(nextId, derivedNavContext.derivedGenerationIds);
       }
     } else {
@@ -69,17 +60,8 @@ export function useDerivedNavigation({
       const currentId = currentImages[lightboxIndex]?.id;
       const currentDerivedIndex = derivedNavContext.derivedGenerationIds.indexOf(currentId);
       
-      console.log(`${logPrefix} ⬅️ Previous in derived context`, {
-        currentId: currentId?.substring(0, 8),
-        currentDerivedIndex,
-        totalDerived: derivedNavContext.derivedGenerationIds.length
-      });
-      
       if (currentDerivedIndex !== -1 && currentDerivedIndex > 0) {
         const prevId = derivedNavContext.derivedGenerationIds[currentDerivedIndex - 1];
-        console.log(`${logPrefix} 🎯 Navigating to previous derived generation`, {
-          prevId: prevId.substring(0, 8)
-        });
         handleOpenExternalGeneration(prevId, derivedNavContext.derivedGenerationIds);
       }
     } else {

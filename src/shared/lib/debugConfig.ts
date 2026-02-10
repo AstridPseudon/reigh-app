@@ -82,12 +82,10 @@ export const debugConfig = {
   // Enable/disable specific categories at runtime
   enable: (category: keyof DebugConfig): void => {
     runtimeConfig[category] = true;
-    console.log(`🔧 [DebugConfig] Enabled: ${category}`);
   },
   
   disable: (category: keyof DebugConfig): void => {
     runtimeConfig[category] = false;
-    console.log(`🔧 [DebugConfig] Disabled: ${category}`);
   },
   
   // Bulk operations
@@ -95,14 +93,12 @@ export const debugConfig = {
     Object.keys(runtimeConfig).forEach(key => {
       runtimeConfig[key as keyof DebugConfig] = true;
     });
-    console.log('🔧 [DebugConfig] Enabled all debug categories');
   },
   
   disableAll: (): void => {
     Object.keys(runtimeConfig).forEach(key => {
       runtimeConfig[key as keyof DebugConfig] = false;
     });
-    console.log('🔧 [DebugConfig] Disabled all debug categories');
   },
   
   // Preset configurations
@@ -121,7 +117,6 @@ export const debugConfig = {
       skeletonDebug: false,
       videoDebug: false
     };
-    console.log('🔇 [DebugConfig] Quiet mode enabled - minimal logging');
   },
   
   setDevelopmentMode: (): void => {
@@ -139,7 +134,6 @@ export const debugConfig = {
       skeletonDebug: true,
       videoDebug: true
     };
-    console.log('🛠️ [DebugConfig] Development mode enabled - balanced logging');
   },
   
   // Get current configuration
@@ -158,6 +152,4 @@ export const debugConfig = {
 // Make debug config available globally for runtime control
 if (typeof window !== 'undefined') {
   (window as any).debugConfig = debugConfig;
-  console.log('🔧 [DebugConfig] Available at window.debugConfig');
-  console.log('🔧 [DebugConfig] Try: debugConfig.setQuietMode() or debugConfig.status()');
 }

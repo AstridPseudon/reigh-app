@@ -22,7 +22,7 @@ import type { LoraModel, UseLoraManagerReturn } from '@/shared/hooks/useLoraMana
 import { cn } from '@/shared/lib/utils';
 import { handleError } from '@/shared/lib/errorHandler';
 import { PortionSelection, formatTime } from '@/shared/components/VideoPortionTimeline';
-import { MotionPresetSelector, type BuiltinPreset } from '@/shared/components/MotionPresetSelector';
+import { MotionPresetSelector } from '@/shared/components/MotionPresetSelector';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { BUILTIN_VACE_PRESET, VACE_FEATURED_PRESET_IDS } from '@/shared/lib/vaceDefaults';
