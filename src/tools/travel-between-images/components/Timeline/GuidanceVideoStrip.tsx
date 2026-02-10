@@ -240,7 +240,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   }, [isTablet]);
 
   // ===== TABLET TAP-TO-SELECT ENDPOINT HANDLERS =====
-  const handleEndpointTouchStart = useCallback((endpoint: 'left' | 'right', e: React.TouchEvent) => {
+  const handleEndpointTouchStart = useCallback((_endpoint: 'left' | 'right', e: React.TouchEvent) => {
     if (!enableTapToSelect) return;
     const touch = e.touches[0];
     touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };

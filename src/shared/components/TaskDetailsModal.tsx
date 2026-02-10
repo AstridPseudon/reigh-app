@@ -146,7 +146,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
   };
 
   const isLoading = getTaskIdMutation.isPending || isLoadingTask;
-  const error = getTaskIdMutation.error || taskError;
 
   return (
     <Dialog

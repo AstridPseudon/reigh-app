@@ -6,14 +6,6 @@
 
 import { handleError } from '@/shared/lib/errorHandler';
 
-interface PerformanceMetrics {
-  fps: number;
-  memory?: number;
-  renderCount: number;
-  activeTimers: number;
-  activeAnimations: number;
-}
-
 class MobilePerformanceMonitor {
   private frameCount = 0;
   private lastTime = performance.now();
@@ -72,22 +64,6 @@ class MobilePerformanceMonitor {
   trackComponentRender(componentName: string) {
     const count = this.renderCounts.get(componentName) || 0;
     this.renderCounts.set(componentName, count + 1);
-  }
-
-  private _getMetrics(): PerformanceMetrics {
-    // Count active timers and intervals
-    // @ts-ignore - These are available in browser
-    const activeTimers = window.setInterval.length || 0;
-    
-    return {
-      fps: this.fps,
-      memory: (performance as any).memory?.usedJSHeapSize 
-        ? Math.round((performance as any).memory.usedJSHeapSize / 1048576) 
-        : undefined,
-      renderCount: Array.from(this.renderCounts.values()).reduce((a, b) => a + b, 0),
-      activeTimers,
-      activeAnimations: 0 // Would need to track separately
-    };
   }
 
   private logMetrics() {

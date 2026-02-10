@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { ImageGenerationForm } from "../components/ImageGenerationForm";
 import { ImageGenerationFormHandles } from "../components/ImageGenerationForm/types";
 import { createBatchImageGenerationTasks, BatchImageGenerationTaskParams } from "@/shared/lib/tasks/imageGeneration";
-import { MediaGallery, GeneratedImageWithMetadata, DisplayableMetadata } from "@/shared/components/MediaGallery";
+import { MediaGallery, DisplayableMetadata } from "@/shared/components/MediaGallery";
 import { useContainerDimensions } from "@/shared/components/MediaGallery/hooks";
 import { getLayoutForAspectRatio } from "@/shared/components/MediaGallery/utils";
 import SettingsModal from "@/shared/components/SettingsModal";
@@ -66,7 +66,6 @@ const EMPTY_PAGE_PREFS: ImageGenPagePrefs = {};
 
 // Create a proper memo comparison - since this component has no props, it should never re-render due to props
 const ImageGenerationToolPage: React.FC = React.memo(() => {
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImageWithMetadata[]>([]);
   const [isDeleting] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   // Enable generations loading immediately to leverage React Query cache on revisits
@@ -306,16 +305,9 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
 
   // Optimized: Use the memoized imagesToShow directly instead of local state duplication
   useEffect(() => {
-    if (generationsResponse) {
-      // Always update with new items if available, even during filter changes
-      setGeneratedImages(generationsResponse.items || []);
-      // Reset filter change flag
-      if (isFilterChange) {
-        setIsFilterChange(false);
-      }
+    if (generationsResponse && isFilterChange) {
+      setIsFilterChange(false);
     }
-    // Removed else clause - don't clear during loading to prevent jump
-    // Clearing only happens explicitly elsewhere if needed
   }, [generationsResponse, isFilterChange]);
 
   // Removed delayed enable; query is always enabled to leverage cache on revisit
@@ -364,11 +356,6 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
     if (!selectedProjectId) {
       toast.error("No project selected. Please select a project before generating images.");
       return [];
-    }
-
-    // Clear existing images but keep current page position
-    if (taskParams.prompts.length * taskParams.imagesPerPrompt > 0) {
-      setGeneratedImages([]);
     }
 
     setLocalIsGenerating(true);

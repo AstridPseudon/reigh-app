@@ -46,7 +46,7 @@ export const useTaskType = (taskType: string) => {
  * @param taskTypes - Array of task type names to look up
  * @returns Query result with task type information map
  */
-export const useTaskTypes = (taskTypes: string[]) => {
+const useTaskTypes = (taskTypes: string[]) => {
   return useQuery({
     queryKey: ['task-types', taskTypes.sort()], // Sort for consistent cache key
     queryFn: async (): Promise<Record<string, TaskTypeInfo>> => {

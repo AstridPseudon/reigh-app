@@ -74,34 +74,6 @@ export const mapDbTaskToTask = (row: TaskDbRow): Task => ({
   errorMessage: row.error_message ?? undefined,
 });
 
-// Hook to update task status
-function _useUpdateTaskStatus() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ taskId, status }: { taskId: string; status: TaskStatus }) => {
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', taskId)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      // Task status change event is now handled by DataFreshnessManager via realtime events
-    },
-    onError: (error: Error) => {
-      handleError(error, { context: 'useUpdateTaskStatus', toastTitle: 'Failed to update task status' });
-    },
-  });
-}
-
 // Hook to get a single task by ID
 // Uses IMMUTABLE_PRESET since task data rarely changes after creation
 export const useGetTask = (taskId: string) => {

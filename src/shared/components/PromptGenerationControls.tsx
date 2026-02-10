@@ -375,7 +375,6 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                 
                 // Only handle if no text is selected (cursor position)
                 if (cursorPos === cursorEnd && cursorPos > 0) {
-                  const beforeCursor = currentValue.slice(0, cursorPos);
                   const lines = currentValue.split('\n');
                   
                   // Find which line the cursor is on

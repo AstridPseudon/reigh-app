@@ -39,7 +39,7 @@ interface MediaGalleryFiltersProps {
   isMobile?: boolean;
 }
 
-export const MediaGalleryFilters: React.FC<MediaGalleryFiltersProps> = ({
+const MediaGalleryFilters: React.FC<MediaGalleryFiltersProps> = ({
   showShotFilter = false,
   allShots,
   shotFilter,

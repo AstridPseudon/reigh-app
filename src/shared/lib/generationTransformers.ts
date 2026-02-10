@@ -366,61 +366,6 @@ export function transformGeneration(
 }
 
 /**
- * Transform a shot_generation record (with nested generation data)
- *
- * Used by hooks that query shot_generations table with JOIN to generations
- *
- * @param shotGen - Raw shot_generation from database
- * @param options - Optional customization
- * @returns Transformed generation with timeline context
- */
-function transformShotGeneration(
-  shotGen: RawShotGeneration,
-  options: TransformOptions = {}
-): GeneratedImageWithMetadata & { timeline_frame: number | null } {
-  // Handle both 'generation' and 'generations' field names (Supabase inconsistency)
-  let gen = shotGen.generation || shotGen.generations;
-  
-  // If it's an array, take the first item
-  if (Array.isArray(gen)) {
-    gen = gen[0];
-  }
-  
-  if (!gen) {
-    // Fallback for missing generation data
-    return {
-      id: shotGen.generation_id,
-      url: '',
-      thumbUrl: '',
-      prompt: 'Missing generation data',
-      metadata: {},
-      createdAt: shotGen.created_at || new Date().toISOString(),
-      isVideo: false,
-      starred: false,
-      shotImageEntryId: shotGen.id,
-      timeline_frame: shotGen.timeline_frame,
-      position: normalizePosition(shotGen.timeline_frame),
-    };
-  }
-  
-  // Transform using the base transformer with shot context
-  const transformed = transformGeneration(gen, {
-    ...options,
-    shotImageEntryId: shotGen.id,
-    timeline_frame: shotGen.timeline_frame,
-    metadata: {
-      ...shotGen.metadata,
-      ...(options.metadata || {}),
-    },
-  });
-  
-  return {
-    ...transformed,
-    timeline_frame: shotGen.timeline_frame,
-  };
-}
-
-/**
  * Transform for Timeline component's specific needs
  * Maps to GenerationRow format expected by Timeline
  */
@@ -457,59 +402,6 @@ export function transformForTimeline(
     starred: genData.starred ?? false, // ⭐ Pass through starred status
     based_on: genData.based_on ?? undefined, // 🔗 Pass through based_on for lineage tracking
     derivedCount: genData.derivedCount ?? 0, // 🔢 Pass through variant count
-  };
-}
-
-/**
- * Transform for useUnifiedGenerations (VideoOutputsGallery)
- * Returns format with taskId for task tracking
- */
-function transformForUnifiedGenerations(
-  shotGen: RawShotGeneration,
-  includeTaskData: boolean = false
-): GeneratedImageWithMetadata {
-  const gen = shotGen.generation || shotGen.generations;
-  const genData = Array.isArray(gen) ? gen[0] : gen;
-  
-  if (!genData) {
-    return {
-      // PRIMARY IDs
-      id: shotGen.id, // shot_generations.id (unique per entry)
-      generation_id: shotGen.generation_id,
-      url: '',
-      thumbUrl: '',
-      prompt: 'No prompt',
-      metadata: {},
-      createdAt: shotGen.created_at || new Date().toISOString(),
-      isVideo: false,
-      starred: false,
-      // Deprecated (backwards compat)
-      shotImageEntryId: shotGen.id,
-      position: normalizePosition(shotGen.timeline_frame),
-      taskId: null,
-    };
-  }
-  
-  const baseTransform = transformGeneration(genData, {
-    shotImageEntryId: shotGen.id,
-    timeline_frame: shotGen.timeline_frame,
-  });
-  
-  // Extract taskId if needed
-  const taskId = includeTaskData && genData.tasks 
-    ? (Array.isArray(genData.tasks) ? genData.tasks[0] : genData.tasks)
-    : null;
-  
-  return {
-    ...baseTransform,
-    // PRIMARY IDs
-    id: shotGen.id, // shot_generations.id (unique per entry)
-    generation_id: shotGen.generation_id,
-    // Deprecated (backwards compat)
-    shotImageEntryId: shotGen.id,
-    position: normalizePosition(shotGen.timeline_frame),
-    taskId,
-    name: genData.name || undefined,
   };
 }
 

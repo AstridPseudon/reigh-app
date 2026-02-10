@@ -71,8 +71,6 @@ export const uploadImageToStorage = async (
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const uploadStartTime = Date.now();
-
     // Check abort before each attempt
     if (signal?.aborted) {
       throw new Error('Upload cancelled');

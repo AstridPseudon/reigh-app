@@ -332,7 +332,7 @@ export function usePromptManagement(props: UsePromptManagementProps): UsePromptM
   // Handlers
   // ============================================================================
 
-  const handleAddPrompt = useCallback((source: 'form' | 'modal' = 'form') => {
+  const handleAddPrompt = useCallback(() => {
     markAsInteracted();
     const newId = generatePromptId();
     const newPromptNumber = prompts.length + 1;
