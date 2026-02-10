@@ -41,39 +41,6 @@ export const useTaskType = (taskType: string) => {
   });
 };
 
-/**
- * Hook to fetch multiple task types at once for better performance
- * @param taskTypes - Array of task type names to look up
- * @returns Query result with task type information map
- */
-const useTaskTypes = (taskTypes: string[]) => {
-  return useQuery({
-    queryKey: ['task-types', taskTypes.sort()], // Sort for consistent cache key
-    queryFn: async (): Promise<Record<string, TaskTypeInfo>> => {
-      if (taskTypes.length === 0) return {};
-
-      const { data, error } = await supabase
-        .from('task_types')
-        .select('id, name, content_type, tool_type, display_name, category, is_visible, supports_progress')
-        .in('name', taskTypes);
-
-      if (error) {
-        console.warn('Failed to fetch task types info:', error);
-        return {};
-      }
-
-      // Convert array to map for easy lookup
-      return data.reduce((acc, taskType) => {
-        acc[taskType.name] = taskType;
-        return acc;
-      }, {} as Record<string, TaskTypeInfo>);
-    },
-    enabled: taskTypes.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-};
-
 // =============================================================================
 // GLOBAL TASK TYPE CONFIG CACHE
 // =============================================================================

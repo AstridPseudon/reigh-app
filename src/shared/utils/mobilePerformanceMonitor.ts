@@ -9,7 +9,6 @@ import { handleError } from '@/shared/lib/errorHandler';
 class MobilePerformanceMonitor {
   private frameCount = 0;
   private lastTime = performance.now();
-  private fps = 0;
   private renderCounts = new Map<string, number>();
   private isMonitoring = false;
   private rafId: number | null = null;
@@ -50,7 +49,6 @@ class MobilePerformanceMonitor {
       const elapsed = currentTime - this.lastTime;
       
       if (elapsed >= 1000) {
-        this.fps = Math.round((this.frameCount * 1000) / elapsed);
         this.frameCount = 0;
         this.lastTime = currentTime;
       }

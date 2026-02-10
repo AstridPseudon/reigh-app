@@ -64,7 +64,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
 
   // Use the new hooks
   const getTaskIdMutation = useGetTaskIdForGeneration();
-  const { data: task, isLoading: isLoadingTask, error: taskError } = useGetTask(taskId || '');
+  const { data: task, isLoading: isLoadingTask } = useGetTask(taskId || '');
 
   // Fetch public LoRAs for proper name display
   const { data: availableLoras } = usePublicLoras();
