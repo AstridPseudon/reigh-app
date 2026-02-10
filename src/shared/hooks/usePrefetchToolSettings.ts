@@ -5,11 +5,12 @@ import { toolsManifest } from '@/tools';
 import { handleError } from '@/shared/lib/errorHandler';
 import { deepMerge } from '@/shared/lib/deepEqual';
 import { queryKeys } from '@/shared/lib/queryKeys';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 // Central list of tool IDs we want to preload. Update when you add more tools.
-const TOOL_IDS = [
-  'image-generation',
-  'travel-between-images',
+const PREFETCH_TOOL_IDS = [
+  TOOL_IDS.IMAGE_GENERATION,
+  TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
   'project-image-settings', // Shared settings including reference images
 ];
 
@@ -97,7 +98,7 @@ export function usePrefetchToolSettings(projectId?: string | null, shotIds: stri
     }
 
     // Prefetch project-level settings for each tool.
-    TOOL_IDS.forEach((toolId) => {
+    PREFETCH_TOOL_IDS.forEach((toolId) => {
       queryClient.prefetchQuery({
         queryKey: queryKeys.settings.tool(toolId, projectId, undefined),
         queryFn: () => fetchToolSettingsSupabase(toolId, { projectId }),
@@ -111,7 +112,7 @@ export function usePrefetchToolSettings(projectId?: string | null, shotIds: stri
     // Prefetch shot-level settings when shot IDs are provided.
     if (shotIds.length) {
       shotIds.forEach((shotId) => {
-        TOOL_IDS.forEach((toolId) => {
+        PREFETCH_TOOL_IDS.forEach((toolId) => {
           queryClient.prefetchQuery({
             queryKey: queryKeys.settings.tool(toolId, projectId, shotId),
             queryFn: () => fetchToolSettingsSupabase(toolId, { projectId, shotId }),

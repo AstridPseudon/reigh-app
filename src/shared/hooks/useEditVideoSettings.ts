@@ -7,10 +7,11 @@
  */
 
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
-import { editVideoSettings, EditVideoSettings } from '@/tools/edit-video/settings';
+import { editVideoSettings, EditVideoSettings } from '@/shared/lib/editVideoDefaults';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 // Re-export the type so existing imports keep working
-export type { EditVideoSettings } from '@/tools/edit-video/settings';
+export type { EditVideoSettings } from '@/shared/lib/editVideoDefaults';
 
 /**
  * Hook for managing Edit Video tool settings at the project level
@@ -18,7 +19,7 @@ export type { EditVideoSettings } from '@/tools/edit-video/settings';
  */
 export function useEditVideoSettings(projectId: string | null | undefined) {
   return useAutoSaveSettings<EditVideoSettings>({
-    toolId: 'edit-video',
+    toolId: TOOL_IDS.EDIT_VIDEO,
     scope: 'project',
     projectId,
     defaults: editVideoSettings.defaults,

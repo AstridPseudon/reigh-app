@@ -9,7 +9,7 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
-from .utils import c, log, rel, resolve_path
+from .utils import PROJECT_ROOT, c, log, rel, resolve_path
 from .state import make_finding
 
 # ── Tier labels ──────────────────────────────────────────────
@@ -147,8 +147,17 @@ def generate_findings(path: Path, *, include_slow: bool = True) -> list[dict]:
 
     # Emit one finding per file with all signals synthesized
     for filepath, data in structural.items():
+        # Ensure LOC is always populated (large detector sets it, but
+        # files flagged only by complexity/gods/concerns would be missing it)
+        if "loc" not in data["detail"]:
+            try:
+                p = Path(filepath) if Path(filepath).is_absolute() else PROJECT_ROOT / filepath
+                data["detail"]["loc"] = len(p.read_text().splitlines())
+            except Exception:
+                data["detail"]["loc"] = 0
+
         signal_count = len(data["signals"])
-        tier = 4 if signal_count >= 3 else (3 if signal_count >= 2 else 3)
+        tier = 4 if signal_count >= 3 else 3
         confidence = "high" if signal_count >= 3 else "medium"
         summary = "Needs decomposition: " + " · ".join(data["signals"])
         findings.append(make_finding(
@@ -168,8 +177,8 @@ def generate_findings(path: Path, *, include_slow: bool = True) -> list[dict]:
         ))
     stderr(f"         → {len(findings) - n_before} structural findings")
 
-    # 6. Single-use — suppress 50-200 LOC (good architecture)
-    stderr("  [6/8] Single-use abstractions...")
+    # 6a. Single-use — suppress 50-200 LOC (good architecture)
+    stderr("  [6a/8] Single-use abstractions...")
     from .detectors.single_use import detect_single_use_abstractions
     from .detectors.deps import build_dep_graph
     graph = build_dep_graph(path)
@@ -186,6 +195,72 @@ def generate_findings(path: Path, *, include_slow: bool = True) -> list[dict]:
         ))
     suppressed = len(single_entries) - (len(findings) - n_before)
     stderr(f"         {len(single_entries)} found, {suppressed} suppressed (50-200 LOC)")
+
+    # 6b. Coupling analysis (reuses graph from 6a)
+    stderr("  [6b/8] Coupling analysis...")
+    from .detectors.coupling import detect_coupling_violations, detect_boundary_candidates
+    n_before = len(findings)
+    for e in detect_coupling_violations(path, graph):
+        findings.append(make_finding(
+            "coupling", e["file"], e["target"],
+            tier=2, confidence="high",
+            summary=f"Backwards coupling: shared imports {e['target']} (tool: {e['tool']})",
+            detail={"target": e["target"], "tool": e["tool"], "direction": e["direction"]},
+        ))
+    # Track files that got single_use findings for dedup with boundary
+    # single_use emits when: 1 importer, 20-300 LOC, NOT 50-200 LOC
+    single_use_emitted = set()
+    for e in single_entries:
+        if not (50 <= e["loc"] <= 200):
+            single_use_emitted.add(rel(e["file"]))
+    boundary_deduped = 0
+    for e in detect_boundary_candidates(path, graph):
+        # Skip if single_use already covers this file (avoid double-counting)
+        if rel(e["file"]) in single_use_emitted:
+            boundary_deduped += 1
+            continue
+        findings.append(make_finding(
+            "coupling", e["file"], f"boundary::{e['sole_tool']}",
+            tier=3, confidence="medium",
+            summary=f"Boundary candidate ({e['loc']} LOC): only used by {e['sole_tool']} "
+                    f"({e['importer_count']} importers)",
+            detail={"sole_tool": e["sole_tool"], "importer_count": e["importer_count"],
+                    "loc": e["loc"]},
+        ))
+    if boundary_deduped:
+        stderr(f"         ({boundary_deduped} boundary candidates skipped — covered by single_use)")
+    stderr(f"         → {len(findings) - n_before} coupling findings")
+
+    # 6c. Pattern consistency
+    stderr("  [6c/8] Pattern consistency...")
+    from .detectors.patterns import detect_pattern_anomalies
+    n_before = len(findings)
+    for e in detect_pattern_anomalies(path):
+        # Use area as the file (these are area-level, not file-level findings)
+        findings.append(make_finding(
+            "patterns", e["area"], e["family"],
+            tier=3, confidence=e.get("confidence", "low"),
+            summary=f"Competing patterns ({e['family']}): {e['review'][:120]}",
+            detail={"family": e["family"], "patterns_used": e["patterns_used"],
+                    "pattern_count": e["pattern_count"], "review": e["review"]},
+        ))
+    stderr(f"         → {len(findings) - n_before} pattern findings")
+
+    # 6d. Naming consistency
+    stderr("  [6d/8] Naming consistency...")
+    from .detectors.naming import detect_naming_inconsistencies
+    n_before = len(findings)
+    for e in detect_naming_inconsistencies(path):
+        findings.append(make_finding(
+            "naming", e["directory"], e["minority"],
+            tier=3, confidence="low",
+            summary=f"Naming inconsistency: {e['minority_count']} {e['minority']} files "
+                    f"in {e['majority']}-majority dir ({e['total_files']} total)",
+            detail={"majority": e["majority"], "majority_count": e["majority_count"],
+                    "minority": e["minority"], "minority_count": e["minority_count"],
+                    "outliers": e["outliers"]},
+        ))
+    stderr(f"         → {len(findings) - n_before} naming findings")
 
     # 7. Code smells — one per file+smell_id
     stderr("  [7/8] Code smells...")

@@ -8,15 +8,12 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/shared/hooks/use-toast';
-import { handleError } from '@/shared/lib/errorHandler';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
 import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
-import { buildTaskParams, extractSettingsFromParams } from '@/shared/components/segmentSettingsUtils';
-import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individualTravelSegment';
+import { extractSettingsFromParams } from '@/shared/components/segmentSettingsUtils';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
-import { supabase } from '@/integrations/supabase/client';
-import { queryKeys } from '@/shared/lib/queryKeys';
-import type { StructureVideoConfigWithMetadata, StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
+import { submitSegmentTask, buildStructureVideoForTask } from './submitSegmentTask';
+import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
 export interface SegmentRegenerateFormProps {
   /** Generation params from the current video */
@@ -201,23 +198,13 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
   }, [pairShotGenerationId, onFrameCountChange]);
 
   // Build structure video config from props (for task creation)
-  // This combines the shot-level structure video with segment-level setting overrides
-  const structureVideoForTask = useMemo((): StructureVideoConfig | null => {
-    if (!structureVideoUrl || !structureVideoType || !structureVideoFrameRange) {
-      return null;
-    }
-
-    const effectiveSettings = getSettingsForTaskCreation();
-    return {
-      path: structureVideoUrl,
-      start_frame: structureVideoFrameRange.segmentStart,
-      end_frame: structureVideoFrameRange.segmentEnd,
-      structure_type: structureVideoType,
-      treatment: effectiveSettings.structureTreatment ?? structureVideoDefaults?.treatment ?? 'adjust',
-      motion_strength: effectiveSettings.structureMotionStrength ?? structureVideoDefaults?.motionStrength ?? 1.2,
-      uni3c_end_percent: effectiveSettings.structureUni3cEndPercent ?? structureVideoDefaults?.uni3cEndPercent ?? 0.1,
-    };
-  }, [structureVideoUrl, structureVideoType, structureVideoFrameRange, structureVideoDefaults, getSettingsForTaskCreation]);
+  const structureVideoForTask = useMemo(
+    () => buildStructureVideoForTask(
+      { structureVideoUrl, structureVideoType, structureVideoFrameRange, structureVideoDefaults },
+      getSettingsForTaskCreation,
+    ),
+    [structureVideoUrl, structureVideoType, structureVideoFrameRange, structureVideoDefaults, getSettingsForTaskCreation],
+  );
 
   // Effect to load variant settings when triggered from outside (e.g., VariantSelector hover button)
   useEffect(() => {
@@ -252,202 +239,47 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
   }, [variantParamsToLoad]); // Only re-run when variantParamsToLoad changes
 
   // Handle form submission
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(() => {
     if (!projectId) {
-      toast({
-        title: "Error",
-        description: "No project selected",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No project selected", variant: "destructive" });
       return;
     }
-
     if (!startImageUrl || !endImageUrl) {
-      toast({
-        title: "Error",
-        description: "Missing input images",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Missing input images", variant: "destructive" });
       return;
     }
 
-    // Get effective settings
-    const effectiveSettings = getSettingsForTaskCreation();
-    // Prioritize existing enhanced prompt if available, otherwise use base prompt
-    const promptToEnhance = enhancedPrompt?.trim() || effectiveSettings.prompt?.trim() || '';
-
-    // Read current enhance state from ref (avoids stale closure issue)
-    const shouldEnhance = enhancePromptRef.current;
-
-    // If enhance is enabled, use background submission pattern
-    if (shouldEnhance && promptToEnhance) {
-
-      // Add placeholder for immediate feedback
-      const taskLabel = `Segment ${segmentIndex + 1}`;
-      const incomingTaskId = addIncomingTask({
-        taskType: 'individual_travel_segment',
-        label: taskLabel,
-      });
-
-      // Fire and forget - run in background
-      (async () => {
-        try {
-          // Save settings first
-          if (pairShotGenerationId) {
-            await saveSettings();
-          }
-
-          // 1. Call edge function to enhance prompt
-          const { data: enhanceResult, error: enhanceError } = await supabase.functions.invoke('ai-prompt', {
-            body: {
-              task: 'enhance_segment_prompt',
-              prompt: promptToEnhance,
-              temperature: 0.7,
-              numFrames: effectiveSettings.numFrames || currentFrameCount || 25,
-            },
-          });
-
-          if (enhanceError) {
-            console.error('[SegmentRegenerateForm] Error enhancing prompt:', enhanceError);
-          }
-
-          const enhancedPromptResult = enhanceResult?.enhanced_prompt?.trim() || promptToEnhance;
-
-          // 2. Apply before/after text to both original and enhanced prompts
-          const beforeText = effectiveSettings.textBeforePrompts?.trim() || '';
-          const afterText = effectiveSettings.textAfterPrompts?.trim() || '';
-          // Original prompt with before/after (what user would have gotten without enhancement)
-          const originalPromptWithPrefixes = [beforeText, effectiveSettings.prompt?.trim() || '', afterText].filter(Boolean).join(' ');
-          // Enhanced prompt with before/after (the AI-enhanced version)
-          const enhancedPromptWithPrefixes = [beforeText, enhancedPromptResult, afterText].filter(Boolean).join(' ');
-
-          // 3. Store enhanced prompt in metadata
-          if (pairShotGenerationId && enhancedPromptResult !== promptToEnhance) {
-            const { data: current, error: fetchError } = await supabase
-              .from('shot_generations')
-              .select('metadata')
-              .eq('id', pairShotGenerationId)
-              .single();
-
-            if (!fetchError) {
-              const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
-
-              const { error: updateError } = await supabase
-                .from('shot_generations')
-                .update({
-                  metadata: {
-                    ...currentMetadata,
-                    enhanced_prompt: enhancedPromptResult,
-                    // Store the base prompt so we can reveal it when clearing enhanced
-                    base_prompt_for_enhancement: effectiveSettings.prompt?.trim() || '',
-                  },
-                })
-                .eq('id', pairShotGenerationId);
-
-              if (updateError) {
-                console.error('[EnhancedPromptSave] Error saving enhanced_prompt to metadata:', updateError);
-              }
-
-              queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
-            } else {
-              console.error('[EnhancedPromptSave] Error fetching current metadata, skipping save:', fetchError);
-            }
-          }
-
-          // 4. Build task params with original prompt as base_prompt, enhanced as separate field
-          // The worker should prefer enhanced_prompt over base_prompt when present
-          const taskParams = buildTaskParams(
-            { ...effectiveSettings, prompt: originalPromptWithPrefixes },
-            {
-              projectId,
-              shotId,
-              generationId,
-              childGenerationId,
-              segmentIndex,
-              startImageUrl,
-              endImageUrl,
-              startImageGenerationId,
-              endImageGenerationId,
-              startImageVariantId,
-              endImageVariantId,
-              pairShotGenerationId,
-              projectResolution,
-              enhancedPrompt: enhancedPromptWithPrefixes,
-              structureVideo: structureVideoForTask,
-            }
-          );
-
-          // 5. Create task
-          const result = await createIndividualTravelSegmentTask(taskParams);
-
-          if (!result.task_id) {
-            throw new Error(result.error || 'Failed to create task');
-          }
-
-        } catch (error) {
-          handleError(error, { context: 'SegmentRegenerateForm', toastTitle: 'Failed to create task' });
-        } finally {
-          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-          await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-          removeIncomingTask(incomingTaskId);
-        }
-      })();
-
-      return;
-    }
-
-    // Standard submission (no enhancement) - also use background pattern for fast UI
-    const taskLabel = `Segment ${segmentIndex + 1}`;
-    const incomingTaskId = addIncomingTask({
-      taskType: 'individual_travel_segment',
-      label: taskLabel,
+    submitSegmentTask({
+      taskLabel: `Segment ${segmentIndex + 1}`,
+      errorContext: 'SegmentRegenerateForm',
+      getSettings: getSettingsForTaskCreation,
+      saveSettings,
+      shouldSaveSettings: !!pairShotGenerationId,
+      shouldEnhance: enhancePromptRef.current,
+      enhancedPrompt: enhancedPrompt,
+      defaultNumFrames: currentFrameCount || 25,
+      images: {
+        startImageUrl,
+        endImageUrl,
+        startImageGenerationId,
+        endImageGenerationId,
+        startImageVariantId,
+        endImageVariantId,
+      },
+      task: {
+        projectId,
+        shotId,
+        generationId,
+        childGenerationId,
+        segmentIndex,
+        pairShotGenerationId,
+        projectResolution,
+        structureVideo: structureVideoForTask,
+      },
+      addIncomingTask,
+      removeIncomingTask,
+      queryClient,
     });
-
-    (async () => {
-      try {
-        // Save settings first
-        if (pairShotGenerationId) {
-          await saveSettings();
-        }
-
-        // Apply before/after text to the prompt
-        const beforeText = effectiveSettings.textBeforePrompts?.trim() || '';
-        const afterText = effectiveSettings.textAfterPrompts?.trim() || '';
-        const basePrompt = effectiveSettings.prompt?.trim() || '';
-        const finalPrompt = [beforeText, basePrompt, afterText].filter(Boolean).join(' ');
-
-        // Build task params using effective settings with final prompt
-        const taskParams = buildTaskParams({ ...effectiveSettings, prompt: finalPrompt }, {
-          projectId,
-          shotId,
-          generationId,
-          childGenerationId,
-          segmentIndex,
-          startImageUrl,
-          endImageUrl,
-          startImageGenerationId,
-          endImageGenerationId,
-          startImageVariantId,
-          endImageVariantId,
-          pairShotGenerationId,
-          projectResolution,
-          structureVideo: structureVideoForTask,
-        });
-
-        // Create task
-        const result = await createIndividualTravelSegmentTask(taskParams);
-
-        if (!result.task_id) {
-          throw new Error(result.error || 'Failed to create task');
-        }
-      } catch (error) {
-        handleError(error, { context: 'SegmentRegenerateForm', toastTitle: 'Failed to create task' });
-      } finally {
-        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-        removeIncomingTask(incomingTaskId);
-      }
-    })();
   }, [
     projectId,
     getSettingsForTaskCreation,
@@ -470,6 +302,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     removeIncomingTask,
     queryClient,
     structureVideoForTask,
+    currentFrameCount,
+    enhancedPrompt,
   ]);
 
   return (

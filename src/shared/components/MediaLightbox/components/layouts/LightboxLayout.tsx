@@ -5,6 +5,9 @@
  * All conditional rendering derives from two values:
  *   - showPanel: whether the controls panel renders
  *   - shouldShowSidePanel: whether the panel goes right (side-by-side) or bottom (stacked)
+ *
+ * Edit mode state (brush, annotation, reposition, canvas) is read from ImageEditContext.
+ * Video edit, panel, workflow, and navigation state come through props.
  */
 
 import React from 'react';
@@ -22,6 +25,7 @@ import {
   useLightboxNavigationSafe,
 } from '../../contexts/LightboxStateContext';
 import { useImageEditSafe } from '../../contexts/ImageEditContext';
+import { useVideoEditSafe } from '../../contexts/VideoEditContext';
 
 // Sub-components
 import { VariantOverlayBadge } from './VariantOverlayBadge';
@@ -54,71 +58,44 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
   const variantsState = useLightboxVariantsSafe();
   const navigation = useLightboxNavigationSafe();
   const imageEdit = useImageEditSafe();
+  const videoEdit = useVideoEditSafe();
 
   const { onClose, readOnly, isMobile, actualGenerationId, selectedProjectId } = core;
   const { media, isVideo, effectiveMediaUrl, effectiveVideoUrl, setImageDimensions, effectiveImageDimensions } = mediaState;
   const { variants, activeVariant, primaryVariant, promoteSuccess, isPromoting, handlePromoteToGeneration, isMakingMainVariant, canMakeMainVariant, handleMakeMainVariant } = variantsState;
   const { showNavigation, hasNext, hasPrevious, handleSlotNavNext, handleSlotNavPrev, swipeNavigation } = navigation;
-  const { isInpaintMode, isSpecialEditMode, editMode } = imageEdit;
+
+  // Video edit state from VideoEditContext
+  const {
+    isVideoTrimModeActive, isVideoEditModeActive,
+    trimVideoRef, videoEditing,
+    setVideoDuration, setTrimCurrentTime,
+    trimState: contextTrimState, videoDuration,
+  } = videoEdit;
+
+  // Edit mode state from ImageEditContext
+  const {
+    isInpaintMode, isSpecialEditMode, editMode,
+    isAnnotateMode, brushStrokes, isEraseMode, setIsEraseMode, brushSize, setBrushSize,
+    selectedShapeId,
+    handleUndo, handleClearMask,
+    getDeleteButtonPosition, handleToggleFreeForm, handleDeleteSelected,
+  } = imageEdit;
 
   // ========================================
-  // PROPS
+  // PROPS (non-edit-mode)
   // ========================================
   const {
     showPanel,
     shouldShowSidePanel,
 
-    // Video edit
-    isVideoTrimModeActive,
-    isVideoEditModeActive,
-    trimVideoRef,
-    trimState,
-    setVideoDuration,
-    setTrimCurrentTime,
-    videoEditing,
-
-    // Canvas/annotation
-    isAnnotateMode,
-    brushStrokes,
-    isEraseMode,
-    setIsEraseMode,
-    brushSize,
-    setBrushSize,
-    annotationMode,
-    selectedShapeId,
-    onStrokeComplete,
-    onStrokesChange,
-    onSelectionChange,
-    onTextModeHint,
-    strokeOverlayRef,
-    handleUndo,
-    handleClearMask,
-    getDeleteButtonPosition,
-    handleToggleFreeForm,
-    handleDeleteSelected,
-    isRepositionDragging,
-    repositionDragHandlers,
-    getTransformStyle,
-    imageContainerRef,
-    isFlippedHorizontally,
-    isSaving,
-
     // Panel state
     effectiveTasksPaneOpen,
     effectiveTasksPaneWidth,
 
-    // Reposition rotation (for corner drag-to-rotate)
-    onRepositionRotationChange,
-    repositionRotation,
-
-    // Reposition scale (for +/- zoom buttons on image)
-    onRepositionScaleChange,
-    repositionScale,
-
     // Composed prop objects
     buttonGroupProps,
     workflowBarProps,
-    floatingToolProps,
     controlsPanelProps,
 
     // Workflow controls (below media, centered only)
@@ -164,7 +141,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
           videoRef={videoEditing.videoRef}
           videoUrl={effectiveVideoUrl}
           posterUrl={activeVariant?.thumbnail_url || media.thumbUrl}
-          videoDuration={trimState.videoDuration}
+          videoDuration={videoDuration}
           onLoadedMetadata={setVideoDuration}
           selections={videoEditing.selections}
           activeSelectionId={videoEditing.activeSelectionId}
@@ -182,7 +159,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
           videoRef={trimVideoRef}
           videoUrl={effectiveVideoUrl}
           posterUrl={activeVariant?.thumbnail_url || media.thumbUrl}
-          trimState={trimState}
+          trimState={contextTrimState}
           onLoadedMetadata={setVideoDuration}
           onTimeUpdate={setTrimCurrentTime}
         />
@@ -195,18 +172,6 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         effectiveImageUrl={isVideo ? effectiveVideoUrl : effectiveMediaUrl}
         thumbUrl={activeVariant?.thumbnail_url || media.thumbUrl}
         isVideo={isVideo}
-        isFlippedHorizontally={isFlippedHorizontally}
-        isSaving={isSaving}
-        isInpaintMode={isInpaintMode}
-        editMode={editMode}
-        repositionTransformStyle={editMode === 'reposition' ? getTransformStyle() : undefined}
-        repositionDragHandlers={editMode === 'reposition' ? repositionDragHandlers : undefined}
-        isRepositionDragging={isRepositionDragging}
-        onRepositionRotationChange={editMode === 'reposition' ? onRepositionRotationChange : undefined}
-        repositionRotation={repositionRotation}
-        onRepositionScaleChange={editMode === 'reposition' ? onRepositionScaleChange : undefined}
-        repositionScale={repositionScale}
-        imageContainerRef={imageContainerRef}
         onImageLoad={setImageDimensions}
         onVideoLoadedMetadata={(e) => {
           const video = e.currentTarget;
@@ -218,19 +183,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         containerClassName={mediaDisplayContainerClassName}
         tasksPaneWidth={isSidePanelLayout && effectiveTasksPaneOpen ? effectiveTasksPaneWidth : 0}
         debugContext={mediaDisplayDebugContext}
-        // Konva-based stroke overlay props
         imageDimensions={effectiveImageDimensions}
-        brushStrokes={brushStrokes}
-        isEraseMode={isEraseMode}
-        brushSize={brushSize}
-        annotationMode={editMode === 'annotate' ? annotationMode : null}
-        selectedShapeId={selectedShapeId}
-        isAnnotateMode={isAnnotateMode}
-        onStrokeComplete={onStrokeComplete}
-        onStrokesChange={onStrokesChange}
-        onSelectionChange={onSelectionChange}
-        onTextModeHint={onTextModeHint}
-        strokeOverlayRef={strokeOverlayRef}
       />
     );
   };
@@ -365,16 +318,8 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
           />
 
           {/* Floating Tool Controls (panel layouts only) */}
-          {isSpecialEditMode && floatingToolProps && (
-            <FloatingToolControls
-              variant={floatingToolVariant}
-              repositionTransform={floatingToolProps.repositionTransform}
-              onRepositionScaleChange={floatingToolProps.onRepositionScaleChange}
-              onRepositionRotationChange={floatingToolProps.onRepositionRotationChange}
-              onRepositionFlipH={floatingToolProps.onRepositionFlipH}
-              onRepositionFlipV={floatingToolProps.onRepositionFlipV}
-              onRepositionReset={floatingToolProps.onRepositionReset}
-            />
+          {isSpecialEditMode && (
+            <FloatingToolControls variant={floatingToolVariant} />
           )}
 
           {/* Button Groups */}
@@ -539,7 +484,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
                     min={5}
                     max={100}
                     value={brushSize}
-                    onChange={(e) => setBrushSize!(parseInt(e.target.value))}
+                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
                     className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
                   />
                 </div>
@@ -550,7 +495,7 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
                 <Button
                   variant={isEraseMode ? "default" : "secondary"}
                   size="sm"
-                  onClick={() => setIsEraseMode!(!isEraseMode)}
+                  onClick={() => setIsEraseMode(!isEraseMode)}
                   className={cn(
                     "w-full text-xs h-7",
                     isEraseMode && "bg-purple-600 hover:bg-purple-700"

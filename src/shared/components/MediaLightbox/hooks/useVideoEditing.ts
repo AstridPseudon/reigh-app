@@ -14,6 +14,7 @@ import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import type { LoraModel } from '@/shared/hooks/useLoraManager';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 interface UseVideoEditingProps {
   media: GenerationRow | null;
@@ -448,7 +449,7 @@ export const useVideoEditing = ({
       const orchestratorDetails: Record<string, unknown> = {
         run_id: generateRunId(),
         priority: editSettings.settings.priority || 0,
-        tool_type: 'edit-video', // For filtering results in gallery
+        tool_type: TOOL_IDS.EDIT_VIDEO, // For filtering results in gallery
         
         // Source video info
         source_video_url: videoUrl,
@@ -497,7 +498,7 @@ export const useVideoEditing = ({
         task_type: 'edit_video_orchestrator',
         params: {
           orchestrator_details: orchestratorDetails,
-          tool_type: 'edit-video', // Top level for complete_task variant creation
+          tool_type: TOOL_IDS.EDIT_VIDEO, // Top level for complete_task variant creation
           parent_generation_id: getGenerationId(media), // Top level for complete_task variant creation
         },
       });

@@ -136,6 +136,292 @@ const VideoResourceItem: React.FC<VideoResourceItemProps> = ({
   );
 };
 
+// Image item component matching VideoResourceItem's structure
+interface ImageResourceItemProps {
+  resource: Resource;
+  isOwner: boolean;
+  isProcessing: boolean;
+  isLoaded: boolean;
+  onLoaded: () => void;
+  onClick: () => void;
+  onToggleVisibility?: (resourceId: string, currentIsPublic: boolean) => void;
+}
+
+const ImageResourceItem: React.FC<ImageResourceItemProps> = ({
+  resource,
+  isOwner,
+  isProcessing,
+  isLoaded,
+  onLoaded,
+  onClick,
+  onToggleVisibility,
+}) => {
+  const metadata = resource.metadata as StyleReferenceMetadata;
+  const thumbnailUrl = metadata.thumbnailUrl || metadata.styleReferenceImageOriginal;
+  const resourceName = metadata.name;
+  const isPublic = metadata.is_public ?? false;
+
+  return (
+    <div
+      className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:border-primary ${
+        isProcessing ? 'border-primary' : 'border-transparent'
+      }`}
+      onClick={onClick}
+    >
+      {/* Image thumbnail */}
+      <div className="aspect-square relative">
+        {/* Skeleton loader - shown until thumbnail loads */}
+        {!isLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 animate-pulse">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-gray-600/20 to-transparent animate-shimmer transform -skew-x-12" />
+          </div>
+        )}
+
+        <img
+          src={thumbnailUrl}
+          alt={resourceName}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onLoad={onLoaded}
+          onError={onLoaded}
+        />
+
+        {isProcessing && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-white" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all pointer-events-none" />
+
+        {/* Overlay info bar at bottom of image */}
+        {isOwner && (
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 py-1.5 bg-black/60 backdrop-blur-sm z-10">
+            <span className="text-xs text-white/90">Mine</span>
+
+            {/* Visibility toggle */}
+            {onToggleVisibility ? (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onToggleVisibility(resource.id, isPublic);
+                      }}
+                      className={`rounded-full p-1 transition-colors focus:outline-none ${
+                        isPublic
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "bg-gray-400 text-white hover:bg-gray-500"
+                      }`}
+                    >
+                      {isPublic ? (
+                        <Globe className="h-3 w-3" />
+                      ) : (
+                        <Lock className="h-3 w-3" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {isPublic
+                      ? "Public - visible to others. Click to make private."
+                      : "Private - only you can see this. Click to make public."}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <div />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// useResourceBrowsing - Data layer for resource browsing modal
+// =============================================================================
+
+interface UseResourceBrowsingProps {
+  isOpen: boolean;
+  resourceType: 'style-reference' | 'structure-video';
+  onOpenChange: (open: boolean) => void;
+  onImageSelect?: (files: File[]) => void;
+  onResourceSelect?: (resource: Resource) => void;
+}
+
+function useResourceBrowsing({
+  isOpen,
+  resourceType,
+  onOpenChange,
+  onImageSelect,
+  onResourceSelect,
+}: UseResourceBrowsingProps) {
+  const isVideoMode = resourceType === 'structure-video';
+
+  // State
+  const [userId, setUserId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [processingResource, setProcessingResource] = useState<string | null>(null);
+  const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
+  const [showMyResourcesOnly, setShowMyResourcesOnly] = useState(false);
+
+  // Get current user session
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
+    };
+    if (isOpen) {
+      getUser();
+    }
+  }, [isOpen, onResourceSelect, onImageSelect, resourceType]);
+
+  // Fetch resources based on type
+  const publicResources = useListPublicResources(resourceType);
+  const myResources = useListResources(resourceType);
+  const updateResource = useUpdateResource();
+
+  // Combine and filter resources
+  const allResources = useMemo(() => {
+    const publicRefs = (publicResources.data || []) as Resource[];
+    const myRefs = (myResources.data || []) as Resource[];
+    const combined = [...publicRefs];
+    const publicIds = new Set(publicRefs.map(r => r.id));
+    myRefs.forEach(ref => {
+      if (!publicIds.has(ref.id)) {
+        combined.push(ref);
+      }
+    });
+    return combined;
+  }, [publicResources.data, myResources.data]);
+
+  // Helper to get searchable text from resource metadata
+  const getSearchableText = useCallback((resource: Resource): string => {
+    if (isVideoMode) {
+      const metadata = resource.metadata as StructureVideoMetadata;
+      return metadata.name?.toLowerCase() || '';
+    } else {
+      const metadata = resource.metadata as StyleReferenceMetadata;
+      return [metadata.name, metadata.subjectDescription, metadata.styleBoostTerms]
+        .filter(Boolean).join(' ').toLowerCase();
+    }
+  }, [isVideoMode]);
+
+  // Filter resources
+  const filteredResources = useMemo(() => {
+    const base = showMyResourcesOnly ? ((myResources.data || []) as Resource[]) : allResources;
+    if (!searchTerm.trim()) return base;
+    const lowerSearch = searchTerm.toLowerCase();
+    return base.filter(r => getSearchableText(r).includes(lowerSearch));
+  }, [allResources, searchTerm, showMyResourcesOnly, myResources.data, getSearchableText]);
+
+  // Pagination
+  const ITEMS_PER_PAGE = 16;
+  const totalPages = Math.ceil(filteredResources.length / ITEMS_PER_PAGE);
+  const paginatedResources = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredResources.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredResources, currentPage]);
+
+  const loading = publicResources.isLoading || myResources.isLoading;
+
+  const handleSearch = useCallback((newSearchTerm: string) => {
+    setSearchTerm(newSearchTerm);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, showMyResourcesOnly]);
+
+  const handleToggleVisibility = useCallback(async (resourceId: string, currentIsPublic: boolean) => {
+    const resource = allResources.find(r => r.id === resourceId);
+    if (!resource) {
+      console.error('[ResourceBrowser] Could not find resource:', resourceId);
+      return;
+    }
+    try {
+      const updatedMetadata = { ...resource.metadata, is_public: !currentIsPublic };
+      await updateResource.mutateAsync({
+        id: resourceId,
+        type: resourceType,
+        metadata: updatedMetadata as ResourceMetadata,
+      });
+    } catch (error) {
+      handleError(error, { context: 'DatasetBrowserModal', toastTitle: 'Failed to update visibility' });
+    }
+  }, [allResources, updateResource, resourceType]);
+
+  const handleResourceClick = useCallback(async (resource: Resource) => {
+    if (processingResource) return;
+    setProcessingResource(resource.id);
+    try {
+      if (onResourceSelect) {
+        onResourceSelect(resource);
+        onOpenChange(false);
+      } else if (onImageSelect && !isVideoMode) {
+        const metadata = resource.metadata as StyleReferenceMetadata;
+        const imageUrl = metadata.styleReferenceImageOriginal;
+        const filename = `${metadata.name.replace(/[^a-z0-9]/gi, '_')}.png`;
+        const file = await processImageUrl(imageUrl, filename);
+        onImageSelect([file]);
+        onOpenChange(false);
+      }
+    } catch (error) {
+      handleError(error, { context: 'DatasetBrowserModal', toastTitle: 'Failed to process selected resource' });
+    } finally {
+      setProcessingResource(null);
+    }
+  }, [processingResource, onImageSelect, onResourceSelect, onOpenChange, isVideoMode]);
+
+  const clearSearch = useCallback(() => {
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, []);
+
+  // Reset processing state and loaded thumbnails when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setProcessingResource(null);
+      setLoadedThumbnails(new Set());
+    }
+  }, [isOpen]);
+
+  return {
+    isVideoMode,
+    userId,
+    searchTerm,
+    currentPage,
+    processingResource,
+    loadedThumbnails,
+    setLoadedThumbnails,
+    showMyResourcesOnly,
+    setShowMyResourcesOnly,
+    filteredResources,
+    paginatedResources,
+    totalPages,
+    loading,
+    handleSearch,
+    handlePageChange,
+    handleToggleVisibility,
+    handleResourceClick,
+    clearSearch,
+  };
+}
+
+// =============================================================================
+// DatasetBrowserModal Component
+// =============================================================================
+
 interface DatasetBrowserModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -155,212 +441,29 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
 }) => {
   const modal = useLargeModal();
   const { showFade, scrollRef } = useScrollFade({ isOpen });
-  
-  // Determine if we're browsing videos
-  const isVideoMode = resourceType === 'structure-video';
-  
-  // State
-  const [userId, setUserId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [processingResource, setProcessingResource] = useState<string | null>(null);
-  const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
-  const [showMyResourcesOnly, setShowMyResourcesOnly] = useState(false);
-  
-  // Get current user session
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUserId(session?.user?.id || null);
-    };
-    
-    if (isOpen) {
-      getUser();
-    }
-  }, [isOpen, onResourceSelect, onImageSelect, resourceType]);
-  
-  // Fetch resources based on type
-  const publicResources = useListPublicResources(resourceType);
-  const myResources = useListResources(resourceType);
-  const updateResource = useUpdateResource();
 
-  // Combine and filter resources
-  const allResources = useMemo(() => {
-    const publicRefs = (publicResources.data || []) as Resource[];
-    const myRefs = (myResources.data || []) as Resource[];
-    
-    // Combine: public refs + user's own refs (deduplicated by id)
-    const combined = [...publicRefs];
-    const publicIds = new Set(publicRefs.map(r => r.id));
-    
-    // Add user's refs that aren't already in the public list
-    myRefs.forEach(ref => {
-      if (!publicIds.has(ref.id)) {
-        combined.push(ref);
-      }
-    });
-    
-    return combined;
-  }, [publicResources.data, myResources.data]);
+  const browsing = useResourceBrowsing({ isOpen, resourceType, onOpenChange, onImageSelect, onResourceSelect });
 
-  // Helper to get searchable text from resource metadata
-  const getSearchableText = useCallback((resource: Resource): string => {
-    if (isVideoMode) {
-      const metadata = resource.metadata as StructureVideoMetadata;
-      return metadata.name?.toLowerCase() || '';
-    } else {
-      const metadata = resource.metadata as StyleReferenceMetadata;
-      return [
-        metadata.name,
-        metadata.subjectDescription,
-        metadata.styleBoostTerms,
-      ].filter(Boolean).join(' ').toLowerCase();
-    }
-  }, [isVideoMode]);
-
-  // Filter resources based on search term and "My Resources" toggle
-  const filteredResources = useMemo(() => {
-    if (showMyResourcesOnly) {
-      let filtered = (myResources.data || []) as Resource[];
-      
-      // Filter by search term
-      if (searchTerm.trim()) {
-        const lowerSearch = searchTerm.toLowerCase();
-        filtered = filtered.filter(r => getSearchableText(r).includes(lowerSearch));
-      }
-      return filtered;
-    }
-    
-    // Otherwise, use all resources and apply search
-    let filtered = allResources;
-    if (searchTerm.trim()) {
-      const lowerSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(r => getSearchableText(r).includes(lowerSearch));
-    }
-    return filtered;
-  }, [allResources, searchTerm, showMyResourcesOnly, myResources.data, getSearchableText]);
-
-  // Pagination
-  const ITEMS_PER_PAGE = 16;
-  const totalPages = Math.ceil(filteredResources.length / ITEMS_PER_PAGE);
-  const paginatedResources = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredResources.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredResources, currentPage]);
-
-  const loading = publicResources.isLoading || myResources.isLoading;
-
-  // Handle search
-  const handleSearch = useCallback((newSearchTerm: string) => {
-    setSearchTerm(newSearchTerm);
-    setCurrentPage(1);
-  }, []);
-
-  // Handle page change
-  const handlePageChange = useCallback((newPage: number) => {
-    setCurrentPage(newPage);
-  }, []);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, showMyResourcesOnly]);
-
-  // Handle toggling visibility of a resource
-  const handleToggleVisibility = useCallback(async (resourceId: string, currentIsPublic: boolean) => {
-    
-    // Find the resource
-    const resource = allResources.find(r => r.id === resourceId);
-    if (!resource) {
-      console.error('[ResourceBrowser] ❌ Could not find resource:', resourceId);
-      return;
-    }
-    
-    try {
-      // Update the resource with the new is_public value
-      const updatedMetadata = {
-        ...resource.metadata,
-        is_public: !currentIsPublic,
-      };
-      
-      await updateResource.mutateAsync({
-        id: resourceId,
-        type: resourceType,
-        metadata: updatedMetadata as ResourceMetadata,
-      });
-      
-    } catch (error) {
-      handleError(error, { context: 'DatasetBrowserModal', toastTitle: 'Failed to update visibility' });
-    }
-  }, [allResources, updateResource, resourceType]);
-
-  // Handle resource selection
-  const handleResourceClick = useCallback(async (resource: Resource) => {
-    
-    if (processingResource) {
-      return; // Prevent multiple clicks
-    }
-
-    setProcessingResource(resource.id);
-
-    try {
-      // If onResourceSelect is provided, use it directly (no re-upload)
-      if (onResourceSelect) {
-        onResourceSelect(resource);
-        onOpenChange(false);
-      } else if (onImageSelect && !isVideoMode) {
-        // Legacy flow for images: convert to File for upload
-        const metadata = resource.metadata as StyleReferenceMetadata;
-        const imageUrl = metadata.styleReferenceImageOriginal;
-        const filename = `${metadata.name.replace(/[^a-z0-9]/gi, '_')}.png`;
-        
-        const file = await processImageUrl(imageUrl, filename);
-        
-        onImageSelect([file]);
-        
-        onOpenChange(false);
-      }
-    } catch (error) {
-      handleError(error, { context: 'DatasetBrowserModal', toastTitle: 'Failed to process selected resource' });
-    } finally {
-      setProcessingResource(null);
-    }
-  }, [processingResource, onImageSelect, onResourceSelect, onOpenChange, isVideoMode, resourceType]);
-
-  // Clear search
-  const clearSearch = useCallback(() => {
-    setSearchTerm('');
-    setCurrentPage(1);
-  }, []);
-
-  // Reset processing state and loaded thumbnails when modal closes (but keep other state)
-  useEffect(() => {
-    if (!isOpen) {
-      setProcessingResource(null);
-      setLoadedThumbnails(new Set());
-    }
-  }, [isOpen]);
-  
   // Dynamic title based on resource type
-  const modalTitle = title || (isVideoMode ? 'Browse Guidance Videos' : 'Browse Style References');
-  const resourceLabel = isVideoMode ? 'video' : 'reference';
-  const resourceLabelPlural = isVideoMode ? 'videos' : 'references';
-  const myResourcesLabel = isVideoMode ? 'My Videos' : 'My References';
+  const modalTitle = title || (browsing.isVideoMode ? 'Browse Guidance Videos' : 'Browse Style References');
+  const resourceLabel = browsing.isVideoMode ? 'video' : 'reference';
+  const resourceLabelPlural = browsing.isVideoMode ? 'videos' : 'references';
+  const myResourcesLabel = browsing.isVideoMode ? 'My Videos' : 'My References';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         className={modal.className}
         style={modal.style}
       >
         <div className={modal.headerClass}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {isVideoMode ? <Video className="h-5 w-5" /> : <ImageIcon className="h-5 w-5" />}
+              {browsing.isVideoMode ? <Video className="h-5 w-5" /> : <ImageIcon className="h-5 w-5" />}
               {modalTitle}
-              {filteredResources.length > 0 && (
+              {browsing.filteredResources.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {filteredResources.length} {filteredResources.length !== 1 ? resourceLabelPlural : resourceLabel}
+                  {browsing.filteredResources.length} {browsing.filteredResources.length !== 1 ? resourceLabelPlural : resourceLabel}
                 </Badge>
               )}
             </DialogTitle>
@@ -373,16 +476,16 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
             {/* Filter Buttons */}
             <div className="flex items-center gap-2">
               <Button
-                variant={showMyResourcesOnly ? "default" : "outline"}
+                variant={browsing.showMyResourcesOnly ? "default" : "outline"}
                 size="sm"
-                onClick={() => setShowMyResourcesOnly(!showMyResourcesOnly)}
+                onClick={() => browsing.setShowMyResourcesOnly(!browsing.showMyResourcesOnly)}
               >
                 {myResourcesLabel}
               </Button>
-              {showMyResourcesOnly && (
+              {browsing.showMyResourcesOnly && (
                 <Badge variant="outline">
                   Showing your {resourceLabelPlural} only
-                  <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => setShowMyResourcesOnly(false)} />
+                  <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => browsing.setShowMyResourcesOnly(false)} />
                 </Badge>
               )}
             </div>
@@ -392,20 +495,20 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={`Search ${resourceLabelPlural}...`}
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
+                value={browsing.searchTerm}
+                onChange={(e) => browsing.handleSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
 
             {/* Active search indicator */}
-            {searchTerm && (
+            {browsing.searchTerm && (
               <div className="flex items-center gap-2">
                 <Badge variant="outline">
-                  Search: "{searchTerm}"
-                  <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => setSearchTerm('')} />
+                  Search: "{browsing.searchTerm}"
+                  <X className="h-3 w-3 ml-1 cursor-pointer" onClick={browsing.clearSearch} />
                 </Badge>
-                <Button variant="ghost" size="sm" onClick={clearSearch}>
+                <Button variant="ghost" size="sm" onClick={browsing.clearSearch}>
                   Clear search
                 </Button>
               </div>
@@ -413,7 +516,7 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
           </div>
 
           {/* Loading State - Skeleton Grid */}
-          {loading && (
+          {browsing.loading && (
             <div className="grid grid-cols-4 gap-3">
               {Array.from({ length: 16 }).map((_, index) => (
                 <div
@@ -421,7 +524,6 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
                   className="relative rounded-lg overflow-hidden border-2 border-transparent"
                 >
                   <div className="aspect-square bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 animate-pulse relative">
-                    {/* Shimmer effect */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-gray-600/20 to-transparent animate-shimmer transform -skew-x-12" />
                   </div>
                 </div>
@@ -430,140 +532,66 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
           )}
 
           {/* Resources Grid - 4x4 layout */}
-          {!loading && paginatedResources.length > 0 && (
+          {!browsing.loading && browsing.paginatedResources.length > 0 && (
             <div className="grid grid-cols-4 gap-3">
-              {paginatedResources.map((resource) => {
-                // Check both camelCase (interface) and snake_case (database) for owner
+              {browsing.paginatedResources.map((resource) => {
                 const resourceOwnerId = resource.userId || (resource as Record<string, unknown>).user_id as string | undefined;
-                const isOwner = userId && resourceOwnerId === userId;
-                
-                // For videos, use the VideoResourceItem component with scrubbing
-                if (isVideoMode) {
+                const isOwner = browsing.userId && resourceOwnerId === browsing.userId;
+
+                if (browsing.isVideoMode) {
                   return (
                     <VideoResourceItem
                       key={resource.id}
                       resource={resource}
                       isOwner={!!isOwner}
-                      isProcessing={processingResource === resource.id}
-                      isLoaded={loadedThumbnails.has(resource.id)}
-                      onLoaded={() => setLoadedThumbnails(prev => new Set(prev).add(resource.id))}
-                      onClick={() => handleResourceClick(resource)}
-                      onToggleVisibility={isOwner ? handleToggleVisibility : undefined}
+                      isProcessing={browsing.processingResource === resource.id}
+                      isLoaded={browsing.loadedThumbnails.has(resource.id)}
+                      onLoaded={() => browsing.setLoadedThumbnails(prev => new Set(prev).add(resource.id))}
+                      onClick={() => browsing.handleResourceClick(resource)}
+                      onToggleVisibility={isOwner ? browsing.handleToggleVisibility : undefined}
                     />
                   );
                 }
-                
-                // For images, use the original rendering
-                const metadata = resource.metadata as StyleReferenceMetadata;
-                const thumbnailUrl = metadata.thumbnailUrl || metadata.styleReferenceImageOriginal;
-                const resourceName = metadata.name;
-                const isPublic = metadata.is_public ?? false;
-                
+
                 return (
-                  <div
+                  <ImageResourceItem
                     key={resource.id}
-                    className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:border-primary ${
-                      processingResource === resource.id ? 'border-primary' : 'border-transparent'
-                    }`}
-                    onClick={() => handleResourceClick(resource)}
-                  >
-                    {/* Image thumbnail */}
-                    <div className="aspect-square relative">
-                      {/* Skeleton loader - shown until thumbnail loads */}
-                      {!loadedThumbnails.has(resource.id) && (
-                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 animate-pulse">
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-gray-600/20 to-transparent animate-shimmer transform -skew-x-12" />
-                        </div>
-                      )}
-                      
-                      <img
-                        src={thumbnailUrl}
-                        alt={resourceName}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onLoad={() => {
-                          setLoadedThumbnails(prev => new Set(prev).add(resource.id));
-                        }}
-                        onError={() => {
-                          setLoadedThumbnails(prev => new Set(prev).add(resource.id));
-                        }}
-                      />
-                      
-                      {processingResource === resource.id && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-white" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all pointer-events-none" />
-                      
-                      {/* Overlay info bar at bottom of image */}
-                      {isOwner && (
-                        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 py-1.5 bg-black/60 backdrop-blur-sm z-10">
-                          <span className="text-xs text-white/90">Mine</span>
-                          
-                          {/* Visibility toggle */}
-                          <TooltipProvider delayDuration={300}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    handleToggleVisibility(resource.id, isPublic);
-                                  }}
-                                  className={`rounded-full p-1 transition-colors focus:outline-none ${
-                                    isPublic
-                                      ? "bg-green-500 text-white hover:bg-green-600"
-                                      : "bg-gray-400 text-white hover:bg-gray-500"
-                                  }`}
-                                >
-                                  {isPublic ? (
-                                    <Globe className="h-3 w-3" />
-                                  ) : (
-                                    <Lock className="h-3 w-3" />
-                                  )}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                {isPublic 
-                                  ? "Public - visible to others. Click to make private." 
-                                  : "Private - only you can see this. Click to make public."}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    resource={resource}
+                    isOwner={!!isOwner}
+                    isProcessing={browsing.processingResource === resource.id}
+                    isLoaded={browsing.loadedThumbnails.has(resource.id)}
+                    onLoaded={() => browsing.setLoadedThumbnails(prev => new Set(prev).add(resource.id))}
+                    onClick={() => browsing.handleResourceClick(resource)}
+                    onToggleVisibility={isOwner ? browsing.handleToggleVisibility : undefined}
+                  />
                 );
               })}
             </div>
           )}
 
           {/* No Results */}
-          {!loading && paginatedResources.length === 0 && (
+          {!browsing.loading && browsing.paginatedResources.length === 0 && (
             <div className="text-center py-12">
-              {isVideoMode ? (
+              {browsing.isVideoMode ? (
                 <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               ) : (
                 <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               )}
               <p className="text-muted-foreground">
-                {filteredResources.length === 0 
-                  ? (showMyResourcesOnly 
-                      ? `You don't have any ${resourceLabelPlural} yet` 
+                {browsing.filteredResources.length === 0
+                  ? (browsing.showMyResourcesOnly
+                      ? `You don't have any ${resourceLabelPlural} yet`
                       : `No ${resourceLabelPlural} found`)
                   : "No results on this page"
                 }
               </p>
-              {searchTerm && (
-                <Button variant="ghost" onClick={clearSearch} className="mt-2">
+              {browsing.searchTerm && (
+                <Button variant="ghost" onClick={browsing.clearSearch} className="mt-2">
                   Clear search to see all {resourceLabelPlural}
                 </Button>
               )}
-              {showMyResourcesOnly && (
-                <Button variant="ghost" onClick={() => setShowMyResourcesOnly(false)} className="mt-2">
+              {browsing.showMyResourcesOnly && (
+                <Button variant="ghost" onClick={() => browsing.setShowMyResourcesOnly(false)} className="mt-2">
                   Show all {resourceLabelPlural}
                 </Button>
               )}
@@ -574,36 +602,36 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
         <div className={`${modal.footerClass} relative`}>
           {/* Fade overlay */}
           {showFade && (
-            <div 
+            <div
               className="absolute top-0 left-0 right-0 h-16 pointer-events-none z-10"
               style={{ transform: 'translateY(-64px)' }}
             >
               <div className="h-full bg-gradient-to-t from-white via-white/95 to-transparent dark:from-gray-950 dark:via-gray-950/95 dark:to-transparent" />
             </div>
           )}
-          
+
           <DialogFooter className="border-t relative z-20 pt-4">
             {/* Pagination */}
-            {totalPages > 1 && (
+            {browsing.totalPages > 1 && (
               <div className="flex items-center gap-2 w-full md:w-auto md:mr-auto">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
+                  onClick={() => browsing.handlePageChange(browsing.currentPage - 1)}
+                  disabled={browsing.currentPage === 1}
                   className="flex-1 md:flex-initial"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
-                  Page {currentPage} of {totalPages}
+                  Page {browsing.currentPage} of {browsing.totalPages}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  onClick={() => browsing.handlePageChange(browsing.currentPage + 1)}
+                  disabled={browsing.currentPage === browsing.totalPages}
                   className="flex-1 md:flex-initial"
                 >
                   Next
@@ -611,7 +639,7 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
                 </Button>
               </div>
             )}
-            
+
             <Button variant="retro" size="retro-sm" onClick={() => onOpenChange(false)} className="hidden md:inline-flex">
               Close
             </Button>

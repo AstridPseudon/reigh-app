@@ -4,8 +4,7 @@ import { useToolSettings } from './useToolSettings';
 import { handleError } from '@/shared/lib/errorHandler';
 import { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/shared/components/ui/tooltip';
-import { Button } from '@/shared/components/ui/button';
+import { LoraHeaderActions } from '@/shared/components/LoraHeaderActions';
 
 // Re-export types
 export type { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
@@ -247,7 +246,7 @@ export const useLoraManager = (
       };
 
       // Use universal persistence settings
-      await (updatePersistenceSettings || updateProjectLoraSettings)('project', settingsToSave);
+      await updatePersistenceSettings('project', settingsToSave);
 
       // Update local cache of saved LoRAs for immediate tooltip update
       setLastSavedLoras(lorasToSave);
@@ -262,9 +261,6 @@ export const useLoraManager = (
       setSaveFlash(false); // Clear flash on error too
     }
   }, [enableProjectPersistence, projectId, updatePersistenceSettings, markAsUserSet]);
-
-  // For backward compatibility
-  const updateProjectLoraSettings = updatePersistenceSettings;
 
   const handleLoadProjectLoras = useCallback(async () => {
     if (!enableProjectPersistence) return;
@@ -388,81 +384,29 @@ export const useLoraManager = (
     autoLoadStateRef.current = stateKey;
   }, [enableProjectPersistence, hasSavedLoras, selectedLoras.length, handleLoadProjectLoras, userHasManuallyInteracted, disableAutoLoad]);
 
-  // No longer needed - using proper JSX with Tooltip components
-
   // Render header actions for ActiveLoRAsDisplay
+  // Uses extracted LoraHeaderActions component to keep JSX out of hooks
   const renderHeaderActions = useCallback((customLoadHandler?: () => Promise<void>) => {
     if (!enableProjectPersistence) return null;
 
     // Format saved LoRAs for tooltip (multi-line) - use lastSavedLoras for immediate updates
     const currentSavedLoras = lastSavedLoras || projectLoraSettings?.loras;
     const savedLorasContent = currentSavedLoras && currentSavedLoras.length > 0
-      ? `Saved LoRAs (${currentSavedLoras.length}):\n` + 
+      ? `Saved LoRAs (${currentSavedLoras.length}):\n` +
         currentSavedLoras.map(lora => `• ${lora.id} (strength: ${lora.strength})`).join('\n')
       : 'No saved LoRAs available';
 
     return (
-      <div className="flex gap-1 ml-2 w-1/2">
-        {/* Save LoRAs button with tooltip - 1/4 width */}
-        <div className="flex-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleSaveProjectLoras}
-                disabled={selectedLoras.length === 0 || isSavingLoras}
-                className={`w-full text-xs h-7 flex items-center justify-center transition-all duration-300 ${
-                  saveFlash
-                    ? 'bg-green-400 hover:bg-green-500 border-green-400 text-white scale-105' 
-                    : saveSuccess 
-                    ? 'bg-green-600 hover:bg-green-700 border-green-600 text-white' 
-                    : ''
-                }`}
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
-                </svg>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Save current LoRAs selection</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        
-        {/* Load LoRAs button with tooltip - 3/4 width */}
-        <div className="flex-[3]">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={customLoadHandler || handleLoadProjectLoras}
-                disabled={!hasSavedLoras}
-                className={`w-full text-xs h-7 ${
-                  hasSavedLoras 
-                    ? '' 
-                    : 'opacity-50 cursor-not-allowed'
-                }`}
-              >
-                Load LoRAs
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div style={{ whiteSpace: 'pre-line' }}>
-                {savedLorasContent}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+      <LoraHeaderActions
+        hasSavedLoras={!!hasSavedLoras}
+        selectedLorasCount={selectedLoras.length}
+        isSaving={!!isSavingLoras}
+        saveSuccess={saveSuccess}
+        saveFlash={saveFlash}
+        savedLorasContent={savedLorasContent}
+        onSave={handleSaveProjectLoras}
+        onLoad={customLoadHandler || handleLoadProjectLoras}
+      />
     );
   }, [
     enableProjectPersistence,

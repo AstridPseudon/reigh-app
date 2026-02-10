@@ -95,7 +95,7 @@ export const toolsUIManifest: ToolUIDefinition[] = [
     badge: 'New',
   },
   {
-    id: 'edit-images', // Hardcoded to avoid import issues
+    id: editImagesSettings.id,
     name: 'Edit Images',
     path: '/tools/edit-images',
     description: 'Transform, reimagine, and enhance images using text prompts or inpainting brushes.',

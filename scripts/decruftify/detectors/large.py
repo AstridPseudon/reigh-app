@@ -1,4 +1,4 @@
-"""Large file detection (>300 LOC)."""
+"""Large file detection (>500 LOC)."""
 
 import json
 import re
@@ -8,7 +8,7 @@ from pathlib import Path
 from ..utils import PROJECT_ROOT, c, print_table, rel
 
 
-def detect_large_files(path: Path, threshold: int = 300) -> list[dict]:
+def detect_large_files(path: Path, threshold: int = 500) -> list[dict]:
     """Find .ts/.tsx files exceeding a line count threshold."""
     result = subprocess.run(
         ["find", str(path), "-name", "*.ts", "-o", "-name", "*.tsx"],

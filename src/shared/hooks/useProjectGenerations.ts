@@ -35,6 +35,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import { transformGeneration, transformVariant, type RawGeneration, type RawVariant } from '@/shared/lib/generationTransformers';
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { SHOT_FILTER } from '@/shared/constants/filterConstants';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /** Common filter options for generation queries */
 interface GenerationFilters {
@@ -60,8 +61,8 @@ function applyGenerationFilters<T extends PostgrestFilterBuilder<Record<string, 
 
   // Tool type filter (skip when shot filter is active - shot filter takes precedence)
   if (filters.toolType && !filters.shotId) {
-    if (filters.toolType === 'image-generation') {
-      query = query.eq('params->>tool_type', 'image-generation') as T;
+    if (filters.toolType === TOOL_IDS.IMAGE_GENERATION) {
+      query = query.eq('params->>tool_type', TOOL_IDS.IMAGE_GENERATION) as T;
     } else {
       query = query.or(`params->>tool_type.eq.${filters.toolType},params->>tool_type.eq.${filters.toolType}-reconstructed-client`) as T;
     }

@@ -50,8 +50,12 @@ import type {
   GeneratedImageWithMetadata,
   MediaGalleryProps,
   ColumnsPerRow,
+  GalleryFilterState,
 } from './types';
+export type { GalleryFilterState };
+export { DEFAULT_GALLERY_FILTERS } from './types';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 // Re-export types that are used externally
 export type {
@@ -71,39 +75,30 @@ export type {
  */
 const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   const {
-    images, 
-    onDelete, 
-    isDeleting, 
-    onApplySettings, 
-    allShots, 
-    lastShotId, 
+    images,
+    onDelete,
+    isDeleting,
+    onApplySettings,
+    allShots,
+    lastShotId,
     onAddToLastShot,
     onAddToLastShotWithoutPosition,
-    currentToolType, 
-    initialFilterState = true, 
+    currentToolType,
+    initialFilterState = true,
     currentViewingShotId,
     offset = 0,
     totalCount,
     whiteText = false,
     columnsPerRow = 'auto',
-    itemsPerPage, 
-    initialMediaTypeFilter = 'all', 
-    onServerPageChange, 
-    serverPage, 
-    showShotFilter = false, 
-    initialShotFilter = 'all', 
-    onShotFilterChange,
-    initialExcludePositioned = true,
-    onExcludePositionedChange,
+    itemsPerPage,
+    filters,
+    onFiltersChange,
+    defaultFilters,
+    onServerPageChange,
+    serverPage,
+    showShotFilter = false,
     showSearch = false,
-    initialSearchTerm = '',
-    onSearchChange,
-    onMediaTypeFilterChange,
     onToggleStar,
-    onStarredFilterChange,
-    onToolTypeFilterChange,
-    initialStarredFilter = false,
-    initialToolTypeFilter = true,
     currentToolTypeName: _currentToolTypeName,
     formAssociatedShotId,
     onSwitchToAssociatedShot,
@@ -135,14 +130,15 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // Optimized: only log on mount and significant changes, using ref to track
   const videoGalleryDebugRef = useRef({ lastImagesLength: 0 });
   React.useEffect(() => {
-    const isVideoGallery = currentToolType === 'travel-between-images' && initialMediaTypeFilter === 'video';
+    const mediaType = filters?.mediaType ?? defaultFilters?.mediaType ?? 'all';
+    const isVideoGallery = currentToolType === TOOL_IDS.TRAVEL_BETWEEN_IMAGES && mediaType === 'video';
     if (!isVideoGallery) return;
     // Only log when images length changes significantly
     const imagesLength = images?.length ?? 0;
     if (videoGalleryDebugRef.current.lastImagesLength !== imagesLength) {
       videoGalleryDebugRef.current.lastImagesLength = imagesLength;
     }
-  }, [images?.length, totalCount, currentToolType, initialMediaTypeFilter]);
+  }, [images?.length, totalCount, currentToolType, filters?.mediaType, defaultFilters?.mediaType]);
 
   // Get project context for cache clearing and aspect ratio
   const { selectedProjectId, projects } = useProject();
@@ -246,20 +242,11 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     optimisticDeletedIds: stateHook.state.optimisticDeletedIds,
     currentToolType,
     initialFilterState,
-    initialMediaTypeFilter,
-    initialShotFilter,
-    initialExcludePositioned,
-    initialSearchTerm,
-    initialStarredFilter,
-    initialToolTypeFilter,
     onServerPageChange,
     serverPage,
-    onShotFilterChange,
-    onExcludePositionedChange,
-    onSearchChange,
-    onMediaTypeFilterChange,
-    onStarredFilterChange,
-    onToolTypeFilterChange,
+    filters,
+    onFiltersChange,
+    defaultFilters,
   });
 
   // Check if filters are active for empty state
@@ -277,6 +264,15 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     isMobile,
     galleryTopRef: stateHook.galleryTopRef,
   });
+
+  const withPaginationReset = useCallback(<T,>(fn: () => T): T => {
+    const result = fn();
+    paginationHook.goToFirstPage();
+    if (paginationHook.isServerPagination) {
+      paginationHook.setIsGalleryLoading(true);
+    }
+    return result;
+  }, [paginationHook.goToFirstPage, paginationHook.isServerPagination, paginationHook.setIsGalleryLoading]);
 
   // Handle page bounds exceeded (e.g., deleted all items on last page)
   const handlePageBoundsExceeded = useCallback((newLastPage: number) => {
@@ -579,8 +575,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
 
   const handleShowAllShots = useCallback(() => {
     filtersHook.setShotFilter('all');
-    onShotFilterChange?.('all');
-  }, [filtersHook.setShotFilter, onShotFilterChange]);
+  }, [filtersHook.setShotFilter]);
 
   // Task details handlers
   const handleShowTaskDetails = useCallback(() => {
@@ -594,7 +589,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
         stateHook.setActiveLightboxMedia(null);
       }, 100);
     } else {
-      console.error('[TaskToggle] MediaGallery: No active lightbox media found');
+      handleError(new Error('No active lightbox media found'), { context: 'handleShowTaskDetails' });
     }
   }, [stateHook.state.activeLightboxMedia, stateHook.setSelectedImageForDetails, stateHook.setShowTaskDetailsModal, stateHook.setActiveLightboxMedia]);
 
@@ -631,37 +626,15 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             hideTopFilters={hideTopFilters}
             hideMediaTypeFilter={hideMediaTypeFilter}
             showStarredOnly={filtersHook.showStarredOnly}
-            onStarredFilterChange={(val) => {
-              const next = Boolean(val);
-              filtersHook.setShowStarredOnly(next);
-              paginationHook.goToFirstPage();
-              if (paginationHook.isServerPagination) {
-                paginationHook.setIsGalleryLoading(true);
-              }
-              onStarredFilterChange?.(next);
-            }}
+            onStarredFilterChange={(val) => withPaginationReset(() => filtersHook.setShowStarredOnly(Boolean(val)))}
 
             // Shot filter props
             showShotFilter={showShotFilter}
             allShots={simplifiedShotOptions}
             shotFilter={filtersHook.shotFilter}
-            onShotFilterChange={(shotId) => {
-              filtersHook.setShotFilter(shotId);
-              paginationHook.goToFirstPage();
-              if (paginationHook.isServerPagination) {
-                paginationHook.setIsGalleryLoading(true);
-              }
-              onShotFilterChange?.(shotId);
-            }}
+            onShotFilterChange={(shotId) => withPaginationReset(() => filtersHook.setShotFilter(shotId))}
             excludePositioned={filtersHook.excludePositioned}
-            onExcludePositionedChange={(exclude) => {
-              filtersHook.setExcludePositioned(exclude);
-              paginationHook.goToFirstPage();
-              if (paginationHook.isServerPagination) {
-                paginationHook.setIsGalleryLoading(true);
-              }
-              onExcludePositionedChange?.(exclude);
-            }}
+            onExcludePositionedChange={(v) => withPaginationReset(() => filtersHook.setExcludePositioned(v))}
 
             // Search props
             showSearch={showSearch}
@@ -670,25 +643,11 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             searchInputRef={filtersHook.searchInputRef}
             toggleSearch={filtersHook.toggleSearch}
             clearSearch={filtersHook.clearSearch}
-            handleSearchChange={(value) => {
-              filtersHook.setSearchTerm(value);
-              paginationHook.goToFirstPage();
-              if (paginationHook.isServerPagination) {
-                paginationHook.setIsGalleryLoading(true);
-              }
-              onSearchChange?.(value);
-            }}
+            handleSearchChange={(value) => withPaginationReset(() => filtersHook.setSearchTerm(value))}
 
             // Media type filter props
             mediaTypeFilter={filtersHook.mediaTypeFilter}
-            onMediaTypeFilterChange={(value) => {
-              filtersHook.setMediaTypeFilter(value);
-              paginationHook.goToFirstPage();
-              if (paginationHook.isServerPagination) {
-                paginationHook.setIsGalleryLoading(true);
-              }
-              onMediaTypeFilterChange?.(value);
-            }}
+            onMediaTypeFilterChange={(value) => withPaginationReset(() => filtersHook.setMediaTypeFilter(value))}
           />
         </div>
 
@@ -924,15 +883,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
                 variant="ghost"
                 size="sm"
                 className="p-1 h-8 w-8 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  const next = !filtersHook.showStarredOnly;
-                  filtersHook.setShowStarredOnly(next);
-                  paginationHook.goToFirstPage();
-                  if (paginationHook.isServerPagination) {
-                    paginationHook.setIsGalleryLoading(true);
-                  }
-                  onStarredFilterChange?.(next);
-                }}
+                onClick={() => withPaginationReset(() => filtersHook.setShowStarredOnly(!filtersHook.showStarredOnly))}
                 aria-label={filtersHook.showStarredOnly ? "Show all items" : "Show only starred items"}
               >
                 <Star className="h-5 w-5" fill={filtersHook.showStarredOnly ? 'currentColor' : 'none'} />

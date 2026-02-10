@@ -1,15 +1,17 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
 import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
-import { getPairInfo, getTimelineDimensions, applyFluidTimeline, applyFluidTimelineMulti, calculateNewVideoPlacement, TRAILING_ENDPOINT_KEY } from '../utils/timeline-utils';
-import { TIMELINE_PADDING_OFFSET } from '../constants';
+import { getPairInfo, getTimelineDimensions, calculateNewVideoPlacement, TRAILING_ENDPOINT_KEY } from '../utils/timeline-utils';
 import { useZoom } from './useZoom';
 import { useUnifiedDrop } from './useUnifiedDrop';
 import { useTimelineDrag } from './useTimelineDrag';
 import { useGlobalEvents } from './useGlobalEvents';
 import { useTimelineSelection } from './useTimelineSelection';
 import { usePendingFrames } from './usePendingFrames';
+import { useEndpointDrag } from './useEndpointDrag';
+import { useTapToMove } from './useTapToMove';
+import { useComputedTimelineData } from './useComputedTimelineData';
 import type { GenerationRow } from '@/types/shots';
 import type { PairData } from '../TimelineContainer/types';
 import type { Resource, StructureVideoMetadata } from '@/shared/hooks/useResources';
@@ -477,66 +479,23 @@ export function useTimelineOrchestrator({
     if (resetGap > maxGap) setResetGap(maxGap);
   }, [maxGap, resetGap]);
 
-  // Tap-to-move handlers
-  const handleTapToMoveAction = useCallback(async (imageId: string, targetFrame: number) => {
-    const originalPos = framePositions.get(imageId) ?? 0;
-    if (targetFrame === originalPos) return;
-
-    const newPositions = new Map(framePositions);
-    const conflictingItem = [...framePositions.entries()].find(
-      ([id, pos]) => id !== imageId && pos === targetFrame
-    );
-
-    if (conflictingItem) {
-      if (targetFrame === 0) {
-        const sortedItems = [...framePositions.entries()]
-          .filter(([id]) => id !== imageId && id !== conflictingItem[0])
-          .sort((a, b) => a[1] - b[1]);
-        const nextItem = sortedItems.find(([_, pos]) => pos > 0);
-        const nextItemPos = nextItem ? nextItem[1] : 50;
-        const midpoint = Math.floor(nextItemPos / 2);
-        newPositions.set(conflictingItem[0], midpoint);
-        newPositions.set(imageId, 0);
-      } else {
-        newPositions.set(imageId, targetFrame + 1);
-      }
-    } else {
-      newPositions.set(imageId, targetFrame);
-    }
-
-    if (originalPos === 0 && targetFrame !== 0 && !conflictingItem) {
-      const nearest = [...framePositions.entries()]
-        .filter(([id]) => id !== imageId)
-        .sort((a, b) => a[1] - b[1])[0];
-      if (nearest) newPositions.set(nearest[0], 0);
-    }
-
-    const finalPositions = applyFluidTimeline(newPositions, imageId, targetFrame, undefined, fullMin, fullMax);
-    await setFramePositions(finalPositions);
-    clearSelection();
-  }, [framePositions, setFramePositions, fullMin, fullMax, clearSelection]);
-
-  const handleTapToMoveMultiAction = useCallback(async (imageIds: string[], targetFrame: number) => {
-    const finalPositions = applyFluidTimelineMulti(framePositions, imageIds, targetFrame);
-    await setFramePositions(finalPositions);
-    clearSelection();
-  }, [framePositions, setFramePositions, clearSelection]);
-
-  const handleTimelineTapToMove = useCallback((clientX: number) => {
-    if (!enableTapToMove || !containerRef.current || selectedIds.length === 0) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const relativeX = clientX - rect.left;
-    const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-    const adjustedX = relativeX - TIMELINE_PADDING_OFFSET;
-    const normalizedX = Math.max(0, Math.min(1, adjustedX / effectiveWidth));
-    const targetFrame = Math.round(fullMin + (normalizedX * fullRange));
-
-    if (selectedIds.length > 1) {
-      handleTapToMoveMultiAction(selectedIds, targetFrame);
-    } else {
-      handleTapToMoveAction(selectedIds[0], targetFrame);
-    }
-  }, [enableTapToMove, containerWidth, fullMin, fullRange, selectedIds, handleTapToMoveAction, handleTapToMoveMultiAction]);
+  // Tap-to-move handlers (extracted hook)
+  const {
+    handleTapToMoveAction,
+    handleTapToMoveMultiAction,
+    handleTimelineTapToMove,
+  } = useTapToMove({
+    enableTapToMove,
+    framePositions,
+    setFramePositions,
+    fullMin,
+    fullMax,
+    fullRange,
+    containerWidth,
+    selectedIds,
+    clearSelection,
+    containerRef,
+  });
 
   // Video browser resource select handler
   const handleVideoBrowserSelect = useCallback((resource: Resource) => {
@@ -577,140 +536,41 @@ export function useTimelineOrchestrator({
     setShowVideoBrowser(false);
   }, [fullMax, structureVideos, structureVideoType, structureVideoTreatment, structureVideoMotionStrength, onAddStructureVideo, onUpdateStructureVideo, onStructureVideoChange]);
 
-  // Endpoint drag state: visual-only during drag, persisted on mouseup
-  const [endpointDragFrame, setEndpointDragFrame] = useState<number | null>(null);
-  const [isEndpointDragging, setIsEndpointDragging] = useState(false);
+  // Endpoint drag (extracted hook)
+  const {
+    endpointDragFrame,
+    isEndpointDragging,
+    handleEndpointMouseDown,
+  } = useEndpointDrag({
+    readOnly,
+    fullMin,
+    fullMax,
+    fullRange,
+    containerWidth,
+    maxFrameLimit,
+    dynamicPositions,
+    framePositions,
+    setFramePositions,
+    containerRef,
+    dragStartDimensionsRef,
+    isEndpointDraggingRef,
+  });
 
-  const handleEndpointMouseDown = useCallback((e: React.MouseEvent, _endpointId: string) => {
-    if (readOnly) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    dragStartDimensionsRef.current = { fullMin, fullMax, fullRange };
-    isEndpointDraggingRef.current = true;
-    setIsEndpointDragging(true);
-
-    // Get image-only positions (exclude trailing key)
-    const currentPositionsLocal = dynamicPositions();
-    const sortedEntries = [...currentPositionsLocal.entries()]
-      .filter(([id]) => id !== TRAILING_ENDPOINT_KEY)
-      .sort((a, b) => a[1] - b[1]);
-    const lastImageEntry = sortedEntries[sortedEntries.length - 1];
-    if (!lastImageEntry) return;
-
-    const [, imageFrame] = lastImageEntry;
-    let currentEndFrame = framePositions.get(TRAILING_ENDPOINT_KEY) ?? (imageFrame + 49);
-
-    const handleMouseMoveLocal = (moveEvent: MouseEvent) => {
-      if (!containerRef.current) return;
-      const frozenFullMin = dragStartDimensionsRef.current?.fullMin ?? fullMin;
-      const frozenFullRange = dragStartDimensionsRef.current?.fullRange ?? fullRange;
-      const rect = containerRef.current.getBoundingClientRect();
-      const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-      const relativeX = moveEvent.clientX - rect.left - TIMELINE_PADDING_OFFSET;
-      let newFrame = frozenFullMin + (relativeX / effectiveWidth) * frozenFullRange;
-      const minFrame = imageFrame + 5;
-      const maxFrame = imageFrame + maxFrameLimit;
-      newFrame = Math.max(minFrame, Math.min(Math.round(newFrame), maxFrame));
-      const gap = newFrame - imageFrame;
-      const quantizedGap = Math.max(5, Math.round((gap - 1) / 4) * 4 + 1);
-      const quantizedFrame = imageFrame + quantizedGap;
-      currentEndFrame = Math.min(quantizedFrame, maxFrame);
-      // Visual-only update (no DB persist) — TrailingEndpoint reads this via currentDragFrame prop
-      setEndpointDragFrame(currentEndFrame);
-    };
-
-    const handleMouseUpLocal = async () => {
-      dragStartDimensionsRef.current = null;
-      isEndpointDraggingRef.current = false;
-      setIsEndpointDragging(false);
-      setEndpointDragFrame(null);
-      document.removeEventListener('mousemove', handleMouseMoveLocal);
-      document.removeEventListener('mouseup', handleMouseUpLocal);
-
-      // Write final position through position system (handles optimistic update + DB persist)
-      const newPositions = new Map(framePositions);
-      newPositions.set(TRAILING_ENDPOINT_KEY, currentEndFrame);
-      await setFramePositions(newPositions);
-    };
-
-    document.addEventListener('mousemove', handleMouseMoveLocal);
-    document.addEventListener('mouseup', handleMouseUpLocal);
-  }, [readOnly, fullMin, fullMax, fullRange, containerWidth, maxFrameLimit, dynamicPositions, framePositions, setFramePositions]);
-
-  // Computed data
+  // Computed timeline data (extracted hook)
   const currentPositions = dynamicPositions();
-  const pairInfo = getPairInfo(currentPositions);
-
-  // Image-only positions (excluding trailing endpoint key)
-  const imageOnlyPositions = useMemo(() => {
-    const filtered = new Map(currentPositions);
-    filtered.delete(TRAILING_ENDPOINT_KEY);
-    return filtered;
-  }, [currentPositions]);
-
-  // Compute shot_generation_id → position index map
-  const localShotGenPositions = useMemo(() => {
-    const posMap = new Map<string, number>();
-    const sortedEntries = [...imageOnlyPositions.entries()].sort((a, b) => a[1] - b[1]);
-    sortedEntries.forEach(([shotGenId], index) => {
-      posMap.set(shotGenId, index);
-    });
-    // [PositionTrace] Log when rendered positions change
-    return posMap;
-  }, [imageOnlyPositions, shotId]);
-
-  // Compute full pair data for each pair index
-  const pairDataByIndex = useMemo(() => {
-    const dataMap = new Map<number, PairData>();
-    const sortedEntries = [...imageOnlyPositions.entries()].sort((a, b) => a[1] - b[1]);
-    for (let pairIndex = 0; pairIndex < sortedEntries.length - 1; pairIndex++) {
-      const [startId, startFrame] = sortedEntries[pairIndex];
-      const [endId, endFrame] = sortedEntries[pairIndex + 1];
-      const startImage = images.find(img => img.id === startId);
-      const endImage = images.find(img => img.id === endId);
-      dataMap.set(pairIndex, {
-        index: pairIndex,
-        frames: endFrame - startFrame,
-        startFrame,
-        endFrame,
-        startImage: startImage ? {
-          id: startImage.id,
-          generationId: startImage.generation_id,
-          url: startImage.imageUrl || startImage.thumbUrl,
-          thumbUrl: startImage.thumbUrl,
-          position: pairIndex + 1,
-        } : null,
-        endImage: endImage ? {
-          id: endImage.id,
-          generationId: endImage.generation_id,
-          url: endImage.imageUrl || endImage.thumbUrl,
-          thumbUrl: endImage.thumbUrl,
-          position: pairIndex + 2,
-        } : null,
-      });
-    }
-    return dataMap;
-  }, [imageOnlyPositions, images]);
-
-  // Calculate whether to show pair labels
-  const showPairLabels = useMemo(() => {
-    if (images.length < 2) return false;
-    const sortedPositions = [...imageOnlyPositions.entries()].sort((a, b) => a[1] - b[1]);
-    let totalPairWidth = 0;
-    let pairCount = 0;
-    for (let i = 0; i < sortedPositions.length - 1; i++) {
-      const [, startFrame] = sortedPositions[i];
-      const [, endFrame] = sortedPositions[i + 1];
-      const frameWidth = endFrame - startFrame;
-      const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-      const pixelWidth = (frameWidth / fullRange) * effectiveWidth * zoomLevel;
-      totalPairWidth += pixelWidth;
-      pairCount++;
-    }
-    const avgPairWidth = pairCount > 0 ? totalPairWidth / pairCount : 0;
-    return avgPairWidth >= 100;
-  }, [images.length, imageOnlyPositions, containerWidth, fullRange, zoomLevel]);
+  const {
+    pairInfo,
+    pairDataByIndex,
+    localShotGenPositions,
+    showPairLabels,
+  } = useComputedTimelineData({
+    currentPositions,
+    images,
+    shotId,
+    containerWidth,
+    fullRange,
+    zoomLevel,
+  });
 
   return {
     // Refs

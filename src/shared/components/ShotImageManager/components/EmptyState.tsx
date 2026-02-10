@@ -1,8 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Image, Upload } from 'lucide-react';
 import { ImageUploadActions } from '@/shared/components/ImageUploadActions';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { useFileDragTracking } from '@/shared/hooks/useFileDragTracking';
+
+const GENERATION_MIME = 'application/x-generation';
 
 interface EmptyStateProps {
   onImageUpload?: (files: File[]) => Promise<void>;
@@ -13,67 +16,42 @@ interface EmptyStateProps {
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl?: string) => Promise<void>;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ 
-  onImageUpload, 
-  isUploadingImage, 
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  onImageUpload,
+  isUploadingImage,
   shotId,
-  onGenerationDrop 
+  onGenerationDrop
 }) => {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [dragType, setDragType] = useState<'file' | 'generation' | null>(null);
-
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
-      setIsDragOver(true);
-      setDragType('generation');
-    } else if (e.dataTransfer.types.includes('Files') && onImageUpload) {
-      setIsDragOver(true);
-      setDragType('file');
-    }
+  // Build accepted types based on which handlers are provided
+  const acceptedTypes = useMemo(() => {
+    const types: string[] = [];
+    if (onGenerationDrop) types.push(GENERATION_MIME);
+    if (onImageUpload) types.push('Files');
+    return types;
   }, [onImageUpload, onGenerationDrop]);
+
+  const { isDraggingOver, matchedType, handleDragEnter, handleDragLeave, resetDrag } =
+    useFileDragTracking(acceptedTypes);
+
+  const dragType = matchedType === GENERATION_MIME ? 'generation' : matchedType === 'Files' ? 'file' : null;
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
-      setIsDragOver(true);
-      setDragType('generation');
-      e.dataTransfer.dropEffect = 'copy';
-    } else if (e.dataTransfer.types.includes('Files') && onImageUpload) {
-      setIsDragOver(true);
-      setDragType('file');
-      e.dataTransfer.dropEffect = 'copy';
-    } else {
-      e.dataTransfer.dropEffect = 'none';
-    }
-  }, [onImageUpload, onGenerationDrop]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
-    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
-      setIsDragOver(false);
-      setDragType(null);
-    }
-  }, []);
+    // Show copy cursor when we have a valid drop target
+    const matched = acceptedTypes.some(t => e.dataTransfer.types.includes(t));
+    e.dataTransfer.dropEffect = matched ? 'copy' : 'none';
+  }, [acceptedTypes]);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragOver(false);
-    setDragType(null);
+    resetDrag();
 
     // Handle internal generation drop
-    if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
+    if (e.dataTransfer.types.includes(GENERATION_MIME) && onGenerationDrop) {
       try {
-        const dataString = e.dataTransfer.getData('application/x-generation');
+        const dataString = e.dataTransfer.getData(GENERATION_MIME);
         if (dataString) {
           const data = JSON.parse(dataString);
           if (data.generationId && data.imageUrl) {
@@ -107,15 +85,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     } catch (error) {
       handleError(error, { context: 'EmptyState', toastTitle: 'Failed to add images' });
     }
-  }, [onImageUpload, onGenerationDrop]);
+  }, [onImageUpload, onGenerationDrop, resetDrag]);
 
   const hasDropHandler = onImageUpload || onGenerationDrop;
 
   return (
     <div 
       className={`w-full h-full min-h-[200px] flex items-center justify-center transition-all duration-200 ${
-        isDragOver 
-          ? 'bg-primary/10 border-2 border-dashed border-primary rounded-lg' 
+        isDraggingOver
+          ? 'bg-primary/10 border-2 border-dashed border-primary rounded-lg'
           : ''
       }`}
       onDragEnter={hasDropHandler ? handleDragEnter : undefined}
@@ -124,10 +102,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       onDrop={hasDropHandler ? handleDrop : undefined}
     >
       <div className={`p-4 rounded-lg transition-all duration-200 ${
-        isDragOver ? 'bg-primary/5 scale-105' : 'bg-muted/20 border'
+        isDraggingOver ? 'bg-primary/5 scale-105' : 'bg-muted/20 border'
       }`}>
         <div className="flex flex-col items-center gap-3 text-center">
-          {isDragOver ? (
+          {isDraggingOver ? (
             <>
               <Upload className="h-10 w-10 text-primary animate-bounce" />
               <div>

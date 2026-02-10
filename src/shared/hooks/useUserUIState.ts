@@ -89,6 +89,17 @@ const loadUserSettingsCached = async (userId: string) => {
   return await loadingPromise;
 };
 
+/**
+ * Hook for user-scoped UI preferences (theme, pane locks, generation methods, etc.).
+ *
+ * Scope: user-only (stored in `users.settings.ui`).
+ * Auto-save: yes, 200ms debounce via the global settings write queue.
+ *
+ * Use this for preferences that follow the user across all projects/shots.
+ * For project/shot-scoped settings, use `useAutoSaveSettings` instead.
+ *
+ * @see docs/structure_detail/settings_system.md for the full settings hook decision tree
+ */
 export function useUserUIState<K extends keyof UISettings>(
   key: K,
   fallback: UISettings[K]
@@ -218,65 +229,40 @@ export function useUserUIState<K extends keyof UISettings>(
   }, [key]); // Remove fallback from deps to prevent unnecessary re-runs
 
   // Debounced update function
+  // Uses the global settings write queue (via updateToolSettingsSupabase) to prevent
+  // race conditions with other hooks that write to users.settings (e.g., useToolSettings
+  // writing user-preferences). The write queue serializes writes and uses an atomic RPC.
   const update = (patch: Partial<UISettings[K]>) => {
     // Immediately update local state for responsive UI (with normalization)
-    setValue(prev => {
-      const nextVal = { ...(prev as object), ...(patch as object) } as UISettings[K];
-      return normalizeIfGenerationMethods(nextVal);
-    });
+    const normalizedPatch = normalizeIfGenerationMethods({
+      ...(value as object),
+      ...(patch as object)
+    } as UISettings[K]);
+    setValue(normalizedPatch);
 
     // Clear existing timeout
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    // Debounce the database write
+    // Debounce the database write via the global settings write queue
     debounceRef.current = setTimeout(async () => {
       const userId = userIdRef.current;
       if (!userId) return;
 
       try {
-        // First get current settings to avoid overwriting other UI state
-        const { data: currentUser } = await supabase
-          .from('users')
-          .select('settings')
-          .eq('id', userId)
-          .single();
+        // Use the write queue which handles atomic DB updates and merging.
+        // This prevents race conditions with other hooks writing to users.settings.
+        await updateToolSettingsSupabase({
+          scope: 'user',
+          id: userId,
+          toolId: 'ui',
+          patch: { [key]: normalizedPatch },
+        });
 
-        const currentSettings = (currentUser?.settings ?? {}) as Record<string, Record<string, unknown>>;
-        const currentUI = currentSettings.ui || {};
-        // Merge current DB value over fallback to ensure all fields exist
-        const mergedCurrentKeyValue = (typeof fallback === 'object' && fallback !== null)
-          ? { ...fallback, ...((currentUI[key] as object) || {}) }
-          : ((currentUI[key] ?? fallback) as object);
-
-        // Merge the patch with current value and normalize
-        const updatedKeyValue = normalizeIfGenerationMethods({
-          ...(mergedCurrentKeyValue as object),
-          ...(patch as object)
-        } as UISettings[K]);
-        
-        // Update the database
-        const { error } = await supabase
-          .from('users')
-          .update({
-            settings: {
-              ...currentSettings,
-              ui: {
-                ...currentUI,
-                [key]: updatedKeyValue
-              }
-            }
-          })
-          .eq('id', userId);
-
-        if (error) {
-          console.error('[useUserUIState] Error saving settings:', error);
-        } else {
-          // Invalidate cache so other components see the update
-          const cacheKey = `user_settings_${userId}`;
-          settingsCache.delete(cacheKey);
-        }
+        // Invalidate local cache so other useUserUIState instances see the update
+        const cacheKey = `user_settings_${userId}`;
+        settingsCache.delete(cacheKey);
       } catch (error) {
         handleError(error, { context: 'useUserUIState.update', showToast: false });
       }

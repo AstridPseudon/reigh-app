@@ -12,7 +12,35 @@ import { useVideoMetadata } from '@/shared/hooks/useVideoMetadata';
 import { useVideoFrameExtraction } from '@/shared/hooks/useVideoFrameExtraction';
 import { useClickOutside } from '@/shared/hooks/useClickOutside';
 import { useTimelineStripDrag } from './hooks/useTimelineStripDrag';
+import { useTabletEndpointSelection } from './hooks/useTabletEndpointSelection';
 import { useVideoHoverPreview } from '@/shared/hooks/useVideoHoverPreview';
+
+/**
+ * Calculate the video frame number from a normalized position (0-1) within the strip.
+ * Handles both treatment modes:
+ * - 'adjust' (fit to range): maps position proportionally across the entire source video
+ * - 'clip' (1:1 mapping): maps position to sourceStart + output offset, clamped to source range
+ */
+function calculateVideoFrameFromPosition(
+  normalizedPosition: number,
+  treatment: 'adjust' | 'clip',
+  totalVideoFrames: number,
+  displayOutputFrameCount: number,
+  effectiveSourceStart: number,
+  effectiveSourceEnd: number,
+): number {
+  if (treatment === 'adjust') {
+    // For "fit to range": sample throughout the entire source video
+    const frame = Math.floor(normalizedPosition * (totalVideoFrames - 1));
+    return Math.max(0, Math.min(frame, totalVideoFrames - 1));
+  } else {
+    // For "1:1 mapping": video frame N maps to output frame N
+    const outputOffset = Math.floor(normalizedPosition * displayOutputFrameCount);
+    const frame = effectiveSourceStart + outputOffset;
+    // Clamp to source range (video may be shorter than output range)
+    return Math.max(effectiveSourceStart, Math.min(frame, effectiveSourceEnd - 1));
+  }
+}
 
 interface GuidanceVideoStripProps {
   videoUrl: string;
@@ -80,20 +108,12 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   const outerContainerRef = useRef<HTMLDivElement>(null);
   const [currentVideoFrame, setCurrentVideoFrame] = useState(0);
 
-  // Tablet tap-to-select state for endpoints
+  // Device detection and active state
   const { isTablet } = useDeviceDetection();
-  const [selectedEndpoint, setSelectedEndpoint] = useState<'left' | 'right' | null>(null);
-  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  const SCROLL_THRESHOLD = 10;
-
-  // Active state for handles visibility
   const [isStripActive, setIsStripActive] = useState(false);
-  const lastTapTimeRef = useRef<number>(0);
-  const DOUBLE_TAP_DELAY = 300;
 
-  // Temporary visibility hooks
+  // Temporary visibility for tap frame preview
   const tapPreview = useTemporaryVisibility(2000);
-  const tapToPlaceHint = useTemporaryVisibility(2000);
 
   // Get video metadata (extracts from URL if not provided)
   const { metadata: effectiveMetadata } = useVideoMetadata(videoUrl, videoMetadata, {
@@ -179,23 +199,61 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
   const legacyPositionPercent = fullRange > 0 ? ((displayOutputStart - fullMin) / fullRange) * 100 : 0;
   const legacyWidthPercent = fullRange > 0 ? (displayOutputFrameCount / fullRange) * 100 : 100;
 
-  // Click outside handlers using the hook
   const enableTapToSelect = isTablet && !readOnly && onRangeChange;
+
+  // Tablet touch gesture handling (endpoint selection, tap-to-place, double-tap)
+  const {
+    selectedEndpoint,
+    clearSelection,
+    tapToPlaceHintVisible,
+    handleEndpointTouchStart,
+    handleEndpointTouchEnd,
+    handleStripTouchStart,
+    handleStripTouchEnd,
+  } = useTabletEndpointSelection({
+    enabled: !!enableTapToSelect,
+    isStripActive,
+    isTablet,
+    stripLeftPercent,
+    stripWidthPercent,
+    fullMin,
+    fullMax,
+    fullRange,
+    effectiveOutputStart,
+    effectiveOutputEnd,
+    siblingRanges,
+    outerContainerRef,
+    onRangeChange,
+    onDoubleTap: useCallback(() => {
+      setIsStripActive(prev => !prev);
+      tapPreview.hide();
+    }, [tapPreview]),
+    onSingleTap: useCallback((touch: Touch) => {
+      const rect = stripContainerRef.current?.getBoundingClientRect();
+      if (rect && effectiveMetadata) {
+        const cursorX = touch.clientX - rect.left;
+        const stripWidth = rect.width;
+        const normalizedPosition = Math.max(0, Math.min(1, cursorX / stripWidth));
+
+        const videoFrame = calculateVideoFrameFromPosition(
+          normalizedPosition, treatment, effectiveMetadata.total_frames,
+          displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd,
+        );
+
+        setCurrentVideoFrame(videoFrame);
+        hoverPreview.updateHoverPosition(touch.clientX, touch.clientY - 140, videoFrame);
+        tapPreview.show();
+      }
+    }, [treatment, effectiveMetadata, displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd, hoverPreview, tapPreview]),
+  });
 
   // Desktop: click outside to deactivate strip
   useClickOutside(
     () => {
       setIsStripActive(false);
-      setSelectedEndpoint(null);
+      clearSelection();
     },
     { enabled: isStripActive && !isTablet, delay: 0 },
-    outerContainerRef as React.RefObject<HTMLDivElement>
-  );
-
-  // iPad: touch outside to deselect endpoint
-  useClickOutside(
-    () => setSelectedEndpoint(null),
-    { events: ['touchstart'], enabled: !!selectedEndpoint && !!enableTapToSelect, delay: 100 },
     outerContainerRef as React.RefObject<HTMLDivElement>
   );
 
@@ -212,25 +270,14 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
     // Normalize cursor position within the strip (0 to 1)
     const normalizedPosition = Math.max(0, Math.min(1, cursorX / stripWidth));
 
-    // Calculate video frame based on treatment mode
-    let videoFrame: number;
-    if (treatment === 'adjust') {
-      // For "fit to range": sample throughout the entire source video
-      // Cursor position maps to a proportional frame in the source video
-      videoFrame = Math.floor(normalizedPosition * (effectiveMetadata.total_frames - 1));
-      videoFrame = Math.max(0, Math.min(videoFrame, effectiveMetadata.total_frames - 1));
-    } else {
-      // For "1:1 mapping": video frame N maps to output frame N
-      // Hovering at output frame X shows video frame (sourceStart + X)
-      const outputOffset = Math.floor(normalizedPosition * displayOutputFrameCount);
-      videoFrame = effectiveSourceStart + outputOffset;
-      // Clamp to source range (video may be shorter than output range)
-      videoFrame = Math.max(effectiveSourceStart, Math.min(videoFrame, effectiveSourceEnd - 1));
-    }
+    const videoFrame = calculateVideoFrameFromPosition(
+      normalizedPosition, treatment, effectiveMetadata.total_frames,
+      displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd,
+    );
 
     setCurrentVideoFrame(videoFrame);
     hoverPreview.updateHoverPosition(e.clientX, e.clientY - 140, videoFrame);
-  }, [treatment, effectiveMetadata, displayOutputStart, displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd, sourceFrameCount, hoverPreview.updateHoverPosition, isDragging, isVideoReady]);
+  }, [treatment, effectiveMetadata, displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd, hoverPreview.updateHoverPosition, isDragging, isVideoReady]);
 
   // Desktop: click on strip to toggle handles visibility
   const handleStripClick = useCallback((e: React.MouseEvent) => {
@@ -239,170 +286,11 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
     setIsStripActive(prev => !prev);
   }, [isTablet]);
 
-  // ===== TABLET TAP-TO-SELECT ENDPOINT HANDLERS =====
-  const handleEndpointTouchStart = useCallback((_endpoint: 'left' | 'right', e: React.TouchEvent) => {
-    if (!enableTapToSelect) return;
-    const touch = e.touches[0];
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
-  }, [enableTapToSelect]);
-
-  const handleEndpointTouchEnd = useCallback((_endpoint: 'left' | 'right', e: React.TouchEvent) => {
-    if (!enableTapToSelect || !touchStartPosRef.current) return;
-
-    const touch = e.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
-    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
-    touchStartPosRef.current = null;
-
-    if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedEndpoint(prev => prev === _endpoint ? null : _endpoint);
-  }, [enableTapToSelect]);
-
-  // Handle tap on strip area to place the selected endpoint
-  const handleStripTapToPlace = useCallback((e: React.TouchEvent) => {
-    if (!enableTapToSelect || !selectedEndpoint || !outerContainerRef.current || !onRangeChange) return;
-
-    const touch = e.changedTouches[0];
-    const rect = outerContainerRef.current.getBoundingClientRect();
-    const tapX = touch.clientX;
-
-    const MIN_DURATION_FRAMES = 10;
-    const EDGE_SNAP_THRESHOLD = 5;
-
-    if (stripWidthPercent < 1) {
-      setSelectedEndpoint(null);
-      return;
-    }
-
-    // Find sibling boundaries
-    let leftLimit = Math.max(0, fullMin);
-    let rightLimit = Math.min(fullMax, fullMax);
-    for (const sibling of siblingRanges) {
-      if (sibling.end <= effectiveOutputStart && sibling.end > leftLimit) {
-        leftLimit = sibling.end;
-      }
-      if (sibling.start >= effectiveOutputEnd && sibling.start < rightLimit) {
-        rightLimit = sibling.start;
-      }
-    }
-
-    // Calculate target frame
-    const fullTimelineWidth = rect.width / (stripWidthPercent / 100);
-    const timelineLeft = rect.left - (stripLeftPercent / 100) * fullTimelineWidth;
-    const normalizedX = Math.max(0, Math.min(1, (tapX - timelineLeft) / fullTimelineWidth));
-    const targetFrame = Math.round(fullMin + normalizedX * fullRange);
-
-    if (selectedEndpoint === 'left') {
-      let newStart: number;
-      if (targetFrame <= leftLimit + EDGE_SNAP_THRESHOLD) {
-        newStart = leftLimit;
-      } else {
-        newStart = Math.max(leftLimit, targetFrame);
-      }
-      newStart = Math.min(newStart, effectiveOutputEnd - MIN_DURATION_FRAMES);
-      newStart = Math.max(fullMin, Math.min(newStart, fullMax - MIN_DURATION_FRAMES));
-      onRangeChange(newStart, effectiveOutputEnd);
-    } else {
-      let newEnd: number;
-      if (targetFrame >= rightLimit - EDGE_SNAP_THRESHOLD) {
-        newEnd = rightLimit;
-      } else {
-        newEnd = Math.min(rightLimit, targetFrame);
-      }
-      newEnd = Math.max(newEnd, effectiveOutputStart + MIN_DURATION_FRAMES);
-      newEnd = Math.min(fullMax, Math.max(newEnd, fullMin + MIN_DURATION_FRAMES));
-      onRangeChange(effectiveOutputStart, newEnd);
-    }
-
-    setSelectedEndpoint(null);
-  }, [enableTapToSelect, selectedEndpoint, stripLeftPercent, stripWidthPercent, fullMin, fullMax, fullRange, effectiveOutputStart, effectiveOutputEnd, siblingRanges, onRangeChange]);
-
-  // Track touch start for tap detection
-  const handleStripTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!enableTapToSelect) return;
-    const touch = e.touches[0];
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
-  }, [enableTapToSelect]);
-
-  const handleStripTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartPosRef.current) return;
-
-    const touch = e.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
-    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
-    touchStartPosRef.current = null;
-
-    if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) return;
-
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('[data-resize-handle]')) return;
-
-    // If endpoint selected and strip active, place it
-    if (selectedEndpoint && isStripActive && enableTapToSelect) {
-      handleStripTapToPlace(e);
-      return;
-    }
-
-    // Double-tap detection for iPad
-    const now = Date.now();
-    const timeSinceLastTap = now - lastTapTimeRef.current;
-    lastTapTimeRef.current = now;
-
-    if (timeSinceLastTap < DOUBLE_TAP_DELAY && isTablet) {
-      e.preventDefault();
-      setIsStripActive(prev => !prev);
-      tapPreview.hide();
-      setSelectedEndpoint(null);
-    } else if (isTablet && !isStripActive) {
-      // Single tap - show frame preview
-      e.preventDefault();
-
-      const rect = stripContainerRef.current?.getBoundingClientRect();
-      if (rect && effectiveMetadata) {
-        const cursorX = touch.clientX - rect.left;
-        const stripWidth = rect.width;
-
-        // Normalize cursor position within the strip (0 to 1)
-        const normalizedPosition = Math.max(0, Math.min(1, cursorX / stripWidth));
-
-        // Calculate video frame based on treatment mode
-        let videoFrame: number;
-        if (treatment === 'adjust') {
-          // For "fit to range": sample throughout the entire source video
-          videoFrame = Math.floor(normalizedPosition * (effectiveMetadata.total_frames - 1));
-          videoFrame = Math.max(0, Math.min(videoFrame, effectiveMetadata.total_frames - 1));
-        } else {
-          // For "1:1 mapping": video frame N maps to output frame N
-          const outputOffset = Math.floor(normalizedPosition * displayOutputFrameCount);
-          videoFrame = effectiveSourceStart + outputOffset;
-          // Clamp to source range (video may be shorter than output range)
-          videoFrame = Math.max(effectiveSourceStart, Math.min(videoFrame, effectiveSourceEnd - 1));
-        }
-
-        setCurrentVideoFrame(videoFrame);
-        hoverPreview.updateHoverPosition(touch.clientX, touch.clientY - 140, videoFrame);
-        tapPreview.show();
-      }
-    }
-  }, [enableTapToSelect, selectedEndpoint, handleStripTapToPlace, isTablet, isStripActive, treatment, effectiveMetadata, displayOutputStart, displayOutputFrameCount, effectiveSourceStart, effectiveSourceEnd, hoverPreview.updateHoverPosition, tapPreview.show, tapPreview.hide]);
-
   // Close hover state when treatment changes
   useEffect(() => {
     hoverPreview.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hoverPreview.reset is stable (useCallback)
   }, [treatment]);
-
-  // Show tap-to-place hint when endpoint is selected
-  useEffect(() => {
-    if (selectedEndpoint && enableTapToSelect) {
-      tapToPlaceHint.show();
-    } else {
-      tapToPlaceHint.hide();
-    }
-  }, [selectedEndpoint, enableTapToSelect, tapToPlaceHint]);
 
   return (
     <div className={useAbsolutePosition ? 'contents' : 'w-full relative'}>
@@ -480,7 +368,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
               side="left"
               isActive={isStripActive || selectedEndpoint === 'left'}
               isSelected={selectedEndpoint === 'left'}
-              showHint={!!enableTapToSelect && tapToPlaceHint.isVisible}
+              showHint={!!enableTapToSelect && tapToPlaceHintVisible}
               margin={useAbsolutePosition ? '0px' : `${TIMELINE_HORIZONTAL_PADDING}px`}
               onMouseDown={(e) => handleDragStart('left', e)}
               onTouchStart={(e) => handleEndpointTouchStart('left', e)}
@@ -490,7 +378,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
               side="right"
               isActive={isStripActive || selectedEndpoint === 'right'}
               isSelected={selectedEndpoint === 'right'}
-              showHint={!!enableTapToSelect && tapToPlaceHint.isVisible}
+              showHint={!!enableTapToSelect && tapToPlaceHintVisible}
               margin={useAbsolutePosition ? '0px' : `${TIMELINE_HORIZONTAL_PADDING}px`}
               onMouseDown={(e) => handleDragStart('right', e)}
               onTouchStart={(e) => handleEndpointTouchStart('right', e)}

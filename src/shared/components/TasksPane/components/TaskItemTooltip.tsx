@@ -9,12 +9,7 @@ import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/types/shots';
 import { GenerationDetails } from '@/shared/components/GenerationDetails';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
-
-/** Extended GenerationRow with variant tracking fields added by hooks */
-interface GenerationRowWithVariant extends GenerationRow {
-  _variant_id?: string;
-  _variant_is_primary?: boolean;
-}
+import { getTaskVariantId } from '../utils/getTaskVariantId';
 
 interface TaskItemTooltipProps {
   task: Task;
@@ -67,10 +62,10 @@ export const TaskItemTooltip: React.FC<TaskItemTooltipProps> = ({
     onResetHoverState();
     
     if (isVideoTask && hasClickableContent && onOpenVideoLightbox && videoOutputs && videoOutputs.length > 0) {
-      const initialVariantId = (videoOutputs[0] as GenerationRowWithVariant)?._variant_id;
+      const initialVariantId = getTaskVariantId(videoOutputs[0]);
       onOpenVideoLightbox(task, videoOutputs, 0, initialVariantId);
     } else if (!isVideoTask && hasClickableContent && onOpenImageLightbox && generationData) {
-      const initialVariantId = (generationData as GenerationRowWithVariant)?._variant_id;
+      const initialVariantId = getTaskVariantId(generationData);
       onOpenImageLightbox(task, generationData, initialVariantId);
     }
   };

@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { GenerationRow } from '@/types/shots';
@@ -213,7 +214,7 @@ export function useJoinSegmentsHandler({
         guidance_scale: joinSettings.guidanceScale,
         seed: joinSettings.seed,
         parent_generation_id: joinSelectedParent?.id,
-        tool_type: 'travel-between-images',
+        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
         use_input_video_resolution: false,
         use_input_video_fps: false,
         motion_mode: joinMotionMode,

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { Shot } from '@/types/shots';
+import { TOOL_ROUTES, travelShotUrl } from '@/shared/lib/toolConstants';
 
 interface ShotNavigationOptions {
   /** Whether to scroll to top after navigation */
@@ -90,7 +91,7 @@ export const useShotNavigation = (): ShotNavigationResult => {
     setCurrentShotId(shot.id);
 
     // Navigate to the shot with hash
-    const targetUrl = `/tools/travel-between-images#${shot.id}`;
+    const targetUrl = travelShotUrl(shot.id);
     navigate(targetUrl, {
       state: {
         fromShotClick: true,
@@ -113,7 +114,7 @@ export const useShotNavigation = (): ShotNavigationResult => {
     setCurrentShotId(null);
     
     // Navigate to the shot editor without a specific shot
-    navigate('/tools/travel-between-images', {
+    navigate(TOOL_ROUTES.TRAVEL_BETWEEN_IMAGES, {
       state: { fromShotClick: false },
       replace: opts.replace,
     });

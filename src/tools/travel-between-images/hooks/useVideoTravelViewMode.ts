@@ -1,32 +1,28 @@
 /**
  * View Mode Hook for VideoTravelToolPage
- * 
+ *
  * Manages the shots vs videos toggle and all associated filter/search state.
  * Extracted from VideoTravelToolPage.tsx to reduce component size.
- * 
+ *
  * Responsibilities:
  * - Shots vs videos view toggle
  * - Video gallery filter state (page, filters, sort)
  * - Search state for both views
  * - Shot sort mode with persistence
  * - Navigation reset on tool root visit
- * 
+ *
  * @see VideoTravelToolPage.tsx - Main page component that uses this hook
  */
 
 import { useState, useCallback, useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { useLocation } from 'react-router-dom';
+import { DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
 
-interface VideoGalleryFilters {
-  videoPage: number;
-  videoShotFilter: string;
-  videoExcludePositioned: boolean;
-  videoSearchTerm: string;
-  videoMediaTypeFilter: 'all' | 'image' | 'video';
-  videoToolTypeFilter: boolean;
-  videoStarredOnly: boolean;
-  videoSortMode: 'newest' | 'oldest';
-}
+const VIDEO_DEFAULT_FILTERS: GalleryFilterState = {
+  ...DEFAULT_GALLERY_FILTERS,
+  mediaType: 'video',
+  excludePositioned: false,
+};
 
 interface UseVideoTravelViewModeParams {
   /** Project ID - used to reset video page on project change */
@@ -48,40 +44,30 @@ interface UseVideoTravelViewModeReturn {
   setShowVideosViewRaw: Dispatch<SetStateAction<boolean>>;
   setViewMode: (mode: 'shots' | 'videos', opts?: { blurTarget?: HTMLElement | null }) => void;
   handleToggleVideosView: (e?: React.MouseEvent<HTMLElement>) => void;
-  
+
   // Videos view transition state (for skeleton display)
   videosViewJustEnabled: boolean;
   setVideosViewJustEnabled: (value: boolean) => void;
-  
-  // Video gallery filters
+
+  // Video gallery filters (consolidated)
+  videoFilters: GalleryFilterState;
+  setVideoFilters: Dispatch<SetStateAction<GalleryFilterState>>;
   videoPage: number;
   setVideoPage: (page: number) => void;
-  videoShotFilter: string;
-  setVideoShotFilter: (filter: string) => void;
-  videoExcludePositioned: boolean;
-  setVideoExcludePositioned: (exclude: boolean) => void;
-  videoSearchTerm: string;
-  setVideoSearchTerm: (term: string) => void;
-  videoMediaTypeFilter: 'all' | 'image' | 'video';
-  setVideoMediaTypeFilter: (filter: 'all' | 'image' | 'video') => void;
-  videoToolTypeFilter: boolean;
-  setVideoToolTypeFilter: (enabled: boolean) => void;
-  videoStarredOnly: boolean;
-  setVideoStarredOnly: (starred: boolean) => void;
   videoSortMode: 'newest' | 'oldest';
   setVideoSortMode: (mode: 'newest' | 'oldest') => void;
-  
+
   // Shot search
   shotSearchQuery: string;
   setShotSearchQuery: (query: string) => void;
   clearSearch: () => void;
-  
+
   // Search UI state
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
   handleSearchToggle: () => void;
   searchInputRef: RefObject<HTMLInputElement>;
-  
+
   // Shot sort mode (persisted)
   shotSortMode: 'ordered' | 'newest' | 'oldest';
   setShotSortMode: (mode: 'ordered' | 'newest' | 'oldest') => void;
@@ -96,43 +82,38 @@ export const useVideoTravelViewMode = ({
   onShotSortModeChange,
 }: UseVideoTravelViewModeParams): UseVideoTravelViewModeReturn => {
   const location = useLocation();
-  
+
   // =============================================================================
   // VIEW MODE STATE
   // =============================================================================
   const [showVideosViewRaw, setShowVideosViewRaw] = useState<boolean>(false);
-  
+
   const showVideosView = showVideosViewRaw;
 
   // Track when we've just switched to videos view to prevent empty state flash
   const [videosViewJustEnabled, setVideosViewJustEnabled] = useState<boolean>(false);
-  
+
   // =============================================================================
-  // VIDEO GALLERY FILTER STATE
+  // VIDEO GALLERY FILTER STATE (consolidated)
   // =============================================================================
+  const [videoFilters, setVideoFilters] = useState<GalleryFilterState>(VIDEO_DEFAULT_FILTERS);
   const [videoPage, setVideoPage] = useState<number>(1);
-  const [videoShotFilter, setVideoShotFilter] = useState<string>('all');
-  const [videoExcludePositioned, setVideoExcludePositioned] = useState<boolean>(false);
-  const [videoSearchTerm, setVideoSearchTerm] = useState<string>('');
-  const [videoMediaTypeFilter, setVideoMediaTypeFilter] = useState<'all' | 'image' | 'video'>('video');
-  const [videoToolTypeFilter, setVideoToolTypeFilter] = useState<boolean>(true);
-  const [videoStarredOnly, setVideoStarredOnly] = useState<boolean>(false);
   const [videoSortMode, setVideoSortMode] = useState<'newest' | 'oldest'>('newest');
-  
+
   // =============================================================================
   // SEARCH STATE
   // =============================================================================
   const [shotSearchQuery, setShotSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
   const handleSearchToggle = useCallback(() => {
     setIsSearchOpen(prev => {
       const newValue = !prev;
       if (!newValue) {
         // Clear search when closing
         if (showVideosView) {
-          setVideoSearchTerm('');
+          setVideoFilters(prev => ({ ...prev, searchTerm: '' }));
           setVideoPage(1);
         } else {
           setShotSearchQuery('');
@@ -141,31 +122,31 @@ export const useVideoTravelViewMode = ({
       return newValue;
     });
   }, [showVideosView]);
-  
+
   const clearSearch = useCallback(() => {
     setShotSearchQuery('');
   }, []);
-  
+
   // =============================================================================
   // SHOT SORT MODE (with persistence)
   // =============================================================================
   const [localShotSortMode, setLocalShotSortMode] = useState<'ordered' | 'newest' | 'oldest'>(
     initialShotSortMode ?? 'newest'
   );
-  
+
   // Sync local state with persisted settings when they load
   useEffect(() => {
     if (initialShotSortMode) {
       setLocalShotSortMode(initialShotSortMode);
     }
   }, [initialShotSortMode]);
-  
+
   const shotSortMode = localShotSortMode;
   const setShotSortMode = useCallback((mode: 'ordered' | 'newest' | 'oldest') => {
     setLocalShotSortMode(mode); // Immediate local update
     onShotSortModeChange?.(mode); // Persist async
   }, [onShotSortModeChange]);
-  
+
   // =============================================================================
   // NAVIGATION RESET EFFECT
   // Reset to Shots view and scroll to top when navigating to the tool root
@@ -174,7 +155,7 @@ export const useVideoTravelViewMode = ({
   useEffect(() => {
     const hasHash = location.hash && location.hash.length > 1;
     const isActualNavigation = prevLocationKeyRef.current !== location.key;
-    
+
     // When navigating to tool root (no hash):
     if (isActualNavigation && !hasHash) {
       // Always scroll to top when clicking logo/nav to tool root
@@ -185,15 +166,20 @@ export const useVideoTravelViewMode = ({
         setShowVideosViewRaw(false);
       }
     }
-    
+
     prevLocationKeyRef.current = location.key;
   }, [location.key, location.hash, showVideosViewRaw]);
-  
+
   // Reset video page when project changes
   useEffect(() => {
     setVideoPage(1);
   }, [selectedProjectId]);
-  
+
+  // Reset video page when filters change
+  useEffect(() => {
+    setVideoPage(1);
+  }, [videoFilters]);
+
   // =============================================================================
   // VIEW MODE SWITCHER
   // Centralize side-effects so every switch behaves the same
@@ -212,13 +198,8 @@ export const useVideoTravelViewMode = ({
       setVideosViewJustEnabled(true);
 
       // Reset video filters when entering videos view
+      setVideoFilters(VIDEO_DEFAULT_FILTERS);
       setVideoPage(1);
-      setVideoShotFilter('all');
-      setVideoExcludePositioned(false);
-      setVideoSearchTerm('');
-      setVideoMediaTypeFilter('video');
-      setVideoToolTypeFilter(true);
-      setVideoStarredOnly(false);
     } else {
       // Clear shot search when switching to shots view
       setShotSearchQuery('');
@@ -238,40 +219,30 @@ export const useVideoTravelViewMode = ({
     setShowVideosViewRaw,
     setViewMode,
     handleToggleVideosView,
-    
+
     // Videos view transition state
     videosViewJustEnabled,
     setVideosViewJustEnabled,
-    
-    // Video gallery filters
+
+    // Video gallery filters (consolidated)
+    videoFilters,
+    setVideoFilters,
     videoPage,
     setVideoPage,
-    videoShotFilter,
-    setVideoShotFilter,
-    videoExcludePositioned,
-    setVideoExcludePositioned,
-    videoSearchTerm,
-    setVideoSearchTerm,
-    videoMediaTypeFilter,
-    setVideoMediaTypeFilter,
-    videoToolTypeFilter,
-    setVideoToolTypeFilter,
-    videoStarredOnly,
-    setVideoStarredOnly,
     videoSortMode,
     setVideoSortMode,
-    
+
     // Shot search
     shotSearchQuery,
     setShotSearchQuery,
     clearSearch,
-    
+
     // Search UI state
     isSearchOpen,
     setIsSearchOpen,
     handleSearchToggle,
     searchInputRef,
-    
+
     // Shot sort mode
     shotSortMode,
     setShotSortMode,

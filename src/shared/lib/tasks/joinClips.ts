@@ -8,7 +8,7 @@ import {
 import type { TaskCreationResult } from "../taskCreation";
 import { PhaseConfig, PhaseLoraConfig } from '@/shared/types/phaseConfig';
 import { handleError } from '@/shared/lib/errorHandler';
-import { joinClipsSettings } from '@/tools/join-clips/settings';
+import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
 import { camelToSnakeKeys } from '@/shared/lib/caseConversion';
 
 // ============================================================================

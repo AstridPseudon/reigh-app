@@ -22,6 +22,7 @@ import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import { GenerationRow, GenerationMetadata } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
 import { stripQueryParameters } from '@/shared/lib/utils';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /**
  * Result type for calculateDerivedCounts
@@ -187,7 +188,7 @@ function extractThumbnailUrl(item: RawGeneration, mainUrl: string): string {
   let thumbnailUrl = item.thumbnail_url;
   
   // If no thumbnail in database, check params for travel-between-images videos
-  if (!thumbnailUrl && item.params?.tool_type === 'travel-between-images') {
+  if (!thumbnailUrl && item.params?.tool_type === TOOL_IDS.TRAVEL_BETWEEN_IMAGES) {
     const originalParams = item.params?.originalParams as Record<string, unknown> | undefined;
     const orchestratorDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
     const fullPayload = item.params?.full_orchestrator_payload as Record<string, unknown> | undefined;

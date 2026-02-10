@@ -105,11 +105,6 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
     editInstructions: '', modelType: 'smart' as AIModelType,
   });
 
-  // Scroll handler
-  const handleScroll = useCallback((_event: React.UIEvent<HTMLDivElement>) => {
-    // Scroll handling removed - showScrollToTop state was unused
-  }, []);
-
   // -------------------------------------------------------------
   // Persistent settings wiring - saves AI generation settings per-project
   // -------------------------------------------------------------
@@ -403,7 +398,6 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
 
         <div
           ref={scrollRef}
-          onScroll={handleScroll}
           onClickCapture={handleInsideInteraction}
           onTouchStartCapture={handleInsideInteraction}
           className={`${modal.scrollClass} ${modal.isMobile ? 'pt-2' : 'pt-6'}`}
@@ -527,7 +521,6 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
                       onRemove={() => handleInternalRemovePrompt(prompt.id)}
                       canRemove={internalPrompts.length > 1}
                       isGenerating={isAILoading}
-                      hasApiKey={true}
                       onSetActiveForFullView={setActivePromptIdForFullView}
                       isActiveForFullView={activePromptIdForFullView === prompt.id}
                       autoEnterEditWhenActive={isMobile}

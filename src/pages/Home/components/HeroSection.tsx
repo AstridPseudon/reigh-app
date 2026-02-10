@@ -4,6 +4,8 @@ import { Tooltip, TooltipProvider, TooltipTrigger } from '@/shared/components/ui
 import { usePlatformInstall } from '@/shared/hooks/usePlatformInstall';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { InstallInstructionsModal } from './InstallInstructionsModal';
+import { GoldSpotlight } from './GoldSpotlight';
+import { useHeroAnimation } from '../hooks/useHeroAnimation';
 import type { Session } from '@supabase/supabase-js';
 
 interface ExampleStyle {
@@ -25,8 +27,6 @@ interface HeroSectionProps {
   isPaneOpen?: boolean;
 }
 
-type AnimationPhase = 'initial' | 'loading' | 'bar-complete' | 'content-revealing' | 'complete';
-
 // Animated CTA button content that smoothly transitions between states
 interface CTAContentProps {
   icon: 'download' | 'plus' | 'external' | 'discord' | null;
@@ -44,21 +44,21 @@ const CTAContent: React.FC<CTAContentProps> = ({ icon, text }) => {
     // Only animate if the content actually changed
     if (icon !== prevIconRef.current || text !== prevTextRef.current) {
       setIsTransitioning(true);
-      
+
       // After fade out, update content
       const updateTimer = setTimeout(() => {
         setDisplayedIcon(icon);
         setDisplayedText(text);
       }, 150);
-      
+
       // After content update, fade back in
       const fadeInTimer = setTimeout(() => {
         setIsTransitioning(false);
       }, 180);
-      
+
       prevIconRef.current = icon;
       prevTextRef.current = text;
-      
+
       return () => {
         clearTimeout(updateTimer);
         clearTimeout(fadeInTimer);
@@ -68,7 +68,7 @@ const CTAContent: React.FC<CTAContentProps> = ({ icon, text }) => {
 
   return (
     <>
-      <div 
+      <div
         className={`transition-all duration-150 ${
           isTransitioning ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
         }`}
@@ -77,7 +77,7 @@ const CTAContent: React.FC<CTAContentProps> = ({ icon, text }) => {
         {displayedIcon === 'plus' && <Plus className="w-5 h-5" />}
         {displayedIcon === 'external' && <ExternalLink className="w-5 h-5" />}
       </div>
-      <span 
+      <span
         className={`transition-all duration-150 ${
           isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
         }`}
@@ -106,57 +106,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   handleEmergingActivate,
   isPaneOpen = false,
 }) => {
-  const [phase, setPhase] = useState<AnimationPhase>('initial');
-  const [banodocoState, setBanodocoState] = useState<'hidden' | 'animating' | 'visible'>('hidden');
-  const [titleHover, setTitleHover] = useState({ x: 0, y: 0, active: false });
-  const [goldTrail, setGoldTrail] = useState<Array<{ x: number; y: number; opacity: number; id: number }>>([]);
-  const titleRef = useRef<HTMLDivElement>(null);
-  const trailIdRef = useRef(0);
-  const [minLoadTimePassed, setMinLoadTimePassed] = useState(false);
+  const { phase, banodocoState, barWidth, getFadeStyle, getPopStyle } = useHeroAnimation({ assetsLoaded });
   const [openTipOpen, setOpenTipOpen] = useState(false);
   const [emergingTipOpen, setEmergingTipOpen] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const [barWidth, setBarWidth] = useState('0%');
-  
+
   // Platform-aware PWA install detection
   const platformInstall = usePlatformInstall();
   const isMobile = useIsMobile();
-  
+
   // Hide hero content on mobile when pane is open
   const hideHeroContent = isMobile && isPaneOpen;
-
-  // Handle mouse move over title for gold spotlight effect with trailing fade
-  const handleTitleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!titleRef.current) return;
-    const rect = titleRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setTitleHover({ x, y, active: true });
-    
-    // Add a trail point
-    const newId = trailIdRef.current++;
-    setGoldTrail(prev => [...prev, { x, y, opacity: 1, id: newId }]); // Points only removed when fully faded
-  };
-
-  const handleTitleMouseLeave = () => {
-    setTitleHover(prev => ({ ...prev, active: false }));
-  };
-
-  // Fade out trail points over time
-  useEffect(() => {
-    if (goldTrail.length === 0) return;
-    
-    const interval = setInterval(() => {
-      setGoldTrail(prev => 
-        prev
-          .map(point => ({ ...point, opacity: point.opacity - 0.008 }))
-          .filter(point => point.opacity > 0)
-      );
-    }, 50);
-    
-    return () => clearInterval(interval);
-  }, [goldTrail.length > 0]);
 
   // Close install modal if we're in standalone mode (PWA)
   // This handles the case where Chrome transfers page state when clicking "Open in app"
@@ -166,173 +126,52 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   }, [platformInstall.isStandalone, showInstallModal]);
 
-  // Enforce minimum loading time
-  useEffect(() => {
-    const timer = setTimeout(() => setMinLoadTimePassed(true), 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Loading bar animation
-  useEffect(() => {
-    setBarWidth(assetsLoaded ? '100%' : '92%');
-  }, [assetsLoaded]);
-
-  // Master animation orchestrator
-  useEffect(() => {
-    if (phase === 'initial') {
-      // Start after brief mount delay
-      const timer = setTimeout(() => setPhase('loading'), 100);
-      return () => clearTimeout(timer);
-    }
-    
-    if (phase === 'loading' && assetsLoaded && minLoadTimePassed) {
-      // Bar has reached 100%, wait for it to settle
-      const timer = setTimeout(() => setPhase('bar-complete'), 300);
-      return () => clearTimeout(timer);
-    }
-    
-    if (phase === 'bar-complete') {
-      // Start content reveal immediately
-      setPhase('content-revealing');
-      // Mark as complete after animations finish (1000ms content + buffer)
-      const timer = setTimeout(() => setPhase('complete'), 1050);
-      return () => clearTimeout(timer);
-    }
-    
-    if (phase === 'content-revealing') {
-      // Trigger Banodoco after second social icon + 500ms pause (950ms + 500ms = 1450ms)
-      const banodocoTimer = setTimeout(() => {
-        setBanodocoState('animating');
-        setTimeout(() => setBanodocoState('visible'), 1800); // 1800ms animation duration
-      }, 1450);
-      
-      return () => {
-        clearTimeout(banodocoTimer);
-      };
-    }
-  }, [phase, assetsLoaded, minLoadTimePassed]);
-
-  // Helper for staggering animations based on animation phase
-  // Calculated to match the grid-template-rows expansion (1000ms ease-out)
-  const getFadeStyle = (delayIndex: number, distance: number = 0, forceWait: boolean = false) => {
-    const duration = '1000ms';
-    // Special case for subtitle (-60) and title (20) to make them slightly faster (0.8s)
-    const actualDuration = (distance === -60 || distance === 20) ? '800ms' : duration;
-    
-    const delay = delayIndex * 0.1;
-    const isRevealing = phase === 'content-revealing' || phase === 'complete';
-    const isVisible = isRevealing && !forceWait;
-    
-    return {
-      opacity: isVisible ? 1 : 0,
-      transition: `opacity ${actualDuration} ease-out ${delay}s, transform ${actualDuration} cubic-bezier(0.2, 0, 0.2, 1) ${delay}s`,
-      transform: isVisible ? 'translateY(0)' : `translateY(${distance}px)`, 
-      willChange: 'transform, opacity'
-    };
-  };
-
-  // Helper for pop-in animations (scale-based, independent of other animations)
-  const getPopStyle = (absoluteDelay: number, forceWait: boolean = false) => {
-    const duration = '400ms';
-    // Use absolute delay in seconds (e.g., 1.5 = 1500ms after content-revealing starts)
-    const isRevealing = phase === 'content-revealing' || phase === 'complete';
-    const isVisible = isRevealing && !forceWait;
-    
-    return {
-      opacity: isVisible ? 1 : 0,
-      transition: `opacity ${duration} ease-out ${absoluteDelay}s, transform ${duration} cubic-bezier(0.34, 1.56, 0.64, 1) ${absoluteDelay}s`,
-      transform: isVisible ? 'scale(1)' : 'scale(0)', 
-      willChange: 'transform, opacity',
-      transformOrigin: 'center center'
-    };
-  };
+  const isRevealing = phase === 'content-revealing' || phase === 'complete';
 
   return (
     <div className="container mx-auto px-4 relative flex items-center justify-center min-h-[100svh] md:min-h-[100dvh] py-4 md:py-16">
       <div className="text-center w-full -translate-y-6">
-        <div 
+        <div
           className={`max-w-4xl mx-auto transition-opacity duration-300 ${hideHeroContent ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           aria-hidden={hideHeroContent}
         >
-          
+
           {/* Top Section: Icon + Title */}
           {/* Use grid-template-rows for height animation from 0 to auto */}
-          <div 
+          <div
             className="grid transition-[grid-template-rows] duration-1000 ease-out"
-            style={{ gridTemplateRows: phase === 'content-revealing' || phase === 'complete' ? '1fr' : '0fr' }}
+            style={{ gridTemplateRows: isRevealing ? '1fr' : '0fr' }}
           >
             <div className={phase === 'complete' ? "overflow-visible" : "overflow-hidden"}>
               {/* Main title with gold hover spotlight */}
               <div style={getFadeStyle(0.5, 20)}>
-                <div 
-                  ref={titleRef}
-                  className="relative inline-block cursor-default"
-                  onMouseMove={handleTitleMouseMove}
-                  onMouseLeave={handleTitleMouseLeave}
-                >
-                  {/* Base text */}
-                  <h1 className="text-8xl md:text-[10rem] text-[#ecede3] mb-0 leading-tight select-none">
-                    Reigh
-                  </h1>
-                  {/* Gold trail - fading spots where cursor has been */}
-                  {goldTrail.map(point => (
-                    <h1 
-                      key={point.id}
-                      className="absolute inset-0 text-8xl md:text-[10rem] mb-0 leading-tight select-none pointer-events-none"
-                      style={{
-                        color: '#fbbf24',
-                        opacity: point.opacity,
-                        filter: 'blur(0.4px)',
-                        maskImage: `radial-gradient(circle 80px at ${point.x}px ${point.y}px, black 0%, black 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 70%, transparent 100%)`,
-                        WebkitMaskImage: `radial-gradient(circle 80px at ${point.x}px ${point.y}px, black 0%, black 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 70%, transparent 100%)`,
-                      }}
-                      aria-hidden="true"
-                    >
-                      Reigh
-                    </h1>
-                  ))}
-                  {/* Current cursor spotlight - solid gold */}
-                  <h1 
-                    className="absolute inset-0 text-8xl md:text-[10rem] mb-0 leading-tight select-none pointer-events-none"
-                    style={{
-                      color: '#fbbf24',
-                      opacity: titleHover.active ? 1 : 0,
-                      filter: 'blur(0.4px)',
-                      maskImage: `radial-gradient(circle 90px at ${titleHover.x}px ${titleHover.y}px, black 0%, black 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 70%, transparent 100%)`,
-                      WebkitMaskImage: `radial-gradient(circle 90px at ${titleHover.x}px ${titleHover.y}px, black 0%, black 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 70%, transparent 100%)`,
-                      transition: 'opacity 0.15s ease-out'
-                    }}
-                    aria-hidden="true"
-                  >
-                    Reigh
-                  </h1>
-                </div>
+                <GoldSpotlight />
               </div>
             </div>
           </div>
-          
+
           {/* Loading Bar - fixed in viewport center, fades out when content reveals */}
-          <div 
+          <div
             className={`fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-[calc(-50%+1.5rem)] w-32 h-1.5 z-10 pointer-events-none transition-opacity duration-500 ${
-              phase === 'content-revealing' || phase === 'complete' ? 'opacity-0' : 'opacity-100'
+              isRevealing ? 'opacity-0' : 'opacity-100'
             }`}
           >
             {/* Background track */}
             <div className="absolute inset-0 bg-amber-900/30 rounded-full"></div>
             {/* Animated progress bar - golden gradient */}
-            <div 
+            <div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.4)]"
-              style={{ 
-                width: barWidth, 
-                transition: 'width 0.8s cubic-bezier(0.22, 1, 0.36, 1)' 
+              style={{
+                width: barWidth,
+                transition: 'width 0.8s cubic-bezier(0.22, 1, 0.36, 1)'
               }}
             ></div>
           </div>
-          
+
           {/* Bottom Section: Subtitle + Buttons + Footer */}
-          <div 
+          <div
             className="grid transition-[grid-template-rows] duration-1000 ease-out"
-            style={{ gridTemplateRows: phase === 'content-revealing' || phase === 'complete' ? '1fr' : '0fr' }}
+            style={{ gridTemplateRows: isRevealing ? '1fr' : '0fr' }}
           >
             <div className={phase === 'complete' ? "overflow-visible" : "overflow-hidden"}>
               {/* Subtitle */}
@@ -357,9 +196,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                           >
                             <g className="arrow-group-left" opacity="0.5">
                               {/* Curve from right edge to arrow */}
-                              <path 
+                              <path
                                 className="arrow-curve-left arrow-draw-curve-left"
-                                d="M20 17.25 Q12 17.25 12 11 Q12 6 1 6" 
+                                d="M20 17.25 Q12 17.25 12 11 Q12 6 1 6"
                                 stroke="#ecede3"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
@@ -421,9 +260,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                           >
                             <g className="arrow-group-right" opacity="0.5">
                               {/* Curve from left edge to arrow */}
-                              <path 
+                              <path
                                 className="arrow-curve-right arrow-draw-curve-right"
-                                d="M0 17.25 Q8 17.25 8 11 Q8 6 19 6" 
+                                d="M0 17.25 Q8 17.25 8 11 Q8 6 19 6"
                                 stroke="#ecede3"
                                 strokeWidth="1.5"
                                 strokeLinecap="round"
@@ -477,8 +316,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   </TooltipProvider>
                 </p>
               </div>
-              
-            {/* CTA button */}                                                                
+
+            {/* CTA button */}
             <div style={getFadeStyle(2.5, -140, false)} className="pt-2 pb-4 md:pb-6 overflow-visible flex justify-center">
               {session ? (
                 // User is logged in - show install CTA if available, otherwise go to tools
@@ -507,10 +346,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     />
                   </button>
                   {/* Show secondary browser option when install CTA is showing */}
-                  <div 
+                  <div
                     className={`transition-all duration-300 ${
-                      platformInstall.showInstallCTA 
-                        ? 'opacity-100 translate-y-0' 
+                      platformInstall.showInstallCTA
+                        ? 'opacity-100 translate-y-0'
                         : 'opacity-0 -translate-y-2 pointer-events-none h-0'
                     }`}
                   >
@@ -552,10 +391,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     />
                   </button>
                   {/* Show secondary Discord option only when install CTA is showing */}
-                  <div 
+                  <div
                     className={`transition-all duration-300 ${
-                      platformInstall.showInstallCTA 
-                        ? 'opacity-100 translate-y-0' 
+                      platformInstall.showInstallCTA
+                        ? 'opacity-100 translate-y-0'
                         : 'opacity-0 -translate-y-2 pointer-events-none h-0'
                     }`}
                   >
@@ -573,9 +412,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
           {/* Social Icons & Banodoco - Pop-in animation (completely independent) */}
-          <div 
+          <div
             className="grid transition-[grid-template-rows] duration-1000 ease-out"
-            style={{ gridTemplateRows: phase === 'content-revealing' || phase === 'complete' ? '1fr' : '0fr' }}
+            style={{ gridTemplateRows: isRevealing ? '1fr' : '0fr' }}
           >
             <div className="overflow-hidden">
               <div className="mt-2 flex justify-center">
@@ -621,14 +460,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     rel="noopener noreferrer"
                     className="block opacity-60 hover:opacity-100 transition-opacity duration-300"
                   >
-                  <img 
-                    src="/banodoco-gold.png" 
-                    alt="Banodoco" 
+                  <img
+                    src="/banodoco-gold.png"
+                    alt="Banodoco"
                     className={`w-[40px] h-[40px] object-contain image-rendering-pixelated
                       ${banodocoState === 'hidden' ? 'opacity-0' : ''}
                       ${banodocoState === 'animating' ? 'animate-burst-and-flash' : ''}
                       ${banodocoState === 'visible' ? 'opacity-100' : ''}
-                    `} 
+                    `}
                     style={{ imageRendering: 'auto' }}
                   />
                   </a>
@@ -637,7 +476,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
         </div>
-        
+
         {/* Install Instructions Modal - outside hidden wrapper so it stays visible */}
         <InstallInstructionsModal
           open={showInstallModal}

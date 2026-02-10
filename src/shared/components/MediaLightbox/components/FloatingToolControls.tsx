@@ -11,18 +11,8 @@ import {
   PositionToggleButton,
   RepositionControls,
 } from './controls';
-import type { ImageTransform } from '../hooks/useRepositionMode';
-
 interface FloatingToolControlsProps {
   variant: 'tablet' | 'mobile';
-
-  // Specialized reposition handlers (not contextual state)
-  repositionTransform?: ImageTransform;
-  onRepositionScaleChange?: (value: number) => void;
-  onRepositionRotationChange?: (value: number) => void;
-  onRepositionFlipH?: () => void;
-  onRepositionFlipV?: () => void;
-  onRepositionReset?: () => void;
 }
 
 /**
@@ -37,14 +27,8 @@ interface FloatingToolControlsProps {
  */
 export const FloatingToolControls: React.FC<FloatingToolControlsProps> = ({
   variant,
-  repositionTransform,
-  onRepositionScaleChange,
-  onRepositionRotationChange,
-  onRepositionFlipH,
-  onRepositionFlipV,
-  onRepositionReset,
 }) => {
-  // Get edit state from context
+  // Get edit state from context (includes reposition handlers)
   const {
     editMode,
     setEditMode,
@@ -59,6 +43,12 @@ export const FloatingToolControls: React.FC<FloatingToolControlsProps> = ({
     handleClearMask,
     inpaintPanelPosition,
     setInpaintPanelPosition,
+    repositionTransform,
+    setScale: onRepositionScaleChange,
+    setRotation: onRepositionRotationChange,
+    toggleFlipH: onRepositionFlipH,
+    toggleFlipV: onRepositionFlipV,
+    resetTransform: onRepositionReset,
   } = useImageEditSafe();
 
   const isTablet = variant === 'tablet';
@@ -193,7 +183,7 @@ export const FloatingToolControls: React.FC<FloatingToolControlsProps> = ({
         )}
 
         {/* Reposition Mode Controls */}
-        {editMode === 'reposition' && repositionTransform && onRepositionScaleChange && onRepositionRotationChange && onRepositionFlipH && onRepositionFlipV && onRepositionReset && (
+        {editMode === 'reposition' && repositionTransform && (
           <RepositionControls
             transform={repositionTransform}
             onScaleChange={onRepositionScaleChange}

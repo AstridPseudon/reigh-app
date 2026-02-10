@@ -19,6 +19,399 @@ import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import type { ShotFinalVideo } from '../hooks/useShotFinalVideos';
 
+// ---------------------------------------------------------------------------
+// ActionButtonsRow - toolbar buttons (video, drag, rename, duplicate, delete)
+// ---------------------------------------------------------------------------
+
+interface ActionButtonsRowProps {
+  isTempShot: boolean;
+  displayImagesCount: number;
+  isEditingName: boolean;
+  dragHandleProps?: {
+    disabled?: boolean;
+    [key: string]: unknown;
+  };
+  dragDisabledReason?: string;
+  duplicateIsPending: boolean;
+  onVideoClick: () => void;
+  onEditName: (e?: React.MouseEvent) => void;
+  onDuplicate: (e?: React.MouseEvent) => void;
+  onDelete: (e?: React.MouseEvent) => void;
+}
+
+const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
+  isTempShot,
+  displayImagesCount,
+  isEditingName,
+  dragHandleProps,
+  dragDisabledReason,
+  duplicateIsPending,
+  onVideoClick,
+  onEditName,
+  onDuplicate,
+  onDelete,
+}) => (
+  <div className="flex items-center space-x-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+    {/* Show loading indicator for temp shots */}
+    {isTempShot && (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mr-2">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>Saving...</span>
+      </div>
+    )}
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (displayImagesCount > 0 && !isTempShot) {
+                onVideoClick();
+              }
+            }}
+            disabled={displayImagesCount === 0 || isTempShot}
+            className={`h-8 w-8 ${
+              displayImagesCount === 0 || isTempShot
+                ? 'text-zinc-400 cursor-not-allowed opacity-50'
+                : 'text-violet-600 hover:text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-950'
+            }`}
+          >
+            <Video className="h-5 w-5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{isTempShot ? 'Saving...' : displayImagesCount === 0 ? 'Add images to generate video' : 'Generate Video'}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+    {/* Drag Handle Button - also disabled for temp shots */}
+    {dragHandleProps && (
+      (dragHandleProps.disabled || isTempShot) && (dragDisabledReason || isTempShot) ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-not-allowed opacity-50"
+                  disabled={true}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isTempShot ? 'Saving...' : dragDisabledReason}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 cursor-grab active:cursor-grabbing"
+                disabled={dragHandleProps.disabled}
+                {...dragHandleProps}
+              >
+                <GripVertical className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Drag to reorder</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )
+    )}
+    {!isEditingName && (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={onEditName} className="h-8 w-8" disabled={isTempShot}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isTempShot ? 'Saving...' : 'Edit shot name'}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )}
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDuplicate}
+            className="h-8 w-8"
+            disabled={duplicateIsPending || isTempShot}
+          >
+            {duplicateIsPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+            <Copy className="h-4 w-4" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{isTempShot ? 'Saving...' : duplicateIsPending ? "Duplicating..." : "Duplicate shot"}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8" disabled={isTempShot}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{isTempShot ? 'Saving...' : 'Delete shot'}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// ThumbnailMosaic - image grid with expand/collapse, final video toggle,
+// drop loading indicator, and mobile shot-selection overlay
+// ---------------------------------------------------------------------------
+
+const IMAGES_PER_ROW = 3;
+
+interface ThumbnailMosaicProps {
+  displayImages: GenerationRow[];
+  pendingUploads: number;
+  imagesOverlay?: React.ReactNode;
+  finalVideo?: ShotFinalVideo;
+  showVideo: boolean;
+  onShowVideoChange: (show: boolean) => void;
+  projectAspectRatio?: string;
+  dropLoadingState: 'idle' | 'loading' | 'success';
+  onFinalVideoLightboxOpen: () => void;
+  // Mobile shot selection
+  showMobileSelect: boolean;
+  isSelectedForAddition: boolean;
+  onSelectShotForAddition: (e: React.MouseEvent) => void;
+}
+
+const ThumbnailMosaic: React.FC<ThumbnailMosaicProps> = ({
+  displayImages,
+  pendingUploads,
+  imagesOverlay,
+  finalVideo,
+  showVideo,
+  onShowVideoChange,
+  projectAspectRatio,
+  dropLoadingState,
+  onFinalVideoLightboxOpen,
+  showMobileSelect,
+  isSelectedForAddition,
+  onSelectShotForAddition,
+}) => {
+  const [isImagesExpanded, setIsImagesExpanded] = useState(false);
+
+  // Grid layout calculations
+  const totalImageCount = displayImages.length + pendingUploads;
+  const hasMultipleRows = totalImageCount > IMAGES_PER_ROW;
+  const collapsedRealImages = Math.min(displayImages.length, IMAGES_PER_ROW);
+  const collapsedSkeletonCount = !isImagesExpanded
+    ? Math.min(pendingUploads, IMAGES_PER_ROW - collapsedRealImages)
+    : 0;
+  const emptyPlaceholderCount = !isImagesExpanded
+    ? Math.max(0, IMAGES_PER_ROW - collapsedRealImages - collapsedSkeletonCount)
+    : 0;
+
+  return (
+    <div className="flex-grow relative">
+      {/* Optional overlay for loading states etc. */}
+      {imagesOverlay}
+
+      {/* Final video preview (shown when toggled on) */}
+      {finalVideo && showVideo ? (
+        <div className="relative group/video">
+          <div
+            className="rounded border border-border bg-muted shadow-sm overflow-hidden cursor-pointer"
+            style={{
+              aspectRatio: projectAspectRatio
+                ? projectAspectRatio.replace(':', '/')
+                : '16/9',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFinalVideoLightboxOpen();
+            }}
+          >
+            <HoverScrubVideo
+              src={finalVideo.location}
+              poster={finalVideo.thumbnailUrl ?? undefined}
+              loadOnDemand
+              preload="metadata"
+              className="w-full h-full"
+              videoClassName="object-cover pointer-events-none"
+            />
+          </div>
+          {/* Toggle back to shot images */}
+          <button
+            className="absolute bottom-1 left-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowVideoChange(false);
+            }}
+          >
+            <Images className="w-3 h-3" />
+            Shot images
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Built-in loading indicator for drops - only show when collapsed with >3 images */}
+          {dropLoadingState !== 'idle' && displayImages.length > IMAGES_PER_ROW && !isImagesExpanded && (
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <div
+                className={cn(
+                  'px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg',
+                  dropLoadingState === 'loading' && 'bg-primary text-primary-foreground',
+                  dropLoadingState === 'success' && 'bg-green-600 text-white'
+                )}
+              >
+                {dropLoadingState === 'loading' && (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                )}
+                {dropLoadingState === 'success' && (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Added
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-3 gap-2 relative">
+            {/* When collapsed: show first row of existing images */}
+            {/* When expanded: show all existing images */}
+            {(isImagesExpanded ? displayImages : displayImages.slice(0, IMAGES_PER_ROW)).map((image, index) => (
+              <img
+                key={`${image.thumbUrl || image.imageUrl || image.location || 'img'}-${index}`}
+                src={getDisplayUrl(image.thumbUrl || image.imageUrl || image.location)}
+                alt={`Shot image ${index + 1}`}
+                className="w-full aspect-square object-cover rounded border border-border bg-muted shadow-sm"
+                title={`Image ${index + 1}`}
+              />
+            ))}
+
+            {/* Show skeletons for pending uploads (with spinner) */}
+            {collapsedSkeletonCount > 0 && Array.from({ length: collapsedSkeletonCount }).map((_, index) => (
+              <div
+                key={`pending-collapsed-${index}`}
+                className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
+              >
+                <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
+              </div>
+            ))}
+
+            {/* Empty placeholder slots to fill up to 3 when collapsed (no spinner) */}
+            {emptyPlaceholderCount > 0 && Array.from({ length: emptyPlaceholderCount }).map((_, index) => (
+              <div
+                key={`empty-${index}`}
+                className="w-full aspect-square rounded border-2 border-dashed border-border"
+              />
+            ))}
+
+            {/* Skeleton items for pending uploads - always appended at end, only visible when expanded */}
+            {pendingUploads > 0 && isImagesExpanded && Array.from({ length: pendingUploads }).map((_, index) => (
+              <div
+                key={`pending-${index}`}
+                className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
+              >
+                <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
+              </div>
+            ))}
+
+            {hasMultipleRows && !isImagesExpanded && (
+              <button
+                className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsImagesExpanded(true);
+                }}
+              >
+                Show All ({totalImageCount}) <ChevronDown className="w-3 h-3" />
+              </button>
+            )}
+
+            {isImagesExpanded && hasMultipleRows && (
+              <button
+                className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsImagesExpanded(false);
+                }}
+              >
+                Hide <ChevronUp className="w-3 h-3" />
+              </button>
+            )}
+
+            {/* Toggle to final video */}
+            {finalVideo && !showVideo && (
+              <button
+                className="absolute bottom-1 left-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShowVideoChange(true);
+                }}
+              >
+                <Video className="w-3 h-3" />
+                Final video
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Select this shot button - shows when GenerationsPane is locked (mobile/tablet only) */}
+      {showMobileSelect && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isSelectedForAddition ? "default" : "secondary"}
+                size="sm"
+                onClick={onSelectShotForAddition}
+                className={`absolute bottom-1 left-1 h-7 px-2 text-xs shadow-sm z-10 transition-all duration-200 ${
+                  isSelectedForAddition
+                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                    : 'bg-background/90 hover:bg-background border'
+                }`}
+              >
+                {isSelectedForAddition ? 'Selected' : 'Select'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isSelectedForAddition ? 'Images will be added to this shot' : 'Add images to this shot'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// VideoShotDisplay - main orchestrator component
+// ---------------------------------------------------------------------------
+
 interface VideoShotDisplayProps {
   shot: Shot;
   onSelectShot: () => void;
@@ -44,30 +437,25 @@ const SKIP_DELETE_CONFIRMATION_KEY = 'reigh-skip-delete-shot-confirmation';
 const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot, currentProjectId, dragHandleProps, dragDisabledReason, projectAspectRatio, isHighlighted = false, pendingUploads = 0, imagesOverlay, dropLoadingState = 'idle', dataTour, finalVideo }) => {
   // Check if this is a temp shot (optimistic duplicate waiting for real ID)
   const isTempShot = shot.id.startsWith('temp-');
-  
+
   // State for "don't ask again" checkbox
   const [skipConfirmationChecked, setSkipConfirmationChecked] = useState(false);
-  
-  // Click ripple effect
+
+  // Click ripple effect with button detection
   const { triggerRipple, rippleStyles, isRippleActive } = useClickRipple();
-  
-  // Handle ripple trigger with button detection
+
   const handleRippleTrigger = (e: React.PointerEvent) => {
-    // Check if the click target or any parent is a button or has button-like behavior
     const target = e.target as HTMLElement;
     const isButton = target.closest('button, [role="button"], input');
-    
-    // Only trigger ripple if not clicking on a button
     if (!isButton) {
       triggerRipple(e);
     }
   };
-  
+
   const [isEditingName, setIsEditingName] = useState(false);
   const [editableName, setEditableName] = useState(shot.name);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const [isImagesExpanded, setIsImagesExpanded] = useState(false);
   const [showVideo, setShowVideo] = useState(false); // Toggle to show final video preview
   const [isFinalVideoLightboxOpen, setIsFinalVideoLightboxOpen] = useState(false);
 
@@ -93,12 +481,12 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
   const updateShotNameMutation = useUpdateShotName();
   const deleteShotMutation = useDeleteShot();
   const duplicateShotMutation = useDuplicateShot();
-  
+
   // Check if GenerationsPane is locked to show "Select this shot" button (mobile only)
   const { isGenerationsPaneLocked } = usePanes();
   const isMobile = useIsMobile();
   const [isSelectedForAddition, setIsSelectedForAddition] = useState(false);
-  
+
   // Handle selecting this shot as the target for adding images in GenerationsPane
   const handleSelectShotForAddition = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,7 +497,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
     // Show success state
     setIsSelectedForAddition(true);
   };
-  
+
   // Listen for other shots being selected to clear our success state
   useEffect(() => {
     const handleOtherShotSelected = (event: CustomEvent<{ shotId: string }>) => {
@@ -117,11 +505,11 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
         setIsSelectedForAddition(false);
       }
     };
-    
+
     window.addEventListener('selectShotForAddition', handleOtherShotSelected as EventListener);
     return () => window.removeEventListener('selectShotForAddition', handleOtherShotSelected as EventListener);
   }, [shot.id]);
-  
+
   // Clear selection state when GenerationsPane is unlocked
   useEffect(() => {
     if (!isGenerationsPaneLocked) {
@@ -163,7 +551,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
         { shotId: shot.id, newName: editableName.trim(), projectId: currentProjectId }, // Pass projectId
         {
           onSuccess: () => {
-    
+
             // Optimistic update already handles UI, or rely on query invalidation
           },
           onError: (error) => {
@@ -188,7 +576,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
       toast.error('Cannot delete shot: Project ID is missing.');
       return;
     }
-    
+
     // Check if user has opted to skip confirmation
     const skipConfirmation = localStorage.getItem(SKIP_DELETE_CONFIRMATION_KEY) === 'true';
     if (skipConfirmation) {
@@ -199,13 +587,13 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
       setIsDeleteDialogOpen(true);
     }
   };
-  
+
   const performDelete = async () => {
     if (!currentProjectId) {
       toast.error('Cannot delete shot: Project ID is missing.');
       return;
     }
-    
+
     try {
       await deleteShotMutation.mutateAsync(
         { shotId: shot.id, projectId: currentProjectId },
@@ -225,10 +613,10 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
     if (skipConfirmationChecked) {
       localStorage.setItem(SKIP_DELETE_CONFIRMATION_KEY, 'true');
     }
-    
+
     setIsDeleteDialogOpen(false);
     await performDelete();
-    
+
     // Reset checkbox state for next time
     setSkipConfirmationChecked(false);
   };
@@ -238,7 +626,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
     if (!currentProjectId) {
       return;
     }
-    
+
     try {
       await duplicateShotMutation.mutateAsync({
         shotId: shot.id,
@@ -259,23 +647,6 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
       return fa - fb;
     });
 
-  // Grid layout: 3 images per row, show first row by default, expand to show all
-  const IMAGES_PER_ROW = 3;
-  // Total count includes pending uploads for immediate feedback
-  const totalImageCount = displayImages.length + pendingUploads;
-  const hasMultipleRows = totalImageCount > IMAGES_PER_ROW;
-  
-  // When collapsed: how many real images do we show? (up to 3)
-  const collapsedRealImages = Math.min(displayImages.length, IMAGES_PER_ROW);
-  // How many skeleton slots should fill the remaining first row? (for pending uploads with spinner)
-  const collapsedSkeletonCount = !isImagesExpanded 
-    ? Math.min(pendingUploads, IMAGES_PER_ROW - collapsedRealImages)
-    : 0;
-  // How many empty placeholder slots to show? (fill remaining slots to 3 when collapsed, no spinner)
-  const emptyPlaceholderCount = !isImagesExpanded
-    ? Math.max(0, IMAGES_PER_ROW - collapsedRealImages - collapsedSkeletonCount)
-    : 0;
-
   // Handle click - block if temp shot
   const handleClick = () => {
     if (isTempShot) return;
@@ -295,7 +666,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
           <div className="flex justify-between items-start mb-3">
           {isEditingName ? (
             <div className="flex items-center gap-2 flex-grow" onClick={(e) => e.stopPropagation()}>
-              <Input 
+              <Input
                 value={editableName}
                 onChange={(e) => setEditableName(e.target.value)}
                 onBlur={handleSaveName} // Save on blur
@@ -324,310 +695,35 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
               {shot.name}
             </h3>
           )}
-          <div className="flex items-center space-x-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {/* Show loading indicator for temp shots */}
-            {isTempShot && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mr-2">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Saving...</span>
-              </div>
-            )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (displayImages.length > 0 && !isTempShot) {
-                        setIsVideoModalOpen(true);
-                      }
-                    }}
-                    disabled={displayImages.length === 0 || isTempShot}
-                    className={`h-8 w-8 ${
-                      displayImages.length === 0 || isTempShot
-                        ? 'text-zinc-400 cursor-not-allowed opacity-50' 
-                        : 'text-violet-600 hover:text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-950'
-                    }`}
-                  >
-                    <Video className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isTempShot ? 'Saving...' : displayImages.length === 0 ? 'Add images to generate video' : 'Generate Video'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            {/* Drag Handle Button - also disabled for temp shots */}
-            {dragHandleProps && (
-              (dragHandleProps.disabled || isTempShot) && (dragDisabledReason || isTempShot) ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 cursor-not-allowed opacity-50"
-                          disabled={true}
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{isTempShot ? 'Saving...' : dragDisabledReason}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 cursor-grab active:cursor-grabbing"
-                        disabled={dragHandleProps.disabled}
-                        {...dragHandleProps}
-                      >
-                        <GripVertical className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Drag to reorder</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )
-            )}
-            {!isEditingName && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleNameEditToggle} className="h-8 w-8" disabled={isTempShot}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isTempShot ? 'Saving...' : 'Edit shot name'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={handleDuplicateShot} 
-                    className="h-8 w-8" 
-                    disabled={duplicateShotMutation.isPending || isTempShot}
-                  >
-                    {duplicateShotMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                    <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isTempShot ? 'Saving...' : duplicateShotMutation.isPending ? "Duplicating..." : "Duplicate shot"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={handleDeleteShot} className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8" disabled={isTempShot}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isTempShot ? 'Saving...' : 'Delete shot'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <ActionButtonsRow
+            isTempShot={isTempShot}
+            displayImagesCount={displayImages.length}
+            isEditingName={isEditingName}
+            dragHandleProps={dragHandleProps}
+            dragDisabledReason={dragDisabledReason}
+            duplicateIsPending={duplicateShotMutation.isPending}
+            onVideoClick={() => setIsVideoModalOpen(true)}
+            onEditName={handleNameEditToggle}
+            onDuplicate={handleDuplicateShot}
+            onDelete={handleDeleteShot}
+          />
         </div>
-        
+
         {/* Thumbnail mosaic area - matches ShotGroup style */}
-        <div className="flex-grow relative">
-          {/* Optional overlay for loading states etc. */}
-          {imagesOverlay}
-
-          {/* Final video preview (shown when toggled on) */}
-          {finalVideo && showVideo ? (
-            <div className="relative group/video">
-              <div
-                className="rounded border border-border bg-muted shadow-sm overflow-hidden cursor-pointer"
-                style={{
-                  aspectRatio: projectAspectRatio
-                    ? projectAspectRatio.replace(':', '/')
-                    : '16/9',
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFinalVideoLightboxOpen();
-                }}
-              >
-                <HoverScrubVideo
-                  src={finalVideo.location}
-                  poster={finalVideo.thumbnailUrl ?? undefined}
-                  loadOnDemand
-                  preload="metadata"
-                  className="w-full h-full"
-                  videoClassName="object-cover pointer-events-none"
-                />
-              </div>
-              {/* Toggle back to shot images */}
-              <button
-                className="absolute bottom-1 left-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowVideo(false);
-                }}
-              >
-                <Images className="w-3 h-3" />
-                Shot images
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Built-in loading indicator for drops - only show when collapsed with >3 images */}
-              {dropLoadingState !== 'idle' && displayImages.length > IMAGES_PER_ROW && !isImagesExpanded && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                  <div
-                    className={cn(
-                      'px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg',
-                      dropLoadingState === 'loading' && 'bg-primary text-primary-foreground',
-                      dropLoadingState === 'success' && 'bg-green-600 text-white'
-                    )}
-                  >
-                    {dropLoadingState === 'loading' && (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Adding...
-                      </>
-                    )}
-                    {dropLoadingState === 'success' && (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Added
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-3 gap-2 relative">
-                {/* When collapsed: show first row of existing images */}
-                {/* When expanded: show all existing images */}
-                {(isImagesExpanded ? displayImages : displayImages.slice(0, IMAGES_PER_ROW)).map((image, index) => (
-                  <img
-                    key={`${image.thumbUrl || image.imageUrl || image.location || 'img'}-${index}`}
-                    src={getDisplayUrl(image.thumbUrl || image.imageUrl || image.location)}
-                    alt={`Shot image ${index + 1}`}
-                    className="w-full aspect-square object-cover rounded border border-border bg-muted shadow-sm"
-                    title={`Image ${index + 1}`}
-                  />
-                ))}
-
-                {/* Show skeletons for pending uploads (with spinner) */}
-                {collapsedSkeletonCount > 0 && Array.from({ length: collapsedSkeletonCount }).map((_, index) => (
-                  <div
-                    key={`pending-collapsed-${index}`}
-                    className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
-                  >
-                    <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
-                  </div>
-                ))}
-
-                {/* Empty placeholder slots to fill up to 3 when collapsed (no spinner) */}
-                {emptyPlaceholderCount > 0 && Array.from({ length: emptyPlaceholderCount }).map((_, index) => (
-                  <div
-                    key={`empty-${index}`}
-                    className="w-full aspect-square rounded border-2 border-dashed border-border"
-                  />
-                ))}
-
-                {/* Skeleton items for pending uploads - always appended at end, only visible when expanded */}
-                {pendingUploads > 0 && isImagesExpanded && Array.from({ length: pendingUploads }).map((_, index) => (
-                  <div
-                    key={`pending-${index}`}
-                    className="w-full aspect-square rounded border-2 border-dashed border-primary/30 bg-primary/5 flex items-center justify-center"
-                  >
-                    <Loader2 className="h-5 w-5 text-primary/60 animate-spin" />
-                  </div>
-                ))}
-
-                {hasMultipleRows && !isImagesExpanded && (
-                  <button
-                    className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsImagesExpanded(true);
-                    }}
-                  >
-                    Show All ({totalImageCount}) <ChevronDown className="w-3 h-3" />
-                  </button>
-                )}
-
-                {isImagesExpanded && hasMultipleRows && (
-                  <button
-                    className="absolute bottom-1 right-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsImagesExpanded(false);
-                    }}
-                  >
-                    Hide <ChevronUp className="w-3 h-3" />
-                  </button>
-                )}
-
-                {/* Toggle to final video */}
-                {finalVideo && !showVideo && (
-                  <button
-                    className="absolute bottom-1 left-1 text-xs bg-black/60 hover:bg-black/80 text-white px-2 py-0.5 rounded flex items-center gap-1 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowVideo(true);
-                    }}
-                  >
-                    <Video className="w-3 h-3" />
-                    Final video
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-          
-          {/* Select this shot button - shows when GenerationsPane is locked (mobile/tablet only) */}
-          {isGenerationsPaneLocked && isMobile && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isSelectedForAddition ? "default" : "secondary"}
-                    size="sm"
-                    onClick={handleSelectShotForAddition}
-                    className={`absolute bottom-1 left-1 h-7 px-2 text-xs shadow-sm z-10 transition-all duration-200 ${
-                      isSelectedForAddition 
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
-                        : 'bg-background/90 hover:bg-background border'
-                    }`}
-                  >
-                    {isSelectedForAddition ? 'Selected' : 'Select'}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isSelectedForAddition ? 'Images will be added to this shot' : 'Add images to this shot'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
+        <ThumbnailMosaic
+          displayImages={displayImages}
+          pendingUploads={pendingUploads}
+          imagesOverlay={imagesOverlay}
+          finalVideo={finalVideo}
+          showVideo={showVideo}
+          onShowVideoChange={setShowVideo}
+          projectAspectRatio={projectAspectRatio}
+          dropLoadingState={dropLoadingState}
+          onFinalVideoLightboxOpen={handleFinalVideoLightboxOpen}
+          showMobileSelect={isGenerationsPaneLocked && isMobile}
+          isSelectedForAddition={isSelectedForAddition}
+          onSelectShotForAddition={handleSelectShotForAddition}
+        />
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -643,13 +739,13 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center space-x-2 py-2">
-            <Checkbox 
-              id="skip-confirmation" 
+            <Checkbox
+              id="skip-confirmation"
               checked={skipConfirmationChecked}
               onCheckedChange={(checked) => setSkipConfirmationChecked(checked === true)}
             />
-            <label 
-              htmlFor="skip-confirmation" 
+            <label
+              htmlFor="skip-confirmation"
               className="text-sm text-muted-foreground cursor-pointer select-none"
             >
               Don't ask for confirmation
@@ -657,7 +753,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteShotMutation.isPending}
@@ -696,4 +792,4 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
   );
 };
 
-export default VideoShotDisplay; 
+export default VideoShotDisplay;

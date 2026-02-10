@@ -313,16 +313,10 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
       if (setActiveLightboxIndex) {
         setActiveLightboxIndex(index);
       } else {
-        console.error('[DerivedNav:Gallery] ❌ setActiveLightboxIndex is not available!');
+        handleError(new Error('setActiveLightboxIndex is not available'), { context: 'handleNavigateToGeneration' });
       }
     } else {
-      console.error('[DerivedNav:Gallery] ❌ Generation not found in current filtered set', {
-        searchedId: generationId.substring(0, 8),
-        fullGenerationId: generationId,
-        filteredImagesCount: filteredImages.length,
-        firstFiveIds: filteredImages.map(img => img.id.substring(0, 8)).slice(0, 5),
-        allIds: filteredImages.map(img => img.id)
-      });
+      handleError(new Error(`Generation ${generationId.substring(0, 8)} not found in current filtered set (${filteredImages.length} items)`), { context: 'handleNavigateToGeneration' });
       // TODO: Could potentially fetch the generation and add it to the view
       // For now, just log that it's not available
     }

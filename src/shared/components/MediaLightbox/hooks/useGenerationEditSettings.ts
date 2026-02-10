@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
-import { useEntityState } from '@/shared/hooks/useEntityState';
+import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 
 // Import canonical types from single source of truth
 import {
@@ -174,7 +174,7 @@ async function saveGenerationSettings(generationId: string, settings: Generation
 /**
  * Hook for managing per-generation edit settings persistence
  *
- * Uses useEntityState for the core persistence logic:
+ * Uses useAutoSaveSettings (customLoadSave mode) for the core persistence logic:
  * - Status machine (idle → loading → ready → saving)
  * - Debounced auto-save
  * - Pending refs protection
@@ -188,27 +188,29 @@ export function useGenerationEditSettings({
 }: UseGenerationEditSettingsProps): UseGenerationEditSettingsReturn {
   const queryClient = useQueryClient();
 
-  // Use the base persistent state hook
+  // Use the base persistent state hook (customLoadSave mode)
   const {
-    state: settings,
+    settings,
     status,
     hasPersistedData: hasPersistedSettings,
     updateField,
     updateFields,
     initializeFrom,
-  } = useEntityState<GenerationEditSettings>({
-    entityId: generationId,
-    load: loadGenerationSettings,
-    save: saveGenerationSettings,
+  } = useAutoSaveSettings<GenerationEditSettings>({
     defaults: DEFAULT_EDIT_SETTINGS,
     debounceMs: 500,
     enabled,
     debugTag: '[useGenerationEditSettings]',
-    onFlush: (entityId) => {
-      // Invalidate generation queries after flush
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.generations.detail(entityId)
-      });
+    customLoadSave: {
+      entityId: generationId,
+      load: loadGenerationSettings,
+      save: saveGenerationSettings,
+      onFlush: (entityId) => {
+        // Invalidate generation queries after flush
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.generations.detail(entityId)
+        });
+      },
     },
     onSaveSuccess: () => {
       if (generationId) {

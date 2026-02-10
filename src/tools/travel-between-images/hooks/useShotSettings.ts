@@ -1,4 +1,5 @@
 import { useCallback, useRef, useMemo, useEffect } from 'react';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
@@ -92,7 +93,7 @@ export const useShotSettings = (
   
   // Use the shared auto-save hook with inherited settings as initial defaults
   const autoSave = useAutoSaveSettings<VideoTravelSettings>({
-    toolId: 'travel-between-images',
+    toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
     shotId,
     projectId,
     scope: 'shot',
@@ -116,7 +117,7 @@ export const useShotSettings = (
         updateToolSettingsSupabase({
           scope: 'shot',
           id: shotId,
-          toolId: 'travel-between-images',
+          toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
           patch: inheritedSettings,
         }, undefined, 'immediate').catch(err => {
           console.error('[useShotSettings] Failed to save inherited settings:', err);
@@ -188,7 +189,7 @@ export const useShotSettings = (
       
       if (fetchError) throw fetchError;
       
-      const sourceSettings = (data?.settings as Record<string, unknown>)?.['travel-between-images'] as VideoTravelSettings;
+      const sourceSettings = (data?.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] as VideoTravelSettings;
       
       if (sourceSettings) {
         // Apply all fields from source
@@ -217,7 +218,7 @@ export const useShotSettings = (
       
       if (fetchError) throw fetchError;
       
-      const projectDefaults = (data?.settings as Record<string, unknown>)?.['travel-between-images'] as VideoTravelSettings;
+      const projectDefaults = (data?.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] as VideoTravelSettings;
       
       if (projectDefaults) {
         autoSave.updateFields(projectDefaults);

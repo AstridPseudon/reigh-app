@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { buildMetadataUpdate, type SegmentSettings } from '@/shared/components/segmentSettingsUtils';
 import type { ShotVideoSettings } from '@/shared/utils/settingsMigration';
 
@@ -144,7 +145,7 @@ export function useSegmentMutations({
           {
             scope: 'shot',
             id: shotId,
-            toolId: 'travel-between-images',
+            toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
             patch: shotPatch,
           },
           undefined,
@@ -153,7 +154,7 @@ export function useSegmentMutations({
 
         // Refetch caches
         await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });
-        await queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool('travel-between-images') });
+        await queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool(TOOL_IDS.TRAVEL_BETWEEN_IMAGES) });
 
         return true;
       } catch (error) {
@@ -176,7 +177,7 @@ export function useSegmentMutations({
           {
             scope: 'shot',
             id: shotId,
-            toolId: 'travel-between-images',
+            toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
             patch: { [field]: value },
           },
           undefined,
@@ -184,7 +185,7 @@ export function useSegmentMutations({
         );
 
         await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });
-        await queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool('travel-between-images') });
+        await queryClient.refetchQueries({ queryKey: queryKeys.settings.byTool(TOOL_IDS.TRAVEL_BETWEEN_IMAGES) });
 
         return true;
       } catch (error) {

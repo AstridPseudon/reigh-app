@@ -10,6 +10,7 @@ import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 import {
   useUpscale,
@@ -41,13 +42,25 @@ import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { downloadMedia } from '@/shared/components/MediaLightbox/utils';
 import { useVariants } from '@/shared/hooks/useVariants';
 
+// ============================================================================
+// Types
+// ============================================================================
+
 interface InlineEditViewProps {
   media: GenerationRow;
   onClose: () => void;
   onNavigateToGeneration?: (generationId: string) => Promise<void>;
 }
 
-export function InlineEditView({ media, onClose, onNavigateToGeneration }: InlineEditViewProps) {
+// ============================================================================
+// useInlineEditState — all hook orchestration + persistence sync + memo
+// ============================================================================
+
+function useInlineEditState(
+  media: GenerationRow,
+  _onClose: () => void,
+  onNavigateToGeneration?: (generationId: string) => Promise<void>,
+) {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -57,13 +70,11 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   const { value: generationMethods } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
   const isCloudMode = generationMethods.inCloud;
 
-  if (!media) return null;
-
   // Uses canonical isVideoAny from typeGuards
   const isVideo = isVideoAny(media);
-  
+
   const upscaleHook = useUpscale({ media, selectedProjectId, isVideo });
-  const { 
+  const {
     effectiveImageUrl,
     sourceUrlForTasks,
     isUpscaling,
@@ -77,11 +88,11 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   // Image dimensions state (needed by inpainting hook)
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   // Create as variant toggle - when true, creates variant; when false, creates new generation
   // Default to false (createAsGeneration=false means variant mode is ON)
   const [createAsGeneration, setCreateAsGeneration] = useState(false);
-  
+
   // Flip functionality removed - use reposition mode instead
   const isFlippedHorizontally = false;
   const isSaving = false;
@@ -136,7 +147,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     imageDimensions,
     handleExitInpaintMode: () => {},
     loras: editModeLoRAs,
-    toolTypeOverride: 'edit-images',
+    toolTypeOverride: TOOL_IDS.EDIT_IMAGES,
     activeVariantId: activeVariant?.id, // Store strokes per-variant, not per-generation
     createAsGeneration, // If true, create a new generation instead of a variant
   });
@@ -177,7 +188,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     getDeleteButtonPosition,
     strokeOverlayRef,
   } = inpaintingHook;
-  
+
   const magicEditHook = useMagicEditMode({
     media,
     selectedProjectId,
@@ -196,7 +207,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     imageDimensions,
     isInSceneBoostEnabled,
     setIsInSceneBoostEnabled,
-    toolTypeOverride: 'edit-images',
+    toolTypeOverride: TOOL_IDS.EDIT_IMAGES,
     createAsGeneration, // If true, create a new generation instead of a variant
     // qwenEditModel not passed - uses default 'qwen-edit'
   });
@@ -220,7 +231,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     inpaintPrompt,
     inpaintNumGenerations,
     handleExitInpaintMode: handleExitMagicEditMode,
-    toolTypeOverride: 'edit-images',
+    toolTypeOverride: TOOL_IDS.EDIT_IMAGES,
     onVariantCreated: setActiveVariantId,
     refetchVariants,
     createAsGeneration, // If true, create a new generation instead of a variant
@@ -246,13 +257,13 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   const { data: availableLoras } = usePublicLoras();
 
   // Img2Img mode hook - uses persisted settings
-  
+
   const img2imgHook = useImg2ImgMode({
     media,
     selectedProjectId,
     isVideo,
     sourceUrlForTasks,
-    toolTypeOverride: 'edit-images',
+    toolTypeOverride: TOOL_IDS.EDIT_IMAGES,
     createAsGeneration,
     availableLoras,
     // Pass persisted values
@@ -280,6 +291,10 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     loraManager: img2imgLoraManager,
   } = img2imgHook;
 
+  // ========================================
+  // Persistence sync effects
+  // ========================================
+
   // Track if we've synced from persistence
   const hasInitializedFromPersistenceRef = useRef(false);
   // Track the last known good prompt to prevent race conditions
@@ -287,51 +302,51 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   // Debounce timer for prompt sync
   const promptSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync persistence → useInpainting (on initial load)
+  // Sync persistence -> useInpainting (on initial load)
   useEffect(() => {
     if (!isEditSettingsReady || hasInitializedFromPersistenceRef.current) return;
-    
+
     // Sync editMode
     if (persistedEditMode && persistedEditMode !== editMode) {
       setEditMode(persistedEditMode);
     }
-    
+
     // Sync numGenerations
     if (numGenerations !== inpaintNumGenerations) {
       setInpaintNumGenerations(numGenerations);
     }
-    
+
     // Sync prompt (only if has persisted settings - otherwise leave empty to avoid resetting user input)
     if (hasPersistedSettings && persistedPrompt && persistedPrompt !== inpaintPrompt) {
       setInpaintPrompt(persistedPrompt);
       lastUserPromptRef.current = persistedPrompt;
     }
-    
+
     hasInitializedFromPersistenceRef.current = true;
   }, [isEditSettingsReady, hasPersistedSettings, persistedEditMode, editMode, setEditMode, numGenerations, inpaintNumGenerations, setInpaintNumGenerations, persistedPrompt, inpaintPrompt, setInpaintPrompt]);
 
-  // Sync editMode: useInpainting → persistence (on change)
+  // Sync editMode: useInpainting -> persistence (on change)
   useEffect(() => {
     if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
-    
+
     if (editMode !== persistedEditMode) {
       setPersistedEditMode(editMode);
     }
   }, [editMode, persistedEditMode, setPersistedEditMode, isEditSettingsReady]);
 
-  // Sync numGenerations: useInpainting → persistence (on change)
+  // Sync numGenerations: useInpainting -> persistence (on change)
   useEffect(() => {
     if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
-    
+
     if (inpaintNumGenerations !== numGenerations) {
       setNumGenerations(inpaintNumGenerations);
     }
   }, [inpaintNumGenerations, numGenerations, setNumGenerations, isEditSettingsReady]);
 
-  // Sync prompt: useInpainting → persistence (on change, with debounce to prevent race conditions)
+  // Sync prompt: useInpainting -> persistence (on change, with debounce to prevent race conditions)
   useEffect(() => {
     if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
-    
+
     // If inpaintPrompt is reset to empty but we had a user prompt, it's likely a race condition - ignore
     if (inpaintPrompt === '' && lastUserPromptRef.current !== '' && persistedPrompt !== '') {
       // Restore the prompt from persistence after a short delay
@@ -343,13 +358,13 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
       }, 100);
       return;
     }
-    
+
     if (inpaintPrompt !== persistedPrompt) {
       setPersistedPrompt(inpaintPrompt);
       lastUserPromptRef.current = inpaintPrompt;
     }
   }, [inpaintPrompt, persistedPrompt, setPersistedPrompt, setInpaintPrompt, isEditSettingsReady]);
-  
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
@@ -359,7 +374,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
 
   const { sourceGenerationData } = useSourceGeneration({
     media,
-    onOpenExternalGeneration: onNavigateToGeneration ? 
+    onOpenExternalGeneration: onNavigateToGeneration ?
       async (id) => onNavigateToGeneration(id) : undefined
   });
 
@@ -371,7 +386,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     paginatedDerived,
     setDerivedPage,
   } = lineageHook;
-  
+
   const starToggleHook = useStarToggle({ media });
   const { localStarred, toggleStarMutation, handleToggleStar } = starToggleHook;
 
@@ -531,158 +546,380 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     magicEditTasksCreated,
   ]);
 
-  if (isMobile) {
+  return {
+    // Layout / env
+    isMobile,
+    selectedProjectId,
+    isCloudMode,
+    isVideo,
+
+    // Refs
+    imageContainerRef,
+    canvasRef,
+    maskCanvasRef,
+
+    // Display state
+    effectiveImageUrl,
+    isFlippedHorizontally,
+    isSaving,
+    imageDimensions,
+    setImageDimensions,
+
+    // Upscale
+    isUpscaling,
+    isPendingUpscale,
+    hasUpscaledVersion,
+    showingUpscaled,
+    handleUpscale,
+    handleToggleUpscaled,
+
+    // Inpainting canvas state
+    isInpaintMode,
+    editMode,
+    brushStrokes,
+    currentStroke,
+    isDrawing,
+    isEraseMode,
+    brushSize,
+    annotationMode,
+    selectedShapeId,
+    isAnnotateMode,
+    handleKonvaPointerDown,
+    handleKonvaPointerMove,
+    handleKonvaPointerUp,
+    handleShapeClick,
+    strokeOverlayRef,
+
+    // Annotation actions
+    getDeleteButtonPosition,
+    handleToggleFreeForm,
+    handleDeleteSelected,
+
+    // Mode controls
+    setIsInpaintMode,
+    setEditMode,
+    setBrushSize,
+    setIsEraseMode,
+    setAnnotationMode,
+    isSpecialEditMode,
+    handleEnterMagicEditMode,
+
+    // Floating tool controls
+    repositionTransform,
+    setScale,
+    setRotation,
+    toggleFlipH,
+    toggleFlipV,
+    resetTransform,
+    handleUndo,
+    handleClearMask,
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
+
+    // Reposition transform style
+    getTransformStyle,
+
+    // Star toggle
+    localStarred,
+    toggleStarMutation,
+    handleToggleStar,
+
+    // Download
+    handleDownload,
+
+    // EditModePanel props
+    sourceGenerationData,
+    handleUnifiedGenerate,
+    handleGenerateAnnotatedEdit,
+    handleGenerateReposition,
+    handleSaveAsVariant,
+    handleGenerateImg2Img,
+    img2imgLoraManager,
+    availableLoras,
+    imageEditValue,
+  };
+}
+
+// ============================================================================
+// AnnotationButtons — desktop-only shape manipulation buttons
+// ============================================================================
+
+interface AnnotationButtonsProps {
+  selectedShapeId: string | null;
+  isAnnotateMode: boolean;
+  brushStrokes: ReturnType<typeof useInlineEditState>['brushStrokes'];
+  getDeleteButtonPosition: () => { x: number; y: number } | null;
+  handleToggleFreeForm: () => void;
+  handleDeleteSelected: () => void;
+}
+
+function AnnotationButtons({
+  selectedShapeId,
+  isAnnotateMode,
+  brushStrokes,
+  getDeleteButtonPosition,
+  handleToggleFreeForm,
+  handleDeleteSelected,
+}: AnnotationButtonsProps) {
+  if (!selectedShapeId || !isAnnotateMode) return null;
+
+  const buttonPos = getDeleteButtonPosition();
+  if (!buttonPos) return null;
+
+  const selectedShape = brushStrokes.find(s => s.id === selectedShapeId);
+  const isFreeForm = selectedShape?.isFreeForm || false;
+
+  return (
+    <div className="absolute z-[100] flex gap-2" style={{
+      left: `${buttonPos.x}px`,
+      top: `${buttonPos.y}px`,
+      transform: 'translate(-50%, -50%)'
+    }}>
+      <button
+        onClick={handleToggleFreeForm}
+        className={cn(
+          "rounded-full p-2 shadow-lg transition-colors",
+          isFreeForm
+            ? "bg-purple-600 hover:bg-purple-700 text-white"
+            : "bg-gray-700 hover:bg-gray-600 text-white"
+        )}
+        title={isFreeForm
+          ? "Switch to rectangle mode (edges move linearly)"
+          : "Switch to free-form mode (rhombus/non-orthogonal angles)"}
+      >
+        {isFreeForm ? <Diamond className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+      </button>
+
+      <button
+        onClick={handleDeleteSelected}
+        className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-colors"
+        title="Delete annotation (or press DELETE key)"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
+// InlineEditCanvas — media display with all overlay controls
+// ============================================================================
+
+interface InlineEditCanvasProps {
+  variant: 'mobile' | 'desktop';
+  state: ReturnType<typeof useInlineEditState>;
+  media: GenerationRow;
+  onClose: () => void;
+}
+
+function InlineEditCanvas({ variant, state, media, onClose }: InlineEditCanvasProps) {
+  const isMobileVariant = variant === 'mobile';
+
+  return (
+    <>
+      <MediaDisplayWithCanvas
+        effectiveImageUrl={state.effectiveImageUrl}
+        thumbUrl={media.thumbnail_url || media.thumbUrl}
+        isVideo={state.isVideo}
+        isFlippedHorizontally={state.isFlippedHorizontally}
+        isSaving={state.isSaving}
+        isInpaintMode={state.isInpaintMode}
+        editMode={state.editMode}
+        repositionTransformStyle={state.editMode === 'reposition' ? state.getTransformStyle() : undefined}
+        imageContainerRef={state.imageContainerRef}
+        canvasRef={state.canvasRef}
+        maskCanvasRef={state.maskCanvasRef}
+        onImageLoad={state.setImageDimensions}
+        variant={isMobileVariant ? "mobile-stacked" : "desktop-side-panel"}
+        containerClassName={isMobileVariant ? "w-full h-full" : "max-w-full max-h-full"}
+        debugContext={isMobileVariant ? "Mobile Inline" : "InlineEdit"}
+        // Konva stroke overlay props
+        imageDimensions={state.imageDimensions}
+        brushStrokes={state.brushStrokes}
+        currentStroke={state.currentStroke}
+        isDrawing={state.isDrawing}
+        isEraseMode={state.isEraseMode}
+        brushSize={state.brushSize}
+        annotationMode={state.editMode === 'annotate' ? state.annotationMode : null}
+        selectedShapeId={state.selectedShapeId}
+        onStrokePointerDown={state.handleKonvaPointerDown}
+        onStrokePointerMove={state.handleKonvaPointerMove}
+        onStrokePointerUp={state.handleKonvaPointerUp}
+        onShapeClick={state.handleShapeClick}
+        strokeOverlayRef={state.strokeOverlayRef}
+      />
+
+      {!isMobileVariant && (
+        <AnnotationButtons
+          selectedShapeId={state.selectedShapeId}
+          isAnnotateMode={state.isAnnotateMode}
+          brushStrokes={state.brushStrokes}
+          getDeleteButtonPosition={state.getDeleteButtonPosition}
+          handleToggleFreeForm={state.handleToggleFreeForm}
+          handleDeleteSelected={state.handleDeleteSelected}
+        />
+      )}
+
+      {state.isSpecialEditMode && (
+        <FloatingToolControls
+          variant={isMobileVariant ? "mobile" : "tablet"}
+          editMode={state.editMode}
+          onSetEditMode={state.setEditMode}
+          brushSize={state.brushSize}
+          isEraseMode={state.isEraseMode}
+          onSetBrushSize={state.setBrushSize}
+          onSetIsEraseMode={state.setIsEraseMode}
+          annotationMode={state.annotationMode}
+          onSetAnnotationMode={state.setAnnotationMode}
+          repositionTransform={state.repositionTransform}
+          onRepositionScaleChange={state.setScale}
+          onRepositionRotationChange={state.setRotation}
+          onRepositionFlipH={state.toggleFlipH}
+          onRepositionFlipV={state.toggleFlipV}
+          onRepositionReset={state.resetTransform}
+          brushStrokes={state.brushStrokes}
+          onUndo={state.handleUndo}
+          onClearMask={state.handleClearMask}
+          panelPosition={state.inpaintPanelPosition}
+          onSetPanelPosition={state.setInpaintPanelPosition}
+        />
+      )}
+
+      <TopRightControls
+        isVideo={state.isVideo}
+        readOnly={false}
+        isSpecialEditMode={state.isSpecialEditMode}
+        selectedProjectId={state.selectedProjectId}
+        isCloudMode={state.isCloudMode}
+        showDownload={true}
+        handleDownload={state.handleDownload}
+        mediaId={media.id}
+        onClose={onClose}
+      />
+
+      <BottomLeftControls
+        isVideo={state.isVideo}
+        readOnly={false}
+        isSpecialEditMode={state.isSpecialEditMode}
+        selectedProjectId={state.selectedProjectId}
+        isCloudMode={state.isCloudMode}
+        handleEnterMagicEditMode={state.handleEnterMagicEditMode}
+        isUpscaling={state.isUpscaling}
+        isPendingUpscale={state.isPendingUpscale}
+        hasUpscaledVersion={state.hasUpscaledVersion}
+        showingUpscaled={state.showingUpscaled}
+        handleUpscale={state.handleUpscale}
+        handleToggleUpscaled={state.handleToggleUpscaled}
+      />
+
+      <BottomRightControls
+        isVideo={state.isVideo}
+        readOnly={false}
+        isSpecialEditMode={state.isSpecialEditMode}
+        selectedProjectId={state.selectedProjectId}
+        isCloudMode={state.isCloudMode}
+        localStarred={state.localStarred}
+        handleToggleStar={state.handleToggleStar}
+        toggleStarPending={state.toggleStarMutation.isPending}
+        isAddingToReferences={false}
+        addToReferencesSuccess={false}
+        handleAddToReferences={() => {}}
+      />
+    </>
+  );
+}
+
+// ============================================================================
+// InlineEditSidebar — EditModePanel or fallback placeholder
+// ============================================================================
+
+interface InlineEditSidebarProps {
+  variant: 'mobile' | 'desktop';
+  state: ReturnType<typeof useInlineEditState>;
+  media: GenerationRow;
+  onClose: () => void;
+  onNavigateToGeneration?: (generationId: string) => Promise<void>;
+}
+
+function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGeneration }: InlineEditSidebarProps) {
+  if (state.isSpecialEditMode) {
+    return (
+      <EditModePanel
+        variant={variant === 'mobile' ? 'mobile' : 'desktop'}
+        hideInfoEditToggle={true}
+        simplifiedHeader={true}
+        sourceGenerationData={state.sourceGenerationData}
+        onOpenExternalGeneration={onNavigateToGeneration ?
+          async (id) => onNavigateToGeneration(id) : undefined
+        }
+        currentMediaId={media.id}
+        handleUnifiedGenerate={state.handleUnifiedGenerate}
+        handleGenerateAnnotatedEdit={state.handleGenerateAnnotatedEdit}
+        handleGenerateReposition={state.handleGenerateReposition}
+        handleSaveAsVariant={state.handleSaveAsVariant}
+        handleGenerateImg2Img={state.handleGenerateImg2Img}
+        img2imgLoraManager={state.img2imgLoraManager}
+        availableLoras={state.availableLoras}
+        coreState={{ onClose }}
+        imageEditState={state.imageEditValue}
+      />
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <h3 className="text-xl font-medium">Image Editor</h3>
+      <p className="text-muted-foreground">Select an option to start editing</p>
+
+      <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
+        <Button onClick={() => {
+          state.setIsInpaintMode(true);
+          state.setEditMode('inpaint');
+        }} className="w-full">
+          Inpaint / Erase
+        </Button>
+
+        <Button onClick={state.handleEnterMagicEditMode} variant="secondary" className="w-full">
+          Magic Edit
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// InlineEditView — layout orchestrator (mobile vs desktop)
+// ============================================================================
+
+export function InlineEditView({ media, onClose, onNavigateToGeneration }: InlineEditViewProps) {
+  if (!media) return null;
+
+  const state = useInlineEditState(media, onClose, onNavigateToGeneration);
+
+  if (state.isMobile) {
     return (
       <TooltipProvider delayDuration={500}>
         <div className="w-full flex flex-col bg-transparent">
-          <div 
+          <div
               className="flex items-center justify-center relative bg-black w-full shrink-0 rounded-t-2xl overflow-hidden"
               style={{ height: '45dvh', touchAction: 'pan-y' }}
             >
-               <MediaDisplayWithCanvas
-                 effectiveImageUrl={effectiveImageUrl}
-                 thumbUrl={media.thumbnail_url || media.thumbUrl}
-                 isVideo={isVideo}
-                 isFlippedHorizontally={isFlippedHorizontally}
-                 isSaving={isSaving}
-                 isInpaintMode={isInpaintMode}
-                 editMode={editMode}
-                 repositionTransformStyle={editMode === 'reposition' ? getTransformStyle() : undefined}
-                 imageContainerRef={imageContainerRef}
-                 canvasRef={canvasRef}
-                 maskCanvasRef={maskCanvasRef}
-                 onImageLoad={setImageDimensions}
-                 variant="mobile-stacked"
-                 containerClassName="w-full h-full"
-                 debugContext="Mobile Inline"
-                 // Konva stroke overlay props
-                 imageDimensions={imageDimensions}
-                 brushStrokes={brushStrokes}
-                 currentStroke={currentStroke}
-                 isDrawing={isDrawing}
-                 isEraseMode={isEraseMode}
-                 brushSize={brushSize}
-                 annotationMode={editMode === 'annotate' ? annotationMode : null}
-                 selectedShapeId={selectedShapeId}
-                 onStrokePointerDown={handleKonvaPointerDown}
-                 onStrokePointerMove={handleKonvaPointerMove}
-                 onStrokePointerUp={handleKonvaPointerUp}
-                 onShapeClick={handleShapeClick}
-                 strokeOverlayRef={strokeOverlayRef}
-               />
-             
-               {isSpecialEditMode && (
-                   <FloatingToolControls
-                     variant="mobile"
-                     editMode={editMode}
-                     onSetEditMode={setEditMode}
-                     brushSize={brushSize}
-                     isEraseMode={isEraseMode}
-                     onSetBrushSize={setBrushSize}
-                     onSetIsEraseMode={setIsEraseMode}
-                     annotationMode={annotationMode}
-                     onSetAnnotationMode={setAnnotationMode}
-                     repositionTransform={repositionTransform}
-                     onRepositionScaleChange={setScale}
-                     onRepositionRotationChange={setRotation}
-                     onRepositionFlipH={toggleFlipH}
-                     onRepositionFlipV={toggleFlipV}
-                     onRepositionReset={resetTransform}
-                     brushStrokes={brushStrokes}
-                     onUndo={handleUndo}
-                     onClearMask={handleClearMask}
-                     panelPosition={inpaintPanelPosition}
-                     onSetPanelPosition={setInpaintPanelPosition}
-                   />
-                 )}
+              <InlineEditCanvas variant="mobile" state={state} media={media} onClose={onClose} />
+            </div>
 
-                 <TopRightControls
-                   isVideo={isVideo}
-                   readOnly={false}
-                   isSpecialEditMode={isSpecialEditMode}
-                   selectedProjectId={selectedProjectId}
-                   isCloudMode={isCloudMode}
-                   showDownload={true}
-                   handleDownload={handleDownload}
-                   mediaId={media.id}
-                   onClose={onClose}
-                 />
-
-                 <BottomLeftControls
-                   isVideo={isVideo}
-                   readOnly={false}
-                   isSpecialEditMode={isSpecialEditMode}
-                   selectedProjectId={selectedProjectId}
-                   isCloudMode={isCloudMode}
-                   handleEnterMagicEditMode={handleEnterMagicEditMode}
-                   isUpscaling={isUpscaling}
-                   isPendingUpscale={isPendingUpscale}
-                   hasUpscaledVersion={hasUpscaledVersion}
-                   showingUpscaled={showingUpscaled}
-                   handleUpscale={handleUpscale}
-                   handleToggleUpscaled={handleToggleUpscaled}
-                 />
-
-                 <BottomRightControls
-                   isVideo={isVideo}
-                   readOnly={false}
-                   isSpecialEditMode={isSpecialEditMode}
-                   selectedProjectId={selectedProjectId}
-                   isCloudMode={isCloudMode}
-                   localStarred={localStarred}
-                   handleToggleStar={handleToggleStar}
-                   toggleStarPending={toggleStarMutation.isPending}
-                   isAddingToReferences={false}
-                   addToReferencesSuccess={false}
-                   handleAddToReferences={() => {}}
-                 />
-             </div>
-
-            <div 
+            <div
               className={cn(
                 "bg-background border-t border-border relative z-[60] w-full rounded-b-2xl pb-8"
               )}
               style={{ minHeight: '55dvh' }}
             >
-              {isSpecialEditMode ? (
-                <EditModePanel
-                  variant="mobile"
-                  hideInfoEditToggle={true}
-                  simplifiedHeader={true}
-                  sourceGenerationData={sourceGenerationData}
-                  onOpenExternalGeneration={onNavigateToGeneration ?
-                    async (id) => onNavigateToGeneration(id) : undefined
-                  }
-                  currentMediaId={media.id}
-                  handleUnifiedGenerate={handleUnifiedGenerate}
-                  handleGenerateAnnotatedEdit={handleGenerateAnnotatedEdit}
-                  handleGenerateReposition={handleGenerateReposition}
-                  handleSaveAsVariant={handleSaveAsVariant}
-                  handleGenerateImg2Img={handleGenerateImg2Img}
-                  img2imgLoraManager={img2imgLoraManager}
-                  availableLoras={availableLoras}
-                  coreState={{ onClose }}
-                  imageEditState={imageEditValue}
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
-                  <h3 className="text-xl font-medium">Image Editor</h3>
-                  <p className="text-muted-foreground">Select an option to start editing</p>
-
-                  <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
-                    <Button onClick={() => {
-                      setIsInpaintMode(true);
-                      setEditMode('inpaint');
-                    }} className="w-full">
-                      Inpaint / Erase
-                    </Button>
-
-                    <Button onClick={handleEnterMagicEditMode} variant="secondary" className="w-full">
-                      Magic Edit
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <InlineEditSidebar
+                variant="mobile"
+                state={state}
+                media={media}
+                onClose={onClose}
+                onNavigateToGeneration={onNavigateToGeneration}
+              />
             </div>
           </div>
         </TooltipProvider>
@@ -692,197 +929,28 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   return (
     <TooltipProvider delayDuration={500}>
       <div className="w-full h-full flex bg-transparent overflow-hidden">
-        <div 
+        <div
             className="flex-1 flex items-center justify-center relative bg-black rounded-l-xl overflow-hidden"
             style={{ width: '60%', height: '100%' }}
           >
-            <MediaDisplayWithCanvas
-              effectiveImageUrl={effectiveImageUrl}
-              thumbUrl={media.thumbnail_url || media.thumbUrl}
-              isVideo={isVideo}
-              isFlippedHorizontally={isFlippedHorizontally}
-              isSaving={isSaving}
-              isInpaintMode={isInpaintMode}
-              editMode={editMode}
-              repositionTransformStyle={editMode === 'reposition' ? getTransformStyle() : undefined}
-              imageContainerRef={imageContainerRef}
-              canvasRef={canvasRef}
-              maskCanvasRef={maskCanvasRef}
-              onImageLoad={setImageDimensions}
-              variant="desktop-side-panel"
-              containerClassName="max-w-full max-h-full"
-              debugContext="InlineEdit"
-              // Konva stroke overlay props
-              imageDimensions={imageDimensions}
-              brushStrokes={brushStrokes}
-              currentStroke={currentStroke}
-              isDrawing={isDrawing}
-              isEraseMode={isEraseMode}
-              brushSize={brushSize}
-              annotationMode={editMode === 'annotate' ? annotationMode : null}
-              selectedShapeId={selectedShapeId}
-              onStrokePointerDown={handleKonvaPointerDown}
-              onStrokePointerMove={handleKonvaPointerMove}
-              onStrokePointerUp={handleKonvaPointerUp}
-              onShapeClick={handleShapeClick}
-              strokeOverlayRef={strokeOverlayRef}
-            />
-
-            {selectedShapeId && isAnnotateMode && (() => {
-              const buttonPos = getDeleteButtonPosition();
-              if (!buttonPos) return null;
-              
-              const selectedShape = brushStrokes.find(s => s.id === selectedShapeId);
-              const isFreeForm = selectedShape?.isFreeForm || false;
-              
-              return (
-                <div className="absolute z-[100] flex gap-2" style={{
-                  left: `${buttonPos.x}px`,
-                  top: `${buttonPos.y}px`,
-                  transform: 'translate(-50%, -50%)'
-                }}>
-                  <button
-                    onClick={handleToggleFreeForm}
-                    className={cn(
-                      "rounded-full p-2 shadow-lg transition-colors",
-                      isFreeForm 
-                        ? "bg-purple-600 hover:bg-purple-700 text-white" 
-                        : "bg-gray-700 hover:bg-gray-600 text-white"
-                    )}
-                    title={isFreeForm 
-                      ? "Switch to rectangle mode (edges move linearly)" 
-                      : "Switch to free-form mode (rhombus/non-orthogonal angles)"}
-                  >
-                    {isFreeForm ? <Diamond className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-                  </button>
-                  
-                  <button
-                    onClick={handleDeleteSelected}
-                    className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-colors"
-                    title="Delete annotation (or press DELETE key)"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              );
-            })()}
-
-              {isSpecialEditMode && (
-                <FloatingToolControls
-                  variant={isMobile ? "mobile" : "tablet"}
-                  editMode={editMode}
-                  onSetEditMode={setEditMode}
-                  brushSize={brushSize}
-                  isEraseMode={isEraseMode}
-                  onSetBrushSize={setBrushSize}
-                  onSetIsEraseMode={setIsEraseMode}
-                  annotationMode={annotationMode}
-                  onSetAnnotationMode={setAnnotationMode}
-                  repositionTransform={repositionTransform}
-                  onRepositionScaleChange={setScale}
-                  onRepositionRotationChange={setRotation}
-                  onRepositionFlipH={toggleFlipH}
-                  onRepositionFlipV={toggleFlipV}
-                  onRepositionReset={resetTransform}
-                  brushStrokes={brushStrokes}
-                  onUndo={handleUndo}
-                  onClearMask={handleClearMask}
-                  panelPosition={inpaintPanelPosition}
-                  onSetPanelPosition={setInpaintPanelPosition}
-                />
-              )}
-
-              <BottomLeftControls
-                isVideo={isVideo}
-                readOnly={false}
-                isSpecialEditMode={isSpecialEditMode}
-                selectedProjectId={selectedProjectId}
-                isCloudMode={isCloudMode}
-                handleEnterMagicEditMode={handleEnterMagicEditMode}
-                isUpscaling={isUpscaling}
-                isPendingUpscale={isPendingUpscale}
-                hasUpscaledVersion={hasUpscaledVersion}
-                showingUpscaled={showingUpscaled}
-                handleUpscale={handleUpscale}
-                handleToggleUpscaled={handleToggleUpscaled}
-              />
-
-              <BottomRightControls
-                isVideo={isVideo}
-                readOnly={false}
-                isSpecialEditMode={isSpecialEditMode}
-                selectedProjectId={selectedProjectId}
-                isCloudMode={isCloudMode}
-                localStarred={localStarred}
-                handleToggleStar={handleToggleStar}
-                toggleStarPending={toggleStarMutation.isPending}
-                isAddingToReferences={false}
-                addToReferencesSuccess={false}
-                handleAddToReferences={() => {}}
-              />
-
-              <TopRightControls
-                isVideo={isVideo}
-                readOnly={false}
-                isSpecialEditMode={isSpecialEditMode}
-                selectedProjectId={selectedProjectId}
-                isCloudMode={isCloudMode}
-                showDownload={true}
-                handleDownload={handleDownload}
-                mediaId={media.id}
-                onClose={onClose}
-              />
+            <InlineEditCanvas variant="desktop" state={state} media={media} onClose={onClose} />
           </div>
 
-          <div 
+          <div
             className={cn(
               "bg-background border-l border-border overflow-y-auto relative z-[60] rounded-r-xl"
             )}
             style={{ width: '40%', height: '100%' }}
           >
-            {isSpecialEditMode ? (
-              <EditModePanel
-                variant="desktop"
-                hideInfoEditToggle={true}
-                simplifiedHeader={true}
-                sourceGenerationData={sourceGenerationData}
-                onOpenExternalGeneration={onNavigateToGeneration ?
-                  async (id) => onNavigateToGeneration(id) : undefined
-                }
-                currentMediaId={media.id}
-                handleUnifiedGenerate={handleUnifiedGenerate}
-                handleGenerateAnnotatedEdit={handleGenerateAnnotatedEdit}
-                handleGenerateReposition={handleGenerateReposition}
-                handleSaveAsVariant={handleSaveAsVariant}
-                handleGenerateImg2Img={handleGenerateImg2Img}
-                img2imgLoraManager={img2imgLoraManager}
-                availableLoras={availableLoras}
-                coreState={{ onClose }}
-                imageEditState={imageEditValue}
-                editFormState={editFormValue}
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
-                <h3 className="text-xl font-medium">Image Editor</h3>
-                <p className="text-muted-foreground">Select an option to start editing</p>
-
-                <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
-                  <Button onClick={() => {
-                    setIsInpaintMode(true);
-                    setEditMode('inpaint');
-                  }} className="w-full">
-                    Inpaint / Erase
-                  </Button>
-
-                  <Button onClick={handleEnterMagicEditMode} variant="secondary" className="w-full">
-                    Magic Edit
-                  </Button>
-                </div>
-              </div>
-            )}
+            <InlineEditSidebar
+              variant="desktop"
+              state={state}
+              media={media}
+              onClose={onClose}
+              onNavigateToGeneration={onNavigateToGeneration}
+            />
           </div>
         </div>
       </TooltipProvider>
   );
 }
-

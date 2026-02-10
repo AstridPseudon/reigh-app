@@ -19,23 +19,24 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { AppEnv, type AppEnvValue } from '@/types/env';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 // Tool definitions matching ToolSelectorPage
 const processTools = [
   {
-    id: 'image-generation',
+    id: TOOL_IDS.IMAGE_GENERATION,
     name: 'Generate Images',
     description: 'Create images using AI',
-    tool: toolsUIManifest.find(t => t.id === 'image-generation'),
+    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.IMAGE_GENERATION),
     icon: Paintbrush,
     gradient: 'from-wes-vintage-gold via-wes-mustard to-wes-yellow',
     darkIconColor: '#a67d2a',
   },
   {
-    id: 'travel-between-images',
+    id: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
     name: 'Travel Between Images',
     description: 'Transform images to video',
-    tool: toolsUIManifest.find(t => t.id === 'travel-between-images'),
+    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.TRAVEL_BETWEEN_IMAGES),
     icon: Video,
     gradient: 'from-wes-mint via-wes-sage to-wes-dusty-blue',
     darkIconColor: '#3d8a62',
@@ -44,37 +45,37 @@ const processTools = [
 
 const assistantTools = [
   {
-    id: 'edit-images',
+    id: TOOL_IDS.EDIT_IMAGES,
     name: 'Edit Images',
     description: 'Transform images',
-    tool: toolsUIManifest.find(t => t.id === 'edit-images'),
+    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.EDIT_IMAGES),
     icon: Edit,
     gradient: 'from-wes-mustard via-wes-vintage-gold to-wes-coral',
     darkIconColor: '#a68018',
   },
   {
-    id: 'edit-video',
+    id: TOOL_IDS.EDIT_VIDEO,
     name: 'Edit Videos',
     description: 'Regenerate portions',
-    tool: toolsUIManifest.find(t => t.id === 'edit-video'),
+    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.EDIT_VIDEO),
     icon: Clapperboard,
     gradient: 'from-wes-dusty-blue via-wes-lavender to-wes-mint',
     darkIconColor: '#4a7099',
   },
   {
-    id: 'join-clips',
+    id: TOOL_IDS.JOIN_CLIPS,
     name: 'Join Clips',
     description: 'Connect video clips',
-    tool: toolsUIManifest.find(t => t.id === 'join-clips'),
+    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.JOIN_CLIPS),
     icon: Link2,
     gradient: 'from-wes-pink via-wes-salmon to-wes-coral',
     darkIconColor: '#e07070',
   },
   {
-    id: 'character-animate',
+    id: TOOL_IDS.CHARACTER_ANIMATE,
     name: 'Characters',
     description: 'Bring to life',
-    tool: toolsUIManifest.find(t => t.id === 'character-animate'),
+    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.CHARACTER_ANIMATE),
     icon: Users,
     gradient: 'from-wes-mint via-wes-sage to-wes-dusty-blue',
     darkIconColor: '#3d8a62',
@@ -234,7 +235,7 @@ const ToolsPaneComponent: React.FC = () => {
     if (!tool) return false;
     
     // Character Animate: check cloud mode
-    if (toolId === 'character-animate') {
+    if (toolId === TOOL_IDS.CHARACTER_ANIMATE) {
       const envCheck = tool.environments.includes(currentEnv) || currentEnv === AppEnv.DEV;
       return envCheck && (isLoadingGenerationMethods || isCloudGenerationEnabled);
     }

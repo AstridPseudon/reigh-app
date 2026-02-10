@@ -40,20 +40,7 @@ export const useSourceGeneration = ({
   useEffect(() => {
     const basedOnId = media.based_on;
     const basedOnFromMetadata = (media.metadata as Record<string, unknown> | null)?.based_on as string | undefined;
-    const effectMediaKeys = Object.keys(media);
-    
-    console.log('  mediaId:', media.id.substring(0, 8));
-    console.log('  hasBasedOnField:', !!basedOnId);
-    console.log('  basedOnValue:', basedOnId);
-    console.log('  hasBasedOnInMetadata:', !!basedOnFromMetadata);
-    console.log('  basedOnInMetadata:', basedOnFromMetadata);
-    console.log('  hasOnOpenExternalGeneration:', !!onOpenExternalGeneration);
-    console.log('  mediaType:', media.type);
-    console.log('  mediaKeys:', effectMediaKeys);
-    console.log('  hasBasedOnInKeys:', effectMediaKeys.includes('based_on'));
-    console.log('  willFetchSource:', !!basedOnId || !!basedOnFromMetadata);
-    console.log('  timestamp:', Date.now());
-    
+
     // Check both direct field and metadata
     const effectiveBasedOnId = basedOnId || basedOnFromMetadata;
     
@@ -63,7 +50,6 @@ export const useSourceGeneration = ({
     }
     
     const fetchSourceGeneration = async () => {
-      
       try {
         // Fetch source generation with shot associations and primary variant
         // Use left join (no !inner) so we get the generation even if it's not in any shot

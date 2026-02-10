@@ -15,15 +15,13 @@
  */
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import type { GenerationRow, GenerationParams, Shot } from '@/types/shots';
+import type { GenerationRow, Shot } from '@/types/shots';
 import type { SegmentSlotModeData, AdjacentSegmentsData, ShotOption, TaskDetailsData } from './types';
-import { ASPECT_RATIO_TO_RESOLUTION, findClosestAspectRatio, parseRatio } from '@/shared/lib/aspectRatios';
+
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
-import { usePendingGenerationTasks } from '@/shared/hooks/usePendingGenerationTasks';
-import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import { LightboxProviders } from './components';
 import { LightboxLayout } from './components/layouts';
 import { SegmentSlotFormView } from './components/SegmentSlotFormView';
@@ -38,8 +36,9 @@ import {
   useLightboxVideoMode,
   useSharedLightboxState,
   useLightboxStateValue,
-  useLightboxLayoutProps,
+  useLightboxWorkflowProps,
   useReplaceInShot,
+  useLightboxVariantBadges,
 } from './hooks';
 
 // Import components
@@ -47,8 +46,7 @@ import { LightboxShell } from './components';
 import { VideoEditProvider, type VideoEditState } from './contexts/VideoEditContext';
 
 // Import utils
-import { downloadMedia } from './utils';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { extractDimensionsFromMedia, handleLightboxDownload } from './utils';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { useLoadVariantImages } from '@/shared/hooks/useLoadVariantImages';
 
@@ -299,64 +297,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   // IMAGE DIMENSIONS (for video thumbnails)
   // ========================================
 
-  const resolutionToDimensions = (resolution: string): { width: number; height: number } | null => {
-    if (!resolution || typeof resolution !== 'string' || !resolution.includes('x')) return null;
-    const [w, h] = resolution.split('x').map(Number);
-    if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
-      return { width: w, height: h };
-    }
-    return null;
-  };
-
-  const aspectRatioToDimensions = (aspectRatio: string): { width: number; height: number } | null => {
-    if (!aspectRatio) return null;
-    const directResolution = ASPECT_RATIO_TO_RESOLUTION[aspectRatio];
-    if (directResolution) return resolutionToDimensions(directResolution);
-    const ratio = parseRatio(aspectRatio);
-    if (!isNaN(ratio)) {
-      const closestAspectRatio = findClosestAspectRatio(ratio);
-      const closestResolution = ASPECT_RATIO_TO_RESOLUTION[closestAspectRatio];
-      if (closestResolution) return resolutionToDimensions(closestResolution);
-    }
-    return null;
-  };
-
-  const extractDimensionsFromMedia = useCallback((mediaObj: typeof media): { width: number; height: number } | null => {
-    if (!mediaObj) return null;
-    const params = mediaObj.params as GenerationParams | undefined;
-    const metadata = mediaObj.metadata as Record<string, unknown> | undefined;
-
-    // Check metadata for width/height (these may exist as extended metadata fields)
-    if (metadata?.width && metadata?.height && typeof metadata.width === 'number' && typeof metadata.height === 'number') {
-      return { width: metadata.width, height: metadata.height };
-    }
-
-    const resolutionSources = [
-      params?.resolution,
-      (params as Record<string, unknown>)?.originalParams,
-      metadata?.resolution,
-    ];
-    for (const res of resolutionSources) {
-      if (typeof res === 'string') {
-        const dims = resolutionToDimensions(res);
-        if (dims) return dims;
-      }
-    }
-
-    const aspectRatioSources = [
-      params?.aspect_ratio,
-      metadata?.aspect_ratio,
-    ];
-    for (const ar of aspectRatioSources) {
-      if (ar && typeof ar === 'string') {
-        const dims = aspectRatioToDimensions(ar);
-        if (dims) return dims;
-      }
-    }
-
-    return null;
-  }, []);
-
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(() => {
     return media ? extractDimensionsFromMedia(media) : null;
   });
@@ -365,7 +305,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     if (!media) return;
     const dims = extractDimensionsFromMedia(media);
     if (dims) setImageDimensions(dims);
-  }, [media?.id, extractDimensionsFromMedia]);
+  }, [media?.id]);
 
   // Effective URL for video (the video URL, not thumbnail)
   // This is used as fallback in useEffectiveMedia when there's no activeVariant
@@ -579,23 +519,15 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   ]);
 
   // ========================================
-  // PENDING TASKS
+  // PENDING TASKS & VARIANT BADGES
   // ========================================
 
-  const pendingTaskGenerationId = regenerateFormProps?.pairShotGenerationId || actualGenerationId;
-  const { pendingCount: pendingTaskCount } = usePendingGenerationTasks(pendingTaskGenerationId, selectedProjectId);
-
-  const unviewedVariantCount = useMemo(() => {
-    if (!variants.list || variants.list.length === 0) return 0;
-    return variants.list.filter((v) => v.viewed_at === null).length;
-  }, [variants.list]);
-
-  const { markAllViewed: markAllViewedMutation } = useMarkVariantViewed();
-  const handleMarkAllViewed = useCallback(() => {
-    if (variantFetchGenerationId) {
-      markAllViewedMutation(variantFetchGenerationId);
-    }
-  }, [markAllViewedMutation, variantFetchGenerationId]);
+  const { pendingTaskCount, unviewedVariantCount, handleMarkAllViewed } = useLightboxVariantBadges({
+    pendingTaskGenerationId: regenerateFormProps?.pairShotGenerationId || actualGenerationId,
+    selectedProjectId,
+    variants: variants.list,
+    variantFetchGenerationId,
+  });
 
   // ========================================
   // LOAD VARIANT IMAGES
@@ -674,6 +606,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     // Mode state
     isInVideoEditMode,
     videoEditSubMode,
+    isVideoTrimModeActive,
+    isVideoEditModeActive,
 
     // Mode setters
     setVideoEditSubMode,
@@ -700,6 +634,10 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     trimCurrentTime,
     setTrimCurrentTime,
 
+    // Refs & managers
+    trimVideoRef,
+    videoEditing,
+
     // Enhance settings
     enhanceSettings: videoEnhance.settings,
     updateEnhanceSetting: videoEnhance.updateSetting,
@@ -707,6 +645,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     // Mode state
     isInVideoEditMode,
     videoEditSubMode,
+    isVideoTrimModeActive,
+    isVideoEditModeActive,
     // Mode setters
     setVideoEditSubMode,
     // Mode handlers
@@ -727,6 +667,9 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     setVideoDuration,
     trimCurrentTime,
     setTrimCurrentTime,
+    // Refs & managers
+    trimVideoRef,
+    videoEditing,
     // Enhance
     videoEnhance.settings,
     videoEnhance.updateSetting,
@@ -736,34 +679,16 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   // HANDLERS
   // ========================================
 
-  const handleDownload = async () => {
-    let urlToDownload: string | undefined;
-    const intendedVariantId = intendedActiveVariantIdRef.current;
-
-    if (intendedVariantId && variants.list.length > 0) {
-      const intendedVariant = variants.list.find((v) => v.id === intendedVariantId);
-      if (intendedVariant?.location) {
-        urlToDownload = intendedVariant.location;
-      }
-    }
-
-    if (!urlToDownload) {
-      urlToDownload = effectiveMedia.videoUrl;
-    }
-
-    if (!urlToDownload || !media) return;
-
-    setIsDownloading(true);
-    try {
-      const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, unknown> | null);
-      const prompt = media.params?.prompt ||
-                     (media.metadata as Record<string, unknown> | undefined)?.enhanced_prompt as string | undefined ||
-                     segmentOverrides.prompt ||
-                     (media.metadata as Record<string, unknown> | undefined)?.prompt as string | undefined;
-      await downloadMedia(urlToDownload, media.id, true, media.contentType, prompt);
-    } finally {
-      setIsDownloading(false);
-    }
+  const handleDownload = () => {
+    if (!media) return;
+    return handleLightboxDownload({
+      intendedVariantId: intendedActiveVariantIdRef.current,
+      variants: variants.list,
+      fallbackUrl: effectiveMedia.videoUrl,
+      media,
+      isVideo: true,
+      setIsDownloading,
+    });
   };
 
   const handleDelete = () => {
@@ -805,197 +730,93 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     ? 'Configure and generate this video segment. Use Tab or arrow keys to navigate between segments.'
     : 'View and interact with video in full screen. Use arrow keys to navigate, Escape to close.';
 
-  // Generation name (stubbed)
-  const generationName = media?.name || '';
-  const isEditingGenerationName = false;
-  const setIsEditingGenerationName = (_: boolean) => {};
-  const handleGenerationNameChange = (_: string) => {};
-
   // ========================================
-  // BUILD LAYOUT PROPS (via hook)
+  // BUILD CONTROLS PANEL PROPS (local — only when panel is shown)
   // ========================================
 
-  const { layoutProps } = useLightboxLayoutProps({
-    showPanel,
-    shouldShowSidePanel: shouldShowSidePanelWithTrim,
-    // Core
-    onClose,
-    readOnly,
-    selectedProjectId,
-    isMobile,
-    actualGenerationId: actualGenerationId || '',
-    // Media
-    media: media || ({} as GenerationRow),
-    isVideo: true,
-    effectiveMediaUrl: effectiveMedia.mediaUrl,
-    effectiveVideoUrl: effectiveMedia.videoUrl,
-    imageDimensions,
-    setImageDimensions,
-    // Variants
-    variants: variants.list,
-    activeVariant: variants.activeVariant,
-    primaryVariant: variants.primaryVariant,
-    isLoadingVariants: variants.isLoading,
-    setActiveVariantId: variants.setActiveVariantId,
-    setPrimaryVariant: variants.setPrimaryVariant,
-    deleteVariant: variants.deleteVariant,
-    promoteSuccess: variants.promoteSuccess,
-    isPromoting: variants.isPromoting,
-    handlePromoteToGeneration: variants.handlePromoteToGeneration,
-    isMakingMainVariant: makeMainVariant.isMaking,
-    canMakeMainVariant: makeMainVariant.canMake,
-    handleMakeMainVariant: makeMainVariant.handle,
-    variantParamsToLoad,
-    setVariantParamsToLoad,
-    variantsSectionRef,
+  const controlsPanelProps = useMemo(() => showPanel ? {
     // Video edit
-    isVideoTrimModeActive,
-    isVideoEditModeActive,
-    isInVideoEditMode,
-    trimVideoRef,
+    isCloudMode,
+    regenerateFormProps,
     trimState,
-    setStartTrim,
-    setEndTrim,
-    resetTrim,
+    onStartTrimChange: setStartTrim,
+    onEndTrimChange: setEndTrim,
+    onResetTrim: resetTrim,
     trimmedDuration,
     hasTrimChanges,
-    saveTrimmedVideo,
+    onSaveTrim: saveTrimmedVideo,
     isSavingTrim,
     trimSaveProgress,
     trimSaveError,
     trimSaveSuccess,
-    setVideoDuration,
-    setTrimCurrentTime,
+    videoUrl: effectiveMedia.videoUrl,
     trimCurrentTime,
+    trimVideoRef,
     videoEditing,
-    handleEnterVideoTrimMode,
-    handleEnterVideoReplaceMode,
-    handleEnterVideoRegenerateMode,
-    handleEnterVideoEnhanceMode,
-    handleExitVideoEditMode,
-    handleEnterVideoEditMode,
-    regenerateFormProps,
-    isCloudMode,
+    projectId: selectedProjectId,
     enhanceSettings: videoEnhance.settings,
     onUpdateEnhanceSetting: videoEnhance.updateSetting,
     onEnhanceGenerate: videoEnhance.handleGenerate,
     isEnhancing: videoEnhance.isGenerating,
     enhanceSuccess: videoEnhance.generateSuccess,
     canEnhance: videoEnhance.canSubmit,
-    // Edit mode (stubs for video)
-    isInpaintMode: false,
-    isAnnotateMode: false,
-    isSpecialEditMode: false,
-    editMode: 'text',
-    setEditMode: () => {},
-    setIsInpaintMode: () => {},
-    brushStrokes: [],
-    isEraseMode: false,
-    setIsEraseMode: () => {},
-    brushSize: 20,
-    setBrushSize: () => {},
-    annotationMode: null,
-    setAnnotationMode: () => {},
-    selectedShapeId: null,
-    onStrokeComplete: () => {},
-    onStrokesChange: () => {},
-    onSelectionChange: () => {},
-    onTextModeHint: () => {},
-    strokeOverlayRef: { current: null },
-    handleUndo: () => {},
-    handleClearMask: () => {},
-    getDeleteButtonPosition: () => null,
-    handleToggleFreeForm: () => {},
-    handleDeleteSelected: () => {},
-    isRepositionDragging: false,
-    repositionDragHandlers: {},
-    getTransformStyle: () => '',
-    repositionTransform: null,
-    setTranslateX: () => {},
-    setTranslateY: () => {},
-    setScale: () => {},
-    setRotation: () => {},
-    toggleFlipH: () => {},
-    toggleFlipV: () => {},
-    resetTransform: () => {},
-    imageContainerRef: { current: null },
-    isFlippedHorizontally: false,
-    isSaving: false,
-    handleExitInpaintMode: () => {},
-    inpaintPanelPosition: 'right',
-    setInpaintPanelPosition: () => {},
-    // Edit form props (stubs for video)
-    inpaintPrompt: '',
-    setInpaintPrompt: () => {},
-    inpaintNumGenerations: 1,
-    setInpaintNumGenerations: () => {},
-    loraMode: 'none',
-    setLoraMode: () => {},
-    customLoraUrl: '',
-    setCustomLoraUrl: () => {},
-    isGeneratingInpaint: false,
-    inpaintGenerateSuccess: false,
-    isCreatingMagicEditTasks: false,
-    magicEditTasksCreated: false,
-    handleExitMagicEditMode: () => {},
-    handleUnifiedGenerate: async () => {},
-    handleGenerateAnnotatedEdit: async () => {},
-    handleGenerateReposition: async () => {},
-    isGeneratingReposition: false,
-    repositionGenerateSuccess: false,
-    hasTransformChanges: false,
-    handleSaveAsVariant: async () => {},
-    isSavingAsVariant: false,
-    saveAsVariantSuccess: false,
-    createAsGeneration: false,
-    setCreateAsGeneration: () => {},
-    // Img2Img props (stubs for video)
-    img2imgPrompt: '',
-    setImg2imgPrompt: () => {},
-    img2imgStrength: 0.5,
-    setImg2imgStrength: () => {},
-    enablePromptExpansion: false,
-    setEnablePromptExpansion: () => {},
-    isGeneratingImg2Img: false,
-    img2imgGenerateSuccess: false,
-    handleGenerateImg2Img: async () => {},
-    img2imgLoraManager: null,
+    // Edit mode stubs (video doesn't use EditModePanel)
+    sourceGenerationData: sourceGeneration.data,
+    onOpenExternalGeneration,
+    allShots: allShots || [],
+    isCurrentMediaPositioned: shots.isAlreadyPositionedInSelectedShot,
+    onReplaceInShot: handleReplaceInShot,
+    sourcePrimaryVariant: sourceGeneration.primaryVariant,
+    onMakeMainVariant: makeMainVariant.handle,
+    canMakeMainVariant: makeMainVariant.canMake,
+    handleUnifiedGenerate: () => Promise.resolve(),
+    handleGenerateAnnotatedEdit: () => Promise.resolve(),
+    handleGenerateReposition: () => Promise.resolve(),
+    handleSaveAsVariant: () => Promise.resolve(),
+    handleGenerateImg2Img: () => Promise.resolve(),
+    img2imgLoraManager: {},
     availableLoras: [],
-    editLoraManager: null,
+    editLoraManager: {},
     advancedSettings: {},
     setAdvancedSettings: () => {},
     isLocalGeneration: false,
-    qwenEditModel: 'qwen',
-    setQwenEditModel: () => {},
-    // Info panel props
+    // Info panel
     showImageEditTools: false,
-    adjustedTaskDetailsData,
-    generationName,
-    handleGenerationNameChange,
-    isEditingGenerationName,
-    setIsEditingGenerationName,
+    taskDetailsData: adjustedTaskDetailsData,
     derivedItems: lineage.derivedItems,
     derivedGenerations: lineage.derivedGenerations,
     paginatedDerived: lineage.paginatedDerived,
     derivedPage: lineage.derivedPage,
     derivedTotalPages: lineage.derivedTotalPages,
-    setDerivedPage: lineage.setDerivedPage,
+    onSetDerivedPage: lineage.setDerivedPage,
     replaceImages,
-    setReplaceImages,
-    sourceGenerationData: sourceGeneration.data,
-    sourcePrimaryVariant: sourceGeneration.primaryVariant,
-    onOpenExternalGeneration,
-    // Navigation
-    showNavigation,
-    hasNext,
-    hasPrevious,
-    handleSlotNavNext,
-    handleSlotNavPrev,
-    swipeNavigation: navigation.swipeNavigation,
-    // Panel
+    onReplaceImagesChange: setReplaceImages,
+    onSwitchToPrimary: variants.primaryVariant ? () => variants.setActiveVariantId(variants.primaryVariant.id) : undefined,
+    currentMediaId: media?.id || '',
+    currentShotId: selectedShotId || shotId,
+    taskId: adjustedTaskDetailsData?.taskId || (media as unknown as Record<string, unknown>)?.source_task_id as string | null || null,
+  } : undefined, [
+    showPanel, isCloudMode, regenerateFormProps, trimState, setStartTrim, setEndTrim, resetTrim,
+    trimmedDuration, hasTrimChanges, saveTrimmedVideo, isSavingTrim, trimSaveProgress, trimSaveError,
+    trimSaveSuccess, effectiveMedia.videoUrl, trimCurrentTime, trimVideoRef, videoEditing, selectedProjectId,
+    videoEnhance.settings, videoEnhance.updateSetting, videoEnhance.handleGenerate,
+    videoEnhance.isGenerating, videoEnhance.generateSuccess, videoEnhance.canSubmit,
+    sourceGeneration.data, onOpenExternalGeneration, allShots, shots.isAlreadyPositionedInSelectedShot,
+    handleReplaceInShot, sourceGeneration.primaryVariant, makeMainVariant.handle, makeMainVariant.canMake,
+    adjustedTaskDetailsData, lineage.derivedItems, lineage.derivedGenerations, lineage.paginatedDerived,
+    lineage.derivedPage, lineage.derivedTotalPages, lineage.setDerivedPage, replaceImages, setReplaceImages,
+    variants.primaryVariant, variants.setActiveVariantId, media?.id, selectedShotId, shotId,
+  ]);
+
+  // ========================================
+  // BUILD LAYOUT PROPS (via hook — workflow + panel + navigation only)
+  // ========================================
+
+  const { layoutProps } = useLightboxWorkflowProps({
+    showPanel,
+    shouldShowSidePanel: shouldShowSidePanelWithTrim,
     effectiveTasksPaneOpen,
     effectiveTasksPaneWidth,
-    // Button group props - override topRight with real handlers (not placeholders)
     buttonGroupProps: {
       ...buttonGroupProps,
       topRight: {
@@ -1007,7 +828,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     // Workflow props
     allShots: allShots || [],
     selectedShotId,
-    shotId,
     onAddToShot,
     onAddToShotWithoutPosition,
     onDelete,
@@ -1026,7 +846,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     handleApplySettings,
     handleNavigateToShotFromSelector,
     handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-    handleReplaceInShot,
     isDeleting,
     handleDelete,
     // Adjacent segments
@@ -1068,7 +887,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
               readOnly={readOnly}
             />
           ) : (
-            <LightboxLayout {...layoutProps} />
+            <LightboxLayout {...layoutProps} controlsPanelProps={controlsPanelProps} />
           )}
         </LightboxShell>
       </VideoEditProvider>

@@ -10,6 +10,7 @@ import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';
 import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { useStableObject } from '@/shared/hooks/useStableObject';
 import {
   useVideoTravelViewMode,
@@ -90,20 +91,10 @@ export function ShotListView({
     setViewMode,
     videosViewJustEnabled,
     setVideosViewJustEnabled,
+    videoFilters,
+    setVideoFilters,
     videoPage,
     setVideoPage,
-    videoShotFilter,
-    setVideoShotFilter,
-    videoExcludePositioned,
-    setVideoExcludePositioned,
-    videoSearchTerm,
-    setVideoSearchTerm,
-    videoMediaTypeFilter,
-    setVideoMediaTypeFilter,
-    videoToolTypeFilter,
-    setVideoToolTypeFilter,
-    videoStarredOnly,
-    setVideoStarredOnly,
     videoSortMode,
     setVideoSortMode,
     shotSearchQuery,
@@ -162,15 +153,15 @@ export function ShotListView({
 
   // Stable filters object for videos query (prevents recreating on every render)
   const videosFilters = useStableObject(() => ({
-    toolType: videoToolTypeFilter ? 'travel-between-images' : undefined,
-    mediaType: videoMediaTypeFilter,
-    shotId: videoShotFilter !== 'all' ? videoShotFilter : undefined,
-    excludePositioned: videoExcludePositioned,
-    starredOnly: videoStarredOnly,
-    searchTerm: videoSearchTerm,
+    toolType: videoFilters.toolTypeFilter ? TOOL_IDS.TRAVEL_BETWEEN_IMAGES : undefined,
+    mediaType: videoFilters.mediaType,
+    shotId: videoFilters.shotFilter !== 'all' ? videoFilters.shotFilter : undefined,
+    excludePositioned: videoFilters.excludePositioned,
+    starredOnly: videoFilters.starredOnly,
+    searchTerm: videoFilters.searchTerm,
     sort: videoSortMode,
     includeChildren: false
-  }), [videoToolTypeFilter, videoMediaTypeFilter, videoShotFilter, videoExcludePositioned, videoStarredOnly, videoSearchTerm, videoSortMode]);
+  }), [videoFilters, videoSortMode]);
 
   // Videos query
   const {
@@ -290,8 +281,10 @@ export function ShotListView({
           searchInputRef,
           shotSearchQuery,
           setShotSearchQuery,
-          videoSearchTerm,
-          setVideoSearchTerm,
+          videoSearchTerm: videoFilters.searchTerm,
+          setVideoSearchTerm: (term: string) => {
+            setVideoFilters(prev => ({ ...prev, searchTerm: term }));
+          },
           setVideoPage,
         }}
         sort={{
@@ -318,20 +311,10 @@ export function ShotListView({
             shots,
           }}
           filters={{
+            videoFilters,
+            setVideoFilters,
             videoPage,
             setVideoPage,
-            videoShotFilter,
-            setVideoShotFilter,
-            videoExcludePositioned,
-            setVideoExcludePositioned,
-            videoSearchTerm,
-            setVideoSearchTerm,
-            videoMediaTypeFilter,
-            setVideoMediaTypeFilter,
-            videoToolTypeFilter,
-            setVideoToolTypeFilter,
-            videoStarredOnly,
-            setVideoStarredOnly,
           }}
           preloading={{
             generationFilters: videosFilters,

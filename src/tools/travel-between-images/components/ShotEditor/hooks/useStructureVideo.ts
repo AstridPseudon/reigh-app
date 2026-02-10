@@ -40,7 +40,7 @@ interface LegacyStructureVideoConfig {
 }
 
 /** Default structure video config (legacy single-video format) */
-const DEFAULT_STRUCTURE_VIDEO_CONFIG: LegacyStructureVideoConfig = {
+export const DEFAULT_STRUCTURE_VIDEO_CONFIG: LegacyStructureVideoConfig = {
   structure_video_path: null,
   structure_video_treatment: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
   structure_video_motion_strength: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,

@@ -254,8 +254,8 @@ const SafariFileMenu = () => (
   </div>
 );
 
-// Edge "App available" - browser mockup (desktop)
-const EdgeAppAvailable = () => (
+// Shared desktop browser mockup with an address bar badge (used by EdgeAppAvailable and OpenInAppBadge)
+const DesktopBrowserWithBadge = ({ badgeIcon, badgeText }: { badgeIcon: React.ReactNode; badgeText: string }) => (
   <div className="relative w-full max-w-[280px] bg-gray-100 rounded-lg border border-gray-300 shadow-sm overflow-hidden">
     <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-200 border-b border-gray-300">
       <div className="flex gap-1">
@@ -266,13 +266,21 @@ const EdgeAppAvailable = () => (
       <div className="flex-1 flex items-center gap-2 px-2 py-1 bg-white rounded border border-gray-300 text-xs">
         <span className="text-gray-400 truncate">reigh.art</span>
         <div className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-300 rounded-full text-[10px] font-medium text-gray-700 animate-pulse ring-2 ring-wes-vintage-gold ring-offset-1">
-          <Plus className="w-2.5 h-2.5" />
-          <span>App available</span>
+          {badgeIcon}
+          <span>{badgeText}</span>
         </div>
       </div>
     </div>
     <div className="h-8 bg-gray-50" />
   </div>
+);
+
+// Edge "App available" - browser mockup (desktop)
+const EdgeAppAvailable = () => (
+  <DesktopBrowserWithBadge
+    badgeIcon={<Plus className="w-2.5 h-2.5" />}
+    badgeText="App available"
+  />
 );
 
 // Android install prompt - shows phone with bottom install banner
@@ -310,23 +318,10 @@ const AndroidInstallPrompt = () => (
 
 // Chrome/Edge "Open in app" button - appears in address bar when PWA is installed (desktop only)
 const OpenInAppBadge = () => (
-  <div className="relative w-full max-w-[280px] bg-gray-100 rounded-lg border border-gray-300 shadow-sm overflow-hidden">
-    <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-200 border-b border-gray-300">
-      <div className="flex gap-1">
-        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-      </div>
-      <div className="flex-1 flex items-center gap-2 px-2 py-1 bg-white rounded border border-gray-300 text-xs">
-        <span className="text-gray-400 truncate">reigh.art</span>
-        <div className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-300 rounded-full text-[10px] font-medium text-gray-700 animate-pulse ring-2 ring-wes-vintage-gold ring-offset-1">
-          <img src="/favicon-32x32.png" alt="" className="w-3 h-3 rounded-sm" />
-          <span>Open in app</span>
-        </div>
-      </div>
-    </div>
-    <div className="h-8 bg-gray-50" />
-  </div>
+  <DesktopBrowserWithBadge
+    badgeIcon={<img src="/favicon-32x32.png" alt="" className="w-3 h-3 rounded-sm" />}
+    badgeText="Open in app"
+  />
 );
 
 // Mobile "Find on home screen" - shows app icon on home screen

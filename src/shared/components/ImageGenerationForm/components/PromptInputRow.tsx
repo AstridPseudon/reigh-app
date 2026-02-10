@@ -14,7 +14,7 @@ import { useTouchDragDetection } from "@/shared/hooks/useTouchDragDetection";
 import { PromptInputRowProps } from "../types";
 
 export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
-  promptEntry, onUpdate, onRemove, canRemove, isGenerating, hasApiKey, index,
+  promptEntry, onUpdate, onRemove, canRemove, isGenerating, index,
   totalPrompts,
   onEditWithAI,
   aiEditButtonIcon,
@@ -209,7 +209,7 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
                       size="icon"
                       onClick={() => onRemove(promptEntry.id)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/60 hover:text-destructive hover:bg-destructive/5 h-4 w-4 p-0"
-                      disabled={!hasApiKey || isGenerating}
+                      disabled={isGenerating}
                       aria-label="Remove prompt"
                     >
                       <Trash2 className="h-2.5 w-2.5" />
@@ -229,7 +229,7 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
           {rightHeaderAddon ? (
             <div className={`flex items-center gap-2 ${isMobile && mobileInlineEditing ? 'w-full' : ''}`}>{rightHeaderAddon}</div>
           ) : (
-            onEditWithAI && aiEditButtonIcon && hasApiKey && (
+            onEditWithAI && aiEditButtonIcon && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -270,7 +270,7 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
                 ? `overflow-y-auto ${isMobile ? 'min-h-[96px]' : 'min-h-[72px]'}`
                 : `overflow-hidden ${isMobile ? 'h-[56px]' : 'h-[32px]'} cursor-pointer`
             }`}
-            disabled={!hasApiKey || isGenerating}
+            disabled={isGenerating}
             rows={isMobile ? 2 : 1}
             clearable
             onClear={() => {

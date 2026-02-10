@@ -40,7 +40,7 @@ def generate_report(
         ("Unused declarations", len(unused_entries)),
         ("Dead exports", len(export_entries)),
         ("Stale deprecated", len(dep_entries)),
-        ("Large files (>300 LOC)", len(large_entries)),
+        ("Large files (>500 LOC)", len(large_entries)),
         ("Complexity signals", len(complexity_entries)),
     ]
     if god_entries is not None:

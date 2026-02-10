@@ -15,6 +15,7 @@ import {
   type SteerableMotionSettings,
   DEFAULT_STEERABLE_MOTION_SETTINGS,
 } from '@/shared/types/steerableMotion';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 // =============================================================================
 // TOOL-SPECIFIC TYPES
@@ -83,7 +84,7 @@ export interface VideoTravelSettings {
 }
 
 export const videoTravelSettings = {
-  id: 'travel-between-images',
+  id: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
   scope: ['shot'], // Video travel settings are per-shot
   defaults: {
     // Content fields - explicit empty defaults

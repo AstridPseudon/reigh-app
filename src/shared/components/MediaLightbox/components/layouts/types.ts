@@ -1,82 +1,14 @@
 /**
  * Shared types for MediaLightbox layout components
+ *
+ * Video edit props (trim, replace, refs) are now in VideoEditContext.
+ * Edit mode props (brush, annotation, reposition) are in ImageEditContext.
+ * Only panel, workflow, and navigation props flow through here.
  */
 
 import React from 'react';
-import type { BrushStroke, AnnotationMode } from '../../hooks/useInpainting';
-import type { EditMode } from '../../hooks/useGenerationEditSettings';
 import type { ControlsPanelProps } from '../ControlsPanel';
-import type { StrokeOverlayHandle } from '../StrokeOverlay';
-import type { ImageTransform } from '../../hooks/useRepositionMode';
-import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from '../../types';
-
-/**
- * Video edit mode props
- */
-interface LayoutVideoEditProps {
-  isVideoTrimModeActive: boolean;
-  isVideoEditModeActive: boolean;
-  trimVideoRef: React.RefObject<HTMLVideoElement>;
-  trimState: {
-    videoDuration: number;
-    startTime: number;
-    endTime: number;
-    setStartTime: (time: number) => void;
-    setEndTime: (time: number) => void;
-  };
-  setVideoDuration: (duration: number) => void;
-  setTrimCurrentTime: (time: number) => void;
-  videoEditing: {
-    videoRef: React.RefObject<HTMLVideoElement>;
-    selections: PortionSelection[];
-    activeSelectionId: string | null;
-    handleUpdateSelection: (id: string, start: number, end: number) => void;
-    setActiveSelectionId: (id: string | null) => void;
-    handleRemoveSelection: (id: string) => void;
-    handleAddSelection: () => void;
-  } | null;
-}
-
-/**
- * Edit mode (inpaint/annotate/reposition) props
- */
-interface LayoutEditModeProps {
-  isInpaintMode: boolean;
-  isAnnotateMode: boolean;
-  isSpecialEditMode: boolean;
-  editMode: EditMode | null;
-  brushStrokes: BrushStroke[];
-  isEraseMode: boolean;
-  setIsEraseMode?: (value: boolean) => void;
-  brushSize: number;
-  setBrushSize?: (size: number) => void;
-  annotationMode: AnnotationMode | null;
-  setAnnotationMode?: (mode: AnnotationMode | null) => void;
-  selectedShapeId: string | null;
-  onStrokeComplete: (stroke: BrushStroke) => void;
-  onStrokesChange: (strokes: BrushStroke[]) => void;
-  onSelectionChange: (shapeId: string | null) => void;
-  onTextModeHint: () => void;
-  strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
-  handleUndo: () => void;
-  handleClearMask: () => void;
-  getDeleteButtonPosition: () => { x: number; y: number } | null;
-  handleToggleFreeForm: () => void;
-  handleDeleteSelected: () => void;
-  isRepositionDragging: boolean;
-  repositionDragHandlers: {
-    onPointerDown: (e: React.PointerEvent) => void;
-    onPointerMove: (e: React.PointerEvent) => void;
-    onPointerUp: (e: React.PointerEvent) => void;
-    onPointerCancel: (e: React.PointerEvent) => void;
-    onWheel: (e: React.WheelEvent) => void;
-  } | null;
-  getTransformStyle: () => React.CSSProperties;
-  imageContainerRef: React.RefObject<HTMLDivElement>;
-  isFlippedHorizontally: boolean;
-  isSaving: boolean;
-}
 
 /**
  * Button group props (from useButtonGroupProps)
@@ -123,19 +55,6 @@ interface LayoutPanelProps {
 }
 
 /**
- * Simplified floating tool props as consumed by LightboxLayout
- * (FloatingToolControls reads most state from ImageEditContext)
- */
-interface LayoutFloatingToolPropsSimple {
-  repositionTransform: ImageTransform;
-  onRepositionScaleChange: (value: number) => void;
-  onRepositionRotationChange: (value: number) => void;
-  onRepositionFlipH: () => void;
-  onRepositionFlipV: () => void;
-  onRepositionReset: () => void;
-}
-
-/**
  * Workflow controls props for below-media controls (centered layout only)
  */
 interface LayoutWorkflowControlsProps extends LayoutWorkflowBarProps {
@@ -145,11 +64,12 @@ interface LayoutWorkflowControlsProps extends LayoutWorkflowBarProps {
 
 /**
  * Unified layout props for LightboxLayout
- * Combines panel and centered layout needs with a `showPanel` flag.
+ *
+ * Edit mode props (brush, annotation, reposition, canvas) are read from ImageEditContext.
+ * Video edit props (trim, replace, refs) are read from VideoEditContext.
+ * Only panel, workflow, and navigation props flow through here.
  */
 export interface LightboxLayoutProps extends
-  LayoutVideoEditProps,
-  LayoutEditModeProps,
   LayoutPanelProps {
   showPanel: boolean;
   /** True when panel should be side-by-side (tablet+ landscape); false = stacked (mobile/portrait) */
@@ -160,17 +80,6 @@ export interface LightboxLayoutProps extends
 
   // Workflow controls bar (always present)
   workflowBarProps: LayoutWorkflowBarProps;
-
-  // Reposition rotation (for corner drag-to-rotate on image bounds)
-  onRepositionRotationChange?: (degrees: number) => void;
-  repositionRotation?: number;
-
-  // Reposition scale (for +/- zoom buttons on image)
-  onRepositionScaleChange?: (value: number) => void;
-  repositionScale?: number;
-
-  // Floating tool controls (panel layouts only)
-  floatingToolProps?: LayoutFloatingToolPropsSimple;
 
   // Controls panel props (panel layouts only)
   controlsPanelProps?: Omit<ControlsPanelProps, 'variant'>;

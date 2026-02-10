@@ -50,17 +50,29 @@ interface UsePersistentToolStateResult {
 }
 
 /**
- * Hook that synchronizes local React state with persistent tool settings in the database.
- * Provides automatic hydration, debounced saves, and deep equality checks.
- * 
+ * Hook that synchronizes existing `useState` variables with persistent tool settings.
+ *
+ * Unlike `useAutoSaveSettings` which owns its own state, this hook binds to
+ * pre-existing `[value, setter]` pairs -- useful when the form already manages
+ * its own `useState` and you want to add persistence without restructuring.
+ *
+ * Key difference from `useAutoSaveSettings`: the `markAsInteracted()` guard.
+ * Settings are only saved after the user explicitly interacts, preventing
+ * auto-initialization effects from being persisted as user choices.
+ *
+ * For new features, prefer `useAutoSaveSettings` unless you specifically need
+ * the bind-to-existing-useState pattern or the interaction guard.
+ *
  * @param toolId - The tool identifier (e.g., 'image-generation', 'video-travel')
  * @param context - Context for settings resolution (projectId, shotId, etc.)
  * @param stateMapping - Object mapping setting keys to [value, setter] tuples
  * @param options - Additional options for behavior customization
  * @returns Object with ready state, saving state, and interaction tracking
- * 
+ *
+ * @see docs/structure_detail/settings_system.md for the full settings hook decision tree
+ *
  * @example
- * const { ready, isSaving } = usePersistentToolState(
+ * const { ready, isSaving, markAsInteracted } = usePersistentToolState(
  *   'image-generation',
  *   { projectId },
  *   {
@@ -68,6 +80,7 @@ interface UsePersistentToolStateResult {
  *     imagesPerPrompt: [imagesPerPrompt, setImagesPerPrompt],
  *   }
  * );
+ * // Call markAsInteracted() in onChange handlers to enable persistence
  */
 export function usePersistentToolState<T extends Record<string, unknown>>(
   toolId: string,

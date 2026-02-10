@@ -5,6 +5,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { joinClipsSettings } from '../settings';
 import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID, VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
@@ -143,7 +144,7 @@ export function useJoinClipsGenerate({
         ...(isLooping && validClips[0].generationId && { based_on: validClips[0].generationId }),
         motion_mode: motionMode,
         selected_phase_preset_id: joinSettings.settings.selectedPhasePresetId,
-        tool_type: 'join-clips',
+        tool_type: TOOL_IDS.JOIN_CLIPS,
       };
 
       const result = await createJoinClipsTask(taskParams);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useFileDragTracking, preventDefaultDragOver, createSingleFileDropHandler } from '@/shared/hooks/useFileDragTracking';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Button } from '@/shared/components/ui/button';
@@ -24,123 +24,85 @@ import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { extractVideoPosterFrame } from '@/shared/utils/videoPosterExtractor';
 import MediaLightbox from '@/shared/components/MediaLightbox';
-import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 import { variantToGenerationRow } from '@/shared/lib/mediaTypeHelpers';
 import { MediaSelectionPanel } from '@/shared/components/MediaSelectionPanel';
+import { useEditToolMediaPersistence } from '@/shared/hooks/useEditToolMediaPersistence';
+import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
-const TOOL_TYPE = 'edit-video';
+const TOOL_TYPE = TOOL_IDS.EDIT_VIDEO;
 
-// Settings interface for last edited media persistence
-interface EditVideoUISettings {
-  lastEditedMediaId?: string;
-  lastEditedMediaSegments?: PortionSelection[];
-}
+// Preload video poster helper - warm up the browser cache
+const preloadedVideoRef = { current: null as string | null };
+const preloadVideoPoster = (gen: GenerationRow) => {
+  const urlToPreload = gen.thumbnail_url || gen.location;
+  if (!urlToPreload || preloadedVideoRef.current === urlToPreload) return;
+  const img = new Image();
+  img.src = urlToPreload;
+  preloadedVideoRef.current = urlToPreload;
+};
+
+const VIDEO_EXTRA_CLEAR_DATA = { lastEditedMediaSegments: undefined };
 
 export default function EditVideoPage() {
   const { selectedProjectId, projects } = useProject();
-  
+
   // Get project aspect ratio for skeleton sizing
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   const projectAspectRatio = selectedProject?.aspectRatio || '16:9';
   const aspectRatioValue = parseRatio(projectAspectRatio);
-  const [selectedMedia, setSelectedMedia] = useState<GenerationRow | null>(null);
   const [savedSegments, setSavedSegments] = useState<PortionSelection[] | undefined>(undefined);
   const [resultsPage, setResultsPage] = useState(1);
 
   // Upload operation with automatic loading state
   const uploadOperation = useAsyncOperation<GenerationRow>();
   const [showResults, setShowResults] = useState(true);
-  const [isLoadingPersistedMedia, setIsLoadingPersistedMedia] = useState(false);
   const { isDraggingOver, handleDragEnter, handleDragLeave, resetDrag: resetDragState } = useFileDragTracking();
   const isMobile = useIsMobile();
   const { data: shots } = useListShots(selectedProjectId);
-  
+
   // Delete mutation for gallery items (uses variants table for edit tools)
   const deleteVariantMutation = useDeleteVariant();
   const handleDeleteVariant = useCallback((id: string) => {
     deleteVariantMutation.mutate(id);
   }, [deleteVariantMutation]);
-  
-  // Track if we've already loaded from settings to prevent re-loading
-  const hasLoadedFromSettings = useRef(false);
-  // Track if user has explicitly closed the editor (vs initial mount state)
-  const userClosedEditor = useRef(false);
-  
-  // Project-level UI settings for persisting last edited media (syncs across devices)
-  const { 
-    settings: uiSettings, 
-    update: updateUISettings,
-    isLoading: isUISettingsLoading 
-  } = useToolSettings<EditVideoUISettings>('edit-video-ui', { 
+
+  // Restore saved segments when settings are loaded from DB
+  const handleSettingsLoaded = useCallback((settings: Record<string, unknown>) => {
+    const storedSegments = settings.lastEditedMediaSegments as PortionSelection[] | undefined;
+    if (storedSegments && storedSegments.length > 0) {
+      setSavedSegments(storedSegments);
+    }
+  }, []);
+
+  // Persisted media selection (load/save last-edited media ID to project settings)
+  const {
+    selectedMedia,
+    setSelectedMedia,
+    handleEditorClose: handleEditorCloseBase,
+    showSkeleton,
+    updateUISettings,
+    isUISettingsLoading,
+    isLoading: isLoadingPersistedMedia,
+    uiSettings,
+    userClosedEditor,
+  } = useEditToolMediaPersistence({
+    settingsToolId: 'edit-video-ui',
     projectId: selectedProjectId,
-    enabled: !!selectedProjectId 
+    preloadMedia: preloadVideoPoster,
+    onSettingsLoaded: handleSettingsLoaded,
+    extraClearData: VIDEO_EXTRA_CLEAR_DATA,
   });
-  
-  // Track preloaded video URLs to avoid flash on navigation
-  const preloadedVideoRef = useRef<string | null>(null);
-  
-  // Preload video poster helper - warm up the browser cache
-  const preloadVideoPoster = (posterUrl: string | undefined, videoUrl: string | undefined) => {
-    const urlToPreload = posterUrl || videoUrl;
-    if (!urlToPreload || preloadedVideoRef.current === urlToPreload) return;
-    const img = new Image();
-    img.src = urlToPreload;
-    preloadedVideoRef.current = urlToPreload;
-  };
-  
-  // Load last edited video from database settings on mount
-  useEffect(() => {
-    if (!selectedProjectId || isUISettingsLoading || hasLoadedFromSettings.current) return;
-    
-    const storedId = uiSettings?.lastEditedMediaId;
-    const storedSegments = uiSettings?.lastEditedMediaSegments;
-    hasLoadedFromSettings.current = true; // Mark as attempted even if no stored ID
-    
-    if (storedId && !selectedMedia) {
-      setIsLoadingPersistedMedia(true);
-      // Fetch the generation from the database
-      supabase
-        .from('generations')
-        .select('*')
-        .eq('id', storedId)
-        .single()
-        .then(({ data, error }) => {
-          if (data && !error) {
-            // Preload the poster/thumbnail before showing the view
-            const gen = data as GenerationRow;
-            const posterUrl = gen.thumbnail_url;
-            const videoUrl = gen.location;
-            preloadVideoPoster(posterUrl ?? undefined, videoUrl ?? undefined);
-            setSelectedMedia(gen);
-            // Also restore saved segments if they exist
-            if (storedSegments && storedSegments.length > 0) {
-              setSavedSegments(storedSegments);
-            }
-          } else {
-            // Clear invalid stored ID and segments
-            updateUISettings('project', { lastEditedMediaId: undefined, lastEditedMediaSegments: undefined });
-          }
-          setIsLoadingPersistedMedia(false);
-        });
-    }
-  }, [selectedProjectId, uiSettings?.lastEditedMediaId, uiSettings?.lastEditedMediaSegments, isUISettingsLoading, selectedMedia, updateUISettings]);
-  
-  // Persist selected media ID to database settings (or clear it when media is removed)
-  useEffect(() => {
-    if (!selectedProjectId || isUISettingsLoading || !hasLoadedFromSettings.current) return;
-    
-    if (selectedMedia && selectedMedia.id !== uiSettings?.lastEditedMediaId) {
-      updateUISettings('project', { lastEditedMediaId: selectedMedia.id });
-      userClosedEditor.current = false; // Reset close flag when new media selected
-    } else if (!selectedMedia && uiSettings?.lastEditedMediaId && userClosedEditor.current) {
-      // Only clear when user explicitly closed the editor, not on initial mount
-      updateUISettings('project', { lastEditedMediaId: undefined, lastEditedMediaSegments: undefined });
-    }
-  }, [selectedMedia?.id, selectedProjectId, isUISettingsLoading, uiSettings?.lastEditedMediaId, updateUISettings]);
-  
+
+  // Wrap editor close to also clear saved segments
+  const handleEditorClose = useCallback(() => {
+    handleEditorCloseBase();
+    setSavedSegments(undefined);
+  }, [handleEditorCloseBase]);
+
   // Callback to save segments when they change in InlineEditVideoView
   const handleSegmentsChange = useCallback((segments: PortionSelection[]) => {
     if (!selectedProjectId || isUISettingsLoading) return;
@@ -330,7 +292,7 @@ export default function EditVideoPage() {
       </div>
       
       {/* Show skeleton when loading settings, loading persisted media, OR we have a stored ID but no media yet (and user didn't just close it) */}
-      {(isUISettingsLoading || isLoadingPersistedMedia || (uiSettings?.lastEditedMediaId && !selectedMedia && !userClosedEditor.current)) && (
+      {showSkeleton && (
         <div className="w-full px-4 overflow-y-auto" style={{ minHeight: 'calc(100dvh - 96px)' }}>
           <div className="max-w-7xl mx-auto relative">
             <div className={cn(
@@ -469,9 +431,7 @@ export default function EditVideoPage() {
                  <VideoSelectionPanel
                    onSelect={(media) => {
                      // Preload the poster/thumbnail before showing edit view
-                     const posterUrl = media.thumbnail_url || media.thumbUrl;
-                     const videoUrl = media.location;
-                     preloadVideoPoster(posterUrl ?? undefined, videoUrl ?? undefined);
+                     preloadVideoPoster(media);
                      setSelectedMedia(media);
                    }}
                  />
@@ -531,14 +491,10 @@ export default function EditVideoPage() {
               "rounded-2xl overflow-hidden",
               isEditingOnMobile ? "flex flex-col min-h-[60vh]" : "h-[70vh]"
             )}>
-              <InlineEditVideoView 
+              <InlineEditVideoView
                 key={selectedMedia.id} // Force remount when media changes
-                media={selectedMedia} 
-                onClose={() => {
-                  userClosedEditor.current = true;
-                  setSelectedMedia(null);
-                  setSavedSegments(undefined);
-                }}
+                media={selectedMedia}
+                onClose={handleEditorClose}
                 onVideoSaved={async (newUrl) => {
                   console.log("Video regenerated:", newUrl);
                 }}

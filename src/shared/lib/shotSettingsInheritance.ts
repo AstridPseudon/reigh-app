@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
 import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /**
  * Standardized settings inheritance for new shots
@@ -104,8 +105,8 @@ async function getInheritedSettings(
     
     if (latestShot) {
       
-      if (!mainSettings && latestShot.settings?.['travel-between-images']) {
-        mainSettings = latestShot.settings['travel-between-images'] as Record<string, unknown>;
+      if (!mainSettings && latestShot.settings?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES]) {
+        mainSettings = latestShot.settings[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] as Record<string, unknown>;
       }
 
       if (!joinSegmentsSettings && latestShot.settings?.['join-segments']) {
@@ -123,8 +124,8 @@ async function getInheritedSettings(
         .eq('id', projectId)
         .single();
       
-      if (!mainSettings && projectData?.settings?.['travel-between-images']) {
-        mainSettings = projectData.settings['travel-between-images'] as Record<string, unknown>;
+      if (!mainSettings && projectData?.settings?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES]) {
+        mainSettings = projectData.settings[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] as Record<string, unknown>;
       }
 
       if (!uiSettings && projectData?.settings?.['travel-ui-state']) {

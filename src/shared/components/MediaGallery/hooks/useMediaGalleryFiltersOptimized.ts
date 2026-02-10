@@ -1,117 +1,63 @@
-import { useReducer, useEffect, useMemo, useRef } from 'react';
+import { useReducer, useCallback, useMemo, useRef } from 'react';
 import { GeneratedImageWithMetadata } from '../index';
+import { GalleryFilterState, DEFAULT_GALLERY_FILTERS } from '../types';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
 
-// Consolidated filters state interface
-interface MediaGalleryFiltersState {
-  // Filter states
-  filterByToolType: boolean;
-  mediaTypeFilter: 'all' | 'image' | 'video';
+// Maps GalleryFilterState keys to reducer action types
+const FILTER_ACTIONS = {
+  mediaType: 'SET_MEDIA_TYPE',
+  shotFilter: 'SET_SHOT_FILTER',
+  excludePositioned: 'SET_EXCLUDE_POSITIONED',
+  searchTerm: 'SET_SEARCH_TERM',
+  starredOnly: 'SET_STARRED_ONLY',
+  toolTypeFilter: 'SET_TOOL_TYPE_FILTER',
+} as const;
+
+interface InternalFiltersState {
+  mediaType: 'all' | 'image' | 'video';
   shotFilter: string;
   excludePositioned: boolean;
-  showStarredOnly: boolean;
-  toolTypeFilterEnabled: boolean;
-  
-  // Search state
+  starredOnly: boolean;
+  toolTypeFilter: boolean;
   searchTerm: string;
   isSearchOpen: boolean;
 }
 
-// Action types for the filters reducer
-type MediaGalleryFiltersAction =
-  | { type: 'SET_FILTER_BY_TOOL_TYPE'; payload: boolean }
-  | { type: 'SET_MEDIA_TYPE_FILTER'; payload: 'all' | 'image' | 'video' }
+type InternalFiltersAction =
+  | { type: 'SET_MEDIA_TYPE'; payload: 'all' | 'image' | 'video' }
   | { type: 'SET_SHOT_FILTER'; payload: string }
   | { type: 'SET_EXCLUDE_POSITIONED'; payload: boolean }
-  | { type: 'SET_SHOW_STARRED_ONLY'; payload: boolean }
-  | { type: 'SET_TOOL_TYPE_FILTER_ENABLED'; payload: boolean }
+  | { type: 'SET_STARRED_ONLY'; payload: boolean }
+  | { type: 'SET_TOOL_TYPE_FILTER'; payload: boolean }
   | { type: 'SET_SEARCH_TERM'; payload: string }
   | { type: 'SET_IS_SEARCH_OPEN'; payload: boolean }
-  | { type: 'TOGGLE_SEARCH' }
-  | { type: 'CLEAR_SEARCH' }
-  | { type: 'TOGGLE_STARRED_FILTER' }
-  | { type: 'SYNC_EXTERNAL_FILTERS'; payload: Partial<MediaGalleryFiltersState> }
-  | { type: 'RESET_FILTERS' };
+  | { type: 'CLEAR_SEARCH' };
 
-// Initial state factory
-const createInitialFiltersState = (
-  initialFilterState: boolean = true,
-  initialMediaTypeFilter: 'all' | 'image' | 'video' = 'all',
-  initialShotFilter: string = 'all',
-  initialExcludePositioned: boolean = true,
-  initialSearchTerm: string = '',
-  initialStarredFilter: boolean = false,
-  initialToolTypeFilter: boolean = true
-): MediaGalleryFiltersState => ({
-  filterByToolType: initialFilterState,
-  mediaTypeFilter: initialMediaTypeFilter,
-  shotFilter: initialShotFilter,
-  excludePositioned: initialExcludePositioned,
-  showStarredOnly: initialStarredFilter,
-  toolTypeFilterEnabled: initialToolTypeFilter,
-  searchTerm: initialSearchTerm,
-  isSearchOpen: !!initialSearchTerm,
-});
-
-// Optimized reducer with batched updates
-const mediaGalleryFiltersReducer = (
-  state: MediaGalleryFiltersState,
-  action: MediaGalleryFiltersAction
-): MediaGalleryFiltersState => {
+const internalReducer = (
+  state: InternalFiltersState,
+  action: InternalFiltersAction
+): InternalFiltersState => {
   switch (action.type) {
-    case 'SET_FILTER_BY_TOOL_TYPE':
-      return { ...state, filterByToolType: action.payload };
-      
-    case 'SET_MEDIA_TYPE_FILTER':
-      return { ...state, mediaTypeFilter: action.payload };
-      
+    case 'SET_MEDIA_TYPE':
+      return { ...state, mediaType: action.payload };
     case 'SET_SHOT_FILTER':
       return { ...state, shotFilter: action.payload };
-      
     case 'SET_EXCLUDE_POSITIONED':
       return { ...state, excludePositioned: action.payload };
-      
-    case 'SET_SHOW_STARRED_ONLY':
-      return { ...state, showStarredOnly: action.payload };
-      
-    case 'SET_TOOL_TYPE_FILTER_ENABLED':
-      return { ...state, toolTypeFilterEnabled: action.payload };
-      
+    case 'SET_STARRED_ONLY':
+      return { ...state, starredOnly: action.payload };
+    case 'SET_TOOL_TYPE_FILTER':
+      return { ...state, toolTypeFilter: action.payload };
     case 'SET_SEARCH_TERM':
-      return { 
-        ...state, 
+      return {
+        ...state,
         searchTerm: action.payload,
-        // Auto-open search if there's a term
-        isSearchOpen: state.isSearchOpen || !!action.payload
+        isSearchOpen: state.isSearchOpen || !!action.payload,
       };
-      
     case 'SET_IS_SEARCH_OPEN':
       return { ...state, isSearchOpen: action.payload };
-      
-    case 'TOGGLE_SEARCH':
-      return {
-        ...state,
-        isSearchOpen: !state.isSearchOpen,
-        // Clear search term if closing and no term exists
-        searchTerm: !state.isSearchOpen || state.searchTerm ? state.searchTerm : '',
-      };
-      
     case 'CLEAR_SEARCH':
-      return {
-        ...state,
-        searchTerm: '',
-        isSearchOpen: false,
-      };
-      
-    case 'TOGGLE_STARRED_FILTER':
-      return { ...state, showStarredOnly: !state.showStarredOnly };
-      
-    case 'SYNC_EXTERNAL_FILTERS':
-      return { ...state, ...action.payload };
-      
-    case 'RESET_FILTERS':
-      return createInitialFiltersState();
-      
+      return { ...state, searchTerm: '', isSearchOpen: false };
     default:
       return state;
   }
@@ -122,57 +68,11 @@ interface UseMediaGalleryFiltersOptimizedProps {
   optimisticDeletedIds: Set<string>;
   currentToolType?: string;
   initialFilterState?: boolean;
-  initialMediaTypeFilter?: 'all' | 'image' | 'video';
-  initialShotFilter?: string;
-  initialExcludePositioned?: boolean;
-  initialSearchTerm?: string;
-  initialStarredFilter?: boolean;
-  initialToolTypeFilter?: boolean;
   onServerPageChange?: (page: number, fromBottom?: boolean) => void;
   serverPage?: number;
-  onShotFilterChange?: (shotId: string) => void;
-  onExcludePositionedChange?: (exclude: boolean) => void;
-  onSearchChange?: (searchTerm: string) => void;
-  onMediaTypeFilterChange?: (mediaType: 'all' | 'image' | 'video') => void;
-  onStarredFilterChange?: (starredOnly: boolean) => void;
-  onToolTypeFilterChange?: (enabled: boolean) => void;
-}
-
-interface UseMediaGalleryFiltersOptimizedReturn {
-  // State
-  filtersState: MediaGalleryFiltersState;
-  
-  // Individual state getters (for backward compatibility)
-  filterByToolType: boolean;
-  mediaTypeFilter: 'all' | 'image' | 'video';
-  shotFilter: string;
-  excludePositioned: boolean;
-  showStarredOnly: boolean;
-  toolTypeFilterEnabled: boolean;
-  searchTerm: string;
-  isSearchOpen: boolean;
-  searchInputRef: React.RefObject<HTMLInputElement>;
-  
-  // Actions
-  setFilterByToolType: (enabled: boolean) => void;
-  setMediaTypeFilter: (filter: 'all' | 'image' | 'video') => void;
-  setShotFilter: (shotId: string) => void;
-  setExcludePositioned: (exclude: boolean) => void;
-  setShowStarredOnly: (starredOnly: boolean) => void;
-  setToolTypeFilterEnabled: (enabled: boolean) => void;
-  setSearchTerm: (term: string) => void;
-  setIsSearchOpen: (open: boolean) => void;
-  
-  // Computed values
-  filteredImages: GeneratedImageWithMetadata[];
-  
-  // Handlers
-  handleShotFilterChange: (shotId: string) => void;
-  handleExcludePositionedChange: (exclude: boolean) => void;
-  handleSearchChange: (value: string) => void;
-  toggleSearch: () => void;
-  clearSearch: () => void;
-  handleStarredFilterToggle: () => void;
+  filters?: GalleryFilterState;
+  onFiltersChange?: (filters: GalleryFilterState) => void;
+  defaultFilters?: Partial<GalleryFilterState>;
 }
 
 export const useMediaGalleryFiltersOptimized = ({
@@ -180,210 +80,128 @@ export const useMediaGalleryFiltersOptimized = ({
   optimisticDeletedIds,
   currentToolType,
   initialFilterState = true,
-  initialMediaTypeFilter = 'all',
-  initialShotFilter = 'all',
-  initialExcludePositioned = true,
-  initialSearchTerm = '',
-  initialStarredFilter = false,
-  initialToolTypeFilter = true,
   onServerPageChange,
   serverPage,
-  onShotFilterChange,
-  onExcludePositionedChange,
-  onSearchChange,
-  onStarredFilterChange,
-}: UseMediaGalleryFiltersOptimizedProps): UseMediaGalleryFiltersOptimizedReturn => {
-  
-  // Initialize state with useReducer instead of multiple useState calls
-  const [filtersState, dispatch] = useReducer(
-    mediaGalleryFiltersReducer,
-    createInitialFiltersState(
-      initialFilterState,
-      initialMediaTypeFilter,
-      initialShotFilter,
-      initialExcludePositioned,
-      initialSearchTerm,
-      initialStarredFilter,
-      initialToolTypeFilter
-    )
-  );
-  
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  
-  // Sync external filter changes with internal state (batched)
-  useEffect(() => {
-    const externalUpdates: Partial<MediaGalleryFiltersState> = {};
-    let hasUpdates = false;
-    
-    if (filtersState.shotFilter !== initialShotFilter) {
-      externalUpdates.shotFilter = initialShotFilter;
-      hasUpdates = true;
-    }
-    
-    if (filtersState.excludePositioned !== initialExcludePositioned) {
-      externalUpdates.excludePositioned = initialExcludePositioned;
-      hasUpdates = true;
-    }
-    
-    if (filtersState.mediaTypeFilter !== initialMediaTypeFilter) {
-      externalUpdates.mediaTypeFilter = initialMediaTypeFilter;
-      hasUpdates = true;
-    }
-    
-    if (filtersState.showStarredOnly !== initialStarredFilter) {
-      externalUpdates.showStarredOnly = initialStarredFilter;
-      hasUpdates = true;
-    }
-    
-    if (filtersState.toolTypeFilterEnabled !== initialToolTypeFilter) {
-      externalUpdates.toolTypeFilterEnabled = initialToolTypeFilter;
-      hasUpdates = true;
-    }
-    
-    if (filtersState.searchTerm !== initialSearchTerm) {
-      externalUpdates.searchTerm = initialSearchTerm;
-      externalUpdates.isSearchOpen = !!initialSearchTerm; // Auto-open search if there's a term
-      hasUpdates = true;
-    }
-    
-    if (hasUpdates) {
-      dispatch({ type: 'SYNC_EXTERNAL_FILTERS', payload: externalUpdates });
-    }
-  }, [
-    initialShotFilter,
-    initialExcludePositioned,
-    initialMediaTypeFilter,
-    initialStarredFilter,
-    initialToolTypeFilter,
-    initialSearchTerm,
-    filtersState.shotFilter,
-    filtersState.excludePositioned,
-    filtersState.mediaTypeFilter,
-    filtersState.showStarredOnly,
-    filtersState.toolTypeFilterEnabled,
-    filtersState.searchTerm
-  ]);
+  filters: controlledFilters,
+  onFiltersChange,
+  defaultFilters,
+}: UseMediaGalleryFiltersOptimizedProps) => {
+  const isControlled = controlledFilters !== undefined;
 
-  // Memoized action creators to prevent unnecessary re-renders
-  const actions = useMemo(() => ({
-    setFilterByToolType: (enabled: boolean) => 
-      dispatch({ type: 'SET_FILTER_BY_TOOL_TYPE', payload: enabled }),
-    setMediaTypeFilter: (filter: 'all' | 'image' | 'video') => 
-      dispatch({ type: 'SET_MEDIA_TYPE_FILTER', payload: filter }),
-    setShotFilter: (shotId: string) => 
-      dispatch({ type: 'SET_SHOT_FILTER', payload: shotId }),
-    setExcludePositioned: (exclude: boolean) => 
-      dispatch({ type: 'SET_EXCLUDE_POSITIONED', payload: exclude }),
-    setShowStarredOnly: (starredOnly: boolean) => 
-      dispatch({ type: 'SET_SHOW_STARRED_ONLY', payload: starredOnly }),
-    setToolTypeFilterEnabled: (enabled: boolean) => 
-      dispatch({ type: 'SET_TOOL_TYPE_FILTER_ENABLED', payload: enabled }),
-    setSearchTerm: (term: string) => 
-      dispatch({ type: 'SET_SEARCH_TERM', payload: term }),
-    setIsSearchOpen: (open: boolean) => 
-      dispatch({ type: 'SET_IS_SEARCH_OPEN', payload: open }),
-    toggleSearch: () => dispatch({ type: 'TOGGLE_SEARCH' }),
-    clearSearch: () => dispatch({ type: 'CLEAR_SEARCH' }),
-    handleStarredFilterToggle: () => dispatch({ type: 'TOGGLE_STARRED_FILTER' }),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mergedDefaults = useMemo((): GalleryFilterState => ({
+    ...DEFAULT_GALLERY_FILTERS,
+    ...defaultFilters,
   }), []);
 
-  // Handlers with external callbacks
-  const handleShotFilterChange = useMemo(() => (shotId: string) => {
-    actions.setShotFilter(shotId);
-    onShotFilterChange?.(shotId);
-  }, [actions.setShotFilter, onShotFilterChange]);
+  // Reducer owns filter values (uncontrolled) and isSearchOpen (both modes)
+  const [internalState, dispatch] = useReducer(internalReducer, {
+    mediaType: mergedDefaults.mediaType,
+    shotFilter: mergedDefaults.shotFilter,
+    excludePositioned: mergedDefaults.excludePositioned,
+    starredOnly: mergedDefaults.starredOnly,
+    toolTypeFilter: mergedDefaults.toolTypeFilter,
+    searchTerm: mergedDefaults.searchTerm,
+    isSearchOpen: !!mergedDefaults.searchTerm,
+  });
 
-  const handleExcludePositionedChange = useMemo(() => (exclude: boolean) => {
-    actions.setExcludePositioned(exclude);
-    onExcludePositionedChange?.(exclude);
-  }, [actions.setExcludePositioned, onExcludePositionedChange]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSearchChange = useMemo(() => (value: string) => {
-    actions.setSearchTerm(value);
-    onSearchChange?.(value);
-  }, [actions.setSearchTerm, onSearchChange]);
+  // Filter values: controlled reads from props, uncontrolled reads from reducer
+  const currentFilters: GalleryFilterState = isControlled
+    ? controlledFilters
+    : {
+        mediaType: internalState.mediaType,
+        shotFilter: internalState.shotFilter,
+        excludePositioned: internalState.excludePositioned,
+        searchTerm: internalState.searchTerm,
+        starredOnly: internalState.starredOnly,
+        toolTypeFilter: internalState.toolTypeFilter,
+      };
 
-  // Enhanced toggle search with focus management
-  const toggleSearch = useMemo(() => () => {
-    const wasOpen = filtersState.isSearchOpen;
-    actions.toggleSearch();
-    
-    if (!wasOpen) {
-      // Focus the input when opening
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    } else if (!filtersState.searchTerm) {
-      // If closing and no search term, clear it
-      handleSearchChange('');
+  // isSearchOpen is always internal — it's UI chrome, not filter state
+  const isSearchOpen = internalState.isSearchOpen;
+
+  // Controlled mode calls onFiltersChange, uncontrolled dispatches to reducer
+  const updateFilter = useCallback(<K extends keyof GalleryFilterState>(
+    key: K, value: GalleryFilterState[K]
+  ) => {
+    if (isControlled) {
+      onFiltersChange?.({ ...controlledFilters!, [key]: value });
+    } else {
+      dispatch({ type: FILTER_ACTIONS[key], payload: value } as InternalFiltersAction);
     }
-  }, [filtersState.isSearchOpen, filtersState.searchTerm, actions.toggleSearch, handleSearchChange]);
+  }, [isControlled, controlledFilters, onFiltersChange]);
 
-  // Enhanced clear search
-  const clearSearch = useMemo(() => () => {
-    actions.clearSearch();
-    handleSearchChange('');
-  }, [actions.clearSearch, handleSearchChange]);
+  const setMediaTypeFilter = useCallback((v: 'all' | 'image' | 'video') => updateFilter('mediaType', v), [updateFilter]);
+  const setShotFilter = useCallback((v: string) => updateFilter('shotFilter', v), [updateFilter]);
+  const setExcludePositioned = useCallback((v: boolean) => updateFilter('excludePositioned', v), [updateFilter]);
+  const setShowStarredOnly = useCallback((v: boolean) => updateFilter('starredOnly', v), [updateFilter]);
+  const setToolTypeFilterEnabled = useCallback((v: boolean) => updateFilter('toolTypeFilter', v), [updateFilter]);
 
-  // Enhanced starred filter toggle with external callback
-  const handleStarredFilterToggle = useMemo(() => () => {
-    const newStarredOnly = !filtersState.showStarredOnly;
-    actions.setShowStarredOnly(newStarredOnly);
-    onStarredFilterChange?.(newStarredOnly);
-  }, [filtersState.showStarredOnly, actions.setShowStarredOnly, onStarredFilterChange]);
+  const setSearchTerm = useCallback((v: string) => {
+    updateFilter('searchTerm', v);
+    // Auto-open search UI when setting a non-empty term in controlled mode
+    // (uncontrolled mode handles this in the SET_SEARCH_TERM reducer case)
+    if (isControlled && v) dispatch({ type: 'SET_IS_SEARCH_OPEN', payload: true });
+  }, [updateFilter, isControlled]);
 
-  // Memoized computed filtered images (this is the expensive operation)
+  const setIsSearchOpen = useCallback((v: boolean) => {
+    dispatch({ type: 'SET_IS_SEARCH_OPEN', payload: v });
+  }, []);
+
+  const toggleSearch = useCallback(() => {
+    const opening = !internalState.isSearchOpen;
+    dispatch({ type: 'SET_IS_SEARCH_OPEN', payload: opening });
+    if (opening) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [internalState.isSearchOpen]);
+
+  const clearSearch = useCallback(() => {
+    if (isControlled) {
+      onFiltersChange?.({ ...controlledFilters!, searchTerm: '' });
+    }
+    dispatch({ type: 'CLEAR_SEARCH' });
+  }, [isControlled, controlledFilters, onFiltersChange]);
+
   const filteredImages = useMemo(() => {
-    // Start with all images
     let currentFiltered = images;
 
-    // 0. Filter out optimistically deleted items so they disappear immediately
-    // and remaining items shift to fill the gap
     currentFiltered = currentFiltered.filter(image => !optimisticDeletedIds.has(image.id));
 
-    // 1. Apply tool_type filter (only in client pagination mode)
+    // Tool type filter (client pagination only)
     const isServerPagination = !!(onServerPageChange && serverPage);
-    if (!isServerPagination && filtersState.filterByToolType && filtersState.toolTypeFilterEnabled && currentToolType) {
+    if (!isServerPagination && initialFilterState && currentFilters.toolTypeFilter && currentToolType) {
       currentFiltered = currentFiltered.filter(image => {
         const metadata = image.metadata;
         if (!metadata || !metadata.tool_type) return false;
-        
         if (metadata.tool_type === currentToolType) return true;
         if (metadata.tool_type === `${currentToolType}-reconstructed-client`) return true;
-        
-        return metadata.tool_type === currentToolType;
+        return false;
       });
     }
 
-    // 2. Apply mediaTypeFilter (only in client pagination mode)
-    // Uses canonical hasVideoExtension from typeGuards
-    if (!isServerPagination && filtersState.mediaTypeFilter !== 'all') {
+    if (!isServerPagination && currentFilters.mediaType !== 'all') {
       currentFiltered = currentFiltered.filter(image => {
         const isActuallyVideo = typeof image.isVideo === 'boolean' ? image.isVideo : hasVideoExtension(image.url);
-        
-        if (filtersState.mediaTypeFilter === 'image') {
-          return !isActuallyVideo;
-        }
-        if (filtersState.mediaTypeFilter === 'video') {
-          return isActuallyVideo;
-        }
+        if (currentFilters.mediaType === 'image') return !isActuallyVideo;
+        if (currentFilters.mediaType === 'video') return isActuallyVideo;
         return true;
       });
     }
 
-    // 3. Apply starred filter (only in client pagination mode)
-    if (!isServerPagination && filtersState.showStarredOnly) {
+    if (!isServerPagination && currentFilters.starredOnly) {
       currentFiltered = currentFiltered.filter(image => image.starred === true);
     }
 
-    // 4. Search is now handled server-side for server pagination mode
-    // For server pagination, search filtering is done in the SQL query
-    // For client pagination, we still apply it here as a fallback
-    if (!isServerPagination && filtersState.searchTerm.trim()) {
+    if (!isServerPagination && currentFilters.searchTerm.trim()) {
       currentFiltered = currentFiltered.filter(image => {
         const prompt = image.prompt ||
                       image.metadata?.prompt ||
                       image.metadata?.originalParams?.orchestrator_details?.prompt ||
                       '';
-        return prompt.toLowerCase().includes(filtersState.searchTerm.toLowerCase());
+        return prompt.toLowerCase().includes(currentFilters.searchTerm.toLowerCase());
       });
     }
 
@@ -391,43 +209,37 @@ export const useMediaGalleryFiltersOptimized = ({
   }, [
     images,
     optimisticDeletedIds,
-    filtersState.filterByToolType,
-    filtersState.toolTypeFilterEnabled,
-    filtersState.mediaTypeFilter,
-    filtersState.showStarredOnly,
-    filtersState.searchTerm,
+    initialFilterState,
+    currentFilters.toolTypeFilter,
+    currentFilters.mediaType,
+    currentFilters.starredOnly,
+    currentFilters.searchTerm,
     currentToolType,
     onServerPageChange,
-    serverPage
+    serverPage,
   ]);
 
   return {
-    // State
-    filtersState,
-    
-    // Individual state getters (for backward compatibility)
-    filterByToolType: filtersState.filterByToolType,
-    mediaTypeFilter: filtersState.mediaTypeFilter,
-    shotFilter: filtersState.shotFilter,
-    excludePositioned: filtersState.excludePositioned,
-    showStarredOnly: filtersState.showStarredOnly,
-    toolTypeFilterEnabled: filtersState.toolTypeFilterEnabled,
-    searchTerm: filtersState.searchTerm,
-    isSearchOpen: filtersState.isSearchOpen,
+    filterByToolType: initialFilterState,
+    mediaTypeFilter: currentFilters.mediaType,
+    shotFilter: currentFilters.shotFilter,
+    excludePositioned: currentFilters.excludePositioned,
+    showStarredOnly: currentFilters.starredOnly,
+    toolTypeFilterEnabled: currentFilters.toolTypeFilter,
+    searchTerm: currentFilters.searchTerm,
+    isSearchOpen,
     searchInputRef,
-    
-    // Actions
-    ...actions,
-    
-    // Computed values
+
+    setMediaTypeFilter,
+    setShotFilter,
+    setExcludePositioned,
+    setShowStarredOnly,
+    setToolTypeFilterEnabled,
+    setSearchTerm,
+    setIsSearchOpen,
+
     filteredImages,
-    
-    // Handlers
-    handleShotFilterChange,
-    handleExcludePositionedChange,
-    handleSearchChange,
     toggleSearch,
     clearSearch,
-    handleStarredFilterToggle,
   };
 };

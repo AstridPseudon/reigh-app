@@ -20,7 +20,6 @@ interface ShotSelectorProps {
   shots: Shot[] | undefined;
   associatedShotId: string | null;
   isGenerating: boolean;
-  hasApiKey: boolean;
   onChangeShot: (value: string) => void;
   onClearShot: () => void;
   onOpenCreateShot: () => void;
@@ -31,7 +30,6 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
   shots,
   associatedShotId,
   isGenerating,
-  hasApiKey,
   onChangeShot,
   onClearShot,
   onOpenCreateShot,
@@ -63,7 +61,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
                   variant="ghost"
                   size="sm"
                   onClick={onClearShot}
-                  disabled={!hasApiKey || isGenerating}
+                  disabled={isGenerating}
                   className="h-8 w-8 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   aria-label="Clear shot selection"
                 >
@@ -80,7 +78,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
           <Select
             value={associatedShotId || "none"}
             onValueChange={onChangeShot}
-            disabled={!hasApiKey || isGenerating}
+            disabled={isGenerating}
           >
             <SelectTrigger variant="retro" id="associatedShot" className="inline-flex w-full min-w-[200px]">
               <SelectValue placeholder="None" />
@@ -114,7 +112,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
           variant="outline"
           size="sm"
           onClick={onOpenCreateShot}
-          disabled={!hasApiKey || isGenerating}
+          disabled={isGenerating}
           className="gap-1"
         >
           <PlusCircle className="h-4 w-4" />

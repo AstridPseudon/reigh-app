@@ -10,7 +10,6 @@ interface GenerateControlsProps {
   onChangeImagesPerPrompt: (value: number) => void;
   actionablePromptsCount: number;
   isGenerating: boolean;
-  hasApiKey: boolean;
   justQueued: boolean;
   // Prompt mode for slider label
   promptMode: PromptMode;
@@ -27,7 +26,6 @@ export const GenerateControls: React.FC<GenerateControlsProps> = ({
   onChangeImagesPerPrompt,
   actionablePromptsCount,
   isGenerating,
-  hasApiKey,
   justQueued,
   promptMode,
   onUseExistingPrompts,
@@ -53,7 +51,7 @@ export const GenerateControls: React.FC<GenerateControlsProps> = ({
               min={1}
               max={32}
               step={1}
-              disabled={!hasApiKey || isGenerating}
+              disabled={isGenerating}
             />
           </div>
           {normalizedPromptMode === 'automated' && (
@@ -61,7 +59,7 @@ export const GenerateControls: React.FC<GenerateControlsProps> = ({
               <Select
                 value={promptMultiplier.toString()}
                 onValueChange={(value) => onChangePromptMultiplier?.(parseInt(value, 10))}
-                disabled={!hasApiKey || isGenerating}
+                disabled={isGenerating}
               >
                 <SelectTrigger variant="retro" className="h-9">
                   <span className="text-muted-foreground">×</span>
@@ -86,7 +84,7 @@ export const GenerateControls: React.FC<GenerateControlsProps> = ({
         className="w-full max-w-md transition-none disabled:opacity-100 disabled:saturate-100 disabled:brightness-100"
         variant={justQueued ? "success" : "retro"}
         size="retro-default"
-        disabled={isGenerating || !hasApiKey || (normalizedPromptMode === 'managed' && actionablePromptsCount === 0)}
+        disabled={isGenerating || (normalizedPromptMode === 'managed' && actionablePromptsCount === 0)}
       >
         {justQueued
           ? "Creating tasks!"
@@ -105,7 +103,7 @@ export const GenerateControls: React.FC<GenerateControlsProps> = ({
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-xs sm:text-sm whitespace-nowrap"
-            disabled={isGenerating || !hasApiKey}
+            disabled={isGenerating}
             onClick={(e) => {
               e.preventDefault();
               onUseExistingPrompts?.();
@@ -120,7 +118,7 @@ export const GenerateControls: React.FC<GenerateControlsProps> = ({
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground text-xs sm:text-sm whitespace-nowrap"
-            disabled={isGenerating || !hasApiKey}
+            disabled={isGenerating}
             onClick={(e) => {
               e.preventDefault();
               onNewPromptsLikeExisting?.();

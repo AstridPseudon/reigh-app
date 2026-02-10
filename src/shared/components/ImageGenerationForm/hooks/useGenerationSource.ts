@@ -4,20 +4,16 @@
  * Handles:
  * - Generation source toggle (by-reference vs just-text)
  * - Text model selection
- * - Model override for optimistic UI
  * - LORA category swapping when changing modes
+ * - LORA initialization from per-category storage
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { QueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
-import { updateSettingsCache } from '@/shared/hooks/useToolSettings';
-import { queryKeys } from '@/shared/lib/queryKeys';
 import type { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 import {
   GenerationSource,
   TextToImageModel,
-  GenerationMode,
   LoraCategory,
   ProjectImageSettings,
   getLoraCategoryForModel,
@@ -30,7 +26,6 @@ import {
 // ============================================================================
 
 interface UseGenerationSourceProps {
-  selectedProjectId: string | undefined;
   projectImageSettings: ProjectImageSettings | undefined;
   isLoadingProjectSettings: boolean;
   updateProjectImageSettings: (scope: 'project' | 'shot', updates: Partial<ProjectImageSettings>) => Promise<void>;
@@ -42,15 +37,12 @@ interface UseGenerationSourceProps {
   };
   // Callback for hires fix defaults
   setHiresFixConfig: React.Dispatch<React.SetStateAction<HiresFixConfig | Partial<HiresFixConfig>>>;
-  // Callback for model change (used by model selector)
-  queryClient?: QueryClient;
 }
 
 interface UseGenerationSourceReturn {
   // State
   generationSource: GenerationSource;
   selectedTextModel: TextToImageModel;
-  modelOverride: GenerationMode | undefined;
 
   // Refs for stale closure prevention
   generationSourceRef: React.MutableRefObject<GenerationSource>;
@@ -59,12 +51,6 @@ interface UseGenerationSourceReturn {
   // Handlers
   handleGenerationSourceChange: (source: GenerationSource) => Promise<void>;
   handleTextModelChange: (model: TextToImageModel) => Promise<void>;
-  handleModelChange: (value: GenerationMode) => Promise<void>;
-
-  // State setters
-  setGenerationSource: React.Dispatch<React.SetStateAction<GenerationSource>>;
-  setSelectedTextModel: React.Dispatch<React.SetStateAction<TextToImageModel>>;
-  setModelOverride: React.Dispatch<React.SetStateAction<GenerationMode | undefined>>;
 }
 
 // ============================================================================
@@ -73,14 +59,12 @@ interface UseGenerationSourceReturn {
 
 export function useGenerationSource(props: UseGenerationSourceProps): UseGenerationSourceReturn {
   const {
-    selectedProjectId,
     projectImageSettings,
     isLoadingProjectSettings,
     updateProjectImageSettings,
     markAsInteracted,
     loraManager,
     setHiresFixConfig,
-    queryClient,
   } = props;
 
   // ============================================================================
@@ -89,7 +73,6 @@ export function useGenerationSource(props: UseGenerationSourceProps): UseGenerat
 
   const [generationSource, setGenerationSource] = useState<GenerationSource>('by-reference');
   const [selectedTextModel, setSelectedTextModel] = useState<TextToImageModel>('qwen-image');
-  const [modelOverride, setModelOverride] = useState<GenerationMode | undefined>(undefined);
 
   // Refs to track current values - prevents stale closure issues in callbacks
   const generationSourceRef = useRef<GenerationSource>(generationSource);
@@ -122,12 +105,33 @@ export function useGenerationSource(props: UseGenerationSourceProps): UseGenerat
     hasInitializedGenerationSource.current = true;
   }, [projectImageSettings, isLoadingProjectSettings]);
 
-  // Clear model override once server settings reflect the change
+  // Initialize LORAs from per-category storage (runs after generation source init)
+  // Categories: 'qwen' (all Qwen models + by-reference) and 'z-image'
+  const hasInitializedLoras = useRef(false);
   useEffect(() => {
-    if (modelOverride && projectImageSettings?.selectedModel === modelOverride) {
-      setModelOverride(undefined);
+    if (isLoadingProjectSettings) return;
+    if (hasInitializedLoras.current) return;
+
+    // Determine current category based on generation source and model
+    const textModel = initializedTextModelRef.current || selectedTextModel;
+    const currentSource = projectImageSettings?.generationSource || generationSource;
+    // by-reference always uses 'qwen' category
+    const category: LoraCategory = currentSource === 'by-reference' ? 'qwen' : getLoraCategoryForModel(textModel);
+
+    // Try new category-based storage first, fall back to old per-model storage for migration
+    let categoryLoras: ActiveLora[] = [];
+    if (projectImageSettings?.selectedLorasByCategory) {
+      categoryLoras = projectImageSettings.selectedLorasByCategory[category] ?? [];
+    } else if (projectImageSettings?.selectedLorasByTextModel) {
+      // Migration: use old per-model storage
+      categoryLoras = projectImageSettings.selectedLorasByTextModel[textModel] ?? [];
     }
-  }, [projectImageSettings?.selectedModel, modelOverride]);
+
+    if (categoryLoras.length > 0) {
+      loraManager.setSelectedLoras(categoryLoras);
+    }
+    hasInitializedLoras.current = true;
+  }, [projectImageSettings?.selectedLorasByCategory, projectImageSettings?.selectedLorasByTextModel, projectImageSettings?.generationSource, isLoadingProjectSettings, loraManager, selectedTextModel, generationSource]);
 
   // ============================================================================
   // Handler: Generation Source Change
@@ -230,34 +234,6 @@ export function useGenerationSource(props: UseGenerationSourceProps): UseGenerat
   }, [updateProjectImageSettings, markAsInteracted, selectedTextModel, projectImageSettings?.selectedLorasByCategory, loraManager, setHiresFixConfig, generationSource]);
 
   // ============================================================================
-  // Handler: Model Change (Legacy)
-  // ============================================================================
-
-  const handleModelChange = useCallback(async (value: GenerationMode) => {
-
-    // Optimistic UI flip
-    setModelOverride(value);
-
-    // Optimistically update settings cache
-    if (queryClient) {
-      try {
-        queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
-          updateSettingsCache<ProjectImageSettings>(prev, { selectedModel: value })
-        );
-      } catch (e) {
-      }
-    }
-
-    // Clear LoRAs when switching to Qwen.Image
-    if (value === 'qwen-image') {
-      loraManager.setSelectedLoras([]);
-    }
-
-    await updateProjectImageSettings('project', { selectedModel: value });
-    markAsInteracted();
-  }, [queryClient, selectedProjectId, loraManager, updateProjectImageSettings, markAsInteracted]);
-
-  // ============================================================================
   // Return
   // ============================================================================
 
@@ -265,7 +241,6 @@ export function useGenerationSource(props: UseGenerationSourceProps): UseGenerat
     // State
     generationSource,
     selectedTextModel,
-    modelOverride,
 
     // Refs
     generationSourceRef,
@@ -274,11 +249,5 @@ export function useGenerationSource(props: UseGenerationSourceProps): UseGenerat
     // Handlers
     handleGenerationSourceChange,
     handleTextModelChange,
-    handleModelChange,
-
-    // State setters
-    setGenerationSource,
-    setSelectedTextModel,
-    setModelOverride,
   };
 }

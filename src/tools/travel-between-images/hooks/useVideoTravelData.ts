@@ -12,6 +12,7 @@
  */
 
 import { useShots } from '@/shared/contexts/ShotsContext';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { VideoTravelSettings } from '../settings';
@@ -78,7 +79,7 @@ export const useVideoTravelData = (
   // Always call these hooks but disable them when parameters are missing
   // This ensures consistent hook order between renders
   const toolSettingsQuery = useToolSettings<VideoTravelSettings>(
-    'travel-between-images',
+    TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
     { 
       shotId: selectedShotId || null, 
       enabled: !!selectedShotId 
@@ -89,7 +90,7 @@ export const useVideoTravelData = (
   const { error: toolSettingsError } = toolSettingsQuery;
 
   const projectSettingsQuery = useToolSettings<VideoTravelSettings>(
-    'travel-between-images',
+    TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
     { 
       projectId: projectId || null, 
       enabled: !!projectId 

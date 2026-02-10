@@ -14,16 +14,14 @@
  */
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import type { GenerationRow, GenerationMetadata, GenerationParams, Shot } from '@/types/shots';
-import type { SegmentSlotModeData, AdjacentSegmentsData, ShotOption, TaskDetailsData } from './types';
-import { ASPECT_RATIO_TO_RESOLUTION, findClosestAspectRatio, parseRatio } from '@/shared/lib/aspectRatios';
+import type { GenerationRow, GenerationMetadata, Shot } from '@/types/shots';
+import type { AdjacentSegmentsData, ShotOption, TaskDetailsData } from './types';
+
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
-import { usePendingGenerationTasks } from '@/shared/hooks/usePendingGenerationTasks';
-import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 
 // Import hooks
@@ -39,7 +37,8 @@ import {
   useAdjustedTaskDetails,
   useSharedLightboxState,
   useLightboxStateValue,
-  useLightboxLayoutProps,
+  useLightboxWorkflowProps,
+  useLightboxVariantBadges,
 } from './hooks';
 
 // Import components
@@ -48,8 +47,7 @@ import { LightboxLayout } from './components/layouts';
 import { ImageEditProvider, type ImageEditState } from './contexts/ImageEditContext';
 
 // Import utils
-import { downloadMedia } from './utils';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { extractDimensionsFromMedia, handleLightboxDownload } from './utils';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 // ============================================================================
@@ -184,7 +182,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   // State
   const [isDownloading, setIsDownloading] = useState(false);
   const [replaceImages, setReplaceImages] = useState(true);
-  const [variantParamsToLoad, setVariantParamsToLoad] = useState<Record<string, unknown> | null>(null);
+  const [_variantParamsToLoad, setVariantParamsToLoad] = useState<Record<string, unknown> | null>(null);
 
   // Compute actual generation ID
   // For timeline images, media.id is shot_generations.id, not the generation ID
@@ -196,80 +194,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   // IMAGE DIMENSIONS
   // ========================================
 
-  const resolutionToDimensions = (resolution: string): { width: number; height: number } | null => {
-    if (!resolution || typeof resolution !== 'string' || !resolution.includes('x')) return null;
-    const [w, h] = resolution.split('x').map(Number);
-    if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
-      return { width: w, height: h };
-    }
-    return null;
-  };
-
-  const aspectRatioToDimensions = (aspectRatio: string): { width: number; height: number } | null => {
-    if (!aspectRatio) return null;
-    const directResolution = ASPECT_RATIO_TO_RESOLUTION[aspectRatio];
-    if (directResolution) return resolutionToDimensions(directResolution);
-    const ratio = parseRatio(aspectRatio);
-    if (!isNaN(ratio)) {
-      const closestAspectRatio = findClosestAspectRatio(ratio);
-      const closestResolution = ASPECT_RATIO_TO_RESOLUTION[closestAspectRatio];
-      if (closestResolution) return resolutionToDimensions(closestResolution);
-    }
-    return null;
-  };
-
-  const extractDimensionsFromMedia = useCallback((mediaObj: typeof media): { width: number; height: number } | null => {
-    if (!mediaObj) return null;
-    const params = mediaObj.params as GenerationParams | undefined;
-    const metadata = mediaObj.metadata as Record<string, unknown> | undefined;
-
-    // Check metadata for width/height (these may exist as extended metadata fields)
-    if (metadata?.width && metadata?.height && typeof metadata.width === 'number' && typeof metadata.height === 'number') {
-      return { width: metadata.width, height: metadata.height };
-    }
-
-    const resolutionSources = [
-      params?.resolution,
-      (params as Record<string, unknown>)?.originalParams,
-      (params as Record<string, unknown>)?.orchestrator_details,
-      metadata?.resolution,
-      (metadata?.originalParams as Record<string, unknown> | undefined)?.resolution,
-      ((metadata?.originalParams as Record<string, unknown> | undefined)?.orchestrator_details as Record<string, unknown> | undefined)?.resolution,
-    ];
-    for (const res of resolutionSources) {
-      if (typeof res === 'string') {
-        const dims = resolutionToDimensions(res);
-        if (dims) return dims;
-      }
-    }
-
-    const aspectRatioSources = [
-      params?.aspect_ratio,
-      (params as Record<string, unknown>)?.custom_aspect_ratio,
-      (params as Record<string, unknown>)?.originalParams,
-      (params as Record<string, unknown>)?.orchestrator_details,
-      metadata?.aspect_ratio,
-      (metadata?.originalParams as Record<string, unknown> | undefined)?.aspect_ratio,
-      ((metadata?.originalParams as Record<string, unknown> | undefined)?.orchestrator_details as Record<string, unknown> | undefined)?.aspect_ratio,
-    ];
-    for (const ar of aspectRatioSources) {
-      if (ar && typeof ar === 'string') {
-        const dims = aspectRatioToDimensions(ar);
-        if (dims) return dims;
-      }
-    }
-
-    return null;
-  }, []);
-
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(() => {
-    return extractDimensionsFromMedia(media);
+    return extractDimensionsFromMedia(media, true);
   });
 
   React.useLayoutEffect(() => {
-    const dims = extractDimensionsFromMedia(media);
+    const dims = extractDimensionsFromMedia(media, true);
     if (dims) setImageDimensions(dims);
-  }, [media?.id, extractDimensionsFromMedia]);
+  }, [media?.id]);
 
   // ========================================
   // UPSCALE HOOK
@@ -341,12 +273,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     if (onPrevious) onPrevious();
   }, [onPrevious]);
 
-  // STATE SYNC PATTERN NOTE:
   // useSharedLightboxState needs isInpaintMode/isMagicEditMode for layout calculations,
-  // but these come from hooks called AFTER useSharedLightboxState.
-  // We use local state as a proxy, updated via useEffect after the hooks run.
-  // This causes a one-frame delay but is acceptable for swipe/layout calculations.
-  // TODO (Phase 5): Consider restructuring to avoid this sync pattern.
+  // but these come from hooks called AFTER it. Local state proxies are updated via
+  // useEffect below — one-frame delay is acceptable for swipe/layout calculations.
   const [isInpaintModeLocal, setIsInpaintModeLocal] = useState(false);
   const [isMagicEditModeLocal, setIsMagicEditModeLocal] = useState(false);
 
@@ -616,8 +545,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     repositionGenerateSuccess,
     isSavingAsVariant,
     saveAsVariantSuccess,
-    setTranslateX,
-    setTranslateY,
     setScale,
     setRotation,
     toggleFlipH,
@@ -696,22 +623,15 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   });
 
   // ========================================
-  // PENDING TASKS
+  // PENDING TASKS & VARIANT BADGES
   // ========================================
 
-  const { pendingCount: pendingTaskCount } = usePendingGenerationTasks(actualGenerationId, selectedProjectId);
-
-  const unviewedVariantCount = useMemo(() => {
-    if (!variants.list || variants.list.length === 0) return 0;
-    return variants.list.filter((v) => v.viewed_at === null).length;
-  }, [variants.list]);
-
-  const { markAllViewed: markAllViewedMutation } = useMarkVariantViewed();
-  const handleMarkAllViewed = useCallback(() => {
-    if (variantFetchGenerationId) {
-      markAllViewedMutation(variantFetchGenerationId);
-    }
-  }, [markAllViewedMutation, variantFetchGenerationId]);
+  const { pendingTaskCount, unviewedVariantCount, handleMarkAllViewed } = useLightboxVariantBadges({
+    pendingTaskGenerationId: actualGenerationId,
+    selectedProjectId,
+    variants: variants.list,
+    variantFetchGenerationId,
+  });
 
   // ========================================
   // CONTEXT VALUE
@@ -757,6 +677,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     swipeNavigation: navigation.swipeNavigation,
   });
 
+  // Placeholder values for context fields not yet wired to real state
+  const isFlippedHorizontally = false;
+  const isSaving = false;
+
   // Build ImageEditContext value (unified: mode + form + generation status)
   const imageEditValue = useMemo<ImageEditState>(() => ({
     // Mode state
@@ -794,9 +718,32 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     handleUndo,
     handleClearMask,
 
-    // Reposition state (read-only values)
+    // Canvas interaction
+    onStrokeComplete,
+    onStrokesChange,
+    onSelectionChange,
+    onTextModeHint,
+    strokeOverlayRef,
+    getDeleteButtonPosition,
+    handleToggleFreeForm,
+    handleDeleteSelected,
+
+    // Reposition state + interaction handlers
     repositionTransform,
     hasTransformChanges,
+    isRepositionDragging,
+    repositionDragHandlers,
+    getTransformStyle,
+    setScale,
+    setRotation,
+    toggleFlipH,
+    toggleFlipV,
+    resetTransform,
+
+    // Display refs
+    imageContainerRef,
+    isFlippedHorizontally,
+    isSaving,
 
     // Panel UI state
     inpaintPanelPosition,
@@ -846,113 +793,41 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isCreatingMagicEditTasks,
     magicEditTasksCreated,
   }), [
-    // Mode state
-    isInpaintMode,
-    isMagicEditMode,
-    isSpecialEditMode,
-    editMode,
-    // Mode setters
-    setIsInpaintMode,
-    setIsMagicEditMode,
-    setEditMode,
-    // Mode handlers
-    handleEnterInpaintMode,
-    handleExitInpaintMode,
-    handleEnterMagicEditMode,
-    handleExitMagicEditMode,
-    // Brush/Inpaint
-    brushSize,
-    setBrushSize,
-    isEraseMode,
-    setIsEraseMode,
-    brushStrokes,
-    // Annotation
-    isAnnotateMode,
-    setIsAnnotateMode,
-    annotationMode,
-    setAnnotationMode,
-    selectedShapeId,
-    // Undo/Clear
-    handleUndo,
-    handleClearMask,
-    // Reposition
-    repositionTransform,
-    hasTransformChanges,
-    // Panel UI
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
-    // Inpaint form
-    inpaintPrompt,
-    setInpaintPrompt,
-    inpaintNumGenerations,
-    setInpaintNumGenerations,
-    // Img2Img form
-    img2imgPrompt,
-    setImg2imgPrompt,
-    img2imgStrength,
-    setImg2imgStrength,
-    enablePromptExpansion,
-    setEnablePromptExpansion,
-    // LoRA mode
-    loraMode,
-    setLoraMode,
-    customLoraUrl,
-    setCustomLoraUrl,
-    // Generation options
-    createAsGeneration,
-    setCreateAsGeneration,
-    // Model selection
-    qwenEditModel,
-    setQwenEditModel,
-    // Advanced settings
-    advancedSettings,
-    setAdvancedSettings,
-    // Generation status
-    isGeneratingInpaint,
-    inpaintGenerateSuccess,
-    isGeneratingImg2Img,
-    img2imgGenerateSuccess,
-    isGeneratingReposition,
-    repositionGenerateSuccess,
-    isSavingAsVariant,
-    saveAsVariantSuccess,
-    isCreatingMagicEditTasks,
-    magicEditTasksCreated,
+    isInpaintMode, isMagicEditMode, isSpecialEditMode, editMode,
+    setIsInpaintMode, setIsMagicEditMode, setEditMode,
+    handleEnterInpaintMode, handleExitInpaintMode, handleEnterMagicEditMode, handleExitMagicEditMode,
+    brushSize, setBrushSize, isEraseMode, setIsEraseMode, brushStrokes,
+    isAnnotateMode, setIsAnnotateMode, annotationMode, setAnnotationMode, selectedShapeId,
+    handleUndo, handleClearMask,
+    onStrokeComplete, onStrokesChange, onSelectionChange, onTextModeHint, strokeOverlayRef,
+    getDeleteButtonPosition, handleToggleFreeForm, handleDeleteSelected,
+    repositionTransform, hasTransformChanges, isRepositionDragging, repositionDragHandlers,
+    getTransformStyle, setScale, setRotation, toggleFlipH, toggleFlipV, resetTransform,
+    imageContainerRef, isFlippedHorizontally, isSaving,
+    inpaintPanelPosition, setInpaintPanelPosition,
+    inpaintPrompt, setInpaintPrompt, inpaintNumGenerations, setInpaintNumGenerations,
+    img2imgPrompt, setImg2imgPrompt, img2imgStrength, setImg2imgStrength,
+    enablePromptExpansion, setEnablePromptExpansion,
+    loraMode, setLoraMode, customLoraUrl, setCustomLoraUrl,
+    createAsGeneration, setCreateAsGeneration, qwenEditModel, setQwenEditModel,
+    advancedSettings, setAdvancedSettings,
+    isGeneratingInpaint, inpaintGenerateSuccess, isGeneratingImg2Img, img2imgGenerateSuccess,
+    isGeneratingReposition, repositionGenerateSuccess, isSavingAsVariant, saveAsVariantSuccess,
+    isCreatingMagicEditTasks, magicEditTasksCreated,
   ]);
 
   // ========================================
   // DOWNLOAD HANDLER
   // ========================================
 
-  const handleDownload = async () => {
-    let urlToDownload: string | undefined;
-    const intendedVariantId = intendedActiveVariantIdRef.current;
-
-    if (intendedVariantId && variants.list.length > 0) {
-      const intendedVariant = variants.list.find((v) => v.id === intendedVariantId);
-      if (intendedVariant?.location) {
-        urlToDownload = intendedVariant.location;
-      }
-    }
-
-    if (!urlToDownload) {
-      urlToDownload = effectiveMedia.mediaUrl;
-    }
-
-    if (!urlToDownload) return;
-
-    setIsDownloading(true);
-    try {
-      const segmentOverrides = readSegmentOverrides(media.metadata as Record<string, unknown> | null);
-      const prompt = media.params?.prompt ||
-                     (media.metadata as Record<string, unknown> | undefined)?.enhanced_prompt as string | undefined ||
-                     segmentOverrides.prompt ||
-                     (media.metadata as Record<string, unknown> | undefined)?.prompt as string | undefined;
-      await downloadMedia(urlToDownload, media.id, false, media.contentType, prompt);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  const handleDownload = () => handleLightboxDownload({
+    intendedVariantId: intendedActiveVariantIdRef.current,
+    variants: variants.list,
+    fallbackUrl: effectiveMedia.mediaUrl,
+    media,
+    isVideo: false,
+    setIsDownloading,
+  });
 
   const handleDelete = () => {
     if (onDelete) onDelete(media.id);
@@ -986,16 +861,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   const accessibilityTitle = `Image Lightbox - ${media?.id?.substring(0, 8)}`;
   const accessibilityDescription = 'View and interact with image in full screen. Use arrow keys to navigate, Escape to close.';
 
-  // Generation name (stubbed)
-  const generationName = media?.name || '';
-  const isEditingGenerationName = false;
-  const setIsEditingGenerationName = (_: boolean) => {};
-  const handleGenerationNameChange = (_: string) => {};
-
-  // Flip functionality removed
-  const isFlippedHorizontally = false;
-  const isSaving = false;
-
   // ========================================
   // SHOW PANEL DECISION
   // ========================================
@@ -1003,194 +868,92 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   const showPanel = layout.shouldShowSidePanel || ((showTaskDetails || isSpecialEditMode) && isMobile);
 
   // ========================================
-  // BUILD LAYOUT PROPS (via hook)
+  // BUILD CONTROLS PANEL PROPS (local — only when panel is shown)
   // ========================================
 
-  const { layoutProps } = useLightboxLayoutProps({
-    showPanel,
-    shouldShowSidePanel: layout.shouldShowSidePanel,
-    // Core
-    onClose,
-    readOnly,
-    selectedProjectId,
-    isMobile,
-    actualGenerationId,
-    // Media
-    media,
-    isVideo: false,
-    effectiveMediaUrl: effectiveMedia.mediaUrl,
-    effectiveVideoUrl: '',
-    imageDimensions,
-    setImageDimensions,
-    // Variants
-    variants: variants.list,
-    activeVariant: variants.activeVariant,
-    primaryVariant: variants.primaryVariant,
-    isLoadingVariants: variants.isLoading,
-    setActiveVariantId: variants.setActiveVariantId,
-    setPrimaryVariant: variants.setPrimaryVariant,
-    deleteVariant: variants.deleteVariant,
-    promoteSuccess: variants.promoteSuccess,
-    isPromoting: variants.isPromoting,
-    handlePromoteToGeneration: variants.handlePromoteToGeneration,
-    isMakingMainVariant: makeMainVariant.isMaking,
-    canMakeMainVariant: makeMainVariant.canMake,
-    handleMakeMainVariant: makeMainVariant.handle,
-    variantParamsToLoad,
-    setVariantParamsToLoad,
-    variantsSectionRef,
-    // Video edit (stubs for images)
-    isVideoTrimModeActive: false,
-    isVideoEditModeActive: false,
-    isInVideoEditMode: false,
-    trimVideoRef: { current: null },
+  const trimVideoRefStub = useRef<HTMLVideoElement>(null);
+
+  const controlsPanelProps = useMemo(() => showPanel ? {
+    // Video stubs (image lightbox doesn't have trim/enhance)
+    isCloudMode,
     trimState: { startTrim: 0, endTrim: 0, videoDuration: 0 },
-    setStartTrim: () => {},
-    setEndTrim: () => {},
-    resetTrim: () => {},
+    onStartTrimChange: () => {},
+    onEndTrimChange: () => {},
+    onResetTrim: () => {},
     trimmedDuration: 0,
     hasTrimChanges: false,
-    saveTrimmedVideo: async () => {},
+    onSaveTrim: () => Promise.resolve(),
     isSavingTrim: false,
     trimSaveProgress: 0,
     trimSaveError: null,
     trimSaveSuccess: false,
-    setVideoDuration: () => {},
-    setTrimCurrentTime: () => {},
+    videoUrl: '',
     trimCurrentTime: 0,
+    trimVideoRef: trimVideoRefStub,
     videoEditing: null,
-    handleEnterVideoTrimMode: () => {},
-    handleEnterVideoReplaceMode: () => {},
-    handleEnterVideoRegenerateMode: () => {},
-    handleEnterVideoEnhanceMode: () => {},
-    handleExitVideoEditMode: () => {},
-    handleEnterVideoEditMode: () => {},
-    regenerateFormProps: null,
-    isCloudMode,
-    enhanceSettings: { enableInterpolation: false, enableUpscale: true, numFrames: 1, upscaleFactor: 2, colorFix: true, outputQuality: 'high' as const },
-    onUpdateEnhanceSetting: () => {},
-    onEnhanceGenerate: () => {},
-    isEnhancing: false,
-    enhanceSuccess: false,
-    canEnhance: false,
+    projectId: selectedProjectId,
     // Image upscale
     handleUpscale,
     isUpscaling,
     upscaleSuccess,
     // Edit mode
-    isInpaintMode,
-    isAnnotateMode,
-    isSpecialEditMode,
-    editMode,
-    setEditMode,
-    setIsInpaintMode,
-    brushStrokes,
-    isEraseMode,
-    setIsEraseMode,
-    brushSize,
-    setBrushSize,
-    annotationMode,
-    setAnnotationMode,
-    selectedShapeId,
-    onStrokeComplete,
-    onStrokesChange,
-    onSelectionChange,
-    onTextModeHint,
-    strokeOverlayRef,
-    handleUndo,
-    handleClearMask,
-    getDeleteButtonPosition,
-    handleToggleFreeForm,
-    handleDeleteSelected,
-    isRepositionDragging,
-    repositionDragHandlers,
-    getTransformStyle,
-    repositionTransform,
-    setTranslateX,
-    setTranslateY,
-    setScale,
-    setRotation,
-    toggleFlipH,
-    toggleFlipV,
-    resetTransform,
-    imageContainerRef,
-    isFlippedHorizontally,
-    isSaving,
-    handleExitInpaintMode,
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
-    // Edit form props
-    inpaintPrompt,
-    setInpaintPrompt,
-    inpaintNumGenerations,
-    setInpaintNumGenerations,
-    loraMode,
-    setLoraMode,
-    customLoraUrl,
-    setCustomLoraUrl,
-    isGeneratingInpaint,
-    inpaintGenerateSuccess,
-    isCreatingMagicEditTasks,
-    magicEditTasksCreated,
-    handleExitMagicEditMode,
+    sourceGenerationData: sourceGeneration.data,
+    onOpenExternalGeneration,
+    allShots: allShots || [],
+    isCurrentMediaPositioned: shots.isAlreadyPositionedInSelectedShot,
+    onReplaceInShot: () => Promise.resolve(),
+    sourcePrimaryVariant: sourceGeneration.primaryVariant,
+    onMakeMainVariant: makeMainVariant.handle,
+    canMakeMainVariant: makeMainVariant.canMake,
     handleUnifiedGenerate,
     handleGenerateAnnotatedEdit,
     handleGenerateReposition,
-    isGeneratingReposition,
-    repositionGenerateSuccess,
-    hasTransformChanges,
     handleSaveAsVariant,
-    isSavingAsVariant,
-    saveAsVariantSuccess,
-    createAsGeneration,
-    setCreateAsGeneration,
-    // Img2Img props
-    img2imgPrompt,
-    setImg2imgPrompt,
-    img2imgStrength,
-    setImg2imgStrength,
-    enablePromptExpansion,
-    setEnablePromptExpansion,
-    isGeneratingImg2Img,
-    img2imgGenerateSuccess,
     handleGenerateImg2Img,
     img2imgLoraManager,
-    availableLoras,
     editLoraManager,
+    availableLoras,
     advancedSettings,
     setAdvancedSettings,
     isLocalGeneration,
-    qwenEditModel,
-    setQwenEditModel,
-    // Info panel props
+    // Info panel
     showImageEditTools,
-    adjustedTaskDetailsData,
-    generationName,
-    handleGenerationNameChange,
-    isEditingGenerationName,
-    setIsEditingGenerationName,
+    taskDetailsData: adjustedTaskDetailsData,
     derivedItems: lineage.derivedItems,
     derivedGenerations: lineage.derivedGenerations,
     paginatedDerived: lineage.paginatedDerived,
     derivedPage: lineage.derivedPage,
     derivedTotalPages: lineage.derivedTotalPages,
-    setDerivedPage: lineage.setDerivedPage,
+    onSetDerivedPage: lineage.setDerivedPage,
     replaceImages,
-    setReplaceImages,
-    sourceGenerationData: sourceGeneration.data,
-    sourcePrimaryVariant: sourceGeneration.primaryVariant,
-    onOpenExternalGeneration,
-    // Navigation
-    showNavigation,
-    hasNext,
-    hasPrevious,
-    handleSlotNavNext,
-    handleSlotNavPrev,
-    swipeNavigation: navigation.swipeNavigation,
+    onReplaceImagesChange: setReplaceImages,
+    onSwitchToPrimary: variants.primaryVariant ? () => variants.setActiveVariantId(variants.primaryVariant.id) : undefined,
+    currentMediaId: media.id,
+    currentShotId: selectedShotId || shotId,
+    taskId: adjustedTaskDetailsData?.taskId || (media as unknown as Record<string, unknown>)?.source_task_id as string | null || null,
+  } : undefined, [
+    showPanel, isCloudMode, selectedProjectId, handleUpscale, isUpscaling, upscaleSuccess,
+    sourceGeneration.data, onOpenExternalGeneration, allShots, shots.isAlreadyPositionedInSelectedShot,
+    sourceGeneration.primaryVariant, makeMainVariant.handle, makeMainVariant.canMake,
+    handleUnifiedGenerate, handleGenerateAnnotatedEdit, handleGenerateReposition, handleSaveAsVariant,
+    handleGenerateImg2Img, img2imgLoraManager, editLoraManager, availableLoras, advancedSettings,
+    setAdvancedSettings, isLocalGeneration, showImageEditTools, adjustedTaskDetailsData,
+    lineage.derivedItems, lineage.derivedGenerations, lineage.paginatedDerived, lineage.derivedPage,
+    lineage.derivedTotalPages, lineage.setDerivedPage, replaceImages, setReplaceImages,
+    variants.primaryVariant, variants.setActiveVariantId, media.id, selectedShotId, shotId,
+  ]);
+
+  // ========================================
+  // BUILD LAYOUT PROPS (via hook — workflow + panel + navigation only)
+  // ========================================
+
+  const { layoutProps } = useLightboxWorkflowProps({
+    showPanel,
+    shouldShowSidePanel: layout.shouldShowSidePanel,
     // Panel
     effectiveTasksPaneOpen,
     effectiveTasksPaneWidth,
-    // Button group props - override topRight with real handlers (not placeholders)
+    // Button group props
     buttonGroupProps: {
       ...buttonGroupProps,
       topRight: {
@@ -1202,7 +965,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     // Workflow props
     allShots: allShots || [],
     selectedShotId,
-    shotId,
     onAddToShot,
     onAddToShotWithoutPosition,
     onDelete,
@@ -1221,7 +983,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     handleApplySettings,
     handleNavigateToShotFromSelector,
     handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-    handleReplaceInShot: async () => {},
     isDeleting,
     handleDelete,
     // Adjacent segments
@@ -1252,7 +1013,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
           accessibilityTitle={accessibilityTitle}
           accessibilityDescription={accessibilityDescription}
         >
-          <LightboxLayout {...layoutProps} />
+          <LightboxLayout {...layoutProps} controlsPanelProps={controlsPanelProps} />
         </LightboxShell>
       </ImageEditProvider>
     </LightboxProviders>

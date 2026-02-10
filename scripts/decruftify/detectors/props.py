@@ -1,4 +1,4 @@
-"""Bloated prop interface detection (>10 props = prop drilling signal)."""
+"""Bloated prop interface detection (>14 props = prop drilling signal)."""
 
 import json
 import re
@@ -48,7 +48,7 @@ def detect_prop_interface_bloat(path: Path) -> list[dict]:
                             prop_count += 1
                     pos += 1
 
-                if prop_count > 10:
+                if prop_count > 14:
                     entries.append({
                         "file": filepath,
                         "interface": name,
@@ -68,7 +68,7 @@ def cmd_props(args):
     if not entries:
         print(c("No bloated prop interfaces found.", "green"))
         return
-    print(c(f"\nBloated prop interfaces (>10 props): {len(entries)}\n", "bold"))
+    print(c(f"\nBloated prop interfaces (>14 props): {len(entries)}\n", "bold"))
     rows = []
     for e in entries[:args.top]:
         rows.append([e["interface"], rel(e["file"]), str(e["prop_count"]), str(e["line"])])

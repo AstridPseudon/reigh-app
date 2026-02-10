@@ -11,7 +11,8 @@ import { Label } from '@/shared/components/ui/label';
 import { ChevronLeft, ChevronRight, Star, Sparkles, ExternalLink, Search, X } from 'lucide-react';
 import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MediaGallery } from '@/shared/components/MediaGallery';
+import { TOOL_ROUTES } from '@/shared/lib/toolConstants';
+import { MediaGallery, type GalleryFilterState } from '@/shared/components/MediaGallery';
 import { useContainerWidth } from '@/shared/components/MediaGallery/hooks';
 import { getLayoutForAspectRatio } from '@/shared/components/MediaGallery/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
@@ -59,7 +60,7 @@ const GenerationsPaneComponent: React.FC = () => {
   } = usePanes();
   
   // Check if we're on the image generation tool page
-  const isOnImageGenerationPage = location.pathname === '/tools/image-generation';
+  const isOnImageGenerationPage = location.pathname === TOOL_ROUTES.IMAGE_GENERATION;
 
   // Get current project's aspect ratio
   const { selectedProjectId, projects } = useProject();
@@ -182,6 +183,24 @@ const GenerationsPaneComponent: React.FC = () => {
     starredOnly
   }), [mediaTypeFilter, selectedShotFilter, excludePositioned, starredOnly]);
 
+  // Consolidated gallery filter state for MediaGallery controlled mode
+  const galleryFilters = useMemo((): GalleryFilterState => ({
+    mediaType: mediaTypeFilter,
+    shotFilter: selectedShotFilter,
+    excludePositioned,
+    searchTerm,
+    starredOnly,
+    toolTypeFilter: false, // GenerationsPane doesn't use tool type toggle
+  }), [mediaTypeFilter, selectedShotFilter, excludePositioned, searchTerm, starredOnly]);
+
+  const handleGalleryFiltersChange = useCallback((newFilters: GalleryFilterState) => {
+    setSelectedShotFilter(newFilters.shotFilter);
+    setExcludePositioned(newFilters.excludePositioned);
+    setSearchTerm(newFilters.searchTerm);
+    setStarredOnly(newFilters.starredOnly);
+    setMediaTypeFilter(newFilters.mediaType);
+  }, [setSelectedShotFilter, setExcludePositioned, setSearchTerm, setStarredOnly, setMediaTypeFilter]);
+
   const shotFilterContentRef = useRef<HTMLDivElement>(null);
   const mediaTypeContentRef = useRef<HTMLDivElement>(null);
 
@@ -281,7 +300,7 @@ const GenerationsPaneComponent: React.FC = () => {
           thirdButton={{
             onClick: () => {
               setIsGenerationsPaneLocked(false);
-              navigate('/tools/image-generation');
+              navigate(TOOL_ROUTES.IMAGE_GENERATION);
             },
             ariaLabel: "Go to Image Generation tool",
             tooltip: "Go to Image Generation tool",
@@ -570,8 +589,8 @@ const GenerationsPaneComponent: React.FC = () => {
                     isDeleting={isDeleting}
                     allShots={shotsData || []}
                     lastShotId={lastAffectedShotId || undefined}
-                    initialShotFilter={selectedShotFilter}
-                    onShotFilterChange={setSelectedShotFilter}
+                    filters={galleryFilters}
+                    onFiltersChange={handleGalleryFiltersChange}
                     columnsPerRow={paneLayout.columns}
                     onAddToLastShot={(generationId, imageUrl, thumbUrl) => {
                       return handleAddToShot(generationId, imageUrl, thumbUrl);
@@ -583,10 +602,6 @@ const GenerationsPaneComponent: React.FC = () => {
                     totalCount={totalCount}
                     whiteText
                     itemsPerPage={GENERATIONS_PER_PAGE}
-                    initialMediaTypeFilter={mediaTypeFilter}
-                    onMediaTypeFilterChange={setMediaTypeFilter}
-                    initialStarredFilter={starredOnly}
-                    onStarredFilterChange={setStarredOnly}
                     reducedSpacing={true}
                     className="space-y-0 pb-8"
                     hidePagination={true}

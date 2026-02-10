@@ -1,31 +1,29 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Task } from '@/types/tasks';
 import { getTaskDisplayName, taskSupportsProgress } from '@/shared/lib/taskConfig';
-import { parseTaskParams } from '@/shared/lib/taskTypeUtils';
 import { useCancelTask } from '@/shared/hooks/useTasks';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { usePanes } from '@/shared/contexts/PanesContext';
 import { useToast } from '@/shared/hooks/use-toast';
-import { handleError } from '@/shared/lib/errorHandler';
 import { cn } from '@/shared/lib/utils';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useNavigate } from 'react-router-dom';
-import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useTaskTimestamp } from '@/shared/hooks/useUpdatingTimestamp';
 import { useProcessingTimestamp, useCompletedTimestamp } from '@/shared/hooks/useProcessingTimestamp';
 import { GenerationRow } from '@/types/shots';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useTaskType } from '@/shared/hooks/useTaskType';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 
-// Import from new modules
-import { parseTaskParamsForDisplay, getAbbreviatedTaskName, extractShotId, extractPairShotGenerationId, isSegmentVideoTask, checkSegmentConnection } from './utils/task-utils';
+// Import from modules
+import { parseTaskParamsForDisplay, getAbbreviatedTaskName, extractShotId } from './utils/task-utils';
+import { getTaskVariantId } from './utils/getTaskVariantId';
 import { useTaskContentType } from './hooks/useTaskContentType';
 import { useVideoGenerations } from './hooks/useVideoGenerations';
 import { useImageGeneration } from './hooks/useImageGeneration';
+import { useTaskNavigation } from './hooks/useTaskNavigation';
+import { useTaskErrorDisplay } from './hooks/useTaskErrorDisplay';
 import { TaskItemActions } from './components/TaskItemActions';
 import { TaskItemTooltip } from './components/TaskItemTooltip';
 import { IMAGE_EDIT_TASK_TYPES } from './constants';
@@ -35,12 +33,6 @@ interface TaskWithDbFields extends Task {
   created_at?: string;
   generation_started_at?: string;
   generation_processed_at?: string;
-}
-
-/** Extended GenerationRow with variant tracking fields added by hooks */
-interface GenerationRowWithVariant extends GenerationRow {
-  _variant_id?: string;
-  _variant_is_primary?: boolean;
 }
 
 interface TaskItemProps {
@@ -72,8 +64,6 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { selectedProjectId, setSelectedProjectId } = useProject();
-  const { setActiveTaskId, setIsTasksPaneOpen } = usePanes();
-  const { setCurrentShotId } = useCurrentShot();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -104,19 +94,8 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
   // Task content type detection - pass taskTypeInfo to avoid duplicate query
   const taskInfo = useTaskContentType({ task, taskParams, taskTypeInfo });
 
-  // State for hover
+  // Hover state - component-level so both useVideoGenerations and useTaskNavigation can use it
   const [isHoveringTaskItem, setIsHoveringTaskItem] = useState(false);
-  const [progressPercent, setProgressPercent] = useState<number | null>(null);
-  const progressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (progressTimeoutRef.current) {
-        clearTimeout(progressTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Video generations hook
   const {
@@ -147,59 +126,50 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
     const isIndividualSegment = task.taskType === 'individual_travel_segment';
     return isIndividualSegment
       ? (taskParams.parsed?.input_image_paths_resolved || [])
-      : (taskParams.parsed?.orchestrator_details?.input_image_paths_resolved || 
-         taskParams.parsed?.input_image_paths_resolved || 
+      : (taskParams.parsed?.orchestrator_details?.input_image_paths_resolved ||
+         taskParams.parsed?.input_image_paths_resolved ||
          []);
-  }, [taskInfo.isVideoTask, taskParams.parsed, task.taskType]);
+  }, [taskInfo.isVideoTask, taskParams.parsed, task.taskType]) as string[];
 
   const imagesToShow = travelImageUrls.slice(0, 4);
   const extraImageCount = Math.max(0, travelImageUrls.length - imagesToShow.length);
 
-  // Extract shot_id from task params (video tasks, travel tasks, and image edit tasks all may have it)
+  // Extract shot_id from task params
   const shotId = useMemo(() => extractShotId(task), [task]);
 
   // Cascaded error handling
-  const cascadedTaskIdMatch = task.errorMessage?.match(/Cascaded failed from related task ([a-f0-9-]+)/i);
-  const cascadedTaskId = cascadedTaskIdMatch ? cascadedTaskIdMatch[1] : null;
-  
-  const { data: cascadedTask, isLoading: isCascadedTaskLoading } = useQuery({
-    queryKey: queryKeys.tasks.cascadedError(cascadedTaskId!),
-    queryFn: async () => {
-      if (!cascadedTaskId) return null;
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('error_message, task_type')
-        .eq('id', cascadedTaskId)
-        .single();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!cascadedTaskId && task.status === 'Failed',
+  const { cascadedTaskId, cascadedTask, isCascadedTaskLoading } = useTaskErrorDisplay(task);
+
+  // Navigation and action handlers
+  const {
+    handleCheckProgress,
+    handleViewVideo,
+    handleViewImage,
+    handleVisitShot,
+    handleMobileTap,
+    progressPercent,
+  } = useTaskNavigation({
+    task,
+    shotId,
+    isMobile,
+    setIsHoveringTaskItem,
+    videoOutputs,
+    isLoadingVideoGen,
+    waitingForVideoToOpen,
+    ensureVideoFetch,
+    triggerVideoOpen,
+    clearVideoWaiting,
+    generationData,
+    imageVariantId,
+    taskInfo,
+    onOpenImageLightbox,
+    onOpenVideoLightbox,
+    onCloseLightbox,
+    isMobileActive,
+    onMobileActiveChange,
   });
 
-  // Auto-open lightbox when video data loads after clicking
-  useEffect(() => {
-    if (waitingForVideoToOpen && !isLoadingVideoGen) {
-      if (videoOutputs && videoOutputs.length > 0) {
-        const initialVariantId = (videoOutputs[0] as GenerationRowWithVariant)?._variant_id;
-        if (onOpenVideoLightbox) {
-          onOpenVideoLightbox(task, videoOutputs, 0, initialVariantId);
-        }
-        clearVideoWaiting();
-      } else {
-        // Query finished but no video found - show error
-        console.error('[TaskItem] Video query completed but no outputs found for task:', task.id);
-        toast({
-          title: 'Video not found',
-          description: 'Could not locate the video output for this task.',
-          variant: 'destructive',
-        });
-        clearVideoWaiting();
-      }
-    }
-  }, [videoOutputs, waitingForVideoToOpen, isLoadingVideoGen, onOpenVideoLightbox, task, clearVideoWaiting, toast]);
-
-  // Handlers
+  // Cancel handler (stays in component - uses queryClient + cancelTaskMutation)
   const handleCancel = () => {
     const taskId = task.id;
     const queryKey = queryKeys.tasks.paginated(selectedProjectId!);
@@ -238,230 +208,14 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
     });
   };
 
-  const handleCheckProgress = async () => {
-    // Use the task's own projectId, not the selected project
-    // This allows checking progress on tasks from other projects
-    const taskProjectId = task.projectId;
-    if (!taskProjectId) return;
-
-    const params = parseTaskParams(task.params);
-    const orchestratorDetails = params.orchestrator_details || {};
-    // For orchestrator tasks, use task.id directly - that's the UUID subtasks reference
-    // (orchestrator_details.orchestrator_task_id is a string like "join_clips_orchestrator_..." not a UUID)
-    const orchestratorId = task.id;
-    // Get run_id from orchestrator's params - subtasks have this in orchestrator_run_id
-    const runId = orchestratorDetails.run_id || params.run_id || params.orchestrator_run_id;
-
-    try {
-      // Build query filters - match the backend's findSiblingSegments logic
-      const filters: string[] = [
-        // orchestrator_task_id patterns
-        `params->>orchestrator_task_id_ref.eq.${orchestratorId}`,
-        `params->>orchestrator_task_id.eq.${orchestratorId}`,
-        `params->orchestrator_details->>orchestrator_task_id.eq.${orchestratorId}`,
-      ];
-
-      // Add run_id patterns if we have a run_id (this is the primary lookup method on backend)
-      if (runId) {
-        filters.push(
-          `params->>run_id.eq.${runId}`,
-          `params->>orchestrator_run_id.eq.${runId}`,
-          `params->orchestrator_details->>run_id.eq.${runId}`
-        );
-      }
-
-      const { data: subtasks, error } = await supabase
-        .from('tasks')
-        .select('id, status')
-        .eq('project_id', taskProjectId)
-        .neq('id', task.id)
-        .or(filters.join(','));
-
-      if (error) throw error;
-
-      const total = subtasks?.length || 0;
-      const completed = subtasks?.filter(t => t.status === 'Complete').length || 0;
-      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-      setProgressPercent(percent);
-      // Clear any existing timeout before setting a new one
-      if (progressTimeoutRef.current) {
-        clearTimeout(progressTimeoutRef.current);
-      }
-      progressTimeoutRef.current = setTimeout(() => setProgressPercent(null), 5000);
-    } catch (error) {
-      handleError(error, { context: 'TaskItem', toastTitle: 'Progress Check Failed' });
-    }
-  };
-
-  const handleVisitShot = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!shotId) return;
-
-    setIsHoveringTaskItem(false);
-
-    // Switch to the task's project if different from current
-    if (task.projectId && task.projectId !== selectedProjectId) {
-      setSelectedProjectId(task.projectId);
-    }
-
-    setCurrentShotId(shotId);
-    navigate(`/tools/travel-between-images#${shotId}`, { state: { fromShotClick: true } });
-  };
-
-  const handleViewVideo = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsHoveringTaskItem(false);
-
-    // For segment videos, try to open in shot context for full timeline integration
-    // First check if the segment's position still exists in the shot
-    if (isSegmentVideoTask(task) && shotId) {
-      const pairShotGenerationId = extractPairShotGenerationId(task);
-      const isConnected = await checkSegmentConnection(pairShotGenerationId, shotId);
-
-      if (isConnected) {
-        // Segment is still connected to shot - navigate for full context
-        // Close any open TasksPane lightbox before navigating
-        onCloseLightbox?.();
-
-        // Switch to the task's project if different from current
-        if (task.projectId && task.projectId !== selectedProjectId) {
-          setSelectedProjectId(task.projectId);
-        }
-
-        setCurrentShotId(shotId);
-        navigate(`/tools/travel-between-images#${shotId}`, {
-          state: {
-            fromShotClick: true,
-            openSegmentSlot: pairShotGenerationId,
-          }
-        });
-        return;
-      }
-      // Segment is orphaned - fall through to simple video viewer
-    }
-
-    // Default path: simple video lightbox
-    if (onOpenVideoLightbox && videoOutputs && videoOutputs.length > 0) {
-      const initialVariantId = (videoOutputs[0] as GenerationRowWithVariant)?._variant_id;
-      onOpenVideoLightbox(task, videoOutputs, 0, initialVariantId);
-    } else {
-      if (!isMobile) {
-        setActiveTaskId(task.id);
-        setIsTasksPaneOpen(true);
-      }
-      triggerVideoOpen();
-    }
-  };
-
-  const handleViewImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setIsHoveringTaskItem(false);
-
-    // If image belongs to a shot, navigate to the shot and open it in context
-    if (shotId && generationData) {
-      onCloseLightbox?.();
-
-      // Switch to the task's project if different from current
-      if (task.projectId && task.projectId !== selectedProjectId) {
-        setSelectedProjectId(task.projectId);
-      }
-
-      const variantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
-      setCurrentShotId(shotId);
-      navigate(`/tools/travel-between-images#${shotId}`, {
-        state: {
-          fromShotClick: true,
-          openImageGenerationId: generationData.generation_id || generationData.id,
-          openImageVariantId: variantId,
-        }
-      });
-      return;
-    }
-
-    if (generationData && onOpenImageLightbox) {
-      // Pass variant ID if available (for edit tasks that create variants)
-      const initialVariantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
-      onOpenImageLightbox(task, generationData, initialVariantId);
-    }
-  };
-
   const handleSwitchProject = (projectId: string) => {
     setSelectedProjectId(projectId);
     navigate('/');
   };
 
-  // Mobile tap handler
-  const handleMobileTap = (e: React.MouseEvent) => {
-    if (!isMobile) return;
-    
-    e.stopPropagation();
-    e.preventDefault();
-    
-    const hasActionableContent = 
-      taskInfo.isCompletedVideoTask ||
-      (taskInfo.isVideoTask && shotId) ||
-      (taskInfo.isImageTask && generationData);
-    
-    if (hasActionableContent) {
-      if (isMobileActive) {
-        if (taskInfo.isCompletedVideoTask && onOpenVideoLightbox && videoOutputs && videoOutputs.length > 0) {
-          onMobileActiveChange?.(null);
-          const initialVariantId = (videoOutputs[0] as GenerationRowWithVariant)?._variant_id;
-          onOpenVideoLightbox(task, videoOutputs, 0, initialVariantId);
-          return;
-        }
-        
-        if (taskInfo.isVideoTask && shotId) {
-          onMobileActiveChange?.(null);
-          setCurrentShotId(shotId);
-          navigate(`/tools/travel-between-images#${shotId}`, { state: { fromShotClick: true } });
-          return;
-        }
-        
-        if (taskInfo.isImageTask && generationData) {
-          onMobileActiveChange?.(null);
-          // Navigate to shot context if applicable
-          if (shotId) {
-            onCloseLightbox?.();
-            if (task.projectId && task.projectId !== selectedProjectId) {
-              setSelectedProjectId(task.projectId);
-            }
-            const variantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
-            setCurrentShotId(shotId);
-            navigate(`/tools/travel-between-images#${shotId}`, {
-              state: {
-                fromShotClick: true,
-                openImageGenerationId: generationData.generation_id || generationData.id,
-                openImageVariantId: variantId,
-              }
-            });
-            return;
-          }
-          if (onOpenImageLightbox) {
-            const initialVariantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
-            onOpenImageLightbox(task, generationData, initialVariantId);
-          }
-          return;
-        }
-      } else {
-        onMobileActiveChange?.(task.id);
-        if (taskInfo.isVideoTask) {
-          ensureVideoFetch();
-        }
-        return;
-      }
-    }
-    
-    onMobileActiveChange?.(isMobileActive ? null : task.id);
-  };
-
   const containerClass = cn(
     "relative p-3 mb-2 bg-zinc-800/95 rounded-md shadow border transition-colors overflow-hidden",
-    isNew ? "border-teal-400 animate-[flash_3s_ease-in-out]" : 
+    isNew ? "border-teal-400 animate-[flash_3s_ease-in-out]" :
     isActive ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-400/50" :
     "border-zinc-600 hover:border-zinc-400"
   );
@@ -474,7 +228,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
       : generationData?.name;
 
   const taskItemContent = (
-    <div 
+    <div
       className={containerClass}
       onMouseEnter={() => setIsHoveringTaskItem(true)}
       onMouseLeave={() => setIsHoveringTaskItem(false)}
@@ -486,7 +240,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           <span className="text-sm font-light text-zinc-200 whitespace-nowrap overflow-hidden text-ellipsis cursor-default min-w-0">
             {abbreviatedTaskType}
           </span>
-          
+
           <TaskItemActions
             task={task}
             isMobile={isMobile}
@@ -505,7 +259,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
             shotId={shotId}
           />
         </div>
-        
+
         <span
           className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${
             task.status === 'In Progress' ? 'bg-blue-500 text-blue-100' :
@@ -518,7 +272,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           {task.status}
         </span>
       </div>
-      
+
       {/* Image previews for Travel tasks */}
       {imagesToShow.length > 0 && (
         <div className="flex items-center overflow-x-auto mb-1 mt-2">
@@ -526,7 +280,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
             {imagesToShow.map((url, idx) => (
               <img
                 key={idx}
-                src={url}
+                src={url as string}
                 alt={`input-${idx}`}
                 className="w-12 h-12 object-cover rounded mr-1 border border-zinc-700"
               />
@@ -537,7 +291,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Prompt for Image Generation tasks (not edit tasks) */}
       {taskParams.promptText && !taskInfo.isVideoTask && !(IMAGE_EDIT_TASK_TYPES as readonly string[]).includes(task.taskType) && (
         <div className="mb-1 mt-3">
@@ -548,7 +302,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
             {generationData && (
               <button
                 onClick={() => {
-                  const initialVariantId = imageVariantId || (generationData as GenerationRowWithVariant)?._variant_id;
+                  const initialVariantId = getTaskVariantId(generationData, imageVariantId);
                   onOpenImageLightbox && onOpenImageLightbox(task, generationData, initialVariantId);
                 }}
                 className="w-8 h-8 rounded border border-zinc-500 overflow-hidden hover:border-zinc-400 transition-colors flex-shrink-0"
@@ -563,24 +317,24 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Footer row */}
       <div className="flex items-center text-[11px] text-zinc-400">
         <span className="flex-1">
-          {task.status === 'In Progress' && processingTime ? 
-            processingTime : 
+          {task.status === 'In Progress' && processingTime ?
+            processingTime :
             task.status === 'Complete' && completedTime ?
             completedTime :
             `Created ${createdTimeAgo}`
           }
         </span>
-        
+
         {variantName && (
           <span className="ml-2 px-1.5 py-0.5 bg-black/50 text-white text-[10px] rounded-md flex-shrink-0 preserve-case">
             {variantName}
           </span>
         )}
-        
+
         {/* Action buttons for queued/in progress tasks */}
         {(task.status === 'Queued' || task.status === 'In Progress') && (
           <div className="flex items-center flex-shrink-0">
@@ -619,7 +373,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
           </div>
         )}
       </div>
-      
+
       {/* Error message for failed tasks */}
       {task.status === 'Failed' && task.errorMessage && isHoveringTaskItem && (
         <div className="mt-2 p-2 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-200 animate-in slide-in-from-top-2 duration-200">

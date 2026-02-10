@@ -1,4 +1,5 @@
 import React from 'react';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Shot } from "@/types/shots";
@@ -89,7 +90,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           .single();
         
         const currentSettings = (currentShot?.settings as Record<string, unknown>) || {};
-        const travelSettings = (currentSettings['travel-between-images'] || {}) as Record<string, unknown>;
+        const travelSettings = (currentSettings[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] || {}) as Record<string, unknown>;
 
         // Clear custom dimension settings when aspect ratio changes
         // This ensures the new aspect ratio takes precedence
@@ -107,7 +108,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             aspect_ratio: newAspectRatio,
             settings: {
               ...currentSettings,
-              'travel-between-images': updatedTravelSettings
+              [TOOL_IDS.TRAVEL_BETWEEN_IMAGES]: updatedTravelSettings
             } as unknown as Json
           })
           .eq('id', selectedShot.id);
@@ -118,7 +119,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
         } else {
           // Invalidate tool settings to refresh UI with cleared custom dimensions
-          queryClient.invalidateQueries({ queryKey: queryKeys.settings.tool('travel-between-images', projectId, selectedShot.id) });
+          queryClient.invalidateQueries({ queryKey: queryKeys.settings.tool(TOOL_IDS.TRAVEL_BETWEEN_IMAGES, projectId, selectedShot.id) });
         }
       } catch (error) {
         console.error('Failed to update aspect ratio and settings:', error);

@@ -89,8 +89,10 @@ const defaultImageGenerationSettings: ImageGenerationSettings = {
   },
 };
 
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
+
 export const imageGenerationSettings = {
-  id: 'image-generation',
+  id: TOOL_IDS.IMAGE_GENERATION,
   scope: ['project'] as const,
   defaults: defaultImageGenerationSettings,
 }; 

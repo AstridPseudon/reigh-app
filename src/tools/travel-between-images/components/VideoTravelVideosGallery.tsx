@@ -1,14 +1,15 @@
 /**
  * Videos Gallery Component for VideoTravelToolPage
- * 
+ *
  * Renders the videos gallery view with skeleton/loading states.
  * Handles the "should show skeleton" decision and MediaGallery wiring.
- * 
+ *
  * @see VideoTravelToolPage.tsx - Parent page component
  */
 
-import React from 'react';
-import { MediaGallery } from '@/shared/components/MediaGallery';
+import React, { type Dispatch, type SetStateAction } from 'react';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
+import { MediaGallery, type GalleryFilterState } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import { GenerationRow, Shot } from '@/types/shots';
@@ -29,20 +30,10 @@ interface VideosQueryProps {
 }
 
 interface VideosFiltersProps {
+  videoFilters: GalleryFilterState;
+  setVideoFilters: Dispatch<SetStateAction<GalleryFilterState>>;
   videoPage: number;
   setVideoPage: (page: number) => void;
-  videoShotFilter: string;
-  setVideoShotFilter: (filter: string) => void;
-  videoExcludePositioned: boolean;
-  setVideoExcludePositioned: (exclude: boolean) => void;
-  videoSearchTerm: string;
-  setVideoSearchTerm: (term: string) => void;
-  videoMediaTypeFilter: 'all' | 'image' | 'video';
-  setVideoMediaTypeFilter: (filter: 'all' | 'image' | 'video') => void;
-  videoToolTypeFilter: boolean;
-  setVideoToolTypeFilter: (enabled: boolean) => void;
-  videoStarredOnly: boolean;
-  setVideoStarredOnly: (starred: boolean) => void;
 }
 
 interface AddToShotProps {
@@ -99,20 +90,10 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
   } = query;
 
   const {
+    videoFilters,
+    setVideoFilters,
     videoPage,
     setVideoPage,
-    videoShotFilter,
-    setVideoShotFilter,
-    videoExcludePositioned,
-    setVideoExcludePositioned,
-    videoSearchTerm,
-    setVideoSearchTerm,
-    videoMediaTypeFilter,
-    setVideoMediaTypeFilter,
-    videoToolTypeFilter,
-    setVideoToolTypeFilter,
-    videoStarredOnly,
-    setVideoStarredOnly,
   } = filters;
 
   const {
@@ -125,16 +106,16 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
   // Determine if we should show skeleton
   const hasValidData = videosData?.items && videosData.items.length > 0;
   const isLoadingOrFetching = videosLoading || videosFetching;
-  
+
   // Show skeleton if:
   // 1. No project selected, OR
   // 2. Currently loading/fetching and no valid data, OR
   // 3. We just switched to videos view (videosViewJustEnabled flag)
   const shouldShowSkeleton = !selectedProjectId || (isLoadingOrFetching && !hasValidData) || videosViewJustEnabled;
-  
+
   // Use actual count if available, otherwise default to 12
   const skeletonCount = videosData?.total || 12;
-  
+
   // For videos, use fewer columns than images (hardcoded for now to verify it works)
   const effectiveColumnsPerRow = columnsPerRow ?? 3;
 
@@ -164,28 +145,18 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
           onAddToLastShotWithoutPosition={handleAddVideoToTargetShotWithoutPosition}
           lastShotId={targetShotIdForButton}
           lastShotNameForTooltip={targetShotNameForButtonTooltip}
-          currentToolType="travel-between-images"
+          currentToolType={TOOL_IDS.TRAVEL_BETWEEN_IMAGES}
           currentToolTypeName="Travel Between Images"
           // Pagination props
           totalCount={videosData?.total}
           serverPage={videoPage}
           onServerPageChange={(page) => setVideoPage(page)}
           itemsPerPage={itemsPerPage}
-          // Filter props
-          initialMediaTypeFilter={videoMediaTypeFilter}
-          onMediaTypeFilterChange={(val) => { setVideoMediaTypeFilter(val); setVideoPage(1); }}
-          initialToolTypeFilter={videoToolTypeFilter}
-          onToolTypeFilterChange={(val) => { setVideoToolTypeFilter(val); setVideoPage(1); }}
+          // Consolidated filter props
+          filters={videoFilters}
+          onFiltersChange={setVideoFilters}
           showShotFilter={true}
-          initialShotFilter={videoShotFilter}
-          onShotFilterChange={(val) => { setVideoShotFilter(val); setVideoPage(1); }}
-          initialExcludePositioned={videoExcludePositioned}
-          onExcludePositionedChange={(val) => { setVideoExcludePositioned(val); setVideoPage(1); }}
           showSearch={false}
-          initialSearchTerm={videoSearchTerm}
-          onSearchChange={(val) => { setVideoSearchTerm(val); setVideoPage(1); }}
-          initialStarredFilter={videoStarredOnly}
-          onStarredFilterChange={(val) => { setVideoStarredOnly(val); setVideoPage(1); }}
           projectAspectRatio={projectAspectRatio}
           columnsPerRow={effectiveColumnsPerRow}
           showShare={false}

@@ -27,7 +27,6 @@ export interface FormCoreState {
   associatedShotId: string | null;
   effectiveShotId: string;
   isGenerating: boolean;
-  hasApiKey: boolean;
   ready: boolean;
 }
 

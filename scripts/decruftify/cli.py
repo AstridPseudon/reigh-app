@@ -7,7 +7,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from .utils import DEFAULT_PATH, c, print_table, rel
+from .utils import DEFAULT_PATH, c, get_area, print_table, rel
 
 
 # ── Command handlers ────────────────────────────────────────
@@ -26,10 +26,12 @@ def cmd_scan(args):
     findings = generate_findings(path, include_slow=include_slow)
 
     prev_score = state.get("score", 0)
+    prev_strict = state.get("strict_score", 0)
     diff = merge_scan(state, findings)
     save_state(state, sp)
 
     new_score = state["score"]
+    new_strict = state.get("strict_score", 0)
     stats = state["stats"]
     print(c("\n  Scan complete", "bold"))
     print(c("  " + "─" * 50, "dim"))
@@ -44,7 +46,11 @@ def cmd_scan(args):
     delta = new_score - prev_score
     delta_str = f" ({'+' if delta > 0 else ''}{delta})" if delta != 0 else ""
     color = "green" if delta > 0 else ("red" if delta < 0 else "dim")
-    print(f"  Score: {c(f'{new_score}/100{delta_str}', color)}")
+    strict_delta = new_strict - prev_strict
+    strict_delta_str = f" ({'+' if strict_delta > 0 else ''}{strict_delta})" if strict_delta != 0 else ""
+    strict_color = "green" if strict_delta > 0 else ("red" if strict_delta < 0 else "dim")
+    print(f"  Score: {c(f'{new_score}/100{delta_str}', color)}" +
+          c(f"  (strict: {new_strict}/100{strict_delta_str})", strict_color))
     print()
 
     # Post-scan analysis
@@ -80,8 +86,8 @@ def cmd_scan(args):
     print(c("  3. Are there quick wins? Check `decruftify status` for tier breakdown.", "dim"))
     print()
 
-    _write_query({"command": "scan", "score": new_score, "prev_score": prev_score,
-                  "diff": diff, "stats": stats,
+    _write_query({"command": "scan", "score": new_score, "strict_score": new_strict,
+                  "prev_score": prev_score, "diff": diff, "stats": stats,
                   "warnings": warnings, "next_action": next_action})
 
 
@@ -94,7 +100,9 @@ def cmd_status(args):
     stats = state.get("stats", {})
 
     if getattr(args, "json", False):
-        print(json.dumps({"score": state.get("score", 0), "stats": stats,
+        print(json.dumps({"score": state.get("score", 0),
+                          "strict_score": state.get("strict_score", 0),
+                          "stats": stats,
                           "scan_count": state.get("scan_count", 0),
                           "last_scan": state.get("last_scan")}, indent=2))
         return
@@ -105,9 +113,10 @@ def cmd_status(args):
 
     from .plan import TIER_LABELS
     score = state.get("score", 0)
+    strict_score = state.get("strict_score", 0)
     by_tier = stats.get("by_tier", {})
 
-    print(c(f"\n  Decruftify Score: {score}/100", "bold"))
+    print(c(f"\n  Decruftify Score: {score}/100", "bold") + c(f"  (strict: {strict_score}/100)", "dim"))
     print(c(f"  Scans: {state.get('scan_count', 0)} | Last: {state.get('last_scan', 'never')}", "dim"))
     print(c("  " + "─" * 60, "dim"))
 
@@ -116,18 +125,22 @@ def cmd_status(args):
         ts = by_tier.get(str(tier_num), {})
         t_open = ts.get("open", 0)
         t_fixed = ts.get("fixed", 0) + ts.get("auto_resolved", 0)
-        t_wontfix = ts.get("wontfix", 0) + ts.get("false_positive", 0)
+        t_fp = ts.get("false_positive", 0)
+        t_wontfix = ts.get("wontfix", 0)
         t_total = sum(ts.values())
-        pct = round((t_total - t_open) / t_total * 100) if t_total else 100
+        # Progress bar shows strict % (fixed + false_positive, not wontfix)
+        strict_pct = round((t_fixed + t_fp) / t_total * 100) if t_total else 100
         bar_len = 20
-        filled = round(pct / 100 * bar_len)
+        filled = round(strict_pct / 100 * bar_len)
         bar = c("█" * filled, "green") + c("░" * (bar_len - filled), "dim")
-        label = TIER_LABELS.get(tier_num, "")
-        rows.append([f"Tier {tier_num}", bar, f"{pct}%",
+        rows.append([f"Tier {tier_num}", bar, f"{strict_pct}%",
                      str(t_open), str(t_fixed), str(t_wontfix)])
 
-    print_table(["Tier", "Progress", "%", "Open", "Fixed", "Skip"], rows,
+    print_table(["Tier", "Strict Progress", "%", "Open", "Fixed", "Debt"], rows,
                 [40, 22, 5, 6, 6, 6])
+
+    # Structural area breakdown (shown when T3/T4 debt is significant)
+    _show_structural_areas(state)
 
     ignores = state.get("config", {}).get("ignore", [])
     if ignores:
@@ -136,8 +149,8 @@ def cmd_status(args):
             print(c(f"    {p}", "dim"))
     print()
 
-    _write_query({"command": "status", "score": score, "stats": stats,
-                  "scan_count": state.get("scan_count", 0),
+    _write_query({"command": "status", "score": score, "strict_score": strict_score,
+                  "stats": stats, "scan_count": state.get("scan_count", 0),
                   "last_scan": state.get("last_scan"),
                   "by_tier": by_tier, "ignores": ignores})
 
@@ -246,6 +259,24 @@ def cmd_show(args):
             if detail.get("fn_a"):
                 a, b = detail["fn_a"], detail["fn_b"]
                 detail_parts.append(f"{a['name']}:{a.get('line','')} ↔ {b['name']}:{b.get('line','')}")
+            if detail.get("target"):
+                detail_parts.append(f"target: {detail['target']}")
+            if detail.get("sole_tool"):
+                detail_parts.append(f"sole tool: {detail['sole_tool']}")
+            if detail.get("direction"):
+                detail_parts.append(f"direction: {detail['direction']}")
+            if detail.get("family"):
+                detail_parts.append(f"family: {detail['family']}")
+            if detail.get("patterns_used"):
+                detail_parts.append(f"patterns: {', '.join(detail['patterns_used'])}")
+            if detail.get("review"):
+                detail_parts.append(f"review: {detail['review'][:80]}")
+            if detail.get("majority"):
+                detail_parts.append(f"majority: {detail['majority']}")
+            if detail.get("minority"):
+                detail_parts.append(f"minority: {detail['minority']}")
+            if detail.get("outliers"):
+                detail_parts.append(f"outliers: {', '.join(detail['outliers'][:5])}")
 
             if detail_parts:
                 print(c(f"      {' · '.join(detail_parts)}", "dim"))
@@ -421,7 +452,8 @@ def cmd_resolve(args):
         print(f"  ... and {len(all_resolved) - 20} more")
     delta = state["score"] - prev_score
     delta_str = f" ({'+' if delta > 0 else ''}{delta})" if delta else ""
-    print(f"\n  Score: {state['score']}/100{delta_str}")
+    print(f"\n  Score: {state['score']}/100{delta_str}" +
+          c(f"  (strict: {state.get('strict_score', 0)}/100)", "dim"))
 
     # Retrospective prompt
     print(c("\n  ── Retro ──", "dim"))
@@ -433,7 +465,8 @@ def cmd_resolve(args):
 
     _write_query({"command": "resolve", "patterns": args.patterns, "status": args.status,
                   "resolved": all_resolved, "count": len(all_resolved),
-                  "score": state["score"], "prev_score": prev_score,
+                  "score": state["score"], "strict_score": state.get("strict_score", 0),
+                  "prev_score": prev_score,
                   "retro": [
                       "Was there a good loop? Anything frictional?",
                       "Process improvements? (batch-resolve, auto-fix, ignore patterns?)",
@@ -454,7 +487,8 @@ def cmd_ignore_pattern(args):
     print(c(f"Added ignore pattern: {args.pattern}", "green"))
     if removed:
         print(f"  Removed {removed} matching findings from state.")
-    print(f"  Score: {state['score']}/100")
+    print(f"  Score: {state['score']}/100" +
+          c(f"  (strict: {state.get('strict_score', 0)}/100)", "dim"))
     print()
 
 
@@ -518,7 +552,8 @@ def cmd_fix(args):
         delta = state["score"] - prev_score
         delta_str = f" ({'+' if delta > 0 else ''}{delta})" if delta else ""
         print(f"\n  Auto-resolved {len(resolved_ids)} findings in state")
-        print(f"  Score: {state['score']}/100{delta_str}")
+        print(f"  Score: {state['score']}/100{delta_str}" +
+              c(f"  (strict: {state.get('strict_score', 0)}/100)", "dim"))
 
         # Step 4: Post-fix hooks (e.g., cascade cleanup)
         post_fix = fixer.get("post_fix")
@@ -529,7 +564,8 @@ def cmd_fix(args):
         _write_query({"command": "fix", "fixer": fixer_name,
                       "files_fixed": len(results), "items_fixed": total_items,
                       "findings_resolved": len(resolved_ids),
-                      "score": state["score"], "prev_score": prev_score,
+                      "score": state["score"], "strict_score": state.get("strict_score", 0),
+                      "prev_score": prev_score,
                       "skip_reasons": getattr(results, "skip_reasons", {}),
                       "next_action": "Run `npx tsc --noEmit` to verify, then `decruftify scan` to update state"})
 
@@ -730,6 +766,54 @@ def _resolve_fixer_results(state: dict, results: list[dict], detector: str, fixe
     return resolved_ids
 
 
+def _show_structural_areas(state: dict):
+    """Show structural debt grouped by area when T3/T4 debt is significant."""
+    findings = state.get("findings", {})
+
+    structural = [f for f in findings.values()
+                  if f["tier"] in (3, 4) and f["status"] in ("open", "wontfix")]
+
+    if len(structural) < 5:
+        return
+
+    areas: dict[str, list] = defaultdict(list)
+    for f in structural:
+        areas[get_area(f["file"])].append(f)
+
+    if len(areas) < 2:
+        return
+
+    sorted_areas = sorted(areas.items(),
+                          key=lambda x: -sum(f["tier"] for f in x[1]))
+
+    print(c("\n  ── Structural Debt by Area ──", "bold"))
+    print(c("  Create a task doc for each area → farm to sub-agents for decomposition", "dim"))
+    print()
+
+    rows = []
+    for area, area_findings in sorted_areas[:15]:
+        t3 = sum(1 for f in area_findings if f["tier"] == 3)
+        t4 = sum(1 for f in area_findings if f["tier"] == 4)
+        open_count = sum(1 for f in area_findings if f["status"] == "open")
+        debt_count = sum(1 for f in area_findings if f["status"] == "wontfix")
+        weight = sum(f["tier"] for f in area_findings)
+        rows.append([area, str(len(area_findings)), f"T3:{t3} T4:{t4}",
+                      str(open_count), str(debt_count), str(weight)])
+
+    print_table(["Area", "Items", "Tiers", "Open", "Debt", "Weight"], rows,
+                [42, 6, 10, 5, 5, 7])
+
+    remaining = len(sorted_areas) - 15
+    if remaining > 0:
+        print(c(f"\n  ... and {remaining} more areas", "dim"))
+
+    print(c("\n  Workflow:", "dim"))
+    print(c("    1. decruftify show <area> --status wontfix --top 50", "dim"))
+    print(c("    2. Create tasks/<date>-<area-name>.md with decomposition plan", "dim"))
+    print(c("    3. Farm each task doc to a sub-agent for implementation", "dim"))
+    print()
+
+
 def _suggest_next_action(by_tier: dict) -> str | None:
     """Suggest the highest-value next command based on tier breakdown."""
     t1 = by_tier.get("1", {})
@@ -744,12 +828,21 @@ def _suggest_next_action(by_tier: dict) -> str | None:
                 f"or `fix dead-useeffect --dry-run` ({t2_open} T2 items)")
 
     t3_open = by_tier.get("3", {}).get("open", 0)
-    if t3_open > 0:
-        return f"`decruftify next --tier 3` — manual review needed ({t3_open} T3 items)"
-
     t4_open = by_tier.get("4", {}).get("open", 0)
-    if t4_open > 0:
-        return f"`decruftify next --tier 4` — major refactoring ({t4_open} T4 items)"
+    structural_open = t3_open + t4_open
+    if structural_open > 0:
+        return (f"{structural_open} structural items open (T3: {t3_open}, T4: {t4_open}). "
+                f"Run `decruftify show structural --status open` to review by area, "
+                f"then create per-area task docs in tasks/ for sub-agent decomposition.")
+
+    # All open items done — check for wontfix debt
+    t3_debt = by_tier.get("3", {}).get("wontfix", 0)
+    t4_debt = by_tier.get("4", {}).get("wontfix", 0)
+    structural_debt = t3_debt + t4_debt
+    if structural_debt > 0:
+        return (f"{structural_debt} structural items remain as debt (T3: {t3_debt}, T4: {t4_debt}). "
+                f"Run `decruftify status` for area breakdown. "
+                f"Create per-area task docs and farm to sub-agents for decomposition.")
 
     return None
 
@@ -861,6 +954,9 @@ def cmd_detect(args):
         "deps":       _det("deps", "cmd_deps"),
         "dupes":      _det("dupes", "cmd_dupes"),
         "smells":     _det("smells", "cmd_smells"),
+        "coupling":   _det("coupling", "cmd_coupling"),
+        "patterns":   _det("patterns", "cmd_patterns"),
+        "naming":     _det("naming", "cmd_naming"),
     }
 
     if detector not in detector_cmds:
@@ -871,7 +967,7 @@ def cmd_detect(args):
     # Apply sensible defaults for threshold when not specified
     if args.threshold is None:
         if detector == "large":
-            args.threshold = 300
+            args.threshold = 500
         elif detector == "dupes":
             args.threshold = 0.8
 
@@ -905,6 +1001,7 @@ def _state_path(args) -> Path | None:
 DETECTOR_NAMES = [
     "logs", "unused", "exports", "deprecated", "large", "complexity",
     "gods", "single-use", "props", "concerns", "deps", "dupes", "smells",
+    "coupling", "patterns", "naming",
 ]
 
 USAGE_EXAMPLES = """

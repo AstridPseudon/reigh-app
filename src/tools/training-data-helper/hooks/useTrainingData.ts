@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
+import { useVideoUrlCache } from './useVideoUrlCache';
 
 // Database types (snake_case)
 interface TrainingDataBatchDB {
@@ -279,43 +280,7 @@ export function useTrainingData() {
         throw new Error('Please select a batch first');
       }
 
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('training-data')
-        .upload(fileName, file);
-
-      if (uploadError) {
-        console.error('[Upload] Storage upload error:', uploadError);
-        throw uploadError;
-      }
-
-      // Create database record
-      const { data, error } = await supabase
-        .from('training_data')
-        .insert({
-          user_id: user.id,
-          batch_id: selectedBatchId,
-          original_filename: file.name,
-          storage_location: fileName,
-          metadata: {
-            size: file.size,
-            type: file.type,
-          },
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('[Upload] Database insert error:', error);
-        throw error;
-      }
-
-      // Update local state
-      setVideos(prev => [transformVideo(data), ...prev]);
-      return data.id;
+      return await uploadVideoFile(file, user.id);
     } catch (error) {
       console.error('[Upload] Error uploading video:', error);
       throw error;
@@ -498,11 +463,7 @@ export function useTrainingData() {
       setSegments(prev => prev.filter(s => s.trainingDataId !== id));
       
       // Clean up video URL from cache
-      setVideoUrls(prev => {
-        const newUrls = { ...prev };
-        delete newUrls[id];
-        return newUrls;
-      });
+      clearUrlCache(id);
 
       // Delete from database first (easier to rollback)
       const { error: dbError } = await supabase
@@ -633,66 +594,8 @@ export function useTrainingData() {
     }
   };
 
-  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
-  const [invalidVideos, setInvalidVideos] = useState<Set<string>>(new Set());
-
-  // Preload video URLs when videos change
-  useEffect(() => {
-    const loadVideoUrls = async () => {
-      // Only process videos that don't have URLs yet
-      const videosNeedingUrls = videos.filter(video => !videoUrls[video.id]);
-      
-      if (videosNeedingUrls.length === 0) return;
-      
-      const newUrls: Record<string, string> = {};
-      
-      // Process videos in batches to avoid overwhelming the API
-      const batchSize = 10;
-      for (let i = 0; i < videosNeedingUrls.length; i += batchSize) {
-        const batch = videosNeedingUrls.slice(i, i + batchSize);
-        
-        // Use signed URLs since bucket is private
-        const urlPromises = batch.map(async (video) => {
-          const { data, error } = await supabase.storage
-            .from('training-data')
-            .createSignedUrl(video.storageLocation, 3600); // 1 hour expiry
-          
-          if (!error && data?.signedUrl) {
-            newUrls[video.id] = data.signedUrl;
-          }
-        });
-        
-        await Promise.all(urlPromises);
-        
-        // Update URLs after each batch
-        if (Object.keys(newUrls).length > 0) {
-          setVideoUrls(prev => ({
-            ...prev,
-            ...newUrls
-          }));
-        }
-      }
-    };
-
-    if (videos.length > 0) {
-      loadVideoUrls();
-    }
-  }, [videos]); // Don't include videoUrls to avoid circular dependency
-
-  const getVideoUrl = (video: TrainingDataVideo): string => {
-    // Check if this video is known to be invalid
-    if (invalidVideos.has(video.id)) {
-      return '';
-    }
-    
-    // Return cached signed URL if available
-    // URLs are loaded asynchronously in the useEffect above
-    return videoUrls[video.id] || '';
-  };
-
-  const markVideoAsInvalid = (videoId: string) => {
-    setInvalidVideos(prev => new Set([...prev, videoId]));
-  };
+  // Video URL caching (signed URLs for private bucket)
+  const { getVideoUrl, markVideoAsInvalid, clearUrlCache } = useVideoUrlCache(videos);
 
   return {
     videos,

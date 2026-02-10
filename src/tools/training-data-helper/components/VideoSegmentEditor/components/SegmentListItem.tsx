@@ -4,8 +4,7 @@ import { Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/shared/components/ui/alert-dialog';
 import { TrainingDataSegment } from '../../../hooks/useTrainingData';
 import { SegmentFramePreview } from './SegmentFramePreview';
-
-const ASSUMED_FPS = 30;
+import { ASSUMED_FPS, msToSeconds } from '../constants';
 
 interface SegmentColor {
   bg: string;
@@ -55,7 +54,7 @@ export function SegmentListItem({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => jumpToTime(segment.startTime / 1000)}
+              onClick={() => jumpToTime(msToSeconds(segment.startTime))}
               className="h-6 px-2 text-xs"
             >
               Jump to
@@ -70,7 +69,7 @@ export function SegmentListItem({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => jumpToTime(segment.endTime / 1000)}
+              onClick={() => jumpToTime(msToSeconds(segment.endTime))}
               className="h-6 px-2 text-xs"
             >
               Jump to
@@ -84,7 +83,7 @@ export function SegmentListItem({
 
           {/* Frame count */}
           <Badge variant="outline" className="text-muted-foreground">
-            {Math.round((segment.endTime - segment.startTime) / 1000 * ASSUMED_FPS)} frames
+            {Math.round(msToSeconds(segment.endTime - segment.startTime) * ASSUMED_FPS)} frames
           </Badge>
 
           {/* Current segment indicator */}

@@ -4,7 +4,7 @@ import { ShotLora } from '@/tools/travel-between-images/settings';
 import { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { handleError } from '@/shared/lib/errorHandler';
-import { LoraHeaderActions } from '../ui/LoraHeaderActions';
+import { LoraHeaderActions } from '@/shared/components/LoraHeaderActions';
 import React from 'react';
 
 interface UseLoRASyncProps {
@@ -222,13 +222,13 @@ export const useLoraSync = ({
     return (
       <LoraHeaderActions
         hasSavedLoras={hasSavedLoras}
-        onSave={handleSaveProjectLoras}
-        onLoad={handleLoadProjectLoras}
         selectedLorasCount={selectedLorasFromProps.length}
         isSaving={isSaving}
         saveSuccess={saveSuccess}
         saveFlash={saveFlash}
         savedLoras={projectLoraSettings?.loras}
+        onSave={handleSaveProjectLoras}
+        onLoad={handleLoadProjectLoras}
       />
     );
   }, [

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/label';
@@ -6,16 +7,9 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Upload, Film, Play, X } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
-import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/shared/lib/queryKeys';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
-import { storagePaths, getFileExtension, MEDIA_BUCKET } from '@/shared/lib/storagePaths';
-import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
-import { CharacterAnimateSettings, characterAnimateSettings } from '../settings';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { PageFadeIn } from '@/shared/components/transitions';
-import { createCharacterAnimateTask } from '@/shared/lib/tasks/characterAnimate';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
 import { MediaGallery } from '@/shared/components/MediaGallery';
@@ -23,7 +17,11 @@ import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
-import { extractVideoPosterFrame } from '@/shared/utils/videoPosterExtractor';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { useCharacterAnimateSettings } from '../hooks/useCharacterAnimateSettings';
+import { useCharacterAnimateGenerate } from '../hooks/useCharacterAnimateGenerate';
+import { uploadVideoWithPoster } from '../lib/uploadVideoWithPoster';
 
 // Image/Video container skeleton loader
 const MediaContainerSkeleton: React.FC = () => (
@@ -47,9 +45,7 @@ const CharacterAnimatePage: React.FC = () => {
   const queryClient = useQueryClient();
   const { selectedProjectId } = useProject();
   const isMobile = useIsMobile();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const incomingTaskIdRef = useRef<string | null>(null);
-  
+
   // Local state for inputs
   const [characterImage, setCharacterImage] = useState<{ url: string; file?: File } | null>(null);
   const [motionVideo, setMotionVideo] = useState<{ url: string; posterUrl?: string; file?: File } | null>(null);
@@ -59,17 +55,17 @@ const CharacterAnimatePage: React.FC = () => {
   // Upload operations with automatic loading state and error handling
   const imageUpload = useAsyncOperation();
   const videoUpload = useAsyncOperation();
-  
+
   // Loading states for smooth transitions
   const [characterImageLoaded, setCharacterImageLoaded] = useState(false);
   const [motionVideoLoaded, setMotionVideoLoaded] = useState(false);
-  
+
   // Playing state - track if user has pressed play
   const [motionVideoPlaying, setMotionVideoPlaying] = useState(false);
-  
+
   const characterImageInputRef = useRef<HTMLInputElement>(null);
   const motionVideoInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Video ref for forcefully pausing
   const motionVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -78,29 +74,25 @@ const CharacterAnimatePage: React.FC = () => {
   const [isDraggingOverVideo, setIsDraggingOverVideo] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
 
-  // Track when we've just triggered a generation to prevent empty state flash
-  const [videosViewJustEnabled, setVideosViewJustEnabled] = useState<boolean>(false);
-  
-  // Track success state for button feedback
-  const [showSuccessState, setShowSuccessState] = useState(false);
-
   // Load settings with auto-save
-  const { settings, updateField, updateFields, status } = useAutoSaveSettings<CharacterAnimateSettings>({
-    toolId: 'character-animate',
-    projectId: selectedProjectId,
-    scope: 'project',
-    defaults: characterAnimateSettings.defaults,
-    enabled: !!selectedProjectId,
+  const { settings, updateField, updateFields, status } = useCharacterAnimateSettings(selectedProjectId);
+  const settingsLoaded = status === 'ready';
+
+  // Generate hook
+  const { generateAnimationMutation, showSuccessState, videosViewJustEnabled, setVideosViewJustEnabled } = useCharacterAnimateGenerate({
+    selectedProjectId,
+    characterImage,
+    motionVideo,
+    prompt,
+    localMode,
+    defaultPrompt: settings?.defaultPrompt,
   });
 
-  // Settings are ready when status is 'ready'
-  const settingsLoaded = status === 'ready';
-  
   // Get current project for aspect ratio
   const { projects } = useProject();
   const currentProject = projects.find(p => p.id === selectedProjectId);
   const projectAspectRatio = currentProject?.aspectRatio;
-  
+
   // Fetch all videos generated with character-animate tool type
   // Disable polling to prevent gallery flicker (character-animate tasks are long-running)
   const generationsQuery = useProjectGenerations(
@@ -109,32 +101,31 @@ const CharacterAnimatePage: React.FC = () => {
     100, // limit
     !!selectedProjectId, // only enable when project is selected
     {
-      toolType: 'character-animate',
+      toolType: TOOL_IDS.CHARACTER_ANIMATE,
       mediaType: 'video'
     },
     {
       disablePolling: true // Prevent periodic refetching that causes flicker
     }
   );
-  
+
   const videosData = generationsQuery.data as GenerationsPaginatedResponse | undefined;
   const videosLoading = generationsQuery.isLoading;
   const videosFetching = generationsQuery.isFetching;
-  
+
   // Delete mutation for gallery items
   const deleteGenerationMutation = useDeleteGeneration();
   const handleDeleteGeneration = useCallback((id: string) => {
     deleteGenerationMutation.mutate(id);
   }, [deleteGenerationMutation]);
-  
+
   // Clear videosViewJustEnabled flag when data loads
   useEffect(() => {
     if (videosViewJustEnabled && videosData?.items) {
-      // Data has loaded, clear the flag
       setVideosViewJustEnabled(false);
     }
-  }, [videosViewJustEnabled, videosData?.items]);
-  
+  }, [videosViewJustEnabled, videosData?.items, setVideosViewJustEnabled]);
+
   // Refresh gallery when returning to the page (since polling is disabled)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -144,68 +135,64 @@ const CharacterAnimatePage: React.FC = () => {
         });
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [selectedProjectId, queryClient]);
-  
+
   // Initialize prompt from settings
   useEffect(() => {
     if (settings?.defaultPrompt) {
       setPrompt(settings.defaultPrompt);
     }
   }, [settings?.defaultPrompt]);
-  
+
   // Load saved input image and video from settings, and sync mode
   useEffect(() => {
     if (settings?.inputImageUrl && !characterImage) {
       setCharacterImage({ url: settings.inputImageUrl });
     }
     if (settings?.inputVideoUrl && !motionVideo) {
-      setMotionVideo({ 
+      setMotionVideo({
         url: settings.inputVideoUrl,
-        posterUrl: settings.inputVideoPosterUrl 
+        posterUrl: settings.inputVideoPosterUrl
       });
     }
     if (settings?.mode) {
       setLocalMode(settings.mode);
     }
   }, [settings?.inputImageUrl, settings?.inputVideoUrl, settings?.inputVideoPosterUrl, settings?.mode]);
-  
+
   // Add timeout fallback for image loading on mobile
   useEffect(() => {
     if (characterImage && !characterImageLoaded) {
       const timer = setTimeout(() => {
         setCharacterImageLoaded(true);
-      }, 2000); // Show image after 2 seconds even if not fully loaded
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [characterImage, characterImageLoaded]);
-  
+
   // Add timeout fallback for video loading on mobile
   useEffect(() => {
     if (motionVideo && !motionVideoLoaded) {
       const timer = setTimeout(() => {
         setMotionVideoLoaded(true);
-      }, 3000); // Show video after 3 seconds even if not fully loaded
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [motionVideo, motionVideoLoaded]);
-  
+
   // The definitive fix for preventing autoplay on mobile browsers
   useEffect(() => {
     const video = motionVideoRef.current;
     if (video) {
-      // Prevent play events from doing anything
       const preventPlay = () => video.pause();
       video.addEventListener('play', preventPlay);
-      
-      // Ensure it's paused on mount and on src change
       video.pause();
-
       return () => video.removeEventListener('play', preventPlay);
     }
-  }, [motionVideo]); // Re-run when the video source changes
+  }, [motionVideo]);
 
   // Track scroll state to prevent layout shifts
   useEffect(() => {
@@ -218,32 +205,15 @@ const CharacterAnimatePage: React.FC = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
-  // Always generate a random seed for each generation
-  const generateRandomSeed = useCallback(() => {
-    return Math.floor(Math.random() * 1000000);
-  }, []);
-  
+
   // Handle mode change with optimistic update
   const handleModeChange = useCallback((newMode: 'animate' | 'replace') => {
-    setLocalMode(newMode); // Immediate UI update
-    updateField('mode', newMode); // Background persist
+    setLocalMode(newMode);
+    updateField('mode', newMode);
   }, [updateField]);
-  
-  // Handle character image upload
-  const handleCharacterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload a PNG or JPG image (avoid WEBP)',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  // Shared image upload logic (file picker + drag-drop)
+  const processImageUpload = async (file: File) => {
     await imageUpload.execute(async () => {
       const uploadedUrl = await uploadImageToStorage(file);
       setCharacterImageLoaded(false);
@@ -254,169 +224,77 @@ const CharacterAnimatePage: React.FC = () => {
     }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
   };
 
-  // Handle motion video selection
-  const handleMotionVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('video/')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload a video file',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  // Shared video upload logic (file picker + drag-drop)
+  const processVideoUpload = async (file: File) => {
     await videoUpload.execute(async () => {
-      const posterBlob = await extractVideoPosterFrame(file);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-      const userId = session.user.id;
-
-      const fileExt = getFileExtension(file.name, file.type, 'mp4');
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const fileName = storagePaths.upload(userId, `${timestamp}-${randomId}.${fileExt}`);
-      const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-${randomId}-poster.jpg`);
-
-      const { error: videoError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
-      if (videoError) throw videoError;
-
-      const { error: posterError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(posterFileName, posterBlob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'image/jpeg'
-        });
-      if (posterError) throw posterError;
-
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(fileName);
-      const { data: { publicUrl: posterUrl } } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(posterFileName);
-
+      const { videoUrl, posterUrl } = await uploadVideoWithPoster(file);
       setMotionVideoLoaded(false);
       setMotionVideoPlaying(false);
       setMotionVideo({ url: videoUrl, posterUrl, file });
-
       if (selectedProjectId) {
         updateFields({ inputVideoUrl: videoUrl, inputVideoPosterUrl: posterUrl });
       }
     }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
   };
 
-  // Generate animation mutation
-  const generateAnimationMutation = useMutation({
-    onMutate: () => {
-      incomingTaskIdRef.current = addIncomingTask({
-        taskType: 'character_animate',
-        label: prompt?.substring(0, 50) || 'Character animation...',
-      });
-    },
-    mutationFn: async () => {
-      if (!characterImage) throw new Error('No character image');
-      if (!motionVideo) throw new Error('No motion video');
-      if (!selectedProjectId) throw new Error('No project selected');
-      
-      // Create task using the character animate task creation utility
-      const taskParams: import('@/shared/lib/tasks/characterAnimate').CharacterAnimateTaskParams = {
-        project_id: selectedProjectId,
-        character_image_url: characterImage.url,
-        motion_video_url: motionVideo.url,
-        prompt: prompt || settings?.defaultPrompt || 'natural expression; preserve outfit details',
-        mode: localMode, // Use optimistic local mode
-        resolution: '480p', // Always use 480p
-        seed: generateRandomSeed(), // Always use a random seed
-        random_seed: true, // Always random
-      };
-      
-      const result = await createCharacterAnimateTask(taskParams);
-      return result;
-    },
-    onSuccess: () => {
-      // Show success state on button
-      setShowSuccessState(true);
-      setTimeout(() => setShowSuccessState(false), 1500);
+  // Handle character image upload (file picker)
+  const handleCharacterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      toast({ title: 'Invalid file type', description: 'Please upload a PNG or JPG image (avoid WEBP)', variant: 'destructive' });
+      return;
+    }
+    await processImageUpload(file);
+  };
 
-      // Set flag to indicate we just created a task
-      setVideosViewJustEnabled(true);
+  // Handle motion video selection (file picker)
+  const handleMotionVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast({ title: 'Invalid file type', description: 'Please upload a video file', variant: 'destructive' });
+      return;
+    }
+    await processVideoUpload(file);
+  };
 
-      // Invalidate both tasks and generations queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
-    },
-    onError: (error) => {
-      handleError(error, { context: 'CharacterAnimate', toastTitle: 'Failed to create task' });
-    },
-    onSettled: async () => {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-      if (incomingTaskIdRef.current) {
-        removeIncomingTask(incomingTaskIdRef.current);
-        incomingTaskIdRef.current = null;
-      }
-    },
-  });
-  
   const handleGenerate = () => {
     if (!characterImage) {
-      toast({
-        title: 'Missing character image',
-        description: 'Please upload a character image first',
-        variant: 'destructive',
-      });
+      toast({ title: 'Missing character image', description: 'Please upload a character image first', variant: 'destructive' });
       return;
     }
-    
     if (!motionVideo) {
-      toast({
-        title: 'Missing motion video',
-        description: 'Please select a motion video',
-        variant: 'destructive',
-      });
+      toast({ title: 'Missing motion video', description: 'Please select a motion video', variant: 'destructive' });
       return;
     }
-    
     generateAnimationMutation.mutate();
   };
-  
+
   // Drag and drop handlers for character image
   const handleImageDragOver = (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
   };
-  
+
   const handleImageDragEnter = (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
-    
-    // Check if dragged item is an image
     const items = Array.from(e.dataTransfer.items);
-    const hasValidImage = items.some(item => 
+    const hasValidImage = items.some(item =>
       item.kind === 'file' && ['image/png', 'image/jpeg', 'image/jpg'].includes(item.type)
     );
-    
     if (hasValidImage) {
       setIsDraggingOverImage(true);
     }
   };
-  
+
   const handleImageDragLeave = (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
-    // Check if we're actually leaving the drop zone (not just entering a child element)
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
@@ -424,33 +302,19 @@ const CharacterAnimatePage: React.FC = () => {
       setIsDraggingOverImage(false);
     }
   };
-  
+
   const handleImageDrop = async (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOverImage(false);
-
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-
     if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload a PNG or JPG image (avoid WEBP)',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid file type', description: 'Please upload a PNG or JPG image (avoid WEBP)', variant: 'destructive' });
       return;
     }
-
-    await imageUpload.execute(async () => {
-      const uploadedUrl = await uploadImageToStorage(file);
-      setCharacterImageLoaded(false);
-      setCharacterImage({ url: uploadedUrl, file });
-      if (selectedProjectId) {
-        updateField('inputImageUrl', uploadedUrl);
-      }
-    }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
+    await processImageUpload(file);
   };
 
   // Drag and drop handlers for motion video
@@ -459,28 +323,24 @@ const CharacterAnimatePage: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
   };
-  
+
   const handleVideoDragEnter = (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
-    
-    // Check if dragged item is a video
     const items = Array.from(e.dataTransfer.items);
-    const hasValidVideo = items.some(item => 
+    const hasValidVideo = items.some(item =>
       item.kind === 'file' && item.type.startsWith('video/')
     );
-    
     if (hasValidVideo) {
       setIsDraggingOverVideo(true);
     }
   };
-  
+
   const handleVideoDragLeave = (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
-    // Check if we're actually leaving the drop zone (not just entering a child element)
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
@@ -488,69 +348,19 @@ const CharacterAnimatePage: React.FC = () => {
       setIsDraggingOverVideo(false);
     }
   };
-  
+
   const handleVideoDrop = async (e: React.DragEvent) => {
     if (isScrolling) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOverVideo(false);
-
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith('video/')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload a video file',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid file type', description: 'Please upload a video file', variant: 'destructive' });
       return;
     }
-
-    await videoUpload.execute(async () => {
-      const posterBlob = await extractVideoPosterFrame(file);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-      const userId = session.user.id;
-
-      const fileExt = getFileExtension(file.name, file.type, 'mp4');
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const fileName = storagePaths.upload(userId, `${timestamp}-${randomId}.${fileExt}`);
-      const posterFileName = storagePaths.thumbnail(userId, `${timestamp}-${randomId}-poster.jpg`);
-
-      const { error: videoError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
-      if (videoError) throw videoError;
-
-      const { error: posterError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(posterFileName, posterBlob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'image/jpeg'
-        });
-      if (posterError) throw posterError;
-
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(fileName);
-      const { data: { publicUrl: posterUrl } } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(posterFileName);
-
-      setMotionVideoLoaded(false);
-      setMotionVideoPlaying(false);
-      setMotionVideo({ url: videoUrl, posterUrl, file });
-
-      if (selectedProjectId) {
-        updateFields({ inputVideoUrl: videoUrl, inputVideoPosterUrl: posterUrl });
-      }
-    }, { context: 'CharacterAnimate', toastTitle: 'Upload Failed' });
+    await processVideoUpload(file);
   };
 
   if (!selectedProjectId) {
@@ -565,7 +375,7 @@ const CharacterAnimatePage: React.FC = () => {
     <PageFadeIn>
       <div className="flex flex-col space-y-6 pb-6 px-4 max-w-7xl mx-auto pt-6">
         <h1 className="text-3xl font-light tracking-tight text-foreground">Animate Characters</h1>
-        
+
         {/* Mode Selection - First */}
         <div className="space-y-2">
           <Label>Mode:</Label>
@@ -587,28 +397,28 @@ const CharacterAnimatePage: React.FC = () => {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground flex-1">
-              {localMode === 'animate' 
+              {localMode === 'animate'
                 ? 'Animate the character in input image with movements from the input video'
                 : 'Replace the character in input video with the character in input image'
               }
             </p>
           </div>
         </div>
-        
+
         {/* Input Image | Input Video */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Character Image */}
           <div className="space-y-3">
             <Label className="text-lg font-medium">
-              {localMode === 'animate' 
+              {localMode === 'animate'
                 ? '✨ Character to animate'
                 : '✨ Character to insert'
               }
             </Label>
-            <div 
+            <div
               className={`aspect-video bg-muted rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors relative ${
-                isDraggingOverImage 
-                  ? 'border-primary bg-primary/10' 
+                isDraggingOverImage
+                  ? 'border-primary bg-primary/10'
                   : 'border-border hover:border-primary/50'
               } ${!characterImage && !imageUpload.isLoading ? 'cursor-pointer' : ''}`}
               onDragOver={handleImageDragOver}
@@ -656,7 +466,6 @@ const CharacterAnimatePage: React.FC = () => {
                   )}
                 </>
               ) : !settingsLoaded ? (
-                // Show skeleton while settings are loading
                 <MediaContainerSkeleton />
               ) : (
                 <div className="text-center p-6 pointer-events-none">
@@ -694,15 +503,15 @@ const CharacterAnimatePage: React.FC = () => {
           {/* Motion Video */}
           <div className="space-y-3">
             <Label className="text-lg font-medium">
-              {localMode === 'animate' 
+              {localMode === 'animate'
                 ? '🎬 Source of movement'
                 : '🎬 Video to replace character in'
               }
             </Label>
-            <div 
+            <div
               className={`aspect-video bg-muted rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors relative ${
-                isDraggingOverVideo 
-                  ? 'border-primary bg-primary/10' 
+                isDraggingOverVideo
+                  ? 'border-primary bg-primary/10'
                   : 'border-border hover:border-primary/50'
               } ${!motionVideo && !videoUpload.isLoading ? 'cursor-pointer' : ''}`}
               onDragOver={handleVideoDragOver}
@@ -729,7 +538,7 @@ const CharacterAnimatePage: React.FC = () => {
                         onLoad={() => setMotionVideoLoaded(true)}
                       />
                       {/* Play button overlay */}
-                      <div 
+                      <div
                         className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer hover:bg-black/30 transition-colors z-[5]"
                         onClick={() => setMotionVideoPlaying(true)}
                       >
@@ -784,7 +593,6 @@ const CharacterAnimatePage: React.FC = () => {
                   )}
                 </>
               ) : !settingsLoaded ? (
-                // Show skeleton while settings are loading
                 <MediaContainerSkeleton />
               ) : (
                 <div className="text-center p-6 pointer-events-none">
@@ -849,12 +657,12 @@ const CharacterAnimatePage: React.FC = () => {
           disabled={!characterImage || !motionVideo || generateAnimationMutation.isPending || showSuccessState}
           className="w-full"
           size="lg"
-          variant={showSuccessState ? 'default' : 'default'}
+          variant="default"
         >
-          {generateAnimationMutation.isPending 
-            ? 'Creating Task...' 
-            : showSuccessState 
-            ? '✓ Task Created!' 
+          {generateAnimationMutation.isPending
+            ? 'Creating Task...'
+            : showSuccessState
+            ? '✓ Task Created!'
             : 'Generate'}
         </Button>
 
@@ -862,11 +670,10 @@ const CharacterAnimatePage: React.FC = () => {
         {(() => {
           const hasValidData = videosData?.items && videosData.items.length > 0;
           const isLoadingOrFetching = videosLoading || videosFetching;
-          
+
           // Show skeleton only if we're loading AND we already have data (refetching)
-          // This prevents showing "Previous Results" when there might not be any data yet
           const shouldShowSkeleton = (isLoadingOrFetching || videosViewJustEnabled) && hasValidData;
-          
+
           if (shouldShowSkeleton) {
             return (
               <div className="space-y-4 pt-4 border-t">
@@ -882,7 +689,7 @@ const CharacterAnimatePage: React.FC = () => {
               </div>
             );
           }
-          
+
           if (hasValidData) {
             return (
               <div className="space-y-4 pt-4 border-t">
@@ -892,25 +699,23 @@ const CharacterAnimatePage: React.FC = () => {
                 <MediaGallery
                   images={videosData.items || []}
                   allShots={[]}
-                  onAddToLastShot={async () => false} // No-op for video gallery
-                  onAddToLastShotWithoutPosition={async () => false} // No-op for video gallery
+                  onAddToLastShot={async () => false}
+                  onAddToLastShotWithoutPosition={async () => false}
                   onDelete={handleDeleteGeneration}
                   isDeleting={deleteGenerationMutation.isPending ? deleteGenerationMutation.variables as string : null}
-                  currentToolType="character-animate"
-                  initialMediaTypeFilter="video"
-                  initialToolTypeFilter={true}
+                  currentToolType={TOOL_IDS.CHARACTER_ANIMATE}
+                  defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
                   currentToolTypeName="Animate Characters"
                   showShotFilter={false}
-                  initialShotFilter="all"
                   columnsPerRow={3}
-                  itemsPerPage={isMobile ? 20 : 12} // Mobile: 20 (10 rows of 2), Desktop: 12 (4 rows of 3)
+                  itemsPerPage={isMobile ? 20 : 12}
                   reducedSpacing={true}
                   hidePagination={videosData.items.length <= (isMobile ? 20 : 12)}
                 />
               </div>
             );
           }
-          
+
           // Only show empty state when not loading and no data
           if (!isLoadingOrFetching) {
             return (
@@ -919,7 +724,7 @@ const CharacterAnimatePage: React.FC = () => {
               </div>
             );
           }
-          
+
           // While loading for the first time, don't show anything
           return null;
         })()}
@@ -929,4 +734,3 @@ const CharacterAnimatePage: React.FC = () => {
 };
 
 export default CharacterAnimatePage;
-

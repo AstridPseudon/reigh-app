@@ -4,7 +4,6 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { handleError } from '@/shared/lib/errorHandler';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
-import { toolsManifest } from '@/tools';
 import { QUERY_PRESETS, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
 import {
   enqueueSettingsWrite,
@@ -12,28 +11,14 @@ import {
   type QueuedWrite
 } from '@/shared/lib/settingsWriteQueue';
 import { deepMerge } from '@/shared/lib/deepEqual';
-import { isCancellationError, isAbortError, getErrorMessage } from '@/shared/lib/errorUtils';
+import { isCancellationError } from '@/shared/lib/errorUtils';
+import {
+  fetchToolSettingsSupabase,
+  getUserWithTimeout,
+  type SettingsFetchResult,
+} from '@/shared/lib/toolSettingsService';
 
 export type SettingsScope = 'user' | 'project' | 'shot';
-
-// Single-flight dedupe for settings fetches across components
-const inflightSettingsFetches = new Map<string, Promise<unknown>>();
-// Single-flight dedupe for getSession calls (it's slow - 600ms to 16s!)
-let inflightGetSession: Promise<{ data: { session: { user: { id: string } } | null } }> | null = null;
-// Lightweight user cache to avoid repeated auth calls within a short window
-let cachedUser: { id: string } | null = null;
-let cachedUserAt: number = 0;
-const USER_CACHE_MS = 10_000; // 10 seconds
-
-// Tool defaults registry - client-side version matching server
-const toolDefaults: Record<string, unknown> = Object.fromEntries(
-  toolsManifest.map(toolSettings => [toolSettings.id, toolSettings.defaults])
-);
-
-interface ToolSettingsContext {
-  projectId?: string;
-  shotId?: string;
-}
 
 interface UpdateToolSettingsParams {
   scope: SettingsScope;
@@ -43,207 +28,14 @@ interface UpdateToolSettingsParams {
 }
 
 /**
- * Fetch and merge tool settings from all scopes using direct Supabase calls
- * This replaces the Express API approach for better mobile reliability
- */
-// Helper function to add timeout to auth calls - aligned with Supabase global timeout
-// Mobile networks can be much slower - use a more generous default timeout
-// to prevent falling back to defaults when the network is just slow
-async function getUserWithTimeout(timeoutMs = 15000) {
-  const controller = new AbortController();
-  
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-  
-  try {
-    // FIRST: Check cached user to avoid slow getSession calls
-    // This is critical because getSession() can take 600ms-16s!
-    if (cachedUser && (Date.now() - cachedUserAt) < USER_CACHE_MS) {
-      clearTimeout(timeoutId);
-      return { data: { user: { id: cachedUser.id } }, error: null };
-    }
-
-    // Fast path: use local session (no network) to avoid auth network call in background
-    // Single-flight the getSession call - it's slow and multiple components call it simultaneously
-    if (!inflightGetSession) {
-      inflightGetSession = supabase.auth.getSession().finally(() => {
-        inflightGetSession = null;
-      });
-    }
-    
-    const { data: sessionData } = await inflightGetSession;
-
-    const sessionUser = sessionData?.session?.user || null;
-    if (sessionUser) {
-      cachedUser = { id: sessionUser.id };
-      cachedUserAt = Date.now();
-      clearTimeout(timeoutId);
-      return { data: { user: sessionUser }, error: null };
-    }
-
-    const result = await Promise.race([
-      supabase.auth.getUser(),
-      new Promise<{ data: { user: null }, error: Error }>((_, reject) =>
-        setTimeout(() => reject(new Error('Auth timeout - please check your connection')), timeoutMs)
-      )
-    ]);
-    
-    clearTimeout(timeoutId);
-    const fetchedUserId = result?.data?.user?.id;
-    if (fetchedUserId) {
-      cachedUser = { id: fetchedUserId };
-      cachedUserAt = Date.now();
-    }
-    return result;
-  } catch (error: unknown) {
-    clearTimeout(timeoutId);
-    if (isAbortError(error)) {
-      throw new Error('Auth request was cancelled - please try again');
-    }
-    throw error;
-  }
-}
-
-async function fetchToolSettingsSupabase(toolId: string, ctx: ToolSettingsContext, signal?: AbortSignal): Promise<unknown> {
-  try {
-    // Check if request was cancelled before starting - throw to signal cancellation
-    if (signal?.aborted) {
-      throw new Error('Request was cancelled');
-    }
-    
-    // Single-flight dedupe key for concurrent identical requests
-    const singleFlightKey = JSON.stringify({ toolId, projectId: ctx.projectId ?? null, shotId: ctx.shotId ?? null });
-    const existingPromise = inflightSettingsFetches.get(singleFlightKey);
-    if (existingPromise) {
-      return existingPromise;
-    }
-
-    const promise = (async () => {
-      // [GenerationModeDebug] Log which tool is making the query
-
-      // Mobile optimization: Cache user info to avoid repeated auth calls
-      // Add timeout to prevent hanging on mobile connections (aligned with Supabase global timeout)
-      // Use generous timeout for mobile networks
-      const { data: { user }, error: authError } = await getUserWithTimeout();
-
-      if (authError || !user) {
-        throw new Error('Authentication required');
-      }
-      
-      // Check again after auth call - throw to signal cancellation
-      // React Query's retry logic won't retry cancelled requests
-      if (signal?.aborted) {
-        throw new Error('Request was cancelled');
-      }
-
-      // Mobile optimization: Use more efficient queries with targeted JSON extraction
-      // NOTE: We fetch the entire settings JSON to avoid SQL path issues with tool IDs containing hyphens.
-      const [userResult, projectResult, shotResult] = await Promise.all([
-        supabase
-          .from('users')
-          .select('settings')
-          .eq('id', user.id)
-          .maybeSingle(),
-
-        ctx.projectId
-          ? supabase
-              .from('projects')
-              .select('settings')
-              .eq('id', ctx.projectId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-
-        ctx.shotId
-          ? supabase
-              .from('shots')
-              .select('settings')
-              .eq('id', ctx.shotId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      // Handle errors more gracefully for mobile
-
-      // Extract tool-specific settings from the full settings JSON
-      const userSettingsData = userResult.data?.settings as Record<string, unknown> | null;
-      const projectSettingsData = projectResult.data?.settings as Record<string, unknown> | null;
-      const shotSettingsData = shotResult.data?.settings as Record<string, unknown> | null;
-      const userSettings = (userSettingsData?.[toolId] as Record<string, unknown>) ?? {};
-      const projectSettings = (projectSettingsData?.[toolId] as Record<string, unknown>) ?? {};
-      const shotSettings = (shotSettingsData?.[toolId] as Record<string, unknown>) ?? {};
-
-      // Check if shot actually had settings stored (not just empty object)
-      const hasShotSettings = shotSettings && Object.keys(shotSettings).length > 0;
-
-      // [GenerationModeDebug] Log what we're getting from each source
-
-      // Merge in priority order: defaults → user → project → shot
-      const merged = deepMerge(
-        {},
-        toolDefaults[toolId] ?? {},
-        userSettings,
-        projectSettings,
-        shotSettings
-      );
-
-      // [GenerationModeDebug] Log merged result
-
-      // Return both the merged settings and metadata about what was found
-      return { settings: merged, hasShotSettings };
-    })();
-
-    inflightSettingsFetches.set(singleFlightKey, promise);
-    promise.finally(() => {
-      inflightSettingsFetches.delete(singleFlightKey);
-    });
-    return promise;
-
-  } catch (error: unknown) {
-    // Handle abort errors silently to reduce noise during task cancellation
-    if (isCancellationError(error)) {
-      // Don't log these as errors - they're expected during component unmounting
-      throw new Error('Request was cancelled');
-    }
-    // Enrich logging with environment context
-    const errorMsg = getErrorMessage(error);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const contextInfo = {
-        visibilityState: typeof document !== 'undefined' ? document.visibilityState : 'unknown',
-        hidden: typeof document !== 'undefined' ? document.hidden : false,
-        online: typeof navigator !== 'undefined' ? navigator.onLine : true,
-        hasSession: !!sess?.session,
-      };
-
-      if (errorMsg.includes('Auth timeout') || errorMsg.includes('Auth request was cancelled')) {
-        // Return defaults rather than erroring, so UI remains usable
-        return { settings: deepMerge({}, toolDefaults[toolId] ?? {}), hasShotSettings: false };
-      }
-
-      if (errorMsg.includes('Failed to fetch')) {
-        console.error('[ToolSettingsAuth] Network issue fetching settings', { error: errorMsg, ...contextInfo });
-        throw new Error('Network connection issue. Please check your internet connection.');
-      }
-
-      console.error('[fetchToolSettingsSupabase] Error:', error, contextInfo);
-    } catch (e) {
-      // If context gathering fails, still rethrow the original error
-      console.error('[fetchToolSettingsSupabase] Error (context unavailable):', error);
-    }
-    throw error;
-  }
-}
-
-/**
  * Raw write function - performs the actual DB update.
  * Used internally by the settings write queue.
- * 
+ *
  * @internal Use updateToolSettingsSupabase (queued) for normal usage
  */
 async function rawUpdateToolSettings(write: QueuedWrite): Promise<Record<string, unknown>> {
   const { scope, entityId: id, toolId, patch } = write;
-  
+
   try {
     let tableName: string;
     switch (scope) {
@@ -272,7 +64,7 @@ async function rawUpdateToolSettings(write: QueuedWrite): Promise<Record<string,
     if (fetchError) {
       // Check for network exhaustion - include the error type in the message for downstream handling
       const errorMessage = fetchError.message || '';
-      if (errorMessage.includes('ERR_INSUFFICIENT_RESOURCES') || 
+      if (errorMessage.includes('ERR_INSUFFICIENT_RESOURCES') ||
           errorMessage.includes('Failed to fetch') ||
           fetchError.code === 'ERR_INSUFFICIENT_RESOURCES') {
         throw new Error(`Network exhaustion: ${errorMessage}`);
@@ -320,12 +112,12 @@ setSettingsWriteFunction(rawUpdateToolSettings);
 
 /**
  * Update tool settings using the global write queue.
- * 
+ *
  * This is the main entry point for settings updates. It:
  * - Debounces rapid updates (300ms window)
  * - Coalesces multiple writes to the same target
  * - Serializes writes globally to prevent network exhaustion
- * 
+ *
  * @param params - The update parameters
  * @param mode - 'debounced' (default) or 'immediate' for flush-on-unmount
  * @returns The full merged settings after update
@@ -336,7 +128,7 @@ export async function updateToolSettingsSupabase(
   mode: 'debounced' | 'immediate' = 'debounced'
 ): Promise<Record<string, unknown>> {
   const { scope, id, toolId, patch } = params;
-  
+
   return enqueueSettingsWrite({
     scope,
     entityId: id,
@@ -345,10 +137,18 @@ export async function updateToolSettingsSupabase(
   }, mode);
 }
 
-/** Cache wrapper format for tool settings */
-interface SettingsCacheWrapper<T> {
-  settings: T;
-  hasShotSettings: boolean;
+// ============================================================================
+// Cache format helpers
+// ============================================================================
+
+/**
+ * Helper to check if a cache value has the wrapper format.
+ * fetchToolSettingsSupabase always returns { settings, hasShotSettings },
+ * but legacy or manually-set cache entries may use flat format.
+ */
+function isSettingsWrapper(data: unknown): data is SettingsFetchResult {
+  if (!data || typeof data !== 'object') return false;
+  return 'settings' in data && 'hasShotSettings' in data;
 }
 
 /**
@@ -357,9 +157,7 @@ interface SettingsCacheWrapper<T> {
  */
 export function extractSettingsFromCache<T>(cacheData: unknown): T | undefined {
   if (!cacheData) return undefined;
-  const data = cacheData as Record<string, unknown>;
-  const hasWrapper = 'settings' in data && 'hasShotSettings' in data;
-  return hasWrapper ? (data.settings as T) : (cacheData as T);
+  return isSettingsWrapper(cacheData) ? (cacheData.settings as T) : (cacheData as T);
 }
 
 /**
@@ -372,14 +170,13 @@ export function extractSettingsFromCache<T>(cacheData: unknown): T | undefined {
 export function updateSettingsCache<T extends Record<string, unknown>>(
   prev: unknown,
   updater: Partial<T> | ((prevSettings: T) => Partial<T>)
-): SettingsCacheWrapper<T> {
-  const data = prev as Record<string, unknown> | null;
-  const hasWrapper = data && 'settings' in data && 'hasShotSettings' in data;
-  const prevSettings = (hasWrapper ? ((data?.settings ?? {}) as T) : ((prev ?? {}) as T));
+): SettingsFetchResult<T> {
+  const wrapper = isSettingsWrapper(prev);
+  const prevSettings = (wrapper ? ((prev as SettingsFetchResult).settings ?? {}) : (prev ?? {})) as T;
   const updates = typeof updater === 'function' ? updater(prevSettings) : updater;
   return {
     settings: { ...prevSettings, ...updates } as T,
-    hasShotSettings: hasWrapper ? ((data?.hasShotSettings as boolean) ?? false) : false
+    hasShotSettings: wrapper ? ((prev as SettingsFetchResult).hasShotSettings ?? false) : false
   };
 }
 
@@ -395,8 +192,17 @@ export function useToolSettings<T>(toolId: string, context?: { projectId?: strin
 };
 
 /**
- * Hook for managing tool settings with direct Supabase integration
- * This replaces the Express API approach for better mobile reliability
+ * Low-level hook for reading and writing tool settings across all scopes.
+ *
+ * Performs cascade resolution (defaults -> user -> project -> shot) and returns
+ * a merged settings object. Writes go through the global settings write queue.
+ *
+ * Most features should use `useAutoSaveSettings` instead, which adds auto-save,
+ * dirty tracking, and entity-change handling on top of this hook.
+ *
+ * Use this directly only when you need manual save control or complex write patterns.
+ *
+ * @see docs/structure_detail/settings_system.md for the full settings hook decision tree
  */
 export function useToolSettings<T>(
   toolId: string,
@@ -404,7 +210,7 @@ export function useToolSettings<T>(
 ) {
   const { selectedProjectId } = useProject();
   const queryClient = useQueryClient();
-  
+
   // Ref to track active update controllers for cleanup
   const updateControllersRef = useRef<Set<AbortController>>(new Set());
 
@@ -453,7 +259,7 @@ export function useToolSettings<T>(
     // Mobile-specific optimizations
     retry: (failureCount, error) => {
       // Don't retry auth errors, cancelled requests, or abort errors
-      if (error?.message?.includes('Authentication required') || 
+      if (error?.message?.includes('Authentication required') ||
           error?.message?.includes('Request was cancelled') ||
           error?.name === 'AbortError' ||
           error?.message?.includes('signal is aborted')) {
@@ -472,10 +278,9 @@ export function useToolSettings<T>(
   });
 
   // Extract settings and hasShotSettings from the query result
-  // Handle both formats: { settings: T, hasShotSettings } (new) and T directly (legacy cache)
-  const hasSettingsWrapper = queryResult && 'settings' in queryResult && 'hasShotSettings' in queryResult;
-  const settings = hasSettingsWrapper ? queryResult?.settings : queryResult;
-  const hasShotSettings = hasSettingsWrapper ? (queryResult?.hasShotSettings ?? false) : false;
+  const wrapper = isSettingsWrapper(queryResult);
+  const settings = wrapper ? (queryResult as SettingsFetchResult).settings : queryResult;
+  const hasShotSettings = wrapper ? ((queryResult as SettingsFetchResult).hasShotSettings ?? false) : false;
 
   // Log errors for debugging (except expected cancellations)
   if (error && !error?.message?.includes('Request was cancelled')) {
@@ -493,15 +298,15 @@ export function useToolSettings<T>(
 
   // Update settings mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ scope, settings: newSettings, signal, entityId }: { 
-      scope: SettingsScope; 
-      settings: Partial<T>; 
+    mutationFn: async ({ scope, settings: newSettings, signal, entityId }: {
+      scope: SettingsScope;
+      settings: Partial<T>;
       signal?: AbortSignal;
       entityId?: string;
     }) => {
       // Prefer explicitly provided entityId (snapshotted at schedule time) to avoid drift
       let idForScope: string | undefined = entityId;
-      
+
       if (!idForScope) {
         if (scope === 'user') {
           // Get userId from auth for user scope with timeout protection (aligned with global timeout)
@@ -523,7 +328,7 @@ export function useToolSettings<T>(
         // For project/shot scope, still throw if missing (these are programming errors)
         throw new Error(`Missing identifier for ${scope} tool settings update`);
       }
-  
+
       // updateToolSettingsSupabase now returns the full merged settings
       const fullMergedSettings = await updateToolSettingsSupabase({
           scope,
@@ -531,7 +336,7 @@ export function useToolSettings<T>(
           toolId,
           patch: newSettings,
       }, signal);
-      
+
       // Return the full merged settings (not just the patch) for cache update
       return fullMergedSettings;
     },
@@ -543,19 +348,18 @@ export function useToolSettings<T>(
 
       // Optimistically update the cache by merging with existing cache
       // CRITICAL: The cache stores { settings: T, hasShotSettings: boolean } shape
-      // Handle legacy format where settings are directly on the object (no wrapper)
       queryClient.setQueryData(
         queryKeys.settings.tool(toolId, projectId, shotId),
         (oldData: unknown) => {
-          // Check if old data has the new wrapper format
-          const data = oldData as Record<string, unknown> | null;
-          const hasWrapper = data && 'settings' in data && 'hasShotSettings' in data;
-          const oldSettings = hasWrapper ? ((data?.settings ?? {}) as Record<string, unknown>) : ((data ?? {}) as Record<string, unknown>);
+          const oldWrapper = isSettingsWrapper(oldData);
+          const oldSettings = oldWrapper
+            ? (((oldData as SettingsFetchResult).settings ?? {}) as Record<string, unknown>)
+            : ((oldData ?? {}) as Record<string, unknown>);
           const mergedSettings = deepMerge({}, oldSettings, fullMergedSettings);
 
           return {
             settings: mergedSettings,
-            hasShotSettings: hasWrapper ? ((data?.hasShotSettings as boolean) ?? false) : false
+            hasShotSettings: oldWrapper ? ((oldData as SettingsFetchResult).hasShotSettings ?? false) : false
           };
         }
       );
@@ -569,28 +373,28 @@ export function useToolSettings<T>(
     },
     onError: (error: Error) => {
       // Don't log or show errors for cancelled requests during task cancellation
-      if (error?.name === 'AbortError' || 
+      if (error?.name === 'AbortError' ||
           error?.message?.includes('Request was cancelled') ||
           error?.message?.includes('signal is aborted')) {
         return; // Silent handling for expected cancellations
       }
-      
+
       // Check if this is a network exhaustion error - don't invalidate or show toast
       // as this would just create more requests and spam the user
       const isNetworkExhaustion = error?.message?.includes('ERR_INSUFFICIENT_RESOURCES') ||
                                    error?.message?.includes('Network exhaustion') ||
                                    error?.message?.includes('Failed to fetch');
-      
+
       if (isNetworkExhaustion) {
         return; // Don't invalidate - that would just make more requests
       }
-      
+
       handleError(error, { context: 'useToolSettings.update', toastTitle: `Failed to save ${toolId} settings` });
-      
+
       // On error, invalidate to refetch correct state from server
       // But only for non-network errors (auth issues, server errors, etc.)
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.settings.tool(toolId, projectId, shotId) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.tool(toolId, projectId, shotId)
       });
     },
   });
@@ -599,7 +403,7 @@ export function useToolSettings<T>(
   // but mutateAsync itself is stable
   const mutateAsyncRef = useRef(updateMutation.mutateAsync);
   mutateAsyncRef.current = updateMutation.mutateAsync;
-  
+
   // CRITICAL: Wrap in useCallback with stable deps to prevent cascading re-renders.
   // Use refs to access current projectId/shotId without recreating this function.
   // The entityId is snapshotted at call time via refs for correctness.
@@ -611,12 +415,12 @@ export function useToolSettings<T>(
     // Create an AbortController for this update and track it
     const controller = new AbortController();
     updateControllersRef.current.add(controller);
-    
+
     // Clean up controller when mutation completes
     const cleanup = () => {
       updateControllersRef.current.delete(controller);
     };
-    
+
     // Set up cleanup handlers
     controller.signal.addEventListener('abort', cleanup);
 
@@ -640,4 +444,4 @@ export function useToolSettings<T>(
     isUpdating: updateMutation.isPending,
     hasShotSettings,
   };
-} 
+}

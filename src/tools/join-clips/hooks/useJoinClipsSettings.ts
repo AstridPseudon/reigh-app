@@ -1,4 +1,5 @@
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { joinClipsSettings, JoinClipsSettings } from '../settings';
 
 /**
@@ -7,7 +8,7 @@ import { joinClipsSettings, JoinClipsSettings } from '../settings';
  */
 export function useJoinClipsSettings(projectId: string | null | undefined) {
   return useAutoSaveSettings<JoinClipsSettings>({
-    toolId: 'join-clips',
+    toolId: TOOL_IDS.JOIN_CLIPS,
     scope: 'project',
     projectId,
     defaults: joinClipsSettings.defaults,

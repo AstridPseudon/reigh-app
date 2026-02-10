@@ -4,4 +4,5 @@
 
 export { ImageManagerSkeleton } from './Skeleton';
 
-// Note: Header and LoraHeaderActions are imported directly where used
+// Note: Header is imported directly where used
+// LoraHeaderActions is shared: @/shared/components/LoraHeaderActions

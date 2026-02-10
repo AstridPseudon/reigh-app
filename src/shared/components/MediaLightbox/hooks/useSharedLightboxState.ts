@@ -50,11 +50,11 @@ import {
 } from './index';
 
 // ============================================================================
-// Props Interface
+// Props Sub-Interfaces (grouped by concern)
 // ============================================================================
 
-interface UseSharedLightboxStateProps {
-  // Core
+/** Core media and project context */
+interface SharedLightboxCoreProps {
   media: GenerationRow;
   isVideo: boolean;
   selectedProjectId: string | null;
@@ -62,19 +62,22 @@ interface UseSharedLightboxStateProps {
   isFormOnlyMode: boolean;
   onClose: () => void;
   readOnly?: boolean;
-
-  // Variant fetch control
   variantFetchGenerationId: string | null;
   initialVariantId?: string;
+}
 
-  // Navigation
+/** Navigation state and handlers */
+interface SharedLightboxNavigationProps {
   showNavigation?: boolean;
   hasNext?: boolean;
   hasPrevious?: boolean;
   handleSlotNavNext: () => void;
   handleSlotNavPrev: () => void;
+  swipeDisabled: boolean;
+}
 
-  // Shot management
+/** Shot management callbacks and optimistic state */
+interface SharedLightboxShotProps {
   shotId?: string;
   selectedShotId?: string;
   allShots?: ShotOption[];
@@ -90,45 +93,55 @@ interface UseSharedLightboxStateProps {
   optimisticUnpositionedIds?: Set<string>;
   positionedInSelectedShot?: boolean;
   associatedWithoutPositionInSelectedShot?: boolean;
+}
 
-  // Star
-  starred?: boolean;
-
-  // External generation navigation
-  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
-
-  // Layout mode inputs
+/** Layout mode inputs (drives panel/edit mode visibility) */
+interface SharedLightboxLayoutProps {
   showTaskDetails?: boolean;
   isSpecialEditMode: boolean;
   isInpaintMode: boolean;
   isMagicEditMode: boolean;
+}
 
-  // Button group inputs
+/** Button group inputs (download, delete, star, upscale, edit mode) */
+interface SharedLightboxButtonGroupProps {
   isCloudMode: boolean;
   showDownload?: boolean;
   isDownloading: boolean;
   setIsDownloading: (v: boolean) => void;
   onDelete?: (id: string) => void;
   isDeleting?: string | null;
-
-  // Upscale inputs (images only, but button group needs them)
   isUpscaling: boolean;
   isPendingUpscale: boolean;
   hasUpscaledVersion: boolean;
   showingUpscaled: boolean;
   handleUpscale: () => void;
   handleToggleUpscaled: () => void;
-
-  // Edit mode handler (for button group)
   handleEnterMagicEditMode: () => void;
+}
 
-  // Effective media inputs
+/** Effective media inputs (for computing display URLs/dimensions) */
+interface SharedLightboxMediaProps {
   effectiveImageUrl: string;
   imageDimensions: { width: number; height: number };
   projectAspectRatio?: string;
+}
 
-  // Swipe navigation config
-  swipeDisabled: boolean;
+// ============================================================================
+// Composed Props Interface
+// ============================================================================
+
+interface UseSharedLightboxStateProps extends
+  SharedLightboxCoreProps,
+  SharedLightboxNavigationProps,
+  SharedLightboxShotProps,
+  SharedLightboxLayoutProps,
+  SharedLightboxButtonGroupProps,
+  SharedLightboxMediaProps {
+  /** Star state (separate simple field) */
+  starred?: boolean;
+  /** External generation navigation */
+  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
 }
 
 // ============================================================================

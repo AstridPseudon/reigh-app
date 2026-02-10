@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandler';
 import type { TravelBetweenImagesTaskParams, TravelBetweenImagesTaskResult } from './types';
 import { validateTravelBetweenImagesParams, buildTravelBetweenImagesPayload } from './payloadBuilder';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /**
  * Creates a travel between images task using the unified approach.
@@ -41,7 +42,7 @@ export async function createTravelBetweenImagesTask(params: TravelBetweenImagesT
       // Create a placeholder parent generation
       const newParentId = crypto.randomUUID();
       const placeholderParams = {
-        tool_type: 'travel-between-images',
+        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
         created_from: 'travel_orchestrator_upfront',
         // Include basic orchestrator_details structure so it shows in segment outputs
         orchestrator_details: {
@@ -112,7 +113,7 @@ export async function createTravelBetweenImagesTask(params: TravelBetweenImagesT
       project_id: params.project_id,
       task_type: taskType,
       params: {
-        tool_type: 'travel-between-images', // Override tool_type for proper generation tagging
+        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES, // Override tool_type for proper generation tagging
         orchestrator_details: orchestratorPayload,
         // Also store parent_generation_id at top level for easy access
         ...(effectiveParentGenerationId ? { parent_generation_id: effectiveParentGenerationId } : {}),

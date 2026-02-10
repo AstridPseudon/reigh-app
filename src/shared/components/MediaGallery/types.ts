@@ -118,6 +118,24 @@ export interface GeneratedImageWithMetadata {
   child_order?: number;
 }
 
+export interface GalleryFilterState {
+  mediaType: 'all' | 'image' | 'video';
+  shotFilter: string;
+  excludePositioned: boolean;
+  searchTerm: string;
+  starredOnly: boolean;
+  toolTypeFilter: boolean;
+}
+
+export const DEFAULT_GALLERY_FILTERS: GalleryFilterState = {
+  mediaType: 'all',
+  shotFilter: 'all',
+  excludePositioned: true,
+  searchTerm: '',
+  starredOnly: false,
+  toolTypeFilter: true,
+};
+
 export interface MediaGalleryProps {
   images: GeneratedImageWithMetadata[];
   onDelete?: (id: string) => void;
@@ -141,23 +159,17 @@ export interface MediaGalleryProps {
    */
   columnsPerRow?: ColumnsPerRow;
   itemsPerPage?: number;
-  initialMediaTypeFilter?: 'all' | 'image' | 'video';
+  /** Controlled filter state — parent owns the values */
+  filters?: GalleryFilterState;
+  /** Callback when any filter changes (controlled mode) */
+  onFiltersChange?: (filters: GalleryFilterState) => void;
+  /** Default filter overrides for uncontrolled mode */
+  defaultFilters?: Partial<GalleryFilterState>;
   onServerPageChange?: (page: number, fromBottom?: boolean) => void;
   serverPage?: number;
   showShotFilter?: boolean;
-  initialShotFilter?: string;
-  onShotFilterChange?: (shotId: string) => void;
-  initialExcludePositioned?: boolean;
-  onExcludePositionedChange?: (exclude: boolean) => void;
   showSearch?: boolean;
-  initialSearchTerm?: string;
-  onSearchChange?: (searchTerm: string) => void;
-  onMediaTypeFilterChange?: (mediaType: 'all' | 'image' | 'video') => void;
   onToggleStar?: (id: string, starred: boolean) => void;
-  initialStarredFilter?: boolean;
-  onStarredFilterChange?: (starredOnly: boolean) => void;
-  onToolTypeFilterChange?: (enabled: boolean) => void;
-  initialToolTypeFilter?: boolean;
   currentToolTypeName?: string;
   formAssociatedShotId?: string | null;
   onSwitchToAssociatedShot?: (shotId: string) => void;

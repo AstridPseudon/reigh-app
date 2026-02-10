@@ -8,7 +8,7 @@
 import { BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
 import { PromptEntry, HiresFixConfig, ReferenceApiParams } from '../types';
 
-export interface BuildBatchTaskParamsInput {
+interface BuildBatchTaskParamsInput {
   projectId: string;
   prompts: PromptEntry[];
   imagesPerPrompt: number;

@@ -19,6 +19,7 @@ import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type { SegmentRegenerateFormProps } from '../components/SegmentRegenerateForm';
 import type { SegmentSlotModeData } from '../types';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 interface CurrentSegmentImages {
   startUrl?: string;
@@ -193,7 +194,7 @@ export function useVideoRegenerateMode({
     // Join-clips outputs cannot be regenerated
     const mediaParams = media.params as Record<string, unknown> | undefined;
     const toolType = (media.metadata as Record<string, unknown>)?.tool_type || mediaParams?.tool_type;
-    if (toolType === 'join-clips') return false;
+    if (toolType === TOOL_IDS.JOIN_CLIPS) return false;
 
     // Need task params to regenerate
     const taskDataParams = adjustedTaskDetailsData?.task?.params;

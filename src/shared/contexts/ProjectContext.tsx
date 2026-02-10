@@ -4,10 +4,10 @@ import { toast } from '@/shared/components/ui/sonner';
 import { Project } from '@/types/project'; // Added import
 import { usePrefetchToolSettings } from '@/shared/hooks/usePrefetchToolSettings';
 import { handleError } from '@/shared/lib/errorHandler';
-import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
 import { useAuth } from './AuthContext';
 import { useUserSettings } from './UserSettingsContext';
 import { preloadingService } from '@/shared/lib/preloading';
+import { fetchInheritableProjectSettings, buildShotSettingsForNewProject } from '@/shared/lib/projectSettingsInheritance';
 
 // Type for updating projects
 interface ProjectUpdate {
@@ -390,69 +390,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       // Get settings from the current project to copy to the new project
       // See src/shared/constants/settingsInheritance.ts for full documentation of what inherits
-      let settingsToInherit: Record<string, unknown> = {};
-      if (selectedProjectId) {
-        try {
-          const { data: currentProjectData } = await supabase
-            .from('projects')
-            .select('settings')
-            .eq('id', selectedProjectId)
-            .single();
-          
-          if (currentProjectData?.settings) {
-            // Filter out content fields (prompts, references) while keeping configuration
-            // INHERITANCE POLICY: Content data doesn't inherit, but configuration settings do
-            settingsToInherit = {};
-            
-            Object.entries(currentProjectData.settings as Record<string, unknown>).forEach(([toolId, toolSettings]) => {
-              if (typeof toolSettings === 'object' && toolSettings !== null) {
-                // Create a copy of tool settings excluding prompts, references, and AI generation details
-                const filteredToolSettings = { ...toolSettings } as Record<string, unknown>;
-
-                // Remove prompt-related keys
-                delete filteredToolSettings.promptsByShot;
-                delete filteredToolSettings.prompt;  // Main video prompt (renamed from batchVideoPrompt)
-                delete filteredToolSettings.prompts;
-                delete filteredToolSettings.beforeEachPromptText;
-                delete filteredToolSettings.afterEachPromptText;
-                delete filteredToolSettings.pairConfigs; // These often contain prompts
-                
-                // Remove reference-related keys (shouldn't carry over between projects)
-                delete filteredToolSettings.references;
-                delete filteredToolSettings.selectedReferenceId;
-                delete filteredToolSettings.selectedReferenceIdByShot;
-                delete filteredToolSettings.styleReferenceImage;
-                delete filteredToolSettings.styleReferenceImageOriginal;
-                delete filteredToolSettings.styleReferenceStrength;
-                delete filteredToolSettings.subjectStrength;
-                delete filteredToolSettings.subjectDescription;
-                delete filteredToolSettings.inThisScene;
-                
-                // Remove prompt-editor specific AI settings that should not be inherited
-                delete filteredToolSettings.generationSettings;
-                delete filteredToolSettings.bulkEditSettings;
-                delete filteredToolSettings.activeTab;
-                
-                // Also filter out any keys that contain "prompt" or "reference" in their name (case-insensitive)
-                Object.keys(filteredToolSettings).forEach(key => {
-                  const lowerKey = key.toLowerCase();
-                  if (lowerKey.includes('prompt') || lowerKey.includes('reference')) {
-                    delete filteredToolSettings[key];
-                  }
-                });
-                
-                // Only include the tool settings if there's still something left after filtering
-                if (Object.keys(filteredToolSettings).length > 0) {
-                  settingsToInherit[toolId] = filteredToolSettings;
-                }
-              }
-            });
-            
-          }
-        } catch (settingsError) {
-          // Continue with project creation even if settings copy fails
-        }
-      }
+      const settingsToInherit = selectedProjectId
+        ? await fetchInheritableProjectSettings(selectedProjectId)
+        : {};
 
       const { data: newProject, error } = await supabase
         .from('projects')
@@ -467,77 +407,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      // Prepare shot settings to inherit (priority: localStorage -> DB -> project settings)
-      // NOTE: LoRAs are now part of travel-between-images settings (selectedLoras field)
-      let shotSettingsToInherit: Record<string, unknown> = {};
-
-      // 1. Try to get most recent active shot settings from localStorage (most up-to-date)
-      if (selectedProjectId) {
-        try {
-           const storageKey = STORAGE_KEYS.LAST_ACTIVE_SHOT_SETTINGS(selectedProjectId);
-           const storedMain = localStorage.getItem(storageKey);
-           
-           if (storedMain) {
-             const mainSettings = JSON.parse(storedMain);
-
-             shotSettingsToInherit = {
-               'travel-between-images': {
-                 ...mainSettings,
-                 // Scrub content fields for new project (keep selectedLoras)
-                 prompt: '',  // Main video prompt
-                 shotImageIds: [],
-                 pairConfigs: [],
-                 textBeforePrompts: '',
-                 textAfterPrompts: ''
-               }
-             };
-             
-           }
-        } catch (e) {
-          console.error('[ProjectContext] Failed to read localStorage for shot inheritance:', e);
-        }
-      }
-
-      // 2. Fallback: If no localStorage settings, fetch the LATEST SHOT from the DB
-      // This ensures cross-device consistency (getting the last saved settings)
-      if (selectedProjectId && Object.keys(shotSettingsToInherit).length === 0) {
-        try {
-          const { data: latestShot } = await supabase
-            .from('shots')
-            .select('settings')
-            .eq('project_id', selectedProjectId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (latestShot?.settings) {
-            const shotSettings = latestShot.settings as Record<string, unknown>;
-            if (shotSettings['travel-between-images']) {
-              const mainSettings = (shotSettings['travel-between-images'] as Record<string, unknown>) || {};
-              
-              shotSettingsToInherit = {
-                'travel-between-images': {
-                  ...mainSettings,
-                  // Scrub content fields for new project (keep loras)
-                  prompt: '',  // Main video prompt
-                  shotImageIds: [],
-                  pairConfigs: [],
-                  textBeforePrompts: '',
-                  textAfterPrompts: ''
-                }
-              };
-            }
-          }
-        } catch (err) {
-        }
-      }
-
-      // 3. Fallback: If still no settings, try to use the project-level settings
-      if (Object.keys(shotSettingsToInherit).length === 0 && settingsToInherit['travel-between-images']) {
-         shotSettingsToInherit = {
-           'travel-between-images': settingsToInherit['travel-between-images']
-         };
-      }
+      // Build shot settings to inherit (priority: localStorage -> DB -> project settings)
+      const shotSettingsToInherit = selectedProjectId
+        ? await buildShotSettingsForNewProject(selectedProjectId, settingsToInherit)
+        : {};
 
       // Create default shot for the new project with inherited settings
       await createDefaultShot(newProject.id, shotSettingsToInherit);

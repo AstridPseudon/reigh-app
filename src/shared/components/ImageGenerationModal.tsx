@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, Suspense, useId } from 'react';
+import React, { useCallback, Suspense, useId } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Dialog,
@@ -9,7 +9,6 @@ import {
 import { Button } from '@/shared/components/ui/button';
 import { useExtraLargeModal } from '@/shared/hooks/useModal';
 import { ImageGenerationForm } from '@/shared/components/ImageGenerationForm';
-import { ImageGenerationFormHandles } from '@/shared/components/ImageGenerationForm/types';
 import { createBatchImageGenerationTasks, BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
 import { useApiKeys } from '@/shared/hooks/useApiKeys';
 import { useProject } from '@/shared/contexts/ProjectContext';
@@ -22,6 +21,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TOOL_ROUTES } from '@/shared/lib/toolConstants';
 
 interface ImageGenerationModalProps {
   isOpen: boolean;
@@ -36,19 +36,13 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
   initialShotId,
 }) => {
   const modal = useExtraLargeModal();
-  const formRef = useRef<ImageGenerationFormHandles>(null);
   const footerPortalId = useId();
   const { selectedProjectId } = useProject();
   const queryClient = useQueryClient();
   const { getApiKey } = useApiKeys();
   const navigate = useNavigate();
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [justQueued, setJustQueued] = useState(false);
-  const justQueuedTimeoutRef = useRef<number | null>(null);
-  
-  const falApiKey = getApiKey('fal_api_key');
+
   const openaiApiKey = getApiKey('openai_api_key');
 
   const handleGenerate = useCallback(async (taskParams: BatchImageGenerationTaskParams) => {
@@ -58,7 +52,6 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
       return;
     }
 
-    setIsGenerating(true);
     const incomingTaskId = addIncomingTask({
       taskType: 'image_generation',
       label: taskParams.prompts?.[0]?.text?.substring(0, 50) || 'Generating images...',
@@ -69,38 +62,18 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
       // Invalidate generations to ensure they refresh when tasks complete
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
 
-      setJustQueued(true);
-
-      if (justQueuedTimeoutRef.current) {
-        clearTimeout(justQueuedTimeoutRef.current);
-      }
-      justQueuedTimeoutRef.current = window.setTimeout(() => {
-        setJustQueued(false);
-        justQueuedTimeoutRef.current = null;
-      }, 1500);
-
     } catch (error) {
       handleError(error, { context: 'ImageGenerationModal', toastTitle: 'Failed to create tasks' });
     } finally {
       await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
       await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
       removeIncomingTask(incomingTaskId);
-      setIsGenerating(false);
     }
   }, [selectedProjectId, queryClient, addIncomingTask, removeIncomingTask]);
 
-  // Cleanup timeout on unmount
-  React.useEffect(() => {
-    return () => {
-      if (justQueuedTimeoutRef.current) {
-        clearTimeout(justQueuedTimeoutRef.current);
-      }
-    };
-  }, []);
-
   const handleNavigateToTool = useCallback(() => {
     onClose();
-    navigate('/tools/image-generation');
+    navigate(TOOL_ROUTES.IMAGE_GENERATION);
   }, [onClose, navigate]);
 
   // Check if product tour is active (Joyride elements exist in DOM)
@@ -156,7 +129,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
             </Tooltip>
           </div>
         </DialogHeader>
-        
+
         <div className={`${modal.scrollClass} -mx-6 px-6 flex-1 min-h-0 pb-4`}>
           <Suspense fallback={
             <div className="flex flex-col h-full">
@@ -207,13 +180,8 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
             </div>
           }>
             <ImageGenerationForm
-              ref={formRef}
               onGenerate={handleGenerate}
-              isGenerating={isGenerating}
-              hasApiKey={true}
-              apiKey={falApiKey}
               openaiApiKey={openaiApiKey}
-              justQueued={justQueued}
               stickyFooter={true}
               footerPortalId={footerPortalId}
               initialShotId={initialShotId}
@@ -227,4 +195,3 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
     </Dialog>
   );
 };
-

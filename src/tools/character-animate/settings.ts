@@ -1,6 +1,8 @@
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
+
 // Animate Characters Tool Settings
 export const characterAnimateSettings = {
-  id: 'character-animate',
+  id: TOOL_IDS.CHARACTER_ANIMATE,
   scope: ['project', 'shot'] as const,
   defaults: {
     mode: 'animate' as 'replace' | 'animate',

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
@@ -74,7 +75,7 @@ const JoinClipsPage: React.FC = () => {
     projectId: selectedProjectId || undefined,
     persistenceScope: 'project',
     enableProjectPersistence: true,
-    persistenceKey: 'join-clips',
+    persistenceKey: TOOL_IDS.JOIN_CLIPS,
   });
 
   // Sync loraManager.selectedLoras → joinSettings.loras for persistence
@@ -225,7 +226,7 @@ const JoinClipsPage: React.FC = () => {
     100,
     !!selectedProjectId,
     {
-      toolType: 'join-clips',
+      toolType: TOOL_IDS.JOIN_CLIPS,
       mediaType: 'video',
     },
     {
@@ -372,7 +373,7 @@ const JoinClipsPage: React.FC = () => {
                             setNoisedInputVideo={(val) => joinSettings.updateField('noisedInputVideo', val)}
                             availableLoras={availableLoras}
                             projectId={selectedProjectId}
-                            loraPersistenceKey="join-clips"
+                            loraPersistenceKey={TOOL_IDS.JOIN_CLIPS}
                             loraManager={loraManager}
                             onGenerate={handleGenerate}
                             isGenerating={generateJoinClipsMutation.isPending}
@@ -437,11 +438,9 @@ const JoinClipsPage: React.FC = () => {
                   onAddToLastShotWithoutPosition={async () => false}
                   onDelete={handleDeleteGeneration}
                   isDeleting={deleteGenerationMutation.isPending ? deleteGenerationMutation.variables as string : null}
-                  currentToolType="join-clips"
-                  initialMediaTypeFilter="video"
-                  initialToolTypeFilter={true}
+                  currentToolType={TOOL_IDS.JOIN_CLIPS}
+                  defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
                   showShotFilter={false}
-                  initialShotFilter="all"
                   columnsPerRow={3}
                   itemsPerPage={isMobile ? 20 : 12}
                   reducedSpacing={true}

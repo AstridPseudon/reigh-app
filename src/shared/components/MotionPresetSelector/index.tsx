@@ -295,7 +295,6 @@ export const MotionPresetSelector: React.FC<MotionPresetSelectorProps> = ({
               onRandomSeedChange={onRandomSeedChange || (() => {})}
               availableLoras={availableLoras}
               generationTypeMode={generationTypeMode}
-              hasStructureVideo={generationTypeMode === 'vace'}
               onRestoreDefaults={onRestoreDefaults || handleRestorePhaseConfigDefaults}
               selectedPhasePresetId={selectedPhasePresetId}
               onPhasePresetSelect={onPresetSelect}

@@ -10,11 +10,26 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 type AutoSaveStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 
 /**
+ * Custom load/save functions for non-React-Query persistence.
+ * When provided, the hook uses these instead of useToolSettings.
+ */
+interface CustomLoadSave<T> {
+  /** Load data for the given entity. Return null if no persisted data exists. */
+  load: (entityId: string) => Promise<T | null>;
+  /** Save data for the given entity. */
+  save: (entityId: string, data: T) => Promise<void>;
+  /** The entity ID to load/save for. When this changes, state is reset and reloaded. */
+  entityId: string | null;
+  /** Optional callback after flush on unmount/entity change (e.g., cache invalidation). */
+  onFlush?: (entityId: string, data: T) => void;
+}
+
+/**
  * Options for useAutoSaveSettings hook
  */
 interface UseAutoSaveSettingsOptions<T> {
-  /** Tool identifier for storage */
-  toolId: string;
+  /** Tool identifier for storage (used with React Query mode) */
+  toolId?: string;
   /** Shot ID for shot-scoped settings */
   shotId?: string | null;
   /** Project ID for project-scoped settings */
@@ -35,6 +50,11 @@ interface UseAutoSaveSettingsOptions<T> {
   onSaveSuccess?: () => void;
   /** Callback when save fails */
   onSaveError?: (error: Error) => void;
+  /**
+   * When provided, uses custom load/save functions instead of React Query.
+   * This replaces the former useEntityState hook.
+   */
+  customLoadSave?: CustomLoadSave<T>;
 }
 
 /**
@@ -53,6 +73,8 @@ interface UseAutoSaveSettingsReturn<T> {
   error: Error | null;
   /** Whether the shot had settings stored in DB (vs just defaults/project settings) */
   hasShotSettings: boolean;
+  /** Whether the entity had persisted data (vs just defaults). Same as hasShotSettings for React Query mode. */
+  hasPersistedData: boolean;
 
   /** Update a single field */
   updateField: <K extends keyof T>(key: K, value: T[K]) => void;
@@ -61,38 +83,62 @@ interface UseAutoSaveSettingsReturn<T> {
   /** Manual save - flushes debounce immediately */
   save: () => Promise<void>;
   /** Force an immediate save (bypasses debounce) */
-  saveImmediate: () => Promise<void>;
+  saveImmediate: (dataToSave?: T) => Promise<void>;
   /** Revert to last saved settings */
   revert: () => void;
   /** Reset to defaults (or provided settings) */
   reset: (newDefaults?: T) => void;
+  /**
+   * Initialize from external source (e.g., "last used" settings).
+   * Only applies if entity has no persisted data and isn't loading.
+   * Only available in customLoadSave mode; no-op otherwise.
+   */
+  initializeFrom: (data: Partial<T>) => void;
 }
 
 /**
- * Generic hook for auto-saving entity settings to the database.
- * 
+ * Recommended hook for auto-saving settings to the database.
+ *
+ * This is the default choice for new features that need persisted settings.
+ * Builds on `useToolSettings` (cascade resolution) and adds auto-save, dirty tracking,
+ * entity-change handling, and unmount flushing.
+ *
  * Features:
- * - Loads settings from DB with scope cascade (defaults → user → project → shot)
- * - Debounced auto-save on field changes
+ * - Loads settings from DB with scope cascade (defaults -> user -> project -> shot)
+ * - Debounced auto-save on field changes (default 300ms)
  * - Flushes pending saves on unmount/navigation
  * - Dirty tracking for unsaved changes indicator
  * - Status machine for loading states
- * 
+ * - Optional customLoadSave mode for non-React-Query persistence
+ *
  * CRITICAL: During loading (status !== 'ready'), updates only affect local UI state.
  * This prevents auto-initialization effects from blocking DB values.
- * 
+ *
+ * @see docs/structure_detail/settings_system.md for the full settings hook decision tree
+ *
  * @example
  * ```typescript
+ * // React Query mode (tool settings)
  * const settings = useAutoSaveSettings({
  *   toolId: 'my-tool',
  *   shotId: selectedShotId,
  *   scope: 'shot',
  *   defaults: { prompt: '', mode: 'basic' },
  * });
- * 
+ *
+ * // Custom load/save mode
+ * const settings = useAutoSaveSettings({
+ *   defaults: { prompt: '', mode: 'basic' },
+ *   customLoadSave: {
+ *     entityId: generationId,
+ *     load: (id) => fetchFromDB(id),
+ *     save: (id, data) => saveToDB(id, data),
+ *   },
+ * });
+ *
  * // Update a field (auto-saves after debounce)
  * settings.updateField('prompt', 'new prompt');
- * 
+ *
  * // Check if ready before rendering
  * if (settings.status !== 'ready') return <Loading />;
  * ```
@@ -101,7 +147,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
   options: UseAutoSaveSettingsOptions<T>
 ): UseAutoSaveSettingsReturn<T> {
   const {
-    toolId,
+    toolId = '',
     shotId,
     projectId,
     scope = 'shot',
@@ -112,18 +158,23 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     debugTag = `[useAutoSaveSettings:${toolId}]`,
     onSaveSuccess,
     onSaveError,
+    customLoadSave,
   } = options;
 
+  const isCustomMode = !!customLoadSave;
   const queryClient = useQueryClient();
 
-  // Determine the entity ID based on scope
-  const entityId = scope === 'shot' ? shotId : projectId;
+  // Determine the entity ID based on mode
+  const entityId = isCustomMode
+    ? customLoadSave.entityId
+    : (scope === 'shot' ? shotId : projectId) ?? null;
   const isEntityValid = !!entityId;
 
   // Local state - single source of truth for UI
   const [settings, setSettings] = useState<T>(defaults);
   const [status, setStatus] = useState<AutoSaveStatus>('idle');
   const [error, setError] = useState<Error | null>(null);
+  const [hasPersistedData, setHasPersistedData] = useState(false);
 
   // Refs for tracking state without triggering re-renders
   const loadedSettingsRef = useRef<T | null>(null);
@@ -131,20 +182,29 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
   const pendingSettingsRef = useRef<T | null>(null);
   const pendingEntityIdRef = useRef<string | null>(null);
   const currentEntityIdRef = useRef<string | null>(null);
-  
+  const isLoadingRef = useRef(false);
+
   // Edit version counter - increments on each edit, used to detect if newer edits happened during save
   const editVersionRef = useRef<number>(0);
 
-  // Fetch settings from database
+  // Stable refs for custom callbacks to avoid effect dependency churn
+  const customLoadRef = useRef(customLoadSave?.load);
+  const customSaveRef = useRef(customLoadSave?.save);
+  const onFlushRef = useRef(customLoadSave?.onFlush);
+  customLoadRef.current = customLoadSave?.load;
+  customSaveRef.current = customLoadSave?.save;
+  onFlushRef.current = customLoadSave?.onFlush;
+
+  // Fetch settings from database (React Query mode only)
   const {
     settings: dbSettings,
-    isLoading,
+    isLoading: rqIsLoading,
     update: updateSettings,
     hasShotSettings,
   } = useToolSettings<T>(toolId, {
     shotId: scope === 'shot' ? (shotId || undefined) : undefined,
     projectId: projectId || undefined,
-    enabled: enabled && isEntityValid,
+    enabled: !isCustomMode && enabled && isEntityValid,
   });
 
   // Dirty flag - has user changed anything since load?
@@ -169,10 +229,18 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     setStatus('saving');
 
     try {
-      await updateSettings(scope, toSave);
+      if (isCustomMode) {
+        await customSaveRef.current!(entityId, toSave);
+      } else {
+        await updateSettings(scope, toSave);
+      }
 
       // Update our "clean" reference
       loadedSettingsRef.current = JSON.parse(JSON.stringify(toSave));
+
+      if (isCustomMode) {
+        setHasPersistedData(true);
+      }
 
       // NOTE: Don't clear pendingSettingsRef here - it's now handled in the timeout callback
       // with edit version checking to avoid race conditions when user types fast
@@ -182,13 +250,13 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
       onSaveSuccess?.();
     } catch (err) {
-      console.error(`${debugTag} ❌ Save failed:`, err);
+      console.error(`${debugTag} Save failed:`, err);
       setStatus('error');
       setError(err as Error);
       onSaveError?.(err as Error);
       throw err;
     }
-  }, [entityId, settings, updateSettings, scope, toolId, debug, debugTag, onSaveSuccess, onSaveError]);
+  }, [entityId, settings, isCustomMode, updateSettings, scope, toolId, debug, debugTag, onSaveSuccess, onSaveError]);
 
   // Ref to hold latest saveImmediate to avoid effect dependency churn
   const saveImmediateRef = useRef(saveImmediate);
@@ -198,15 +266,17 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
    * Flush pending settings on entity change/unmount.
    *
    * IMPORTANT: this runs in the *cleanup* for the previous entity render.
-   * We call updateToolSettingsSupabase directly with the explicit entity ID
-   * to avoid drift issues when the hook's internal refs have already changed.
+   * In React Query mode, we call updateToolSettingsSupabase directly with
+   * the explicit entity ID to avoid drift issues.
+   * In custom mode, we call the save function via ref.
    */
   useEffect(() => {
     // Capture values for this effect instance
     const currentEntityId = entityId;
     const currentScope = scope;
     const currentToolId = toolId;
-    
+    const currentIsCustomMode = isCustomMode;
+
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -218,33 +288,40 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
       if (pending && pendingForEntity && pendingForEntity === currentEntityId) {
 
-        // Fire-and-forget; cleanup cannot be async.
-        // Call updateToolSettingsSupabase directly with explicit entity ID
-        // to avoid drift issues with hook refs
-        // Use 'immediate' mode to bypass debounce - we need to flush NOW
-        updateToolSettingsSupabase({
-          scope: currentScope,
-          id: pendingForEntity,
-          toolId: currentToolId,
-          patch: pending,
-        }, undefined, 'immediate')
-          .then(() => {
-            // CRITICAL: Invalidate the React Query cache for this entity after save completes.
-            // This ensures that when we switch back to this entity, we fetch fresh data
-            // from the DB instead of serving stale cached data.
-            const cacheKey = currentScope === 'shot'
-              ? queryKeys.settings.tool(currentToolId, projectId, pendingForEntity)
-              : queryKeys.settings.tool(currentToolId, pendingForEntity, undefined);
-            queryClient.invalidateQueries({ queryKey: cacheKey });
+        if (currentIsCustomMode) {
+          // Custom mode: fire-and-forget via save ref
+          customSaveRef.current!(pendingForEntity, pending)
+            .then(() => {
+              onFlushRef.current?.(pendingForEntity, pending);
+            })
+            .catch(err => {
+              console.error(`${debugTag} Cleanup flush failed:`, err);
+            });
+        } else {
+          // React Query mode: call updateToolSettingsSupabase directly
+          // Use 'immediate' mode to bypass debounce - we need to flush NOW
+          updateToolSettingsSupabase({
+            scope: currentScope,
+            id: pendingForEntity,
+            toolId: currentToolId,
+            patch: pending,
+          }, undefined, 'immediate')
+            .then(() => {
+              // CRITICAL: Invalidate the React Query cache for this entity after save completes.
+              const cacheKey = currentScope === 'shot'
+                ? queryKeys.settings.tool(currentToolId, projectId, pendingForEntity)
+                : queryKeys.settings.tool(currentToolId, pendingForEntity, undefined);
+              queryClient.invalidateQueries({ queryKey: cacheKey });
 
-            // Also refetch shot-batch-settings used by useSegmentSettings
-            if (currentScope === 'shot' && pendingForEntity) {
-              queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(pendingForEntity) });
-            }
-          })
-          .catch(err => {
-            console.error('[useAutoSaveSettings] Cleanup flush failed:', err);
-          });
+              // Also refetch shot-batch-settings used by useSegmentSettings
+              if (currentScope === 'shot' && pendingForEntity) {
+                queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(pendingForEntity) });
+              }
+            })
+            .catch(err => {
+              console.error('[useAutoSaveSettings] Cleanup flush failed:', err);
+            });
+        }
       }
 
       // Always clear pending refs for the entity we are leaving
@@ -254,13 +331,11 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
       }
     };
     // Only re-run when entityId changes
-  }, [entityId, scope, toolId, projectId, queryClient]);
+  }, [entityId, scope, toolId, isCustomMode, projectId, queryClient, debug, debugTag]);
 
   /**
-   * Handle page close/navigation - save pending settings directly to DB.
+   * Handle page close/navigation - save pending settings directly.
    * This is a best-effort save; browsers typically allow ~50-100ms for async ops.
-   * If the browser kills the request, we accept that minor data loss (user closed
-   * within the debounce window).
    */
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -268,31 +343,34 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
       const pendingForEntity = pendingEntityIdRef.current;
 
       if (pending && pendingForEntity) {
-        
-        // Fire-and-forget save directly to DB
-        // Most browsers will wait a bit for this to complete
-        // Use 'immediate' mode to bypass debounce - page is closing
-        updateToolSettingsSupabase({
-          scope,
-          id: pendingForEntity,
-          toolId,
-          patch: pending,
-        }, undefined, 'immediate').catch(err => {
-          console.error('[useAutoSaveSettings] Unload flush failed:', err);
-        });
+        if (isCustomMode) {
+          customSaveRef.current!(pendingForEntity, pending).catch(err => {
+            console.error(`${debugTag} Unload flush failed:`, err);
+          });
+        } else {
+          // Use 'immediate' mode to bypass debounce - page is closing
+          updateToolSettingsSupabase({
+            scope,
+            id: pendingForEntity,
+            toolId,
+            patch: pending,
+          }, undefined, 'immediate').catch(err => {
+            console.error('[useAutoSaveSettings] Unload flush failed:', err);
+          });
+        }
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [toolId, scope]);
+  }, [toolId, scope, isCustomMode, debug, debugTag]);
 
   // Update single field
   const updateField = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
     // Increment edit version - allows detecting if newer edits happened during save
     editVersionRef.current += 1;
     const editVersionAtStart = editVersionRef.current;
-    
+
     setSettings(prev => {
       const updated = { ...prev, [key]: value };
 
@@ -320,9 +398,9 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
               return current; // Don't modify, just read
             });
           });
-          
-          await saveImmediate(latestSettings);
-          
+
+          await saveImmediateRef.current(latestSettings);
+
           // CRITICAL: Only clear pending if no newer edits happened during the save
           // This prevents race conditions when user types fast
           if (editVersionRef.current === editVersionAtStart) {
@@ -337,14 +415,14 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
       return updated;
     });
-  }, [status, saveImmediate, debounceMs, entityId, debug, debugTag]);
+  }, [status, debounceMs, entityId, debug, debugTag]);
 
   // Update multiple fields at once
   const updateFields = useCallback((updates: Partial<T>) => {
     // Increment edit version - allows detecting if newer edits happened during save
     editVersionRef.current += 1;
     const editVersionAtStart = editVersionRef.current;
-    
+
     setSettings(prev => {
       const updated = { ...prev, ...updates };
 
@@ -371,9 +449,9 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
               return current; // Don't modify, just read
             });
           });
-          
-          await saveImmediate(latestSettings);
-          
+
+          await saveImmediateRef.current(latestSettings);
+
           // CRITICAL: Only clear pending if no newer edits happened during the save
           // This prevents race conditions when user types fast
           if (editVersionRef.current === editVersionAtStart) {
@@ -388,7 +466,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
       return updated;
     });
-  }, [status, saveImmediate, debounceMs, entityId, debug, debugTag]);
+  }, [status, debounceMs, entityId, debug, debugTag]);
 
   // Revert to last saved settings
   const revert = useCallback(() => {
@@ -428,6 +506,17 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     editVersionRef.current = 0;
   }, [defaults, debug, debugTag]);
 
+  // Initialize from external source (e.g., "last used" settings) - custom mode only
+  const initializeFrom = useCallback((data: Partial<T>) => {
+    if (!isCustomMode) return;
+    // Only apply if we don't have persisted data and aren't loading
+    if (hasPersistedData || isLoadingRef.current) {
+      return;
+    }
+
+    setSettings(prev => ({ ...prev, ...data }));
+  }, [isCustomMode, hasPersistedData, debug, debugTag]);
+
   // Handle entity changes - flush and reset
   useEffect(() => {
     const previousEntityId = currentEntityIdRef.current;
@@ -437,6 +526,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
       currentEntityIdRef.current = null;
       setSettings(defaults);
       setStatus('idle');
+      setHasPersistedData(false);
       loadedSettingsRef.current = null;
       pendingSettingsRef.current = null;
       pendingEntityIdRef.current = null;
@@ -454,6 +544,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
       // Reset for new entity
       setSettings(defaults);
       setStatus('idle');
+      setHasPersistedData(false);
       loadedSettingsRef.current = null;
       pendingSettingsRef.current = null;
       pendingEntityIdRef.current = null;
@@ -467,12 +558,80 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     currentEntityIdRef.current = entityId;
   }, [entityId, defaults, debug, debugTag]);
 
-  // Load settings from DB when available
+  // Load settings - custom mode (imperative async load)
   useEffect(() => {
+    if (!isCustomMode) return;
+    if (!entityId || !enabled) return;
+    // Only start load from idle state - prevents duplicate loads
+    if (status !== 'idle') return;
+
+    // Don't reload if we have pending edits for this entity
+    if (pendingSettingsRef.current && pendingEntityIdRef.current === entityId) {
+      setStatus('ready');
+      // Schedule save for pending edits
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      const toSave = pendingSettingsRef.current;
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          await saveImmediateRef.current(toSave);
+        } catch (err) {
+          console.error(`${debugTag} Pending save failed:`, err);
+        }
+      }, debounceMs);
+      return;
+    }
+
+    setStatus('loading');
+    isLoadingRef.current = true;
+
+    customLoadRef.current!(entityId)
+      .then(loaded => {
+        // Check if entity changed during load
+        if (currentEntityIdRef.current !== entityId) {
+          return;
+        }
+
+        // Check again for pending edits (user may have typed during load)
+        if (pendingSettingsRef.current && pendingEntityIdRef.current === entityId) {
+          setStatus('ready');
+          isLoadingRef.current = false;
+          return;
+        }
+
+        if (loaded) {
+          const mergedState = { ...defaults, ...loaded };
+          const cloned = JSON.parse(JSON.stringify(mergedState));
+
+          setSettings(cloned);
+          loadedSettingsRef.current = JSON.parse(JSON.stringify(cloned));
+          setHasPersistedData(true);
+        } else {
+          setSettings(defaults);
+          loadedSettingsRef.current = JSON.parse(JSON.stringify(defaults));
+          setHasPersistedData(false);
+        }
+
+        setStatus('ready');
+        isLoadingRef.current = false;
+        setError(null);
+      })
+      .catch(err => {
+        console.error(`${debugTag} Load failed:`, err);
+        setStatus('error');
+        isLoadingRef.current = false;
+        setError(err as Error);
+      });
+  }, [isCustomMode, entityId, enabled, status, defaults, debounceMs, debug, debugTag]);
+
+  // Load settings - React Query mode (reactive from useToolSettings)
+  useEffect(() => {
+    if (isCustomMode) return;
     if (!entityId || !enabled) return;
 
     // Show loading state while fetching
-    if (isLoading) {
+    if (rqIsLoading) {
       if (status === 'idle') {
         setStatus('loading');
       }
@@ -483,8 +642,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     if (status === 'saving') {
       return;
     }
-
-    // Log what we received from useToolSettings
 
     // Don't overwrite if user has pending edits for THIS entity (debounce hasn't fired yet)
     // This prevents React Query refetches from "unwriting" user input
@@ -512,7 +669,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
 
     // Apply settings from DB
     // Note: dbSettings comes from useToolSettings which already merges in priority order:
-    // defaults → user → project → shot (via deepMerge). We layer local defaults on top
+    // defaults -> user -> project -> shot (via deepMerge). We layer local defaults on top
     // only as a fallback for fields not present in the merged settings.
     const loadedSettings: T = {
       ...defaults,
@@ -536,7 +693,7 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     loadedSettingsRef.current = JSON.parse(JSON.stringify(clonedSettings));
     setStatus('ready');
     setError(null);
-  }, [entityId, isLoading, dbSettings, defaults, enabled, status, toolId, debounceMs, debug, debugTag]);
+  }, [isCustomMode, entityId, rqIsLoading, dbSettings, defaults, enabled, status, toolId, debounceMs, debug, debugTag]);
 
   // Memoize return value to prevent object recreation on every render
   // NOTE: entityId uses currentEntityIdRef.current which is a ref value, so it updates
@@ -548,12 +705,14 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
     entityId: currentEntityIdRef.current,
     isDirty,
     error,
-    hasShotSettings,
+    hasShotSettings: isCustomMode ? hasPersistedData : hasShotSettings,
+    hasPersistedData: isCustomMode ? hasPersistedData : hasShotSettings,
     updateField,
     updateFields,
     save,
-    saveImmediate: () => saveImmediate(),
+    saveImmediate,
     revert,
     reset,
-  }), [settings, status, isDirty, error, hasShotSettings, updateField, updateFields, save, saveImmediate, revert, reset]);
+    initializeFrom,
+  }), [settings, status, isDirty, error, isCustomMode, hasPersistedData, hasShotSettings, updateField, updateFields, save, saveImmediate, revert, reset, initializeFrom]);
 }

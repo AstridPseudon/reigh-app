@@ -18,7 +18,12 @@ type PairOverridesMap = Record<number, {
   motionSettings?: PairMotionSettings;
 }>;
 
-export interface ShotImageManagerProps {
+// =============================================================================
+// Prop sub-groups for ShotImageManagerProps
+// =============================================================================
+
+/** Core image CRUD and display props */
+interface ShotImageCoreProps {
   images: GenerationRow[];
   onImageDelete: ImageDeleteHandler;
   onBatchImageDelete?: BatchImageDeleteHandler;
@@ -27,20 +32,28 @@ export interface ShotImageManagerProps {
   onImageReorder: ImageReorderHandler;
   columns?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   generationMode: 'batch' | 'timeline';
-  onMagicEdit?: (imageUrl: string, prompt: string, numImages: number) => void;
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
   projectAspectRatio?: string;
+  batchVideoFrames?: number;
+  readOnly?: boolean;
+  onSelectionChange?: (hasSelection: boolean) => void;
+  /** Callback to notify parent of drag state changes - used to suppress query refetches during drag */
+  onDragStateChange?: (isDragging: boolean) => void;
+}
+
+/** Upload and drop zone props */
+interface ShotUploadProps {
   onImageUpload?: (files: File[]) => Promise<void>;
   isUploadingImage?: boolean;
-  onOpenLightbox?: (index: number) => void;
-  batchVideoFrames?: number;
-  onSelectionChange?: (hasSelection: boolean) => void;
-  readOnly?: boolean;
   /** Drop files onto batch grid - component calculates targetFrame from grid position */
   onFileDrop?: FileDropHandler;
   /** Drop generation onto batch grid - component calculates targetFrame from grid position */
   onGenerationDrop?: GenerationDropHandler;
+}
+
+/** Shot management and cross-shot operations */
+interface ShotManagementProps {
   shotId?: string;
   projectId?: string;
   toolTypeOverride?: string;
@@ -52,27 +65,23 @@ export interface ShotImageManagerProps {
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
   onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
-  // Pair prompt props - pass index and optionally pairData (for single-image mode)
+}
+
+/** Per-pair prompt display and override props */
+interface ShotPairPromptProps {
   onPairClick?: (pairIndex: number, pairData?: PairData) => void;
   pairPrompts?: Record<number, { prompt: string; negativePrompt: string }>;
   enhancedPrompts?: Record<number, string>;
   defaultPrompt?: string;
   defaultNegativePrompt?: string;
-  /** Callback to notify parent of drag state changes - used to suppress query refetches during drag */
-  onDragStateChange?: (isDragging: boolean) => void;
   /** Callback to clear enhanced prompt for a pair */
   onClearEnhancedPrompt?: (pairIndex: number) => void;
   /** Per-pair parameter overrides for showing override icons */
   pairOverrides?: PairOverridesMap;
-  /** Request to open lightbox for specific image (from segment constituent navigation) */
-  pendingImageToOpen?: string | null;
-  /** Variant ID to auto-select when opening from pendingImageToOpen */
-  pendingImageVariantId?: string | null;
-  /** Callback to clear the pending image request after handling */
-  onClearPendingImageToOpen?: () => void;
-  /** Helper to navigate with transition overlay (prevents flash when component type changes) */
-  navigateWithTransition?: (doNavigation: () => void) => void;
-  // Segment video output props
+}
+
+/** Segment video output props */
+interface ShotSegmentProps {
   segmentSlots?: SegmentSlot[];
   onSegmentClick?: (slotIndex: number) => void;
   /** Check if a pair_shot_generation_id has a pending task */
@@ -82,6 +91,32 @@ export interface ShotImageManagerProps {
   /** ID of segment currently being deleted */
   deletingSegmentId?: string | null;
 }
+
+/** Lightbox and navigation props */
+interface ShotLightboxProps {
+  onOpenLightbox?: (index: number) => void;
+  onMagicEdit?: (imageUrl: string, prompt: string, numImages: number) => void;
+  /** Request to open lightbox for specific image (from segment constituent navigation) */
+  pendingImageToOpen?: string | null;
+  /** Variant ID to auto-select when opening from pendingImageToOpen */
+  pendingImageVariantId?: string | null;
+  /** Callback to clear the pending image request after handling */
+  onClearPendingImageToOpen?: () => void;
+  /** Helper to navigate with transition overlay (prevents flash when component type changes) */
+  navigateWithTransition?: (doNavigation: () => void) => void;
+}
+
+/**
+ * Full props for ShotImageManager.
+ * Composed from logical sub-groups for documentation and maintainability.
+ */
+export interface ShotImageManagerProps extends
+  ShotImageCoreProps,
+  ShotUploadProps,
+  ShotManagementProps,
+  ShotPairPromptProps,
+  ShotSegmentProps,
+  ShotLightboxProps {}
 
 /** Props for segment video outputs in batch view */
 interface BatchSegmentOutputProps {
@@ -101,43 +136,18 @@ interface ExternalGeneration extends GenerationRow {
   based_on?: string;
 }
 
-// Props used by the mobile variant (existing component)
-export interface BaseShotImageManagerProps {
-  images: GenerationRow[];
-  onImageDelete: ImageDeleteHandler;
-  onBatchImageDelete?: BatchImageDeleteHandler;
-  onImageDuplicate?: ImageDuplicateHandler;
-  /** @param draggedItemId - The ID of the item that was actually dragged (for midpoint insertion) */
-  onImageReorder: ImageReorderHandler;
+/**
+ * Props for the mobile variant.
+ * Picks from sub-groups plus mobile-specific additions.
+ */
+export interface BaseShotImageManagerProps extends
+  ShotImageCoreProps,
+  ShotPairPromptProps,
+  ShotSegmentProps {
   onOpenLightbox?: (index: number) => void;
   onInpaintClick?: (index: number) => void;
-  columns?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
-  duplicatingImageId?: string | null;
-  duplicateSuccessImageId?: string | null;
-  projectAspectRatio?: string;
-  batchVideoFrames?: number;
   onImageUpload?: (files: File[]) => Promise<void>;
   isUploadingImage?: boolean;
-  onSelectionChange?: (hasSelection: boolean) => void;
-  readOnly?: boolean;
-  // Pair prompt props - pass index and optionally pairData (for single-image mode)
-  onPairClick?: (pairIndex: number, pairData?: PairData) => void;
-  pairPrompts?: Record<number, { prompt: string; negativePrompt: string }>;
-  enhancedPrompts?: Record<number, string>;
-  defaultPrompt?: string;
-  defaultNegativePrompt?: string;
-  onClearEnhancedPrompt?: (pairIndex: number) => void;
-  /** Per-pair parameter overrides for showing override icons */
-  pairOverrides?: PairOverridesMap;
-  // Segment video output props
-  segmentSlots?: SegmentSlot[];
-  onSegmentClick?: (slotIndex: number) => void;
-  /** Check if a pair_shot_generation_id has a pending task */
-  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
-  /** Delete a segment video */
-  onSegmentDelete?: (generationId: string) => void;
-  /** ID of segment currently being deleted */
-  deletingSegmentId?: string | null;
   /** Create a new shot from selected images */
   onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
 }

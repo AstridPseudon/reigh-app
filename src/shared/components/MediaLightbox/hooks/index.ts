@@ -27,8 +27,9 @@ export { useEditSettingsSync } from './useEditSettingsSync';
 export { useJoinClips } from './useJoinClips';
 export { useVariantSelection } from './useVariantSelection';
 export { useVariantPromotion } from './useVariantPromotion';
-export { useLightboxLayoutProps } from './useLightboxLayoutProps';
+export { useLightboxWorkflowProps } from './useLightboxWorkflowProps';
 export { useLightboxStateValue } from './useLightboxStateValue';
 export { useLightboxVideoMode } from './useLightboxVideoMode';
 export { useSharedLightboxState } from './useSharedLightboxState';
+export { useLightboxVariantBadges } from './useLightboxVariantBadges';
 

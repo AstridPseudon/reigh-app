@@ -22,6 +22,9 @@ export { useNavigationState } from './useNavigationState';
 export { useOperationTracking } from './useOperationTracking';
 export { useSelectedShotResolution } from './useSelectedShotResolution';
 
+// Preset auto-selection
+export { usePresetAutoSelect } from './usePresetAutoSelect';
+
 // UI utilities
 export { useStickyHeader } from './useStickyHeader';
 export { useStableSkeletonVisibility } from './useStableSkeletonVisibility';

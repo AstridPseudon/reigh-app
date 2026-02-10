@@ -17,6 +17,30 @@ Single system for persisting and resolving tool/UI settings across shots, projec
 | Generic persistent state | `src/shared/hooks/usePersistentState.ts` |
 | User UI preferences | `src/shared/hooks/useUserUIState.ts` |
 
+## Which Hook Should I Use?
+
+```
+Need to persist settings?
+├─ User-scoped UI preference (theme, pane locks)? → useUserUIState
+├─ Generic form-over-server-data (not settings)? → useServerForm
+├─ Existing useState you want to persist with interaction guard? → usePersistentToolState
+├─ Need manual save control or multi-scope writes? → useToolSettings
+└─ Everything else (new feature default) → useAutoSaveSettings ✓
+```
+
+| Scenario | Hook | Why |
+|----------|------|-----|
+| New tool with shot-scoped settings | `useAutoSaveSettings` | Owns state, auto-saves, handles entity changes |
+| Dark mode toggle, pane lock | `useUserUIState` | User-scoped, follows user across projects |
+| Image gen form with `markAsInteracted` guard | `usePersistentToolState` | Binds to existing `useState`; only saves after explicit interaction |
+| Prompt editor modal editing server records | `useServerForm` | Not settings -- local edits over arbitrary server data |
+| One-off write to a specific scope | `useToolSettings` | Low-level `update('shot', {...})` / `update('project', {...})` |
+
+**Key differences:**
+- `useAutoSaveSettings` vs `usePersistentToolState`: Auto-save owns its state; PersistentToolState binds to your `useState` and requires `markAsInteracted()` before saving.
+- `useAutoSaveSettings` vs `useToolSettings`: Auto-save adds debounce, dirty tracking, entity-change flushing. ToolSettings is the raw read/write layer.
+- `useUserUIState` vs the rest: Writes to `users.settings.ui` only; the others write to project/shot/user settings keyed by tool ID.
+
 ## Cascade Resolution
 
 Priority (highest wins): **shot > project > user > defaults**
@@ -67,46 +91,27 @@ JSONB columns `shots.settings`, `projects.settings`, `users.settings` store sett
 | `global-last-active-shot-settings` | Cross-project fallback (first shot in new project) |
 | `last-active-ui-settings-${projectId}` | UI preferences (project-scoped) |
 
-## Hook Reference
+## Hook Quick Reference
 
-| Hook | Best For | Scope | Auto-Save |
-|------|----------|-------|-----------|
-| `useAutoSaveSettings` | Per-shot/project settings (recommended) | shot or project | Yes (debounced) |
-| `usePersistentToolState` | Binding existing `useState` to DB | project (default) | Yes (on interaction) |
-| `useToolSettings` | Manual control, complex structures | any | No (call `update()`) |
-| `usePersistentState` | Generic load/save (non-settings data) | custom | Yes (debounced) |
-| `useUserUIState` | User-scoped UI prefs (theme, pane locks) | user | Yes (debounced) |
-
-### useAutoSaveSettings (Recommended)
+See "Which Hook Should I Use?" above for decision guidance. Each hook has detailed JSDoc in its source file.
 
 ```typescript
-const settings = useAutoSaveSettings({
-  toolId: 'my-tool',
-  shotId: currentShotId,
-  scope: 'shot',
-  defaults: { prompt: '', mode: 'basic' }
-});
+// useAutoSaveSettings (recommended) — owns state, auto-saves
+const s = useAutoSaveSettings({ toolId: 'my-tool', shotId, scope: 'shot', defaults: DEFAULTS });
+if (s.status !== 'ready') return <Loading />;
+s.updateField('prompt', 'new');
 
-if (settings.status !== 'ready') return <Loading />;
-settings.updateField('prompt', 'new');       // auto-saves after 300ms
-settings.updateFields({ prompt: 'new', mode: 'advanced' });
-```
-
-### usePersistentToolState
-
-```typescript
-const [prompt, setPrompt] = useState('');
-const { ready } = usePersistentToolState('my-tool', { projectId, shotId }, {
+// usePersistentToolState — binds to existing useState, saves on interaction
+const { ready, markAsInteracted } = usePersistentToolState('my-tool', { projectId }, {
   prompt: [prompt, setPrompt],
 });
-```
 
-### useToolSettings (Low-Level)
+// useToolSettings (low-level) — manual save control
+const { settings, update } = useToolSettings('my-tool', { projectId, shotId });
+update('shot', { myField: 'value' });
 
-```typescript
-const { settings, update, isLoading } = useToolSettings('my-tool', { projectId, shotId });
-update('shot', { myField: 'value' });     // shot override
-update('project', { myField: 'default' }); // project default
+// useUserUIState — user-scoped UI prefs
+const { value, update } = useUserUIState('paneLocks', { shots: false, tasks: false, gens: false });
 ```
 
 ## Write Queue
@@ -141,7 +146,7 @@ Inherited: all settings + LoRAs (`selectedLoras` field) + UI preferences + join-
 2. **One tool ID per form** -- each `toolId` maps to one JSONB key; don't split a form across IDs.
 3. **Multiple tool IDs per page are OK** when they represent distinct persisted forms (e.g., `travel-between-images` + `join-segments`).
 4. **Wait for ready** -- always gate on `isLoading` / `status !== 'ready'` before reading settings.
-5. **Write queue is global** -- all paths (`useAutoSaveSettings`, `useToolSettings.update`, direct calls) go through the same queue.
+5. **Write queue is global** -- all paths (`useAutoSaveSettings`, `useToolSettings.update`, `useUserUIState`, direct calls) go through the same queue.
 6. **Scope explicitly** -- `update('shot', ...)` vs `update('project', ...)`.
 7. **Don't duplicate storage** -- if a field is in `useAutoSaveSettings`, don't also persist it via `usePersistentToolState` with a different tool ID.
 

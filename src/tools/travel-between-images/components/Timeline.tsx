@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { GenerationRow } from "@/types/shots";
 import { toast } from "@/shared/components/ui/sonner";
 import { handleError } from "@/shared/lib/errorHandler";
+import { TOOL_IDS } from "@/shared/lib/toolConstants";
 import MediaLightbox from "@/shared/components/MediaLightbox";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { Image, Upload } from "lucide-react";
@@ -32,6 +33,7 @@ import { usePendingImageOpen } from "@/shared/hooks/usePendingImageOpen";
 
 import TimelineContainer from "./Timeline/TimelineContainer";
 import { ImageUploadActions } from "@/shared/components/ImageUploadActions";
+import { useEmptyStateDrop } from "./Timeline/hooks/useEmptyStateDrop";
 
 // Main Timeline component props
 interface TimelineProps {
@@ -80,35 +82,6 @@ interface TimelineProps {
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
   projectAspectRatio?: string;
-  // Structure video props (legacy single-video, matches backend parameter names)
-  structureVideoPath?: string | null;
-  structureVideoMetadata?: import("@/shared/lib/videoUploader").VideoMetadata | null;
-  structureVideoTreatment?: 'adjust' | 'clip';
-  structureVideoMotionStrength?: number;
-  structureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  onStructureVideoChange?: (
-    videoPath: string | null,
-    metadata: import("@/shared/lib/videoUploader").VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string
-  ) => void;
-  /** Uni3C end percent (only used when structureVideoType is 'uni3c') */
-  uni3cEndPercent?: number;
-  onUni3cEndPercentChange?: (value: number) => void;
-  // NEW: Multi-video array interface
-  structureVideos?: import("@/shared/lib/tasks/travelBetweenImages").StructureVideoConfigWithMetadata[];
-  onAddStructureVideo?: (video: import("@/shared/lib/tasks/travelBetweenImages").StructureVideoConfigWithMetadata) => void;
-  onUpdateStructureVideo?: (index: number, updates: Partial<import("@/shared/lib/tasks/travelBetweenImages").StructureVideoConfigWithMetadata>) => void;
-  onRemoveStructureVideo?: (index: number) => void;
-  // Audio strip props
-  audioUrl?: string | null;
-  audioMetadata?: { duration: number; name?: string } | null;
-  onAudioChange?: (
-    audioUrl: string | null,
-    metadata: { duration: number; name?: string } | null
-  ) => void;
   // Image upload handler for empty state
   onImageUpload?: (files: File[]) => Promise<void>;
   isUploadingImage?: boolean;
@@ -127,7 +100,6 @@ interface TimelineProps {
   maxFrameLimit?: number;
   // Shared output selection state (syncs FinalVideoSection with SegmentOutputStrip)
   selectedOutputId?: string | null;
-  onSelectedOutputChange?: (id: string | null) => void;
   // Callback when segment frame count changes (for instant timeline updates)
   onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
   // Segment slots for adjacent segment navigation in lightbox
@@ -173,24 +145,6 @@ const Timeline: React.FC<TimelineProps> = ({
   duplicatingImageId,
   duplicateSuccessImageId,
   projectAspectRatio,
-  // Structure video props (legacy single-video)
-  structureVideoPath,
-  structureVideoMetadata,
-  structureVideoTreatment,
-  structureVideoMotionStrength,
-  structureVideoType,
-  onStructureVideoChange,
-  uni3cEndPercent,
-  onUni3cEndPercentChange,
-  // NEW: Multi-video array props
-  structureVideos,
-  onAddStructureVideo,
-  onUpdateStructureVideo,
-  onRemoveStructureVideo,
-  // Audio strip props
-  audioUrl,
-  audioMetadata,
-  onAudioChange,
   onImageUpload,
   isUploadingImage,
   uploadProgress = 0,
@@ -206,7 +160,6 @@ const Timeline: React.FC<TimelineProps> = ({
   maxFrameLimit = 81,
   // Shared output selection (syncs FinalVideoSection with SegmentOutputStrip)
   selectedOutputId,
-  onSelectedOutputChange,
   // Instant timeline updates from MediaLightbox
   onSegmentFrameCountChange,
   // Segment slots for adjacent segment navigation
@@ -494,103 +447,19 @@ const Timeline: React.FC<TimelineProps> = ({
   // Check if timeline is empty
   const hasNoImages = images.length === 0;
 
-  // Drag and drop state for empty state upload container
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [dragType, setDragType] = useState<'file' | 'generation' | null>(null);
-
-  // Drag and drop handlers for empty state - supports both files AND internal generations
-  const handleEmptyStateDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Check for internal generation drag first
-    if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
-      setIsDragOver(true);
-      setDragType('generation');
-    } else if (e.dataTransfer.types.includes('Files') && onFileDrop) {
-      setIsDragOver(true);
-      setDragType('file');
-    }
-  }, [onFileDrop, onGenerationDrop]);
-
-  const handleEmptyStateDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Check for internal generation drag first
-    if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
-      setIsDragOver(true);
-      setDragType('generation');
-      e.dataTransfer.dropEffect = 'copy';
-    } else if (e.dataTransfer.types.includes('Files') && onFileDrop) {
-      setIsDragOver(true);
-      setDragType('file');
-      e.dataTransfer.dropEffect = 'copy';
-    } else {
-      e.dataTransfer.dropEffect = 'none';
-    }
-  }, [onFileDrop, onGenerationDrop]);
-
-  const handleEmptyStateDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Only hide if we're leaving the container entirely
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
-    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
-      setIsDragOver(false);
-      setDragType(null);
-    }
-  }, []);
-
-  const handleEmptyStateDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    setDragType(null);
-
-    // Handle internal generation drop first
-    if (e.dataTransfer.types.includes('application/x-generation') && onGenerationDrop) {
-      try {
-        const dataString = e.dataTransfer.getData('application/x-generation');
-        if (dataString) {
-          const data = JSON.parse(dataString);
-          if (data.generationId && data.imageUrl) {
-            await onGenerationDrop(data.generationId, data.imageUrl, data.thumbUrl, 0);
-            return;
-          }
-        }
-      } catch (error) {
-        handleError(error, { context: 'Timeline', toastTitle: 'Failed to add image' });
-      }
-      return;
-    }
-
-    // Handle file drop
-    if (!onImageUpload) return;
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length === 0) return;
-
-    // Validate image types
-    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    const validFiles = files.filter(file => {
-      if (validImageTypes.includes(file.type)) {
-        return true;
-      }
-      toast.error(`Invalid file type for ${file.name}. Only JPEG, PNG, and WebP are supported.`);
-      return false;
-    });
-
-    if (validFiles.length === 0) return;
-
-    try {
-      await onImageUpload(validFiles);
-    } catch (error) {
-      handleError(error, { context: 'Timeline', toastTitle: 'Failed to add images' });
-    }
-  }, [onImageUpload, onGenerationDrop]);
+  // Empty-state drag and drop (supports both files and internal generations)
+  const {
+    isDragOver,
+    dragType,
+    handleEmptyStateDragEnter,
+    handleEmptyStateDragOver,
+    handleEmptyStateDragLeave,
+    handleEmptyStateDrop,
+  } = useEmptyStateDrop({
+    onFileDrop,
+    onGenerationDrop,
+    onImageUpload,
+  });
 
   // Derive lightbox shot state for the current image (replaces inline IIFE in JSX)
   const lightboxShotState = useMemo(() => {
@@ -707,29 +576,12 @@ const Timeline: React.FC<TimelineProps> = ({
         handleDesktopDoubleClick={handleDesktopDoubleClick}
         handleMobileTap={handleMobileTap}
         handleInpaintClick={openLightboxWithInpaint}
-        structureVideoPath={structureVideoPath}
-        structureVideoMetadata={structureVideoMetadata}
-        structureVideoTreatment={structureVideoTreatment}
-        structureVideoMotionStrength={structureVideoMotionStrength}
-        structureVideoType={structureVideoType}
-        onStructureVideoChange={onStructureVideoChange}
-        uni3cEndPercent={uni3cEndPercent}
-        onUni3cEndPercentChange={onUni3cEndPercentChange}
-        // NEW: Multi-video array props
-        structureVideos={structureVideos}
-        onAddStructureVideo={onAddStructureVideo}
-        onUpdateStructureVideo={onUpdateStructureVideo}
-        onRemoveStructureVideo={onRemoveStructureVideo}
-        audioUrl={audioUrl}
-        audioMetadata={audioMetadata}
-        onAudioChange={onAudioChange}
         hasNoImages={hasNoImages}
         readOnly={readOnly}
         isUploadingImage={isUploadingImage}
         uploadProgress={uploadProgress}
         maxFrameLimit={maxFrameLimit}
         selectedOutputId={selectedOutputId}
-        onSelectedOutputChange={onSelectedOutputChange}
         onSegmentFrameCountChange={onSegmentFrameCountChange}
         segmentSlots={segmentSlots}
         isSegmentsLoading={isSegmentsLoading}
@@ -747,7 +599,7 @@ const Timeline: React.FC<TimelineProps> = ({
           shotId={shotId}
           starred={currentLightboxImage.starred ?? false}
           autoEnterInpaint={autoEnterInpaint}
-          toolTypeOverride="travel-between-images"
+          toolTypeOverride={TOOL_IDS.TRAVEL_BETWEEN_IMAGES}
           initialVariantId={capturedVariantIdRef.current ?? undefined}
           onClose={() => {
             capturedVariantIdRef.current = null;

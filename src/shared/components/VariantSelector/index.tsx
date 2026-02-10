@@ -7,15 +7,13 @@
  * Allows filtering by relationship and making the current variant primary.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Check, Loader2, ArrowDown, ArrowUp, X, ImagePlus, Star } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/shared/components/ui/tooltip';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { useAsyncOperationMap } from '@/shared/hooks/useAsyncOperation';
-import { usePrefetchTaskData, usePrefetchTaskById } from '@/shared/hooks/useTaskPrefetch';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { ChunkLoadErrorBoundary } from '@/shared/components/ChunkLoadErrorBoundary';
 // Lazy load LineageGifModal since it's only opened on demand
@@ -24,13 +22,11 @@ const LazyLineageGifModal = React.lazy(() =>
     default: module.LineageGifModal
   }))
 );
-import { getLineageDepth } from '@/shared/hooks/useLineageChain';
-import { getSourceTaskId } from '@/shared/lib/taskIdHelpers';
-import { useToggleVariantStar } from '@/shared/hooks/useToggleVariantStar';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { RelationshipFilter, CurrentSegmentImagesData } from './utils';
 import { VariantGrid } from './components/VariantGrid';
 import { MobileInfoModal } from './components/MobileInfoModal';
+import { useVariantActions } from './hooks/useVariantActions';
 
 /**
  * Props for VariantSelector component
@@ -76,52 +72,22 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
   onLoadVariantImages,
   currentSegmentImages,
 }) => {
-  const [localIsPromoting, setLocalIsPromoting] = useState(false);
-  const [promoteSuccess, setPromoteSuccess] = useState(false);
   const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilter>('all');
   const [currentPage, setCurrentPage] = useState(0);
-  const [loadedSettingsVariantId, setLoadedSettingsVariantId] = useState<string | null>(null);
-  const [copiedVariantId, setCopiedVariantId] = useState<string | null>(null);
-  const [loadedImagesVariantId, setLoadedImagesVariantId] = useState<string | null>(null);
-  const deleteOperation = useAsyncOperationMap();
-  const [lineageGifVariantId, setLineageGifVariantId] = useState<string | null>(null);
-  const [mobileInfoVariantId, setMobileInfoVariantId] = useState<string | null>(null);
-  const [variantLineageDepth, setVariantLineageDepth] = useState<Record<string, number>>({});
   const isMobile = useIsMobile();
   const { data: availableLoras } = usePublicLoras();
-  const { toggleStar } = useToggleVariantStar();
+
+  const actions = useVariantActions({
+    variants,
+    activeVariantId,
+    isMobile,
+    onPromoteToGeneration,
+    onDeleteVariant,
+    onLoadVariantSettings,
+    onLoadVariantImages,
+  });
 
   const starredCount = useMemo(() => variants.filter(v => v.starred).length, [variants]);
-
-  const checkedLineageIdsRef = React.useRef<Set<string>>(new Set());
-  const prefetchTaskData = usePrefetchTaskData();
-  const prefetchTaskById = usePrefetchTaskById();
-
-  // Check lineage depth lazily on hover
-  const checkLineageDepthOnHover = useCallback(async (variantId: string) => {
-    if (checkedLineageIdsRef.current.has(variantId)) return;
-    checkedLineageIdsRef.current.add(variantId);
-    try {
-      const depth = await getLineageDepth(variantId);
-      setVariantLineageDepth(prev => ({ ...prev, [variantId]: depth }));
-    } catch {
-      setVariantLineageDepth(prev => ({ ...prev, [variantId]: 0 }));
-    }
-  }, []);
-
-  const handleVariantMouseEnter = useCallback((variant: GenerationVariant) => {
-    if (isMobile) return;
-    checkLineageDepthOnHover(variant.id);
-
-    const variantParams = variant.params;
-    const validSourceTaskId = getSourceTaskId(variantParams);
-
-    if (validSourceTaskId) {
-      prefetchTaskById(validSourceTaskId);
-    } else {
-      prefetchTaskData(variant.generation_id);
-    }
-  }, [isMobile, prefetchTaskData, prefetchTaskById, checkLineageDepthOnHover]);
 
   // Calculate variant relationships
   const { parentVariants, childVariants, relationshipMap } = useMemo(() => {
@@ -197,57 +163,9 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     return null;
   }
 
-  const handlePromoteToGeneration = async () => {
-    if (!activeVariantId || !onPromoteToGeneration) return;
-    setLocalIsPromoting(true);
-    setPromoteSuccess(false);
-    try {
-      await onPromoteToGeneration(activeVariantId);
-      setPromoteSuccess(true);
-      setTimeout(() => setPromoteSuccess(false), 2000);
-    } finally {
-      setLocalIsPromoting(false);
-    }
-  };
-
-  const handleCopyId = (variantId: string) => {
-    navigator.clipboard.writeText(variantId).catch(() => {});
-    setCopiedVariantId(variantId);
-    setTimeout(() => setCopiedVariantId(null), 2000);
-  };
-
-  const handleLoadSettings = (variant: GenerationVariant) => {
-    if (!onLoadVariantSettings) return;
-    onLoadVariantSettings(variant.params as Record<string, unknown>);
-    setLoadedSettingsVariantId(variant.id);
-    setTimeout(() => setLoadedSettingsVariantId(null), 2000);
-  };
-
-  const handleLoadImages = (variant: GenerationVariant) => {
-    if (!onLoadVariantImages) return;
-    onLoadVariantImages(variant);
-    setLoadedImagesVariantId(variant.id);
-    setTimeout(() => setLoadedImagesVariantId(null), 2000);
-  };
-
-  const handleToggleStar = useCallback((variantId: string, starred: boolean) => {
-    const variant = variants.find(v => v.id === variantId);
-    if (!variant) return;
-    toggleStar({ variantId, generationId: variant.generation_id, starred });
-  }, [variants, toggleStar]);
-
-  const handleDeleteVariant = (variantId: string) => {
-    if (!onDeleteVariant) return;
-    deleteOperation.execute(
-      variantId,
-      () => onDeleteVariant(variantId),
-      { context: 'VariantSelector' }
-    );
-  };
-
   // Find the selected variant for the mobile info modal
-  const mobileInfoVariant = mobileInfoVariantId
-    ? variants.find(variant => variant.id === mobileInfoVariantId)
+  const mobileInfoVariant = actions.mobileInfoVariantId
+    ? variants.find(variant => variant.id === actions.mobileInfoVariantId)
     : null;
 
   if (isLoading) {
@@ -275,21 +193,21 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handlePromoteToGeneration}
-                      disabled={localIsPromoting || isPromoting}
+                      onClick={actions.handlePromoteToGeneration}
+                      disabled={actions.localIsPromoting || isPromoting}
                       className={cn(
                         "h-auto min-h-6 text-xs px-2 py-1 gap-1 whitespace-normal text-left",
-                        promoteSuccess && "bg-green-500/20 border-green-500/50 text-green-400"
+                        actions.promoteSuccess && "bg-green-500/20 border-green-500/50 text-green-400"
                       )}
                     >
-                      {localIsPromoting || isPromoting ? (
+                      {actions.localIsPromoting || isPromoting ? (
                         <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                      ) : promoteSuccess ? (
+                      ) : actions.promoteSuccess ? (
                         <Check className="w-3 h-3 shrink-0" />
                       ) : (
                         <ImagePlus className="w-3 h-3 shrink-0" />
                       )}
-                      {promoteSuccess ? 'Created!' : 'New image'}
+                      {actions.promoteSuccess ? 'Created!' : 'New image'}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="z-[100001]">
@@ -397,23 +315,23 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
           readOnly={readOnly}
           availableLoras={availableLoras}
           relationshipMap={relationshipMap}
-          variantLineageDepth={variantLineageDepth}
-          copiedVariantId={copiedVariantId}
-          loadedSettingsVariantId={loadedSettingsVariantId}
+          variantLineageDepth={actions.variantLineageDepth}
+          copiedVariantId={actions.copiedVariantId}
+          loadedSettingsVariantId={actions.loadedSettingsVariantId}
           onVariantSelect={onVariantSelect}
           onMakePrimary={onMakePrimary}
-          onDeleteVariant={onDeleteVariant ? handleDeleteVariant : undefined}
+          onDeleteVariant={onDeleteVariant ? actions.handleDeleteVariant : undefined}
           onLoadVariantSettings={onLoadVariantSettings}
-          onToggleStar={handleToggleStar}
-          onMouseEnter={handleVariantMouseEnter}
-          onShowMobileInfo={setMobileInfoVariantId}
-          onShowLineageGif={setLineageGifVariantId}
-          onCopyId={handleCopyId}
-          onLoadSettings={handleLoadSettings}
-          onLoadImages={onLoadVariantImages ? handleLoadImages : undefined}
+          onToggleStar={actions.handleToggleStar}
+          onMouseEnter={actions.handleVariantMouseEnter}
+          onShowMobileInfo={actions.setMobileInfoVariantId}
+          onShowLineageGif={actions.setLineageGifVariantId}
+          onCopyId={actions.handleCopyId}
+          onLoadSettings={actions.handleLoadSettings}
+          onLoadImages={onLoadVariantImages ? actions.handleLoadImages : undefined}
           currentSegmentImages={currentSegmentImages}
-          loadedImagesVariantId={loadedImagesVariantId}
-          isDeleteLoading={(id) => deleteOperation.isLoading(id)}
+          loadedImagesVariantId={actions.loadedImagesVariantId}
+          isDeleteLoading={actions.isDeleteLoading}
         />
       </div>
     </TooltipProvider>
@@ -422,9 +340,9 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     <ChunkLoadErrorBoundary>
       <React.Suspense fallback={null}>
         <LazyLineageGifModal
-          open={!!lineageGifVariantId}
-          onClose={() => setLineageGifVariantId(null)}
-          variantId={lineageGifVariantId}
+          open={!!actions.lineageGifVariantId}
+          onClose={() => actions.setLineageGifVariantId(null)}
+          variantId={actions.lineageGifVariantId}
         />
       </React.Suspense>
     </ChunkLoadErrorBoundary>
@@ -436,12 +354,12 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
         activeVariantId={activeVariantId}
         availableLoras={availableLoras}
         readOnly={readOnly}
-        onClose={() => setMobileInfoVariantId(null)}
+        onClose={() => actions.setMobileInfoVariantId(null)}
         onMakePrimary={onMakePrimary}
         onLoadVariantSettings={onLoadVariantSettings}
-        onLoadImages={onLoadVariantImages ? handleLoadImages : undefined}
+        onLoadImages={onLoadVariantImages ? actions.handleLoadImages : undefined}
         currentSegmentImages={currentSegmentImages}
-        loadedImagesVariantId={loadedImagesVariantId}
+        loadedImagesVariantId={actions.loadedImagesVariantId}
       />
     )}
     </>

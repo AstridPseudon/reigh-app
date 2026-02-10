@@ -1,40 +1,45 @@
-/**
- * LoraHeaderActions - Save/Load buttons for LoRA settings
- *
- * Extracted from useLoraSync to fix anti-pattern (hooks returning JSX).
- * Provides Save/Load functionality for project-level LoRA presets.
- */
-
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/shared/components/ui/tooltip';
 import { Button } from '@/shared/components/ui/button';
 
 interface LoraHeaderActionsProps {
   hasSavedLoras: boolean;
-  onSave: () => Promise<void>;
-  onLoad: () => Promise<void>;
   selectedLorasCount: number;
   isSaving: boolean;
   saveSuccess: boolean;
   saveFlash: boolean;
-  savedLoras?: { id: string; strength: number }[];
+  onSave: () => void;
+  onLoad: () => void;
+  /** Pre-formatted tooltip content string. If omitted, computed from `savedLoras`. */
+  savedLorasContent?: string;
+  /** Raw saved LoRAs array. Used to compute tooltip content when `savedLorasContent` is not provided. */
+  savedLoras?: Array<{ id: string; strength: number }>;
 }
 
+/**
+ * Save/Load buttons for LoRA project persistence.
+ * Used by both useLoraManager (shared) and useLoraSync (travel tool).
+ */
 export const LoraHeaderActions: React.FC<LoraHeaderActionsProps> = ({
   hasSavedLoras,
-  onSave,
-  onLoad,
   selectedLorasCount,
   isSaving,
   saveSuccess,
   saveFlash,
+  savedLorasContent,
   savedLoras,
+  onSave,
+  onLoad,
 }) => {
-  // Format saved LoRAs for tooltip
-  const savedLorasContent = savedLoras && savedLoras.length > 0
-    ? `Saved LoRAs (${savedLoras.length}):\n` +
-      savedLoras.map(lora => `• ${lora.id} (strength: ${lora.strength})`).join('\n')
-    : 'No saved LoRAs available';
+  // Compute tooltip content: prefer pre-formatted string, fall back to computing from array
+  const tooltipContent = useMemo(() => {
+    if (savedLorasContent) return savedLorasContent;
+    if (savedLoras && savedLoras.length > 0) {
+      return `Saved LoRAs (${savedLoras.length}):\n` +
+        savedLoras.map(lora => `\u2022 ${lora.id} (strength: ${lora.strength})`).join('\n');
+    }
+    return 'No saved LoRAs available';
+  }, [savedLorasContent, savedLoras]);
 
   return (
     <div className="flex gap-1 ml-2 w-1/2">
@@ -50,7 +55,7 @@ export const LoraHeaderActions: React.FC<LoraHeaderActionsProps> = ({
               disabled={selectedLorasCount === 0 || isSaving}
               className={`w-full text-xs h-7 flex items-center justify-center transition-all duration-300 ${
                 saveFlash
-                  ? 'bg-green-400 hover:bg-green-500 border-green-400 text-white scale-105'
+                  ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white scale-105'
                   : saveSuccess
                   ? 'bg-green-600 hover:bg-green-700 border-green-600 text-white'
                   : ''
@@ -92,7 +97,7 @@ export const LoraHeaderActions: React.FC<LoraHeaderActionsProps> = ({
           </TooltipTrigger>
           <TooltipContent>
             <div style={{ whiteSpace: 'pre-line' }}>
-              {savedLorasContent}
+              {tooltipContent}
             </div>
           </TooltipContent>
         </Tooltip>

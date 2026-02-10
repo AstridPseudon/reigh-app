@@ -7,6 +7,11 @@
  *
  * Moved from tools/travel-between-images/components/Timeline/InlineSegmentVideo.tsx
  * to shared/ because it's used by ShotImageManager components.
+ *
+ * Internally split into three sub-components by rendering path:
+ * - SegmentPlaceholder: no child yet (generate CTA, pending, read-only)
+ * - SegmentProcessing: child exists but has no output (processing or regenerate CTA)
+ * - SegmentPreview: full UI with thumbnail, scrubbing, delete, hover preview
  */
 
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
@@ -14,11 +19,24 @@ import { createPortal } from 'react-dom';
 import { Play, Loader2, ImageOff, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import type { SegmentSlot } from '@/shared/hooks/segments';
+import { GenerationRow } from '@/types/shots';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
 import { VariantBadge } from '@/shared/components/VariantBadge';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import { cn } from '@/shared/lib/utils';
+import { handleError } from '@/shared/lib/errorHandler';
+
+// --- Shared layout props used by all sub-components ---
+
+interface LayoutProps {
+  layout: 'absolute' | 'flow';
+  compact: boolean;
+  isMobile: boolean;
+  roundedClass: string;
+  flowContainerClasses: string;
+  adjustedPositionStyle: React.CSSProperties | undefined;
+}
 
 interface InlineSegmentVideoProps {
   slot: SegmentSlot;
@@ -64,30 +82,246 @@ interface InlineSegmentVideoProps {
   readOnly?: boolean;
 }
 
-export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
-  slot,
+// --- Shared layout helpers ---
+
+function useLayoutProps(
+  layout: 'absolute' | 'flow',
+  compact: boolean,
+  isMobile: boolean,
+  leftPercent: number | undefined,
+  widthPercent: number | undefined,
+  heightClass: string | undefined,
+): LayoutProps {
+  const roundedClass = layout === 'flow' ? "rounded-md" : "rounded-lg";
+  const flowHeightClass = heightClass || (isMobile ? 'h-12' : (compact ? 'h-16' : 'h-18'));
+  const flowContainerClasses = layout === 'flow' ? cn("w-full", flowHeightClass) : "";
+
+  const adjustedPositionStyle: React.CSSProperties | undefined = layout === 'absolute' ? {
+    position: 'absolute',
+    left: `calc(${leftPercent}% + 2px)`,
+    width: `calc(${widthPercent}% - 4px)`,
+    top: 0,
+    bottom: 0,
+  } : undefined;
+
+  return { layout, compact, isMobile, roundedClass, flowContainerClasses, adjustedPositionStyle };
+}
+
+// --- SegmentPlaceholder ---
+// Renders when slot.type === 'placeholder': pending spinner, read-only empty, or generate CTA
+
+interface SegmentPlaceholderProps {
+  layoutProps: LayoutProps;
+  isPending: boolean;
+  readOnly: boolean;
+  pairIndex: number;
+  onOpenPairSettings?: (pairIndex: number) => void;
+}
+
+const SegmentPlaceholder: React.FC<SegmentPlaceholderProps> = ({
+  layoutProps,
+  isPending,
+  readOnly,
+  pairIndex,
+  onOpenPairSettings,
+}) => {
+  const { layout, compact, roundedClass, flowContainerClasses, adjustedPositionStyle } = layoutProps;
+
+  // Pending: loading spinner, clickable to open settings
+  if (isPending) {
+    return (
+      <button
+        className={cn(
+          "bg-muted/40 border-2 border-dashed border-primary/40 flex items-center justify-center cursor-pointer transition-all duration-150",
+          roundedClass,
+          layout === 'flow' && "shadow-sm",
+          "hover:bg-muted/60 hover:border-primary/60",
+          flowContainerClasses
+        )}
+        style={adjustedPositionStyle}
+        onClick={() => onOpenPairSettings?.(pairIndex)}
+      >
+        <div className="flex flex-col items-center gap-0.5 text-primary">
+          <Loader2 className={cn(layout === 'flow' && compact ? "w-3.5 h-3.5" : "w-4 h-4", "animate-spin")} />
+          <span className="text-[10px] font-medium">Pending</span>
+        </div>
+      </button>
+    );
+  }
+
+  // Read-only: empty dashed container
+  if (readOnly) {
+    return (
+      <div
+        className={cn(
+          "border-2 border-dashed",
+          roundedClass,
+          layout === 'flow'
+            ? "bg-muted/30 border-muted-foreground/20"
+            : "bg-muted/20 border-border/30",
+          flowContainerClasses
+        )}
+        style={adjustedPositionStyle}
+      />
+    );
+  }
+
+  // Default: generate CTA
+  return (
+    <button
+      className={cn(
+        "border-2 border-dashed flex items-center justify-center cursor-pointer transition-all duration-150 group",
+        roundedClass,
+        layout === 'flow'
+          ? "bg-muted/70 border-primary/50 shadow-sm hover:bg-muted hover:border-primary hover:scale-[1.02]"
+          : "bg-muted/30 border-border/40 hover:bg-muted/50 hover:border-primary/40",
+        flowContainerClasses
+      )}
+      style={adjustedPositionStyle}
+      onClick={() => onOpenPairSettings?.(pairIndex)}
+    >
+      <div className={cn(
+        "flex flex-col items-center transition-colors",
+        layout === 'flow'
+          ? "gap-0.5 text-foreground group-hover:text-primary"
+          : "gap-1 text-muted-foreground group-hover:text-foreground"
+      )}>
+        <Sparkles className={cn(
+          layout === 'flow' && compact ? "w-3.5 h-3.5" : "w-4 h-4",
+          layout === 'flow' ? "group-hover:scale-110 transition-transform" : "opacity-60 group-hover:opacity-100"
+        )} />
+        <span className="text-[10px] font-medium">Generate</span>
+      </div>
+    </button>
+  );
+};
+
+// --- SegmentProcessing ---
+// Renders when slot.type === 'child' but child has no output: processing spinner or regenerate CTA
+
+interface SegmentProcessingProps {
+  layoutProps: LayoutProps;
+  isPending: boolean;
+  pairIndex: number;
+  onOpenPairSettings?: (pairIndex: number) => void;
+}
+
+const SegmentProcessing: React.FC<SegmentProcessingProps> = ({
+  layoutProps,
+  isPending,
+  pairIndex,
+  onOpenPairSettings,
+}) => {
+  const { layout, compact, roundedClass, flowContainerClasses, adjustedPositionStyle } = layoutProps;
+
+  // Processing: loading spinner
+  if (isPending) {
+    return (
+      <div
+        className={cn(
+          "bg-muted/40 border border-dashed border-border/50 flex items-center justify-center",
+          roundedClass,
+          flowContainerClasses
+        )}
+        style={adjustedPositionStyle}
+      >
+        <div className={cn(
+          "flex items-center text-muted-foreground",
+          layout === 'flow' ? "gap-1.5" : "flex-col gap-2"
+        )}>
+          <Loader2 className={cn(layout === 'flow' && compact ? "w-3 h-3" : "w-6 h-6", "animate-spin")} />
+          <span className={cn(layout === 'flow' && compact ? "text-[9px]" : "text-xs", "font-medium")}>Processing...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // No output and no pending task - likely orphaned (source images changed)
+  // Show regenerate CTA
+  return (
+    <button
+      className={cn(
+        "border-2 border-dashed flex items-center justify-center cursor-pointer transition-all duration-150 group",
+        roundedClass,
+        layout === 'flow'
+          ? "bg-amber-500/10 border-amber-500/50 shadow-sm hover:bg-amber-500/20 hover:border-amber-500 hover:scale-[1.02]"
+          : "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50",
+        flowContainerClasses
+      )}
+      style={adjustedPositionStyle}
+      onClick={() => onOpenPairSettings?.(pairIndex)}
+      title="Source images changed - click to regenerate"
+    >
+      <div className={cn(
+        "flex flex-col items-center transition-colors",
+        layout === 'flow'
+          ? "gap-0.5 text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300"
+          : "gap-1 text-amber-600/70 dark:text-amber-400/70 group-hover:text-amber-600 dark:group-hover:text-amber-400"
+      )}>
+        <Sparkles className={cn(
+          layout === 'flow' && compact ? "w-3.5 h-3.5" : "w-4 h-4",
+          layout === 'flow' ? "group-hover:scale-110 transition-transform" : "opacity-80 group-hover:opacity-100"
+        )} />
+        <span className="text-[10px] font-medium">Regenerate</span>
+      </div>
+    </button>
+  );
+};
+
+// --- SegmentPreview ---
+// Renders when slot.type === 'child' and child has output: full thumbnail with hover preview, scrubbing, delete
+
+interface SegmentPreviewProps {
+  layoutProps: LayoutProps;
+  child: GenerationRow;
+  pairIndex: number;
+  onClick: () => void;
+  projectAspectRatio?: string;
+  onDelete?: (generationId: string) => void;
+  isDeleting: boolean;
+  isPending: boolean;
+  hasSourceChanged: boolean;
+  // Scrubbing
+  isScrubbingActive: boolean;
+  onScrubbingStart?: (rect: DOMRect) => void;
+  scrubbingContainerRef?: React.RefObject<HTMLDivElement>;
+  scrubbingContainerProps?: {
+    onMouseMove: (e: React.MouseEvent) => void;
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+  };
+  scrubbingProgress?: number;
+  // Badge data
+  badgeData: { derivedCount?: number; unviewedVariantCount?: number; hasUnviewedVariants?: boolean } | null;
+  showNewBadge: boolean;
+  isNewWithNoVariants: boolean;
+  unviewedCount: number;
+  handleMarkAllVariantsViewed: () => void;
+}
+
+const SegmentPreview: React.FC<SegmentPreviewProps> = ({
+  layoutProps,
+  child,
   pairIndex,
   onClick,
   projectAspectRatio,
-  isMobile = false,
-  leftPercent,
-  widthPercent,
-  layout = 'absolute',
-  heightClass,
-  compact = false,
-  onOpenPairSettings,
   onDelete,
-  isDeleting = false,
-  isPending = false,
-  hasSourceChanged = false,
-  // Scrubbing props
-  isScrubbingActive = false,
+  isDeleting,
+  isPending,
+  hasSourceChanged,
+  isScrubbingActive,
   onScrubbingStart,
   scrubbingContainerRef,
   scrubbingContainerProps,
   scrubbingProgress,
-  readOnly = false,
+  badgeData,
+  showNewBadge,
+  isNewWithNoVariants,
+  unviewedCount,
+  handleMarkAllVariantsViewed,
 }) => {
+  const { layout, compact, isMobile, roundedClass, flowContainerClasses, adjustedPositionStyle } = layoutProps;
+
   const [isHovering, setIsHovering] = useState(false);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [, setImageLoaded] = useState(false);
@@ -100,40 +334,8 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
   // Frame rate for frame number calculation (Wan model outputs 16fps)
   const FPS = 16;
 
-  // Get variant badge data for child slots
-  const generationId = slot.type === 'child' ? slot.child.id : null;
-  const { getBadgeData } = useVariantBadges(
-    generationId ? [generationId] : [],
-    !!generationId
-  );
-  const badgeData = generationId ? getBadgeData(generationId) : null;
-
-  // Hook for marking variants as viewed
-  const { markAllViewed } = useMarkVariantViewed();
-
-  // Callback to mark all variants for this generation as viewed
-  const handleMarkAllVariantsViewed = useCallback(() => {
-    if (generationId) {
-      markAllViewed(generationId);
-    }
-  }, [generationId, markAllViewed]);
-
-  // Check if recently created (show NEW for segments created in last 10 minutes)
-  const isRecentlyCreated = useMemo(() => {
-    if (slot.type !== 'child') return false;
-    const createdAt = slot.child.created_at || slot.child.createdAt;
-    if (!createdAt) return false;
-    const createdTime = new Date(createdAt).getTime();
-    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
-    return createdTime > tenMinutesAgo;
-  }, [slot]);
-
-  // Show NEW badge if: has unviewed variants OR is recently created with no variants yet
-  const hasUnviewedFromBadge = badgeData?.hasUnviewedVariants && (badgeData?.unviewedVariantCount || 0) > 0;
-  const isNewWithNoVariants = isRecentlyCreated && (badgeData?.derivedCount || 0) === 0;
-  const showNewBadge = hasUnviewedFromBadge || isNewWithNoVariants;
-  // Use actual count from badge data, or 1 for "recently created with no variants" case
-  const unviewedCount = hasUnviewedFromBadge ? (badgeData?.unviewedVariantCount || 0) : (isNewWithNoVariants ? 1 : 0);
+  const thumbUrl = child.thumbUrl || child.location;
+  const videoUrl = child.location;
 
   // Calculate preview width and aspect ratio (let height be determined by aspect ratio)
   const previewStyle = useMemo(() => {
@@ -155,24 +357,10 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
     return Math.round(baseWidth * 9 / 16);
   }, [projectAspectRatio, compact]);
 
-  // Position style - absolute for timeline, undefined for flow layout
-  const positionStyle: React.CSSProperties | undefined = layout === 'absolute' ? {
-    position: 'absolute',
-    left: `${leftPercent}%`,
-    width: `${widthPercent}%`,
-    top: 0,
-    bottom: 0,
-  } : undefined;
-
-  // Adjusted position style with gaps (for absolute layout)
-  const adjustedPositionStyle: React.CSSProperties | undefined = layout === 'absolute' ? {
-    ...positionStyle,
-    left: `calc(${leftPercent}% + 2px)`,
-    width: `calc(${widthPercent}% - 4px)`,
-  } : undefined;
-
-  // Default height class for flow layout
-  const flowHeightClass = heightClass || (isMobile ? 'h-12' : (compact ? 'h-16' : 'h-18'));
+  // Different border/styling for flow layout (matches BatchSegmentVideo's prominent styling)
+  const containerBorderClasses = layout === 'flow'
+    ? "border-[3px] border-primary ring-2 ring-primary/20 shadow-lg"
+    : "border-2 border-primary/30 shadow-md";
 
   // Handle mouse events - integrates with external scrubbing system
   const handleMouseEnter = useCallback((e: React.MouseEvent) => {
@@ -180,7 +368,6 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
     setIsHovering(true);
 
     // Notify parent that scrubbing should start on this segment
-    // Pass the element's bounding rect for preview positioning
     const target = e.currentTarget as HTMLElement;
     if (target && onScrubbingStart) {
       onScrubbingStart(target.getBoundingClientRect());
@@ -225,7 +412,7 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
     if (!isHovering || !video) return;
 
     // Start playback
-    if (slot.type === 'child' && slot.child.location) {
+    if (child.location) {
       video.play().catch(() => {});
     }
 
@@ -250,155 +437,11 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [isHovering, slot]);
+  }, [isHovering, child.location]);
 
   // Calculate current frame number and progress percentage
   const currentFrame = Math.floor(currentTime * FPS);
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  // Container classes for flow layout
-  const flowContainerClasses = layout === 'flow' ? cn("w-full", flowHeightClass) : "";
-
-  // Different border/styling for flow layout (matches BatchSegmentVideo's prominent styling)
-  const containerBorderClasses = layout === 'flow'
-    ? "border-[3px] border-primary ring-2 ring-primary/20 shadow-lg"
-    : "border-2 border-primary/30 shadow-md";
-
-  // Rounded corners - flow layout uses rounded-md for compact display
-  const roundedClass = layout === 'flow' ? "rounded-md" : "rounded-lg";
-
-  // Placeholder (no video generated yet) state - show CTA to generate or pending indicator
-  if (slot.type === 'placeholder') {
-    // If a task is pending (Queued/In Progress), show loading state (still clickable to open settings)
-    if (isPending) {
-      return (
-        <button
-          className={cn(
-            "bg-muted/40 border-2 border-dashed border-primary/40 flex items-center justify-center cursor-pointer transition-all duration-150",
-            roundedClass,
-            layout === 'flow' && "shadow-sm",
-            "hover:bg-muted/60 hover:border-primary/60",
-            flowContainerClasses
-          )}
-          style={adjustedPositionStyle}
-          onClick={() => onOpenPairSettings?.(pairIndex)}
-        >
-          <div className="flex flex-col items-center gap-0.5 text-primary">
-            <Loader2 className={cn(layout === 'flow' && compact ? "w-3.5 h-3.5" : "w-4 h-4", "animate-spin")} />
-            <span className="text-[10px] font-medium">Pending</span>
-          </div>
-        </button>
-      );
-    }
-
-    // In readOnly mode, show empty container instead of generate CTA
-    if (readOnly) {
-      return (
-        <div
-          className={cn(
-            "border-2 border-dashed",
-            roundedClass,
-            layout === 'flow'
-              ? "bg-muted/30 border-muted-foreground/20"
-              : "bg-muted/20 border-border/30",
-            flowContainerClasses
-          )}
-          style={adjustedPositionStyle}
-        />
-      );
-    }
-
-    // Otherwise show generate CTA
-    return (
-      <button
-        className={cn(
-          "border-2 border-dashed flex items-center justify-center cursor-pointer transition-all duration-150 group",
-          roundedClass,
-          layout === 'flow'
-            ? "bg-muted/70 border-primary/50 shadow-sm hover:bg-muted hover:border-primary hover:scale-[1.02]"
-            : "bg-muted/30 border-border/40 hover:bg-muted/50 hover:border-primary/40",
-          flowContainerClasses
-        )}
-        style={adjustedPositionStyle}
-        onClick={() => onOpenPairSettings?.(pairIndex)}
-      >
-        <div className={cn(
-          "flex flex-col items-center transition-colors",
-          layout === 'flow'
-            ? "gap-0.5 text-foreground group-hover:text-primary"
-            : "gap-1 text-muted-foreground group-hover:text-foreground"
-        )}>
-          <Sparkles className={cn(
-            layout === 'flow' && compact ? "w-3.5 h-3.5" : "w-4 h-4",
-            layout === 'flow' ? "group-hover:scale-110 transition-transform" : "opacity-60 group-hover:opacity-100"
-          )} />
-          <span className="text-[10px] font-medium">Generate</span>
-        </div>
-      </button>
-    );
-  }
-
-  // Child slot
-  const child = slot.child;
-  const hasOutput = !!child.location;
-  const thumbUrl = child.thumbUrl || child.location;
-  const videoUrl = child.location;
-
-  // No output - either still processing (if task pending) or orphaned (source images changed)
-  // If isPending is true, show loading state. Otherwise show regenerate CTA.
-  if (!hasOutput) {
-    if (isPending) {
-      return (
-        <div
-          className={cn(
-            "bg-muted/40 border border-dashed border-border/50 flex items-center justify-center",
-            roundedClass,
-            flowContainerClasses
-          )}
-          style={adjustedPositionStyle}
-        >
-          <div className={cn(
-            "flex items-center text-muted-foreground",
-            layout === 'flow' ? "gap-1.5" : "flex-col gap-2"
-          )}>
-            <Loader2 className={cn(layout === 'flow' && compact ? "w-3 h-3" : "w-6 h-6", "animate-spin")} />
-            <span className={cn(layout === 'flow' && compact ? "text-[9px]" : "text-xs", "font-medium")}>Processing...</span>
-          </div>
-        </div>
-      );
-    }
-
-    // No output and no pending task - likely orphaned (source images changed)
-    // Show regenerate CTA similar to placeholder state
-    return (
-      <button
-        className={cn(
-          "border-2 border-dashed flex items-center justify-center cursor-pointer transition-all duration-150 group",
-          roundedClass,
-          layout === 'flow'
-            ? "bg-amber-500/10 border-amber-500/50 shadow-sm hover:bg-amber-500/20 hover:border-amber-500 hover:scale-[1.02]"
-            : "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50",
-          flowContainerClasses
-        )}
-        style={adjustedPositionStyle}
-        onClick={() => onOpenPairSettings?.(pairIndex)}
-        title="Source images changed - click to regenerate"
-      >
-        <div className={cn(
-          "flex flex-col items-center transition-colors",
-          layout === 'flow'
-            ? "gap-0.5 text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300"
-            : "gap-1 text-amber-600/70 dark:text-amber-400/70 group-hover:text-amber-600 dark:group-hover:text-amber-400"
-        )}>
-          <Sparkles className={cn(
-            layout === 'flow' && compact ? "w-3.5 h-3.5" : "w-4 h-4",
-            layout === 'flow' ? "group-hover:scale-110 transition-transform" : "opacity-80 group-hover:opacity-100"
-          )} />
-          <span className="text-[10px] font-medium">Regenerate</span>
-        </div>
-      </button>
-    );
-  }
 
   // Use scrubbing ref when active, otherwise use local ref
   const containerRefToUse = isScrubbingActive && scrubbingContainerRef ? scrubbingContainerRef : localContainerRef;
@@ -422,7 +465,7 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
           try {
             onClick();
           } catch (err) {
-            console.error('[SegmentClick] 1️⃣ ❌ onClick() threw error:', err);
+            handleError(err, { context: 'SegmentPreview.onClick' });
           }
         }}
         onMouseEnter={handleMouseEnter}
@@ -450,7 +493,6 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
         )}
 
         {/* Variant badge - top left (uses standard VariantBadge component) */}
-        {/* Shows NEW for: unviewed variants OR recently created segments with no variants */}
         {(badgeData || showNewBadge) && (
           <VariantBadge
             derivedCount={badgeData?.derivedCount || 0}
@@ -619,5 +661,116 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
         document.body
       )}
     </>
+  );
+};
+
+// --- Main component: thin router ---
+
+export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
+  slot,
+  pairIndex,
+  onClick,
+  projectAspectRatio,
+  isMobile = false,
+  leftPercent,
+  widthPercent,
+  layout = 'absolute',
+  heightClass,
+  compact = false,
+  onOpenPairSettings,
+  onDelete,
+  isDeleting = false,
+  isPending = false,
+  hasSourceChanged = false,
+  // Scrubbing props
+  isScrubbingActive = false,
+  onScrubbingStart,
+  scrubbingContainerRef,
+  scrubbingContainerProps,
+  scrubbingProgress,
+  readOnly = false,
+}) => {
+  const layoutProps = useLayoutProps(layout, compact, isMobile, leftPercent, widthPercent, heightClass);
+
+  // --- Placeholder slot: no child generation exists yet ---
+  if (slot.type === 'placeholder') {
+    return (
+      <SegmentPlaceholder
+        layoutProps={layoutProps}
+        isPending={isPending}
+        readOnly={readOnly}
+        pairIndex={pairIndex}
+        onOpenPairSettings={onOpenPairSettings}
+      />
+    );
+  }
+
+  // --- Child slot: generation exists ---
+  const child = slot.child;
+  const hasOutput = !!child.location;
+
+  // Variant badge data (only relevant for child slots)
+  const generationId = child.id;
+  const { getBadgeData } = useVariantBadges(
+    [generationId],
+    true
+  );
+  const badgeData = getBadgeData(generationId);
+
+  const { markAllViewed } = useMarkVariantViewed();
+  const handleMarkAllVariantsViewed = useCallback(() => {
+    markAllViewed(generationId);
+  }, [generationId, markAllViewed]);
+
+  // Check if recently created (show NEW for segments created in last 10 minutes)
+  const isRecentlyCreated = useMemo(() => {
+    const createdAt = child.created_at || child.createdAt;
+    if (!createdAt) return false;
+    const createdTime = new Date(createdAt).getTime();
+    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+    return createdTime > tenMinutesAgo;
+  }, [child.created_at, child.createdAt]);
+
+  // Show NEW badge if: has unviewed variants OR is recently created with no variants yet
+  const hasUnviewedFromBadge = badgeData?.hasUnviewedVariants && (badgeData?.unviewedVariantCount || 0) > 0;
+  const isNewWithNoVariants = isRecentlyCreated && (badgeData?.derivedCount || 0) === 0;
+  const showNewBadge = !!(hasUnviewedFromBadge || isNewWithNoVariants);
+  const unviewedCount = hasUnviewedFromBadge ? (badgeData?.unviewedVariantCount || 0) : (isNewWithNoVariants ? 1 : 0);
+
+  // Child exists but has no output yet
+  if (!hasOutput) {
+    return (
+      <SegmentProcessing
+        layoutProps={layoutProps}
+        isPending={isPending}
+        pairIndex={pairIndex}
+        onOpenPairSettings={onOpenPairSettings}
+      />
+    );
+  }
+
+  // Child exists with output - full preview
+  return (
+    <SegmentPreview
+      layoutProps={layoutProps}
+      child={child}
+      pairIndex={pairIndex}
+      onClick={onClick}
+      projectAspectRatio={projectAspectRatio}
+      onDelete={onDelete}
+      isDeleting={isDeleting}
+      isPending={isPending}
+      hasSourceChanged={hasSourceChanged}
+      isScrubbingActive={isScrubbingActive}
+      onScrubbingStart={onScrubbingStart}
+      scrubbingContainerRef={scrubbingContainerRef}
+      scrubbingContainerProps={scrubbingContainerProps}
+      scrubbingProgress={scrubbingProgress}
+      badgeData={badgeData}
+      showNewBadge={showNewBadge}
+      isNewWithNoVariants={isNewWithNoVariants}
+      unviewedCount={unviewedCount}
+      handleMarkAllVariantsViewed={handleMarkAllVariantsViewed}
+    />
   );
 };

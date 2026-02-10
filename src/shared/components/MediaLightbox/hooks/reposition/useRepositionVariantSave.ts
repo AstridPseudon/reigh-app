@@ -9,6 +9,7 @@ import type { ImageTransform } from './types';
 import type { GenerationRow } from '@/types/shots';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /** Extended media fields that may be present at runtime from gallery/query layer */
 interface MediaWithShotFields {
@@ -167,7 +168,7 @@ export function useRepositionVariantSave({
           // Note: transform is baked into the image, we only save it for historical reference
           transform_applied: transform,
           saved_at: new Date().toISOString(),
-          tool_type: toolTypeOverride || 'edit-images',
+          tool_type: toolTypeOverride || TOOL_IDS.EDIT_IMAGES,
           repositioned_from: actualGenerationId,
           ...(activeVariantId ? { source_variant_id: activeVariantId } : {}),
         };
@@ -223,7 +224,7 @@ export function useRepositionVariantSave({
               // Note: transform is baked into the image, we only save it for historical reference
               transform_applied: transform,
               saved_at: new Date().toISOString(),
-              tool_type: toolTypeOverride || 'edit-images',
+              tool_type: toolTypeOverride || TOOL_IDS.EDIT_IMAGES,
               ...(activeVariantId ? { source_variant_id: activeVariantId } : {}),
             }
           })

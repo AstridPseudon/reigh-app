@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 
@@ -245,7 +246,7 @@ export function useVideoItemJoinClips(
         parent_generation_id: video.id,
         // IMPORTANT: This join is initiated from within Travel Between Images,
         // so the resulting output should be attributed to this tool for filtering/counting.
-        tool_type: 'travel-between-images',
+        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
         ...(resolutionTuple && { resolution: resolutionTuple }),
       });
 

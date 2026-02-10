@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { readShotSettings, type ShotVideoSettings } from '@/shared/utils/settingsMigration';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 interface UseShotVideoSettingsReturn {
   data: ShotVideoSettings | null | undefined;
@@ -37,7 +38,7 @@ export function useShotVideoSettings(
       }
 
       const allSettings = data?.settings as Record<string, unknown>;
-      const rawSettings = (allSettings?.['travel-between-images'] ?? {}) as Record<string, unknown>;
+      const rawSettings = (allSettings?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] ?? {}) as Record<string, unknown>;
 
       return readShotSettings(rawSettings);
     },

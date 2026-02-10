@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { cn, formatTime } from '@/shared/lib/utils';
+import { handleError } from '@/shared/lib/errorHandler';
 
 // Type for a portion selection
 export interface PortionSelection {
@@ -67,7 +68,7 @@ function FrameThumbnail({ videoUrl, time }: { videoUrl: string; time: number }) 
             loadedRef.current = true;
             setLoaded(true);
           } catch (e) {
-            console.error('[FrameThumbnail] Failed to draw frame:', e);
+            handleError(e, { context: 'FrameThumbnail.captureFrame' });
             setError(true);
           }
         }
@@ -95,15 +96,15 @@ function FrameThumbnail({ videoUrl, time }: { videoUrl: string; time: number }) 
       }
     };
     
-    const handleError = () => {
-      console.error('[FrameThumbnail] Video load error for', videoUrl);
+    const handleVideoError = () => {
+      handleError(new Error(`Video load error for ${videoUrl}`), { context: 'FrameThumbnail' });
       setError(true);
     };
     
     video.addEventListener('seeked', handleSeeked);
     video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('error', handleError);
+    video.addEventListener('error', handleVideoError);
     
     // Increased timeout for slower mobile connections
     const timeout = setTimeout(() => {
@@ -121,7 +122,7 @@ function FrameThumbnail({ videoUrl, time }: { videoUrl: string; time: number }) 
       video.removeEventListener('seeked', handleSeeked);
       video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('error', handleError);
+      video.removeEventListener('error', handleVideoError);
       video.src = '';
       video.load();
     };

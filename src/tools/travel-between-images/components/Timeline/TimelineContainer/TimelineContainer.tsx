@@ -16,6 +16,7 @@ import { AudioStrip } from '../AudioStrip';
 import { SegmentOutputStrip } from '../SegmentOutputStrip';
 import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
 import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
+import { handleError } from '@/shared/lib/errorHandler';
 
 // Extracted sub-components
 import {
@@ -34,6 +35,7 @@ import { findTrailingVideoInfo } from '../utils/timeline-utils';
 // Types
 import type { TimelineContainerProps } from './types';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { useTimelineMedia } from '../TimelineMediaContext';
 
 const TimelineContainer: React.FC<TimelineContainerProps> = ({
   shotId,
@@ -62,19 +64,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   handleDesktopDoubleClick,
   handleMobileTap,
   handleInpaintClick,
-  structureVideoPath,
-  structureVideoMetadata,
-  structureVideoTreatment = 'adjust',
-  structureVideoMotionStrength = 1.0,
-  structureVideoType = 'flow',
-  onStructureVideoChange,
-  structureVideos,
-  onAddStructureVideo,
-  onUpdateStructureVideo,
-  onRemoveStructureVideo,
-  audioUrl,
-  audioMetadata,
-  onAudioChange,
   hasNoImages = false,
   maxFrameLimit = 81,
   selectedOutputId,
@@ -87,6 +76,23 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onShotChange,
   onRegisterTrailingUpdater,
 }) => {
+  // Structure video + audio props from context (provided by ShotImagesEditor)
+  const {
+    structureVideoPath,
+    structureVideoMetadata,
+    structureVideoTreatment = 'adjust',
+    structureVideoMotionStrength = 1.0,
+    structureVideoType = 'flow',
+    onStructureVideoChange,
+    structureVideos,
+    onAddStructureVideo,
+    onUpdateStructureVideo,
+    onRemoveStructureVideo,
+    audioUrl,
+    audioMetadata,
+    onAudioChange,
+  } = useTimelineMedia();
+
   // Derive trailingEndFrame from positions map (single source of truth)
   const trailingEndFrame = framePositions.get(TRAILING_ENDPOINT_KEY);
 
@@ -323,7 +329,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
       // Clean up
       video.src = '';
     } catch (error) {
-      console.error('[ExtractFinalFrame] Error:', error);
+      handleError(error, { context: 'extractAndDropFinalFrame' });
       toast.error('Failed to extract frame from video');
     }
   }, [trailingVideoUrl, onFileDrop, currentPositions, trailingEndFrame]);

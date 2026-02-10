@@ -3,8 +3,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Scissors, Trash2, Plus, Video } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
-
-const ASSUMED_FPS = 30;
+import { ASSUMED_FPS } from '../constants';
 
 interface SegmentFormDialogProps {
   segmentStartTime: number | null;

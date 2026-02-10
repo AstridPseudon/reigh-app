@@ -1,44 +1,14 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { RotateCw, Plus, Minus } from 'lucide-react';
 import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
-import { StrokeOverlay, BrushStroke, StrokeOverlayHandle } from './StrokeOverlay';
+import { StrokeOverlay } from './StrokeOverlay';
+import { RepositionOverlay } from './RepositionOverlay';
+import { useImageEditSafe } from '../contexts/ImageEditContext';
 
 interface MediaDisplayWithCanvasProps {
   // Media info
   effectiveImageUrl: string;
   thumbUrl?: string;
   isVideo: boolean;
-
-  // States
-  isFlippedHorizontally: boolean;
-  isSaving: boolean;
-  isInpaintMode: boolean;
-  editMode?: 'text' | 'inpaint' | 'annotate' | 'reposition' | 'img2img';
-
-  // Reposition mode transform style
-  repositionTransformStyle?: React.CSSProperties;
-
-  // Reposition drag-to-move + scroll/pinch-to-zoom handlers
-  repositionDragHandlers?: {
-    onPointerDown: (e: React.PointerEvent) => void;
-    onPointerMove: (e: React.PointerEvent) => void;
-    onPointerUp: (e: React.PointerEvent) => void;
-    onPointerCancel: (e: React.PointerEvent) => void;
-    onWheel: (e: React.WheelEvent) => void;
-  };
-  isRepositionDragging?: boolean;
-
-  // Reposition rotation change handler (for corner drag-to-rotate)
-  onRepositionRotationChange?: (degrees: number) => void;
-  // Current rotation for corner handles
-  repositionRotation?: number;
-  // Reposition scale change handler (for +/- zoom buttons on image)
-  onRepositionScaleChange?: (value: number) => void;
-  // Current scale for zoom buttons
-  repositionScale?: number;
-
-  // Refs
-  imageContainerRef: React.RefObject<HTMLDivElement>;
 
   // Handlers
   onImageLoad?: (dimensions: { width: number; height: number }) => void;
@@ -59,39 +29,14 @@ interface MediaDisplayWithCanvasProps {
   // Debug
   debugContext?: string;
 
-  // === Konva-based stroke overlay props ===
+  // Konva stroke overlay
   imageDimensions?: { width: number; height: number } | null;
-  brushStrokes?: BrushStroke[];
-  isEraseMode?: boolean;
-  brushSize?: number;
-  annotationMode?: 'rectangle' | null;
-  selectedShapeId?: string | null;
-  isAnnotateMode?: boolean;
-  // Callbacks for StrokeOverlay's internal state machine
-  onStrokeComplete?: (stroke: BrushStroke) => void;
-  onStrokesChange?: (strokes: BrushStroke[]) => void;
-  onSelectionChange?: (shapeId: string | null) => void;
-  onTextModeHint?: () => void;
-  // Ref for accessing StrokeOverlay's exportMask function
-  strokeOverlayRef?: React.RefObject<StrokeOverlayHandle>;
 }
 
 export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   effectiveImageUrl,
   thumbUrl,
   isVideo,
-  isFlippedHorizontally,
-  isSaving,
-  isInpaintMode,
-  editMode = 'text',
-  repositionTransformStyle,
-  repositionDragHandlers,
-  isRepositionDragging = false,
-  onRepositionRotationChange,
-  repositionRotation = 0,
-  onRepositionScaleChange,
-  repositionScale = 1,
-  imageContainerRef,
   onImageLoad,
   onVideoLoadedMetadata,
   variant = 'regular-centered',
@@ -101,19 +46,25 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   playbackStart,
   playbackEnd,
   debugContext = 'MediaDisplay',
-  // Konva stroke overlay props
   imageDimensions,
-  brushStrokes = [],
-  isEraseMode = false,
-  brushSize = 20,
-  annotationMode = null,
-  isAnnotateMode = false,
-  onStrokeComplete,
-  onStrokesChange,
-  onSelectionChange,
-  onTextModeHint,
-  strokeOverlayRef,
 }) => {
+  // Read edit state from ImageEditContext (safe defaults when outside provider)
+  const {
+    isFlippedHorizontally, isSaving, isInpaintMode, editMode: rawEditMode,
+    isAnnotateMode, brushStrokes, isEraseMode, brushSize, annotationMode,
+    onStrokeComplete, onStrokesChange, onSelectionChange, onTextModeHint, strokeOverlayRef,
+    repositionDragHandlers, isRepositionDragging, repositionTransform, getTransformStyle,
+    setScale: onRepositionScaleChange, setRotation: onRepositionRotationChange,
+    imageContainerRef,
+  } = useImageEditSafe();
+
+  // Derive reposition values from context
+  const editMode = rawEditMode ?? 'text';
+  const repositionRotation = repositionTransform?.rotation ?? 0;
+  const repositionScale = repositionTransform?.scale ?? 1;
+  const repositionTransformStyle = editMode === 'reposition'
+    ? { transform: getTransformStyle() } as React.CSSProperties
+    : undefined;
 
   // Track the display size AND position of the image for Konva overlay
   const [displaySize, setDisplaySize] = React.useState({ width: 0, height: 0 });
@@ -319,13 +270,7 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
       return false;
     }
   });
-  
-  // Track component lifecycle
-  React.useEffect(() => {
-    return () => {
-    };
-  }, [debugContext]);
-  
+
   // Reset error/loading state when URL changes, and try to skip the thumbnail
   // if the full image is already cached (prevents "small thumb then normal size" flash).
   React.useLayoutEffect(() => {
@@ -648,127 +593,21 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
             />
           )}
 
-          {/* Original Image Bounds Outline - Shows the canvas/crop boundary in reposition mode */}
-          {isRepositionMode && displaySize.width > 0 && displaySize.height > 0 && (
-            <div
-              className="absolute pointer-events-none z-[45]"
-              style={{
-                left: imageOffset.left,
-                top: imageOffset.top,
-                width: displaySize.width,
-                height: displaySize.height,
-                border: '2px dashed rgba(59, 130, 246, 0.7)',
-                borderRadius: variant === 'regular-centered' ? '4px' : undefined,
-                boxShadow: 'inset 0 0 0 2px rgba(59, 130, 246, 0.2)',
-              }}
-            >
-              {/* Corner indicators */}
-              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-blue-500" />
-              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-blue-500" />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-blue-500" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-blue-500" />
-
-              {/* Center crosshair */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="w-6 h-0.5 bg-blue-500/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                <div className="w-0.5 h-6 bg-blue-500/50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-          )}
-
-          {/* Rotation corner handles + zoom buttons - follows the transformed image */}
-          {isRepositionMode && displaySize.width > 0 && displaySize.height > 0 && (
-            <div
-              ref={handlesOverlayRef}
-              className="absolute z-[46] pointer-events-none"
-              style={{
-                left: imageOffset.left,
-                top: imageOffset.top,
-                width: displaySize.width,
-                height: displaySize.height,
-                // Same transform as the image so handles track its visual corners
-                transform: repositionTransformStyle?.transform,
-                transformOrigin: 'center center',
-              }}
-            >
-              {/* Zoom +/- buttons at 10% from top, centered */}
-              {onRepositionScaleChange && (
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 flex items-center rounded-full bg-white/60 border border-black/30 px-0.5 py-0.5"
-                  style={{ pointerEvents: 'auto', top: '5%' }}
-                >
-                  <div
-                    className="w-7 h-7 flex items-center justify-center cursor-pointer rounded-full hover:bg-white/20 transition-colors"
-                    onClick={() => repositionScale > 0.25 && onRepositionScaleChange(Math.max(0.25, repositionScale - 0.05))}
-                    title="Zoom out"
-                  >
-                    <Minus className="h-4 w-4 text-blue-400" />
-                  </div>
-                  <div className="w-px h-4 bg-black/30" />
-                  <div
-                    className="w-7 h-7 flex items-center justify-center cursor-pointer rounded-full hover:bg-white/20 transition-colors"
-                    onClick={() => repositionScale < 2.0 && onRepositionScaleChange(Math.min(2.0, repositionScale + 0.05))}
-                    title="Zoom in"
-                  >
-                    <Plus className="h-4 w-4 text-blue-400" />
-                  </div>
-                </div>
-              )}
-
-              {/* Corner rotation handles */}
-              {onRepositionRotationChange && (
-                <>
-                  {/* Top-left */}
-                  <div
-                    className="absolute -top-4 -left-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
-                    style={{ pointerEvents: 'auto', transform: 'rotate(-90deg)' }}
-                    onPointerDown={handleCornerRotateStart}
-                    onPointerMove={handleCornerRotateMove}
-                    onPointerUp={handleCornerRotateEnd}
-                    onPointerCancel={handleCornerRotateEnd}
-                    title="Drag to rotate"
-                  >
-                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
-                  </div>
-                  {/* Top-right */}
-                  <div
-                    className="absolute -top-4 -right-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
-                    style={{ pointerEvents: 'auto' }}
-                    onPointerDown={handleCornerRotateStart}
-                    onPointerMove={handleCornerRotateMove}
-                    onPointerUp={handleCornerRotateEnd}
-                    onPointerCancel={handleCornerRotateEnd}
-                    title="Drag to rotate"
-                  >
-                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
-                  </div>
-                  {/* Bottom-left */}
-                  <div
-                    className="absolute -bottom-4 -left-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
-                    style={{ pointerEvents: 'auto', transform: 'rotate(180deg)' }}
-                    onPointerDown={handleCornerRotateStart}
-                    onPointerMove={handleCornerRotateMove}
-                    onPointerUp={handleCornerRotateEnd}
-                    onPointerCancel={handleCornerRotateEnd}
-                    title="Drag to rotate"
-                  >
-                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
-                  </div>
-                  {/* Bottom-right */}
-                  <div
-                    className="absolute -bottom-4 -right-4 w-8 h-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
-                    style={{ pointerEvents: 'auto', transform: 'rotate(90deg)' }}
-                    onPointerDown={handleCornerRotateStart}
-                    onPointerMove={handleCornerRotateMove}
-                    onPointerUp={handleCornerRotateEnd}
-                    onPointerCancel={handleCornerRotateEnd}
-                    title="Drag to rotate"
-                  >
-                    <RotateCw className="h-4 w-4 text-blue-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
-                  </div>
-                </>
-              )}
-            </div>
+          {/* Reposition mode overlays (bounds outline, zoom buttons, rotation handles) */}
+          {isRepositionMode && (
+            <RepositionOverlay
+              displaySize={displaySize}
+              imageOffset={imageOffset}
+              repositionTransformStyle={repositionTransformStyle}
+              repositionScale={repositionScale}
+              variant={variant}
+              handlesOverlayRef={handlesOverlayRef}
+              onRepositionScaleChange={onRepositionScaleChange}
+              onRepositionRotationChange={onRepositionRotationChange}
+              handleCornerRotateStart={handleCornerRotateStart}
+              handleCornerRotateMove={handleCornerRotateMove}
+              handleCornerRotateEnd={handleCornerRotateEnd}
+            />
           )}
 
           {/* Saving State Overlay */}

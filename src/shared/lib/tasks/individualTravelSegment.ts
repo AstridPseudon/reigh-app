@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhaseConfig, buildBasicModePhaseConfig } from '@/shared/types/phaseConfig';
 import { handleError } from '@/shared/lib/errorHandler';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /**
  * Interface for individual travel segment regeneration task parameters
@@ -571,7 +572,7 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
         : [params.start_image_url];
 
       const placeholderParams = {
-        tool_type: 'travel-between-images',
+        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
         created_from: 'individual_segment_first_generation',
         // Include basic orchestrator_details structure so it shows in segment outputs
         orchestrator_details: {

@@ -1,27 +1,20 @@
 /**
  * useReferenceManagement - Manages reference image state and operations
  *
- * Extracted from ImageGenerationForm to handle:
- * - Local UI state for reference settings (strengths, mode, etc.)
- * - CRUD operations for references (upload, select, delete, update)
- * - Syncing reference settings to project storage
+ * Orchestrates two concerns:
+ * 1. Local UI state for reference settings (strengths, mode, etc.) + sync from DB
+ * 2. CRUD operations (delegated to useReferenceUpload)
+ *
+ * The heavy upload/resource operations live in useReferenceUpload.ts.
+ * This hook manages the local state layer and settings change handlers.
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/shared/components/ui/sonner';
-import { nanoid } from 'nanoid';
-import { supabase } from '@/integrations/supabase/client';
-import { fileToDataURL, dataURLtoFile } from '@/shared/lib/utils';
-import { uploadImageToStorage } from '@/shared/lib/imageUploader';
-import { generateClientThumbnail } from '@/shared/lib/clientThumbnailGenerator';
-import { storagePaths, generateThumbnailFilename, MEDIA_BUCKET } from '@/shared/lib/storagePaths';
-import { resolveProjectResolution } from '@/shared/lib/taskCreation';
-import { processStyleReferenceForAspectRatioString } from '@/shared/lib/styleReferenceProcessor';
-import { extractSettingsFromCache, updateSettingsCache } from '@/shared/hooks/useToolSettings';
-import { useCreateResource, useUpdateResource, useDeleteResource, StyleReferenceMetadata, Resource } from '@/shared/hooks/useResources';
 import { handleError } from '@/shared/lib/errorHandler';
+import { updateSettingsCache } from '@/shared/hooks/useToolSettings';
 import { queryKeys } from '@/shared/lib/queryKeys';
+import type { Resource } from '@/shared/hooks/useResources';
 import {
   ReferenceImage,
   HydratedReferenceImage,
@@ -30,6 +23,7 @@ import {
   getReferenceModeDefaults,
   HiresFixConfig,
 } from '../types';
+import { useReferenceUpload } from './useReferenceUpload';
 
 // ============================================================================
 // Types
@@ -129,11 +123,6 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
 
   const queryClient = useQueryClient();
 
-  // Resource mutation hooks
-  const createStyleReference = useCreateResource();
-  const updateStyleReference = useUpdateResource();
-  const deleteStyleReference = useDeleteResource();
-
   // ============================================================================
   // Local UI State
   // ============================================================================
@@ -146,11 +135,31 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
   const [inThisSceneStrength, setInThisSceneStrength] = useState<number>(0.5);
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>('style');
   const [styleBoostTerms, setStyleBoostTerms] = useState<string>('');
-  const [isUploadingStyleReference, setIsUploadingStyleReference] = useState<boolean>(false);
-  const [styleReferenceOverride, setStyleReferenceOverride] = useState<string | null | undefined>(undefined);
 
   // Pending mode update tracking
   const pendingReferenceModeUpdate = useRef<ReferenceMode | null>(null);
+
+  // ============================================================================
+  // Upload / Resource CRUD (delegated)
+  // ============================================================================
+
+  const upload = useReferenceUpload({
+    selectedProjectId,
+    effectiveShotId,
+    selectedReferenceIdByShot,
+    referencePointers,
+    hydratedReferences,
+    isLoadingProjectSettings,
+    isLocalGenerationEnabled,
+    updateProjectImageSettings,
+    markAsInteracted,
+    privacyDefaults,
+    referenceMode,
+    styleReferenceStrength,
+    subjectStrength,
+    inThisScene,
+    inThisSceneStrength,
+  });
 
   // ============================================================================
   // Derived Values from Selected Reference
@@ -163,8 +172,8 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
   // Display image (use original if available, fallback to processed)
   const styleReferenceImageDisplay = useMemo(() => {
     // If we have an explicit local override (including null), use it
-    if (styleReferenceOverride !== undefined) {
-      return styleReferenceOverride;
+    if (upload.styleReferenceOverride !== undefined) {
+      return upload.styleReferenceOverride;
     }
 
     // Prefer original image for display
@@ -182,7 +191,7 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
     }
 
     return imageToDisplay;
-  }, [styleReferenceOverride, rawStyleReferenceImageOriginal, rawStyleReferenceImage]);
+  }, [upload.styleReferenceOverride, rawStyleReferenceImageOriginal, rawStyleReferenceImage]);
 
   // Generation image (always use processed version)
   const styleReferenceImageGeneration = useMemo(() => {
@@ -207,8 +216,8 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
 
   // When the backing setting updates, drop the local override
   useEffect(() => {
-    setStyleReferenceOverride(undefined);
-  }, [rawStyleReferenceImage]);
+    upload.setStyleReferenceOverride(undefined);
+  }, [rawStyleReferenceImage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear pending mode update when switching references
   const prevSelectedReferenceId = useRef(selectedReferenceId);
@@ -287,272 +296,6 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
   }, [referencePointers, updateProjectImageSettings, markAsInteracted]);
 
   // ============================================================================
-  // Handler: Upload New Reference
-  // ============================================================================
-
-  const handleStyleReferenceUpload = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-
-    // GUARD: Don't add references while settings are loading
-    if (isLoadingProjectSettings) {
-      toast.error('Please wait for settings to load');
-      return;
-    }
-
-    const file = files[0];
-    if (!file.type.startsWith('image/')) {
-      return;
-    }
-
-    try {
-      setIsUploadingStyleReference(true);
-      const dataURL = await fileToDataURL(file);
-
-      // Upload the original image first (for display purposes)
-      const originalUploadedUrl = await uploadImageToStorage(file);
-
-      // Generate and upload thumbnail for grid display
-      let thumbnailUrl: string | null = null;
-      try {
-        const thumbnailResult = await generateClientThumbnail(file, 300, 0.8);
-
-        // Upload thumbnail to storage
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          throw new Error('User not authenticated');
-        }
-        const thumbnailFilename = generateThumbnailFilename();
-        const thumbnailPath = storagePaths.thumbnail(session.user.id, thumbnailFilename);
-
-        const { error: thumbnailUploadError } = await supabase.storage
-          .from(MEDIA_BUCKET)
-          .upload(thumbnailPath, thumbnailResult.thumbnailBlob, {
-            contentType: 'image/jpeg',
-            upsert: true
-          });
-
-        if (thumbnailUploadError) {
-          handleError(thumbnailUploadError, { context: 'useReferenceManagement.thumbnailUpload', showToast: false });
-          thumbnailUrl = originalUploadedUrl;
-        } else {
-          const { data: thumbnailUrlData } = supabase.storage
-            .from(MEDIA_BUCKET)
-            .getPublicUrl(thumbnailPath);
-          thumbnailUrl = thumbnailUrlData.publicUrl;
-        }
-      } catch (thumbnailError) {
-        handleError(thumbnailError, { context: 'useReferenceManagement.thumbnailGeneration', showToast: false });
-        thumbnailUrl = originalUploadedUrl;
-      }
-
-      // Process the image to match project aspect ratio (for generation)
-      let processedDataURL = dataURL;
-      if (selectedProjectId) {
-        const { aspectRatio } = await resolveProjectResolution(selectedProjectId);
-        const processed = await processStyleReferenceForAspectRatioString(dataURL, aspectRatio);
-
-        if (processed) {
-          processedDataURL = processed;
-        } else {
-          throw new Error('Failed to process image for aspect ratio');
-        }
-      }
-
-      // Convert processed data URL back to File for upload
-      const processedFile = dataURLtoFile(processedDataURL, `style-reference-processed-${Date.now()}.png`);
-      if (!processedFile) {
-        throw new Error('Failed to convert processed image to file');
-      }
-
-      // Upload processed version to storage
-      const processedUploadedUrl = await uploadImageToStorage(processedFile);
-
-      // Get user for metadata
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Create resource metadata
-      const now = new Date().toISOString();
-      const metadata: StyleReferenceMetadata = {
-        name: `Reference ${(hydratedReferences.length + 1)}`,
-        styleReferenceImage: processedUploadedUrl,
-        styleReferenceImageOriginal: originalUploadedUrl,
-        thumbnailUrl: thumbnailUrl,
-        styleReferenceStrength: 1.1,
-        subjectStrength: 0.0,
-        subjectDescription: "",
-        inThisScene: false,
-        inThisSceneStrength: 1.0,
-        referenceMode: 'style',
-        styleBoostTerms: '',
-        is_public: privacyDefaults.resourcesPublic,
-        created_by: {
-          is_you: true,
-          username: user.email || 'user',
-        },
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Create resource in resources table
-      const resource = await createStyleReference.mutateAsync({
-        type: 'style-reference',
-        metadata,
-      });
-
-      // Create lightweight pointer
-      const newPointer: ReferenceImage = {
-        id: nanoid(),
-        resourceId: resource.id,
-        createdAt: new Date().toISOString(),
-      };
-
-      // Optimistic UI updates
-      try {
-        queryClient.setQueryData(['resources', 'style-reference'], (prev: Resource[] | undefined) => {
-          const prevResources = prev || [];
-          return [...prevResources, resource];
-        });
-
-        queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
-          updateSettingsCache<ProjectImageSettings>(prev, (prevSettings) => ({
-            references: [...(prevSettings?.references || []), newPointer],
-            selectedReferenceIdByShot: {
-              ...(prevSettings?.selectedReferenceIdByShot || {}),
-              [effectiveShotId]: newPointer.id
-            }
-          }))
-        );
-      } catch (e) {
-      }
-
-      // Read from cache after optimistic update
-      const currentData = extractSettingsFromCache<ProjectImageSettings>(
-        queryClient.getQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined))
-      ) || {};
-
-      await updateProjectImageSettings('project', {
-        references: currentData?.references || [],
-        selectedReferenceIdByShot: currentData?.selectedReferenceIdByShot || {}
-      });
-
-      markAsInteracted();
-      setStyleReferenceOverride(originalUploadedUrl);
-
-    } catch (error) {
-      handleError(error, { context: 'useReferenceManagement.handleStyleReferenceUpload', toastTitle: 'Failed to upload reference image' });
-    } finally {
-      setIsUploadingStyleReference(false);
-    }
-  }, [
-    effectiveShotId,
-    updateProjectImageSettings,
-    markAsInteracted,
-    selectedProjectId,
-    hydratedReferences,
-    queryClient,
-    createStyleReference,
-    isLoadingProjectSettings,
-    privacyDefaults,
-  ]);
-
-  // ============================================================================
-  // Handler: Select Existing Resource
-  // ============================================================================
-
-  const handleResourceSelect = useCallback(async (resource: Resource) => {
-    if (isLoadingProjectSettings) {
-      toast.error('Please wait for settings to load');
-      return;
-    }
-
-    try {
-      // Check if we already have this resource linked
-      const existingPointer = referencePointers.find(ptr => ptr.resourceId === resource.id);
-
-      if (existingPointer) {
-
-        const optimisticUpdate = {
-          ...selectedReferenceIdByShot,
-          [effectiveShotId]: existingPointer.id
-        };
-
-        try {
-          queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
-            updateSettingsCache<ProjectImageSettings>(prev, { selectedReferenceIdByShot: optimisticUpdate })
-          );
-        } catch (e) {
-        }
-
-        await updateProjectImageSettings('project', {
-          selectedReferenceIdByShot: optimisticUpdate
-        });
-
-        markAsInteracted();
-        return;
-      }
-
-      // Create lightweight pointer to existing resource
-      const modeDefaults = referenceMode === 'custom'
-        ? { styleReferenceStrength, subjectStrength, inThisScene, inThisSceneStrength }
-        : getReferenceModeDefaults(referenceMode, isLocalGenerationEnabled);
-
-      const newPointer: ReferenceImage = {
-        id: nanoid(),
-        resourceId: resource.id,
-        subjectDescription: '',
-        styleBoostTerms: '',
-        referenceMode: referenceMode,
-        createdAt: new Date().toISOString(),
-        ...modeDefaults,
-      };
-
-      // Optimistic UI update
-      try {
-        queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
-          updateSettingsCache<ProjectImageSettings>(prev, (prevSettings) => ({
-            references: [...(prevSettings?.references || []), newPointer],
-            selectedReferenceIdByShot: {
-              ...(prevSettings?.selectedReferenceIdByShot || {}),
-              [effectiveShotId]: newPointer.id
-            }
-          }))
-        );
-      } catch (e) {
-        handleError(e, { context: 'useReferenceManagement.handleResourceSelect.optimisticUpdate', showToast: false });
-      }
-
-      const currentData = extractSettingsFromCache<ProjectImageSettings>(
-        queryClient.getQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined))
-      ) || {};
-
-      await updateProjectImageSettings('project', {
-        references: currentData?.references || [],
-        selectedReferenceIdByShot: currentData?.selectedReferenceIdByShot || {}
-      });
-
-      markAsInteracted();
-    } catch (error) {
-      handleError(error, { context: 'useReferenceManagement.handleResourceSelect', toastTitle: 'Failed to add reference' });
-    }
-  }, [
-    effectiveShotId,
-    updateProjectImageSettings,
-    queryClient,
-    selectedProjectId,
-    markAsInteracted,
-    referencePointers,
-    selectedReferenceIdByShot,
-    referenceMode,
-    styleReferenceStrength,
-    subjectStrength,
-    inThisScene,
-    inThisSceneStrength,
-    isLoadingProjectSettings,
-    isLocalGenerationEnabled,
-  ]);
-
-  // ============================================================================
   // Handler: Select Reference for Current Shot
   // ============================================================================
 
@@ -583,152 +326,13 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
   }, [effectiveShotId, selectedReferenceIdByShot, updateProjectImageSettings, markAsInteracted, queryClient, selectedProjectId, associatedShotId, shotPromptSettings]);
 
   // ============================================================================
-  // Handler: Delete Reference
-  // ============================================================================
-
-  const handleDeleteReference = useCallback(async (referenceId: string) => {
-
-    const hydratedRef = hydratedReferences.find(r => r.id === referenceId);
-    if (!hydratedRef) {
-      console.error('[useReferenceManagement] Could not find reference:', referenceId);
-      return;
-    }
-
-    // Delete the resource from resources table
-    try {
-      await deleteStyleReference.mutateAsync({
-        id: hydratedRef.resourceId,
-        type: 'style-reference',
-      });
-    } catch (error) {
-      handleError(error, { context: 'useReferenceManagement.handleDeleteReference', toastTitle: 'Failed to delete reference' });
-      return;
-    }
-
-    // Remove pointer from settings
-    const filteredPointers = referencePointers.filter(ref => ref.id !== referenceId);
-
-    // Update all shot selections that had this reference selected
-    const updatedSelections = { ...selectedReferenceIdByShot };
-    Object.keys(updatedSelections).forEach(shotId => {
-      if (updatedSelections[shotId] === referenceId) {
-        updatedSelections[shotId] = filteredPointers[0]?.id ?? null;
-      }
-    });
-
-    // Optimistic UI update
-    try {
-      queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
-        updateSettingsCache<ProjectImageSettings>(prev, {
-          references: filteredPointers,
-          selectedReferenceIdByShot: updatedSelections
-        })
-      );
-    } catch (e) {
-    }
-
-    await updateProjectImageSettings('project', {
-      references: filteredPointers,
-      selectedReferenceIdByShot: updatedSelections
-    });
-
-    markAsInteracted();
-  }, [hydratedReferences, referencePointers, selectedReferenceIdByShot, deleteStyleReference, updateProjectImageSettings, markAsInteracted, queryClient, selectedProjectId]);
-
-  // ============================================================================
-  // Handler: Update Reference Name
-  // ============================================================================
-
-  const handleUpdateReferenceName = useCallback(async (referenceId: string, name: string) => {
-
-    // Find the hydrated reference to get the resourceId
-    const hydratedRef = hydratedReferences.find(r => r.id === referenceId);
-    if (!hydratedRef) {
-      console.error('[useReferenceManagement] Could not find reference:', referenceId);
-      return;
-    }
-
-    // Name is stored on the Resource, not the pointer - update via updateStyleReference
-    try {
-      const updatedMetadata: StyleReferenceMetadata = {
-        name,
-        styleReferenceImage: hydratedRef.styleReferenceImage,
-        styleReferenceImageOriginal: hydratedRef.styleReferenceImageOriginal,
-        thumbnailUrl: hydratedRef.thumbnailUrl,
-        styleReferenceStrength: hydratedRef.styleReferenceStrength,
-        subjectStrength: hydratedRef.subjectStrength,
-        subjectDescription: hydratedRef.subjectDescription,
-        inThisScene: hydratedRef.inThisScene,
-        inThisSceneStrength: hydratedRef.inThisSceneStrength,
-        referenceMode: hydratedRef.referenceMode,
-        styleBoostTerms: hydratedRef.styleBoostTerms,
-        created_by: { is_you: true },
-        is_public: hydratedRef.isPublic,
-        createdAt: hydratedRef.createdAt,
-        updatedAt: new Date().toISOString(),
-      };
-
-      await updateStyleReference.mutateAsync({
-        id: hydratedRef.resourceId,
-        type: 'style-reference',
-        metadata: updatedMetadata,
-      });
-
-    } catch (error) {
-      handleError(error, { context: 'useReferenceManagement.handleUpdateReferenceName', toastTitle: 'Failed to update name' });
-    }
-  }, [hydratedReferences, updateStyleReference]);
-
-  // ============================================================================
-  // Handler: Toggle Visibility
-  // ============================================================================
-
-  const handleToggleVisibility = useCallback(async (resourceId: string, currentIsPublic: boolean) => {
-
-    const hydratedRef = hydratedReferences.find(r => r.resourceId === resourceId);
-    if (!hydratedRef) {
-      console.error('[useReferenceManagement] Could not find reference with resourceId:', resourceId);
-      return;
-    }
-
-    try {
-      const updatedMetadata: StyleReferenceMetadata = {
-        name: hydratedRef.name,
-        styleReferenceImage: hydratedRef.styleReferenceImage,
-        styleReferenceImageOriginal: hydratedRef.styleReferenceImageOriginal,
-        thumbnailUrl: hydratedRef.thumbnailUrl,
-        styleReferenceStrength: hydratedRef.styleReferenceStrength,
-        subjectStrength: hydratedRef.subjectStrength,
-        subjectDescription: hydratedRef.subjectDescription,
-        inThisScene: hydratedRef.inThisScene,
-        inThisSceneStrength: hydratedRef.inThisSceneStrength,
-        referenceMode: hydratedRef.referenceMode,
-        styleBoostTerms: hydratedRef.styleBoostTerms,
-        created_by: { is_you: true },
-        is_public: !currentIsPublic,
-        createdAt: hydratedRef.createdAt,
-        updatedAt: new Date().toISOString(),
-      };
-
-      await updateStyleReference.mutateAsync({
-        id: resourceId,
-        type: 'style-reference',
-        metadata: updatedMetadata,
-      });
-
-    } catch (error) {
-      handleError(error, { context: 'useReferenceManagement.handleToggleVisibility', toastTitle: 'Failed to update visibility' });
-    }
-  }, [hydratedReferences, updateStyleReference]);
-
-  // ============================================================================
   // Handler: Remove Style Reference (legacy)
   // ============================================================================
 
   const handleRemoveStyleReference = useCallback(async () => {
     if (!selectedReferenceId) return;
-    await handleDeleteReference(selectedReferenceId);
-  }, [selectedReferenceId, handleDeleteReference]);
+    await upload.handleDeleteReference(selectedReferenceId);
+  }, [selectedReferenceId, upload.handleDeleteReference]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================================================
   // Strength and Settings Handlers
@@ -843,21 +447,21 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
     inThisSceneStrength,
     referenceMode,
     styleBoostTerms,
-    isUploadingStyleReference,
-    styleReferenceOverride,
+    isUploadingStyleReference: upload.isUploadingStyleReference,
+    styleReferenceOverride: upload.styleReferenceOverride,
 
     // Display computed values
     styleReferenceImageDisplay,
     styleReferenceImageGeneration,
 
     // Handlers
-    handleStyleReferenceUpload,
-    handleResourceSelect,
+    handleStyleReferenceUpload: upload.handleStyleReferenceUpload,
+    handleResourceSelect: upload.handleResourceSelect,
     handleSelectReference,
-    handleDeleteReference,
+    handleDeleteReference: upload.handleDeleteReference,
     handleUpdateReference,
-    handleUpdateReferenceName,
-    handleToggleVisibility,
+    handleUpdateReferenceName: upload.handleUpdateReferenceName,
+    handleToggleVisibility: upload.handleToggleVisibility,
     handleRemoveStyleReference,
     handleStyleStrengthChange,
     handleSubjectStrengthChange,
@@ -877,6 +481,6 @@ export function useReferenceManagement(props: UseReferenceManagementProps): UseR
     setInThisSceneStrength,
     setReferenceMode,
     setStyleBoostTerms,
-    setStyleReferenceOverride,
+    setStyleReferenceOverride: upload.setStyleReferenceOverride,
   };
 }

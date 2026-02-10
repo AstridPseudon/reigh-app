@@ -11,6 +11,7 @@ import { SegmentListItem } from './components/SegmentListItem';
 import { SegmentFormDialog } from './components/SegmentFormDialog';
 import { VideoPlayerControls } from './components/VideoPlayerControls';
 import { useVideoPlayback } from './hooks/useVideoPlayback';
+import { msToSeconds, secondsToMs } from './constants';
 
 const POST_CREATE_SEEK_DELAY_MS = 100;
 
@@ -35,7 +36,7 @@ const getSegmentColor = (index: number) => segmentColors[index % segmentColors.l
 const formatTimeWithMs = (seconds: number) =>
   formatTime(seconds, { showMilliseconds: true, millisecondsDigits: 3 });
 
-const formatDuration = (ms: number) => formatTimeWithMs(ms / 1000);
+const formatDuration = (ms: number) => formatTimeWithMs(msToSeconds(ms));
 
 export interface VideoSegmentEditorProps {
   video: TrainingDataVideo;
@@ -57,7 +58,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
 
   // Find segment that contains current time
   const getCurrentSegment = () => {
-    const currentTimeMs = playback.currentTime * 1000;
+    const currentTimeMs = secondsToMs(playback.currentTime);
     const segmentIndex = segments.findIndex(segment =>
       currentTimeMs >= segment.startTime && currentTimeMs <= segment.endTime
     );
@@ -136,7 +137,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
     setIsCreating(true);
     try {
       const targetJumpTime = segmentEndTime;
-      await onCreateSegment(video.id, segmentStartTime * 1000, segmentEndTime * 1000, description);
+      await onCreateSegment(video.id, secondsToMs(segmentStartTime), secondsToMs(segmentEndTime), description);
       clearSegmentState();
       setTimeout(() => jumpToTime(targetJumpTime), POST_CREATE_SEEK_DELAY_MS);
     } catch (error) {
@@ -153,7 +154,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
 
   const previewSegment = (segment: TrainingDataSegment) => {
     if (!playback.videoRef.current) return;
-    playback.seekTo(segment.startTime / 1000);
+    playback.seekTo(msToSeconds(segment.startTime));
   };
 
   const handleDeleteLastSegment = () => {

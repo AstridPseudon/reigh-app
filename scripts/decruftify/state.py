@@ -45,7 +45,10 @@ def save_state(state: dict, path: Path | None = None):
     p.write_text(json.dumps(state, indent=2, default=str) + "\n")
 
 
-TIER_WEIGHTS = {1: 4, 2: 3, 3: 2, 4: 1}
+# Inverted weighting: structural/architectural issues (T3/T4) matter more
+# than mechanical single-line fixes (T1/T2). This prevents volume of
+# auto-fixable items from drowning out real architectural debt.
+TIER_WEIGHTS = {1: 1, 2: 2, 3: 3, 4: 4}
 
 
 def _recompute_stats(state: dict):
@@ -68,14 +71,17 @@ def _recompute_stats(state: dict):
 
     total = sum(counters.values())
 
-    # Weighted score: fixing T1 items has more impact than T4
+    # Weighted score: structural/architectural issues (T3/T4) have more impact
     total_weight = 0
     addressed_weight = 0
+    fixed_weight = 0  # strict: actual fixes + false positives (not real issues)
     for f in findings.values():
         w = TIER_WEIGHTS.get(f.get("tier", 3), 2)
         total_weight += w
         if f["status"] != "open":
             addressed_weight += w
+        if f["status"] in ("fixed", "auto_resolved", "false_positive"):
+            fixed_weight += w
 
     state["stats"] = {
         "total": total,
@@ -83,6 +89,7 @@ def _recompute_stats(state: dict):
         "by_tier": {str(t): ts for t, ts in sorted(tier_stats.items())},
     }
     state["score"] = round((addressed_weight / total_weight) * 100) if total_weight > 0 else 100
+    state["strict_score"] = round((fixed_weight / total_weight) * 100) if total_weight > 0 else 100
 
 
 # ── Ignore list ──────────────────────────────────────────────
@@ -213,19 +220,25 @@ def merge_scan(state: dict, current_findings: list[dict]) -> dict:
     # experiencing a transient failure — skip auto-resolving their findings
     suspect_detectors = set()
     for det, prev_count in prev_by_detector.items():
-        if prev_count >= 5 and current_by_detector.get(det, 0) == 0:
+        if prev_count >= 3 and current_by_detector.get(det, 0) == 0:
             suspect_detectors.add(det)
 
-    # Disappeared findings → auto-resolve if open (unless detector is suspect)
+    # Disappeared findings → auto-resolve if open or wontfix (unless detector is suspect)
+    # Wontfix findings that disappear were fixed despite being marked "won't fix" —
+    # upgrade them so the strict score reflects the actual fix.
     auto_resolved = 0
     for fid, old in existing.items():
-        if fid not in current_ids and old["status"] == "open":
+        if fid not in current_ids and old["status"] in ("open", "wontfix"):
             det = old.get("detector", "unknown")
             if det in suspect_detectors:
                 continue  # skip — detector likely failed, not a real fix
+            prev_status = old["status"]
             old["status"] = "auto_resolved"
             old["resolved_at"] = now
-            old["note"] = "Disappeared from scan — likely fixed"
+            if prev_status == "wontfix":
+                old["note"] = f"Fixed despite wontfix — disappeared from scan (was wontfix)"
+            else:
+                old["note"] = "Disappeared from scan — likely fixed"
             auto_resolved += 1
 
     _recompute_stats(state)

@@ -1,17 +1,19 @@
 /**
- * useServerForm - Reusable "form over server state" pattern
+ * useServerForm - Generic "form over server state" pattern.
  *
- * Provides local editing state on top of server data with:
- * - Local state management
- * - Dirty tracking
- * - Auto-save with debounce
- * - Unmount flush
+ * This is NOT a settings hook. It provides local editing state on top of any
+ * server data source (React Query, custom fetch, etc.). Use it for editing
+ * arbitrary server records, not for tool/UI settings persistence.
+ *
+ * For persisting tool settings, use `useAutoSaveSettings` instead.
+ *
+ * Features:
+ * - Local state management with dirty tracking
+ * - Optional auto-save with configurable debounce
+ * - Unmount flush (best-effort save of unsaved changes)
  * - Context switching (reset on key change)
  *
- * Use this when you need to:
- * - Edit server data locally before saving
- * - Auto-save changes after a delay
- * - Reset to server state
+ * @see docs/structure_detail/settings_system.md for the settings hook decision tree
  *
  * @example
  * ```tsx

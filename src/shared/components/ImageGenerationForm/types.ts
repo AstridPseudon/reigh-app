@@ -34,11 +34,6 @@ export interface MetadataLora {
   previewImageUrl?: string;
 }
 
-export interface ImageGenerationFormHandles {
-  applySettings: (settings: DisplayableMetadata) => void;
-  getAssociatedShotId: () => string | null;
-}
-
 export interface PromptEntry {
   id: string;
   fullPrompt: string;
@@ -179,7 +174,6 @@ export interface PromptInputRowProps {
   onRemove: (id: string) => void;
   canRemove: boolean;
   isGenerating?: boolean;
-  hasApiKey?: boolean;
   index: number;
   totalPrompts?: number;
   onEditWithAI?: () => void;
@@ -210,9 +204,6 @@ export interface PromptInputRowProps {
 
 // Re-export ActiveLora from shared component
 export type { ActiveLora } from "@/shared/components/ActiveLoRAsDisplay";
-
-// Re-export DisplayableMetadata from shared component
-export type { DisplayableMetadata } from "@/shared/components/MediaGallery";
 
 // ============================================================================
 // Re-export API types from shared (single source of truth)

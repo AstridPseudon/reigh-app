@@ -11,7 +11,7 @@ import { GenerationRow } from '@/types/shots';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
-import MediaGallery from '@/shared/components/MediaGallery';
+import MediaGallery, { DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 
 interface MediaSelectionPanelProps {
@@ -25,9 +25,13 @@ interface MediaSelectionPanelProps {
 
 export function MediaSelectionPanel({ onSelect, mediaType, label }: MediaSelectionPanelProps) {
   const { selectedProjectId } = useProject();
-  const [shotFilter, setShotFilter] = useState<string>("all");
+  const [galleryFilters, setGalleryFilters] = useState<GalleryFilterState>({
+    ...DEFAULT_GALLERY_FILTERS,
+    mediaType,
+    toolTypeFilter: mediaType === 'image' ? false : true,
+    excludePositioned: false,
+  });
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
   const { data: shots } = useListShots(selectedProjectId);
   const itemsPerPage = 15;
 
@@ -40,16 +44,16 @@ export function MediaSelectionPanel({ onSelect, mediaType, label }: MediaSelecti
     itemsPerPage,
     true,
     {
-      shotId: shotFilter === 'all' ? undefined : shotFilter,
+      shotId: galleryFilters.shotFilter === 'all' ? undefined : galleryFilters.shotFilter,
       mediaType,
-      searchTerm: searchTerm.trim() || undefined
+      searchTerm: galleryFilters.searchTerm.trim() || undefined
     }
   );
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [shotFilter, searchTerm]);
+  }, [galleryFilters.shotFilter, galleryFilters.searchTerm]);
 
   const headerText = label ?? (mediaType === 'video' ? 'Select a Video' : 'Select an Image');
 
@@ -71,16 +75,11 @@ export function MediaSelectionPanel({ onSelect, mediaType, label }: MediaSelecti
                onImageClick={(media) => onSelect(media as GenerationRow)}
                allShots={shots || []}
                showShotFilter={true}
-               initialShotFilter={shotFilter}
-               onShotFilterChange={setShotFilter}
                showSearch={true}
-               initialSearchTerm={searchTerm}
-               onSearchChange={setSearchTerm}
-               initialMediaTypeFilter={mediaType}
-               initialToolTypeFilter={mediaType === 'image' ? false : undefined}
+               filters={galleryFilters}
+               onFiltersChange={setGalleryFilters}
                hideTopFilters={true}
                hideShotNotifier={true}
-               initialExcludePositioned={false}
                itemsPerPage={itemsPerPage}
                offset={(currentPage - 1) * itemsPerPage}
                totalCount={(generationsData as GenerationsPaginatedResponse | undefined)?.total || 0}

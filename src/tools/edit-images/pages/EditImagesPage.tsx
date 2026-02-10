@@ -1,8 +1,6 @@
 import React, {
   useState,
-  useEffect,
   useMemo,
-  useRef,
   useCallback
 } from 'react';
 import { useFileDragTracking, preventDefaultDragOver, createSingleFileDropHandler } from '@/shared/hooks/useFileDragTracking';
@@ -33,112 +31,59 @@ import MediaLightbox from '@/shared/components/MediaLightbox';
 import { useGetTask } from '@/shared/hooks/useTasks';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import { deriveInputImages } from '@/shared/components/MediaGallery/utils';
-import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 import { variantToGenerationRow } from '@/shared/lib/mediaTypeHelpers';
 import { MediaSelectionPanel } from '@/shared/components/MediaSelectionPanel';
+import { useEditToolMediaPersistence } from '@/shared/hooks/useEditToolMediaPersistence';
+import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
-const TOOL_TYPE = 'edit-images';
+const TOOL_TYPE = TOOL_IDS.EDIT_IMAGES;
 
-// Settings interface for last edited media persistence
-interface EditImagesUISettings {
-  lastEditedMediaId?: string;
-}
+// Preload image helper - warm up the browser cache
+const preloadedImageRef = { current: null as string | null };
+const preloadImage = (gen: GenerationRow) => {
+  const imageUrl = gen.location || gen.thumbnail_url;
+  if (!imageUrl || preloadedImageRef.current === imageUrl) return;
+  const img = new Image();
+  img.src = imageUrl;
+  preloadedImageRef.current = imageUrl;
+};
 
 export default function EditImagesPage() {
   const { selectedProjectId, projects } = useProject();
-  
+
   // Get project aspect ratio for skeleton sizing
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   const projectAspectRatio = selectedProject?.aspectRatio || '16:9';
   const aspectRatioValue = parseRatio(projectAspectRatio);
-  const [selectedMedia, setSelectedMedia] = useState<GenerationRow | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<GenerationRow | null>(null); // For viewing results in lightbox
   const [resultsPage, setResultsPage] = useState(1);
 
   // Upload operation with automatic loading state
   const uploadOperation = useAsyncOperation<GenerationRow>();
   const [showResults, setShowResults] = useState(true);
-  const [isLoadingPersistedMedia, setIsLoadingPersistedMedia] = useState(false);
   const { isDraggingOver, handleDragEnter, handleDragLeave, resetDrag: resetDragState } = useFileDragTracking();
   const isMobile = useIsMobile();
   const { data: shots } = useListShots(selectedProjectId);
-  
+
   // Delete mutation for gallery items (uses variants table for edit tools)
   const deleteVariantMutation = useDeleteVariant();
   const handleDeleteVariant = useCallback((id: string) => {
     deleteVariantMutation.mutate(id);
   }, [deleteVariantMutation]);
-  
-  // Track if we've already loaded from settings to prevent re-loading
-  const hasLoadedFromSettings = useRef(false);
-  // Track if user has explicitly closed the editor (vs initial mount state)
-  const userClosedEditor = useRef(false);
-  
-  // Project-level UI settings for persisting last edited media (syncs across devices)
-  const { 
-    settings: uiSettings, 
-    update: updateUISettings,
-    isLoading: isUISettingsLoading 
-  } = useToolSettings<EditImagesUISettings>('edit-images-ui', { 
-    projectId: selectedProjectId,
-    enabled: !!selectedProjectId 
-  });
-  
-  // Track preloaded image URLs to avoid flash on navigation
-  const preloadedImageRef = useRef<string | null>(null);
-  
-  // Preload image helper - warm up the browser cache
-  const preloadImage = (url: string) => {
-    if (!url || preloadedImageRef.current === url) return;
-    const img = new Image();
-    img.src = url;
-    preloadedImageRef.current = url;
-  };
-  
-  // Load last edited image from database settings on mount
-  useEffect(() => {
-    if (!selectedProjectId || isUISettingsLoading || hasLoadedFromSettings.current) return;
-    
-    const storedId = uiSettings?.lastEditedMediaId;
-    hasLoadedFromSettings.current = true; // Mark as attempted even if no stored ID
-    
-    if (storedId && !selectedMedia) {
-      setIsLoadingPersistedMedia(true);
-      // Fetch the generation from the database
-      supabase
-        .from('generations')
-        .select('*')
-        .eq('id', storedId)
-        .single()
-        .then(({ data, error }) => {
-          if (data && !error) {
-            // Preload the image before showing the view to prevent flash
-            const gen = data as GenerationRow;
-            const imageUrl = gen.location || gen.thumbnail_url;
-            if (imageUrl) preloadImage(imageUrl);
-            setSelectedMedia(gen);
-          } else {
-            // Clear invalid stored ID
-            updateUISettings('project', { lastEditedMediaId: undefined });
-          }
-          setIsLoadingPersistedMedia(false);
-        });
-    }
-  }, [selectedProjectId, uiSettings?.lastEditedMediaId, isUISettingsLoading, selectedMedia, updateUISettings]);
 
-  // Persist selected media ID to database settings (or clear it when media is removed)
-  useEffect(() => {
-    if (!selectedProjectId || isUISettingsLoading || !hasLoadedFromSettings.current) return;
-    
-    if (selectedMedia && selectedMedia.id !== uiSettings?.lastEditedMediaId) {
-      updateUISettings('project', { lastEditedMediaId: selectedMedia.id });
-      userClosedEditor.current = false; // Reset close flag when new media selected
-    } else if (!selectedMedia && uiSettings?.lastEditedMediaId && userClosedEditor.current) {
-      // Only clear when user explicitly closed the editor, not on initial mount
-      updateUISettings('project', { lastEditedMediaId: undefined });
-    }
-  }, [selectedMedia?.id, selectedProjectId, isUISettingsLoading, uiSettings?.lastEditedMediaId, updateUISettings]);
+  // Persisted media selection (load/save last-edited media ID to project settings)
+  const {
+    selectedMedia,
+    setSelectedMedia,
+    handleEditorClose,
+    showSkeleton,
+  } = useEditToolMediaPersistence({
+    settingsToolId: 'edit-images-ui',
+    projectId: selectedProjectId,
+    preloadMedia: preloadImage,
+  });
   
   // Fetch edit variants created by this tool
   const {
@@ -346,7 +291,7 @@ export default function EditImagesPage() {
             showStar={true}
             showAddToShot={true}
             enableSingleClick={true}
-            initialToolTypeFilter={false}
+            defaultFilters={{ toolTypeFilter: false }}
             hideMediaTypeFilter={true}
             hideBottomPagination={true}
           />
@@ -372,7 +317,7 @@ export default function EditImagesPage() {
       </div>
       
       {/* Show skeleton when loading settings, loading persisted media, OR we have a stored ID but no media yet (and user didn't just close it) */}
-      {(isUISettingsLoading || isLoadingPersistedMedia || (uiSettings?.lastEditedMediaId && !selectedMedia && !userClosedEditor.current)) && (
+      {showSkeleton && (
         <div className="w-full px-4 overflow-y-auto" style={{ minHeight: 'calc(100dvh - 96px)' }}>
           <div className="max-w-7xl mx-auto relative">
             <div className={cn(
@@ -429,7 +374,7 @@ export default function EditImagesPage() {
         </div>
       )}
       
-      {!selectedMedia && !isUISettingsLoading && !isLoadingPersistedMedia && (!uiSettings?.lastEditedMediaId || userClosedEditor.current) && (
+      {!selectedMedia && !showSkeleton && (
         <div className="w-full px-4 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             {/* Selection UI - reduced height */}
@@ -495,8 +440,7 @@ export default function EditImagesPage() {
                <ImageSelectionModal
                  onSelect={(media) => {
                    // Preload the image before showing edit view to prevent flash
-                   const imageUrl = media.location || media.thumbnail_url;
-                   if (imageUrl) preloadImage(imageUrl);
+                   preloadImage(media);
                    setSelectedMedia(media);
                  }}
                />
@@ -516,12 +460,9 @@ export default function EditImagesPage() {
               "rounded-2xl overflow-hidden",
               isEditingOnMobile ? "flex flex-col min-h-[60vh]" : "h-[70vh]"
             )}>
-              <InlineEditView 
-                media={selectedMedia} 
-                onClose={() => {
-                  userClosedEditor.current = true;
-                  setSelectedMedia(null);
-                }}
+              <InlineEditView
+                media={selectedMedia}
+                onClose={handleEditorClose}
                 onNavigateToGeneration={async (generationId) => {
                   try {
                     const { data, error } = await supabase
@@ -551,7 +492,7 @@ export default function EditImagesPage() {
         <MediaLightbox
           media={lightboxMedia}
           onClose={handleLightboxClose}
-          toolTypeOverride="edit-images"
+          toolTypeOverride={TOOL_IDS.EDIT_IMAGES}
           starred={lightboxMedia.starred ?? false}
           showMagicEdit={true}
           showNavigation={true}

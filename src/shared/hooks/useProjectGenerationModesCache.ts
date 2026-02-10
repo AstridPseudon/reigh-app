@@ -2,11 +2,12 @@ import React, { useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
-import { 
-  resolveGenerationMode, 
+import {
+  resolveGenerationMode,
   extractToolSettings,
-  type GenerationModeNormalized 
+  type GenerationModeNormalized
 } from '@/shared/lib/settingsResolution';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 /**
  * Project-wide generation modes cache
@@ -83,7 +84,7 @@ async function fetchProjectGenerationModesFromDB(projectId: string): Promise<Map
     throw shotsResult.error;
   }
 
-  const toolId = 'travel-between-images';
+  const toolId = TOOL_IDS.TRAVEL_BETWEEN_IMAGES;
   const userToolSettings = extractToolSettings(userResult.data?.settings, toolId);
   const projectToolSettings = extractToolSettings(projectResult.data?.settings, toolId);
 

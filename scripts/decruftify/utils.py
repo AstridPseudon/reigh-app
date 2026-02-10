@@ -95,3 +95,19 @@ def parse_grep_lines(output: str) -> list[tuple[str, int, str]]:
         if len(parts) >= 3:
             results.append((parts[0], int(parts[1]), parts[2]))
     return results
+
+
+def get_area(filepath: str) -> str:
+    """Derive an area name from a file path for grouping structural findings."""
+    parts = filepath.split("/")
+    if filepath.startswith("src/tools/") and len(parts) >= 3:
+        return "/".join(parts[:3])
+    if filepath.startswith("src/shared/components/") and len(parts) > 3:
+        if not parts[3].endswith((".tsx", ".ts")):
+            return "/".join(parts[:4])
+        return "/".join(parts[:3])
+    if filepath.startswith("src/shared/") and len(parts) >= 3:
+        return "/".join(parts[:3])
+    if filepath.startswith("src/pages/") and len(parts) >= 3:
+        return "/".join(parts[:3])
+    return "/".join(parts[:2]) if len(parts) > 1 else parts[0]

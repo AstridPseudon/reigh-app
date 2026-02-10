@@ -8,7 +8,9 @@
  *   EditModeState         – which edit mode is active, entry/exit handlers
  *   BrushToolState        – inpaint brush, erase, undo/clear, panel position
  *   AnnotationToolState   – shape annotations
- *   RepositionState       – image transform
+ *   CanvasInteractionState – stroke overlay callbacks & refs
+ *   RepositionState       – image transform + interaction handlers
+ *   DisplayRefsState      – container ref, flip, saving
  *   EditFormState         – prompts, strengths, LoRA, model, advanced settings
  *   GenerationStatusState – loading/success feedback for all edit modes
  *
@@ -18,6 +20,7 @@
 import React, { createContext, useContext } from 'react';
 import type { BrushStroke, AnnotationMode } from '../hooks/inpainting/types';
 import type { ImageTransform } from '../hooks/useRepositionMode';
+import type { StrokeOverlayHandle } from '../components/StrokeOverlay';
 import type {
   LoraMode,
   QwenEditModel,
@@ -70,10 +73,43 @@ interface AnnotationToolState {
   selectedShapeId: string | null;
 }
 
-/** Image reposition/transform (read-only — handlers stay as props) */
+/** Canvas overlay callbacks and refs (stroke/annotation interaction) */
+interface CanvasInteractionState {
+  onStrokeComplete: (stroke: BrushStroke) => void;
+  onStrokesChange: (strokes: BrushStroke[]) => void;
+  onSelectionChange: (shapeId: string | null) => void;
+  onTextModeHint: () => void;
+  strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
+  getDeleteButtonPosition: () => { x: number; y: number } | null;
+  handleToggleFreeForm: () => void;
+  handleDeleteSelected: () => void;
+}
+
+/** Image reposition/transform state + interaction handlers */
 interface RepositionState {
   repositionTransform: ImageTransform | null;
   hasTransformChanges: boolean;
+  isRepositionDragging: boolean;
+  repositionDragHandlers: {
+    onPointerDown: (e: React.PointerEvent) => void;
+    onPointerMove: (e: React.PointerEvent) => void;
+    onPointerUp: (e: React.PointerEvent) => void;
+    onPointerCancel: (e: React.PointerEvent) => void;
+    onWheel: (e: React.WheelEvent) => void;
+  } | null;
+  getTransformStyle: () => string;
+  setScale: (value: number) => void;
+  setRotation: (value: number) => void;
+  toggleFlipH: () => void;
+  toggleFlipV: () => void;
+  resetTransform: () => void;
+}
+
+/** Display refs and visual state */
+interface DisplayRefsState {
+  imageContainerRef: React.RefObject<HTMLDivElement>;
+  isFlippedHorizontally: boolean;
+  isSaving: boolean;
 }
 
 /** Prompts, strengths, LoRA, model selection, advanced settings */
@@ -126,7 +162,9 @@ export type ImageEditState =
   EditModeState &
   BrushToolState &
   AnnotationToolState &
+  CanvasInteractionState &
   RepositionState &
+  DisplayRefsState &
   EditFormState &
   GenerationStatusState;
 
@@ -168,9 +206,34 @@ const DEFAULT_ANNOTATION: AnnotationToolState = {
   selectedShapeId: null,
 };
 
+const EMPTY_CANVAS_INTERACTION: CanvasInteractionState = {
+  onStrokeComplete: () => {},
+  onStrokesChange: () => {},
+  onSelectionChange: () => {},
+  onTextModeHint: () => {},
+  strokeOverlayRef: { current: null } as React.RefObject<StrokeOverlayHandle>,
+  getDeleteButtonPosition: () => null,
+  handleToggleFreeForm: () => {},
+  handleDeleteSelected: () => {},
+};
+
 const DEFAULT_REPOSITION: RepositionState = {
   repositionTransform: null,
   hasTransformChanges: false,
+  isRepositionDragging: false,
+  repositionDragHandlers: null,
+  getTransformStyle: () => '',
+  setScale: () => {},
+  setRotation: () => {},
+  toggleFlipH: () => {},
+  toggleFlipV: () => {},
+  resetTransform: () => {},
+};
+
+const EMPTY_DISPLAY_REFS: DisplayRefsState = {
+  imageContainerRef: { current: null } as React.RefObject<HTMLDivElement>,
+  isFlippedHorizontally: false,
+  isSaving: false,
 };
 
 const DEFAULT_FORM: EditFormState = {
@@ -213,7 +276,9 @@ const EMPTY_IMAGE_EDIT: ImageEditState = {
   ...DEFAULT_MODE,
   ...DEFAULT_BRUSH,
   ...DEFAULT_ANNOTATION,
+  ...EMPTY_CANVAS_INTERACTION,
   ...DEFAULT_REPOSITION,
+  ...EMPTY_DISPLAY_REFS,
   ...DEFAULT_FORM,
   ...DEFAULT_STATUS,
 };

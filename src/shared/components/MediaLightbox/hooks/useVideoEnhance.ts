@@ -129,7 +129,6 @@ export function useVideoEnhance({
       setGenerateSuccess(true);
 
     } catch (error) {
-      console.error('[useVideoEnhance] Error creating task:', error);
       handleError(error, { context: 'useVideoEnhance', toastTitle: 'Failed to create video enhancement task' });
     } finally {
       await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });

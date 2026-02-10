@@ -1,6 +1,5 @@
-import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
-import { Outlet, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { handleError } from '@/shared/lib/errorHandler';
+import React, { useEffect, useRef } from 'react';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import { GlobalHeader } from '@/shared/components/GlobalHeader';
 import { TasksPane } from '@/shared/components/TasksPane/TasksPane';
 import { ToolsPane } from '@/shared/components/ToolsPane/ToolsPane';
@@ -8,18 +7,12 @@ import { GenerationsPane } from '@/shared/components/GenerationsPane/Generations
 import { cn } from '@/shared/lib/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useContentResponsive } from '@/shared/hooks/useContentResponsive';
-import { supabase } from '@/integrations/supabase/client';
-import type { Session } from '@supabase/supabase-js';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import SettingsModal from '@/shared/components/SettingsModal';
 import { useHeaderState } from '@/shared/contexts/ToolPageHeaderContext';
 import { GlobalProcessingWarning } from '@/shared/components/ProcessingWarnings';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
-import { useOnboarding } from '@/shared/hooks/useOnboarding';
 import { OnboardingModal } from '@/shared/components/OnboardingModal';
-import { useUserUIState } from '@/shared/hooks/useUserUIState';
-import { useProject } from '@/shared/contexts/ProjectContext';
-import { useProductTour } from '@/shared/hooks/useProductTour';
 import { ChunkLoadErrorBoundary } from '@/shared/components/ChunkLoadErrorBoundary';
 
 // Lazy load ProductTour since it only shows during onboarding
@@ -32,6 +25,12 @@ import '@/shared/lib/debugPolling';
 import { SocialIcons } from '@/shared/components/SocialIcons';
 import { AIInputModeProvider } from '@/shared/contexts/AIInputModeContext';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+
+import { useAuthGuard } from './hooks/useAuthGuard';
+import { useSplitViewScroll } from './hooks/useSplitViewScroll';
+import { useSettingsModal } from './hooks/useSettingsModal';
+import { useOnboardingFlow } from './hooks/useOnboardingFlow';
+import { TOOL_ROUTES } from '@/shared/lib/toolConstants';
 
 // Scroll to top component
 function ScrollToTop() {
@@ -47,238 +46,48 @@ function ScrollToTop() {
 }
 
 const Layout: React.FC = () => {
-  const { 
-    isTasksPaneLocked, 
-    tasksPaneWidth, 
-    isShotsPaneLocked, 
-    shotsPaneWidth, 
-    isGenerationsPaneLocked, 
+  const {
+    isTasksPaneLocked,
+    tasksPaneWidth,
+    isShotsPaneLocked,
+    shotsPaneWidth,
+    isGenerationsPaneLocked,
     isGenerationsPaneOpen,
-    generationsPaneHeight 
+    generationsPaneHeight
   } = usePanes();
   const { header } = useHeaderState();
   const { setCurrentShotId } = useCurrentShot();
-  
+  const location = useLocation();
+
   // Mobile detection for split-view scroll handling
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isSmallMobile = isMobile && !isTablet;
-  
+
   // On small mobile with locked generations pane, create split-view scroll behavior
   const isMobileSplitView = isSmallMobile && isGenerationsPaneLocked;
-  
-  // Ref to the split view scroll wrapper
-  const splitViewWrapperRef = useRef<HTMLDivElement>(null);
-  
-  // Continuously track scroll positions so we have them BEFORE transitions happen
-  const lastWindowScrollRef = useRef<number>(0);
-  const lastWrapperScrollRef = useRef<number>(0);
-  const wasSplitViewRef = useRef<boolean>(false);
-  
-  // Track window scroll position continuously when NOT in split view
-  useEffect(() => {
-    if (isMobileSplitView) return; // Don't track window scroll when in split view
-    
-    const handleScroll = () => {
-      lastWindowScrollRef.current = window.scrollY;
-    };
-    
-    // Capture initial position
-    lastWindowScrollRef.current = window.scrollY;
-    
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isMobileSplitView]);
-  
-  // Track wrapper scroll position continuously when IN split view
-  useEffect(() => {
-    if (!isMobileSplitView) return; // Don't track wrapper scroll when not in split view
-    
-    const wrapper = splitViewWrapperRef.current;
-    if (!wrapper) return;
-    
-    const handleScroll = () => {
-      lastWrapperScrollRef.current = wrapper.scrollTop;
-    };
-    
-    // Capture initial position
-    lastWrapperScrollRef.current = wrapper.scrollTop;
-    
-    wrapper.addEventListener('scroll', handleScroll, { passive: true });
-    return () => wrapper.removeEventListener('scroll', handleScroll);
-  }, [isMobileSplitView]);
-  
-  // Handle transitions to/from split view - use useLayoutEffect for synchronous DOM updates
-  useLayoutEffect(() => {
-    if (isMobileSplitView && !wasSplitViewRef.current) {
-      // Transitioning TO split view - use the last tracked window scroll position
-      const scrollToRestore = lastWindowScrollRef.current;
-      // Synchronously set scroll on the wrapper (it should exist by now in useLayoutEffect)
-      if (splitViewWrapperRef.current) {
-        splitViewWrapperRef.current.scrollTop = scrollToRestore;
-        // Also update wrapper tracking
-        lastWrapperScrollRef.current = scrollToRestore;
-      }
-    } else if (!isMobileSplitView && wasSplitViewRef.current) {
-      // Transitioning FROM split view - use the last tracked wrapper scroll position
-      const scrollToRestore = lastWrapperScrollRef.current;
-      window.scrollTo(0, scrollToRestore);
-      // Also update window tracking
-      lastWindowScrollRef.current = scrollToRestore;
-    }
-    wasSplitViewRef.current = isMobileSplitView;
-  }, [isMobileSplitView]);
-  
-  // Listen for global scrollToTop event (for cases where window.scrollTo doesn't work, e.g. split view)
-  useEffect(() => {
-    const handleScrollToTop = (e: CustomEvent<{ behavior?: ScrollBehavior }>) => {
-      if (isMobileSplitView && splitViewWrapperRef.current) {
-        splitViewWrapperRef.current.scrollTo({ 
-          top: 0, 
-          behavior: e.detail?.behavior || 'auto' 
-        });
-      }
-    };
 
-    window.addEventListener('app:scrollToTop', handleScrollToTop as EventListener);
-    return () => {
-      window.removeEventListener('app:scrollToTop', handleScrollToTop as EventListener);
-    };
-  }, [isMobileSplitView]);
-  
-  // Get content-responsive breakpoints for app-wide use
+  // Extracted hooks
+  const { splitViewWrapperRef } = useSplitViewScroll(isMobileSplitView);
   const { isSm, isMd, isLg, isXl, is2Xl, contentWidth, contentHeight } = useContentResponsive();
-
-  // Auth guard state
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
-  
-  // Settings modal state
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
-  const [settingsCreditsTab, setSettingsCreditsTab] = useState<'purchase' | 'history' | undefined>(undefined);
-  const location = useLocation();
-  
-  const handleOpenSettings = useCallback((initialTab?: string, creditsTab?: 'purchase' | 'history') => {
-    setSettingsInitialTab(initialTab);
-    setSettingsCreditsTab(creditsTab);
-    setIsSettingsModalOpen(true);
-  }, []);
-
-  // Check for settings navigation state
-  useEffect(() => {
-    const state = location.state as { openSettings?: boolean; settingsTab?: string; creditsTab?: 'purchase' | 'history' } | null;
-    if (state?.openSettings) {
-      handleOpenSettings(state.settingsTab, state.creditsTab);
-      // Clear the state to avoid reopening on navigation
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, handleOpenSettings]);
-
-  // Initialize session and subscribe to changes
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-
-    // Use centralized auth manager instead of direct listener
-    const authManager = window.__AUTH_MANAGER__;
-    let unsubscribe: (() => void) | null = null;
-    
-    if (authManager) {
-      unsubscribe = authManager.subscribe('Layout', (_event, session) => {
-        setSession(session);
-      });
-    } else {
-      // Fallback to direct listener if auth manager not available
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session);
-      });
-      unsubscribe = () => subscription?.unsubscribe();
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
+  const { session } = useAuthGuard();
+  const { isSettingsModalOpen, setIsSettingsModalOpen, settingsInitialTab, settingsCreditsTab, handleOpenSettings } = useSettingsModal();
+  const { showOnboardingModal, handleOnboardingClose } = useOnboardingFlow();
 
   // Reset currentShotId when navigating AWAY from shot-related pages
   // Don't clear when navigating TO travel-between-images (that's where shots are viewed)
   const prevPathnameRef = useRef(location.pathname);
   useEffect(() => {
-    const isNavigatingToShotPage = location.pathname === '/tools/travel-between-images';
-    const wasOnShotPage = prevPathnameRef.current === '/tools/travel-between-images';
-    
+    const isNavigatingToShotPage = location.pathname === TOOL_ROUTES.TRAVEL_BETWEEN_IMAGES;
+    const wasOnShotPage = prevPathnameRef.current === TOOL_ROUTES.TRAVEL_BETWEEN_IMAGES;
+
     // Only clear if we're navigating AWAY from the shot page, not TO it
     if (!isNavigatingToShotPage && wasOnShotPage) {
       setCurrentShotId(null);
     }
-    
+
     prevPathnameRef.current = location.pathname;
   }, [location.pathname, setCurrentShotId]);
-
-  // Check if user has completed onboarding
-  const { showOnboardingModal, closeOnboardingModal } = useOnboarding();
-  const navigate = useNavigate();
-  const { selectedProjectId } = useProject();
-  const { startTour } = useProductTour();
-
-  // Handle onboarding modal close - navigate to Getting Started shot, then start tour
-  const handleOnboardingClose = useCallback(async () => {
-    closeOnboardingModal();
-
-    // Find the Getting Started shot and navigate to it
-    if (selectedProjectId) {
-      try {
-        const { data: shot } = await supabase
-          .from('shots')
-          .select('id')
-          .eq('project_id', selectedProjectId)
-          .eq('name', 'Getting Started')
-          .maybeSingle();
-
-        if (shot) {
-          navigate(`/tools/travel-between-images?shot=${shot.id}`);
-
-          // Start product tour after brief delay to let the page load
-          setTimeout(() => {
-            startTour();
-          }, 1000);
-        }
-      } catch (err) {
-        handleError(err, { context: 'Layout', showToast: false });
-      }
-    }
-  }, [closeOnboardingModal, selectedProjectId, navigate, startTour]);
-
-  // Preload user settings to warm the cache for the welcome modal
-  // This prevents loading delays when users reach the generation method step
-  useUserUIState('generationMethods', { onComputer: true, inCloud: true });
-
-  // Preload ProductTour chunk when onboarding is shown
-  // This ensures the tour loads instantly when user finishes onboarding
-  useEffect(() => {
-    if (showOnboardingModal) {
-      // Trigger the lazy import to preload the chunk
-      import('@/shared/components/ProductTour').catch(() => {
-        // Silently ignore preload failures - not critical
-      });
-    }
-  }, [showOnboardingModal]);
-
-  // Listen for settings open event from welcome modal
-  useEffect(() => {
-    const handleOpenSettings = (event: CustomEvent) => {
-      const { tab } = event.detail;
-      setIsSettingsModalOpen(true);
-      if (tab) {
-        setSettingsInitialTab(tab);
-      }
-    };
-
-    window.addEventListener('openSettings', handleOpenSettings as EventListener);
-    
-    return () => {
-      window.removeEventListener('openSettings', handleOpenSettings as EventListener);
-    };
-  }, []);
 
   // Show loading spinner while determining auth state
   if (session === undefined) {
@@ -323,7 +132,7 @@ const Layout: React.FC = () => {
     '--content-width': `${contentWidth}px`,
     '--content-height': `${contentHeight}px`,
     '--content-sm': isSm ? '1' : '0',
-    '--content-md': isMd ? '1' : '0', 
+    '--content-md': isMd ? '1' : '0',
     '--content-lg': isLg ? '1' : '0',
     '--content-xl': isXl ? '1' : '0',
     '--content-2xl': is2Xl ? '1' : '0',
@@ -333,12 +142,12 @@ const Layout: React.FC = () => {
   // Render content - same structure, just conditionally wrapped
   const mainContent = (
     <>
-      <GlobalHeader 
-        contentOffsetRight={isTasksPaneLocked ? tasksPaneWidth + 16 : 16} 
+      <GlobalHeader
+        contentOffsetRight={isTasksPaneLocked ? tasksPaneWidth + 16 : 16}
         contentOffsetLeft={isShotsPaneLocked ? shotsPaneWidth : 0}
         onOpenSettings={handleOpenSettings}
       />
-      
+
       <div
         className="relative z-10 transition-[margin,padding] duration-300 ease-smooth content-container"
         style={mainContentStyleWithoutScroll}
@@ -347,7 +156,7 @@ const Layout: React.FC = () => {
 
         <main className={cn("container mx-auto", containerPadding, containerSpacing)}>
           {header}
-          <Outlet /> 
+          <Outlet />
         </main>
       </div>
     </>
@@ -359,7 +168,7 @@ const Layout: React.FC = () => {
         <ScrollToTop />
         {/* Theme-adaptive background gradient - subtle in dark mode */}
         <div className="fixed inset-0 bg-gradient-to-br from-background via-secondary/10 to-accent/5 opacity-40 dark:opacity-0 pointer-events-none"></div>
-        
+
         {/* When in mobile split view, wrap header + content in a scroll container */}
         {isMobileSplitView ? (
           <div ref={splitViewWrapperRef} style={splitViewWrapperStyle}>
@@ -368,11 +177,11 @@ const Layout: React.FC = () => {
         ) : (
           mainContent
         )}
-        
+
         <TasksPane onOpenSettings={handleOpenSettings} />
         <ToolsPane />
         <GenerationsPane />
-        
+
         {/* Social Icons Footer */}
         <div
           className="relative transition-[margin] duration-300 ease-smooth"
@@ -380,14 +189,13 @@ const Layout: React.FC = () => {
         >
           <SocialIcons />
         </div>
-        
+
         <SettingsModal
           isOpen={isSettingsModalOpen}
           onOpenChange={setIsSettingsModalOpen}
           initialTab={settingsInitialTab}
           creditsTab={settingsCreditsTab}
         />
-
 
         {/* Onboarding Modal */}
         <OnboardingModal
@@ -406,4 +214,4 @@ const Layout: React.FC = () => {
   );
 };
 
-export default Layout; 
+export default Layout;

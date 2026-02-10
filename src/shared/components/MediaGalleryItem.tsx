@@ -18,6 +18,7 @@ import { setGenerationDragData, createDragPreview } from '@/shared/lib/dragDrop'
 import { cn } from "@/shared/lib/utils";
 import CreateShotModal from "@/shared/components/CreateShotModal";
 import { useProject } from "@/shared/contexts/ProjectContext";
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { useShotNavigation } from "@/shared/hooks/useShotNavigation";
 import { useLastAffectedShot } from "@/shared/hooks/useLastAffectedShot";
 import { useQuickShotCreate } from "@/shared/hooks/useQuickShotCreate";
@@ -130,7 +131,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   // Determine if this should show task details (GenerationDetails)
   // Use content_type from task_types table. Fallback to legacy tool_type for video travel.
   const isVideoTask = taskTypeInfo?.content_type === 'video' ||
-    (!taskTypeInfo && image.metadata?.tool_type === 'travel-between-images');
+    (!taskTypeInfo && image.metadata?.tool_type === TOOL_IDS.TRAVEL_BETWEEN_IMAGES);
   const isImageEditTask = isImageEditTaskType(taskType || undefined);
   const shouldShowTaskDetails = (!!taskData) && (isVideoTask || isImageEditTask);
 

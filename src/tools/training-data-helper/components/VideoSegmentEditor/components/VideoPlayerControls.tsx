@@ -3,6 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, RotateCcw, Clock, Video, SkipBack, SkipForward } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { TrainingDataVideo, TrainingDataSegment } from '../../../hooks/useTrainingData';
+import { msToSeconds } from '../constants';
 
 interface SegmentColor {
   bg: string;
@@ -14,21 +15,8 @@ interface CurrentSegmentInfo {
   index: number;
 }
 
-interface VideoPlayerControlsProps {
-  video: TrainingDataVideo;
-  videoRef: RefObject<HTMLVideoElement | null>;
-  videoUrl: string;
-  isPlaying: boolean;
-  currentTime: number;
-  duration: number;
-  playbackRate: number;
-  segments: TrainingDataSegment[];
-  segmentStartTime: number | null;
-  segmentEndTime: number | null;
-  currentSegmentInfo: CurrentSegmentInfo | null;
-  formatTimeWithMs: (seconds: number) => string;
-  formatDuration: (ms: number) => string;
-  getSegmentColor: (index: number) => SegmentColor;
+/** Props for the HTML video element event handlers */
+interface VideoEventHandlers {
   onPlay: () => void;
   onPause: () => void;
   onVideoError: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
@@ -37,13 +25,38 @@ interface VideoPlayerControlsProps {
   onLoadedData: () => void;
   onCanPlay: () => void;
   onTimeUpdate: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
+}
+
+/** Props for playback control actions */
+interface PlaybackActions {
   onTogglePlayPause: () => void;
   onSeekTo: (time: number) => void;
   onSetPlaybackRate: (rate: number) => void;
   onJumpBack: () => void;
   onJumpForward: () => void;
-  onPreviewSegment: (segment: TrainingDataSegment) => void;
   onSetIsPlaying: (playing: boolean) => void;
+}
+
+/** Props related to segment display and interaction */
+interface SegmentDisplayProps {
+  segments: TrainingDataSegment[];
+  segmentStartTime: number | null;
+  segmentEndTime: number | null;
+  currentSegmentInfo: CurrentSegmentInfo | null;
+  formatDuration: (ms: number) => string;
+  getSegmentColor: (index: number) => SegmentColor;
+  onPreviewSegment: (segment: TrainingDataSegment) => void;
+}
+
+interface VideoPlayerControlsProps extends VideoEventHandlers, PlaybackActions, SegmentDisplayProps {
+  video: TrainingDataVideo;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  videoUrl: string;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  playbackRate: number;
+  formatTimeWithMs: (seconds: number) => string;
 }
 
 export function VideoPlayerControls({
@@ -225,8 +238,8 @@ export function VideoPlayerControls({
           <TooltipProvider>
             {segments.map((segment, index) => {
               const color = getSegmentColor(index);
-              const startPercent = (segment.startTime / 1000 / duration) * 100;
-              const widthPercent = ((segment.endTime - segment.startTime) / 1000 / duration) * 100;
+              const startPercent = (msToSeconds(segment.startTime) / duration) * 100;
+              const widthPercent = (msToSeconds(segment.endTime - segment.startTime) / duration) * 100;
 
               return (
                 <Tooltip key={segment.id}>

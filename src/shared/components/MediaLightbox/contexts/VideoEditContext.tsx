@@ -11,7 +11,8 @@
  * - Enhance mode (upscale/interpolate video)
  */
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, RefObject } from 'react';
+import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 
 // ============================================================================
 // Types
@@ -34,12 +35,27 @@ interface EnhanceSettings {
   outputQuality: 'low' | 'medium' | 'high';
 }
 
+/** Video editing manager for replace/regenerate modes */
+interface VideoEditingManager {
+  videoRef: RefObject<HTMLVideoElement>;
+  selections: PortionSelection[];
+  activeSelectionId: string | null;
+  handleUpdateSelection: (id: string, start: number, end: number) => void;
+  setActiveSelectionId: (id: string | null) => void;
+  handleRemoveSelection: (id: string) => void;
+  handleAddSelection: () => void;
+}
+
 export interface VideoEditState {
   // ========================================
   // Mode state
   // ========================================
   isInVideoEditMode: boolean;
   videoEditSubMode: VideoEditSubMode;
+
+  // Convenience booleans derived from videoEditSubMode
+  isVideoTrimModeActive: boolean;
+  isVideoEditModeActive: boolean;
 
   // ========================================
   // Mode setters
@@ -75,6 +91,12 @@ export interface VideoEditState {
   setTrimCurrentTime: (time: number) => void;
 
   // ========================================
+  // Refs & managers
+  // ========================================
+  trimVideoRef: RefObject<HTMLVideoElement>;
+  videoEditing: VideoEditingManager | null;
+
+  // ========================================
   // Enhance settings
   // ========================================
   enhanceSettings: EnhanceSettings;
@@ -104,6 +126,8 @@ const EMPTY_VIDEO_EDIT: VideoEditState = {
   // Mode state
   isInVideoEditMode: false,
   videoEditSubMode: null,
+  isVideoTrimModeActive: false,
+  isVideoEditModeActive: false,
 
   // Mode setters
   setVideoEditSubMode: () => {},
@@ -129,6 +153,10 @@ const EMPTY_VIDEO_EDIT: VideoEditState = {
   setVideoDuration: () => {},
   trimCurrentTime: 0,
   setTrimCurrentTime: () => {},
+
+  // Refs & managers
+  trimVideoRef: { current: null } as RefObject<HTMLVideoElement>,
+  videoEditing: null,
 
   // Enhance settings
   enhanceSettings: DEFAULT_ENHANCE_SETTINGS,

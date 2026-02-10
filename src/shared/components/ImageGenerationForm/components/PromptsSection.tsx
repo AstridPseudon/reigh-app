@@ -35,7 +35,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
 }) => {
   // Pull from context
   const { uiActions } = useFormUIContext();
-  const { isGenerating, hasApiKey, ready } = useFormCoreContext();
+  const { isGenerating, ready } = useFormCoreContext();
   const {
     prompts,
     masterPromptText,
@@ -163,7 +163,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
             value={masterPromptText}
             onChange={onMasterPromptTextChange}
             placeholder="Describe what you want to generate..."
-            disabled={!hasApiKey || isGenerating || !ready}
+            disabled={isGenerating || !ready}
             className="min-h-[100px] resize-none"
             rows={4}
             clearable
@@ -219,7 +219,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
                           e.stopPropagation();
                           onOpenMagicPrompt();
                         }}
-                        disabled={isGenerating || !ready || !hasApiKey}
+                        disabled={isGenerating || !ready}
                         aria-label="AI Prompt Tools"
                         className="h-6 w-6 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
                       >
@@ -275,7 +275,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
               value={beforeEachPromptText}
               onChange={onBeforeEachPromptTextChange}
               placeholder="Text to prepend"
-              disabled={!hasApiKey || isGenerating}
+              disabled={isGenerating}
               className="mt-1 h-16 resize-none"
               rows={2}
               clearable
@@ -297,7 +297,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
               value={afterEachPromptText}
               onChange={onAfterEachPromptTextChange}
               placeholder="Text to append"
-              disabled={!hasApiKey || isGenerating}
+              disabled={isGenerating}
               className="mt-1 h-16 resize-none"
               rows={2}
               clearable

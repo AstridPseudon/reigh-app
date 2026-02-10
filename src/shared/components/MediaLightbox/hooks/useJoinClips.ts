@@ -8,6 +8,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { handleError } from '@/shared/lib/errorHandler';
+import { TOOL_ROUTES } from '@/shared/lib/toolConstants';
 import { GenerationRow } from '@/types/shots';
 
 interface UseJoinClipsProps {
@@ -79,7 +80,7 @@ export function useJoinClips({
   }, [media, isVideo]);
 
   const handleGoToJoin = useCallback(() => {
-    navigate('/tools/join-clips');
+    navigate(TOOL_ROUTES.JOIN_CLIPS);
   }, [navigate]);
 
   return {

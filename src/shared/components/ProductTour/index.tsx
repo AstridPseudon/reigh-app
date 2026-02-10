@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import Joyride, { CallBackProps, STATUS, EVENTS, ACTIONS, TooltipRenderProps } from 'react-joyride';
 import { tourSteps, tourStepColors } from './tourSteps';
 import { useProductTour } from '@/shared/hooks/useProductTour';
+import { TOOL_ROUTES } from '@/shared/lib/toolConstants';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import {
   ChevronRight,
@@ -304,7 +305,7 @@ export function ProductTour() {
     if (status === STATUS.FINISHED) {
       completeTour();
       // Navigate to main tool page (out of any shot)
-      navigate('/tools/travel-between-images');
+      navigate(TOOL_ROUTES.TRAVEL_BETWEEN_IMAGES);
     } else if (status === STATUS.SKIPPED) {
       skipTour();
     }

@@ -8,7 +8,7 @@
  * - Fire-and-forget background operations
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -30,6 +30,48 @@ import { buildBatchTaskParams } from './buildBatchTaskParams';
 // Types
 // ============================================================================
 
+/** Snapshot of form state values needed for fire-and-forget async operations */
+interface FormStateSnapshot {
+  masterPromptText: string;
+  imagesPerPrompt: number;
+  promptMultiplier: number;
+  selectedProjectId: string | undefined;
+  associatedShotId: string | null;
+  styleReferenceImageGeneration: string | null;
+  styleReferenceStrength: number;
+  subjectStrength: number;
+  effectiveSubjectDescription: string;
+  inThisScene: boolean;
+  inThisSceneStrength: number;
+  referenceMode: ReferenceMode;
+  beforePromptText: string;
+  afterPromptText: string;
+  styleBoostTerms: string;
+  isLocalGenerationEnabled: boolean;
+  hiresFixConfig: HiresFixConfig;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/** Build reference params for by-reference mode, or empty object for just-text */
+function buildReferenceParams(
+  generationSource: GenerationSource,
+  state: Pick<FormStateSnapshot, 'styleReferenceImageGeneration' | 'styleReferenceStrength' | 'subjectStrength' | 'effectiveSubjectDescription' | 'inThisScene' | 'inThisSceneStrength' | 'referenceMode'>,
+): ReferenceApiParams {
+  if (generationSource !== 'by-reference') return {};
+  return {
+    style_reference_image: state.styleReferenceImageGeneration ?? undefined,
+    style_reference_strength: state.styleReferenceStrength,
+    subject_strength: state.subjectStrength,
+    subject_description: state.effectiveSubjectDescription,
+    in_this_scene: state.inThisScene,
+    in_this_scene_strength: state.inThisSceneStrength,
+    reference_mode: state.referenceMode,
+  };
+}
+
 interface UseFormSubmissionProps {
   // Project context
   selectedProjectId: string | undefined;
@@ -41,7 +83,7 @@ interface UseFormSubmissionProps {
   associatedShotId: string | null;
   currentBeforePromptText: string;
   currentAfterPromptText: string;
-  currentStyleBoostTerms: string;
+  styleBoostTerms: string;
   isLocalGenerationEnabled: boolean;
   hiresFixConfig: HiresFixConfig;
   effectivePromptMode: PromptMode;
@@ -54,11 +96,11 @@ interface UseFormSubmissionProps {
   styleReferenceImageGeneration: string | null;
 
   // Reference settings
-  currentStyleStrength: number;
-  currentSubjectStrength: number;
+  styleReferenceStrength: number;
+  subjectStrength: number;
   effectiveSubjectDescription: string;
-  currentInThisScene: boolean;
-  currentInThisSceneStrength: number;
+  inThisScene: boolean;
+  inThisSceneStrength: number;
   referenceMode: ReferenceMode;
 
   // AI prompt generation
@@ -73,9 +115,6 @@ interface UseFormSubmissionProps {
     rulesToRememberText?: string;
   }) => Promise<Array<{ id: string; text: string; shortText?: string }>>;
 
-  // Task status for baseline tracking
-  taskStatusCounts: { processing: number } | undefined;
-
   // Callbacks
   onGenerate: (params: BatchImageGenerationTaskParams) => Promise<string[]> | string[] | void;
   setPrompts: (prompts: PromptEntry[] | ((prev: PromptEntry[]) => PromptEntry[])) => void;
@@ -89,18 +128,10 @@ interface UseFormSubmissionProps {
 }
 
 interface UseFormSubmissionReturn {
-  // Handlers
-  getTaskParams: (
-    promptsToUse: PromptEntry[],
-    options?: { imagesPerPromptOverride?: number }
-  ) => BatchImageGenerationTaskParams | null;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   handleGenerateAndQueue: (updatedPrompts: PromptEntry[]) => void;
   handleUseExistingPrompts: () => Promise<void>;
   handleNewPromptsLikeExisting: () => Promise<void>;
-
-  // State
-  isGeneratingAutomatedPrompts: boolean;
 }
 
 // ============================================================================
@@ -116,7 +147,7 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     associatedShotId,
     currentBeforePromptText,
     currentAfterPromptText,
-    currentStyleBoostTerms,
+    styleBoostTerms,
     isLocalGenerationEnabled,
     hiresFixConfig,
     effectivePromptMode,
@@ -125,14 +156,13 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     generationSourceRef,
     selectedTextModelRef,
     styleReferenceImageGeneration,
-    currentStyleStrength,
-    currentSubjectStrength,
+    styleReferenceStrength,
+    subjectStrength,
     effectiveSubjectDescription,
-    currentInThisScene,
-    currentInThisSceneStrength,
+    inThisScene,
+    inThisSceneStrength,
     referenceMode,
     aiGeneratePrompts,
-    taskStatusCounts,
     onGenerate,
     setPrompts,
     automatedSubmitButton,
@@ -141,8 +171,18 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
   const queryClient = useQueryClient();
   const { addIncomingTask, completeIncomingTask } = useIncomingTasks();
 
-  // Track automated prompt generation state
-  const isGeneratingAutomatedPromptsRef = useRef(false);
+  // Always-current ref for async access (avoids 18+ individual variable captures)
+  const formStateRef = useRef<FormStateSnapshot>();
+  useEffect(() => {
+    formStateRef.current = {
+      masterPromptText, imagesPerPrompt, promptMultiplier, selectedProjectId,
+      associatedShotId, styleReferenceImageGeneration, styleReferenceStrength,
+      subjectStrength, effectiveSubjectDescription, inThisScene,
+      inThisSceneStrength, referenceMode, beforePromptText: currentBeforePromptText,
+      afterPromptText: currentAfterPromptText, styleBoostTerms,
+      isLocalGenerationEnabled, hiresFixConfig,
+    };
+  });
 
   // ============================================================================
   // Build Task Params
@@ -168,16 +208,15 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
       return null;
     }
 
-    // Only include reference params for by-reference mode
-    const referenceParams: ReferenceApiParams = currentGenerationSource === 'by-reference' ? {
-      style_reference_image: styleReferenceImageGeneration ?? undefined,
-      style_reference_strength: currentStyleStrength,
-      subject_strength: currentSubjectStrength,
-      subject_description: effectiveSubjectDescription,
-      in_this_scene: currentInThisScene,
-      in_this_scene_strength: currentInThisSceneStrength,
-      reference_mode: referenceMode,
-    } : {};
+    const referenceParams = buildReferenceParams(currentGenerationSource, {
+      styleReferenceImageGeneration,
+      styleReferenceStrength,
+      subjectStrength,
+      effectiveSubjectDescription,
+      inThisScene,
+      inThisSceneStrength,
+      referenceMode,
+    });
 
     return buildBatchTaskParams({
       projectId: selectedProjectId!,
@@ -186,7 +225,7 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
       shotId: associatedShotId,
       beforePromptText: currentBeforePromptText,
       afterPromptText: currentAfterPromptText,
-      styleBoostTerms: currentStyleBoostTerms,
+      styleBoostTerms: styleBoostTerms,
       isLocalGenerationEnabled,
       hiresFixConfig,
       modelName: currentGenerationSource === 'just-text' ? currentTextModel : 'qwen-image',
@@ -194,18 +233,18 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     });
   }, [
     styleReferenceImageGeneration,
-    currentStyleStrength,
-    currentSubjectStrength,
+    styleReferenceStrength,
+    subjectStrength,
     effectiveSubjectDescription,
-    currentInThisScene,
-    currentInThisSceneStrength,
+    inThisScene,
+    inThisSceneStrength,
     referenceMode,
     selectedProjectId,
     imagesPerPrompt,
     associatedShotId,
     currentBeforePromptText,
     currentAfterPromptText,
-    currentStyleBoostTerms,
+    styleBoostTerms,
     isLocalGenerationEnabled,
     hiresFixConfig,
     generationSourceRef,
@@ -219,66 +258,47 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Snapshot form state from ref (always current, avoids stale captures)
+    const state = formStateRef.current;
+    if (!state) return;
+    const currentGenerationSource = generationSourceRef.current;
+    const currentTextModel = selectedTextModelRef.current;
+
     // Handle automated mode: generate prompts first, then images
     if (effectivePromptMode === 'automated') {
-      if (!masterPromptText.trim()) {
+      if (!state.masterPromptText.trim()) {
         toast.error("Please enter a master prompt.");
         return;
       }
 
-      const currentGenerationSource = generationSourceRef.current;
-      const currentTextModel = selectedTextModelRef.current;
-
       // Validate early
-      if (currentGenerationSource === 'by-reference' && !styleReferenceImageGeneration) {
+      if (currentGenerationSource === 'by-reference' && !state.styleReferenceImageGeneration) {
         toast.error("Please upload a style reference image for by-reference mode.");
         return;
       }
 
-      // Capture current values for background operation
-      const capturedMasterPrompt = masterPromptText;
-      const capturedImagesPerPrompt = imagesPerPrompt;
-      const capturedPromptMultiplier = promptMultiplier;
-      const capturedProjectId = selectedProjectId!;
-      const capturedAssociatedShotId = associatedShotId;
-      const capturedGenerationSource = currentGenerationSource;
-      const capturedStyleRef = styleReferenceImageGeneration;
-      const capturedStyleStrength = currentStyleStrength;
-      const capturedSubjectStrength = currentSubjectStrength;
-      const capturedSubjectDescription = effectiveSubjectDescription;
-      const capturedInThisScene = currentInThisScene;
-      const capturedInThisSceneStrength = currentInThisSceneStrength;
-      const capturedReferenceMode = referenceMode;
-      const capturedBeforePromptText = currentBeforePromptText;
-      const capturedAfterPromptText = currentAfterPromptText;
-      const capturedStyleBoostTerms = currentStyleBoostTerms;
-      const capturedIsLocalGenerationEnabled = isLocalGenerationEnabled;
-      const capturedHiresFixConfig = hiresFixConfig;
-      const capturedModelName = currentGenerationSource === 'just-text' ? currentTextModel : 'qwen-image';
+      const modelName = currentGenerationSource === 'just-text' ? currentTextModel : 'qwen-image';
 
       // Trigger button state
       automatedSubmitButton.trigger();
 
       // Add incoming task filler
-      const truncatedPrompt = capturedMasterPrompt.length > 50
-        ? capturedMasterPrompt.substring(0, 50) + '...'
-        : capturedMasterPrompt;
-      const currentBaseline = taskStatusCounts?.processing ?? 0;
+      const truncatedPrompt = state.masterPromptText.length > 50
+        ? state.masterPromptText.substring(0, 50) + '...'
+        : state.masterPromptText;
       const incomingTaskId = addIncomingTask({
         taskType: 'image_generation',
         label: truncatedPrompt,
-        expectedCount: capturedImagesPerPrompt * capturedPromptMultiplier,
-        baselineCount: currentBaseline,
+        expectedCount: state.imagesPerPrompt * state.promptMultiplier,
+        baselineCount: 0,
       });
 
       // Fire-and-forget background operation
       (async () => {
         try {
-          isGeneratingAutomatedPromptsRef.current = true;
-
           const rawResults = await aiGeneratePrompts({
-            overallPromptText: capturedMasterPrompt,
-            numberToGenerate: capturedImagesPerPrompt,
+            overallPromptText: state.masterPromptText,
+            numberToGenerate: state.imagesPerPrompt,
             includeExistingContext: false,
             addSummaryForNewPrompts: true,
             replaceCurrentPrompts: true,
@@ -294,28 +314,19 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
 
           setPrompts(newPrompts);
 
-          // Build task params
-          const referenceParams: ReferenceApiParams = capturedGenerationSource === 'by-reference' ? {
-            style_reference_image: capturedStyleRef ?? undefined,
-            style_reference_strength: capturedStyleStrength,
-            subject_strength: capturedSubjectStrength,
-            subject_description: capturedSubjectDescription,
-            in_this_scene: capturedInThisScene,
-            in_this_scene_strength: capturedInThisSceneStrength,
-            reference_mode: capturedReferenceMode,
-          } : {};
+          const referenceParams = buildReferenceParams(currentGenerationSource, state);
 
           const taskParams = buildBatchTaskParams({
-            projectId: capturedProjectId,
+            projectId: state.selectedProjectId!,
             prompts: newPrompts,
-            imagesPerPrompt: capturedPromptMultiplier,
-            shotId: capturedAssociatedShotId,
-            beforePromptText: capturedBeforePromptText,
-            afterPromptText: capturedAfterPromptText,
-            styleBoostTerms: capturedStyleBoostTerms,
-            isLocalGenerationEnabled: capturedIsLocalGenerationEnabled,
-            hiresFixConfig: capturedHiresFixConfig,
-            modelName: capturedModelName,
+            imagesPerPrompt: state.promptMultiplier,
+            shotId: state.associatedShotId,
+            beforePromptText: state.beforePromptText,
+            afterPromptText: state.afterPromptText,
+            styleBoostTerms: state.styleBoostTerms,
+            isLocalGenerationEnabled: state.isLocalGenerationEnabled,
+            hiresFixConfig: state.hiresFixConfig,
+            modelName,
             referenceParams,
           });
 
@@ -323,10 +334,9 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
         } catch (error) {
           handleError(error, { context: 'useFormSubmission.handleSubmit.automatedMode', toastTitle: 'Failed to generate prompts. Please try again.' });
         } finally {
-          isGeneratingAutomatedPromptsRef.current = false;
           await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
           await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-          const newCount = queryClient.getQueryData<{ processing: number }>(queryKeys.tasks.statusCounts(selectedProjectId))?.processing ?? 0;
+          const newCount = queryClient.getQueryData<{ processing: number }>(queryKeys.tasks.statusCounts(state.selectedProjectId))?.processing ?? 0;
           completeIncomingTask(incomingTaskId, newCount);
         }
       })();
@@ -345,12 +355,11 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     const truncatedPrompt = firstPrompt.length > 50
       ? firstPrompt.substring(0, 50) + '...'
       : firstPrompt;
-    const managedBaseline = taskStatusCounts?.processing ?? 0;
     const incomingTaskId = addIncomingTask({
       taskType: 'image_generation',
       label: truncatedPrompt,
-      expectedCount: actionablePromptsCount * imagesPerPrompt,
-      baselineCount: managedBaseline,
+      expectedCount: actionablePromptsCount * state.imagesPerPrompt,
+      baselineCount: 0,
     });
 
     // Fire-and-forget
@@ -362,33 +371,13 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
       } finally {
         await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
         await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-        const newCount = queryClient.getQueryData<{ processing: number }>(queryKeys.tasks.statusCounts(selectedProjectId))?.processing ?? 0;
+        const newCount = queryClient.getQueryData<{ processing: number }>(queryKeys.tasks.statusCounts(state.selectedProjectId))?.processing ?? 0;
         completeIncomingTask(incomingTaskId, newCount);
       }
     })();
   }, [
     effectivePromptMode,
-    masterPromptText,
-    generationSourceRef,
-    selectedTextModelRef,
-    styleReferenceImageGeneration,
-    imagesPerPrompt,
-    promptMultiplier,
-    selectedProjectId,
-    associatedShotId,
-    currentStyleStrength,
-    currentSubjectStrength,
-    effectiveSubjectDescription,
-    currentInThisScene,
-    currentInThisSceneStrength,
-    referenceMode,
-    currentBeforePromptText,
-    currentAfterPromptText,
-    currentStyleBoostTerms,
-    isLocalGenerationEnabled,
-    hiresFixConfig,
     automatedSubmitButton,
-    taskStatusCounts,
     addIncomingTask,
     aiGeneratePrompts,
     setPrompts,
@@ -398,6 +387,8 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     getTaskParams,
     prompts,
     actionablePromptsCount,
+    generationSourceRef,
+    selectedTextModelRef,
   ]);
 
   // ============================================================================
@@ -457,8 +448,6 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     }
 
     try {
-      isGeneratingAutomatedPromptsRef.current = true;
-
       const rawResults = await aiGeneratePrompts({
         overallPromptText: "Make me more prompts like this.",
         numberToGenerate: imagesPerPrompt,
@@ -483,8 +472,6 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
       onGenerate(taskParams);
     } catch (error) {
       handleError(error, { context: 'useFormSubmission.handleNewPromptsLikeExisting', toastTitle: 'Failed to generate prompts. Please try again.' });
-    } finally {
-      isGeneratingAutomatedPromptsRef.current = false;
     }
   }, [
     prompts,
@@ -503,11 +490,9 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
   // ============================================================================
 
   return {
-    getTaskParams,
     handleSubmit,
     handleGenerateAndQueue,
     handleUseExistingPrompts,
     handleNewPromptsLikeExisting,
-    isGeneratingAutomatedPrompts: isGeneratingAutomatedPromptsRef.current,
   };
 }

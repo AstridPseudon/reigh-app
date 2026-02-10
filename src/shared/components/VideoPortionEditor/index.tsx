@@ -27,6 +27,7 @@ import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { BUILTIN_VACE_PRESET, VACE_FEATURED_PRESET_IDS } from '@/shared/lib/vaceDefaults';
 import { getSegmentFormColor } from '@/shared/lib/segmentColors';
+import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { getQuantizedGap } from '@/shared/components/JoinClipsSettingsForm/utils';
 
 // Thumbnail component for segment preview - supports different sizes
@@ -527,7 +528,7 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
                                 projectId={projectId || undefined}
                                 persistenceScope="project"
                                 enableProjectPersistence={true}
-                                persistenceKey="edit-video"
+                                persistenceKey={TOOL_IDS.EDIT_VIDEO}
                                 externalLoraManager={loraManager}
                                 title="Additional LoRA Models (Optional)"
                                 addButtonText="Add or manage LoRAs"

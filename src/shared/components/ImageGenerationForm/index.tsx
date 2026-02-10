@@ -15,5 +15,4 @@ export { PromptInputRow } from './components/PromptInputRow';
 export type {
   PromptEntry,
   PromptInputRowProps,
-  ImageGenerationFormHandles,
 } from './types';

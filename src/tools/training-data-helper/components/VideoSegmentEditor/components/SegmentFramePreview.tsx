@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Video } from 'lucide-react';
 import { TrainingDataSegment } from '../../../hooks/useTrainingData';
 import { handleError } from '@/shared/lib/errorHandler';
+import { msToSeconds } from '../constants';
 
 const FRAME_CAPTURE_INITIAL_DELAY_MS = 100;
 const FRAME_CAPTURE_INTER_DELAY_MS = 50;
@@ -27,13 +28,13 @@ export function SegmentFramePreview({ segment, captureFrameAtTime, videoReady }:
       await new Promise(resolve => setTimeout(resolve, FRAME_CAPTURE_INITIAL_DELAY_MS));
 
       // Capture frames with optimized timing
-      const startImg = await captureFrameAtTime(segment.startTime / 1000);
+      const startImg = await captureFrameAtTime(msToSeconds(segment.startTime));
       setStartFrame(startImg);
 
       // Minimal delay between captures
       await new Promise(resolve => setTimeout(resolve, FRAME_CAPTURE_INTER_DELAY_MS));
 
-      const endImg = await captureFrameAtTime(segment.endTime / 1000);
+      const endImg = await captureFrameAtTime(msToSeconds(segment.endTime));
       setEndFrame(endImg);
     } catch (error) {
       handleError(error, { context: 'VideoSegmentEditor', showToast: false, logData: { segmentId: segment.id } });
