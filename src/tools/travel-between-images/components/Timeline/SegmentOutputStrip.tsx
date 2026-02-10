@@ -92,7 +92,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   zoomLevel,
   segmentSlots: rawSegmentSlots,
   isLoading = false,
-  localShotGenPositions,
   hasPendingTask: hasPendingTaskProp,
   onOpenPairSettings,
   selectedParentId,
@@ -155,21 +154,143 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeScrubbingIndex, scrubbing]);
 
-  // Remap slot indices to match current drag positions (instant during drag).
-  // The hook in ShotImagesEditor uses DB-derived order, but during drag the orchestrator
-  // tracks the live order. Re-index slots so segments follow their images during drag.
-  const segmentSlots = useMemo(() => {
-    if (!localShotGenPositions || localShotGenPositions.size === 0) return rawSegmentSlots;
-    return rawSegmentSlots.map(slot => {
-      if (!slot.pairShotGenerationId) return slot;
-      const newIndex = localShotGenPositions.get(slot.pairShotGenerationId);
-      if (newIndex === undefined) return slot;
-      return { ...slot, index: newIndex };
-    });
-  }, [rawSegmentSlots, localShotGenPositions]);
+  // Build segment lookup: pairShotGenerationId → segment slot.
+  // Pair-first rendering: iterate over pairs and look up segments by ID,
+  // instead of iterating segments and looking up positions by index.
+  // This eliminates index-translation bugs between different position maps.
+  const segmentByPairShotGenId = useMemo(() => {
+    const map = new Map<string, typeof rawSegmentSlots[number]>();
+    for (const slot of rawSegmentSlots) {
+      if (!slot.pairShotGenerationId) continue;
+      const existing = map.get(slot.pairShotGenerationId);
+      if (!existing || (slot.type === 'child' && existing.type !== 'child')) {
+        map.set(slot.pairShotGenerationId, slot);
+      }
+    }
+    return map;
+  }, [rawSegmentSlots]);
+
+  // Display slots: ONLY actual video content (children).
+  // No placeholders when segments exist — prevents empty slots during transitions.
+  // Placeholders only appear for first-time experience (no segments generated yet).
+  const displaySlots = useMemo(() => {
+    const children: typeof rawSegmentSlots = [];
+
+    // DEBUG: Log all inputs
+    console.log('[SlotDebug] ===== COMPUTING displaySlots =====');
+    console.log('[SlotDebug] rawSegmentSlots:', rawSegmentSlots.map(s => ({
+      type: s.type,
+      index: s.index,
+      pairShotGenId: s.pairShotGenerationId?.substring(0, 8),
+      childId: s.type === 'child' ? s.child.id?.substring(0, 8) : null,
+      hasLocation: s.type === 'child' ? !!s.child.location : false,
+    })));
+    console.log('[SlotDebug] segmentByPairShotGenId keys:', [...segmentByPairShotGenId.keys()].map(k => k.substring(0, 8)));
+    console.log('[SlotDebug] pairDataByIndex:', pairDataByIndex ? [...pairDataByIndex.entries()].map(([idx, pd]) => ({
+      pairIndex: idx,
+      startImageId: pd.startImage?.id?.substring(0, 8),
+      endImageId: pd.endImage?.id?.substring(0, 8),
+    })) : 'undefined');
+    console.log('[SlotDebug] pairInfo:', pairInfo.map(p => ({ index: p.index, startFrame: p.startFrame, endFrame: p.endFrame })));
+    console.log('[SlotDebug] lastImageId:', lastImageId?.substring(0, 8));
+    console.log('[SlotDebug] trailingSegmentMode:', trailingSegmentMode ? { imageId: trailingSegmentMode.imageId.substring(0, 8) } : null);
+
+    // Collect child segments matched to current pairs.
+    // Iterate pairInfo (matches segmentPositions count), enrich with pairDataByIndex.
+    for (const pair of pairInfo) {
+      const pairData = pairDataByIndex?.get(pair.index);
+      const startImageId = pairData?.startImage?.id;
+      const segment = startImageId ? segmentByPairShotGenId.get(startImageId) : undefined;
+      console.log('[SlotDebug] Pair', pair.index, '→ startImage:', startImageId?.substring(0, 8), '→ segment:', segment ? { type: segment.type, childId: segment.type === 'child' ? segment.child.id?.substring(0, 8) : null } : 'NOT FOUND');
+      if (segment?.type === 'child') {
+        children.push({ ...segment, index: pair.index });
+      }
+    }
+
+    // Trailing video (only actual video, not placeholder)
+    const trailingIndex = pairInfo.length;
+    if (lastImageId) {
+      const trailingSegment = segmentByPairShotGenId.get(lastImageId);
+      const isTrailingVideo = trailingSegment?.type === 'child'
+        && (!pairDataByIndex || ![...pairDataByIndex.values()].some(pd => pd.startImage?.id === lastImageId));
+      if (isTrailingVideo && trailingSegment) {
+        children.push({ ...trailingSegment, index: trailingIndex, isTrailingSegment: true } as typeof rawSegmentSlots[number]);
+      }
+    }
+
+    console.log('[SlotDebug] children collected:', children.length, children.map(c => ({ type: c.type, index: c.index, pairShotGenId: c.pairShotGenerationId?.substring(0, 8) })));
+
+    // If we have actual videos, return just those — no placeholders, no empty slots
+    if (children.length > 0) {
+      // Add trailing placeholder only if user explicitly configured trailing but no video yet
+      if (trailingSegmentMode && !children.some(s => 'isTrailingSegment' in s)) {
+        children.push({
+          type: 'placeholder' as const,
+          index: pairInfo.length === 0 ? 0 : trailingIndex,
+          pairShotGenerationId: trailingSegmentMode.imageId,
+          expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
+          expectedPrompt: undefined,
+          startImage: undefined,
+          endImage: undefined,
+          isTrailingSegment: true,
+        } as typeof rawSegmentSlots[number]);
+      }
+      console.log('[SlotDebug] ✅ RETURNING children-only:', children.map(c => ({ type: c.type, index: c.index, pairShotGenId: c.pairShotGenerationId?.substring(0, 8) })));
+      return children;
+    }
+
+    console.log('[SlotDebug] ⚠️ No children found, falling through to placeholders');
+    // No videos at all — first-time experience: show placeholders
+    const placeholders: typeof rawSegmentSlots = [];
+
+    if (trailingSegmentMode && pairInfo.length === 0) {
+      // Single-image trailing mode
+      return [{
+        type: 'placeholder' as const,
+        index: 0,
+        pairShotGenerationId: trailingSegmentMode.imageId,
+        expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
+        expectedPrompt: undefined,
+        startImage: undefined,
+        endImage: undefined,
+      }];
+    }
+
+    // Always iterate pairInfo (matches segmentPositions count).
+    // Enrich with pairDataByIndex when available.
+    for (const pair of pairInfo) {
+      const pairData = pairDataByIndex?.get(pair.index);
+      const startImageId = pairData?.startImage?.id;
+      const hookSlot = startImageId ? segmentByPairShotGenId.get(startImageId) : undefined;
+      placeholders.push({
+        type: 'placeholder' as const,
+        index: pair.index,
+        pairShotGenerationId: startImageId,
+        expectedFrames: hookSlot?.type === 'placeholder' ? hookSlot.expectedFrames : undefined,
+        expectedPrompt: hookSlot?.type === 'placeholder' ? hookSlot.expectedPrompt : undefined,
+        startImage: hookSlot?.type === 'placeholder' ? hookSlot.startImage : undefined,
+        endImage: hookSlot?.type === 'placeholder' ? hookSlot.endImage : undefined,
+      });
+    }
+
+    if (trailingSegmentMode && pairInfo.length > 0) {
+      placeholders.push({
+        type: 'placeholder' as const,
+        index: trailingIndex,
+        pairShotGenerationId: trailingSegmentMode.imageId,
+        expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
+        expectedPrompt: undefined,
+        startImage: undefined,
+        endImage: undefined,
+        isTrailingSegment: true,
+      } as typeof rawSegmentSlots[number]);
+    }
+
+    return placeholders;
+  }, [pairDataByIndex, pairInfo, segmentByPairShotGenId, trailingSegmentMode, lastImageId]);
 
   // Get the active segment's video URL (must be after segmentSlots is defined)
-  const activeSegmentSlot = activeScrubbingIndex !== null ? segmentSlots[activeScrubbingIndex] : null;
+  const activeSegmentSlot = activeScrubbingIndex !== null ? displaySlots[activeScrubbingIndex] : null;
   const activeSegmentVideoUrl = activeSegmentSlot?.type === 'child' ? activeSegmentSlot.child.location : null;
 
   // Connect preview video to scrubbing hook when active segment changes
@@ -184,7 +305,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
 
   // Build segment info for source image change detection
   const segmentSourceInfo = useMemo(() => {
-    return segmentSlots
+    return rawSegmentSlots
       .filter(slot => slot.type === 'child')
       .map(slot => {
         if (slot.type !== 'child') return null;
@@ -214,22 +335,22 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
         };
       })
       .filter((info): info is NonNullable<typeof info> => info !== null);
-  }, [segmentSlots]);
+  }, [rawSegmentSlots]);
 
   // Check for recent source image changes (shows warning for 5 minutes after change)
   const { hasRecentMismatch } = useSourceImageChanges(segmentSourceInfo, !readOnly);
   
   // Log when segmentSlots changes (to track what's being displayed)
   React.useEffect(() => {
-    const childSlots = segmentSlots.filter(s => s.type === 'child');
+    const childSlots = displaySlots.filter(s => s.type === 'child');
     console.log('[SegmentDisplay] 📺 CURRENT DISPLAY:', {
-      totalSlots: segmentSlots.length,
+      totalSlots: displaySlots.length,
       childSlots: childSlots.length,
-      placeholderSlots: segmentSlots.length - childSlots.length,
+      placeholderSlots: displaySlots.length - childSlots.length,
       displayedIds: childSlots.map(s => s.type === 'child' ? s.child.id : null),
       displayedLocations: childSlots.map(s => s.type === 'child' ? s.child.location?.substring(0, 40) : null),
     });
-  }, [segmentSlots]);
+  }, [displaySlots]);
   
   // Mark generation as viewed (updates the primary variant's viewed_at)
   const markGenerationViewed = useCallback(async (generationId: string) => {
@@ -277,7 +398,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   // When onOpenPairSettings is provided, use the unified segment slot lightbox
   // Otherwise fall back to the local MediaLightbox
   // NOTE: We pass the slot directly to avoid array index mismatches between displaySlots and segmentSlots
-  const handleSegmentClick = useCallback((slot: typeof segmentSlots[number], slotIndex: number) => {
+  const handleSegmentClick = useCallback((slot: typeof displaySlots[number], slotIndex: number) => {
     console.log('[SegmentClick] 2️⃣ SegmentOutputStrip.handleSegmentClick called:', {
       slotIndex,
       slotType: slot?.type,
@@ -320,11 +441,11 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   }, [markGenerationViewed, onOpenPairSettings, scrubbing]);
   
   // Lightbox navigation - get indices of child slots that have locations
-  const childSlotIndices = useMemo(() => 
-    segmentSlots
+  const childSlotIndices = useMemo(() =>
+    displaySlots
       .map((slot, idx) => slot.type === 'child' && slot.child.location ? idx : null)
       .filter((idx): idx is number => idx !== null),
-    [segmentSlots]
+    [displaySlots]
   );
   
   const handleLightboxNext = useCallback(() => {
@@ -447,95 +568,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     }
   }, [getPairShotGenIdFromParams, queryClient]);
 
-  // Build display slots from segmentSlots (from hook) or pairInfo (as placeholders)
-  // SIMPLIFIED LOGIC:
-  // 1. Start with base slots from hook or placeholders
-  // 2. Check for existing trailing video (hook finds it via lastImageId)
-  // 3. If trailingSegmentMode is passed (user configured trailing), add placeholder
-  // 4. Otherwise, no trailing slot (show "+" button)
-  const displaySlots = useMemo(() => {
-    let baseSlots: typeof segmentSlots = [];
-
-    // If we have actual segment slots, use them as base
-    if (segmentSlots.length > 0) {
-      baseSlots = segmentSlots;
-    } else if (pairInfo.length > 0) {
-      // No segment data - create placeholder slots from pairInfo
-      baseSlots = pairInfo.map((pair) => ({
-        type: 'placeholder' as const,
-        index: pair.index,
-        expectedFrames: undefined,
-        expectedPrompt: undefined,
-        startImage: undefined,
-        endImage: undefined,
-      }));
-    }
-
-    // Trailing slot index is after all pairs
-    const trailingIndex = pairInfo.length;
-
-    // Check for existing trailing VIDEO in baseSlots (hook finds it via lastImageId)
-    // Only consider it an "existing" trailing slot if it has actual video content (type === 'child')
-    const existingTrailingSlot = baseSlots.find(slot =>
-      slot.index === trailingIndex && slot.type === 'child'
-    );
-
-    console.log('[TrailingDebug] displaySlots:', {
-      baseSlotsCount: baseSlots.length,
-      trailingIndex,
-      slotAtTrailingIndex: baseSlots.find(s => s.index === trailingIndex)?.type || null,
-      existingTrailingVideo: existingTrailingSlot ? true : false,
-      trailingSegmentMode: trailingSegmentMode ? 'SET' : 'NOT_SET',
-    });
-
-    // If existing trailing VIDEO found, mark it and return
-    if (existingTrailingSlot) {
-      console.log('[TrailingDebug] ✅ Using existing trailing VIDEO from hook');
-      return baseSlots.map(slot =>
-        slot.index === trailingIndex
-          ? { ...slot, isTrailingSegment: true }
-          : slot
-      );
-    }
-
-    // Filter out any placeholder slots beyond pairInfo.length (they're not real)
-    const filteredBaseSlots = baseSlots.filter(slot => slot.index < trailingIndex);
-
-    // If user configured trailing (trailingSegmentMode passed), add placeholder
-    if (trailingSegmentMode) {
-      // For single-image mode (no pairs), the trailing IS the only slot
-      if (pairInfo.length === 0) {
-        return [{
-          type: 'placeholder' as const,
-          index: 0,
-          pairShotGenerationId: trailingSegmentMode.imageId,
-          expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
-          expectedPrompt: undefined,
-          startImage: undefined,
-          endImage: undefined,
-        }];
-      }
-
-      // For multi-image mode, add trailing placeholder
-      console.log('[TrailingDebug] ➕ Adding trailing placeholder');
-      const trailingSlot = {
-        type: 'placeholder' as const,
-        index: trailingIndex,
-        pairShotGenerationId: trailingSegmentMode.imageId,
-        expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
-        expectedPrompt: undefined,
-        startImage: undefined,
-        endImage: undefined,
-        isTrailingSegment: true,
-      };
-      return [...filteredBaseSlots, trailingSlot];
-    }
-
-    // No trailing configured, no existing video - return filtered base slots only
-    // (The "+" button will show for adding trailing)
-    return filteredBaseSlots;
-  }, [segmentSlots, pairInfo, trailingSegmentMode]);
-
   // Report trailing video URL to parent (for extract final frame feature)
   useEffect(() => {
     if (!onTrailingVideoInfo || !lastImageId) {
@@ -544,7 +576,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     }
 
     // Find a segment slot that matches the last image's ID (trailing video)
-    const trailingVideoSlot = segmentSlots.find((slot) => {
+    const trailingVideoSlot = rawSegmentSlots.find((slot) => {
       if (slot.type !== 'child') return false;
       return slot.pairShotGenerationId === lastImageId;
     });
@@ -554,7 +586,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     } else {
       onTrailingVideoInfo(null);
     }
-  }, [segmentSlots, lastImageId, onTrailingVideoInfo]);
+  }, [rawSegmentSlots, lastImageId, onTrailingVideoInfo]);
 
   // Get current lightbox media - use displaySlots since lightboxIndex comes from displaySlots.map
   const currentLightboxSlot = useMemo(() =>
@@ -669,7 +701,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
 
     return positions;
   }, [pairInfo, fullMin, fullRange, containerWidth, trailingSegmentMode]);
-  
+
   // ===== NOW WE CAN HAVE EARLY RETURNS =====
 
   // Calculate preview dimensions based on aspect ratio
@@ -780,13 +812,29 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
       >
         {/* Segment thumbnails - positioned to align with timeline pairs */}
         <div className="absolute left-0 right-0 top-5 bottom-1 overflow-visible">
-          {displaySlots.length > 0 && segmentPositions.length > 0 ? (
+          {displaySlots.length > 0 && segmentPositions.length > 0 ? (() => {
+            const hasAnySegments = displaySlots.some(s => s.type === 'child');
+            console.log('[SlotDebug] ===== RENDERING displaySlots =====');
+            console.log('[SlotDebug] displaySlots:', displaySlots.map(s => ({ type: s.type, index: s.index, pairShotGenId: s.pairShotGenerationId?.substring(0, 8), isTrailing: 'isTrailingSegment' in s })));
+            console.log('[SlotDebug] segmentPositions:', segmentPositions.map(p => ({ pairIndex: p.pairIndex, left: p.leftPercent.toFixed(1) })));
+            console.log('[SlotDebug] hasAnySegments:', hasAnySegments);
+            return (
             <div className="relative w-full h-full">
               {displaySlots.map((slot, index) => {
-                // Get position for this slot's pair index
                 const position = segmentPositions.find(p => p.pairIndex === slot.index);
 
-                if (!position) return null;
+                if (!position) {
+                  console.log('[SlotDebug] SKIPPED slot', index, '- no position for pairIndex:', slot.index);
+                  return null;
+                }
+
+                const isTrailingSlot = 'isTrailingSegment' in slot && slot.isTrailingSegment === true;
+                if (slot.type === 'placeholder' && hasAnySegments && !isTrailingSlot) {
+                  console.log('[SlotDebug] FILTERED placeholder at index:', index, 'pairIndex:', slot.index);
+                  return null;
+                }
+
+                console.log('[SlotDebug] ✅ RENDERING slot', index, '→', { type: slot.type, pairIndex: slot.index, pairShotGenId: slot.pairShotGenerationId?.substring(0, 8), leftPercent: position.leftPercent.toFixed(1), widthPercent: position.widthPercent.toFixed(1), isTrailing: isTrailingSlot, isPending: hasPendingTask(slot.pairShotGenerationId) });
 
                 const isActiveScrubbing = activeScrubbingIndex === index;
 
@@ -797,9 +845,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
                 if (hasSourceChanged) {
                   console.log('[SourceChange] 🎯 Passing hasSourceChanged=true to InlineSegmentVideo seg=' + segmentId?.substring(0, 8));
                 }
-
-                // Check if this is the trailing segment slot
-                const isTrailingSlot = 'isTrailingSegment' in slot && slot.isTrailingSegment === true;
 
                 return (
                   <React.Fragment key={slot.type === 'child' ? slot.child.id : `placeholder-${index}`}>
@@ -907,7 +952,8 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
                 );
               })()}
             </div>
-          ) : (
+            );
+          })() : (
             <div className="flex-1 h-full flex items-center justify-center text-xs text-muted-foreground">
               {isLoading ? (
                 <div className="flex items-center gap-1.5">

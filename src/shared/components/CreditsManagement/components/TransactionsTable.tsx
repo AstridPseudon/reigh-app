@@ -1,4 +1,3 @@
-import React from 'react';
 import { Gift } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Skeleton } from '@/shared/components/ui/skeleton';

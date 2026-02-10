@@ -18,7 +18,6 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useOnboarding } from '@/shared/hooks/useOnboarding';
 import { OnboardingModal } from '@/shared/components/OnboardingModal';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
-import { usePageVisibility } from '@/shared/hooks/usePageVisibility';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useProductTour } from '@/shared/hooks/useProductTour';
 import { ChunkLoadErrorBoundary } from '@/shared/components/ChunkLoadErrorBoundary';
@@ -114,7 +113,6 @@ const Layout: React.FC = () => {
     if (isMobileSplitView && !wasSplitViewRef.current) {
       // Transitioning TO split view - use the last tracked window scroll position
       const scrollToRestore = lastWindowScrollRef.current;
-      console.log('[SplitViewScroll] Transitioning TO split view, restoring scroll:', scrollToRestore);
       // Synchronously set scroll on the wrapper (it should exist by now in useLayoutEffect)
       if (splitViewWrapperRef.current) {
         splitViewWrapperRef.current.scrollTop = scrollToRestore;
@@ -124,7 +122,6 @@ const Layout: React.FC = () => {
     } else if (!isMobileSplitView && wasSplitViewRef.current) {
       // Transitioning FROM split view - use the last tracked wrapper scroll position
       const scrollToRestore = lastWrapperScrollRef.current;
-      console.log('[SplitViewScroll] Transitioning FROM split view, restoring scroll:', scrollToRestore);
       window.scrollTo(0, scrollToRestore);
       // Also update window tracking
       lastWindowScrollRef.current = scrollToRestore;
@@ -136,7 +133,6 @@ const Layout: React.FC = () => {
   useEffect(() => {
     const handleScrollToTop = (e: CustomEvent<{ behavior?: ScrollBehavior }>) => {
       if (isMobileSplitView && splitViewWrapperRef.current) {
-        console.log('[SplitViewScroll] Handling app:scrollToTop event');
         splitViewWrapperRef.current.scrollTo({ 
           top: 0, 
           behavior: e.detail?.behavior || 'auto' 
@@ -150,10 +146,6 @@ const Layout: React.FC = () => {
     };
   }, [isMobileSplitView]);
   
-  // Track page visibility for debugging polling issues
-  // TEMPORARILY DISABLED to avoid conflicts with RealtimeBoundary
-  // usePageVisibility();
-
   // Get content-responsive breakpoints for app-wide use
   const { isSm, isMd, isLg, isXl, is2Xl, contentWidth, contentHeight } = useContentResponsive();
 
@@ -243,12 +235,10 @@ const Layout: React.FC = () => {
           .maybeSingle();
 
         if (shot) {
-          console.log('[Onboarding] Navigating to Getting Started shot:', shot.id);
           navigate(`/tools/travel-between-images?shot=${shot.id}`);
 
           // Start product tour after brief delay to let the page load
           setTimeout(() => {
-            console.log('[Onboarding] Starting product tour');
             startTour();
           }, 1000);
         }

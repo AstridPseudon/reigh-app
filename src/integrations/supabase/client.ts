@@ -7,7 +7,6 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, __IS_DEV_ENV__, __WS_INSTRUMENT
 import { installWindowOnlyInstrumentation } from '@/integrations/supabase/instrumentation/window';
 import { installRealtimeInstrumentation } from '@/integrations/supabase/instrumentation/realtime';
 // Removed InstrumentationManager - system simplified
-import { captureRealtimeSnapshot } from '@/integrations/supabase/utils/snapshot';
 import { __CORRUPTION_TIMELINE__ } from '@/integrations/supabase/utils/timeline';
 import { initAuthStateManager } from '@/integrations/supabase/auth/AuthStateManager';
 import { getReconnectScheduler } from '@/integrations/supabase/reconnect/ReconnectScheduler';

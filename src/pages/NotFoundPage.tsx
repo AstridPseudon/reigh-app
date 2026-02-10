@@ -1,4 +1,4 @@
-import { Link, useRouteError, useNavigate, isRouteErrorResponse } from 'react-router-dom';
+import { useRouteError, useNavigate, isRouteErrorResponse } from 'react-router-dom';
 import { Home, Compass, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 

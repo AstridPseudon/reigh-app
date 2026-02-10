@@ -682,12 +682,17 @@ export function useSegmentOutputsForShot(
         }
       }
 
-      // Priority 2: child_order (fallback ONLY if no pair_shot_generation_id exists)
-      // If the video HAS a pair_shot_gen_id but it's at an invalid position (end), don't fallback
-      if (derivedSlot === undefined && !pairShotGenId && typeof childOrder === 'number' &&
-          childOrder >= 0 && childOrder < slotCount) {
+      // Priority 2: child_order fallback
+      // Fall back to child_order when:
+      // - No pairShotGenId at all, OR
+      // - pairShotGenId is stale (not in position map) — e.g. after image duplication
+      //   creates new shot_generation IDs but segments still reference the originals
+      // Do NOT fall back if pairShotGenId was found but at an invalid position (end)
+      const pairShotGenIdIsStale = !!pairShotGenId && !positionMap.has(pairShotGenId);
+      if (derivedSlot === undefined && (!pairShotGenId || pairShotGenIdIsStale) &&
+          typeof childOrder === 'number' && childOrder >= 0 && childOrder < slotCount) {
         derivedSlot = childOrder;
-        slotSource = 'CHILD_ORDER';
+        slotSource = pairShotGenIdIsStale ? 'CHILD_ORDER_STALE_FK' : 'CHILD_ORDER';
       }
 
       console.log(`[PairSlot] 🟢 Video ${child.id.substring(0, 8)} | pairShotGenId=${pairShotGenId || 'NULL'} | pos=${pairShotGenPosition ?? 'N/A'} | childOrder=${childOrder} | derivedSlot=${derivedSlot} | source=${slotSource}`);

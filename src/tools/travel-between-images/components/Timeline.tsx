@@ -1,52 +1,14 @@
 /**
- * Timeline Component - Refactored Modular Architecture
- * 
- * This is the main Timeline component that orchestrates all timeline functionality
- * using a modular architecture. The complex logic has been extracted into focused
- * modules for better maintainability and testability.
- * 
- * 📁 MODULAR STRUCTURE:
- * 
- * 🎯 /hooks/ - Custom hooks for specific functionality:
- *   • usePositionManagement.ts - Manages all position state and database updates
- *   • useCoordinateSystem.ts - Handles timeline dimensions and coordinate calculations  
- *   • useLightbox.ts - Manages lightbox state and navigation (mobile + desktop)
- *   • useGlobalEvents.ts - Handles global mouse events during drag operations
- *   • useZoom.ts - Zoom controls and viewport management
- *   • useFileDrop.ts - File drag-and-drop functionality
- *   • useTimelineDrag.ts - Complex drag-and-drop timeline operations
- * 
- * 🔧 /utils/ - Utility functions and helpers:
- *   • timeline-utils.ts - Core calculation functions (dimensions, gaps, pair info)
- * 
- * 🎨 /components/ - UI components:
- *   • TimelineContainer.tsx - Main timeline rendering logic and controls
- *   • TimelineControls.tsx - Zoom and context frame controls
- *   • TimelineRuler.tsx - Frame number ruler display
- *   • TimelineItem.tsx - Individual draggable timeline items
- *   • PairRegion.tsx - Pair visualization and context display
- *   • DropIndicator.tsx - Visual feedback for file drops
- *   • SegmentSettingsModal.tsx - Modal for editing segment settings (prompts, frames, motion, LoRAs)
- * 
- * 🏗️ ARCHITECTURE BENEFITS:
- *   • Single Responsibility - Each module has one clear purpose
- *   • Testability - Hooks can be unit tested in isolation
- *   • Maintainability - Changes are localized to specific modules
- *   • Reusability - Hooks can be used in other components
- *   • Performance - Optimized re-render patterns and dependency management
- *   • Debugging - Structured logging with categorized output
- * 
- * 📊 SIZE REDUCTION: 1,287 lines → 347 lines (73% reduction)
+ * Timeline - orchestrates timeline hooks and renders TimelineContainer + MediaLightbox.
+ * Modular sub-components live in ./Timeline/hooks/, ./Timeline/utils/, ./Timeline/ (components).
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { GenerationRow } from "@/types/shots";
 import { toast } from "@/shared/components/ui/sonner";
 import { handleError } from "@/shared/lib/errorHandler";
 import MediaLightbox from "@/shared/components/MediaLightbox";
 import { useIsMobile } from "@/shared/hooks/use-mobile";
-import { useDeviceDetection } from "@/shared/hooks/useDeviceDetection";
 import { Image, Upload } from "lucide-react";
 import { transformForTimeline, type RawShotGeneration } from "@/shared/lib/generationTransformers";
 import { isVideoGeneration } from "@/shared/lib/typeGuards";
@@ -54,26 +16,20 @@ import { useTaskFromUnifiedCache } from "@/shared/hooks/useTaskPrefetch";
 import { useGetTask } from "@/shared/hooks/useTasks";
 import { deriveInputImages } from "@/shared/components/MediaGallery/utils";
 import type { SegmentSlot } from "../hooks/useSegmentOutputsForShot";
-import type { AdjacentSegmentsData } from "@/shared/components/MediaLightbox/types";
 
 // Clear legacy timeline cache on import
 import "@/utils/clearTimelineCache";
 
-// Import our extracted hooks and components
+import { useAdjacentSegments } from "./Timeline/hooks/useAdjacentSegments";
 import { usePositionManagement } from "./Timeline/hooks/usePositionManagement";
-import { useCoordinateSystem } from "./Timeline/hooks/useCoordinateSystem";
 import { useLightbox } from "./Timeline/hooks/useLightbox";
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
 import { useTimelinePositionUtils } from "@/shared/hooks/useTimelinePositionUtils";
-import { calculateMaxGap, validateGaps } from "./Timeline/utils/timeline-utils";
 import { quantizeGap } from "./Timeline/utils/time-utils";
 import { useExternalGenerations } from "@/shared/components/ShotImageManager/hooks/useExternalGenerations";
 import { useDerivedNavigation } from "@/shared/hooks/useDerivedNavigation";
 import { usePendingImageOpen } from "@/shared/hooks/usePendingImageOpen";
-import { useRenderCount } from "@/shared/components/debug/RefactorMetricsCollector";
 
-// Import components
-import TimelineControls from "./Timeline/TimelineControls";
 import TimelineContainer from "./Timeline/TimelineContainer";
 import { ImageUploadActions } from "@/shared/components/ImageUploadActions";
 
@@ -86,17 +42,12 @@ export interface TimelineProps {
   onFramePositionsChange?: (framePositions: Map<string, number>) => void;
   onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
-  pendingPositions?: Map<string, number>;
-  onPendingPositionApplied?: (generationId: string) => void;
   // Read-only mode - disables all interactions
   readOnly?: boolean;
   // Shared data props to prevent hook re-instantiation
   shotGenerations?: import("@/shared/hooks/useEnhancedShotPositions").ShotGeneration[];
-  updateTimelineFrame?: (generationId: string, frame: number) => Promise<void>;
   images?: GenerationRow[]; // Filtered images for display
   allGenerations?: GenerationRow[]; // ALL generations for lookups (unfiltered)
-  // Callback to reload parent data after timeline changes
-  onTimelineChange?: () => Promise<void>;
   // Pair-specific prompt editing
   onPairClick?: (pairIndex: number, pairData: {
     index: number;
@@ -199,9 +150,6 @@ export interface TimelineProps {
   onRegisterTrailingUpdater?: (fn: (endFrame: number) => void) => void;
 }
 
-/**
- * Refactored Timeline component with extracted hooks and modular architecture
- */
 const Timeline: React.FC<TimelineProps> = ({
   shotId,
   projectId,
@@ -210,15 +158,11 @@ const Timeline: React.FC<TimelineProps> = ({
   onFramePositionsChange,
   onFileDrop,
   onGenerationDrop,
-  pendingPositions,
-  onPendingPositionApplied,
   readOnly = false,
   // Shared data props
   shotGenerations: propShotGenerations,
-  updateTimelineFrame: propUpdateTimelineFrame,
   images: propImages,
   allGenerations: propAllGenerations,
-  onTimelineChange,
   onPairClick,
   defaultPrompt,
   defaultNegativePrompt,
@@ -279,52 +223,6 @@ const Timeline: React.FC<TimelineProps> = ({
   // Position system: trailing end frame updater registration
   onRegisterTrailingUpdater,
 }) => {
-  // [RefactorMetrics] Track render count for baseline measurements
-  useRenderCount('Timeline');
-  
-  // [ZoomDebug] Track Timeline mounts to detect unwanted remounts
-  const timelineMountRef = React.useRef(0);
-  React.useEffect(() => {
-    timelineMountRef.current++;
-    console.log('[ZoomDebug] 🟢 Timeline MOUNTED:', {
-      mountCount: timelineMountRef.current,
-      shotId: shotId?.substring(0, 8),
-      propImagesCount: propImages?.length || 0,
-      timestamp: Date.now()
-    });
-    return () => {
-      console.log('[ZoomDebug] 🟢 Timeline UNMOUNTING:', {
-        mountCount: timelineMountRef.current,
-        shotId: shotId?.substring(0, 8),
-        timestamp: Date.now()
-      });
-    };
-  }, []);
-
-  // [ShotNavPerf] Track Timeline component renders and image count - ONLY ON CHANGE
-  const timelineRenderCount = React.useRef(0);
-  timelineRenderCount.current += 1;
-  const prevTimelineStateRef = React.useRef<string>('');
-  const timelineStateKey = `${shotId}-${propImages?.length || 0}-${propShotGenerations?.length || 0}`;
-  
-  React.useEffect(() => {
-    if (prevTimelineStateRef.current !== timelineStateKey) {
-      console.log('[ShotNavPerf] 🎞️ Timeline STATE CHANGED (render #' + timelineRenderCount.current + ')', {
-        shotId: shotId?.substring(0, 8),
-        propImagesCount: propImages?.length || 0,
-        propShotGenerationsCount: propShotGenerations?.length || 0,
-        timestamp: Date.now()
-      });
-      prevTimelineStateRef.current = timelineStateKey;
-    }
-  }, [timelineStateKey, shotId, propImages?.length, propShotGenerations?.length]);
-  
-  // Navigation
-  const navigate = useNavigate();
-  
-  // Core state
-  const [isPersistingPositions, setIsPersistingPositions] = useState<boolean>(false);
-  
   // Local state for shot selector dropdown (separate from the shot being viewed)
   const [lightboxSelectedShotId, setLightboxSelectedShotId] = useState<string | undefined>(selectedShotId || shotId);
   const [isDragInProgress, setIsDragInProgress] = useState<boolean>(false);
@@ -334,10 +232,6 @@ const Timeline: React.FC<TimelineProps> = ({
     onDragStateChange?.(isDragInProgress);
   }, [isDragInProgress, onDragStateChange]);
 
-  // Refs (removed initialContextFrames - no longer needed for auto-adjustment)
-
-  // Remove excessive render tracking - not needed in production
-  
   // Use shared hook data if provided, otherwise create new instance (for backward compatibility)
   // NEW: When propAllGenerations is provided, use utility hook for position management with ALL data
   const coreHookData = useTimelineCore(!propAllGenerations ? shotId : null);
@@ -347,53 +241,10 @@ const Timeline: React.FC<TimelineProps> = ({
     projectId: projectId, // Pass projectId to invalidate ShotsPane cache
   });
   
-  // Choose data source: utility hook if allGenerations provided, else core hook
-  const hookData = propAllGenerations ? {
-    shotGenerations: utilsHookData.shotGenerations,
-    updateTimelineFrame: utilsHookData.updateTimelineFrame,
-    batchExchangePositions: utilsHookData.batchExchangePositions,
-    initializeTimelineFrames: utilsHookData.initializeTimelineFrames,
-    loadPositions: utilsHookData.loadPositions,
-    pairPrompts: utilsHookData.pairPrompts,
-    isLoading: utilsHookData.isLoading,
-  } : {
-    // Map useTimelineCore output to expected interface
-    shotGenerations: coreHookData.positionedItems,
-    updateTimelineFrame: coreHookData.updatePosition,
-    batchExchangePositions: coreHookData.commitPositions,
-    initializeTimelineFrames: async () => {}, // Not needed in core hook
-    loadPositions: coreHookData.refetch,
-    pairPrompts: coreHookData.pairPrompts,
-    isLoading: coreHookData.isLoading,
-  };
-  
-  const shotGenerations = propShotGenerations || hookData.shotGenerations;
-  const updateTimelineFrame = propUpdateTimelineFrame || hookData.updateTimelineFrame;
-  const batchExchangePositions = hookData.batchExchangePositions; // Always use hook for exchanges
-  const initializeTimelineFrames = hookData.initializeTimelineFrames;
-  
-  // [TimelineVisibility] Track when Timeline receives data updates from parent
-  React.useEffect(() => {
-    console.log('[TimelineVisibility] 📥 Timeline DATA RECEIVED from parent:', {
-      shotId: shotId?.substring(0, 8) ?? 'none',
-      propShotGenerationsCount: propShotGenerations?.length ?? 0,
-      propImagesCount: propImages?.length ?? 0,
-      shotGenerationsCount: shotGenerations.length,
-      hasPropImages: !!propImages,
-      dataSource: propImages ? 'utility hook (two-phase)' : 'legacy hook',
-      timestamp: Date.now()
-    });
-  }, [shotId, propShotGenerations, propImages, shotGenerations]);
-
-  console.log('[DataTrace] 📥 Timeline received data:', {
-    shotId: shotId?.substring(0, 8) ?? 'none',
-    shotGenerationsCount: shotGenerations.length,
-    propImagesCount: propImages?.length || 0,
-    usingPropImages: !!propImages,
-  });
-
-  const actualPairPrompts = hookData.pairPrompts;
-  const isLoading = propShotGenerations ? false : hookData.isLoading; // If props provided, never show loading (shared data)
+  // Choose data source: props > utility hook (when allGenerations provided) > core hook
+  const shotGenerations = propShotGenerations || (propAllGenerations ? utilsHookData.shotGenerations : coreHookData.positionedItems);
+  const loadPositions = propAllGenerations ? utilsHookData.loadPositions : coreHookData.refetch;
+  const actualPairPrompts = propAllGenerations ? utilsHookData.pairPrompts : coreHookData.pairPrompts;
   
   // Use provided images or generate from shotGenerations
   const images = React.useMemo(() => {
@@ -402,11 +253,9 @@ const Timeline: React.FC<TimelineProps> = ({
     if (propImages) {
       result = propImages;
     } else {
-      // Use shared transformer instead of inline mapping
       result = shotGenerations
         .filter(shotGen => shotGen.generation)
-        .map(shotGen => transformForTimeline(shotGen as unknown as RawShotGeneration))
-        .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
+        .map(shotGen => transformForTimeline(shotGen as unknown as RawShotGeneration));
     }
     
     // CRITICAL: Filter out videos - they should never appear on timeline
@@ -428,87 +277,23 @@ const Timeline: React.FC<TimelineProps> = ({
       return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
 
-    // [TimelineVisibility] Log images array changes
-    console.log(`[TimelineVisibility] 📸 IMAGES ARRAY COMPUTED:`, {
-      shotId: shotId?.substring(0, 8) ?? 'none',
-      source: propImages ? 'propImages' : 'shotGenerations',
-      totalImages: result.length,
-      shotGenerationsCount: shotGenerations.length,
-      images: result.map(img => ({
-        id: img.id?.substring(0, 8), // shot_generations.id
-        generation_id: img.generation_id?.substring(0, 8),
-        timeline_frame: img.timeline_frame,
-        hasImageUrl: !!img.imageUrl
-      })),
-      timestamp: Date.now()
-    });
-
-    // [Position0Debug] Log timeline data transformation for debugging
-    const position0Images = result.filter(img => img.timeline_frame === 0);
-    console.log(`[Position0Debug] 🎭 Timeline images data transformation:`, {
-      shotId,
-      totalImages: result.length,
-      dataSource: propImages ? 'propImages' : 'shotGenerations',
-      position0Images: position0Images.map(img => ({
-        id: img.id?.substring(0, 8), // shot_generations.id
-        generation_id: img.generation_id?.substring(0, 8),
-        timeline_frame: img.timeline_frame,
-        hasImageUrl: !!img.imageUrl
-      })),
-      allImages: result.map(img => ({
-        id: img.id?.substring(0, 8), // shot_generations.id
-        generation_id: img.generation_id?.substring(0, 8),
-        timeline_frame: img.timeline_frame,
-        hasImageUrl: !!img.imageUrl
-      })).sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0)),
-      shotGenerationsData: !propImages ? shotGenerations.map(shotGen => ({
-        id: shotGen.id.substring(0, 8),
-        generation_id: shotGen.generation_id?.substring(0, 8),
-        timeline_frame: shotGen.timeline_frame,
-        hasGeneration: !!shotGen.generation
-      })) : 'using propImages'
-    });
-
-    console.log('[DataTrace] 🎨 Timeline final images for display:', {
-      shotId: shotId?.substring(0, 8) ?? 'none',
-      total: result.length,
-      source: propImages ? 'propImages' : 'shotGenerations',
-      positioned: result.filter(img => img.timeline_frame != null && img.timeline_frame >= 0).length,
-    });
-    
     return result;
-  }, [shotGenerations, propImages, shotId]);
+  }, [shotGenerations, propImages]);
 
-  // Pass all generations for readOnly mode
-  // This allows SegmentOutputStrip to derive parent/child videos and timeline data
-  // without database queries (uses the same filtering logic as the hooks)
-  const allGenerationsForReadOnly = readOnly ? propAllGenerations : undefined;
+  // In readOnly mode, pass all generations so SegmentOutputStrip can derive
+  // parent/child videos without database queries
+  const readOnlyGenerations = readOnly ? propAllGenerations : undefined;
 
   // Position management hook
   const {
-    framePositions,
     displayPositions,
-    stablePositions,
-    setStablePositions,
     setFramePositions,
-    analyzePositionChanges
   } = usePositionManagement({
     shotId,
     shotGenerations,
     frameSpacing,
-    isLoading,
-    isPersistingPositions,
     isDragInProgress,
-    updateTimelineFrame,
     onFramePositionsChange,
-    setIsPersistingPositions
-  });
-
-  // Coordinate system hook
-  const { fullMin, fullMax, fullRange } = useCoordinateSystem({
-    positions: displayPositions,
-    shotId,
-    isDragInProgress
   });
 
   // Ref for lightbox index setter (needed for external generations)
@@ -531,7 +316,6 @@ const Timeline: React.FC<TimelineProps> = ({
   const isMobile = useIsMobile();
   const {
     lightboxIndex,
-    currentLightboxImage: hookLightboxImage,
     autoEnterInpaint,
     goNext,
     goPrev,
@@ -540,10 +324,8 @@ const Timeline: React.FC<TimelineProps> = ({
     openLightboxWithInpaint,
     handleDesktopDoubleClick,
     handleMobileTap,
-    hasNext: hookHasNext,
-    hasPrevious: hookHasPrevious,
     showNavigation,
-    setLightboxIndex // Get the raw state setter
+    setLightboxIndex,
   } = useLightbox({ images: currentImages, shotId, isMobile });
   
   // Update the ref with the actual setter, using the raw state setter to avoid stale closures
@@ -584,173 +366,44 @@ const Timeline: React.FC<TimelineProps> = ({
   const hasNext = derivedHasNext;
   const hasPrevious = derivedHasPrevious;
 
-  // Compute adjacent segments data for lightbox navigation
-  // This enables navigation between the current image and videos that start/end with it
-  const adjacentSegmentsData: AdjacentSegmentsData | undefined = useMemo(() => {
-    if (!segmentSlots || segmentSlots.length === 0 || !onOpenSegmentSlot || lightboxIndex === null) {
-      return undefined;
-    }
+  const adjacentSegmentsData = useAdjacentSegments({
+    segmentSlots,
+    onOpenSegmentSlot,
+    lightboxIndex,
+    images,
+    currentImages,
+    closeLightbox,
+    navigateWithTransition,
+  });
 
-    const currentImage = currentImages[lightboxIndex];
-    if (!currentImage) {
-      return undefined;
-    }
-
-    // Find the position of the current image in the images array
-    // lightboxIndex is into currentImages which is [...images, ...externalGens...]
-    // If lightboxIndex >= images.length, it's an external gen and shouldn't have adjacent segments
-    if (lightboxIndex >= images.length) {
-      return undefined;
-    }
-
-    // The image's position in the timeline is its index in the images array
-    const imagePosition = lightboxIndex;
-
-    // Helper to get image URL from images array by position
-    const getImageUrl = (position: number): string | undefined => {
-      const img = images[position];
-      const urlFallback = (img as (typeof img & { url?: string }) | undefined)?.url;
-      return img?.thumbUrl || img?.imageUrl || urlFallback || img?.location;
-    };
-
-    let prevSegment: { pairIndex: number; hasVideo: boolean; startImageUrl?: string; endImageUrl?: string } | undefined;
-    let nextSegment: { pairIndex: number; hasVideo: boolean; startImageUrl?: string; endImageUrl?: string } | undefined;
-
-    // Slot at position P starts at image P and ends at image P+1
-    // If current image is at position P:
-    // - nextSegment: slot at index P (segment starting at this image), if P < segmentSlots.length
-    // - prevSegment: slot at index P-1 (segment ending at this image), if P > 0
-
-    // Check if there's a segment starting at this image (nextSegment)
-    // Segment at position P goes from image P to image P+1
-    if (imagePosition < segmentSlots.length) {
-      const slot = segmentSlots[imagePosition];
-      if (slot) {
-        const hasVideo = slot.type === 'child' && !!slot.child.location;
-        nextSegment = {
-          pairIndex: slot.index,
-          hasVideo,
-          startImageUrl: getImageUrl(imagePosition),      // Start image is current image
-          endImageUrl: getImageUrl(imagePosition + 1),    // End image is next image
-        };
-      }
-    }
-
-    // Check if there's a segment ending at this image (prevSegment)
-    // Segment at position P-1 goes from image P-1 to image P (current)
-    if (imagePosition > 0 && imagePosition - 1 < segmentSlots.length) {
-      const slot = segmentSlots[imagePosition - 1];
-      if (slot) {
-        const hasVideo = slot.type === 'child' && !!slot.child.location;
-        prevSegment = {
-          pairIndex: slot.index,
-          hasVideo,
-          startImageUrl: getImageUrl(imagePosition - 1),  // Start image is previous image
-          endImageUrl: getImageUrl(imagePosition),        // End image is current image
-        };
-      }
-    }
-
-    // [SegmentNavDebug] Log for debugging
-    console.log('[SegmentNavDebug] Timeline position-based matching:', {
-      lightboxIndex,
-      imagePosition,
-      totalImages: images.length,
-      totalSegmentSlots: segmentSlots.length,
-      hasPrev: !!prevSegment,
-      hasNext: !!nextSegment,
-      prevHasVideo: prevSegment?.hasVideo,
-      nextHasVideo: nextSegment?.hasVideo,
-      prevStartUrl: prevSegment?.startImageUrl?.substring(0, 50),
-      prevEndUrl: prevSegment?.endImageUrl?.substring(0, 50),
-      nextStartUrl: nextSegment?.startImageUrl?.substring(0, 50),
-      nextEndUrl: nextSegment?.endImageUrl?.substring(0, 50),
-    });
-
-    // If neither prev nor next segment found, no navigation available
-    if (!prevSegment && !nextSegment) {
-      return undefined;
-    }
-
-    return {
-      prev: prevSegment,
-      next: nextSegment,
-      onNavigateToSegment: (pairIndex: number) => {
-        console.log('[LightboxTransition] onNavigateToSegment: using transition');
-        if (navigateWithTransition) {
-          navigateWithTransition(() => {
-            closeLightbox();
-            onOpenSegmentSlot(pairIndex);
-          });
-        } else {
-          // Fallback if no transition helper provided
-          closeLightbox();
-          onOpenSegmentSlot(pairIndex);
-        }
-      },
-    };
-  }, [segmentSlots, onOpenSegmentSlot, lightboxIndex, currentImages, closeLightbox, navigateWithTransition]);
-
-  // Adapter functions for onAddToShot that use the target shot ID from the callback
-  // CRITICAL FIX: Now receives targetShotId from the callback, not from local state!
-  // This ensures the image is added to the shot the user SELECTED in the dropdown
+  // Adapter: adds error toasting over the raw onAddToShot/onAddToShotWithoutPosition props
   const handleAddToShotAdapter = useCallback(async (
     targetShotId: string,
     generationId: string,
-    imageUrl?: string,
-    thumbUrl?: string
   ): Promise<boolean> => {
-    if (!onAddToShot || !targetShotId) {
-      console.warn('[Timeline] Cannot add to shot: missing onAddToShot or targetShotId');
-      return false;
-    }
-
+    if (!onAddToShot || !targetShotId) return false;
     try {
-      console.log('[Timeline] Adding generation to shot with position', {
-        generationId: generationId.substring(0, 8),
-        targetShotId: targetShotId.substring(0, 8),
-        lightboxSelectedShotId: lightboxSelectedShotId?.substring(0, 8)
-      });
-
-      // Call parent's onAddToShot with the target shot ID from the callback
-      // Position is undefined to let the mutation calculate the correct position for the TARGET shot
       await onAddToShot(targetShotId, generationId, undefined);
       return true;
     } catch (error) {
       handleError(error, { context: 'Timeline', toastTitle: 'Failed to add to shot' });
       return false;
     }
-  }, [lightboxSelectedShotId, onAddToShot]);
+  }, [onAddToShot]);
 
-  // CRITICAL FIX: Now receives targetShotId from the callback
   const handleAddToShotWithoutPositionAdapter = useCallback(async (
     targetShotId: string,
     generationId: string,
-    imageUrl?: string,
-    thumbUrl?: string
   ): Promise<boolean> => {
-    if (!onAddToShotWithoutPosition || !targetShotId) {
-      console.warn('[Timeline] Cannot add to shot without position: missing handler or targetShotId');
-      return false;
-    }
-
+    if (!onAddToShotWithoutPosition || !targetShotId) return false;
     try {
-      console.log('[Timeline] Adding generation to shot without position', {
-        generationId: generationId.substring(0, 8),
-        targetShotId: targetShotId.substring(0, 8)
-      });
-
-      // Call parent's onAddToShotWithoutPosition with the target shot ID from callback
       await onAddToShotWithoutPosition(targetShotId, generationId);
       return true;
     } catch (error) {
       handleError(error, { context: 'Timeline', toastTitle: 'Failed to add to shot' });
       return false;
     }
-  }, [lightboxSelectedShotId, onAddToShotWithoutPosition]);
-
-  // Detect tablet/iPad size (768px+) for side-by-side task details layout
-  const { isTabletOrLarger } = useDeviceDetection();
+  }, [onAddToShotWithoutPosition]);
 
   // Fetch task ID mapping from unified cache
   // Uses generation_id (the actual generation record) not id (shot_generations entry)
@@ -801,7 +454,6 @@ const Timeline: React.FC<TimelineProps> = ({
   // Close lightbox if current image no longer exists (e.g., deleted)
   useEffect(() => {
     if (lightboxIndex !== null && !currentLightboxImage) {
-      console.log('[Timeline] Current lightbox image no longer exists, closing lightbox');
       closeLightbox();
     }
   }, [lightboxIndex, currentLightboxImage, closeLightbox]);
@@ -814,39 +466,17 @@ const Timeline: React.FC<TimelineProps> = ({
       
       // Only refetch if this event is for our current shot
       if (updatedShotId === shotId) {
-        console.log('[StarPersist] 🎯 Timeline received star-updated event, refetching...', {
-          shotId,
-          timestamp: Date.now()
-        });
-        
-        // Trigger a refetch of shot generations
-        if (hookData?.loadPositions) {
-          hookData.loadPositions({ silent: true, reason: 'shot_change' });
-        }
+        loadPositions?.({ silent: true, reason: 'shot_change' });
       }
     };
-    
+
     window.addEventListener('generation-star-updated', handleStarUpdated);
     return () => window.removeEventListener('generation-star-updated', handleStarUpdated);
-  }, [shotId, hookData]);
+  }, [shotId, loadPositions]);
 
-  // Track previous context frames to detect increases
-  // const prevContextFramesRef = useRef<number>(contextFrames);
-  // const isAdjustingRef = useRef<boolean>(false);
-  
-  // Auto-adjust timeline positions when context frames increases
-  /*
-  // REMOVED: Auto-adjust logic for context frames as context frames are being removed
-  // The logic was checking if currentContext > prevContext and adjusting positions if gaps were too small
-  // or too large based on calculateMaxGap(contextFrames).
-  */
-
-  // Handle resetting frames to evenly spaced intervals and setting context frames
+  // Handle resetting frames to evenly spaced intervals
   // Gap values are quantized to 4N+1 format for Wan model compatibility
   const handleResetFrames = useCallback(async (gap: number) => {
-    // First set the context frames (this will trigger all constraint recalculations)
-    // onContextFramesChange(newContextFrames); // Removed
-    
     // Quantize the gap to 4N+1 format (5, 9, 13, 17, 21, 25, 29, 33, ...)
     const quantizedGap = quantizeGap(gap, 5);
     
@@ -961,6 +591,31 @@ const Timeline: React.FC<TimelineProps> = ({
       handleError(error, { context: 'Timeline', toastTitle: 'Failed to add images' });
     }
   }, [onImageUpload, onGenerationDrop]);
+
+  // Derive lightbox shot state for the current image (replaces inline IIFE in JSX)
+  const lightboxShotState = useMemo(() => {
+    if (lightboxIndex === null || !currentLightboxImage) return null;
+    const isExternalGen = lightboxIndex >= images.length;
+    const imageWithAssociations = currentLightboxImage as GenerationRow & {
+      shot_id?: string;
+      all_shot_associations?: Array<{ shot_id: string; position: number | null; timeline_frame?: number | null }>;
+    };
+    const isInSelectedShot = !isExternalGen && lightboxSelectedShotId && (
+      shotId === lightboxSelectedShotId ||
+      imageWithAssociations.shot_id === lightboxSelectedShotId ||
+      (Array.isArray(imageWithAssociations.all_shot_associations) &&
+       imageWithAssociations.all_shot_associations.some((assoc) => assoc.shot_id === lightboxSelectedShotId))
+    );
+    return {
+      isExternalGen,
+      positionedInSelectedShot: isInSelectedShot
+        ? currentLightboxImage.timeline_frame !== null && currentLightboxImage.timeline_frame !== undefined
+        : undefined,
+      associatedWithoutPositionInSelectedShot: isInSelectedShot
+        ? currentLightboxImage.timeline_frame === null || currentLightboxImage.timeline_frame === undefined
+        : undefined,
+    };
+  }, [lightboxIndex, currentLightboxImage, images.length, lightboxSelectedShotId, shotId]);
 
   return (
     <div className="w-full overflow-x-hidden relative" data-tour="timeline">
@@ -1079,121 +734,73 @@ const Timeline: React.FC<TimelineProps> = ({
         segmentSlots={segmentSlots}
         isSegmentsLoading={isSegmentsLoading}
         hasPendingTask={hasPendingTask}
-        videoOutputs={allGenerationsForReadOnly}
+        videoOutputs={readOnlyGenerations}
         onNewShotFromSelection={onNewShotFromSelection}
         onShotChange={onShotChange}
         onRegisterTrailingUpdater={onRegisterTrailingUpdater}
       />
 
       {/* Lightbox */}
-      {lightboxIndex !== null && currentLightboxImage && (() => {
-        // Determine if the current image is positioned in the selected shot
-        // For timeline images (non-external gens), check if they have a timeline_frame
-        // Use lightboxSelectedShotId instead of selectedShotId so it updates when dropdown changes
-        const isExternalGen = lightboxIndex >= images.length;
-        // Extend type to access fields added by generationTransformers at runtime
-        const imageWithAssociations = currentLightboxImage as GenerationRow & {
-          shot_id?: string;
-          all_shot_associations?: Array<{ shot_id: string; position: number | null; timeline_frame?: number | null }>;
-        };
-        const isInSelectedShot = !isExternalGen && lightboxSelectedShotId && (
-          shotId === lightboxSelectedShotId ||
-          imageWithAssociations.shot_id === lightboxSelectedShotId ||
-          (Array.isArray(imageWithAssociations.all_shot_associations) &&
-           imageWithAssociations.all_shot_associations.some((assoc) => assoc.shot_id === lightboxSelectedShotId))
-        );
-
-        const positionedInSelectedShot = isInSelectedShot
-          ? currentLightboxImage.timeline_frame !== null && currentLightboxImage.timeline_frame !== undefined
-          : undefined;
-
-        const associatedWithoutPositionInSelectedShot = isInSelectedShot
-          ? currentLightboxImage.timeline_frame === null || currentLightboxImage.timeline_frame === undefined
-          : undefined;
-
-        return (
-          <MediaLightbox
-            media={currentLightboxImage}
-            shotId={shotId}
-            starred={currentLightboxImage.starred ?? false}
-            autoEnterInpaint={autoEnterInpaint}
-            toolTypeOverride="travel-between-images"
-            initialVariantId={capturedVariantIdRef.current ?? undefined}
-            onClose={() => {
-              capturedVariantIdRef.current = null;
-              closeLightbox();
-              // Reset dropdown to current shot when closing
-              setLightboxSelectedShotId(selectedShotId || shotId);
-            }}
-            onNext={images.length > 1 ? wrappedGoNext : undefined}
-            onPrevious={images.length > 1 ? wrappedGoPrev : undefined}
-            readOnly={readOnly}
-            onDelete={!readOnly ? (mediaId: string) => {
-              console.log('[Timeline] Delete from lightbox', {
-                mediaId,
-                id: currentLightboxImage.id, // shot_generations.id - unique per entry
-                generation_id: currentLightboxImage.generation_id
-              });
-              // Use id (shot_generations.id) for deletion to target the specific entry
-              onImageDelete(currentLightboxImage.id);
-            } : undefined}
-            showNavigation={showNavigation}
-            showMagicEdit={true}
-            hasNext={hasNext}
-            hasPrevious={hasPrevious}
-            onNavigateToGeneration={(generationId: string) => {
-              console.log('[Timeline:DerivedNav] 📍 Navigate to generation', {
-                generationId: generationId.substring(0, 8),
-                timelineImagesCount: images.length,
-                externalGenerationsCount: externalGens.externalGenerations.length,
-                tempDerivedCount: externalGens.tempDerivedGenerations.length,
-                totalImagesCount: currentImages.length
-              });
-              // Search in combined images (timeline + external + derived)
-              const index = currentImages.findIndex((img) => img.id === generationId);
-              if (index !== -1) {
-                console.log('[Timeline:DerivedNav] ✅ Found at index', index);
-                openLightbox(index);
-              } else {
-                console.log('[Timeline:DerivedNav] ⚠️ Not found in current images');
-                toast.info('This generation is not currently loaded');
-              }
-            }}
-            onOpenExternalGeneration={externalGens.handleOpenExternalGeneration}
-            onMagicEdit={(imageUrl, prompt, numImages) => {
-              // TODO: Implement magic edit generation
-              // TODO: Implement magic edit generation
-            }}
-            // Task details functionality - now shown on all devices including mobile
-            showTaskDetails={true}
-            taskDetailsData={{
-              task,
-              isLoading: isLoadingTask,
-              error: taskError,
-              inputImages,
-              taskId: task?.id || null,
-              onClose: closeLightbox
-            }}
-            // Shot management props
-            allShots={allShots}
-            selectedShotId={isExternalGen ? externalGens.externalGenLightboxSelectedShot : lightboxSelectedShotId}
-            onShotChange={isExternalGen ? (shotId) => {
-              externalGens.setExternalGenLightboxSelectedShot(shotId);
-            } : (shotId) => {
-              console.log('[Timeline] Shot selector changed to:', shotId);
-              setLightboxSelectedShotId(shotId);
-              onShotChange?.(shotId);
-            }}
-            onAddToShot={isExternalGen ? externalGens.handleExternalGenAddToShot : (onAddToShot ? handleAddToShotAdapter : undefined)}
-            onAddToShotWithoutPosition={isExternalGen ? externalGens.handleExternalGenAddToShotWithoutPosition : (onAddToShotWithoutPosition ? handleAddToShotWithoutPositionAdapter : undefined)}
-            onCreateShot={onCreateShot}
-            positionedInSelectedShot={positionedInSelectedShot}
-            associatedWithoutPositionInSelectedShot={associatedWithoutPositionInSelectedShot}
-            // Adjacent segment navigation - allows jumping to videos that start/end with this image
-            adjacentSegments={!isExternalGen ? adjacentSegmentsData : undefined}
-          />
-        );
-      })()}
+      {lightboxShotState && currentLightboxImage && (
+        <MediaLightbox
+          media={currentLightboxImage}
+          shotId={shotId}
+          starred={currentLightboxImage.starred ?? false}
+          autoEnterInpaint={autoEnterInpaint}
+          toolTypeOverride="travel-between-images"
+          initialVariantId={capturedVariantIdRef.current ?? undefined}
+          onClose={() => {
+            capturedVariantIdRef.current = null;
+            closeLightbox();
+            setLightboxSelectedShotId(selectedShotId || shotId);
+          }}
+          onNext={images.length > 1 ? wrappedGoNext : undefined}
+          onPrevious={images.length > 1 ? wrappedGoPrev : undefined}
+          readOnly={readOnly}
+          onDelete={!readOnly ? (mediaId: string) => {
+            onImageDelete(currentLightboxImage.id);
+          } : undefined}
+          showNavigation={showNavigation}
+          showMagicEdit={true}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          onNavigateToGeneration={(generationId: string) => {
+            const index = currentImages.findIndex((img) => img.id === generationId);
+            if (index !== -1) {
+              openLightbox(index);
+            } else {
+              toast.info('This generation is not currently loaded');
+            }
+          }}
+          onOpenExternalGeneration={externalGens.handleOpenExternalGeneration}
+          onMagicEdit={(imageUrl, prompt, numImages) => {
+            // TODO: Implement magic edit generation
+          }}
+          showTaskDetails={true}
+          taskDetailsData={{
+            task,
+            isLoading: isLoadingTask,
+            error: taskError,
+            inputImages,
+            taskId: task?.id || null,
+            onClose: closeLightbox
+          }}
+          allShots={allShots}
+          selectedShotId={lightboxShotState.isExternalGen ? externalGens.externalGenLightboxSelectedShot : lightboxSelectedShotId}
+          onShotChange={lightboxShotState.isExternalGen ? (shotId) => {
+            externalGens.setExternalGenLightboxSelectedShot(shotId);
+          } : (shotId) => {
+            setLightboxSelectedShotId(shotId);
+            onShotChange?.(shotId);
+          }}
+          onAddToShot={lightboxShotState.isExternalGen ? externalGens.handleExternalGenAddToShot : (onAddToShot ? handleAddToShotAdapter : undefined)}
+          onAddToShotWithoutPosition={lightboxShotState.isExternalGen ? externalGens.handleExternalGenAddToShotWithoutPosition : (onAddToShotWithoutPosition ? handleAddToShotWithoutPositionAdapter : undefined)}
+          onCreateShot={onCreateShot}
+          positionedInSelectedShot={lightboxShotState.positionedInSelectedShot}
+          associatedWithoutPositionInSelectedShot={lightboxShotState.associatedWithoutPositionInSelectedShot}
+          adjacentSegments={!lightboxShotState.isExternalGen ? adjacentSegmentsData : undefined}
+        />
+      )}
     </div>
   );
 };

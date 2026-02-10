@@ -1,4 +1,3 @@
-import React from 'react';
 import { Coins, CreditCard, DollarSign } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Slider } from '@/shared/components/ui/slider';

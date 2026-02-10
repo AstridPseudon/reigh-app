@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useState } from 'react';
 
 interface UsePaneStateReturn {
   showCreativePartner: boolean;

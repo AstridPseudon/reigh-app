@@ -1,4 +1,3 @@
-import React from 'react';
 import { Filter } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 import { Button } from '@/shared/components/ui/button';
@@ -11,7 +11,6 @@ import { ReferralModal } from '@/shared/components/ReferralModal';
 import { PlusCircle, Settings, Palette, Crown, Star, Wrench, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { ProjectSettingsModal } from '@/shared/components/ProjectSettingsModal';
-import { toast } from "@/shared/components/ui/sonner";
 import { useProjectContextDebug } from '@/shared/hooks/useProjectContextDebug';
 
 import { useIsTablet } from '@/shared/hooks/use-mobile';

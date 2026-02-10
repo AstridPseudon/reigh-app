@@ -410,10 +410,6 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     return { shotId, shotName };
   }, [onCreateShot]);
 
-  const handleTimelineChange = useCallback(async () => {
-    await loadPositions({ silent: true });
-  }, [loadPositions]);
-
   const handleClearEnhancedPromptByIndex = useCallback(async (pairIndex: number) => {
     const sorted = [...shotGenerations].filter((sg) => !isVideoAny(sg))
       .sort((a, b) => (a.timeline_frame || 0) - (b.timeline_frame || 0));
@@ -552,8 +548,6 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
                   onFramePositionsChange={onFramePositionsChange}
                   onFileDrop={onFileDrop}
                   onGenerationDrop={onGenerationDrop}
-                  pendingPositions={pendingPositions}
-                  onPendingPositionApplied={onPendingPositionApplied}
                   onImageDelete={onImageDelete}
                   onImageDuplicate={onImageDuplicate}
                   duplicatingImageId={duplicatingImageId}
@@ -561,10 +555,8 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
                   projectAspectRatio={projectAspectRatio}
                   readOnly={readOnly}
                   shotGenerations={preloadedImages ? undefined : memoizedShotGenerations}
-                  updateTimelineFrame={updateTimelineFrame}
                   allGenerations={preloadedImages}
                   images={imagesWithBadges}
-                  onTimelineChange={handleTimelineChange}
                   onDragStateChange={handleDragStateChange}
                   onPairClick={handlePairClick}
                   defaultPrompt={defaultPrompt}

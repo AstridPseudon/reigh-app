@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Video, Heart, Eye, Calendar } from 'lucide-react';
 import { PageFadeIn, FadeInSection } from '@/shared/components/transitions';
 

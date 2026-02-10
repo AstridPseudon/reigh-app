@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Github, MessageCircle, Plus, ChevronLeft, ChevronRight, Download, ExternalLink } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
+import { Github, MessageCircle, Plus, Download, ExternalLink } from 'lucide-react';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { usePlatformInstall } from '@/shared/hooks/usePlatformInstall';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { InstallInstructionsModal } from './InstallInstructionsModal';

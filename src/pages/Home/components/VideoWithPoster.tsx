@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { cn } from '@/shared/lib/utils';
 
 // Helper to get thumbnail path for an image

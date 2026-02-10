@@ -1,5 +1,5 @@
 import { __CORRUPTION_TRACE_ENABLED__, __REALTIME_DOWN_FIX_ENABLED__ } from '@/integrations/supabase/config/env';
-import { captureRealtimeSnapshot, getEffectiveRealtimeSocket } from '@/integrations/supabase/utils/snapshot';
+import { captureRealtimeSnapshot } from '@/integrations/supabase/utils/snapshot';
 import { __CORRUPTION_TIMELINE__, addCorruptionEvent } from '@/integrations/supabase/utils/timeline';
 import { handleError } from '@/shared/lib/errorHandler';
 import type { SupabaseClient } from '@supabase/supabase-js';

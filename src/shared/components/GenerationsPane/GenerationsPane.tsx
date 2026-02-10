@@ -8,7 +8,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
-import { LockIcon, UnlockIcon, Square, ChevronLeft, ChevronRight, Star, Sparkles, ExternalLink, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Sparkles, ExternalLink, Search, X } from 'lucide-react';
 import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MediaGallery } from '@/shared/components/MediaGallery';
@@ -16,7 +16,6 @@ import { useContainerWidth } from '@/shared/components/MediaGallery/hooks';
 import { getLayoutForAspectRatio } from '@/shared/components/MediaGallery/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import PaneControlTab from '../PaneControlTab';
-import { Skeleton } from '@/shared/components/ui/skeleton';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { ShotFilter } from '@/shared/components/ShotFilter';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
@@ -26,7 +25,6 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
-import { toast } from '@/shared/components/ui/sonner';
 import { useStableObject } from '@/shared/hooks/useStableObject';
 
 import {
@@ -37,7 +35,6 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { MediaTypeFilter } from '@/shared/components/MediaTypeFilter';
-import { PANE_CONFIG } from '@/shared/config/panes';
 import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants';
 
 // Fallback rows for pane (smaller than full page galleries)

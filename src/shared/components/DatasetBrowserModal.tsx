@@ -4,7 +4,7 @@
  * Shows public resources + user's own resources
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import { Search, ChevronLeft, ChevronRight, Image as ImageIcon, Video, Loader2, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { processImageUrl } from '@/shared/lib/urlToFile';
 import { handleError } from '@/shared/lib/errorHandler';
-import { useListResources, useListPublicResources, useUpdateResource, Resource, ResourceMetadata, StyleReferenceMetadata, StructureVideoMetadata, ResourceType } from '@/shared/hooks/useResources';
+import { useListResources, useListPublicResources, useUpdateResource, Resource, ResourceMetadata, StyleReferenceMetadata, StructureVideoMetadata } from '@/shared/hooks/useResources';
 import { supabase } from '@/integrations/supabase/client';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 
