@@ -216,12 +216,37 @@ export const VariantCard: React.FC<VariantCardProps> = ({
             </Tooltip>
           )}
 
-          {/* Primary badge */}
-          {isPrimary && (
+          {/* Primary/make-main button */}
+          {!readOnly && onMakePrimary ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    'rounded-full p-0.5 transition-opacity',
+                    isPrimary
+                      ? 'opacity-100 bg-green-500/80 cursor-default'
+                      : 'opacity-0 group-hover/variant:opacity-100 bg-black/50 hover:bg-black/70 cursor-pointer'
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isPrimary) {
+                      onVariantSelect(variant.id);
+                      onMakePrimary(variant.id);
+                    }
+                  }}
+                >
+                  <Check className="w-2 h-2 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs z-[100001]">
+                {isPrimary ? 'Main variant' : 'Set as main'}
+              </TooltipContent>
+            </Tooltip>
+          ) : isPrimary ? (
             <div className="bg-green-500 rounded-full p-0.5 pointer-events-none">
               <Check className="w-2 h-2 text-white" />
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Top-left: star button */}

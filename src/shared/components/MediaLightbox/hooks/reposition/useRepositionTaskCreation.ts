@@ -154,20 +154,19 @@ export function useRepositionTaskCreation({
         qwen_edit_model: qwenEditModel,
       });
 
-      // Show success state
+      setIsGeneratingReposition(false);
       setRepositionGenerateSuccess(true);
 
-      // Wait 1 second to show success, then clear success state (keep transform for further edits)
       setTimeout(() => {
         setRepositionGenerateSuccess(false);
-        // Don't reset transform - let user keep their positioning for further edits or regeneration
       }, 1000);
+
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+      removeIncomingTask(incomingTaskId);
 
     } catch (error) {
       handleError(error, { context: 'useRepositionTaskCreation', toastTitle: 'Failed to create reposition task' });
-    } finally {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
       removeIncomingTask(incomingTaskId);
       setIsGeneratingReposition(false);
     }

@@ -29,7 +29,6 @@ export interface UseRepositionModeProps {
   loras?: Array<{ url: string; strength: number }>;
   inpaintPrompt: string;
   inpaintNumGenerations: number;
-  handleExitInpaintMode: () => void;
   // Callback to switch to the newly created variant
   onVariantCreated?: (variantId: string) => void;
   // Callback to refetch variants after creation

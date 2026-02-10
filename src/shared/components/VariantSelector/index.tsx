@@ -76,7 +76,6 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
   onLoadVariantImages,
   currentSegmentImages,
 }) => {
-  const [isMakingPrimary, setIsMakingPrimary] = useState(false);
   const [localIsPromoting, setLocalIsPromoting] = useState(false);
   const [promoteSuccess, setPromoteSuccess] = useState(false);
   const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilter>('all');
@@ -198,19 +197,6 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     return null;
   }
 
-  const activeVariant = variants.find(variant => variant.id === activeVariantId);
-  const isViewingNonPrimary = activeVariant && !activeVariant.is_primary;
-
-  const handleMakePrimary = async () => {
-    if (!activeVariantId || !onMakePrimary) return;
-    setIsMakingPrimary(true);
-    try {
-      await onMakePrimary(activeVariantId);
-    } finally {
-      setIsMakingPrimary(false);
-    }
-  };
-
   const handlePromoteToGeneration = async () => {
     if (!activeVariantId || !onPromoteToGeneration) return;
     setLocalIsPromoting(true);
@@ -311,34 +297,6 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
                   </TooltipContent>
                 </Tooltip>
               )}
-              {isViewingNonPrimary && onMakePrimary ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleMakePrimary}
-                      disabled={isMakingPrimary}
-                      className="h-auto min-h-6 text-xs px-2 py-1 gap-1 whitespace-normal text-left"
-                    >
-                      {isMakingPrimary ? (
-                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                      ) : (
-                        <Star className="w-3 h-3 shrink-0" />
-                      )}
-                      Make main
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="z-[100001]">
-                    <p>Set this variant as the primary display version</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : activeVariant?.is_primary ? (
-                <div className="flex items-center gap-1 h-6 text-xs px-2 text-green-500">
-                  <Star className="w-3 h-3 fill-current" />
-                  <span>Main variant</span>
-                </div>
-              ) : null}
             </div>
             )}
           </div>

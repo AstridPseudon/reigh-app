@@ -607,7 +607,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     loras: effectiveEditModeLoRAs,
     inpaintPrompt,
     inpaintNumGenerations,
-    handleExitInpaintMode: handleExitMagicEditMode,
     toolTypeOverride,
     shotId,
     onVariantCreated: variants.setActiveVariantId,
@@ -814,6 +813,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     // Reposition state (read-only values)
     repositionTransform,
     hasTransformChanges,
+    isGeneratingReposition,
+    repositionGenerateSuccess,
+    isSavingAsVariant,
+    saveAsVariantSuccess,
 
     // Panel UI state
     inpaintPanelPosition,
@@ -851,6 +854,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     // Reposition
     repositionTransform,
     hasTransformChanges,
+    isGeneratingReposition,
+    repositionGenerateSuccess,
+    isSavingAsVariant,
+    saveAsVariantSuccess,
     // Panel UI
     inpaintPanelPosition,
     setInpaintPanelPosition,

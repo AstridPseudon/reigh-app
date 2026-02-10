@@ -75,6 +75,10 @@ export interface ImageEditState {
   // ========================================
   repositionTransform: ImageTransform | null;
   hasTransformChanges: boolean;
+  isGeneratingReposition: boolean;
+  repositionGenerateSuccess: boolean;
+  isSavingAsVariant: boolean;
+  saveAsVariantSuccess: boolean;
 
   // ========================================
   // Panel UI state
@@ -126,6 +130,10 @@ const EMPTY_IMAGE_EDIT: ImageEditState = {
   // Reposition
   repositionTransform: null,
   hasTransformChanges: false,
+  isGeneratingReposition: false,
+  repositionGenerateSuccess: false,
+  isSavingAsVariant: false,
+  saveAsVariantSuccess: false,
 
   // Panel UI
   inpaintPanelPosition: 'right',

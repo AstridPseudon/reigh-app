@@ -26,7 +26,6 @@ interface UseRepositionVariantSaveProps {
   hasTransformChanges: boolean;
   createAsGeneration?: boolean;
   activeVariantId?: string | null;
-  handleExitInpaintMode: () => void;
   onVariantCreated?: (variantId: string) => void;
   refetchVariants?: () => void;
   resetTransform: () => void;
@@ -60,7 +59,6 @@ export function useRepositionVariantSave({
   hasTransformChanges,
   createAsGeneration,
   activeVariantId,
-  handleExitInpaintMode,
   onVariantCreated,
   refetchVariants,
   resetTransform,
@@ -254,13 +252,19 @@ export function useRepositionVariantSave({
         }
       }
 
-      // Get shotId from prop, or from media's shot associations
+      setIsSavingAsVariant(false);
+      setSaveAsVariantSuccess(true);
+
+      setTimeout(() => {
+        setSaveAsVariantSuccess(false);
+        resetTransform();
+      }, 1000);
+
+      // Cache invalidation after UI feedback
       const mediaExt = media as GenerationRow & MediaWithShotFields;
       const effectiveShotId = shotId || mediaExt.shot_id ||
         (mediaExt.all_shot_associations?.[0]?.shot_id);
 
-      // Invalidate caches using centralized function
-      // Note: 100ms delay allows DB trigger to update generations.location from new primary variant
       await invalidateVariantChange(queryClient, {
         generationId: actualGenerationId,
         shotId: effectiveShotId,
@@ -268,21 +272,9 @@ export function useRepositionVariantSave({
         delayMs: 100,
       });
 
-      // Refetch variants to update the list
       if (refetchVariants) {
         refetchVariants();
       }
-
-      // Show success state
-      setSaveAsVariantSuccess(true);
-
-      // Wait 1 second to show success, then reset transform and exit
-      setTimeout(() => {
-        setSaveAsVariantSuccess(false);
-        resetTransform();
-        handleExitInpaintMode();
-      }, 1000);
-
     } catch (error) {
       handleError(error, { context: 'useRepositionVariantSave', toastTitle: 'Failed to save as variant' });
     } finally {
@@ -295,7 +287,6 @@ export function useRepositionVariantSave({
     media,
     transform,
     resetTransform,
-    handleExitInpaintMode,
     createTransformedCanvas,
     onVariantCreated,
     refetchVariants,
