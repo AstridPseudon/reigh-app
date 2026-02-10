@@ -47,7 +47,6 @@ import {
 import { LightboxShell, LightboxProviders } from './components';
 import { LightboxLayout } from './components/layouts';
 import { ImageEditProvider, type ImageEditState } from './contexts/ImageEditContext';
-import { EditFormProvider, type EditFormState } from './contexts/EditFormContext';
 
 // Import utils
 import { downloadMedia } from './utils';
@@ -757,15 +756,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     handleSlotNavNext,
     handleSlotNavPrev,
     swipeNavigation: navigation.swipeNavigation,
-    isInpaintMode,
-    isSpecialEditMode,
-    isInVideoEditMode: false,
-    editMode,
-    setEditMode,
-    setIsInpaintMode,
   });
 
-  // Build ImageEditContext value
+  // Build ImageEditContext value (unified: mode + form + generation status)
   const imageEditValue = useMemo<ImageEditState>(() => ({
     // Mode state
     isInpaintMode,
@@ -805,58 +798,11 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     // Reposition state (read-only values)
     repositionTransform,
     hasTransformChanges,
-    isGeneratingReposition,
-    repositionGenerateSuccess,
-    isSavingAsVariant,
-    saveAsVariantSuccess,
 
     // Panel UI state
     inpaintPanelPosition,
     setInpaintPanelPosition,
-  }), [
-    // Mode state
-    isInpaintMode,
-    isMagicEditMode,
-    isSpecialEditMode,
-    editMode,
-    // Mode setters
-    setIsInpaintMode,
-    setIsMagicEditMode,
-    setEditMode,
-    // Mode handlers
-    handleEnterInpaintMode,
-    handleExitInpaintMode,
-    handleEnterMagicEditMode,
-    handleExitMagicEditMode,
-    // Brush/Inpaint
-    brushSize,
-    setBrushSize,
-    isEraseMode,
-    setIsEraseMode,
-    brushStrokes,
-    // Annotation
-    isAnnotateMode,
-    setIsAnnotateMode,
-    annotationMode,
-    setAnnotationMode,
-    selectedShapeId,
-    // Undo/Clear
-    handleUndo,
-    handleClearMask,
-    // Reposition
-    repositionTransform,
-    hasTransformChanges,
-    isGeneratingReposition,
-    repositionGenerateSuccess,
-    isSavingAsVariant,
-    saveAsVariantSuccess,
-    // Panel UI
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
-  ]);
 
-  // Build EditFormContext value
-  const editFormValue = useMemo<EditFormState>(() => ({
     // Inpaint form
     inpaintPrompt,
     setInpaintPrompt,
@@ -901,6 +847,41 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isCreatingMagicEditTasks,
     magicEditTasksCreated,
   }), [
+    // Mode state
+    isInpaintMode,
+    isMagicEditMode,
+    isSpecialEditMode,
+    editMode,
+    // Mode setters
+    setIsInpaintMode,
+    setIsMagicEditMode,
+    setEditMode,
+    // Mode handlers
+    handleEnterInpaintMode,
+    handleExitInpaintMode,
+    handleEnterMagicEditMode,
+    handleExitMagicEditMode,
+    // Brush/Inpaint
+    brushSize,
+    setBrushSize,
+    isEraseMode,
+    setIsEraseMode,
+    brushStrokes,
+    // Annotation
+    isAnnotateMode,
+    setIsAnnotateMode,
+    annotationMode,
+    setAnnotationMode,
+    selectedShapeId,
+    // Undo/Clear
+    handleUndo,
+    handleClearMask,
+    // Reposition
+    repositionTransform,
+    hasTransformChanges,
+    // Panel UI
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
     // Inpaint form
     inpaintPrompt,
     setInpaintPrompt,
@@ -1257,25 +1238,23 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   return (
     <LightboxProviders stateValue={lightboxStateValue}>
       <ImageEditProvider value={imageEditValue}>
-        <EditFormProvider value={editFormValue}>
-          <LightboxShell
-            onClose={onClose}
-            hasCanvasOverlay={isInpaintMode}
-            isRepositionMode={isInpaintMode && editMode === 'reposition'}
-            isMobile={isMobile}
-            isTabletOrLarger={layout.isTabletOrLarger}
-            effectiveTasksPaneOpen={effectiveTasksPaneOpen}
-            effectiveTasksPaneWidth={effectiveTasksPaneWidth}
-            isTasksPaneLocked={isTasksPaneLocked}
-            needsFullscreenLayout={needsFullscreenLayout}
-            needsTasksPaneOffset={needsTasksPaneOffset}
-            contentRef={contentRef}
-            accessibilityTitle={accessibilityTitle}
-            accessibilityDescription={accessibilityDescription}
-          >
-            <LightboxLayout {...layoutProps} />
-          </LightboxShell>
-        </EditFormProvider>
+        <LightboxShell
+          onClose={onClose}
+          hasCanvasOverlay={isInpaintMode}
+          isRepositionMode={isInpaintMode && editMode === 'reposition'}
+          isMobile={isMobile}
+          isTabletOrLarger={layout.isTabletOrLarger}
+          effectiveTasksPaneOpen={effectiveTasksPaneOpen}
+          effectiveTasksPaneWidth={effectiveTasksPaneWidth}
+          isTasksPaneLocked={isTasksPaneLocked}
+          needsFullscreenLayout={needsFullscreenLayout}
+          needsTasksPaneOffset={needsTasksPaneOffset}
+          contentRef={contentRef}
+          accessibilityTitle={accessibilityTitle}
+          accessibilityDescription={accessibilityDescription}
+        >
+          <LightboxLayout {...layoutProps} />
+        </LightboxShell>
       </ImageEditProvider>
     </LightboxProviders>
   );

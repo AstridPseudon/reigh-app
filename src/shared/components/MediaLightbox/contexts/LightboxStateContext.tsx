@@ -7,7 +7,6 @@
  * - useLightboxMedia() - media, isVideo, effectiveUrls, dimensions
  * - useLightboxVariants() - variants, activeVariant, variant actions
  * - useLightboxNavigation() - navigation state and handlers
- * - useLightboxEdit() - edit mode state
  *
  * Components should prefer these hooks over prop drilling for commonly-used values.
  */
@@ -93,19 +92,6 @@ interface LightboxNavigationState {
 }
 
 // ============================================================================
-// Edit State
-// ============================================================================
-
-interface LightboxEditState {
-  isInpaintMode: boolean;
-  isSpecialEditMode: boolean;
-  isInVideoEditMode: boolean;
-  editMode: string;
-  setEditMode: (mode: string) => void;
-  setIsInpaintMode: (value: boolean) => void;
-}
-
-// ============================================================================
 // Combined Context Value
 // ============================================================================
 
@@ -114,7 +100,6 @@ interface LightboxStateValue {
   media: LightboxMediaState;
   variants: LightboxVariantState;
   navigation: LightboxNavigationState;
-  edit: LightboxEditState;
 }
 
 const LightboxStateContext = createContext<LightboxStateValue | null>(null);
@@ -206,15 +191,6 @@ const EMPTY_NAVIGATION: LightboxNavigationState = {
   },
 };
 
-const EMPTY_EDIT: LightboxEditState = {
-  isInpaintMode: false,
-  isSpecialEditMode: false,
-  isInVideoEditMode: false,
-  editMode: 'text',
-  setEditMode: () => {},
-  setIsInpaintMode: () => {},
-};
-
 /**
  * Safe version of useLightboxCore that returns defaults when used outside provider.
  * Use this in components that may render outside the lightbox context.
@@ -248,14 +224,6 @@ export function useLightboxNavigationSafe(): LightboxNavigationState {
   return context?.navigation ?? EMPTY_NAVIGATION;
 }
 
-/**
- * Safe version of useLightboxEdit that returns defaults when used outside provider.
- */
-export function useLightboxEditSafe(): LightboxEditState {
-  const context = useContext(LightboxStateContext);
-  return context?.edit ?? EMPTY_EDIT;
-}
-
 // ============================================================================
 // Export Types
 // ============================================================================
@@ -266,7 +234,6 @@ export type {
   LightboxMediaState,
   LightboxVariantState,
   LightboxNavigationState,
-  LightboxEditState,
 };
 
 // Note: Default export removed as it was not used externally.

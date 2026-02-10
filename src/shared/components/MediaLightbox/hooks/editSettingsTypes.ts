@@ -2,7 +2,7 @@
  * Canonical type definitions for edit settings.
  *
  * This is the single source of truth for all edit settings types.
- * Other files (EditFormContext, inpainting/types, etc.) should import from here.
+ * Other files (ImageEditContext, inpainting/types, etc.) should import from here.
  *
  * Settings are categorized by where they are persisted:
  * - SyncedEditSettings: Saved to BOTH per-generation AND "last used"

@@ -20,8 +20,8 @@ import {
   useLightboxMediaSafe,
   useLightboxVariantsSafe,
   useLightboxNavigationSafe,
-  useLightboxEditSafe,
 } from '../../contexts/LightboxStateContext';
+import { useImageEditSafe } from '../../contexts/ImageEditContext';
 
 // Sub-components
 import { VariantOverlayBadge } from './VariantOverlayBadge';
@@ -53,13 +53,13 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
   const mediaState = useLightboxMediaSafe();
   const variantsState = useLightboxVariantsSafe();
   const navigation = useLightboxNavigationSafe();
-  const editState = useLightboxEditSafe();
+  const imageEdit = useImageEditSafe();
 
   const { onClose, readOnly, isMobile, actualGenerationId, selectedProjectId } = core;
   const { media, isVideo, effectiveMediaUrl, effectiveVideoUrl, setImageDimensions, effectiveImageDimensions } = mediaState;
   const { variants, activeVariant, primaryVariant, promoteSuccess, isPromoting, handlePromoteToGeneration, isMakingMainVariant, canMakeMainVariant, handleMakeMainVariant } = variantsState;
   const { showNavigation, hasNext, hasPrevious, handleSlotNavNext, handleSlotNavPrev, swipeNavigation } = navigation;
-  const { isInpaintMode, isSpecialEditMode, editMode } = editState;
+  const { isInpaintMode, isSpecialEditMode, editMode } = imageEdit;
 
   // ========================================
   // PROPS

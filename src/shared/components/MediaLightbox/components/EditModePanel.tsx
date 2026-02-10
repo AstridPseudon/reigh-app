@@ -19,7 +19,6 @@ import { ImageUpscaleForm } from './ImageUpscaleForm';
 import { ModeSelector } from './ModeSelector';
 import { useLightboxCoreSafe, useLightboxVariantsSafe, type LightboxCoreState, type LightboxVariantState } from '../contexts/LightboxStateContext';
 import { useImageEditSafe, type ImageEditState } from '../contexts/ImageEditContext';
-import { useEditFormSafe, type EditFormState } from '../contexts/EditFormContext';
 
 export interface EditModePanelProps {
   /** Layout variant */
@@ -81,7 +80,6 @@ export interface EditModePanelProps {
   // ========================================
   coreState?: Pick<LightboxCoreState, 'onClose'>;
   imageEditState?: ImageEditState;
-  editFormState?: EditFormState;
   variantsState?: Pick<LightboxVariantState,
     | 'variants'
     | 'activeVariant'
@@ -102,7 +100,7 @@ export interface EditModePanelProps {
  * Uses shared EditPanelLayout for consistent header and variants handling.
  *
  * Supports props-first pattern: optional state props (coreState, imageEditState,
- * editFormState, variantsState) override context values when provided. This allows
+ * variantsState) override context values when provided. This allows
  * the component to work both within ImageLightbox (using context) and standalone
  * (using props, e.g., in InlineEditView).
  */
@@ -137,7 +135,6 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   // Optional state overrides
   coreState,
   imageEditState,
-  editFormState,
   variantsState,
 }) => {
   const isMobile = variant === 'mobile';
@@ -149,13 +146,12 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   // ========================================
   const contextCore = useLightboxCoreSafe();
   const contextImageEdit = useImageEditSafe();
-  const contextEditForm = useEditFormSafe();
   const contextVariants = useLightboxVariantsSafe();
 
   // Core state
   const { onClose } = coreState ?? contextCore;
 
-  // Image edit state
+  // Image edit state (unified: mode + form + generation status)
   const {
     editMode,
     setEditMode,
@@ -167,10 +163,6 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
     repositionGenerateSuccess,
     isSavingAsVariant,
     saveAsVariantSuccess,
-  } = imageEditState ?? contextImageEdit;
-
-  // Edit form state
-  const {
     inpaintPrompt,
     setInpaintPrompt,
     inpaintNumGenerations,
@@ -194,7 +186,7 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
     img2imgGenerateSuccess,
     qwenEditModel,
     setQwenEditModel,
-  } = editFormState ?? contextEditForm;
+  } = imageEditState ?? contextImageEdit;
 
   // Variants state
   const {

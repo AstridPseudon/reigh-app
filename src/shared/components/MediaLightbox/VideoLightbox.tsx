@@ -667,12 +667,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     handleSlotNavNext,
     handleSlotNavPrev,
     swipeNavigation: navigation.swipeNavigation,
-    isInpaintMode: false,
-    isSpecialEditMode: false, // Videos don't have image edit modes
-    isInVideoEditMode,
-    editMode: 'text',
-    setEditMode: () => {},
-    setIsInpaintMode: () => {},
   });
 
   // Build VideoEditContext value

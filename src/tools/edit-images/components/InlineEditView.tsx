@@ -33,7 +33,7 @@ import {
   FloatingToolControls,
 } from '@/shared/components/MediaLightbox/components';
 import type { ImageEditState } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
-import type { EditFormState } from '@/shared/components/MediaLightbox/contexts/EditFormContext';
+import { DEFAULT_ADVANCED_SETTINGS } from '@/shared/components/MediaLightbox/hooks/editSettingsTypes';
 import { Button } from '@/shared/components/ui/button';
 import { Square, Trash2, Diamond } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -390,7 +390,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
   // These are passed as props to EditModePanel (props-first pattern)
   // ========================================
 
-  // Build ImageEditState value
+  // Build unified ImageEditState value (mode + form + generation status)
   const imageEditValue = useMemo<ImageEditState>(() => ({
     // Mode state
     isInpaintMode,
@@ -415,8 +415,6 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     isEraseMode,
     setIsEraseMode,
     brushStrokes,
-    currentStroke,
-    isDrawing,
 
     // Annotation state
     isAnnotateMode,
@@ -436,37 +434,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     // Panel UI state
     inpaintPanelPosition,
     setInpaintPanelPosition,
-  }), [
-    isInpaintMode,
-    isSpecialEditMode,
-    editMode,
-    setIsInpaintMode,
-    setEditMode,
-    handleEnterInpaintMode,
-    handleExitMagicEditMode,
-    handleEnterMagicEditMode,
-    brushSize,
-    setBrushSize,
-    isEraseMode,
-    setIsEraseMode,
-    brushStrokes,
-    currentStroke,
-    isDrawing,
-    isAnnotateMode,
-    setIsAnnotateMode,
-    annotationMode,
-    setAnnotationMode,
-    selectedShapeId,
-    handleUndo,
-    handleClearMask,
-    repositionHook.transform,
-    hasTransformChanges,
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
-  ]);
 
-  // Build EditFormContext value
-  const editFormValue = useMemo<EditFormState>(() => ({
     // Inpaint form
     inpaintPrompt,
     setInpaintPrompt,
@@ -496,12 +464,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     setQwenEditModel: () => {},
 
     // Advanced settings (not used in InlineEditView)
-    advancedSettings: {
-      enableHiresFix: false,
-      hiresFixScale: 1.5,
-      hiresFixDenoisingStrength: 0.4,
-      numSteps: 20,
-    },
+    advancedSettings: DEFAULT_ADVANCED_SETTINGS,
     setAdvancedSettings: () => {},
 
     // Generation status
@@ -516,6 +479,30 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
     isCreatingMagicEditTasks,
     magicEditTasksCreated,
   }), [
+    isInpaintMode,
+    isSpecialEditMode,
+    editMode,
+    setIsInpaintMode,
+    setEditMode,
+    handleEnterInpaintMode,
+    handleExitMagicEditMode,
+    handleEnterMagicEditMode,
+    brushSize,
+    setBrushSize,
+    isEraseMode,
+    setIsEraseMode,
+    brushStrokes,
+    isAnnotateMode,
+    setIsAnnotateMode,
+    annotationMode,
+    setAnnotationMode,
+    selectedShapeId,
+    handleUndo,
+    handleClearMask,
+    repositionHook.transform,
+    hasTransformChanges,
+    inpaintPanelPosition,
+    setInpaintPanelPosition,
     inpaintPrompt,
     setInpaintPrompt,
     inpaintNumGenerations,
@@ -676,7 +663,6 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
                   availableLoras={availableLoras}
                   coreState={{ onClose }}
                   imageEditState={imageEditValue}
-                  editFormState={editFormValue}
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">

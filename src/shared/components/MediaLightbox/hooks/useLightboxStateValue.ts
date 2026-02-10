@@ -63,14 +63,6 @@ interface UseLightboxStateValueInput {
     isSwiping: boolean;
     swipeOffset: number;
   };
-
-  // Edit
-  isInpaintMode: boolean;
-  isSpecialEditMode: boolean;
-  isInVideoEditMode: boolean;
-  editMode: string;
-  setEditMode: (mode: string) => void;
-  setIsInpaintMode: (value: boolean) => void;
 }
 
 /**
@@ -180,29 +172,11 @@ export function useLightboxStateValue(
     input.swipeNavigation,
   ]);
 
-  // Build edit state
-  const edit = useMemo(() => ({
-    isInpaintMode: input.isInpaintMode,
-    isSpecialEditMode: input.isSpecialEditMode,
-    isInVideoEditMode: input.isInVideoEditMode,
-    editMode: input.editMode,
-    setEditMode: input.setEditMode,
-    setIsInpaintMode: input.setIsInpaintMode,
-  }), [
-    input.isInpaintMode,
-    input.isSpecialEditMode,
-    input.isInVideoEditMode,
-    input.editMode,
-    input.setEditMode,
-    input.setIsInpaintMode,
-  ]);
-
   // Combine into final value
   return useMemo(() => ({
     core,
     media,
     variants,
     navigation,
-    edit,
-  }), [core, media, variants, navigation, edit]);
+  }), [core, media, variants, navigation]);
 }
