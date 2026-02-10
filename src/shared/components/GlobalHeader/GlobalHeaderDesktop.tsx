@@ -1,14 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
 import { Palette, Crown, Wrench, PlusCircle, Settings } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useDarkMode } from '@/shared/hooks/useDarkMode';
-import { useProject } from '@/shared/contexts/ProjectContext';
 import type { Session } from '@supabase/supabase-js';
 import { ProjectSelectorPopover } from './ProjectSelectorPopover';
 import { darkIconColors, getDarkIconStyle, getReferralButtonText } from './types';
 import type { ReferralStats } from './types';
+import { useGlobalHeaderProject } from './useGlobalHeaderProject';
 
 interface GlobalHeaderDesktopProps {
   contentOffsetRight: number;
@@ -35,22 +33,7 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
   onOpenProjectSettings,
   onOpenReferralModal,
 }) => {
-  const navigate = useNavigate();
-  const { darkMode } = useDarkMode();
-  const { projects, selectedProjectId, setSelectedProjectId, isLoadingProjects } = useProject();
-
-  const selectedProject = projects.find(p => p.id === selectedProjectId);
-
-  const handleProjectChange = (projectId: string) => {
-    if (projectId === 'create-new') {
-      onOpenCreateProject(undefined);
-      return;
-    }
-    if (projectId !== selectedProjectId) {
-      setSelectedProjectId(projectId);
-      navigate('/tools');
-    }
-  };
+  const { navigate, darkMode, projects, selectedProject, isLoadingProjects, handleProjectChange } = useGlobalHeaderProject({ onOpenCreateProject });
 
   return (
     <div

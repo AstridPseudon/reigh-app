@@ -45,7 +45,7 @@ import {
 import Timeline from './Timeline';
 import { TimelineMediaProvider, type TimelineMediaContextValue } from './Timeline/TimelineMediaContext';
 
-import { useEnhancedShotImageReorder } from '@/shared/hooks/useEnhancedShotImageReorder';
+import { useEnhancedShotImageReorder } from '../hooks/useEnhancedShotImageReorder';
 import { useSegmentOutputsForShot } from '../hooks/useSegmentOutputsForShot';
 import { usePendingSegmentTasks } from '@/shared/hooks/usePendingSegmentTasks';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';

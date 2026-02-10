@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { useTimelineCore } from './useTimelineCore';
+import { useTimelineCore } from '@/shared/hooks/useTimelineCore';
 import { toast } from '@/shared/components/ui/sonner';
 import { analyzeReorderOperation, validateReorderAnalysis } from '@/shared/utils/reorderUtils';
 import { handleError } from '@/shared/lib/errorHandler';

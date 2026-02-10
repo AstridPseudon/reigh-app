@@ -6,6 +6,8 @@ import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 import { useStableObject } from '@/shared/hooks/useStableObject';
 import { DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
+import { useStickyHeader } from './useStickyHeader';
+import { useKeyboardPagination } from './useKeyboardPagination';
 
 interface ImageGenPagePrefs {
   galleryFilterOverride?: string;
@@ -49,7 +51,6 @@ export function useImageGenGallery({
   const [isPageChange, setIsPageChange] = useState(false);
   const [isPageChangeFromBottom, setIsPageChangeFromBottom] = useState(false);
   const [isFilterChange, setIsFilterChange] = useState(false);
-  const [isSticky, setIsSticky] = useState(false);
   const scrollPosRef = useRef<number>(0);
 
   const pagePrefs = useAutoSaveSettings<ImageGenPagePrefs>({
@@ -182,88 +183,11 @@ export function useImageGenGallery({
     }
   }, [generationsResponse, isPageChange, isPageChangeFromBottom]);
 
-  // Sticky header: RAF-throttled scroll listener + ResizeObserver for threshold recalc
-  useEffect(() => {
-    const containerEl = collapsibleContainerRef.current;
-    if (!containerEl) return;
-
-    const stickyThresholdY = { current: 0 };
-    const isStickyRef = { current: isSticky };
-    let rafId: number | null = null;
-
-    const computeThreshold = () => {
-      const rect = containerEl.getBoundingClientRect();
-      const docTop = window.pageYOffset || document.documentElement.scrollTop || 0;
-      const containerDocTop = rect.top + docTop;
-      const headerHeight = isMobile ? 150 : 96;
-      const extra = isMobile ? 0 : -120;
-      stickyThresholdY.current = containerDocTop + headerHeight + extra;
-    };
-
-    const checkSticky = () => {
-      rafId = null;
-      const shouldBeSticky = (window.pageYOffset || document.documentElement.scrollTop || 0) > stickyThresholdY.current;
-      if (shouldBeSticky !== isStickyRef.current) {
-        isStickyRef.current = shouldBeSticky;
-        setIsSticky(shouldBeSticky);
-      }
-    };
-
-    const onScroll = () => {
-      if (rafId !== null) return;
-      rafId = requestAnimationFrame(checkSticky);
-    };
-
-    const onResize = () => {
-      computeThreshold();
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(checkSticky);
-    };
-
-    computeThreshold();
-    checkSticky();
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
-
-    const ro = new ResizeObserver(() => onResize());
-    ro.observe(containerEl);
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, [isFormExpanded, isMobile]);
-
-  // Arrow key pagination (skips when input focused or dialog open)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-
-      const target = e.target as HTMLElement;
-      const tag = target?.tagName;
-      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable;
-      const dialog = document.querySelector('[role="dialog"], [data-state="open"].fixed');
-
-      const totalCount = generationsResponse?.total ?? lastKnownTotal;
-      const totalPages = Math.ceil(totalCount / itemsPerPage);
-
-      if (isInput || dialog) return;
-
-      if (e.key === 'ArrowLeft' && currentPage > 1) {
-        e.preventDefault();
-        handleServerPageChange(currentPage - 1);
-      } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
-        e.preventDefault();
-        handleServerPageChange(currentPage + 1);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, itemsPerPage, generationsResponse?.total, lastKnownTotal]);
+  const isSticky = useStickyHeader({
+    containerRef: collapsibleContainerRef,
+    isMobile,
+    isFormExpanded,
+  });
 
   const handleServerPageChange = useCallback((page: number, fromBottom?: boolean) => {
     if (!fromBottom) {
@@ -273,6 +197,10 @@ export function useImageGenGallery({
     setIsPageChangeFromBottom(!!fromBottom);
     setCurrentPage(page);
   }, []);
+
+  const totalCount = generationsResponse?.total ?? lastKnownTotal;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  useKeyboardPagination({ currentPage, totalPages, onPageChange: handleServerPageChange });
 
   const handleGalleryFiltersChange = useCallback((newFilters: GalleryFilterState) => {
     if (newFilters.shotFilter !== galleryFilters.shotFilter) {

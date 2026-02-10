@@ -7,11 +7,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
-import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePersistentToolState } from '@/shared/hooks/usePersistentToolState';
-import { useToolSettings, extractSettingsFromCache } from '@/shared/hooks/useToolSettings';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
-import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useListShots } from '@/shared/hooks/useShots';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
@@ -19,10 +16,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
-import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { useAIInteractionService } from '@/shared/hooks/useAIInteractionService';
 import { useSubmitButtonState } from '@/shared/hooks/useSubmitButtonState';
-import { useHydratedReferences } from '@/shared/hooks/useHydratedReferences';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
@@ -31,10 +26,9 @@ import {
   usePromptManagement,
   useReferenceManagement,
   useFormSubmission,
-  useLegacyMigrations,
-  useReferenceSelection,
   useLoraHandlers,
 } from './index';
+import { useProjectImageSettings } from './useProjectImageSettings';
 
 import { useFormUIState } from '../state';
 
@@ -52,7 +46,6 @@ import {
 import {
   type PromptEntry,
   type PersistedFormSettings,
-  type ProjectImageSettings,
   type PromptMode,
   type ImageGenShotSettings,
   type HiresFixConfig,
@@ -108,91 +101,30 @@ export function useImageGenForm({
   // Associated shot for image generation
   const [associatedShotId, setAssociatedShotId] = useState<string | null>(null);
 
-  const { selectedProjectId, projects } = useProject();
-  const queryClient = useQueryClient();
-
-  // Derive project aspect ratio and resolution for GenerationSettingsSection
-  const { projectAspectRatio, projectResolution } = useMemo(() => {
-    const currentProject = projects.find(project => project.id === selectedProjectId);
-    const aspectRatio = currentProject?.aspectRatio ?? '16:9';
-    const resolution = ASPECT_RATIO_TO_RESOLUTION[aspectRatio] ?? '902x508';
-    return { projectAspectRatio: aspectRatio, projectResolution: resolution };
-  }, [projects, selectedProjectId]);
-
-  // Access user's generation settings to detect local generation
-  const { value: generationMethods } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
-
-  // Privacy defaults for new resources
-  const { value: privacyDefaults } = useUserUIState('privacyDefaults', { resourcesPublic: true, generationsPublic: false });
-
-  const isLocalGenerationEnabled = generationMethods.onComputer && !generationMethods.inCloud;
-
-  // Project-level settings for model and style reference (shared across tools)
-  const {
-    settings: projectImageSettings,
-    update: updateProjectImageSettings,
-    isLoading: isLoadingProjectSettings
-  } = useToolSettings<ProjectImageSettings>('project-image-settings', {
-    projectId: selectedProjectId,
-    enabled: !!selectedProjectId
-  });
-
-  // Get the effective shot ID for storage (use 'none' for null)
-  const effectiveShotId = associatedShotId || 'none';
-
-  // Get reference pointers array and selected reference for current shot
-  const cachedProjectSettings = selectedProjectId
-    ? extractSettingsFromCache<ProjectImageSettings>(
-        queryClient.getQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined))
-      )
-    : undefined;
-
-  const referencePointers = projectImageSettings?.references ?? cachedProjectSettings?.references ?? [];
-  // Reference count is simply the number of pointers - no complex tracking needed
-  // Skeleton count is managed by comparing referencePointers.length vs hydratedReferences.length
-  const referenceCount = referencePointers.length;
-  // Use cache fallback for selection too, so selection is stable during loading
-  const selectedReferenceIdByShot = projectImageSettings?.selectedReferenceIdByShot ?? cachedProjectSettings?.selectedReferenceIdByShot ?? {};
-  const selectedReferenceId = selectedReferenceIdByShot[effectiveShotId] ?? null;
-
-  // Hydrate references with data from resources table
-  const { hydratedReferences, isLoading: isLoadingReferences, hasLegacyReferences } = useHydratedReferences(referencePointers);
-
   // ============================================================================
-  // Reference Selection (extracted hook)
+  // Project Settings & References (extracted hook)
   // ============================================================================
   const {
+    selectedProjectId,
+    projectAspectRatio,
+    projectResolution,
+    privacyDefaults,
+    isLocalGenerationEnabled,
+    projectImageSettings,
+    updateProjectImageSettings,
+    isLoadingProjectSettings,
+    effectiveShotId,
+    referencePointers,
+    referenceCount,
+    selectedReferenceIdByShot,
+    selectedReferenceId,
+    hydratedReferences,
     displayedReferenceId,
     selectedReference,
     isReferenceDataLoading,
-  } = useReferenceSelection({
-    effectiveShotId,
-    referenceCount,
-    selectedReferenceId,
-    hydratedReferences,
-    isLoadingProjectSettings,
-    isLoadingReferences,
-  });
+  } = useProjectImageSettings(associatedShotId);
 
-  // For backward compatibility with single reference - used in legacy migration
-  const rawStyleReferenceImage = selectedReference?.styleReferenceImage || projectImageSettings?.styleReferenceImage || null;
-
-  // ============================================================================
-  // Legacy Migrations (extracted hook)
-  // ============================================================================
-  useLegacyMigrations({
-    selectedProjectId,
-    effectiveShotId,
-    referencePointers,
-    hydratedReferences,
-    hasLegacyReferences,
-    rawStyleReferenceImage,
-    isLoadingReferences,
-    selectedReferenceIdByShot,
-    projectImageSettings,
-    updateProjectImageSettings,
-    privacyDefaults,
-  });
+  const queryClient = useQueryClient();
 
   // Mark that we've visited this page in the session
   useEffect(() => {

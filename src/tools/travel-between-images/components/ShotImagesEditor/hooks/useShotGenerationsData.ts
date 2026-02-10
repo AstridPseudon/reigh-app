@@ -5,7 +5,7 @@
 
 import { useRef, useEffect, useMemo } from 'react';
 import { useTimelineCore } from '@/shared/hooks/useTimelineCore';
-import { useTimelinePositionUtils } from '@/shared/hooks/useTimelinePositionUtils';
+import { useTimelinePositionUtils } from '../../../hooks/useTimelinePositionUtils';
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import type { GenerationRow } from '@/types/shots';

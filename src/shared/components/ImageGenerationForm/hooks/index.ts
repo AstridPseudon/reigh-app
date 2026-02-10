@@ -27,5 +27,8 @@ export { useReferenceSelection } from './useReferenceSelection';
 // LORA handlers - wraps loraManager with project persistence
 export { useLoraHandlers } from './useLoraHandlers';
 
+// Project-level settings + reference loading
+export { useProjectImageSettings } from './useProjectImageSettings';
+
 // Main form orchestration hook (all non-JSX logic)
 export { useImageGenForm } from './useImageGenForm';

@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
-import { createCharacterAnimateTask } from '@/shared/lib/tasks/characterAnimate';
+import { createCharacterAnimateTask } from '../lib/characterAnimate';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
-import type { CharacterAnimateTaskParams } from '@/shared/lib/tasks/characterAnimate';
+import type { CharacterAnimateTaskParams } from '../lib/characterAnimate';
 
 interface UseCharacterAnimateGenerateParams {
   selectedProjectId: string | null;

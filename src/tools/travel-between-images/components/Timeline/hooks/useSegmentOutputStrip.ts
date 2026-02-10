@@ -1,23 +1,24 @@
 /**
- * useSegmentOutputStrip - Extracted hook for SegmentOutputStrip logic.
+ * useSegmentOutputStrip - Orchestrator hook for SegmentOutputStrip.
  *
- * Consolidates: display slot computation, segment deletion, lightbox navigation,
- * scrubbing preview state, and segment position calculation.
+ * Composes sub-hooks for deletion, scrubbing, and lightbox concerns.
+ * Keeps: display slot computation, segment positions, source image changes,
+ * trailing video reporting, segment click handler.
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useSourceImageChanges } from '@/shared/hooks/useSourceImageChanges';
-import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandler';
-import { getPreviewDimensions } from '@/shared/lib/aspectRatios';
 import { TIMELINE_PADDING_OFFSET } from '../constants';
 import type { SegmentSlot } from '@/shared/hooks/segments';
-import type { GenerationRow } from '@/types/shots';
 import type { PairData } from '../TimelineContainer';
+
+import { useSegmentDeletion } from './useSegmentDeletion';
+import { useSegmentScrubbing } from './useSegmentScrubbing';
+import { useSegmentLightbox } from './useSegmentLightbox';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -73,46 +74,7 @@ export function useSegmentOutputStrip({
   selectedParentId,
   onSegmentFrameCountChange,
 }: UseSegmentOutputStripProps) {
-  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
-
-  // ===== LIGHTBOX STATE =====
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  // ===== DELETION STATE =====
-  const [deletingSegmentId, setDeletingSegmentId] = useState<string | null>(null);
-
-  // ===== SCRUBBING PREVIEW STATE =====
-  const [activeScrubbingIndex, setActiveScrubbingIndex] = useState<number | null>(null);
-  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
-  const previewVideoRef = useRef<HTMLVideoElement>(null);
-  const stripContainerRef = useRef<HTMLDivElement>(null);
-
-  const scrubbing = useVideoScrubbing({
-    enabled: !isMobile && activeScrubbingIndex !== null,
-    playOnStopScrubbing: true,
-    playDelay: 400,
-    resetOnLeave: true,
-    onHoverEnd: () => setActiveScrubbingIndex(null),
-  });
-
-  // When active scrubbing index changes, manually trigger onMouseEnter
-  useEffect(() => {
-    if (activeScrubbingIndex !== null) {
-      scrubbing.containerProps.onMouseEnter();
-    }
-  }, [activeScrubbingIndex]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Clear scrubbing preview on scroll
-  useEffect(() => {
-    if (activeScrubbingIndex === null) return;
-    const handleScroll = () => {
-      setActiveScrubbingIndex(null);
-      scrubbing.reset();
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeScrubbingIndex, scrubbing]);
 
   // ===== SEGMENT LOOKUP =====
   const segmentByPairShotGenId = useMemo(() => {
@@ -213,15 +175,10 @@ export function useSegmentOutputStrip({
     return placeholders;
   }, [pairDataByIndex, pairInfo, segmentByPairShotGenId, trailingSegmentMode, lastImageId]);
 
-  // ===== ACTIVE SCRUBBING VIDEO =====
-  const activeSegmentSlot = activeScrubbingIndex !== null ? displaySlots[activeScrubbingIndex] : null;
-  const activeSegmentVideoUrl = activeSegmentSlot?.type === 'child' ? activeSegmentSlot.child.location : null;
-
-  useEffect(() => {
-    if (previewVideoRef.current && activeScrubbingIndex !== null) {
-      scrubbing.setVideoElement(previewVideoRef.current);
-    }
-  }, [activeScrubbingIndex, activeSegmentVideoUrl, scrubbing.setVideoElement]);
+  // ===== SUB-HOOKS =====
+  const deletion = useSegmentDeletion();
+  const scrubbingHook = useSegmentScrubbing({ projectAspectRatio, displaySlots });
+  const lightbox = useSegmentLightbox({ displaySlots, pairDataByIndex, selectedParentId });
 
   // ===== PENDING TASK CHECKER =====
   const hasPendingTask = hasPendingTaskProp ?? (() => false);
@@ -294,8 +251,7 @@ export function useSegmentOutputStrip({
     slotIndex: number,
     onOpenPairSettings?: (pairIndex: number, pairFrameData?: { frames: number; startFrame: number; endFrame: number }) => void,
   ) => {
-    setActiveScrubbingIndex(null);
-    scrubbing.reset();
+    scrubbingHook.clearScrubbing();
     if (slot?.type === 'child') {
       markGenerationViewed(slot.child.id);
     }
@@ -307,102 +263,9 @@ export function useSegmentOutputStrip({
         endFrame: pairFrameData.endFrame,
       } : undefined);
     } else {
-      setLightboxIndex(slotIndex);
+      lightbox.setLightboxIndex(slotIndex);
     }
-  }, [markGenerationViewed, pairInfo, scrubbing]);
-
-  // ===== LIGHTBOX NAVIGATION =====
-  const childSlotIndices = useMemo(() =>
-    displaySlots
-      .map((slot, idx) => slot.type === 'child' && slot.child.location ? idx : null)
-      .filter((idx): idx is number => idx !== null),
-    [displaySlots]
-  );
-
-  const handleLightboxNext = useCallback(() => {
-    if (lightboxIndex === null || childSlotIndices.length === 0) return;
-    const currentPos = childSlotIndices.indexOf(lightboxIndex);
-    const nextPos = (currentPos + 1) % childSlotIndices.length;
-    setLightboxIndex(childSlotIndices[nextPos]);
-  }, [lightboxIndex, childSlotIndices]);
-
-  const handleLightboxPrev = useCallback(() => {
-    if (lightboxIndex === null || childSlotIndices.length === 0) return;
-    const currentPos = childSlotIndices.indexOf(lightboxIndex);
-    const prevPos = (currentPos - 1 + childSlotIndices.length) % childSlotIndices.length;
-    setLightboxIndex(childSlotIndices[prevPos]);
-  }, [lightboxIndex, childSlotIndices]);
-
-  const handleLightboxClose = useCallback(() => {
-    setLightboxIndex(null);
-  }, []);
-
-  // ===== SEGMENT DELETION =====
-  const getPairShotGenIdFromParams = useCallback((params: Record<string, unknown> | null | undefined) => {
-    if (!params) return null;
-    const individualParams = (params.individual_segment_params || {}) as Record<string, unknown>;
-    return (individualParams.pair_shot_generation_id as string) || (params.pair_shot_generation_id as string) || null;
-  }, []);
-
-  const handleDeleteSegment = useCallback(async (generationId: string) => {
-    setDeletingSegmentId(generationId);
-    try {
-      const { data: beforeData } = await supabase
-        .from('generations')
-        .select('id, type, parent_generation_id, location, params, primary_variant_id, pair_shot_generation_id')
-        .eq('id', generationId)
-        .single();
-
-      if (!beforeData) return;
-
-      const pairShotGenId = beforeData.pair_shot_generation_id || getPairShotGenIdFromParams(beforeData.params as Record<string, unknown> | null);
-      const parentId = beforeData.parent_generation_id;
-
-      let idsToDelete = [generationId];
-      if (pairShotGenId && parentId) {
-        const { data: siblings } = await supabase
-          .from('generations')
-          .select('id, pair_shot_generation_id, params')
-          .eq('parent_generation_id', parentId);
-        idsToDelete = (siblings || [])
-          .filter(child => {
-            const childPairId = child.pair_shot_generation_id || getPairShotGenIdFromParams(child.params as Record<string, unknown> | null);
-            return childPairId === pairShotGenId;
-          })
-          .map(child => child.id);
-      }
-
-      const { error: deleteError } = await supabase
-        .from('generations')
-        .delete()
-        .in('id', idsToDelete);
-      if (deleteError) throw new Error(`Failed to delete: ${deleteError.message}`);
-
-      // Optimistic cache update
-      queryClient.setQueriesData(
-        { predicate: (query) => query.queryKey[0] === queryKeys.segments.childrenAll[0] },
-        (oldData: unknown) => {
-          if (!oldData || !Array.isArray(oldData)) return oldData;
-          return (oldData as Array<{ id: string }>).filter((item) => !idsToDelete.includes(item.id));
-        }
-      );
-
-      await queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === queryKeys.segments.childrenAll[0],
-        refetchType: 'all'
-      });
-      await queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === queryKeys.segments.parentsAll[0],
-        refetchType: 'all'
-      });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
-    } catch (error) {
-      handleError(error, { context: 'SegmentDelete', toastTitle: 'Failed to delete segment' });
-    } finally {
-      setDeletingSegmentId(null);
-    }
-  }, [getPairShotGenIdFromParams, queryClient]);
+  }, [markGenerationViewed, pairInfo, scrubbingHook.clearScrubbing, lightbox.setLightboxIndex]);
 
   // ===== TRAILING VIDEO INFO REPORTING =====
   useEffect(() => {
@@ -420,44 +283,6 @@ export function useSegmentOutputStrip({
       onTrailingVideoInfo(null);
     }
   }, [rawSegmentSlots, lastImageId, onTrailingVideoInfo]);
-
-  // ===== LIGHTBOX MEDIA PROPS (memoized) =====
-  const currentLightboxSlot = useMemo(() =>
-    lightboxIndex !== null ? displaySlots[lightboxIndex] : null,
-    [lightboxIndex, displaySlots]
-  );
-  const currentLightboxMedia = useMemo(() =>
-    currentLightboxSlot?.type === 'child' ? currentLightboxSlot.child : null,
-    [currentLightboxSlot]
-  );
-
-  const lightboxMedia = useMemo(() => {
-    if (!currentLightboxMedia) return null;
-    return {
-      ...currentLightboxMedia,
-      ...(selectedParentId ? { parent_generation_id: selectedParentId } : {}),
-    } as GenerationRow;
-  }, [currentLightboxMedia, selectedParentId]);
-
-  const lightboxCurrentSegmentImages = useMemo(() => {
-    const pairData = currentLightboxSlot ? pairDataByIndex?.get(currentLightboxSlot.index) : undefined;
-    const slotChildId = currentLightboxSlot?.type === 'child' ? currentLightboxSlot.child.id : undefined;
-    return {
-      startShotGenerationId: pairData?.startImage?.id || currentLightboxSlot?.pairShotGenerationId,
-      activeChildGenerationId: slotChildId,
-      startUrl: pairData?.startImage?.url,
-      endUrl: pairData?.endImage?.url,
-      startGenerationId: pairData?.startImage?.generationId,
-      endGenerationId: pairData?.endImage?.generationId,
-      startVariantId: pairData?.startImage?.primaryVariantId,
-      endVariantId: pairData?.endImage?.primaryVariantId,
-    };
-  }, [currentLightboxSlot, pairDataByIndex]);
-
-  const lightboxCurrentFrameCount = useMemo(() => {
-    const pairData = currentLightboxSlot ? pairDataByIndex?.get(currentLightboxSlot.index) : undefined;
-    return pairData?.frames;
-  }, [currentLightboxSlot, pairDataByIndex]);
 
   // ===== SEGMENT POSITIONS =====
   const segmentPositions = useMemo(() => {
@@ -502,32 +327,13 @@ export function useSegmentOutputStrip({
     return positions;
   }, [pairInfo, fullMin, fullRange, containerWidth, trailingSegmentMode]);
 
-  // ===== PREVIEW DIMENSIONS =====
-  const previewDimensions = useMemo(() => getPreviewDimensions(projectAspectRatio), [projectAspectRatio]);
-
-  const handleScrubbingStart = useCallback((index: number, segmentRect: DOMRect) => {
-    setActiveScrubbingIndex(index);
-    setPreviewPosition({
-      x: segmentRect.left + segmentRect.width / 2,
-      y: segmentRect.top,
-    });
-  }, []);
-
-  const clampedPreviewX = useMemo(() => {
-    const padding = 16;
-    const halfWidth = previewDimensions.width / 2;
-    const minX = padding + halfWidth;
-    const maxX = (typeof window !== 'undefined' ? window.innerWidth : 1920) - padding - halfWidth;
-    return Math.max(minX, Math.min(maxX, previewPosition.x));
-  }, [previewPosition.x, previewDimensions.width]);
-
   return {
     // Refs
-    previewVideoRef,
-    stripContainerRef,
+    previewVideoRef: scrubbingHook.previewVideoRef,
+    stripContainerRef: scrubbingHook.stripContainerRef,
 
     // Mobile
-    isMobile,
+    isMobile: scrubbingHook.isMobile,
 
     // Display data
     displaySlots,
@@ -536,30 +342,30 @@ export function useSegmentOutputStrip({
     hasRecentMismatch,
 
     // Scrubbing
-    activeScrubbingIndex,
-    activeSegmentSlot,
-    activeSegmentVideoUrl,
-    scrubbing,
-    previewPosition,
-    previewDimensions,
-    clampedPreviewX,
-    handleScrubbingStart,
+    activeScrubbingIndex: scrubbingHook.activeScrubbingIndex,
+    activeSegmentSlot: scrubbingHook.activeSegmentSlot,
+    activeSegmentVideoUrl: scrubbingHook.activeSegmentVideoUrl,
+    scrubbing: scrubbingHook.scrubbing,
+    previewPosition: scrubbingHook.previewPosition,
+    previewDimensions: scrubbingHook.previewDimensions,
+    clampedPreviewX: scrubbingHook.clampedPreviewX,
+    handleScrubbingStart: scrubbingHook.handleScrubbingStart,
 
     // Lightbox
-    lightboxIndex,
-    lightboxMedia,
-    lightboxCurrentSegmentImages,
-    lightboxCurrentFrameCount,
-    currentLightboxMedia,
-    childSlotIndices,
+    lightboxIndex: lightbox.lightboxIndex,
+    lightboxMedia: lightbox.lightboxMedia,
+    lightboxCurrentSegmentImages: lightbox.lightboxCurrentSegmentImages,
+    lightboxCurrentFrameCount: lightbox.lightboxCurrentFrameCount,
+    currentLightboxMedia: lightbox.currentLightboxMedia,
+    childSlotIndices: lightbox.childSlotIndices,
     handleSegmentClick,
-    handleLightboxNext,
-    handleLightboxPrev,
-    handleLightboxClose,
+    handleLightboxNext: lightbox.handleLightboxNext,
+    handleLightboxPrev: lightbox.handleLightboxPrev,
+    handleLightboxClose: lightbox.handleLightboxClose,
 
     // Deletion
-    deletingSegmentId,
-    handleDeleteSegment,
+    deletingSegmentId: deletion.deletingSegmentId,
+    handleDeleteSegment: deletion.handleDeleteSegment,
 
     // Segment frame count change (pass-through)
     onSegmentFrameCountChange,

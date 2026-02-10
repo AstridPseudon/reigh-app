@@ -4,8 +4,8 @@ import {
   createTask,
   validateRequiredFields,
   TaskValidationError
-} from "../taskCreation";
-import type { TaskCreationResult } from "../taskCreation";
+} from "@/shared/lib/taskCreation";
+import type { TaskCreationResult } from "@/shared/lib/taskCreation";
 import { handleError } from '@/shared/lib/errorHandler';
 
 /**

@@ -271,6 +271,26 @@ const SegmentProcessing: React.FC<SegmentProcessingProps> = ({
 // --- SegmentPreview ---
 // Renders when slot.type === 'child' and child has output: full thumbnail with hover preview, scrubbing, delete
 
+interface ScrubbingProps {
+  isActive: boolean;
+  onStart?: (rect: DOMRect) => void;
+  containerRef?: React.RefObject<HTMLDivElement>;
+  containerProps?: {
+    onMouseMove: (e: React.MouseEvent) => void;
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+  };
+  progress?: number;
+}
+
+interface BadgeProps {
+  data: { derivedCount?: number; unviewedVariantCount?: number; hasUnviewedVariants?: boolean } | null;
+  showNew: boolean;
+  isNewWithNoVariants: boolean;
+  unviewedCount: number;
+  onMarkAllViewed: () => void;
+}
+
 interface SegmentPreviewProps {
   layoutProps: LayoutProps;
   child: GenerationRow;
@@ -281,22 +301,8 @@ interface SegmentPreviewProps {
   isDeleting: boolean;
   isPending: boolean;
   hasSourceChanged: boolean;
-  // Scrubbing
-  isScrubbingActive: boolean;
-  onScrubbingStart?: (rect: DOMRect) => void;
-  scrubbingContainerRef?: React.RefObject<HTMLDivElement>;
-  scrubbingContainerProps?: {
-    onMouseMove: (e: React.MouseEvent) => void;
-    onMouseEnter: () => void;
-    onMouseLeave: () => void;
-  };
-  scrubbingProgress?: number;
-  // Badge data
-  badgeData: { derivedCount?: number; unviewedVariantCount?: number; hasUnviewedVariants?: boolean } | null;
-  showNewBadge: boolean;
-  isNewWithNoVariants: boolean;
-  unviewedCount: number;
-  handleMarkAllVariantsViewed: () => void;
+  scrubbing: ScrubbingProps;
+  badge: BadgeProps;
 }
 
 const SegmentPreview: React.FC<SegmentPreviewProps> = ({
@@ -309,17 +315,11 @@ const SegmentPreview: React.FC<SegmentPreviewProps> = ({
   isDeleting,
   isPending,
   hasSourceChanged,
-  isScrubbingActive,
-  onScrubbingStart,
-  scrubbingContainerRef,
-  scrubbingContainerProps,
-  scrubbingProgress,
-  badgeData,
-  showNewBadge,
-  isNewWithNoVariants,
-  unviewedCount,
-  handleMarkAllVariantsViewed,
+  scrubbing,
+  badge,
 }) => {
+  const { isActive: isScrubbingActive, onStart: onScrubbingStart, containerRef: scrubbingContainerRef, containerProps: scrubbingContainerProps, progress: scrubbingProgress } = scrubbing;
+  const { data: badgeData, showNew: showNewBadge, isNewWithNoVariants, unviewedCount, onMarkAllViewed: handleMarkAllVariantsViewed } = badge;
   const { layout, compact, isMobile, roundedClass, flowContainerClasses, adjustedPositionStyle } = layoutProps;
 
   const [isHovering, setIsHovering] = useState(false);
@@ -761,16 +761,20 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
       isDeleting={isDeleting}
       isPending={isPending}
       hasSourceChanged={hasSourceChanged}
-      isScrubbingActive={isScrubbingActive}
-      onScrubbingStart={onScrubbingStart}
-      scrubbingContainerRef={scrubbingContainerRef}
-      scrubbingContainerProps={scrubbingContainerProps}
-      scrubbingProgress={scrubbingProgress}
-      badgeData={badgeData}
-      showNewBadge={showNewBadge}
-      isNewWithNoVariants={isNewWithNoVariants}
-      unviewedCount={unviewedCount}
-      handleMarkAllVariantsViewed={handleMarkAllVariantsViewed}
+      scrubbing={{
+        isActive: isScrubbingActive,
+        onStart: onScrubbingStart,
+        containerRef: scrubbingContainerRef,
+        containerProps: scrubbingContainerProps,
+        progress: scrubbingProgress,
+      }}
+      badge={{
+        data: badgeData,
+        showNew: showNewBadge,
+        isNewWithNoVariants,
+        unviewedCount,
+        onMarkAllViewed: handleMarkAllVariantsViewed,
+      }}
     />
   );
 };

@@ -25,10 +25,10 @@ import { useAdjacentSegments } from "./Timeline/hooks/useAdjacentSegments";
 import { usePositionManagement } from "./Timeline/hooks/usePositionManagement";
 import { useLightbox } from "./Timeline/hooks/useLightbox";
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
-import { useTimelinePositionUtils } from "@/shared/hooks/useTimelinePositionUtils";
+import { useTimelinePositionUtils } from "../hooks/useTimelinePositionUtils";
 import { quantizeGap } from "./Timeline/utils/time-utils";
 import { useExternalGenerations } from "@/shared/components/ShotImageManager/hooks/useExternalGenerations";
-import { useDerivedNavigation } from "@/shared/hooks/useDerivedNavigation";
+import { useDerivedNavigation } from "../hooks/useDerivedNavigation";
 import { usePendingImageOpen } from "@/shared/hooks/usePendingImageOpen";
 
 import TimelineContainer from "./Timeline/TimelineContainer";

@@ -33,7 +33,37 @@ import {
   ProjectImageSettings,
   getReferenceModeDefaults,
 } from '../types';
-import { buildResourceMetadata } from './referenceHelpers';
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Build full StyleReferenceMetadata from a HydratedReferenceImage.
+ * Centralises the mapping so new metadata fields only need updating in one place.
+ */
+function buildResourceMetadata(
+  ref: HydratedReferenceImage,
+  overrides: Partial<StyleReferenceMetadata> = {},
+): StyleReferenceMetadata {
+  return {
+    name: ref.name,
+    styleReferenceImage: ref.styleReferenceImage,
+    styleReferenceImageOriginal: ref.styleReferenceImageOriginal,
+    thumbnailUrl: ref.thumbnailUrl,
+    styleReferenceStrength: ref.styleReferenceStrength,
+    subjectStrength: ref.subjectStrength,
+    subjectDescription: ref.subjectDescription,
+    inThisScene: ref.inThisScene,
+    inThisSceneStrength: ref.inThisSceneStrength,
+    referenceMode: ref.referenceMode,
+    styleBoostTerms: ref.styleBoostTerms,
+    created_by: { is_you: true },
+    is_public: ref.isPublic,
+    createdAt: ref.createdAt,
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
 
 // ============================================================================
 // Types

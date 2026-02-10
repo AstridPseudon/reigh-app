@@ -153,12 +153,16 @@ export const useShotPositioning = ({
     return { imageUrl, thumbUrl };
   };
 
-  // [ShotNavDebug] Log computed positioned state
-  const handleAddToShot = async () => {
-    if (!onAddToShot || !selectedShotId) return;
+  // Internal helper shared by both add-to-shot handlers
+  const executeAddToShot = async (
+    addFn: ((targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>) | undefined,
+    isAlreadyInShot: boolean,
+    onShowFeedback: ((imageId: string) => void) | undefined,
+    onOptimistic: ((mediaId: string, shotId: string) => void) | undefined,
+  ) => {
+    if (!addFn || !selectedShotId) return;
 
-    // If already positioned in shot, navigate to the shot
-    if (isAlreadyPositionedInSelectedShot) {
+    if (isAlreadyInShot) {
       navigateToSelectedShot();
       return;
     }
@@ -167,13 +171,17 @@ export const useShotPositioning = ({
 
     // CRITICAL: Pass selectedShotId (the dropdown value) as targetShotId
     // Use actualGenerationId (generations.id) not media.id (which might be shot_generations.id)
-    const success = await onAddToShot(selectedShotId, actualGenerationId, imageUrl, thumbUrl);
+    const success = await addFn(selectedShotId, actualGenerationId, imageUrl, thumbUrl);
     if (success) {
-      onShowTick?.(actualGenerationId);
+      onShowFeedback?.(actualGenerationId);
       // Pass selectedShotId so optimistic state can use composite keys (mediaId:shotId)
-      onOptimisticPositioned?.(actualGenerationId, selectedShotId);
+      onOptimistic?.(actualGenerationId, selectedShotId);
     }
   };
+
+  const handleAddToShot = () => executeAddToShot(
+    onAddToShot, isAlreadyPositionedInSelectedShot, onShowTick, onOptimisticPositioned
+  );
 
   // Check if image is already associated with the selected shot WITHOUT position
   const isAlreadyAssociatedWithoutPosition = useMemo(() => {
@@ -213,27 +221,9 @@ export const useShotPositioning = ({
     return false;
   }, [selectedShotId, media, optimisticUnpositionedIds, associatedWithoutPositionInSelectedShot]);
 
-  // [ShotNavDebug] Log computed unpositioned state
-  const handleAddToShotWithoutPosition = async () => {
-    if (!onAddToShotWithoutPosition || !selectedShotId) return;
-
-    // If already associated without position, navigate to the shot
-    if (isAlreadyAssociatedWithoutPosition) {
-      navigateToSelectedShot();
-      return;
-    }
-
-    const { imageUrl, thumbUrl } = resolveMediaUrls();
-
-    // CRITICAL: Pass selectedShotId (the dropdown value) as targetShotId
-    // Use actualGenerationId (generations.id) not media.id (which might be shot_generations.id)
-    const success = await onAddToShotWithoutPosition(selectedShotId, actualGenerationId, imageUrl, thumbUrl);
-    if (success) {
-      onShowSecondaryTick?.(actualGenerationId);
-      // Pass selectedShotId so optimistic state can use composite keys (mediaId:shotId)
-      onOptimisticUnpositioned?.(actualGenerationId, selectedShotId);
-    }
-  };
+  const handleAddToShotWithoutPosition = () => executeAddToShot(
+    onAddToShotWithoutPosition, isAlreadyAssociatedWithoutPosition, onShowSecondaryTick, onOptimisticUnpositioned
+  );
 
   return {
     isAlreadyPositionedInSelectedShot,
