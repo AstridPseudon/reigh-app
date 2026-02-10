@@ -16,6 +16,8 @@ export interface TimelineBottomControlsProps {
   readOnly?: boolean;
   hasNoImages?: boolean;
   zoomLevel: number;
+  pushMode?: 'right' | 'left' | null;
+  showDragHint?: boolean;
 }
 
 /** Bottom controls overlay with gap slider, reset button, and add images button */
@@ -30,6 +32,8 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
   readOnly = false,
   hasNoImages = false,
   zoomLevel,
+  pushMode,
+  showDragHint = false,
 }) => {
   return (
     <div
@@ -69,6 +73,19 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
           Reset
         </Button>
       </div>
+
+      {/* Center: Modifier key hints during drag */}
+      {showDragHint ? (
+        <div className="flex gap-3 text-xs text-muted-foreground/70 select-none">
+          <span className={pushMode === 'left' ? 'text-foreground font-medium' : ''}>
+            ⌥ Pull left
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className={pushMode === 'right' ? 'text-foreground font-medium' : ''}>
+            ⌘ Push right
+          </span>
+        </div>
+      ) : <div />}
 
       {/* Bottom-right: Add Images button with progress */}
       {onFileDrop ? (

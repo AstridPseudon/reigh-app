@@ -80,18 +80,16 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
     // Canvas/annotation
     isAnnotateMode,
     brushStrokes,
-    currentStroke,
-    isDrawing,
     isEraseMode,
     setIsEraseMode,
     brushSize,
     setBrushSize,
     annotationMode,
     selectedShapeId,
-    handleKonvaPointerDown,
-    handleKonvaPointerMove,
-    handleKonvaPointerUp,
-    handleShapeClick,
+    onStrokeComplete,
+    onStrokesChange,
+    onSelectionChange,
+    onTextModeHint,
     strokeOverlayRef,
     handleUndo,
     handleClearMask,
@@ -102,8 +100,6 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
     repositionDragHandlers,
     getTransformStyle,
     imageContainerRef,
-    canvasRef,
-    maskCanvasRef,
     isFlippedHorizontally,
     isSaving,
 
@@ -213,8 +209,6 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         onRepositionScaleChange={editMode === 'reposition' ? onRepositionScaleChange : undefined}
         repositionScale={repositionScale}
         imageContainerRef={imageContainerRef}
-        canvasRef={canvasRef}
-        maskCanvasRef={maskCanvasRef}
         onImageLoad={setImageDimensions}
         onVideoLoadedMetadata={(e) => {
           const video = e.currentTarget;
@@ -229,16 +223,15 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
         // Konva-based stroke overlay props
         imageDimensions={effectiveImageDimensions}
         brushStrokes={brushStrokes}
-        currentStroke={currentStroke}
-        isDrawing={isDrawing}
         isEraseMode={isEraseMode}
         brushSize={brushSize}
         annotationMode={editMode === 'annotate' ? annotationMode : null}
         selectedShapeId={selectedShapeId}
-        onStrokePointerDown={handleKonvaPointerDown}
-        onStrokePointerMove={handleKonvaPointerMove}
-        onStrokePointerUp={handleKonvaPointerUp}
-        onShapeClick={handleShapeClick}
+        isAnnotateMode={isAnnotateMode}
+        onStrokeComplete={onStrokeComplete}
+        onStrokesChange={onStrokesChange}
+        onSelectionChange={onSelectionChange}
+        onTextModeHint={onTextModeHint}
         strokeOverlayRef={strokeOverlayRef}
       />
     );

@@ -187,8 +187,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
 
   // Refs
   const contentRef = useRef<HTMLDivElement>(null);
-  const displayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const variantsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -473,8 +471,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     shotId,
     toolTypeOverride,
     isVideo: false,
-    displayCanvasRef,
-    maskCanvasRef,
     imageContainerRef,
     imageDimensions,
     handleExitInpaintMode: () => {},
@@ -511,10 +507,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     setIsAnnotateMode,
     setEditMode,
     setAnnotationMode,
-    handleKonvaPointerDown,
-    handleKonvaPointerMove,
-    handleKonvaPointerUp,
-    handleShapeClick,
     handleUndo,
     handleClearMask,
     handleEnterInpaintMode,
@@ -523,11 +515,13 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     handleDeleteSelected,
     handleToggleFreeForm,
     getDeleteButtonPosition,
+    onStrokeComplete,
+    onStrokesChange,
+    onSelectionChange,
+    onTextModeHint,
     strokeOverlayRef,
     isImageLoaded: isInpaintImageLoaded,
     imageLoadError: inpaintImageLoadError,
-    isDrawing,
-    currentStroke,
   } = inpaintingHook;
 
   // ========================================
@@ -816,8 +810,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isEraseMode,
     setIsEraseMode,
     brushStrokes,
-    currentStroke,
-    isDrawing,
 
     // Annotation state
     isAnnotateMode,
@@ -858,8 +850,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     isEraseMode,
     setIsEraseMode,
     brushStrokes,
-    currentStroke,
-    isDrawing,
     // Annotation
     isAnnotateMode,
     setIsAnnotateMode,
@@ -1127,8 +1117,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     setEditMode,
     setIsInpaintMode,
     brushStrokes,
-    currentStroke,
-    isDrawing,
     isEraseMode,
     setIsEraseMode,
     brushSize,
@@ -1136,10 +1124,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     annotationMode,
     setAnnotationMode,
     selectedShapeId,
-    handleKonvaPointerDown,
-    handleKonvaPointerMove,
-    handleKonvaPointerUp,
-    handleShapeClick,
+    onStrokeComplete,
+    onStrokesChange,
+    onSelectionChange,
+    onTextModeHint,
     strokeOverlayRef,
     handleUndo,
     handleClearMask,
@@ -1158,8 +1146,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     toggleFlipV,
     resetTransform,
     imageContainerRef,
-    canvasRef: displayCanvasRef,
-    maskCanvasRef,
     isFlippedHorizontally,
     isSaving,
     handleExitInpaintMode,

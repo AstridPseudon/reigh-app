@@ -3,7 +3,6 @@
  */
 
 import React from 'react';
-import type { KonvaEventObject } from 'konva/lib/Node';
 import type { BrushStroke, AnnotationMode } from '../../hooks/useInpainting';
 import type { EditMode } from '../../hooks/useGenerationEditSettings';
 import type { ControlsPanelProps } from '../ControlsPanel';
@@ -48,8 +47,6 @@ interface LayoutEditModeProps {
   isSpecialEditMode: boolean;
   editMode: EditMode | null;
   brushStrokes: BrushStroke[];
-  currentStroke: BrushStroke | null;
-  isDrawing: boolean;
   isEraseMode: boolean;
   setIsEraseMode?: (value: boolean) => void;
   brushSize: number;
@@ -57,10 +54,10 @@ interface LayoutEditModeProps {
   annotationMode: AnnotationMode | null;
   setAnnotationMode?: (mode: AnnotationMode | null) => void;
   selectedShapeId: string | null;
-  handleKonvaPointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  handleKonvaPointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  handleKonvaPointerUp: (e: KonvaEventObject<PointerEvent>) => void;
-  handleShapeClick: (strokeId: string, point: { x: number; y: number }) => void;
+  onStrokeComplete: (stroke: BrushStroke) => void;
+  onStrokesChange: (strokes: BrushStroke[]) => void;
+  onSelectionChange: (shapeId: string | null) => void;
+  onTextModeHint: () => void;
   strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
   handleUndo: () => void;
   handleClearMask: () => void;
@@ -77,8 +74,6 @@ interface LayoutEditModeProps {
   } | null;
   getTransformStyle: () => React.CSSProperties;
   imageContainerRef: React.RefObject<HTMLDivElement>;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  maskCanvasRef: React.RefObject<HTMLCanvasElement>;
   isFlippedHorizontally: boolean;
   isSaving: boolean;
 }

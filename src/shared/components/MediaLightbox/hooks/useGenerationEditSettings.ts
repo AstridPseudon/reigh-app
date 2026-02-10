@@ -13,8 +13,7 @@ import {
   type VideoEnhanceSettings,
   type GenerationEditSettings,
   type SyncedEditSettings,
-  DEFAULT_EDIT_SETTINGS,
-  DEFAULT_ENHANCE_SETTINGS
+  DEFAULT_EDIT_SETTINGS
 } from './editSettingsTypes';
 
 // Re-export types for backwards compatibility

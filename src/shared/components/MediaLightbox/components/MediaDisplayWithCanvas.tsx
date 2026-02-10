@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { RotateCw, Plus, Minus } from 'lucide-react';
 import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 import { StrokeOverlay, BrushStroke, StrokeOverlayHandle } from './StrokeOverlay';
-import type { KonvaEventObject } from 'konva/lib/Node';
 
 interface MediaDisplayWithCanvasProps {
   // Media info
@@ -40,8 +39,6 @@ interface MediaDisplayWithCanvasProps {
 
   // Refs
   imageContainerRef: React.RefObject<HTMLDivElement>;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  maskCanvasRef: React.RefObject<HTMLCanvasElement>;
 
   // Handlers
   onImageLoad?: (dimensions: { width: number; height: number }) => void;
@@ -65,17 +62,16 @@ interface MediaDisplayWithCanvasProps {
   // === Konva-based stroke overlay props ===
   imageDimensions?: { width: number; height: number } | null;
   brushStrokes?: BrushStroke[];
-  currentStroke?: Array<{ x: number; y: number }>;
-  isDrawing?: boolean;
   isEraseMode?: boolean;
   brushSize?: number;
   annotationMode?: 'rectangle' | null;
   selectedShapeId?: string | null;
-  // Handlers receive coordinates in IMAGE space (Konva handles conversion)
-  onStrokePointerDown?: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  onStrokePointerMove?: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  onStrokePointerUp?: (e: KonvaEventObject<PointerEvent>) => void;
-  onShapeClick?: (strokeId: string, point: { x: number; y: number }) => void;
+  isAnnotateMode?: boolean;
+  // Callbacks for StrokeOverlay's internal state machine
+  onStrokeComplete?: (stroke: BrushStroke) => void;
+  onStrokesChange?: (strokes: BrushStroke[]) => void;
+  onSelectionChange?: (shapeId: string | null) => void;
+  onTextModeHint?: () => void;
   // Ref for accessing StrokeOverlay's exportMask function
   strokeOverlayRef?: React.RefObject<StrokeOverlayHandle>;
 }
@@ -96,8 +92,6 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   onRepositionScaleChange,
   repositionScale = 1,
   imageContainerRef,
-  canvasRef,
-  maskCanvasRef,
   onImageLoad,
   onVideoLoadedMetadata,
   variant = 'regular-centered',
@@ -110,16 +104,15 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   // Konva stroke overlay props
   imageDimensions,
   brushStrokes = [],
-  currentStroke = [],
-  isDrawing = false,
   isEraseMode = false,
   brushSize = 20,
   annotationMode = null,
   selectedShapeId = null,
-  onStrokePointerDown,
-  onStrokePointerMove,
-  onStrokePointerUp,
-  onShapeClick,
+  isAnnotateMode = false,
+  onStrokeComplete,
+  onStrokesChange,
+  onSelectionChange,
+  onTextModeHint,
   strokeOverlayRef,
 }) => {
 
@@ -602,7 +595,7 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
 
             {/* Overlay container - positioned exactly over the image */}
             {isInpaintMode && (editMode === 'inpaint' || editMode === 'annotate') &&
-             imageDimensions && onStrokePointerDown && displaySize.width > 0 && displaySize.height > 0 && (
+             imageDimensions && onStrokeComplete && onStrokesChange && onSelectionChange && displaySize.width > 0 && displaySize.height > 0 && (
               <div
                 className="absolute overflow-hidden"
                 style={{
@@ -623,18 +616,17 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
                   displayWidth={displaySize.width}
                   displayHeight={displaySize.height}
                   strokes={brushStrokes}
-                  currentStroke={currentStroke}
-                  isDrawing={isDrawing}
                   isEraseMode={isEraseMode}
                   brushSize={brushSize}
                   annotationMode={annotationMode}
-                  selectedShapeId={selectedShapeId}
-                  onPointerDown={onStrokePointerDown}
-                  onPointerMove={onStrokePointerMove!}
-                  onPointerUp={onStrokePointerUp!}
-                  onShapeClick={onShapeClick}
+                  isInpaintMode={isInpaintMode}
+                  isAnnotateMode={isAnnotateMode}
+                  editMode={editMode as 'text' | 'inpaint' | 'annotate' | 'reposition' | 'img2img'}
+                  onStrokeComplete={onStrokeComplete}
+                  onStrokesChange={onStrokesChange}
+                  onSelectionChange={onSelectionChange}
+                  onTextModeHint={onTextModeHint}
                 />
-                <canvas ref={maskCanvasRef} className="hidden" />
               </div>
             )}
           </div>
@@ -794,13 +786,6 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
             </div>
           )}
 
-          {/* Hidden Canvas for Image Processing */}
-          <canvas 
-            ref={canvasRef}
-            className="hidden"
-          />
-
-          {/* Canvas is now inside the image wrapper above */}
         </div>
       )}
     </div>

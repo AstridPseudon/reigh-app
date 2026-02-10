@@ -66,6 +66,7 @@ export interface UseTimelineOrchestratorReturn {
   currentDragFrame: number | null;
   swapTargetId: string | null;
   dragDistances: { left: number; right: number } | null;
+  pushMode: 'right' | 'left' | null;
   handleMouseDown: (e: React.MouseEvent, id: string, containerRef: React.RefObject<HTMLDivElement>) => void;
 
   // Zoom state
@@ -242,6 +243,7 @@ export function useTimelineOrchestrator({
     currentDragFrame,
     swapTargetId,
     dragDistances,
+    pushMode,
     dynamicPositions,
     handleMouseDown,
     handleMouseMove,
@@ -730,6 +732,7 @@ export function useTimelineOrchestrator({
     currentDragFrame,
     swapTargetId,
     dragDistances,
+    pushMode,
     handleMouseDown,
 
     // Zoom state

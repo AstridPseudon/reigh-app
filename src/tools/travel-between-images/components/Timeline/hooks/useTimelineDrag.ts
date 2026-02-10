@@ -1,10 +1,6 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { GenerationRow } from "@/types/shots";
-import {
-  pixelToFrame,
-  applyFluidTimeline,
-  applyFluidTimelineMulti,
-} from "../utils/timeline-utils";
+import { pixelToFrame, applyFluidTimeline, applyFluidTimelineMulti, TRAILING_ENDPOINT_KEY } from "../utils/timeline-utils";
 import { log } from "@/shared/lib/logger";
 import { handleError } from "@/shared/lib/errorHandler";
 import { TIMELINE_PADDING_OFFSET } from "../constants";
@@ -83,6 +79,27 @@ export const useTimelineDrag = ({
   });
 
   const currentMousePosRef = useRef<{ x: number; y: number } | null>(null);
+  const modifierKeysRef = useRef({ metaKey: false, altKey: false });
+  const [pushMode, setPushMode] = useState<'right' | 'left' | null>(null);
+
+  // Track modifier keys during drag for responsive hint updates
+  useEffect(() => {
+    if (!dragState.isDragging) {
+      if (pushMode !== null) setPushMode(null);
+      return;
+    }
+    const handler = (e: KeyboardEvent) => {
+      modifierKeysRef.current = { metaKey: e.metaKey, altKey: e.altKey };
+      const mode = e.metaKey ? 'right' : e.altKey ? 'left' : null;
+      setPushMode(prev => prev !== mode ? mode : prev);
+    };
+    window.addEventListener('keydown', handler);
+    window.addEventListener('keyup', handler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('keyup', handler);
+    };
+  }, [dragState.isDragging, pushMode]);
 
   // Calculate target frame from mouse position
   const calculateTargetFrame = useCallback((clientX: number, containerRect: DOMRect | null): number => {
@@ -130,6 +147,52 @@ export const useTimelineDrag = ({
     const targetFrame = calculateTargetFrame(clientX, containerRect);
     const finalPosition = calculateFinalPosition(targetFrame);
     const isMultiSelectDrag = selectedIds.length > 1 && selectedIds.includes(dragState.activeId);
+
+    // Push/pull mode: modifier key shifts items on one side
+    const { metaKey, altKey } = modifierKeysRef.current;
+    const pushDirection = metaKey ? 'right' : altKey ? 'left' : null;
+
+    if (pushDirection) {
+      // Both push-right (⌘) and pull-left (⌥) shift items to the RIGHT
+      // of the dragged item by the drag delta. Push-right is for dragging
+      // rightward (expanding), pull-left for dragging leftward (compressing).
+      const newPositions = new Map(framePositions);
+      const delta = finalPosition - dragState.originalFramePos;
+      const draggedIds = isMultiSelectDrag ? selectedIds : [dragState.activeId];
+
+      // Determine the boundary from original positions of dragged items
+      const draggedOriginals = draggedIds.map(id => framePositions.get(id) ?? 0);
+      const rightBoundary = Math.max(...draggedOriginals);
+
+      // Position dragged items
+      if (isMultiSelectDrag) {
+        const sorted = draggedIds
+          .map(id => ({ id, frame: framePositions.get(id) ?? 0 }))
+          .sort((a, b) => a.frame - b.frame);
+        sorted.forEach((item, i) => newPositions.set(item.id, finalPosition + i * 5));
+      } else {
+        newPositions.set(dragState.activeId, finalPosition);
+      }
+
+      // Shift items to the right of the dragged item by delta
+      for (const [id, pos] of framePositions) {
+        if (draggedIds.includes(id) || id === TRAILING_ENDPOINT_KEY) continue;
+        if (pos > rightBoundary) {
+          newPositions.set(id, pos + delta);
+        }
+      }
+
+      const result = applyFluidTimeline(
+        newPositions, dragState.activeId, finalPosition,
+        undefined, fullMin, fullMax, isPreview
+      );
+
+      // Trailing endpoint: shift along with right-side items
+      const trailing = framePositions.get(TRAILING_ENDPOINT_KEY);
+      if (trailing !== undefined) result.set(TRAILING_ENDPOINT_KEY, trailing + delta);
+
+      return result;
+    }
 
     // Multi-select drag: bundle items together
     if (isMultiSelectDrag) {
@@ -255,6 +318,9 @@ export const useTimelineDrag = ({
     }
 
     currentMousePosRef.current = { x: e.clientX, y: e.clientY };
+    modifierKeysRef.current = { metaKey: e.metaKey, altKey: e.altKey };
+    const mode = e.metaKey ? 'right' : e.altKey ? 'left' : null;
+    setPushMode(prev => prev !== mode ? mode : prev);
   }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.hasMovedPastThreshold, onDragStart]);
 
   const handleMouseUp = useCallback((e: MouseEvent, containerRef: React.RefObject<HTMLDivElement>) => {
@@ -400,6 +466,7 @@ export const useTimelineDrag = ({
     currentDragFrame,
     swapTargetId,
     dragDistances,
+    pushMode,
     dynamicPositions: calculateDragPreview,
     calculateDragPreviewWithPosition,
     handleMouseDown,

@@ -54,8 +54,6 @@ export interface ImageEditState {
   isEraseMode: boolean;
   setIsEraseMode: (value: boolean) => void;
   brushStrokes: BrushStroke[];
-  currentStroke: Array<{ x: number; y: number }> | null;
-  isDrawing: boolean;
 
   // ========================================
   // Annotation state
@@ -113,8 +111,6 @@ const EMPTY_IMAGE_EDIT: ImageEditState = {
   isEraseMode: false,
   setIsEraseMode: () => {},
   brushStrokes: [],
-  currentStroke: null,
-  isDrawing: false,
 
   // Annotation
   isAnnotateMode: false,

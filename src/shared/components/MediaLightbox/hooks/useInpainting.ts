@@ -3,10 +3,11 @@
  *
  * This is the orchestrator that composes several sub-hooks:
  * - useMediaPersistence: Handles localStorage, in-memory cache, and DB persistence
- * - usePointerHandlers: Handles all pointer events for drawing and dragging
- * - useStrokeRendering: Handles canvas rendering of strokes
  * - useInpaintActions: Handles user actions (undo, clear, delete, etc.)
  * - useTaskGeneration: Handles task creation for inpaint/annotate edits
+ *
+ * StrokeOverlay owns the drawing state machine (pointer handlers, drag state).
+ * This hook provides callbacks that StrokeOverlay invokes when strokes change.
  *
  * The sub-hooks are located in ./inpainting/
  */
@@ -21,17 +22,10 @@ import type {
   AnnotationMode,
   UseInpaintingProps,
   UseInpaintingReturn,
-  EditAdvancedSettings,
-  QwenEditModel,
-  ImageDimensions,
-  CanvasSize,
 } from './inpainting/types';
 
 // Import sub-hooks
 import { useMediaPersistence } from './inpainting/useMediaPersistence';
-import { usePointerHandlers } from './inpainting/usePointerHandlers';
-import { useStrokeRendering } from './inpainting/useStrokeRendering';
-import { useInpaintActions } from './inpainting/useInpaintActions';
 import { useTaskGeneration } from './inpainting/useTaskGeneration';
 
 // Import helpers
@@ -51,8 +45,6 @@ export const useInpainting = ({
   toolTypeOverride,
   isVideo,
   imageDimensions,
-  displayCanvasRef,
-  maskCanvasRef,
   imageContainerRef,
   handleExitInpaintMode,
   loras,
@@ -74,6 +66,9 @@ export const useInpainting = ({
   const [showTextModeHint, setShowTextModeHint] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
+
+  // Selection state (owned here, synced via onSelectionChange callback from StrokeOverlay)
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
 
   // Ref for StrokeOverlay to enable mask export
   const strokeOverlayRef = useRef<StrokeOverlayHandle>(null);
@@ -112,73 +107,72 @@ export const useInpainting = ({
     return editMode === 'annotate' ? annotationStrokes : editMode === 'inpaint' ? inpaintStrokes : [];
   }, [editMode, annotationStrokes, inpaintStrokes]);
 
-  // Computed: setter for current mode's strokes
-  const setBrushStrokes = useMemo(() => {
-    return editMode === 'annotate' ? setAnnotationStrokes : setInpaintStrokes;
-  }, [editMode, setAnnotationStrokes, setInpaintStrokes]);
+  // ============================================
+  // StrokeOverlay callbacks
+  // ============================================
+
+  /**
+   * Called when a new stroke is completed (drawn and released).
+   * Appends to the correct stroke array based on current mode.
+   */
+  const onStrokeComplete = useCallback((stroke: BrushStroke) => {
+    if (isAnnotateMode) {
+      // In annotate+rectangle mode, limit to one rectangle
+      if (stroke.shapeType === 'rectangle' && annotationStrokes.length > 0) {
+        setAnnotationStrokes([stroke]);
+      } else {
+        setAnnotationStrokes(prev => [...prev, stroke]);
+      }
+    } else {
+      setInpaintStrokes(prev => [...prev, stroke]);
+    }
+  }, [isAnnotateMode, annotationStrokes.length, setAnnotationStrokes, setInpaintStrokes]);
+
+  /**
+   * Called when strokes are mutated in place (drag/resize/free-form).
+   * Replaces the entire stroke array for the current mode.
+   */
+  const onStrokesChange = useCallback((newStrokes: BrushStroke[]) => {
+    if (isAnnotateMode) {
+      setAnnotationStrokes(newStrokes);
+    } else {
+      setInpaintStrokes(newStrokes);
+    }
+  }, [isAnnotateMode, setAnnotationStrokes, setInpaintStrokes]);
+
+  /**
+   * Called when selection changes inside StrokeOverlay.
+   */
+  const onSelectionChange = useCallback((shapeId: string | null) => {
+    setSelectedShapeId(shapeId);
+  }, []);
+
+  /**
+   * Called when user tries to draw in text mode.
+   */
+  const onTextModeHint = useCallback(() => {
+    setShowTextModeHint(true);
+    setTimeout(() => setShowTextModeHint(false), 2000);
+  }, []);
 
   // ============================================
-  // Pointer Handlers (before rendering so we have selectedShapeId)
+  // User Actions (delegate to StrokeOverlay ref)
   // ============================================
-  const {
-    isDrawing,
-    currentStroke,
-    selectedShapeId,
-    setSelectedShapeId,
-    handleKonvaPointerDown,
-    handleKonvaPointerMove,
-    handleKonvaPointerUp,
-    handleShapeClick,
-  } = usePointerHandlers({
-    isInpaintMode,
-    editMode,
-    annotationMode,
-    isAnnotateMode,
-    brushStrokes,
-    annotationStrokes,
-    isEraseMode,
-    brushSize,
-    setBrushStrokes,
-    setAnnotationStrokes,
-    setShowTextModeHint,
-  });
+  const handleUndo = useCallback(() => {
+    strokeOverlayRef.current?.undo();
+  }, []);
 
-  // ============================================
-  // Stroke Rendering (after pointer handlers so we have selectedShapeId)
-  // ============================================
-  const {
-    redrawStrokes,
-    canvasSize,
-    imageToCanvas,
-  } = useStrokeRendering({
-    isInpaintMode,
-    editMode,
-    inpaintStrokes,
-    annotationStrokes,
-    selectedShapeId,
-    imageDimensions,
-    displayCanvasRef,
-    maskCanvasRef,
-  });
+  const handleClearMask = useCallback(() => {
+    strokeOverlayRef.current?.clear();
+  }, []);
 
-  // ============================================
-  // User Actions
-  // ============================================
-  const {
-    handleUndo,
-    handleClearMask,
-    handleDeleteSelected,
-    handleToggleFreeForm,
-  } = useInpaintActions({
-    isInpaintMode,
-    isAnnotateMode,
-    brushStrokes,
-    selectedShapeId,
-    setInpaintStrokes,
-    setAnnotationStrokes,
-    setSelectedShapeId,
-    redrawStrokes,
-  });
+  const handleDeleteSelected = useCallback(() => {
+    strokeOverlayRef.current?.deleteSelected();
+  }, []);
+
+  const handleToggleFreeForm = useCallback(() => {
+    strokeOverlayRef.current?.toggleFreeForm();
+  }, []);
 
   // ============================================
   // Task Generation
@@ -233,7 +227,7 @@ export const useInpainting = ({
       setSelectedShapeId(null);
     }
     prevModeForSelectionRef.current = editMode;
-  }, [editMode, setSelectedShapeId]);
+  }, [editMode]);
 
   // ============================================
   // Handlers
@@ -251,24 +245,33 @@ export const useInpainting = ({
 
   // Get delete button position for selected shape
   const getDeleteButtonPosition = useCallback((): { x: number; y: number } | null => {
-    if (!selectedShapeId || !displayCanvasRef.current || !canvasSize || !imageDimensions) return null;
+    if (!selectedShapeId || !imageDimensions) return null;
 
     const selectedShape = brushStrokes.find(s => s.id === selectedShapeId);
     if (!selectedShape || !selectedShape.shapeType) return null;
 
-    const canvas = displayCanvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    // Get display dimensions from StrokeOverlay's stage container
+    const stageContainer = strokeOverlayRef.current
+      ? (document.querySelector('[data-lightbox-bg] .konvajs-content') as HTMLElement)
+      : null;
+    if (!stageContainer) return null;
 
-    // Get corners in image coordinates
+    const rect = stageContainer.getBoundingClientRect();
+    const displayWidth = rect.width;
+    const displayHeight = rect.height;
+    if (displayWidth === 0 || displayHeight === 0) return null;
+
+    // Get corners in image coordinates, convert to display coordinates
     const imageCorners = getRectangleCorners(selectedShape);
+    const displayCorners = imageCorners.map(corner => ({
+      x: (corner.x / imageDimensions.width) * displayWidth,
+      y: (corner.y / imageDimensions.height) * displayHeight,
+    }));
 
-    // Convert corners from image coordinates to canvas coordinates
-    const canvasCorners = imageCorners.map(corner => imageToCanvas(corner.x, corner.y));
-
-    const minY = Math.min(...canvasCorners.map(c => c.y));
-    const maxY = Math.max(...canvasCorners.map(c => c.y));
-    const minX = Math.min(...canvasCorners.map(c => c.x));
-    const maxX = Math.max(...canvasCorners.map(c => c.x));
+    const minY = Math.min(...displayCorners.map(c => c.y));
+    const maxY = Math.max(...displayCorners.map(c => c.y));
+    const minX = Math.min(...displayCorners.map(c => c.x));
+    const maxX = Math.max(...displayCorners.map(c => c.x));
 
     const buttonWidth = 80;
     const padding = 10;
@@ -283,15 +286,15 @@ export const useInpainting = ({
     }
 
     // Clamp to canvas boundaries
-    buttonX = Math.max(buttonWidth / 2 + padding, Math.min(rect.width - buttonWidth / 2 - padding, buttonX));
-    buttonY = Math.max(padding, Math.min(rect.height - padding, buttonY));
+    buttonX = Math.max(buttonWidth / 2 + padding, Math.min(displayWidth - buttonWidth / 2 - padding, buttonX));
+    buttonY = Math.max(padding, Math.min(displayHeight - padding, buttonY));
 
-    // Convert canvas coordinates to screen coordinates
+    // Convert display coordinates to screen coordinates
     return {
       x: rect.left + buttonX,
       y: rect.top + buttonY
     };
-  }, [selectedShapeId, brushStrokes, displayCanvasRef, canvasSize, imageDimensions, imageToCanvas]);
+  }, [selectedShapeId, brushStrokes, imageDimensions, strokeOverlayRef]);
 
   // ============================================
   // Return public interface
@@ -306,8 +309,6 @@ export const useInpainting = ({
     brushSize,
     isGeneratingInpaint,
     inpaintGenerateSuccess,
-    isDrawing,
-    currentStroke,
     isAnnotateMode,
     editMode,
     annotationMode,
@@ -326,10 +327,6 @@ export const useInpainting = ({
 
     // Handlers
     handleEnterInpaintMode,
-    handleKonvaPointerDown,
-    handleKonvaPointerMove,
-    handleKonvaPointerUp,
-    handleShapeClick,
     handleUndo,
     handleClearMask,
     handleGenerateInpaint,
@@ -338,12 +335,17 @@ export const useInpainting = ({
     handleToggleFreeForm,
     getDeleteButtonPosition,
 
+    // StrokeOverlay callbacks
+    onStrokeComplete,
+    onStrokesChange,
+    onSelectionChange,
+    onTextModeHint,
+
     // Refs
     strokeOverlayRef,
 
     // Canvas state
     isImageLoaded,
     imageLoadError,
-    redrawStrokes,
   };
 };

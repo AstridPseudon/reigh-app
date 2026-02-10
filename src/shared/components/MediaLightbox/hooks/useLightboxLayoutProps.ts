@@ -9,7 +9,6 @@ import React, { useMemo, RefObject, ReactNode } from 'react';
 import type { GenerationRow } from '@/types/shots';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { VideoEnhanceSettings } from './useVideoEnhance';
-import type { KonvaEventObject } from 'konva/lib/Node';
 import type { BrushStroke, AnnotationMode } from './inpainting/types';
 import type { StrokeOverlayHandle } from '../components/StrokeOverlay';
 import type { SegmentRegenerateFormProps } from '../components/SegmentRegenerateForm';
@@ -117,8 +116,6 @@ export interface UseLightboxLayoutPropsInput {
   setEditMode: (mode: string) => void;
   setIsInpaintMode: (value: boolean) => void;
   brushStrokes: BrushStroke[];
-  currentStroke: BrushStroke | null;
-  isDrawing: boolean;
   isEraseMode: boolean;
   setIsEraseMode: (value: boolean) => void;
   brushSize: number;
@@ -126,10 +123,10 @@ export interface UseLightboxLayoutPropsInput {
   annotationMode: string | null;
   setAnnotationMode: (mode: string | null) => void;
   selectedShapeId: string | null;
-  handleKonvaPointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  handleKonvaPointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  handleKonvaPointerUp: (e: KonvaEventObject<PointerEvent>) => void;
-  handleShapeClick: (strokeId: string, point: { x: number; y: number }) => void;
+  onStrokeComplete: (stroke: BrushStroke) => void;
+  onStrokesChange: (strokes: BrushStroke[]) => void;
+  onSelectionChange: (shapeId: string | null) => void;
+  onTextModeHint: () => void;
   strokeOverlayRef: RefObject<StrokeOverlayHandle>;
   handleUndo: () => void;
   handleClearMask: () => void;
@@ -154,8 +151,6 @@ export interface UseLightboxLayoutPropsInput {
   toggleFlipV: () => void;
   resetTransform: () => void;
   imageContainerRef: RefObject<HTMLDivElement>;
-  canvasRef: RefObject<HTMLCanvasElement>;
-  maskCanvasRef: RefObject<HTMLCanvasElement>;
   isFlippedHorizontally: boolean;
   isSaving: boolean;
   handleExitInpaintMode: () => void;
@@ -453,8 +448,6 @@ export function useLightboxLayoutProps(
     isSpecialEditMode: input.isSpecialEditMode,
     editMode: input.editMode,
     brushStrokes: input.brushStrokes,
-    currentStroke: input.currentStroke,
-    isDrawing: input.isDrawing,
     isEraseMode: input.isEraseMode,
     setIsEraseMode: input.setIsEraseMode,
     brushSize: input.brushSize,
@@ -462,10 +455,10 @@ export function useLightboxLayoutProps(
     annotationMode: input.annotationMode,
     setAnnotationMode: input.setAnnotationMode,
     selectedShapeId: input.selectedShapeId,
-    handleKonvaPointerDown: input.handleKonvaPointerDown,
-    handleKonvaPointerMove: input.handleKonvaPointerMove,
-    handleKonvaPointerUp: input.handleKonvaPointerUp,
-    handleShapeClick: input.handleShapeClick,
+    onStrokeComplete: input.onStrokeComplete,
+    onStrokesChange: input.onStrokesChange,
+    onSelectionChange: input.onSelectionChange,
+    onTextModeHint: input.onTextModeHint,
     strokeOverlayRef: input.strokeOverlayRef,
     handleUndo: input.handleUndo,
     handleClearMask: input.handleClearMask,
@@ -476,8 +469,6 @@ export function useLightboxLayoutProps(
     repositionDragHandlers: input.repositionDragHandlers,
     getTransformStyle: input.getTransformStyle,
     imageContainerRef: input.imageContainerRef,
-    canvasRef: input.canvasRef,
-    maskCanvasRef: input.maskCanvasRef,
     isFlippedHorizontally: input.isFlippedHorizontally,
     isSaving: input.isSaving,
     // Panel
@@ -503,14 +494,14 @@ export function useLightboxLayoutProps(
     input.isVideoTrimModeActive, input.isVideoEditModeActive,
     input.trimVideoRef, input.trimState, input.setVideoDuration, input.setTrimCurrentTime,
     input.videoEditing, input.isInpaintMode, input.isAnnotateMode, input.isSpecialEditMode,
-    input.editMode, input.brushStrokes, input.currentStroke, input.isDrawing, input.isEraseMode,
+    input.editMode, input.brushStrokes, input.isEraseMode,
     input.setIsEraseMode, input.brushSize, input.setBrushSize, input.annotationMode,
-    input.setAnnotationMode, input.selectedShapeId, input.handleKonvaPointerDown,
-    input.handleKonvaPointerMove, input.handleKonvaPointerUp, input.handleShapeClick,
+    input.setAnnotationMode, input.selectedShapeId, input.onStrokeComplete,
+    input.onStrokesChange, input.onSelectionChange, input.onTextModeHint,
     input.strokeOverlayRef, input.handleUndo, input.handleClearMask, input.getDeleteButtonPosition,
     input.handleToggleFreeForm, input.handleDeleteSelected, input.isRepositionDragging,
     input.repositionDragHandlers, input.getTransformStyle, input.imageContainerRef,
-    input.canvasRef, input.maskCanvasRef, input.isFlippedHorizontally, input.isSaving,
+    input.isFlippedHorizontally, input.isSaving,
     input.effectiveTasksPaneOpen, input.effectiveTasksPaneWidth,
     input.setRotation, input.repositionTransform,
     input.buttonGroupProps, workflowBarProps, floatingToolProps, controlsPanelProps,

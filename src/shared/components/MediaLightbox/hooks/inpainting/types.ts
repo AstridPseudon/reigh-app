@@ -1,4 +1,3 @@
-import type { KonvaEventObject } from 'konva/lib/Node';
 import type { GenerationRow } from '@/types/shots';
 import type { StrokeOverlayHandle } from '../../components/StrokeOverlay';
 
@@ -25,11 +24,6 @@ export type EditMode = 'text' | 'inpaint' | 'annotate';
 
 export type AnnotationMode = 'rectangle' | null;
 
-export interface CanvasSize {
-  width: number;  // Display width in CSS pixels
-  height: number; // Display height in CSS pixels
-}
-
 export interface ImageDimensions {
   width: number;
   height: number;
@@ -46,8 +40,6 @@ export interface UseInpaintingProps {
   toolTypeOverride?: string;
   isVideo: boolean;
   imageDimensions: ImageDimensions | null;
-  displayCanvasRef: React.RefObject<HTMLCanvasElement>;
-  maskCanvasRef: React.RefObject<HTMLCanvasElement>;
   imageContainerRef: React.RefObject<HTMLDivElement>;
   handleExitInpaintMode: () => void;
   loras?: Array<{ url: string; strength: number }>;
@@ -71,8 +63,6 @@ export interface UseInpaintingReturn {
   brushSize: number;
   isGeneratingInpaint: boolean;
   inpaintGenerateSuccess: boolean;
-  isDrawing: boolean;
-  currentStroke: Array<{ x: number; y: number }>;
   isAnnotateMode: boolean;
   editMode: EditMode;
   annotationMode: AnnotationMode;
@@ -91,10 +81,6 @@ export interface UseInpaintingReturn {
 
   // Handlers
   handleEnterInpaintMode: () => void;
-  handleKonvaPointerDown: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  handleKonvaPointerMove: (point: { x: number; y: number }, e: KonvaEventObject<PointerEvent>) => void;
-  handleKonvaPointerUp: (e: KonvaEventObject<PointerEvent>) => void;
-  handleShapeClick: (strokeId: string, point: { x: number; y: number }) => void;
   handleUndo: () => void;
   handleClearMask: () => void;
   handleGenerateInpaint: () => Promise<void>;
@@ -103,13 +89,18 @@ export interface UseInpaintingReturn {
   handleToggleFreeForm: () => void;
   getDeleteButtonPosition: () => { x: number; y: number } | null;
 
+  // StrokeOverlay callbacks (passed as props to StrokeOverlay)
+  onStrokeComplete: (stroke: BrushStroke) => void;
+  onStrokesChange: (strokes: BrushStroke[]) => void;
+  onSelectionChange: (shapeId: string | null) => void;
+  onTextModeHint: () => void;
+
   // Refs
   strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
 
   // Canvas state
   isImageLoaded: boolean;
   imageLoadError: string | null;
-  redrawStrokes: (strokes: BrushStroke[]) => void;
 }
 
 // ============================================
@@ -129,10 +120,3 @@ export interface StrokeCache {
   brushSize: number;
 }
 
-export interface DragState {
-  isDraggingShape: boolean;
-  isDraggingControlPoint: boolean;
-  dragOffset: { x: number; y: number } | null;
-  dragMode: 'move' | 'resize';
-  draggingCornerIndex: number | null;
-}

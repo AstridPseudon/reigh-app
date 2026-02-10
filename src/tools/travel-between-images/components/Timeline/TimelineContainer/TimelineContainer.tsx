@@ -142,6 +142,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     currentDragFrame,
     swapTargetId,
     dragDistances,
+    pushMode,
     handleMouseDown,
     zoomLevel,
     handleZoomInToCenter,
@@ -949,6 +950,8 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
           readOnly={readOnly}
           hasNoImages={hasNoImages}
           zoomLevel={zoomLevel}
+          pushMode={pushMode}
+          showDragHint={!!(dragState.isDragging && dragState.activeId && !isMobile)}
         />
       </div>
 
