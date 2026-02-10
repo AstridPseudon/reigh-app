@@ -130,39 +130,35 @@ export function taskSupportsProgress(taskType: string): boolean {
 }
 
 /**
- * Get all visible task types
+ * Get task types filtered by visibility
  * Uses database cache if available, falls back to hardcoded list
  */
-export function getVisibleTaskTypes(): string[] {
+function getTaskTypesByVisibility(visible: boolean): string[] {
   if (isTaskTypeConfigCacheInitialized()) {
     const cache = getTaskTypeConfigCache();
     return Object.entries(cache)
-      .filter(([_, config]) => config.is_visible)
+      .filter(([_, config]) => visible ? config.is_visible : !config.is_visible)
       .map(([taskType]) => taskType);
   }
-  
+
   // Fall back to hardcoded
   return Object.entries(HARDCODED_TASK_TYPE_CONFIG)
-    .filter(([_, config]) => config.isVisible)
+    .filter(([_, config]) => visible ? config.isVisible : !config.isVisible)
     .map(([taskType]) => taskType);
 }
 
 /**
+ * Get all visible task types
+ */
+export function getVisibleTaskTypes(): string[] {
+  return getTaskTypesByVisibility(true);
+}
+
+/**
  * Get all hidden task types
- * Uses database cache if available, falls back to hardcoded list
  */
 export function getHiddenTaskTypes(): string[] {
-  if (isTaskTypeConfigCacheInitialized()) {
-    const cache = getTaskTypeConfigCache();
-    return Object.entries(cache)
-      .filter(([_, config]) => !config.is_visible)
-      .map(([taskType]) => taskType);
-  }
-  
-  // Fall back to hardcoded
-  return Object.entries(HARDCODED_TASK_TYPE_CONFIG)
-    .filter(([_, config]) => !config.isVisible)
-    .map(([taskType]) => taskType);
+  return getTaskTypesByVisibility(false);
 }
 
 /**

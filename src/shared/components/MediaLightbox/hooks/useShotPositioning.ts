@@ -127,33 +127,43 @@ export const useShotPositioning = ({
     return false;
   }, [selectedShotId, media, optimisticPositionedIds, positionedInSelectedShot]);
 
-  // [ShotNavDebug] Log computed positioned state
-  const handleAddToShot = async () => {
-    if (!onAddToShot || !selectedShotId) return;
-    
-    // If already positioned in shot, navigate to the shot
-    if (isAlreadyPositionedInSelectedShot) {
-      const targetShotOption = allShots.find(s => s.id === selectedShotId);
-      const minimalShot: Shot = {
-        id: targetShotOption?.id || selectedShotId,
-        name: targetShotOption?.name || 'Shot',
-        images: [],
-        position: 0,
-      };
-      if (onNavigateToShot) {
-        onNavigateToShot(minimalShot);
-      } else {
-        onClose();
-        navigateToShot(minimalShot);
-      }
-      return;
+  // Navigate to the selected shot (shared by both handlers)
+  const navigateToSelectedShot = () => {
+    if (!selectedShotId) return;
+    const targetShotOption = allShots.find(s => s.id === selectedShotId);
+    const minimalShot: Shot = {
+      id: targetShotOption?.id || selectedShotId,
+      name: targetShotOption?.name || 'Shot',
+      images: [],
+      position: 0,
+    };
+    if (onNavigateToShot) {
+      onNavigateToShot(minimalShot);
+    } else {
+      onClose();
+      navigateToShot(minimalShot);
     }
-    
-    // FIX: Use fallback chain for image URL since data structure varies
-    // The media object may have 'url', 'location', or 'imageUrl' depending on source
+  };
+
+  // Resolve media URLs (shared by both handlers)
+  const resolveMediaUrls = () => {
     const mediaWithUrls = media as GenerationRow & MediaWithShotFields;
     const imageUrl = getMediaUrl(mediaWithUrls) || media.imageUrl;
     const thumbUrl = getThumbnailUrl(mediaWithUrls) || media.thumbUrl || imageUrl;
+    return { imageUrl, thumbUrl };
+  };
+
+  // [ShotNavDebug] Log computed positioned state
+  const handleAddToShot = async () => {
+    if (!onAddToShot || !selectedShotId) return;
+
+    // If already positioned in shot, navigate to the shot
+    if (isAlreadyPositionedInSelectedShot) {
+      navigateToSelectedShot();
+      return;
+    }
+
+    const { imageUrl, thumbUrl } = resolveMediaUrls();
 
     // CRITICAL: Pass selectedShotId (the dropdown value) as targetShotId
     // Use actualGenerationId (generations.id) not media.id (which might be shot_generations.id)
@@ -209,27 +219,12 @@ export const useShotPositioning = ({
 
     // If already associated without position, navigate to the shot
     if (isAlreadyAssociatedWithoutPosition) {
-      const targetShotOption = allShots.find(s => s.id === selectedShotId);
-      const minimalShot: Shot = {
-        id: targetShotOption?.id || selectedShotId,
-        name: targetShotOption?.name || 'Shot',
-        images: [],
-        position: 0,
-      };
-      if (onNavigateToShot) {
-        onNavigateToShot(minimalShot);
-      } else {
-        onClose();
-        navigateToShot(minimalShot);
-      }
+      navigateToSelectedShot();
       return;
     }
-    
-    // FIX: Use fallback chain for image URL since data structure varies
-    const mediaWithUrls2 = media as GenerationRow & MediaWithShotFields;
-    const imageUrl = getMediaUrl(mediaWithUrls2) || media.imageUrl;
-    const thumbUrl = getThumbnailUrl(mediaWithUrls2) || media.thumbUrl || imageUrl;
-    
+
+    const { imageUrl, thumbUrl } = resolveMediaUrls();
+
     // CRITICAL: Pass selectedShotId (the dropdown value) as targetShotId
     // Use actualGenerationId (generations.id) not media.id (which might be shot_generations.id)
     const success = await onAddToShotWithoutPosition(selectedShotId, actualGenerationId, imageUrl, thumbUrl);

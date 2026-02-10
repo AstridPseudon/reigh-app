@@ -98,3 +98,22 @@ function getDisplayDimensions(aspectRatio?: string, baseSize: number = 128): { w
 
 // Keep for potential future use
 void getDisplayDimensions;
+
+/**
+ * Get preview dimensions constrained to a max height, maintaining aspect ratio.
+ * Used for video scrubbing previews and similar floating popups.
+ * @param aspectRatioStr The aspect ratio string (e.g., "16:9"). Falls back to 16:9 if invalid.
+ * @param maxHeight Maximum height in pixels (default: 200)
+ */
+export function getPreviewDimensions(
+  aspectRatioStr: string | undefined | null,
+  maxHeight: number = 200
+): { width: number; height: number } {
+  const defaultDims = { width: Math.round(maxHeight * 16 / 9), height: maxHeight };
+  if (!aspectRatioStr) return defaultDims;
+  const [w, h] = aspectRatioStr.split(':').map(Number);
+  if (w && h) {
+    return { width: Math.round(maxHeight * (w / h)), height: maxHeight };
+  }
+  return defaultDims;
+}

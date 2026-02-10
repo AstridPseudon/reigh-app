@@ -5,7 +5,7 @@ import React, {
   useRef,
   useCallback
 } from 'react';
-import { useFileDragTracking } from '@/shared/hooks/useFileDragTracking';
+import { useFileDragTracking, preventDefaultDragOver, createSingleFileDropHandler } from '@/shared/hooks/useFileDragTracking';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Button } from '@/shared/components/ui/button';
 import { LayoutGrid, Upload, ChevronDown, ChevronUp, ImageIcon } from 'lucide-react';
@@ -31,7 +31,8 @@ import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import { deriveInputImages } from '@/shared/components/MediaGallery/utils';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { parseRatio } from '@/shared/lib/aspectRatios';
-import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { variantToGenerationRow } from '@/shared/lib/mediaTypeHelpers';
+import { MediaSelectionPanel } from '@/shared/components/MediaSelectionPanel';
 
 const TOOL_TYPE = 'edit-images';
 
@@ -226,38 +227,22 @@ export default function EditImagesPage() {
   const isEditingOnMobile = selectedMedia && isMobile;
 
   // Drag and drop handlers
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+  const handleDragOver = preventDefaultDragOver;
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    resetDragState();
-
-    const files = e.dataTransfer.files;
-    if (!files || files.length === 0) return;
-
-    const file = files[0];
-    if (!file.type.startsWith('image/')) {
-      toast.error("Please drop an image file");
-      return;
-    }
-
-    if (!selectedProjectId) {
-      toast.error("Please select a project first");
-      return;
-    }
-
-    const result = await uploadOperation.execute(
-      () => uploadImage(file),
-      { context: 'EditImagesPage', toastTitle: 'Failed to upload image' }
-    );
-    if (result) {
-      setSelectedMedia(result);
-    }
-  }, [selectedProjectId, uploadOperation, uploadImage]);
+  const handleDrop = useCallback(
+    createSingleFileDropHandler({
+      mimePrefix: 'image/',
+      mimeErrorMessage: "Please drop an image file",
+      resetDrag: resetDragState,
+      getProjectId: () => selectedProjectId,
+      upload: (file) => uploadImage(file),
+      onResult: (result) => setSelectedMedia(result as GenerationRow),
+      context: 'EditImagesPage',
+      toastTitle: 'Failed to upload image',
+      uploadOperation,
+    }),
+    [selectedProjectId, uploadOperation, uploadImage]
+  );
 
   // Get results items for navigation
   const resultsItems = (resultsData as GenerationsPaginatedResponse | undefined)?.items || [];
@@ -267,23 +252,8 @@ export default function EditImagesPage() {
   const [lightboxVariantId, setLightboxVariantId] = useState<string | null>(null);
 
   // Transform variant data to GenerationRow format for lightbox
-  const transformVariantToGeneration = (media: GeneratedImageWithMetadata): GenerationRow => {
-    return {
-      id: getGenerationId(media),
-      location: media.url,
-      thumbnail_url: media.thumbUrl,
-      type: 'image',
-      created_at: media.createdAt,
-      params: {
-        prompt: media.metadata?.prompt,
-        tool_type: media.metadata?.tool_type,
-        variant_type: media.metadata?.variant_type,
-        variant_id: media.id,
-      },
-      project_id: selectedProjectId || '',
-      starred: media.starred || false,
-    } as GenerationRow;
-  };
+  const transformVariantToGeneration = (media: GeneratedImageWithMetadata): GenerationRow =>
+    variantToGenerationRow(media, 'image', selectedProjectId || '') as GenerationRow;
 
   const handleResultClick = (media: GeneratedImageWithMetadata) => {
     const index = resultsItems.findIndex((item) => item.id === media.id);
@@ -602,78 +572,6 @@ export default function EditImagesPage() {
 }
 
 function ImageSelectionModal({ onSelect }: { onSelect: (media: GenerationRow) => void }) {
-  const { selectedProjectId } = useProject();
-  const [shotFilter, setShotFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const { data: shots } = useListShots(selectedProjectId);
-  const itemsPerPage = 15;
-  
-  const {
-    data: generationsData,
-    isLoading: isGalleryLoading,
-  } = useProjectGenerations(
-    selectedProjectId || null,
-    currentPage,
-    itemsPerPage,
-    true,
-    {
-      shotId: shotFilter === 'all' ? undefined : shotFilter,
-      mediaType: 'image', // Only show images
-      searchTerm: searchTerm.trim() || undefined
-    }
-  );
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [shotFilter, searchTerm]);
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-4 pb-2 border-b">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <LayoutGrid className="w-4 h-4" />
-          Select an Image
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-0 m-0 relative pt-4 px-4 md:px-6">
-         {isGalleryLoading && !generationsData ? (
-            <ReighLoading />
-         ) : (
-            <MediaGallery 
-               images={(generationsData as GenerationsPaginatedResponse | undefined)?.items || []}
-               onImageClick={(media) => onSelect(media as GenerationRow)}
-               allShots={shots || []}
-               showShotFilter={true}
-               initialToolTypeFilter={false}
-               initialShotFilter={shotFilter}
-               onShotFilterChange={setShotFilter}
-               initialExcludePositioned={false}
-               showSearch={true}
-               initialSearchTerm={searchTerm}
-               onSearchChange={setSearchTerm}
-               initialMediaTypeFilter="image"
-               hideTopFilters={true}
-               hideShotNotifier={true}
-               itemsPerPage={itemsPerPage}
-               offset={(currentPage - 1) * itemsPerPage}
-               totalCount={(generationsData as GenerationsPaginatedResponse | undefined)?.total || 0}
-               onServerPageChange={setCurrentPage}
-               serverPage={currentPage}
-               showDelete={false}
-               showDownload={false}
-               showShare={false}
-               showEdit={false}
-               showStar={false}
-               showAddToShot={false}
-               enableSingleClick={true}
-               hideBottomPagination={true}
-            />
-         )}
-      </div>
-    </div>
-  );
+  return <MediaSelectionPanel onSelect={onSelect} mediaType="image" />;
 }
 

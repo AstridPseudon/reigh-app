@@ -24,6 +24,7 @@ import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import { getDisplayUrl, cn } from '@/shared/lib/utils';
+import { getPreviewDimensions } from '@/shared/lib/aspectRatios';
 import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { usePendingImageOpen } from '@/shared/hooks/usePendingImageOpen';
@@ -236,16 +237,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   }, []);
 
   // Calculate preview dimensions based on aspect ratio
-  const previewDimensions = useMemo(() => {
-    const maxHeight = 200;
-    if (!props.projectAspectRatio) return { width: Math.round(maxHeight * 16 / 9), height: maxHeight };
-    const [w, h] = props.projectAspectRatio.split(':').map(Number);
-    if (w && h) {
-      const aspectRatio = w / h;
-      return { width: Math.round(maxHeight * aspectRatio), height: maxHeight };
-    }
-    return { width: Math.round(maxHeight * 16 / 9), height: maxHeight };
-  }, [props.projectAspectRatio]);
+  const previewDimensions = useMemo(() => getPreviewDimensions(props.projectAspectRatio), [props.projectAspectRatio]);
 
   // Calculate clamped preview position to keep it within viewport
   const clampedPreviewX = useMemo(() => {

@@ -60,3 +60,41 @@ export function getThumbnailUrl(media: MediaWithUrls | null | undefined): string
   if (!media) return undefined;
   return media.thumbnail_url || media.thumbUrl;
 }
+
+/**
+ * Transform a variant (GeneratedImageWithMetadata shape) to a GenerationRow shape.
+ * Used by edit-video and edit-images pages for lightbox display.
+ *
+ * @param media The variant data
+ * @param mediaType 'video' or 'image'
+ * @param projectId Current project ID
+ */
+export function variantToGenerationRow(
+  media: {
+    id: string;
+    url: string;
+    thumbUrl?: string;
+    createdAt?: string;
+    starred?: boolean;
+    metadata?: { prompt?: string; tool_type?: string; variant_type?: string; generation_id?: string | null };
+    generation_id?: string | null;
+  },
+  mediaType: 'video' | 'image',
+  projectId: string,
+): Record<string, unknown> {
+  return {
+    id: getGenerationId(media),
+    location: media.url,
+    thumbnail_url: media.thumbUrl,
+    type: mediaType,
+    created_at: media.createdAt,
+    params: {
+      prompt: media.metadata?.prompt,
+      tool_type: media.metadata?.tool_type,
+      variant_type: media.metadata?.variant_type,
+      variant_id: media.id,
+    },
+    project_id: projectId,
+    starred: media.starred || false,
+  };
+}

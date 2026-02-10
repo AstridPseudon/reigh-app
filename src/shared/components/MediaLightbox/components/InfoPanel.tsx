@@ -109,39 +109,26 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const taskId = taskDetailsData?.taskId || taskIdProp;
   const { copied: idCopied, handleCopy: handleCopyId } = useCopyToClipboard(taskId ?? undefined);
 
-  // Render the Info/Edit toggle for images
-  const renderImageToggle = () => {
-    if (!showImageEditTools || readOnly || isVideo) return null;
+  // Render the Info/Edit toggle (shared for image and video modes)
+  const renderEditToggle = () => {
+    // Determine which edit mode applies
+    const isImageEdit = showImageEditTools && !isVideo;
+    const isVideoEdit = isVideo;
+
+    if (readOnly || (!isImageEdit && !isVideoEdit)) return null;
+
+    const isActive = isImageEdit ? isInpaintMode : isInVideoEditMode;
+    const handleEnter = isImageEdit ? handleEnterInpaintMode : handleEnterVideoEditMode;
+    const handleExit = isImageEdit ? handleExitInpaintMode : handleExitVideoEditMode;
 
     return (
       <SegmentedControl
-        value={isInpaintMode ? 'edit' : 'info'}
+        value={isActive ? 'edit' : 'info'}
         onValueChange={(value) => {
-          if (value === 'info' && isInpaintMode) {
-            handleExitInpaintMode();
-          } else if (value === 'edit' && !isInpaintMode) {
-            handleEnterInpaintMode();
-          }
-        }}
-      >
-        <SegmentedControlItem value="info">Info</SegmentedControlItem>
-        <SegmentedControlItem value="edit">Edit</SegmentedControlItem>
-      </SegmentedControl>
-    );
-  };
-
-  // Render the Info/Edit toggle for videos
-  const renderVideoToggle = () => {
-    if (!isVideo || readOnly) return null;
-
-    return (
-      <SegmentedControl
-        value={isInVideoEditMode ? 'edit' : 'info'}
-        onValueChange={(value) => {
-          if (value === 'info' && isInVideoEditMode) {
-            handleExitVideoEditMode();
-          } else if (value === 'edit' && !isInVideoEditMode) {
-            handleEnterVideoEditMode();
+          if (value === 'info' && isActive) {
+            handleExit();
+          } else if (value === 'edit' && !isActive) {
+            handleEnter();
           }
         }}
       >
@@ -208,8 +195,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
 
         {/* Right side - toggles and close button */}
         <div className="flex items-center gap-3">
-          {renderImageToggle()}
-          {renderVideoToggle()}
+          {renderEditToggle()}
           <Button
             variant="ghost"
             size="sm"

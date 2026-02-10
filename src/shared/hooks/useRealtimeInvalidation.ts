@@ -296,10 +296,17 @@ function handleShotGenerationsChanged(
   dataFreshnessManager.onRealtimeEvent('shot-generations-changed', affectedQueries);
 }
 
-function handleVariantsChanged(queryClient: QueryClient, event: VariantsChangedEvent): void {
-
+/**
+ * Shared invalidation logic for variant changes and deletions.
+ * Both events affect the same caches - only the event name for tracking differs.
+ */
+function invalidateVariantCaches(
+  queryClient: QueryClient,
+  affectedGenerationIds: string[],
+  eventName: 'variants-changed' | 'variants-deleted'
+): void {
   // Invalidate variant queries for affected generations
-  event.affectedGenerationIds.forEach((generationId) => {
+  affectedGenerationIds.forEach((generationId) => {
     queryClient.invalidateQueries({ queryKey: queryKeys.generations.variants(generationId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.generations.detail(generationId) });
   });
@@ -307,39 +314,10 @@ function handleVariantsChanged(queryClient: QueryClient, event: VariantsChangedE
   // Invalidate variant badges
   queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantBadges });
 
-  // When a variant becomes primary, the generation's location changes
-  // This affects Timeline/Batch mode displays
+  // Variant changes/deletions may affect which variant is displayed
   queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
-  invalidateAllShotGenerations(queryClient, 'variants-changed');
-
-  // Report to freshness manager - include variant-specific queries
-  const affectedQueries: string[][] = [
-    queryKeys.unified.all,
-    queryKeys.generations.all,
-    queryKeys.generations.variantBadges,
-  ];
-  event.affectedGenerationIds.forEach((generationId) => {
-    affectedQueries.push(queryKeys.generations.variants(generationId));
-  });
-  dataFreshnessManager.onRealtimeEvent('variants-changed', affectedQueries);
-}
-
-function handleVariantsDeleted(queryClient: QueryClient, event: VariantsDeletedEvent): void {
-
-  // Invalidate variant queries for affected generations
-  event.affectedGenerationIds.forEach((generationId) => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.generations.variants(generationId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.generations.detail(generationId) });
-  });
-
-  // Invalidate variant badges
-  queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantBadges });
-
-  // A deleted variant may affect which variant is displayed
-  queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
-  queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
-  invalidateAllShotGenerations(queryClient, 'variants-deleted');
+  invalidateAllShotGenerations(queryClient, eventName);
 
   // Report to freshness manager
   const affectedQueries: string[][] = [
@@ -347,8 +325,16 @@ function handleVariantsDeleted(queryClient: QueryClient, event: VariantsDeletedE
     queryKeys.generations.all,
     queryKeys.generations.variantBadges,
   ];
-  event.affectedGenerationIds.forEach((generationId) => {
+  affectedGenerationIds.forEach((generationId) => {
     affectedQueries.push(queryKeys.generations.variants(generationId));
   });
-  dataFreshnessManager.onRealtimeEvent('variants-deleted', affectedQueries);
+  dataFreshnessManager.onRealtimeEvent(eventName, affectedQueries);
+}
+
+function handleVariantsChanged(queryClient: QueryClient, event: VariantsChangedEvent): void {
+  invalidateVariantCaches(queryClient, event.affectedGenerationIds, 'variants-changed');
+}
+
+function handleVariantsDeleted(queryClient: QueryClient, event: VariantsDeletedEvent): void {
+  invalidateVariantCaches(queryClient, event.affectedGenerationIds, 'variants-deleted');
 }

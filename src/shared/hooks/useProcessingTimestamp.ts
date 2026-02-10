@@ -94,73 +94,60 @@ const formatCompletedTime = (completedDate: Date): string => {
 };
 
 /**
- * Hook that returns a formatted, live-updating processing timestamp string
- * 
- * @example
- * const processingTime = useProcessingTimestamp({ generationStartedAt: task.generationStartedAt });
- * return <span>{processingTime}</span>;
+ * Shared hook for live-updating timestamp formatting.
+ * Parses a date, sets up live update triggers, and formats using the provided formatter.
  */
-export function useProcessingTimestamp({ 
-  generationStartedAt, 
-  disabled = false 
-}: UseProcessingTimestampOptions = {}) {
-  
+function useLiveTimestamp(
+  dateInput: string | Date | null | undefined,
+  disabled: boolean,
+  formatter: (date: Date) => string,
+): string | null {
   const parsedDate = useMemo(() => {
-    if (!generationStartedAt) return null;
-    const parsed = typeof generationStartedAt === 'string' ? new Date(generationStartedAt) : generationStartedAt;
+    if (!dateInput) return null;
+    const parsed = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
     return isValid(parsed) ? parsed : null;
-  }, [generationStartedAt]);
-  
-  // Get live update trigger
+  }, [dateInput]);
+
   const { updateTrigger } = useTimestampUpdater({
     date: parsedDate,
     disabled,
-    isVisible: true
+    isVisible: true,
   });
-  
-  // Format processing duration with live updates
+
   const formattedTime = useMemo(() => {
     if (!parsedDate) return null;
-    
-    return formatProcessingDuration(parsedDate);
+    return formatter(parsedDate);
   }, [parsedDate?.getTime(), updateTrigger]);
-  
+
   return formattedTime;
 }
 
 /**
- * Hook that returns a formatted completed task timestamp string showing how long ago it was completed
- * 
+ * Hook that returns a formatted, live-updating processing timestamp string
+ *
  * @example
- * const completedTime = useCompletedTimestamp({ 
- *   generationProcessedAt: task.generationProcessedAt 
+ * const processingTime = useProcessingTimestamp({ generationStartedAt: task.generationStartedAt });
+ * return <span>{processingTime}</span>;
+ */
+export function useProcessingTimestamp({
+  generationStartedAt,
+  disabled = false
+}: UseProcessingTimestampOptions = {}) {
+  return useLiveTimestamp(generationStartedAt, disabled, formatProcessingDuration);
+}
+
+/**
+ * Hook that returns a formatted completed task timestamp string showing how long ago it was completed
+ *
+ * @example
+ * const completedTime = useCompletedTimestamp({
+ *   generationProcessedAt: task.generationProcessedAt
  * });
  * return <span>{completedTime}</span>;
  */
-export function useCompletedTimestamp({ 
+export function useCompletedTimestamp({
   generationProcessedAt,
-  disabled = false 
+  disabled = false
 }: UseCompletedTimestampOptions = {}) {
-  
-  const parsedDate = useMemo(() => {
-    if (!generationProcessedAt) return null;
-    const parsed = typeof generationProcessedAt === 'string' ? new Date(generationProcessedAt) : generationProcessedAt;
-    return isValid(parsed) ? parsed : null;
-  }, [generationProcessedAt]);
-  
-  // Get live update trigger for completed timestamps too
-  const { updateTrigger } = useTimestampUpdater({
-    date: parsedDate,
-    disabled,
-    isVisible: true
-  });
-  
-  // Format completed time with live updates
-  const formattedTime = useMemo(() => {
-    if (!parsedDate) return null;
-    
-    return formatCompletedTime(parsedDate);
-  }, [parsedDate?.getTime(), updateTrigger]);
-  
-  return formattedTime;
+  return useLiveTimestamp(generationProcessedAt, disabled, formatCompletedTime);
 }

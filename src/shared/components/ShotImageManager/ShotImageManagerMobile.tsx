@@ -22,6 +22,7 @@ import type { GenerationRow } from '@/types/shots';
 import { PairPromptIndicator } from './components/PairPromptIndicator';
 import { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
+import { getAspectRatioStyle } from './utils/image-utils';
 
 export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   images,
@@ -591,22 +592,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
         
         {/* Add Images card - appears as next item in grid (hidden in readOnly) */}
         {!readOnly && onImageUpload && (() => {
-          // Calculate aspect ratio to match project settings
-          const getAspectRatioStyle = () => {
-            // Use project aspect ratio if available
-            if (projectAspectRatio) {
-              const [w, h] = projectAspectRatio.split(':').map(Number);
-              if (!isNaN(w) && !isNaN(h)) {
-                const aspectRatio = w / h;
-                return { aspectRatio: `${aspectRatio}` };
-              }
-            }
-            
-            // Default to square aspect ratio
-            return { aspectRatio: '1' };
-          };
-
-          const aspectRatioStyle = getAspectRatioStyle();
+          const aspectRatioStyle = getAspectRatioStyle(projectAspectRatio);
 
           return (
             <div className="relative" style={aspectRatioStyle}>

@@ -27,6 +27,7 @@ import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { BUILTIN_VACE_PRESET, VACE_FEATURED_PRESET_IDS } from '@/shared/lib/vaceDefaults';
 import { getSegmentFormColor } from '@/shared/lib/segmentColors';
+import { quantizeTotalFrames, getQuantizedGap } from '@/shared/components/JoinClipsSettingsForm/utils';
 
 // Thumbnail component for segment preview - supports different sizes
 function SegmentThumbnail({ videoUrl, time, size = 'small' }: { videoUrl: string; time: number; size?: 'small' | 'large' }) {
@@ -171,31 +172,6 @@ function SegmentThumbnail({ videoUrl, time, size = 'small' }: { videoUrl: string
       style={size === 'large' ? { aspectRatio: `${canvasWidth} / ${canvasHeight}` } : undefined}
     />
   );
-}
-
-/**
- * Quantize total generation frames to 4N+1 format (required by Wan models)
- */
-function quantizeTotalFrames(total: number, minTotal: number = 17): number {
-    const n = Math.round((total - 1) / 4);
-    const quantized = n * 4 + 1;
-    return Math.max(minTotal, quantized);
-}
-
-/**
- * Get quantized gap frames for a given context
- */
-function getQuantizedGap(desiredGap: number, context: number, minTotal: number = 17): number {
-    const total = context * 2 + desiredGap;
-    const quantizedTotal = quantizeTotalFrames(total, minTotal);
-    const gap = quantizedTotal - context * 2;
-
-    if (gap < 1) {
-        const minTotalForPositiveGap = context * 2 + 1;
-        const validTotal = quantizeTotalFrames(minTotalForPositiveGap, minTotal);
-        return validTotal - context * 2;
-    }
-    return gap;
 }
 
 interface VideoPortionEditorProps {

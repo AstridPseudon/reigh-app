@@ -78,86 +78,61 @@ export const useVideoTravelAddToShot = ({
     return { targetShotIdForButton, targetShotNameForButtonTooltip };
   }, [lastAffectedShotId, shots]);
   
-  // Handle adding a video/image to target shot WITH position
-  const handleAddVideoToTargetShot = useCallback(async (generationId: string, imageUrl?: string, thumbUrl?: string): Promise<boolean> => {
-    
+  // Shared implementation for adding to shot (with or without position)
+  const addToTargetShot = useCallback(async (
+    mutation: typeof addImageToShotMutation,
+    generationId: string,
+    imageUrl?: string,
+    thumbUrl?: string,
+  ): Promise<boolean> => {
     if (!targetShotInfo.targetShotIdForButton) {
-      console.error('[VideoTravelAddToShot] ❌ No target shot available');
+      console.error('[VideoTravelAddToShot] No target shot available');
       toast.error("No target shot available to add to. Create a shot first or interact with one.");
       return false;
     }
     if (!generationId) {
-      console.error('[VideoTravelAddToShot] ❌ No generationId provided');
+      console.error('[VideoTravelAddToShot] No generationId provided');
       toast.error("Item has no ID, cannot add to shot.");
       return false;
     }
     if (!selectedProjectId) {
-      console.error('[VideoTravelAddToShot] ❌ No selectedProjectId');
+      console.error('[VideoTravelAddToShot] No selectedProjectId');
       toast.error("No project selected. Cannot add item to shot.");
       return false;
     }
 
     try {
-      
-      await addImageToShotMutation.mutateAsync({
+      await mutation.mutateAsync({
         shot_id: targetShotInfo.targetShotIdForButton,
         generation_id: generationId,
-        imageUrl: imageUrl,
-        thumbUrl: thumbUrl,
-        project_id: selectedProjectId, 
+        imageUrl,
+        thumbUrl,
+        project_id: selectedProjectId,
       });
-      
+
       setLastAffectedShotId(targetShotInfo.targetShotIdForButton);
-      
-      // Force refresh of generations data to show updated positioning
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId!) });
-      
+
       return true;
     } catch (error) {
       handleError(error, { context: 'useVideoTravelAddToShot', toastTitle: 'Failed to add item to shot' });
       return false;
     }
-  }, [targetShotInfo.targetShotIdForButton, targetShotInfo.targetShotNameForButtonTooltip, lastAffectedShotId, selectedProjectId, addImageToShotMutation, setLastAffectedShotId, queryClient]);
+  }, [targetShotInfo.targetShotIdForButton, selectedProjectId, setLastAffectedShotId, queryClient]);
+
+  // Handle adding a video/image to target shot WITH position
+  const handleAddVideoToTargetShot = useCallback(
+    (generationId: string, imageUrl?: string, thumbUrl?: string) =>
+      addToTargetShot(addImageToShotMutation, generationId, imageUrl, thumbUrl),
+    [addToTargetShot, addImageToShotMutation]
+  );
 
   // Handle adding a video/image to target shot WITHOUT position
-  const handleAddVideoToTargetShotWithoutPosition = useCallback(async (generationId: string, imageUrl?: string, thumbUrl?: string): Promise<boolean> => {
-    
-    if (!targetShotInfo.targetShotIdForButton) {
-      console.error('[VideoTravelAddToShot] No target shot available (without position)');
-      toast.error("No target shot available to add to. Create a shot first or interact with one.");
-      return false;
-    }
-    if (!generationId) {
-      console.error('[VideoTravelAddToShot] No generationId provided (without position)');
-      toast.error("Item has no ID, cannot add to shot.");
-      return false;
-    }
-    if (!selectedProjectId) {
-      console.error('[VideoTravelAddToShot] No selectedProjectId (without position)');
-      toast.error("No project selected. Cannot add item to shot.");
-      return false;
-    }
-
-    try {
-      await addImageToShotWithoutPositionMutation.mutateAsync({
-        shot_id: targetShotInfo.targetShotIdForButton,
-        generation_id: generationId,
-        imageUrl: imageUrl,
-        thumbUrl: thumbUrl,
-        project_id: selectedProjectId, 
-      });
-      
-      setLastAffectedShotId(targetShotInfo.targetShotIdForButton);
-      
-      // Force refresh of generations data to show updated association
-      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId!) });
-      
-      return true;
-    } catch (error) {
-      handleError(error, { context: 'useVideoTravelAddToShot', toastTitle: 'Failed to add item to shot without position' });
-      return false;
-    }
-  }, [targetShotInfo.targetShotIdForButton, selectedProjectId, addImageToShotWithoutPositionMutation, setLastAffectedShotId, queryClient]);
+  const handleAddVideoToTargetShotWithoutPosition = useCallback(
+    (generationId: string, imageUrl?: string, thumbUrl?: string) =>
+      addToTargetShot(addImageToShotWithoutPositionMutation, generationId, imageUrl, thumbUrl),
+    [addToTargetShot, addImageToShotWithoutPositionMutation]
+  );
 
   return {
     targetShotInfo,

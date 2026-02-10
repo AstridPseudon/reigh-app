@@ -10,6 +10,7 @@ import { TIMELINE_PADDING_OFFSET } from "./constants";
 import { VariantBadge } from "@/shared/components/VariantBadge";
 import { useMarkVariantViewed } from "@/shared/hooks/useMarkVariantViewed";
 import { useDeviceDetection } from "@/shared/hooks/useDeviceDetection";
+import { getAspectRatioStyle as getProjectAspectRatioStyle } from "@/shared/components/ShotImageManager/utils/image-utils";
 
 // Props for individual timeline items
 interface TimelineItemProps {
@@ -165,7 +166,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   }, [readOnly, onSelectionClick, onMobileTap]);
 
   // Calculate aspect ratio for consistent sizing
-  const getAspectRatioStyle = () => {
+  const aspectRatioStyle = (() => {
     // Try to get dimensions from image metadata first
     let width = image.metadata?.width as number | undefined;
     let height = image.metadata?.height as number | undefined;
@@ -190,20 +191,9 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
       return { aspectRatio: `${aspectRatio}` };
     }
 
-    // Fall back to project aspect ratio if available
-    if (projectAspectRatio) {
-      const [w, h] = projectAspectRatio.split(':').map(Number);
-      if (!isNaN(w) && !isNaN(h)) {
-        const aspectRatio = w / h;
-        return { aspectRatio: `${aspectRatio}` };
-      }
-    }
-
-    // Default to square aspect ratio
-    return { aspectRatio: '1' };
-  };
-
-  const aspectRatioStyle = getAspectRatioStyle();
+    // Fall back to project aspect ratio (shared utility handles default)
+    return getProjectAspectRatioStyle(projectAspectRatio);
+  })();
 
   // Progressive loading for timeline images
   const progressiveEnabled = isProgressiveLoadingEnabled();

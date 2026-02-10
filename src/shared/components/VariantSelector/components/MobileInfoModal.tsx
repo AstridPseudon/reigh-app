@@ -9,52 +9,10 @@ import React from 'react';
 import { X, Star, Download, Image, Check } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
-import { GenerationDetails } from '@/shared/components/GenerationDetails';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
-import { getSourceTaskId } from '@/shared/lib/taskIdHelpers';
-import { useGetTask } from '@/shared/hooks/useTasks';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import { getVariantLabel, hasLoadableSettings, hasDifferentSourceImages, type CurrentSegmentImagesData } from '../utils';
-
-// --- MobileVariantDetails (fetches real task data, same as desktop hover) ---
-
-interface MobileVariantDetailsProps {
-  variant: GenerationVariant;
-  availableLoras?: LoraModel[];
-}
-
-const MobileVariantDetails: React.FC<MobileVariantDetailsProps> = ({ variant, availableLoras }) => {
-  const variantParams = variant.params;
-  const sourceTaskId = getSourceTaskId(variantParams);
-  const { data: task, isLoading } = useGetTask(sourceTaskId || '');
-
-  if (task && !isLoading) {
-    return (
-      <GenerationDetails
-        task={task}
-        inputImages={[]}
-        variant="hover"
-        isMobile={false}
-        availableLoras={availableLoras}
-        showCopyButtons={true}
-      />
-    );
-  }
-
-  return (
-    <GenerationDetails
-      task={{
-        taskType: variantParams?.task_type || variantParams?.created_from || 'video_generation',
-        params: variantParams,
-      }}
-      inputImages={[]}
-      variant="hover"
-      isMobile={false}
-      availableLoras={availableLoras}
-      showCopyButtons={true}
-    />
-  );
-};
+import { VariantDetails } from './VariantDetails';
 
 // --- MobileInfoModal ---
 
@@ -122,7 +80,7 @@ export const MobileInfoModal: React.FC<MobileInfoModalProps> = ({
           {/* Task details */}
           {variant.params && variant.variant_type !== 'trimmed' && (
             <div className="border-t border-border/50 pt-3">
-              <MobileVariantDetails
+              <VariantDetails
                 variant={variant}
                 availableLoras={availableLoras}
               />

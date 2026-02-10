@@ -15,52 +15,10 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/shared/components/ui/hover-card';
-import { GenerationDetails } from '@/shared/components/GenerationDetails';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
-import { getSourceTaskId } from '@/shared/lib/taskIdHelpers';
-import { useGetTask } from '@/shared/hooks/useTasks';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import { getVariantIcon, getVariantLabel, isNewVariant, getTimeAgo, hasLoadableSettings, hasDifferentSourceImages, type CurrentSegmentImagesData } from '../utils';
-
-// --- VariantHoverDetails (fetches real task data for hover tooltip) ---
-
-interface VariantHoverDetailsProps {
-  variant: GenerationVariant;
-  availableLoras?: LoraModel[];
-}
-
-const VariantHoverDetails: React.FC<VariantHoverDetailsProps> = ({ variant, availableLoras }) => {
-  const variantParams = variant.params;
-  const sourceTaskId = getSourceTaskId(variantParams);
-  const { data: task, isLoading } = useGetTask(sourceTaskId || '');
-
-  if (task && !isLoading) {
-    return (
-      <GenerationDetails
-        task={task}
-        inputImages={[]}
-        variant="hover"
-        isMobile={false}
-        availableLoras={availableLoras}
-        showCopyButtons={true}
-      />
-    );
-  }
-
-  return (
-    <GenerationDetails
-      task={{
-        taskType: variantParams?.task_type || variantParams?.created_from || 'video_generation',
-        params: variantParams,
-      }}
-      inputImages={[]}
-      variant="hover"
-      isMobile={false}
-      availableLoras={availableLoras}
-      showCopyButtons={true}
-    />
-  );
-};
+import { VariantDetails } from './VariantDetails';
 
 // --- VariantCard ---
 
@@ -423,7 +381,7 @@ export const VariantCard: React.FC<VariantCardProps> = ({
                         }}
                       >
                         <div className="border-t border-border/50 pt-2">
-                          <VariantHoverDetails
+                          <VariantDetails
                             variant={variant}
                             availableLoras={availableLoras}
                           />

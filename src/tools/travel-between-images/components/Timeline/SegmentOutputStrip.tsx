@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import { handleError } from '@/shared/lib/errorHandler';
 import { cn } from '@/shared/lib/utils';
+import { getPreviewDimensions } from '@/shared/lib/aspectRatios';
 
 import type { PairData } from './TimelineContainer';
 
@@ -632,16 +633,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
 
   // Calculate preview dimensions based on aspect ratio
   // NOTE: This must be before the early return to follow React's rules of hooks
-  const previewDimensions = useMemo(() => {
-    const maxHeight = 200;
-    if (!projectAspectRatio) return { width: Math.round(maxHeight * 16 / 9), height: maxHeight };
-    const [w, h] = projectAspectRatio.split(':').map(Number);
-    if (w && h) {
-      const aspectRatio = w / h;
-      return { width: Math.round(maxHeight * aspectRatio), height: maxHeight };
-    }
-    return { width: Math.round(maxHeight * 16 / 9), height: maxHeight };
-  }, [projectAspectRatio]);
+  const previewDimensions = useMemo(() => getPreviewDimensions(projectAspectRatio), [projectAspectRatio]);
 
   // Handle scrubbing start - capture the segment's position for preview placement
   const handleScrubbingStart = useCallback((index: number, segmentRect: DOMRect) => {

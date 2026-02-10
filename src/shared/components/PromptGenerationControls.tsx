@@ -143,29 +143,27 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
     }
   }, [remixMode, onValuesChange, overallPromptText, remixPromptText, rulesToRememberText, numberToGenerate, temperature, showAdvanced]);
 
+  const buildGenerateParams = (): GeneratePromptsParams => {
+    const shouldIncludeExisting = remixMode || includeExistingContext;
+    const shouldReplace = remixMode || replaceCurrentPrompts;
+    return {
+      overallPromptText: remixMode ? remixPromptText : overallPromptText,
+      rulesToRememberText,
+      numberToGenerate,
+      existingPrompts: shouldIncludeExisting ? existingPromptsForContext : undefined,
+      addSummaryForNewPrompts: addSummary,
+      replaceCurrentPrompts: shouldReplace,
+      temperature,
+    };
+  };
+
   const handleGenerateClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!hasApiKey) {
         alert('API Key is required to generate prompts.');
         return;
     }
-    
-    const shouldIncludeExisting = remixMode || includeExistingContext;
-    const shouldReplace = remixMode || replaceCurrentPrompts;
-    const existingPromptsToUse = shouldIncludeExisting ? existingPromptsForContext : undefined;
-    const promptTextToUse = remixMode ? remixPromptText : overallPromptText;
-    
-    const params = {
-      overallPromptText: promptTextToUse,
-      rulesToRememberText,
-      numberToGenerate,
-      existingPrompts: existingPromptsToUse,
-      addSummaryForNewPrompts: addSummary,
-      replaceCurrentPrompts: shouldReplace,
-      temperature,
-    };
-    
-    await onGenerate(params);
+    await onGenerate(buildGenerateParams());
   };
 
   const handleGenerateAndQueueClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -177,23 +175,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
     if (!onGenerateAndQueue) {
       return;
     }
-    
-    const shouldIncludeExisting = remixMode || includeExistingContext;
-    const shouldReplace = remixMode || replaceCurrentPrompts;
-    const existingPromptsToUse = shouldIncludeExisting ? existingPromptsForContext : undefined;
-    const promptTextToUse = remixMode ? remixPromptText : overallPromptText;
-    
-    const params = {
-      overallPromptText: promptTextToUse,
-      rulesToRememberText,
-      numberToGenerate,
-      existingPrompts: existingPromptsToUse,
-      addSummaryForNewPrompts: addSummary,
-      replaceCurrentPrompts: shouldReplace,
-      temperature,
-    };
-    
-    await onGenerateAndQueue(params);
+    await onGenerateAndQueue(buildGenerateParams());
   };
 
   const selectedTemperatureOption = temperatureOptions.find(opt => opt.value === temperature);

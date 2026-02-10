@@ -56,17 +56,5 @@ export const isCharacterAnimateTaskType = (taskType: string | null | undefined):
 };
 
 
-/**
- * Parse task params, handling both string and object formats
- */
-export const parseTaskParams = (params: string | Record<string, unknown> | null | undefined): Record<string, unknown> => {
-  if (!params) return {};
-  if (typeof params === 'string') {
-    try {
-      return JSON.parse(params);
-    } catch {
-      return {};
-    }
-  }
-  return params;
-};
+// Re-export from canonical location (taskParamsUtils is the source of truth)
+export { parseTaskParams } from '@/shared/utils/taskParamsUtils';
