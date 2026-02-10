@@ -5,7 +5,7 @@
  * Used by EditVideoPage (video selection) and EditImagesPage (image selection).
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import { GenerationRow } from '@/types/shots';
 import { ReighLoading } from '@/shared/components/ReighLoading';

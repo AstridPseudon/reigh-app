@@ -27,7 +27,7 @@ import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { BUILTIN_VACE_PRESET, VACE_FEATURED_PRESET_IDS } from '@/shared/lib/vaceDefaults';
 import { getSegmentFormColor } from '@/shared/lib/segmentColors';
-import { quantizeTotalFrames, getQuantizedGap } from '@/shared/components/JoinClipsSettingsForm/utils';
+import { getQuantizedGap } from '@/shared/components/JoinClipsSettingsForm/utils';
 
 // Thumbnail component for segment preview - supports different sizes
 function SegmentThumbnail({ videoUrl, time, size = 'small' }: { videoUrl: string; time: number; size?: 'small' | 'large' }) {

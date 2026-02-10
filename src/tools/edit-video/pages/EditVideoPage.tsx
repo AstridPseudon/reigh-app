@@ -2,10 +2,14 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useFileDragTracking, preventDefaultDragOver, createSingleFileDropHandler } from '@/shared/hooks/useFileDragTracking';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Button } from '@/shared/components/ui/button';
-import { LayoutGrid, Upload, ChevronDown, ChevronUp, Film } from 'lucide-react';
+import {
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  Film
+} from 'lucide-react';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { GenerationRow } from '@/types/shots';
-import { ReighLoading } from '@/shared/components/ReighLoading';
 import { toast } from '@/shared/components/ui/sonner';
 import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +28,7 @@ import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { parseRatio } from '@/shared/lib/aspectRatios';
-import { getGenerationId, variantToGenerationRow } from '@/shared/lib/mediaTypeHelpers';
+import { variantToGenerationRow } from '@/shared/lib/mediaTypeHelpers';
 import { MediaSelectionPanel } from '@/shared/components/MediaSelectionPanel';
 
 const TOOL_TYPE = 'edit-video';

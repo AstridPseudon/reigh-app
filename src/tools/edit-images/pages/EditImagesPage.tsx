@@ -8,10 +8,14 @@ import React, {
 import { useFileDragTracking, preventDefaultDragOver, createSingleFileDropHandler } from '@/shared/hooks/useFileDragTracking';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Button } from '@/shared/components/ui/button';
-import { LayoutGrid, Upload, ChevronDown, ChevronUp, ImageIcon } from 'lucide-react';
+import {
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon
+} from 'lucide-react';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { GenerationRow } from '@/types/shots';
-import { ReighLoading } from '@/shared/components/ReighLoading';
 import { toast } from '@/shared/components/ui/sonner';
 import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 import { supabase } from '@/integrations/supabase/client';
