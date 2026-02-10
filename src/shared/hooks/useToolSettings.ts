@@ -284,7 +284,7 @@ export function useToolSettings<T>(
 
   // Log errors for debugging (except expected cancellations)
   if (error && !error?.message?.includes('Request was cancelled')) {
-    console.error('[useToolSettings] Query error:', error);
+    handleError(error, { context: 'useToolSettings', showToast: false });
   }
 
   // [ShotNavPerf] Log query status ONLY when it changes (not every render)

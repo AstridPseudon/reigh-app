@@ -1,8 +1,8 @@
 /**
  * useLightboxWorkflowProps - Builds workflow, panel, and navigation props
  *
- * Edit mode state → ImageEditContext, video edit state → VideoEditContext,
- * controlsPanelProps → built in each caller (ImageLightbox/VideoLightbox).
+ * Edit mode state -> ImageEditContext, video edit state -> VideoEditContext,
+ * controlsPanelProps -> built in each caller (ImageLightbox/VideoLightbox).
  * This hook only composes workflowBarProps + workflowControlsProps + layout chrome.
  */
 
@@ -10,13 +10,55 @@ import { useMemo, RefObject, ReactNode } from 'react';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from '../types';
 import type { LightboxLayoutProps } from '../components/layouts/types';
 
-// Input types - workflow + panel + navigation
-interface UseLightboxWorkflowPropsInput {
-  // Panel
+// ============================================================================
+// Input sub-interfaces (grouped by concern)
+// ============================================================================
+
+/** Panel visibility and tasks pane state */
+export interface WorkflowPanelProps {
   showPanel: boolean;
   shouldShowSidePanel: boolean;
   effectiveTasksPaneOpen: boolean;
   effectiveTasksPaneWidth: number;
+}
+
+/** Shot workflow: selection, adding, ticks, optimistic updates */
+export interface ShotWorkflowProps {
+  allShots: Array<{ id: string; name: string }>;
+  selectedShotId?: string;
+  onShotChange?: (shotId: string) => void;
+  onCreateShot?: (shotName: string, files: File[]) => Promise<{ shotId?: string; shotName?: string } | void>;
+  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  isAlreadyPositionedInSelectedShot: boolean;
+  isAlreadyAssociatedWithoutPosition: boolean;
+  showTickForImageId?: string | null;
+  showTickForSecondaryImageId?: string | null;
+  onShowTick?: (imageId: string) => void;
+  onShowSecondaryTick?: (imageId: string) => void;
+  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
+  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
+}
+
+/** Action callbacks and handlers for delete, apply, navigate, variants */
+export interface WorkflowActionProps {
+  onDelete?: (id: string) => void;
+  onApplySettings?: (metadata: Record<string, unknown>) => void;
+  handleApplySettings: () => void;
+  handleDelete: () => void;
+  isDeleting?: string | null;
+  handleNavigateToShotFromSelector: (shot: { id: string; name: string }) => void;
+  handleAddVariantAsNewGenerationToShot: (shotId: string, variantId: string, currentTimelineFrame?: number) => Promise<boolean>;
+}
+
+// ============================================================================
+// Composed input interface
+// ============================================================================
+
+interface UseLightboxWorkflowPropsInput {
+  panel: WorkflowPanelProps;
+  shotWorkflow: ShotWorkflowProps;
+  actions: WorkflowActionProps;
 
   // Button group props (pre-built)
   buttonGroupProps: {
@@ -26,31 +68,7 @@ interface UseLightboxWorkflowPropsInput {
     bottomRight: ReactNode;
   };
 
-  // Workflow props
-  allShots: Array<{ id: string; name: string }>;
-  selectedShotId?: string;
-  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onDelete?: (id: string) => void;
-  onApplySettings?: (metadata: Record<string, unknown>) => void;
-  onShotChange?: (shotId: string) => void;
-  onCreateShot?: (shotName: string, files: File[]) => Promise<{ shotId?: string; shotName?: string } | void>;
-  showTickForImageId?: string | null;
-  showTickForSecondaryImageId?: string | null;
-  onShowTick?: (imageId: string) => void;
-  onShowSecondaryTick?: (imageId: string) => void;
-  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
-  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
-  isAlreadyPositionedInSelectedShot: boolean;
-  isAlreadyAssociatedWithoutPosition: boolean;
   contentRef: RefObject<HTMLDivElement>;
-  handleApplySettings: () => void;
-  handleNavigateToShotFromSelector: (shot: { id: string; name: string }) => void;
-  handleAddVariantAsNewGenerationToShot: (shotId: string, variantId: string, currentTimelineFrame?: number) => Promise<boolean>;
-
-  // Workflow controls (below-media, centered layout only)
-  isDeleting?: string | null;
-  handleDelete: () => void;
 
   // Adjacent segment navigation
   adjacentSegments?: AdjacentSegmentsData;
@@ -66,65 +84,68 @@ interface UseLightboxWorkflowPropsReturn {
 export function useLightboxWorkflowProps(
   input: UseLightboxWorkflowPropsInput
 ): UseLightboxWorkflowPropsReturn {
+  // Destructure sub-objects for internal use (keeps variable names identical)
+  const { panel, shotWorkflow, actions } = input;
+
   // Build workflow bar props (shared across all layouts)
   const workflowBarProps = useMemo(() => ({
-    onAddToShot: input.onAddToShot,
-    onDelete: input.onDelete,
-    onApplySettings: input.onApplySettings,
-    allShots: input.allShots,
-    selectedShotId: input.selectedShotId,
-    onShotChange: input.onShotChange,
-    onCreateShot: input.onCreateShot,
-    isAlreadyPositionedInSelectedShot: input.isAlreadyPositionedInSelectedShot,
-    isAlreadyAssociatedWithoutPosition: input.isAlreadyAssociatedWithoutPosition,
-    showTickForImageId: input.showTickForImageId,
-    showTickForSecondaryImageId: input.showTickForSecondaryImageId,
-    onAddToShotWithoutPosition: input.onAddToShotWithoutPosition,
-    onShowTick: input.onShowTick,
-    onShowSecondaryTick: input.onShowSecondaryTick,
-    onOptimisticPositioned: input.onOptimisticPositioned,
-    onOptimisticUnpositioned: input.onOptimisticUnpositioned,
+    onAddToShot: shotWorkflow.onAddToShot,
+    onDelete: actions.onDelete,
+    onApplySettings: actions.onApplySettings,
+    allShots: shotWorkflow.allShots,
+    selectedShotId: shotWorkflow.selectedShotId,
+    onShotChange: shotWorkflow.onShotChange,
+    onCreateShot: shotWorkflow.onCreateShot,
+    isAlreadyPositionedInSelectedShot: shotWorkflow.isAlreadyPositionedInSelectedShot,
+    isAlreadyAssociatedWithoutPosition: shotWorkflow.isAlreadyAssociatedWithoutPosition,
+    showTickForImageId: shotWorkflow.showTickForImageId,
+    showTickForSecondaryImageId: shotWorkflow.showTickForSecondaryImageId,
+    onAddToShotWithoutPosition: shotWorkflow.onAddToShotWithoutPosition,
+    onShowTick: shotWorkflow.onShowTick,
+    onShowSecondaryTick: shotWorkflow.onShowSecondaryTick,
+    onOptimisticPositioned: shotWorkflow.onOptimisticPositioned,
+    onOptimisticUnpositioned: shotWorkflow.onOptimisticUnpositioned,
     contentRef: input.contentRef,
-    handleApplySettings: input.handleApplySettings,
-    handleNavigateToShotFromSelector: input.handleNavigateToShotFromSelector,
-    handleAddVariantAsNewGenerationToShot: input.handleAddVariantAsNewGenerationToShot,
+    handleApplySettings: actions.handleApplySettings,
+    handleNavigateToShotFromSelector: actions.handleNavigateToShotFromSelector,
+    handleAddVariantAsNewGenerationToShot: actions.handleAddVariantAsNewGenerationToShot,
   }), [
-    input.onAddToShot, input.onDelete, input.onApplySettings, input.allShots,
-    input.selectedShotId, input.onShotChange, input.onCreateShot,
-    input.isAlreadyPositionedInSelectedShot, input.isAlreadyAssociatedWithoutPosition,
-    input.showTickForImageId, input.showTickForSecondaryImageId,
-    input.onAddToShotWithoutPosition, input.onShowTick, input.onShowSecondaryTick,
-    input.onOptimisticPositioned, input.onOptimisticUnpositioned, input.contentRef,
-    input.handleApplySettings, input.handleNavigateToShotFromSelector,
-    input.handleAddVariantAsNewGenerationToShot,
+    shotWorkflow.onAddToShot, actions.onDelete, actions.onApplySettings, shotWorkflow.allShots,
+    shotWorkflow.selectedShotId, shotWorkflow.onShotChange, shotWorkflow.onCreateShot,
+    shotWorkflow.isAlreadyPositionedInSelectedShot, shotWorkflow.isAlreadyAssociatedWithoutPosition,
+    shotWorkflow.showTickForImageId, shotWorkflow.showTickForSecondaryImageId,
+    shotWorkflow.onAddToShotWithoutPosition, shotWorkflow.onShowTick, shotWorkflow.onShowSecondaryTick,
+    shotWorkflow.onOptimisticPositioned, shotWorkflow.onOptimisticUnpositioned, input.contentRef,
+    actions.handleApplySettings, actions.handleNavigateToShotFromSelector,
+    actions.handleAddVariantAsNewGenerationToShot,
   ]);
 
   // Build workflow controls props (below-media, centered layout only)
   const workflowControlsProps = useMemo(() => ({
     ...workflowBarProps,
-    isDeleting: input.isDeleting,
-    handleDelete: input.handleDelete,
-  }), [workflowBarProps, input.isDeleting, input.handleDelete]);
+    isDeleting: actions.isDeleting,
+    handleDelete: actions.handleDelete,
+  }), [workflowBarProps, actions.isDeleting, actions.handleDelete]);
 
   // Build unified layout props
   // Note: controlsPanelProps is built in the caller (ImageLightbox/VideoLightbox)
   // and passed directly to LightboxLayout.
   const layoutProps: LightboxLayoutProps = useMemo(() => ({
-    showPanel: input.showPanel,
-    shouldShowSidePanel: input.shouldShowSidePanel,
+    showPanel: panel.showPanel,
+    shouldShowSidePanel: panel.shouldShowSidePanel,
     // Panel
-    effectiveTasksPaneOpen: input.effectiveTasksPaneOpen,
-    effectiveTasksPaneWidth: input.effectiveTasksPaneWidth,
+    effectiveTasksPaneOpen: panel.effectiveTasksPaneOpen,
+    effectiveTasksPaneWidth: panel.effectiveTasksPaneWidth,
     // Composed props
     buttonGroupProps: input.buttonGroupProps,
     workflowBarProps,
-    workflowControlsProps: input.showPanel ? undefined : workflowControlsProps,
+    workflowControlsProps: panel.showPanel ? undefined : workflowControlsProps,
     // Navigation
     adjacentSegments: input.adjacentSegments,
     segmentSlotMode: input.segmentSlotMode,
   }), [
-    input.showPanel, input.shouldShowSidePanel,
-    input.effectiveTasksPaneOpen, input.effectiveTasksPaneWidth,
+    panel.showPanel, panel.shouldShowSidePanel,
+    panel.effectiveTasksPaneOpen, panel.effectiveTasksPaneWidth,
     input.buttonGroupProps, workflowBarProps,
     workflowControlsProps, input.adjacentSegments, input.segmentSlotMode,
   ]);

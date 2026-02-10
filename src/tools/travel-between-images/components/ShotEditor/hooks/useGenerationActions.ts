@@ -21,7 +21,7 @@ import {
 } from './timelineDropHelpers';
 import { DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
 import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
-import { useDemoteOrphanedVariants } from '@/shared/hooks/useDemoteOrphanedVariants';
+import { useDemoteOrphanedVariants } from '../../../hooks/useDemoteOrphanedVariants';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { queryKeys } from '@/shared/lib/queryKeys';
 

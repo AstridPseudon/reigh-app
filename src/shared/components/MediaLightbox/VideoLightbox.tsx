@@ -325,11 +325,14 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     readOnly,
     variantFetchGenerationId,
     initialVariantId,
+    starred,
+    onOpenExternalGeneration,
     showNavigation,
     hasNext,
     hasPrevious,
     handleSlotNavNext,
     handleSlotNavPrev,
+    swipeDisabled: videoEditSubMode !== null || readOnly,
     shotId,
     selectedShotId,
     allShots,
@@ -345,8 +348,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     optimisticUnpositionedIds,
     positionedInSelectedShot,
     associatedWithoutPositionInSelectedShot,
-    starred,
-    onOpenExternalGeneration,
     showTaskDetails,
     isSpecialEditMode: videoEditSubMode !== null,
     isInpaintMode: false,
@@ -368,7 +369,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
     effectiveImageUrl,
     imageDimensions: imageDimensions || { width: 1024, height: 576 },
     projectAspectRatio,
-    swipeDisabled: videoEditSubMode !== null || readOnly,
   });
 
   const {
@@ -813,10 +813,37 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   // ========================================
 
   const { layoutProps } = useLightboxWorkflowProps({
-    showPanel,
-    shouldShowSidePanel: shouldShowSidePanelWithTrim,
-    effectiveTasksPaneOpen,
-    effectiveTasksPaneWidth,
+    panel: {
+      showPanel,
+      shouldShowSidePanel: shouldShowSidePanelWithTrim,
+      effectiveTasksPaneOpen,
+      effectiveTasksPaneWidth,
+    },
+    shotWorkflow: {
+      allShots: allShots || [],
+      selectedShotId,
+      onShotChange,
+      onCreateShot,
+      onAddToShot,
+      onAddToShotWithoutPosition,
+      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
+      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
+      showTickForImageId,
+      showTickForSecondaryImageId,
+      onShowTick,
+      onShowSecondaryTick,
+      onOptimisticPositioned,
+      onOptimisticUnpositioned,
+    },
+    actions: {
+      onDelete,
+      onApplySettings,
+      handleApplySettings,
+      handleDelete,
+      isDeleting,
+      handleNavigateToShotFromSelector,
+      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
+    },
     buttonGroupProps: {
       ...buttonGroupProps,
       topRight: {
@@ -825,32 +852,8 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
         handleDelete,
       },
     },
-    // Workflow props
-    allShots: allShots || [],
-    selectedShotId,
-    onAddToShot,
-    onAddToShotWithoutPosition,
-    onDelete,
-    onApplySettings,
-    onShotChange,
-    onCreateShot,
-    showTickForImageId,
-    showTickForSecondaryImageId,
-    onShowTick,
-    onShowSecondaryTick,
-    onOptimisticPositioned,
-    onOptimisticUnpositioned,
-    isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
-    isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
     contentRef,
-    handleApplySettings,
-    handleNavigateToShotFromSelector,
-    handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-    isDeleting,
-    handleDelete,
-    // Adjacent segments
     adjacentSegments,
-    // Segment slot mode
     segmentSlotMode: hasSegmentVideo ? segmentSlotMode : undefined,
   });
 

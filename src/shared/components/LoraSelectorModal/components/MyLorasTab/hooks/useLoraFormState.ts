@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useHuggingFaceToken } from '@/shared/hooks/useExternalApiKeys';
 import { useHuggingFaceUpload, LoraFiles } from '@/shared/hooks/useHuggingFaceUpload';
+import { handleError } from '@/shared/lib/errorHandler';
 
 import type { Resource } from '@/shared/hooks/useResources';
 import { LoraModel, LoraFormState } from '../../../types';
@@ -108,7 +109,7 @@ export function useLoraFormState({ editingLora, defaultIsPublic }: UseLoraFormSt
 
         setUserName(data?.name || '');
       } catch (error) {
-        console.error('Error in fetchUserName:', error);
+        handleError(error, { context: 'useLoraFormState', showToast: false });
       }
     };
 

@@ -52,7 +52,7 @@ import { HeaderSection, TimelineSection, ModalsSection, GenerationSection } from
 import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/useShots';
 import { useRenderCount } from '@/shared/components/debug/RefactorMetricsCollector';
 import { useSegmentOutputsForShot } from '../../hooks/useSegmentOutputsForShot';
-import { useDemoteOrphanedVariants } from '@/shared/hooks/useDemoteOrphanedVariants';
+import { useDemoteOrphanedVariants } from '../../hooks/useDemoteOrphanedVariants';
 import { handleError } from '@/shared/lib/errorHandler';
 
 /**

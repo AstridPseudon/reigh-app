@@ -289,11 +289,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     readOnly,
     variantFetchGenerationId,
     initialVariantId,
+    starred,
+    onOpenExternalGeneration,
     showNavigation,
     hasNext,
     hasPrevious,
     handleSlotNavNext,
     handleSlotNavPrev,
+    swipeDisabled: isMagicEditModeLocal || readOnly,
     shotId,
     selectedShotId,
     allShots,
@@ -309,8 +312,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     optimisticUnpositionedIds,
     positionedInSelectedShot,
     associatedWithoutPositionInSelectedShot,
-    starred,
-    onOpenExternalGeneration,
     showTaskDetails,
     isSpecialEditMode: isMagicEditModeLocal,
     isInpaintMode: isInpaintModeLocal,
@@ -331,7 +332,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     effectiveImageUrl,
     imageDimensions: imageDimensions || { width: 1024, height: 1024 },
     projectAspectRatio,
-    swipeDisabled: isMagicEditModeLocal || readOnly,
   });
 
   // Extract shared state
@@ -948,12 +948,37 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
   // ========================================
 
   const { layoutProps } = useLightboxWorkflowProps({
-    showPanel,
-    shouldShowSidePanel: layout.shouldShowSidePanel,
-    // Panel
-    effectiveTasksPaneOpen,
-    effectiveTasksPaneWidth,
-    // Button group props
+    panel: {
+      showPanel,
+      shouldShowSidePanel: layout.shouldShowSidePanel,
+      effectiveTasksPaneOpen,
+      effectiveTasksPaneWidth,
+    },
+    shotWorkflow: {
+      allShots: allShots || [],
+      selectedShotId,
+      onShotChange,
+      onCreateShot,
+      onAddToShot,
+      onAddToShotWithoutPosition,
+      isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
+      isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
+      showTickForImageId,
+      showTickForSecondaryImageId,
+      onShowTick,
+      onShowSecondaryTick,
+      onOptimisticPositioned,
+      onOptimisticUnpositioned,
+    },
+    actions: {
+      onDelete,
+      onApplySettings,
+      handleApplySettings,
+      handleDelete,
+      isDeleting,
+      handleNavigateToShotFromSelector,
+      handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
+    },
     buttonGroupProps: {
       ...buttonGroupProps,
       topRight: {
@@ -962,32 +987,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
         handleDelete,
       },
     },
-    // Workflow props
-    allShots: allShots || [],
-    selectedShotId,
-    onAddToShot,
-    onAddToShotWithoutPosition,
-    onDelete,
-    onApplySettings,
-    onShotChange,
-    onCreateShot,
-    showTickForImageId,
-    showTickForSecondaryImageId,
-    onShowTick,
-    onShowSecondaryTick,
-    onOptimisticPositioned,
-    onOptimisticUnpositioned,
-    isAlreadyPositionedInSelectedShot: shots.isAlreadyPositionedInSelectedShot,
-    isAlreadyAssociatedWithoutPosition: shots.isAlreadyAssociatedWithoutPosition,
     contentRef,
-    handleApplySettings,
-    handleNavigateToShotFromSelector,
-    handleAddVariantAsNewGenerationToShot: variants.handleAddVariantAsNewGenerationToShot,
-    isDeleting,
-    handleDelete,
-    // Adjacent segments
     adjacentSegments,
-    // Segment slot mode
     segmentSlotMode: undefined,
   });
 

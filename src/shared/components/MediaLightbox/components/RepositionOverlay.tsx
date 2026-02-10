@@ -83,15 +83,12 @@ export const RepositionOverlay: React.FC<RepositionOverlayProps> = ({
     <>
       {/* Original Image Bounds Outline - Shows the canvas/crop boundary */}
       <div
-        className="absolute pointer-events-none z-[45]"
+        className={`absolute pointer-events-none z-[45] border-2 border-dashed border-blue-500/70 ring-2 ring-inset ring-blue-500/20 ${variant === 'regular-centered' ? 'rounded' : ''}`}
         style={{
           left: imageOffset.left,
           top: imageOffset.top,
           width: displaySize.width,
           height: displaySize.height,
-          border: '2px dashed rgba(59, 130, 246, 0.7)',
-          borderRadius: variant === 'regular-centered' ? '4px' : undefined,
-          boxShadow: 'inset 0 0 0 2px rgba(59, 130, 246, 0.2)',
         }}
       >
         {/* Corner indicators */}

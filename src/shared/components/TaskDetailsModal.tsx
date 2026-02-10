@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect, useState, ReactNode } from 'react';
+import { handleError } from '@/shared/lib/errorHandler';
 import {
   Dialog,
   DialogContent,
@@ -112,7 +113,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
 
       } catch (error: unknown) {
         if (cancelled) return;
-        console.error(`[TaskDetailsModal] Error fetching task details:`, error);
+        handleError(error, { context: 'TaskDetailsModal', showToast: false });
         setTaskId(null);
       }
     };
@@ -141,7 +142,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
       setParamsCopied(true);
       setTimeout(() => setParamsCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy parameters:', err);
+      handleError(err, { context: 'TaskDetailsModal', showToast: false });
     }
   };
 

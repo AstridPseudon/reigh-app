@@ -11,9 +11,7 @@ import { SegmentListItem } from './components/SegmentListItem';
 import { SegmentFormDialog } from './components/SegmentFormDialog';
 import { VideoPlayerControls } from './components/VideoPlayerControls';
 import { useVideoPlayback } from './hooks/useVideoPlayback';
-import { msToSeconds, secondsToMs } from './constants';
-
-const POST_CREATE_SEEK_DELAY_MS = 100;
+import { msToSeconds, secondsToMs, POST_CREATE_SEEK_DELAY_MS } from './constants';
 
 // Color palette for segments
 const segmentColors = [

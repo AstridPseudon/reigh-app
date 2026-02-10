@@ -12,6 +12,7 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface StructureVideoPreviewProps {
   videoUrl: string;
@@ -190,7 +191,7 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
 
     captureAllFrames().catch(err => {
       if (!cancelled) {
-        console.error('[StructureVideoPreview] Failed to capture frames:', err);
+        handleError(err, { context: 'StructureVideoPreview', showToast: false });
         setIsExtracting(false);
       }
     });

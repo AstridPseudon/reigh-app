@@ -167,7 +167,7 @@ export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
             <div
               className="absolute inset-0 opacity-30"
               style={{
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.2) 4px, rgba(0,0,0,0.2) 8px)'
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, hsl(var(--foreground) / 0.2) 4px, hsl(var(--foreground) / 0.2) 8px)'
               }}
             />
           </div>
@@ -192,7 +192,7 @@ export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
             <div
               className="absolute inset-0 opacity-30"
               style={{
-                backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.2) 4px, rgba(0,0,0,0.2) 8px)'
+                backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, hsl(var(--foreground) / 0.2) 4px, hsl(var(--foreground) / 0.2) 8px)'
               }}
             />
           </div>

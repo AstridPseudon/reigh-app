@@ -1,14 +1,10 @@
 /**
  * useReferenceUpload - Handles uploading and selecting reference images
  *
- * Extracted from useReferenceManagement to isolate the heavy upload/resource
- * creation flow from the lighter-weight local state management.
- *
- * Handles:
- * - Uploading a new file as a style reference (with thumbnail, processing, storage)
- * - Selecting an existing resource as a reference
- * - Deleting a reference (resource + pointer cleanup)
- * - Updating reference name and visibility on the resource
+ * Orchestrator hook that composes:
+ * - Upload flow (new file -> thumbnail, processing, storage, resource creation)
+ * - Select flow (existing resource -> pointer creation or selection switch)
+ * - Resource mutations (delete, update name, toggle visibility) via useReferenceResourceMutations
  */
 
 import { useState, useCallback } from 'react';
@@ -23,7 +19,7 @@ import { storagePaths, generateThumbnailFilename, MEDIA_BUCKET } from '@/shared/
 import { resolveProjectResolution } from '@/shared/lib/taskCreation';
 import { processStyleReferenceForAspectRatioString } from '@/shared/lib/styleReferenceProcessor';
 import { extractSettingsFromCache, updateSettingsCache } from '@/shared/hooks/useToolSettings';
-import { useCreateResource, useUpdateResource, useDeleteResource, StyleReferenceMetadata, Resource } from '@/shared/hooks/useResources';
+import { useCreateResource, StyleReferenceMetadata, Resource } from '@/shared/hooks/useResources';
 import { handleError } from '@/shared/lib/errorHandler';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import {
@@ -33,37 +29,7 @@ import {
   ProjectImageSettings,
   getReferenceModeDefaults,
 } from '../types';
-// ============================================================================
-// Helpers
-// ============================================================================
-
-/**
- * Build full StyleReferenceMetadata from a HydratedReferenceImage.
- * Centralises the mapping so new metadata fields only need updating in one place.
- */
-function buildResourceMetadata(
-  ref: HydratedReferenceImage,
-  overrides: Partial<StyleReferenceMetadata> = {},
-): StyleReferenceMetadata {
-  return {
-    name: ref.name,
-    styleReferenceImage: ref.styleReferenceImage,
-    styleReferenceImageOriginal: ref.styleReferenceImageOriginal,
-    thumbnailUrl: ref.thumbnailUrl,
-    styleReferenceStrength: ref.styleReferenceStrength,
-    subjectStrength: ref.subjectStrength,
-    subjectDescription: ref.subjectDescription,
-    inThisScene: ref.inThisScene,
-    inThisSceneStrength: ref.inThisSceneStrength,
-    referenceMode: ref.referenceMode,
-    styleBoostTerms: ref.styleBoostTerms,
-    created_by: { is_you: true },
-    is_public: ref.isPublic,
-    createdAt: ref.createdAt,
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  };
-}
+import { useReferenceResourceMutations } from './useReferenceResourceMutations';
 
 // ============================================================================
 // Types
@@ -125,13 +91,22 @@ export function useReferenceUpload(props: UseReferenceUploadProps): UseReference
 
   const queryClient = useQueryClient();
 
-  // Resource mutation hooks
+  // Resource creation hook (upload-specific)
   const createStyleReference = useCreateResource();
-  const updateStyleReference = useUpdateResource();
-  const deleteStyleReference = useDeleteResource();
 
   const [isUploadingStyleReference, setIsUploadingStyleReference] = useState(false);
   const [styleReferenceOverride, setStyleReferenceOverride] = useState<string | null | undefined>(undefined);
+
+  // Compose resource mutation sub-hook (delete, update name, toggle visibility)
+  const { handleDeleteReference, handleUpdateReferenceName, handleToggleVisibility } =
+    useReferenceResourceMutations({
+      selectedProjectId,
+      referencePointers,
+      hydratedReferences,
+      selectedReferenceIdByShot,
+      updateProjectImageSettings,
+      markAsInteracted,
+    });
 
   // ============================================================================
   // Upload New Reference
@@ -398,113 +373,6 @@ export function useReferenceUpload(props: UseReferenceUploadProps): UseReference
     isLoadingProjectSettings,
     isLocalGenerationEnabled,
   ]);
-
-  // ============================================================================
-  // Delete Reference
-  // ============================================================================
-
-  const handleDeleteReference = useCallback(async (referenceId: string) => {
-
-    const hydratedRef = hydratedReferences.find(r => r.id === referenceId);
-    if (!hydratedRef) {
-      console.error('[useReferenceUpload] Could not find reference:', referenceId);
-      return;
-    }
-
-    // Delete the resource from resources table
-    try {
-      await deleteStyleReference.mutateAsync({
-        id: hydratedRef.resourceId,
-        type: 'style-reference',
-      });
-    } catch (error) {
-      handleError(error, { context: 'useReferenceUpload.handleDeleteReference', toastTitle: 'Failed to delete reference' });
-      return;
-    }
-
-    // Remove pointer from settings
-    const filteredPointers = referencePointers.filter(ref => ref.id !== referenceId);
-
-    // Update all shot selections that had this reference selected
-    const updatedSelections = { ...selectedReferenceIdByShot };
-    Object.keys(updatedSelections).forEach(shotId => {
-      if (updatedSelections[shotId] === referenceId) {
-        updatedSelections[shotId] = filteredPointers[0]?.id ?? null;
-      }
-    });
-
-    // Optimistic UI update
-    try {
-      queryClient.setQueryData(queryKeys.settings.tool('project-image-settings', selectedProjectId, undefined), (prev: unknown) =>
-        updateSettingsCache<ProjectImageSettings>(prev, {
-          references: filteredPointers,
-          selectedReferenceIdByShot: updatedSelections
-        })
-      );
-    } catch (e) {
-    }
-
-    await updateProjectImageSettings('project', {
-      references: filteredPointers,
-      selectedReferenceIdByShot: updatedSelections
-    });
-
-    markAsInteracted();
-  }, [hydratedReferences, referencePointers, selectedReferenceIdByShot, deleteStyleReference, updateProjectImageSettings, markAsInteracted, queryClient, selectedProjectId]);
-
-  // ============================================================================
-  // Update Reference Name
-  // ============================================================================
-
-  const handleUpdateReferenceName = useCallback(async (referenceId: string, name: string) => {
-
-    // Find the hydrated reference to get the resourceId
-    const hydratedRef = hydratedReferences.find(r => r.id === referenceId);
-    if (!hydratedRef) {
-      console.error('[useReferenceUpload] Could not find reference:', referenceId);
-      return;
-    }
-
-    // Name is stored on the Resource, not the pointer - update via updateStyleReference
-    try {
-      const metadata = buildResourceMetadata(hydratedRef, { name });
-
-      await updateStyleReference.mutateAsync({
-        id: hydratedRef.resourceId,
-        type: 'style-reference',
-        metadata,
-      });
-
-    } catch (error) {
-      handleError(error, { context: 'useReferenceUpload.handleUpdateReferenceName', toastTitle: 'Failed to update name' });
-    }
-  }, [hydratedReferences, updateStyleReference]);
-
-  // ============================================================================
-  // Toggle Visibility
-  // ============================================================================
-
-  const handleToggleVisibility = useCallback(async (resourceId: string, currentIsPublic: boolean) => {
-
-    const hydratedRef = hydratedReferences.find(r => r.resourceId === resourceId);
-    if (!hydratedRef) {
-      console.error('[useReferenceUpload] Could not find reference with resourceId:', resourceId);
-      return;
-    }
-
-    try {
-      const metadata = buildResourceMetadata(hydratedRef, { is_public: !currentIsPublic });
-
-      await updateStyleReference.mutateAsync({
-        id: resourceId,
-        type: 'style-reference',
-        metadata,
-      });
-
-    } catch (error) {
-      handleError(error, { context: 'useReferenceUpload.handleToggleVisibility', toastTitle: 'Failed to update visibility' });
-    }
-  }, [hydratedReferences, updateStyleReference]);
 
   return {
     isUploadingStyleReference,

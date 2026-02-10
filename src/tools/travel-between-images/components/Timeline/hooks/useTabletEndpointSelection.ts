@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { useTemporaryVisibility } from '@/shared/hooks/useTemporaryVisibility';
-import { useClickOutside } from '@/shared/hooks/useClickOutside';
+import { useTemporaryVisibility } from '../../../hooks/useTemporaryVisibility';
+import { useClickOutside } from '../../../hooks/useClickOutside';
 
 const SCROLL_THRESHOLD = 10;
 const DOUBLE_TAP_DELAY = 300;

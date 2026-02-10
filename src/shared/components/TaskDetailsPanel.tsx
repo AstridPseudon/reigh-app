@@ -7,6 +7,7 @@ import { Task } from '@/types/tasks';
 import { Check, Copy, CornerDownLeft, ImageIcon } from 'lucide-react';
 import { GenerationDetails } from '@/shared/components/GenerationDetails';
 import { usePublicLoras } from '@/shared/hooks/useResources';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface TaskDetailsPanelProps {
   task: Task | null;
@@ -63,7 +64,7 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
       setParamsCopied(true);
       setTimeout(() => setParamsCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy parameters:', err);
+      handleError(err, { context: 'TaskDetailsPanel', showToast: false });
     }
   };
 

@@ -131,13 +131,13 @@ interface SharedLightboxMediaProps {
 // Composed Props Interface
 // ============================================================================
 
-interface UseSharedLightboxStateProps extends
-  SharedLightboxCoreProps,
-  SharedLightboxNavigationProps,
-  SharedLightboxShotProps,
-  SharedLightboxLayoutProps,
-  SharedLightboxButtonGroupProps,
-  SharedLightboxMediaProps {
+interface UseSharedLightboxStateProps
+  extends SharedLightboxCoreProps,
+    SharedLightboxNavigationProps,
+    SharedLightboxShotProps,
+    SharedLightboxLayoutProps,
+    SharedLightboxButtonGroupProps,
+    SharedLightboxMediaProps {
   /** Star state (separate simple field) */
   starred?: boolean;
   /** External generation navigation */
@@ -261,6 +261,7 @@ interface UseSharedLightboxStateReturn {
 
 export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseSharedLightboxStateReturn {
   const {
+    // Core
     media,
     isVideo,
     selectedProjectId,
@@ -270,11 +271,16 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
     readOnly,
     variantFetchGenerationId,
     initialVariantId,
+    starred,
+    onOpenExternalGeneration,
+    // Navigation
     showNavigation,
     hasNext = false,
     hasPrevious = false,
     handleSlotNavNext,
     handleSlotNavPrev,
+    swipeDisabled,
+    // Shot management
     shotId,
     selectedShotId,
     allShots,
@@ -290,15 +296,16 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
     optimisticUnpositionedIds,
     positionedInSelectedShot,
     associatedWithoutPositionInSelectedShot,
-    starred,
-    onOpenExternalGeneration,
+    // Layout
     showTaskDetails,
     isSpecialEditMode,
     isInpaintMode,
     isMagicEditMode,
+    // Button group
     isCloudMode,
     showDownload,
     isDownloading,
+    setIsDownloading,
     onDelete,
     isDeleting,
     isUpscaling,
@@ -308,10 +315,10 @@ export function useSharedLightboxState(props: UseSharedLightboxStateProps): UseS
     handleUpscale,
     handleToggleUpscaled,
     handleEnterMagicEditMode,
+    // Effective media
     effectiveImageUrl,
     imageDimensions,
     projectAspectRatio,
-    swipeDisabled,
   } = props;
 
   // ========================================

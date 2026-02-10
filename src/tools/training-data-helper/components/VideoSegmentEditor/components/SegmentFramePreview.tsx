@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { Video } from 'lucide-react';
 import { TrainingDataSegment } from '../../../hooks/useTrainingData';
 import { handleError } from '@/shared/lib/errorHandler';
-import { msToSeconds } from '../constants';
-
-const FRAME_CAPTURE_INITIAL_DELAY_MS = 100;
-const FRAME_CAPTURE_INTER_DELAY_MS = 50;
-const FRAME_LOAD_DEBOUNCE_MS = 150;
+import { msToSeconds, FRAME_CAPTURE_INITIAL_DELAY_MS, FRAME_CAPTURE_INTER_DELAY_MS, FRAME_LOAD_DEBOUNCE_MS } from '../constants';
 
 interface SegmentFramePreviewProps {
   segment: TrainingDataSegment;

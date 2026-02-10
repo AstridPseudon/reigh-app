@@ -4,6 +4,7 @@ import { getDisplayUrl, stripQueryParameters } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface HoverScrubVideoProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onTouchEnd'> {
   /**
@@ -409,15 +410,16 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
           }
         }}
         onError={(e) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('[MobileVideoAutoplay] Video error occurred', {
+          handleError(new Error('[HoverScrubVideo] Video error occurred'), {
+            context: 'HoverScrubVideo',
+            showToast: false,
+            logData: {
               isMobile,
               src: getDisplayUrl(src),
               error: e.currentTarget.error,
               posterSrc: poster ? getDisplayUrl(poster) : 'none',
-              timestamp: Date.now()
-            });
-          }
+            },
+          });
           onVideoError?.(e);
         }}
         onSuspend={() => {

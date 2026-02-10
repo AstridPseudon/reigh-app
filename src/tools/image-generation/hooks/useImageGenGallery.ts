@@ -7,7 +7,7 @@ import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 import { useStableObject } from '@/shared/hooks/useStableObject';
 import { DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
 import { useStickyHeader } from './useStickyHeader';
-import { useKeyboardPagination } from './useKeyboardPagination';
+
 
 interface ImageGenPagePrefs {
   galleryFilterOverride?: string;
@@ -200,7 +200,30 @@ export function useImageGenGallery({
 
   const totalCount = generationsResponse?.total ?? lastKnownTotal;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
-  useKeyboardPagination({ currentPage, totalPages, onPageChange: handleServerPageChange });
+  // Arrow-key page navigation. Skips when an input is focused or a dialog is open.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+      const target = e.target as HTMLElement;
+      const tag = target?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable;
+      const dialog = document.querySelector('[role="dialog"], [data-state="open"].fixed');
+
+      if (isInput || dialog) return;
+
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        e.preventDefault();
+        handleServerPageChange(currentPage - 1);
+      } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        e.preventDefault();
+        handleServerPageChange(currentPage + 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage, totalPages, handleServerPageChange]);
 
   const handleGalleryFiltersChange = useCallback((newFilters: GalleryFilterState) => {
     if (newFilters.shotFilter !== galleryFilters.shotFilter) {

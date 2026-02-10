@@ -8,6 +8,7 @@ import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { useAdjacentSegmentsData } from './hooks/useAdjacentSegmentsData';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { usePendingImageOpen } from '@/shared/hooks/usePendingImageOpen';
+import { handleError } from '@/shared/lib/errorHandler';
 import type { GenerationRow } from '@/types/shots';
 import type { useSelection } from './hooks/useSelection';
 import type { useLightbox } from './hooks/useLightbox';
@@ -256,9 +257,13 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
               if (index !== -1) {
                 lightbox.setLightboxIndex(index);
               } else {
-                console.error('[ShotImageManager:Mobile] ❌ Generation not found in current images', {
-                  searchedId: generationId.substring(0, 8),
-                  availableIds: lightbox.currentImages.map((img: GenerationRow) => img.id.substring(0, 8))
+                handleError(new Error('Generation not found in current images'), {
+                  context: 'ShotImageManagerMobileWrapper',
+                  showToast: false,
+                  logData: {
+                    searchedId: generationId.substring(0, 8),
+                    availableIds: lightbox.currentImages.map((img: GenerationRow) => img.id.substring(0, 8))
+                  },
                 });
               }
             }}

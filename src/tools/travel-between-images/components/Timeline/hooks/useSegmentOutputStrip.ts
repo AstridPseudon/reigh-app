@@ -31,15 +31,17 @@ interface PairInfo {
   frames: number;
 }
 
-interface UseSegmentOutputStripProps {
-  shotId: string;
-  projectAspectRatio?: string;
-  pairInfo: PairInfo[];
+/** Timeline layout dimensions for pixel position calculations */
+export interface SegmentLayoutProps {
+  containerWidth: number;
   fullMin: number;
   fullRange: number;
-  containerWidth: number;
+}
+
+/** Segment data inputs for display slot computation */
+export interface SegmentDataProps {
+  pairInfo: PairInfo[];
   rawSegmentSlots: SegmentSlot[];
-  hasPendingTaskProp?: (pairShotGenerationId: string | null | undefined) => boolean;
   pairDataByIndex?: Map<number, PairData>;
   lastImageId?: string;
   trailingSegmentMode?: {
@@ -47,6 +49,14 @@ interface UseSegmentOutputStripProps {
     imageFrame: number;
     endFrame: number;
   };
+}
+
+interface UseSegmentOutputStripProps {
+  shotId: string;
+  projectAspectRatio?: string;
+  layout: SegmentLayoutProps;
+  segmentData: SegmentDataProps;
+  hasPendingTaskProp?: (pairShotGenerationId: string | null | undefined) => boolean;
   readOnly: boolean;
   onTrailingVideoInfo?: (videoUrl: string | null) => void;
   selectedParentId?: string | null;
@@ -60,15 +70,9 @@ interface UseSegmentOutputStripProps {
 export function useSegmentOutputStrip({
   shotId,
   projectAspectRatio,
-  pairInfo,
-  fullMin,
-  fullRange,
-  containerWidth,
-  rawSegmentSlots,
+  layout: { containerWidth, fullMin, fullRange },
+  segmentData: { pairInfo, rawSegmentSlots, pairDataByIndex, lastImageId, trailingSegmentMode },
   hasPendingTaskProp,
-  pairDataByIndex,
-  lastImageId,
-  trailingSegmentMode,
   readOnly,
   onTrailingVideoInfo,
   selectedParentId,

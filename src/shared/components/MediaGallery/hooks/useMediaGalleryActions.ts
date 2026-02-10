@@ -148,7 +148,7 @@ export const useMediaGalleryActions = ({
               clearLoadingTimeoutRef.current = null;
             }, 750);
           } catch (error) {
-            console.error('[BackfillV2] Refetch failed:', error);
+            handleError(error, { context: 'useMediaGalleryActions', showToast: false });
             setIsBackfillLoading(false);
           }
           // Clear pending deletes after refetch attempt

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useIsTablet } from '@/shared/hooks/use-mobile';
 import { useTextCase } from '@/shared/hooks/useTextCase';
@@ -10,6 +10,7 @@ import { ProjectSettingsModal } from '@/shared/components/ProjectSettingsModal';
 import { ReferralModal } from '@/shared/components/ReferralModal';
 
 import { useGlobalHeaderAuth } from './useGlobalHeaderAuth';
+
 import { GlobalHeaderDesktop } from './GlobalHeaderDesktop';
 import { GlobalHeaderMobile } from './GlobalHeaderMobile';
 import type { GlobalHeaderProps } from './types';
@@ -26,11 +27,11 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ contentOffsetRight =
   // Auth state (session, username, referral stats)
   const { session, referralStats } = useGlobalHeaderAuth();
 
-  // Mobile Safari keeps :hover "stuck" after taps. For the brand icon we explicitly
-  // flash the highlight briefly on touch/click, then clear it.
+  // Brand flash (Mobile Safari :hover fix)
   const [isBrandFlash, setIsBrandFlash] = useState(false);
-  const brandFlashTimeoutRef = React.useRef<number | null>(null);
-  const triggerBrandFlash = React.useCallback(() => {
+  const brandFlashTimeoutRef = useRef<number | null>(null);
+
+  const triggerBrandFlash = useCallback(() => {
     setIsBrandFlash(true);
     if (brandFlashTimeoutRef.current != null) window.clearTimeout(brandFlashTimeoutRef.current);
     brandFlashTimeoutRef.current = window.setTimeout(() => setIsBrandFlash(false), 220);
@@ -43,11 +44,11 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ contentOffsetRight =
   }, []);
 
   // Sticky header on desktop/tablet, scrolling header only on phones
-  const [isWideViewport, setIsWideViewport] = React.useState(() =>
+  const [isWideViewport, setIsWideViewport] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 768 : true
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => setIsWideViewport(window.innerWidth >= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -62,21 +63,20 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ contentOffsetRight =
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [createProjectInitialName, setCreateProjectInitialName] = useState<string | undefined>(undefined);
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId);
-
-  // Shared callbacks for sub-components
-  const handleOpenCreateProject = React.useCallback((initialName?: string) => {
+  const handleOpenCreateProject = useCallback((initialName?: string) => {
     setCreateProjectInitialName(initialName);
     setIsCreateProjectModalOpen(true);
   }, []);
 
-  const handleOpenProjectSettings = React.useCallback(() => {
+  const handleOpenProjectSettings = useCallback(() => {
     setIsProjectSettingsModalOpen(true);
   }, []);
 
-  const handleOpenReferralModal = React.useCallback(() => {
+  const handleOpenReferralModal = useCallback(() => {
     setIsReferralModalOpen(true);
   }, []);
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   return (
     <>

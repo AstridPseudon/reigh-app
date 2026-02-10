@@ -3,6 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
 import { cn, formatTime, getDisplayUrl } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { handleError } from '@/shared/lib/errorHandler';
 
 interface StyledVideoPlayerProps {
   src: string;
@@ -145,16 +146,18 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
       setIsVideoReady(true);
     };
     
-    const handleError = (_e: Event) => {
+    const handleVideoError = (_e: Event) => {
       const mediaError = video.error;
-      console.error('[iOSPlaybackDebug] Video error:', {
-        src: src?.substring(0, 80),
-        errorCode: mediaError?.code,
-        errorMessage: mediaError?.message,
-        readyState: video.readyState,
-        networkState: video.networkState,
-        // NetworkState: 0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE
-        networkStateLabel: ['EMPTY', 'IDLE', 'LOADING', 'NO_SOURCE'][video.networkState],
+      handleError(new Error(mediaError?.message || 'Video playback error'), {
+        context: 'StyledVideoPlayer',
+        showToast: false,
+        logData: {
+          src: src?.substring(0, 80),
+          errorCode: mediaError?.code,
+          readyState: video.readyState,
+          networkState: video.networkState,
+          networkStateLabel: ['EMPTY', 'IDLE', 'LOADING', 'NO_SOURCE'][video.networkState],
+        },
       });
     };
     
@@ -170,7 +173,7 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
     video.addEventListener('pause', handlePause);
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('error', handleError);
+    video.addEventListener('error', handleVideoError);
     video.addEventListener('stalled', handleStalled);
     video.addEventListener('waiting', handleWaiting);
 
@@ -181,7 +184,7 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('error', handleError);
+      video.removeEventListener('error', handleVideoError);
       video.removeEventListener('stalled', handleStalled);
       video.removeEventListener('waiting', handleWaiting);
     };

@@ -4,7 +4,6 @@
  * Extracted to separate files:
  * - useReplaceMode → ../hooks/useReplaceMode.ts
  * - ReplaceVideoOverlay → ./ReplaceVideoOverlay.tsx
- * - selectionsToFrameRanges → ../lib/selectionsToFrameRanges.ts
  */
 
 import type { RefObject } from 'react';

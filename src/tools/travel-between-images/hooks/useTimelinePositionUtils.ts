@@ -17,6 +17,7 @@
 
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { handleError } from '@/shared/lib/errorHandler';
 import { GenerationRow } from '@/types/shots';
 import type { ShotGeneration, PositionMetadata } from '@/shared/hooks/useTimelineCore';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
@@ -26,8 +27,8 @@ import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 // Extracted modules
 import { useTimelineFrameUpdates } from '@/shared/hooks/timeline/useTimelineFrameUpdates';
-import { useTimelineInitialization } from '@/shared/hooks/timeline/useTimelineInitialization';
-import { useSegmentPromptMetadata, extractPairPrompts } from '@/shared/hooks/timeline/useSegmentPromptMetadata';
+import { useTimelineInitialization } from './useTimelineInitialization';
+import { useSegmentPromptMetadata, extractPairPrompts } from './useSegmentPromptMetadata';
 
 // Re-export types for convenience
 export type { ShotGeneration, PositionMetadata };
@@ -94,7 +95,7 @@ export function useTimelinePositionUtils({ shotId, generations, projectId }: Use
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
       setIsLoading(false);
-      console.error('[TimelinePositionUtils] Error refreshing positions:', error);
+      handleError(error, { context: 'useTimelinePositionUtils', showToast: false });
     }
   }, [shotId, queryClient]);
 
