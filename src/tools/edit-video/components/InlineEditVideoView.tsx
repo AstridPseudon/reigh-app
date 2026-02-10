@@ -153,7 +153,7 @@ export function InlineEditVideoView({
     projectId: selectedProjectId,
     sourceVideoUrl: videoUrl,
     trimState,
-    onSuccess: (newVariantId) => {
+    onSuccess: () => {
       // Refresh the queries after trim save
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
     },
@@ -241,12 +241,10 @@ export function InlineEditVideoView({
   }, []);
   
   // Get the first selection for backward compatibility
-  const portionStart = selections[0]?.start ?? 0;
   const portionEnd = selections[0]?.end ?? 0;
-  
+
   // Settings hook
   const editSettings = useEditVideoSettings(selectedProjectId);
-  const settingsLoaded = editSettings.status !== 'idle' && editSettings.status !== 'loading';
   
   // Derive settings
   const {
@@ -455,23 +453,6 @@ export function InlineEditVideoView({
     }));
   }, [videoFps, calculateGapFramesFromRange]);
   
-  // Set portion start/end for backward compatibility with VideoPortionEditor
-  const setPortionStart = useCallback((val: number) => {
-    if (selections.length > 0) {
-      handleUpdateSelection(selections[0].id, val, selections[0].end);
-    }
-  }, [selections, handleUpdateSelection]);
-  
-  const setPortionEnd = useCallback((val: number) => {
-    if (selections.length > 0) {
-      handleUpdateSelection(selections[0].id, selections[0].start, val);
-    }
-  }, [selections, handleUpdateSelection]);
-  
-  // Calculate portion duration
-  const portionDuration = useMemo(() => {
-    return Math.max(0, portionEnd - portionStart);
-  }, [portionStart, portionEnd]);
   
   // Check if all portions are valid for regeneration
   const portionValidation = useMemo(() => {

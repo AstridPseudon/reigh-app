@@ -136,8 +136,6 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
   const isSidePanelLayout = showPanel && shouldShowSidePanel;
   const isStackedLayout = showPanel && !shouldShowSidePanel;
 
-  const enableSwipe = !showPanel || !shouldShowSidePanel;
-  const navArrowVariant = isSidePanelLayout ? 'desktop' : 'mobile';
   const floatingToolVariant = isMobile ? 'mobile' : 'tablet';
 
   // MediaDisplayWithCanvas variant/container

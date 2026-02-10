@@ -86,8 +86,6 @@ export function useRepositionTaskCreation({
     try {
 
       const transformedCanvas = await createTransformedCanvas();
-      const outputWidth = transformedCanvas.width;
-      const outputHeight = transformedCanvas.height;
 
       // Generate mask from the transparent areas of the transformed image
       const maskCanvas = generateMaskFromCanvas(transformedCanvas, {

@@ -7,9 +7,9 @@ import { GenerationRow } from '@/types/shots';
  * Browser handles concurrent requests efficiently
  */
 export const useVideoLoader = (
-  video: GenerationRow, 
-  index: number, 
-  shouldPreload: string
+  _video: GenerationRow,
+  _index: number,
+  _shouldPreload: string
 ) => {
   // Simplified: all videos load immediately
   const [shouldLoad] = useState(true);
@@ -18,7 +18,7 @@ export const useVideoLoader = (
   const videoRef = useRef<HTMLVideoElement>(null);
   const posterFallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const logVideoEvent = useCallback((phase: string, extraData: Record<string, unknown> = {}) => {
+  const logVideoEvent = useCallback((_phase: string, _extraData: Record<string, unknown> = {}) => {
     // Logging removed - too verbose
   }, []);
 

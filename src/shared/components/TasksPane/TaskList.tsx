@@ -147,7 +147,7 @@ const TaskListComponent: React.FC<TaskListProps> = ({
   showProjectIndicator = false,
   projectNameMap = {},
 }) => {
-  const { selectedProjectId } = useProject();
+  useProject();
   const { incomingTasks } = useIncomingTasks();
 
   // State to track tasks that have just been added for flash effect

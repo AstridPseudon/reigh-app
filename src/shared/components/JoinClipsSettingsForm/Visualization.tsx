@@ -64,7 +64,7 @@ export const Visualization: React.FC<{
                     {/* Pair selector buttons */}
                     {hasMultiplePairs && (
                         <div className="flex items-center gap-1">
-                            {clipPairs.map((pair, idx) => (
+                            {clipPairs.map((_pair, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setSelectedPairIndex(idx)}

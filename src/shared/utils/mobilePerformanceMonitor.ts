@@ -91,35 +91,29 @@ class MobilePerformanceMonitor {
   }
 
   private logMetrics() {
-    const metrics = this.getMetrics();
-    
     // Log top rendering components
     if (this.renderCounts.size > 0) {
       const sorted = Array.from(this.renderCounts.entries())
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10);
-      
-      sorted.forEach(([name, count]) => {
+
+      sorted.forEach(() => {
       });
     }
-    
+
     // Reset render counts for next interval
     this.renderCounts.clear();
-    
+
     // Warnings
   }
 
   // Track specific operations
-  async measureOperation<T>(name: string, operation: () => Promise<T>): Promise<T> {
-    const start = performance.now();
-    
+  async measureOperation<T>(_name: string, operation: () => Promise<T>): Promise<T> {
     try {
       const result = await operation();
-      const duration = performance.now() - start;
-      
+
       return result;
     } catch (error) {
-      const duration = performance.now() - start;
       handleError(error, { context: 'MobilePerformanceMonitor', showToast: false });
       throw error;
     }

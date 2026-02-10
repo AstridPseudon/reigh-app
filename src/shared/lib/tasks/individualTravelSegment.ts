@@ -171,19 +171,6 @@ function buildIndividualTravelSegmentParams(
     orig.structure_video_path
   );
 
-  // Determine if using uni3c mode
-  let isUni3c = false;
-  if (structureGuidance?.target === 'uni3c') {
-    isUni3c = hasStructureVideos;
-  } else if (hasStructureVideos && !structureGuidance) {
-    // Check params.structure_videos first (from UI), then legacy sources
-    const structureType = ((params as Record<string, unknown>).structure_videos as Array<Record<string, unknown>> | undefined)?.[0]?.structure_type ||
-      orig.structure_type || orchDetails.structure_type ||
-      orchDetails.structure_videos?.[0]?.structure_type || orig.structure_videos?.[0]?.structure_type ||
-      orchDetails.structure_video_type || orig.structure_video_type;
-    isUni3c = structureType === 'uni3c';
-  }
-
   // VACE model is no longer supported - always use I2V
   // Structure video type is hardcoded to uni3c, which uses I2V
   const useVaceModel = false;
@@ -580,18 +567,15 @@ function buildIndividualTravelSegmentParams(
  * @returns Promise resolving to the created task
  */
 export async function createIndividualTravelSegmentTask(params: IndividualTravelSegmentParams): Promise<TaskCreationResult> {
-  // Detect trailing segment mode (single-image-to-video, no end image)
-  const isTrailingSegment = !params.end_image_url;
-
   try {
     // 1. Validate parameters
     validateIndividualTravelSegmentParams(params);
 
     // 2. Ensure we have a parent_generation_id (create placeholder if needed)
     let effectiveParentGenerationId = params.parent_generation_id;
-    
+
     if (!effectiveParentGenerationId && params.shot_id) {
-      
+
       // Create a placeholder parent generation
       const newParentId = crypto.randomUUID();
       // Build input images array (end_image_url is optional for trailing segments)
@@ -608,8 +592,8 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
           input_image_paths_resolved: placeholderInputImages,
         },
       };
-      
-      const { data: newParent, error: parentError } = await supabase
+
+      const { error: parentError } = await supabase
         .from('generations')
         .insert({
           id: newParentId,

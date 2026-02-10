@@ -400,8 +400,8 @@ export function useTrainingData() {
     // Upload file to storage
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
-    
-    const { error: uploadError, data: uploadData } = await supabase.storage
+
+    const { error: uploadError } = await supabase.storage
       .from('training-data')
       .upload(fileName, file);
 
@@ -542,7 +542,7 @@ export function useTrainingData() {
     try {
 
       // Verify the training data exists first
-      const { data: trainingDataCheck, error: checkError } = await supabase
+      const { error: checkError } = await supabase
         .from('training_data')
         .select('id, batch_id')
         .eq('id', trainingDataId)

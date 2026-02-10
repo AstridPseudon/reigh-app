@@ -55,7 +55,6 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   centerSectionRef,
   isSticky = false,
 }) => {
-  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 

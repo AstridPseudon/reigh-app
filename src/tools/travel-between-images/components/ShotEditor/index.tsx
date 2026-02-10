@@ -391,9 +391,6 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
   }, [mobileColumns, effectiveAspectRatio]);
   const { setIsGenerationsPaneLocked } = usePanes();
 
-  // Effective generation mode: phones always use batch mode locally (even if saved setting is timeline)
-  // This ensures Duration per Pair slider works on mobile
-  const effectiveGenerationMode = isPhone ? 'batch' : generationModeSettings.generationMode;
 
   // Use shots.settings to store GenerationsPane settings (shared with useGenerationsPageLogic)
   const { update: updateShotGenerationsPaneSettings } = useToolSettings<GenerationsPaneSettings>('generations-pane', {
@@ -559,26 +556,6 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
   // Now uses useSegmentOutputsForShot which correctly orders videos by pair position.
   useEffect(() => {
     if (!selectedShotId) return;
-
-    const readySegments = joinSegments.filter(seg => Boolean(seg.location));
-
-    // Sample segments to see their state
-    const sample = joinSegments.slice(0, 8).map(seg => {
-      const segParams = seg.params as Record<string, unknown> | null;
-      // Prefer FK column, fall back to params for legacy data
-      const individualSegParams = segParams?.individual_segment_params as Record<string, unknown> | undefined;
-      const pairShotGenId = seg.pair_shot_generation_id
-        || (individualSegParams?.pair_shot_generation_id as string | undefined)
-        || (segParams?.pair_shot_generation_id as string | undefined);
-      return {
-        id: seg.id?.substring(0, 8),
-        type: seg.type,
-        hasLocation: Boolean(seg.location),
-        pairShotGenId: pairShotGenId?.substring(0, 8) || null,
-        segmentIndex: segParams?.segment_index,
-        childOrder: seg.child_order,
-      };
-    });
 
   }, [selectedShotId, joinSegments, joinSegmentSlots, joinSelectedParent, joinValidationData]);
 

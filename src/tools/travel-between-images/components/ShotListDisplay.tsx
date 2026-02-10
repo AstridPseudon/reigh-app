@@ -165,7 +165,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
     keyboardSensor
   );
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = (_event: DragStartEvent) => {
     // Prevent drag if an input is focused
     if (isInputFocused) {
       return false;
@@ -234,7 +234,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
   const [isNewShotDropTarget, setIsNewShotDropTarget] = useState(false);
   const [newShotDropType, setNewShotDropType] = useState<DragType>('none');
   // Processing state for showing loading during upload (legacy - kept for generation drops)
-  const [isNewShotProcessing, setIsNewShotProcessing] = useState(false);
+  const [isNewShotProcessing] = useState(false);
   
   // Optimistic skeleton shot state (computed during render like SortableShotItem)
   const pendingNewShotCountRef = useRef(0); // Number of images expected in new shot

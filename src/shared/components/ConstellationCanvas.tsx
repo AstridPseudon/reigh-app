@@ -171,23 +171,6 @@ export const ConstellationCanvas: React.FC = () => {
       }
     };
 
-    const spawnShootingStar = () => {
-      // Very low probability check - roughly one every 30-60 seconds
-      if (Math.random() > 0.9998 && shootingStarsRef.current.length < 1) {
-        const startX = Math.random() * canvas.width;
-        const startY = Math.random() * canvas.height * 0.5; // Start in top half
-        shootingStarsRef.current.push({
-          id: Date.now() + Math.random(),
-          x: startX,
-          y: startY,
-          vx: -4 - Math.random() * 4, // Move left
-          vy: 1 + Math.random() * 2,  // Move down
-          length: 50 + Math.random() * 50,
-          opacity: 1,
-          life: 1.0
-        });
-      }
-    };
 
     const drawStars = (time: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);

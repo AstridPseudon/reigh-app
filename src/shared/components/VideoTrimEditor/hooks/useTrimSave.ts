@@ -191,7 +191,7 @@ export const useTrimSave = ({
       setSaveProgress(90);
 
       // Step 5: Update the generation record directly
-      const { error: updateError } = await supabase
+      await supabase
         .from('generations')
         .update({
           location: result.video_url,

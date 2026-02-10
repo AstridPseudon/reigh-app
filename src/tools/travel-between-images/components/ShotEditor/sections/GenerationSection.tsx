@@ -49,7 +49,6 @@ export const GenerationSection: React.FC<GenerationSectionProps> = ({
   parentVideoJustQueued,
 }) => {
   // Pull from ShotSettingsContext
-  const { selectedShotId } = useShotCore();
   const { simpleFilteredImages } = useShotImages();
   const generationMode = useGenerationMode();
   const joinState = useJoinState();

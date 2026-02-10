@@ -152,7 +152,7 @@ function handleTasksUpdated(queryClient: QueryClient, event: TasksUpdatedEvent):
   dataFreshnessManager.onRealtimeEvent('tasks-updated', affectedQueries);
 }
 
-function handleTasksCreated(queryClient: QueryClient, event: TasksCreatedEvent): void {
+function handleTasksCreated(queryClient: QueryClient, _event: TasksCreatedEvent): void {
 
   // Only invalidate task queries - new tasks haven't completed yet
   queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
@@ -206,8 +206,6 @@ function handleGenerationsUpdated(queryClient: QueryClient, event: GenerationsUp
   if (meaningfulUpdates.length === 0) {
     return;
   }
-
-  const starredUpdates = event.generations.filter((g) => g.starredChanged);
 
   // Invalidate generation queries
   queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });

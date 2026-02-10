@@ -184,14 +184,6 @@ export const useEnhancedShotImageReorder = (
         }
       }
       
-      // 🔍 DIAGNOSTIC: Check for duplicate generation_ids
-      const generationIdCounts = new Map<string, number>();
-      currentImages.forEach(img => {
-        const count = generationIdCounts.get(img.id) || 0;
-        generationIdCounts.set(img.id, count + 1);
-      });
-      
-      const duplicateGenerationIds = Array.from(generationIdCounts.entries()).filter(([_, count]) => count > 1);
       
       // Find what actually changed between current and desired order
       const changes: Array<{

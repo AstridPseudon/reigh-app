@@ -71,7 +71,7 @@ export function useEditModePersistence() {
         }
       };
 
-      const { error: updateError } = await supabase
+      await supabase
         .from('generations')
         .update({ params: updatedParams })
         .eq('id', generationId);

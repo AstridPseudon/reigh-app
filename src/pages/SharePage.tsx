@@ -138,7 +138,7 @@ const SharePage: React.FC = () => {
       supabase.rpc('increment_share_view_count', {
         share_slug_param: shareId
       }).then(() => {
-      }).catch((err) => {
+      }).catch((_err) => {
       });
 
       // RPC returns same format as useShotImages

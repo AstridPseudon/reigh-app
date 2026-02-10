@@ -58,13 +58,10 @@ export function useDragAndDrop({
   );
   
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    
+
     const { active } = event;
     const draggedItemId = active.id as string;
-    
-    // img.id is shot_generations.id - unique per entry
-    const draggedItem = images.find(img => img.id === draggedItemId);
-    
+
     setActiveId(draggedItemId);
 
     // Notify parent that drag has started - used to suppress query refetches
@@ -80,11 +77,10 @@ export function useDragAndDrop({
   }, [selectedIds, images, setSelectedIds, setLastSelectedIndex]);
   
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    
+
     const { active, over } = event;
     const draggedItemId = active.id as string;
-    const targetItemId = over?.id as string;
-    
+
     setActiveId(null);
 
     // Notify parent that drag has ended - re-enable query refetches
@@ -101,7 +97,6 @@ export function useDragAndDrop({
     // Safety check: Ensure all images have id
     const hasMissingIds = images.some(img => !img.id);
     if (hasMissingIds) {
-      const missingCount = images.filter(img => !img.id).length;
       const message = images.length > 500
         ? `Loading metadata for ${images.length} images... this may take a moment.`
         : 'Loading image metadata... please wait a moment and try again.';

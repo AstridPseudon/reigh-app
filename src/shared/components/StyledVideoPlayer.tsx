@@ -145,7 +145,7 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
       setIsVideoReady(true);
     };
     
-    const handleError = (e: Event) => {
+    const handleError = (_e: Event) => {
       const mediaError = video.error;
       console.error('[iOSPlaybackDebug] Video error:', {
         src: src?.substring(0, 80),

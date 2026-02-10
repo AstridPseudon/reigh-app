@@ -130,14 +130,6 @@ export function taskSupportsProgress(taskType: string): boolean {
 }
 
 /**
- * Check if a task type can be cancelled
- * (internal use only - not exported)
- */
-function canCancelTask(taskType: string): boolean {
-  return getTaskConfig(taskType).canCancel !== false; // Default to true
-}
-
-/**
  * Get all visible task types
  * Uses database cache if available, falls back to hardcoded list
  */

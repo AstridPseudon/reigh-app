@@ -141,7 +141,6 @@ export function enqueueSettingsWrite(
     
     if (existing) {
       // Merge with existing pending write
-      const beforeMerge = existing.write.patch;
       existing.write.patch = mergePatch(existing.write.patch, write.patch);
       existing.resolvers.push({ resolve, reject });
 
@@ -174,22 +173,6 @@ export function enqueueSettingsWrite(
   });
 }
 
-/**
- * Flush all pending writes for a specific target immediately.
- */
-function flushTarget(scope: 'user' | 'project' | 'shot', entityId: string, toolId: string): Promise<unknown> | undefined {
-  const key = `${scope}:${entityId}:${toolId}`;
-  const pending = pendingByTarget.get(key);
-  
-  if (pending) {
-    return new Promise((resolve, reject) => {
-      pending.resolvers.push({ resolve, reject });
-      scheduleFlush(key, pending);
-    });
-  }
-  
-  return undefined;
-}
 
 /**
  * Flush all pending writes immediately.

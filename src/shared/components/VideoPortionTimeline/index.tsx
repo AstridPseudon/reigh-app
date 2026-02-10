@@ -154,14 +154,6 @@ export interface MultiPortionTimelineProps {
   maxGapFrames?: number;
 }
 
-// Color palette for segments
-const SEGMENT_COLORS = [
-  'bg-primary',
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-orange-500',
-  'bg-purple-500',
-];
 
 // Timeline with multiple portion selections, thumbnails, and time labels
 export function MultiPortionTimeline({
@@ -218,20 +210,6 @@ export function MultiPortionTimeline({
     return () => video.removeEventListener('timeupdate', handleTimeUpdate);
   }, [videoRef, isDraggingPlayhead]);
   
-  // Check if a time is in a regeneration zone
-  const isInRegenerationZone = useCallback((time: number): { inZone: boolean; segmentIndex: number } => {
-    for (let i = 0; i < selections.length; i++) {
-      if (time >= selections[i].start && time <= selections[i].end) {
-        return { inZone: true, segmentIndex: i };
-      }
-    }
-    return { inZone: false, segmentIndex: -1 };
-  }, [selections]);
-  
-  // Get frame number from time
-  const getFrameNumber = useCallback((time: number): number => {
-    return fps ? Math.round(time * fps) : 0;
-  }, [fps]);
   
   // Handle scrubber click/drag
   const handleScrubberInteraction = useCallback((e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
@@ -324,7 +302,7 @@ export function MultiPortionTimeline({
   };
   
   // Handle tap on handle (for tap-to-move mode on mobile)
-  const handleHandleTap = (e: React.MouseEvent | React.TouchEvent, id: string, handle: 'start' | 'end') => {
+  const handleHandleTap = (_e: React.MouseEvent | React.TouchEvent, id: string, handle: 'start' | 'end') => {
     // If already selected, deselect
     if (selectedHandle?.id === id && selectedHandle?.handle === handle) {
       setSelectedHandle(null);

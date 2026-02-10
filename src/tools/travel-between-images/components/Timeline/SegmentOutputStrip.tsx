@@ -316,7 +316,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   
   // Log when segmentSlots changes (to track what's being displayed)
   React.useEffect(() => {
-    const childSlots = displaySlots.filter(s => s.type === 'child');
+    displaySlots.filter(s => s.type === 'child');
   }, [displaySlots]);
   
   // Mark generation as viewed (updates the primary variant's viewed_at)
@@ -425,7 +425,7 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     try {
 
       // Fetch the generation to find its parent and pair_shot_generation_id
-      const { data: beforeData, error: fetchError } = await supabase
+      const { data: beforeData } = await supabase
         .from('generations')
         .select('id, type, parent_generation_id, location, params, primary_variant_id, pair_shot_generation_id')
         .eq('id', generationId)

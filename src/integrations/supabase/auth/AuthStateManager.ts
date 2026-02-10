@@ -18,7 +18,7 @@ export class AuthStateManager {
   }
 
   private notifyListeners(event: string, session: Session | null) {
-    this.listeners.forEach(({ id, callback }) => {
+    this.listeners.forEach(({ callback }) => {
       try {
         callback(event, session);
       } catch (error) {

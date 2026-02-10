@@ -34,7 +34,6 @@ import { parseRatio } from '@/shared/lib/aspectRatios';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
 const TOOL_TYPE = 'edit-images';
-const TOOL_TYPE_NAME = 'Edit Images';
 
 // Settings interface for last edited media persistence
 interface EditImagesUISettings {
@@ -139,7 +138,6 @@ export default function EditImagesPage() {
   // Fetch edit variants created by this tool
   const {
     data: resultsData,
-    isLoading: isResultsLoading,
   } = useProjectGenerations(
     selectedProjectId || null,
     resultsPage,

@@ -90,7 +90,7 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
 }) => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -202,7 +202,7 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
     }
   }, [isMobile, scrubbingContainerProps]);
 
-  const handleMouseLeave = useCallback((e: React.MouseEvent) => {
+  const handleMouseLeave = useCallback((_e: React.MouseEvent) => {
     if (isMobile) return;
     setIsHovering(false);
     setCurrentTime(0);
@@ -528,7 +528,7 @@ export const InlineSegmentVideo: React.FC<InlineSegmentVideoProps> = ({
             <TooltipTrigger asChild>
               <div
                 className="absolute bottom-1 left-1 z-20 flex items-center justify-center bg-amber-500/90 hover:bg-amber-600/95 p-1 rounded-md shadow-sm cursor-default transition-colors"
-                ref={(el) => {
+                ref={(_el) => {
                 }}
               >
                 <AlertTriangle className="w-3 h-3 text-white" />

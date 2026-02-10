@@ -123,7 +123,6 @@ export const useVideoTravelDropHandlers = ({
       return;
     }
 
-    const targetShot = shots?.find(s => s.id === shotId);
     const withoutPosition = options?.withoutPosition ?? false;
     
     try {

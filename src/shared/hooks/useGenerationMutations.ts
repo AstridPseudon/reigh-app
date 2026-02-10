@@ -180,7 +180,7 @@ export function useDeleteVariant() {
 
 export function useUpdateGenerationLocation() {
   return useMutation({
-    mutationFn: ({ id, location, thumbUrl, projectId }: { id: string; location: string; thumbUrl?: string; projectId?: string }) => {
+    mutationFn: ({ id, location, thumbUrl }: { id: string; location: string; thumbUrl?: string; projectId?: string }) => {
       return updateGenerationLocation(id, location, thumbUrl);
     },
     onError: (error: Error) => {

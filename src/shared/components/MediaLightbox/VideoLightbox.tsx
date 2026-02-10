@@ -220,7 +220,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   // Panes context for tasks pane
   const {
     isTasksPaneOpen: tasksPaneOpenContext,
-    setIsTasksPaneOpen: setTasksPaneOpenContext,
     tasksPaneWidth: tasksPaneWidthContext,
     isTasksPaneLocked,
   } = usePanes();
@@ -228,8 +227,7 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   const effectiveTasksPaneOpen = tasksPaneOpen ?? tasksPaneOpenContext;
   const effectiveTasksPaneWidth = tasksPaneWidth ?? tasksPaneWidthContext;
 
-  const { data: statusCounts } = useTaskStatusCounts(selectedProjectId);
-  const cancellableTaskCount = statusCounts?.processing || 0;
+  useTaskStatusCounts(selectedProjectId);
 
   // Refs
   const contentRef = useRef<HTMLDivElement>(null);
@@ -237,7 +235,6 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
 
   // State
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [replaceImages, setReplaceImages] = useState(true);
   const [variantParamsToLoad, setVariantParamsToLoad] = useState<Record<string, unknown> | null>(null);
 

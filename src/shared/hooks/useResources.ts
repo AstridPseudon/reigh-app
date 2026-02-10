@@ -232,16 +232,16 @@ export interface UpdateResourceArgs {
 export const useUpdateResource = () => {
     const queryClient = useQueryClient();
     return useMutation<Resource, Error, UpdateResourceArgs>({
-        mutationFn: async ({ id, type, metadata }) => {
-            
+        mutationFn: async ({ id, metadata }) => {
+
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 console.error('[useUpdateResource] User not authenticated');
                 throw new Error('Not authenticated');
             }
-            
+
             // First, let's check if the resource exists at all (without user_id filter)
-            const { data: resourceCheck, error: resourceCheckError } = await supabase
+            const { data: resourceCheck } = await supabase
                 .from('resources')
                 .select('id, user_id, type')
                 .eq('id', id)
@@ -358,7 +358,7 @@ export const useDeleteResource = () => {
 
             if (error) throw error;
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             // Remove the individual resource cache entry
             queryClient.removeQueries({ queryKey: queryKeys.resources.detail(variables.id) });
             // Also invalidate the list queries

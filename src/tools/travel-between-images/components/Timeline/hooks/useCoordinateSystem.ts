@@ -3,8 +3,6 @@ import { getTimelineDimensions } from '../utils/timeline-utils';
 
 interface CoordinateSystemProps {
   positions: Map<string, number>;
-  shotId: string;
-  isDragInProgress?: boolean;
 }
 
 interface CoordinateSystemData {
@@ -13,7 +11,7 @@ interface CoordinateSystemData {
   fullRange: number;
 }
 
-function useCoordinateSystem({ positions, shotId, isDragInProgress = false }: CoordinateSystemProps) {
+function useCoordinateSystem({ positions }: CoordinateSystemProps) {
 
   // Calculate dimensions from positions
   const coordinateSystem = useMemo(() => {

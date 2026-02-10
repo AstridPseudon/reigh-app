@@ -42,11 +42,7 @@ window.disableProjectDebug = () => {
 // Check current project state
 window.checkProjectState = () => {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  
-  // Try to access React DevTools or context directly
-  const reactRoot = (document.querySelector('#root') as any)?._reactInternalFiber || 
-                    (document.querySelector('#root') as any)?._reactInternals;
-  
+
   console.log('🔍 Project State Check:');
   console.log('- Is Mobile:', isMobile);
   console.log('- User Agent:', navigator.userAgent);

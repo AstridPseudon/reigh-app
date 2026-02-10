@@ -111,17 +111,6 @@ const startAutoplayMonitoring = () => {
   }, 1000); // Check every second
 };
 
-const stopAutoplayMonitoring = () => {
-  if (!monitoringActive) return;
-  
-  monitoringActive = false;
-  
-  if (monitorInterval) {
-    clearInterval(monitorInterval);
-    monitorInterval = null;
-  }
-};
-
 // Auto-start monitoring in development
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   // Start monitoring after a short delay to let the page load

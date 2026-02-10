@@ -36,11 +36,7 @@ export const GlassSidePane: React.FC<GlassSidePaneProps> = ({
   };
 
   const isLeft = side === 'left';
-  
-  const positionClasses = isLeft
-    ? 'left-0 border-r translate-x-0 -translate-x-full'
-    : 'right-0 border-l translate-x-0 translate-x-full';
-  
+
   // Stronger background on mobile for "harsher" edge feel
   const gradientDirection = isLeft ? 'bg-gradient-to-r' : 'bg-gradient-to-l';
   const mobileBg = isMobile 

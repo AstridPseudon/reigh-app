@@ -144,9 +144,9 @@ export interface TaskCreationResult {
  */
 export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreationResult> {
   // Get current session for authentication
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (sessionError || !session) {
+  if (!session) {
     throw new AuthError('Please log in to create tasks', { needsLogin: true });
   }
 
@@ -171,8 +171,6 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
       },
       signal: controller.signal,
     });
-
-    const durationMs = Date.now() - startTime;
 
     if (error) {
       throw new Error(error.message || 'Failed to create task');

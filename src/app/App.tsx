@@ -80,7 +80,7 @@ const AppInternalContent = () => {
   if (!context) throw new Error("useLastAffectedShot must be used within a LastAffectedShotProvider");
   const { setLastAffectedShotId } = context;
 
-  const { shots: shotsFromHook, isLoading: isLoadingShots } = useShots();
+  const { shots: shotsFromHook } = useShots();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

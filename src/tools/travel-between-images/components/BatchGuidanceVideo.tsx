@@ -63,7 +63,6 @@ export const BatchGuidanceVideo: React.FC<BatchGuidanceVideoProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentTimelineFrame, setCurrentTimelineFrame] = useState(0);
-  const [isVideoReady, setIsVideoReady] = useState(false);
 
   // Calculate frame range based on timeline positions
   const minFrame = timelineFramePositions.length > 0 ? Math.min(...timelineFramePositions) : 0;
@@ -171,7 +170,6 @@ export const BatchGuidanceVideo: React.FC<BatchGuidanceVideoProps> = ({
     if (!video || !videoUrl) return;
 
     const handleLoadedMetadata = () => {
-      setIsVideoReady(true);
       drawTimelineFrame(minFrame);
     };
 

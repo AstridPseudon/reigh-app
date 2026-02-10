@@ -42,9 +42,7 @@ export const debugPolling = {
    * Test the exact query that's failing
    */
   async testTaskStatusQuery(projectId: string) {
-    
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    
+
     try {
       const processingQuery = supabase
         .from('tasks')

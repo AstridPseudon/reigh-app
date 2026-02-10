@@ -119,9 +119,6 @@ export function useShotEditorSetup({
   // Only fall back to detailed query if context data is insufficient
   const contextImages = selectedShot?.images || [];
 
-  // [VideoLoadSpeedIssue] AGGRESSIVE OPTIMIZATION: Use memoized values to prevent re-render loops
-  const hasContextData = useMemo(() => contextImages.length > 0, [contextImages.length]);
-
   // [ShotNavPerf] PERFORMANCE FIX: Always fetch full data in background, but don't block UI
   // We'll use context images immediately while the query runs asynchronously
   const shouldLoadDetailedData = useMemo(

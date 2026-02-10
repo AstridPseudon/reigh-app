@@ -44,7 +44,7 @@ export function useVariantPromotion({
     setPromoteSuccess(false);
 
     try {
-      const result = await promoteVariantMutation.mutateAsync({
+      await promoteVariantMutation.mutateAsync({
         variantId,
         projectId: selectedProjectId,
       });

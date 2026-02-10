@@ -52,7 +52,6 @@ export const SourceGenerationDisplay: React.FC<SourceGenerationDisplayProps> = (
       )
     : null;
   
-  const isParentInCurrentShot = !!parentShotAssociation;
   const parentTimelineFrame = parentShotAssociation?.timeline_frame;
   const isParentPositioned = parentTimelineFrame !== null && parentTimelineFrame !== undefined;
   

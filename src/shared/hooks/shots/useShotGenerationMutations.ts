@@ -291,7 +291,7 @@ export const useAddImageToShot = () => {
       return { previousShots, previousFastGens, project_id, shot_id, tempId };
     },
 
-    onError: (error: Error, variables, context) => {
+    onError: (error: Error, _variables, context) => {
       // Check for duplicate key constraint
       const isDuplicateError =
         error.message?.includes('unique_shot_generation_pair') ||

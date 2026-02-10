@@ -110,7 +110,6 @@ export const WorkflowControlsBar: React.FC<WorkflowControlsBarProps> = ({
   const currentShotsLength = allShots?.length || 0;
   
   React.useEffect(() => {
-    const prevLength = prevShotsLengthRef.current;
     prevShotsLengthRef.current = currentShotsLength;
   }, [currentShotsLength, onAddToShot, isVideo]);
   

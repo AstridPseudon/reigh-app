@@ -26,9 +26,5 @@ const SEGMENT_FORM_COLORS = [
   { bg: 'bg-purple-500', bgMuted: 'bg-purple-500/20', text: 'text-purple-500', border: 'border-purple-500' },
 ] as const;
 
-// Helper to get color by index (wraps around)
-const getSegmentOverlayColor = (index: number) =>
-  SEGMENT_OVERLAY_COLORS[index % SEGMENT_OVERLAY_COLORS.length];
-
 export const getSegmentFormColor = (index: number) =>
   SEGMENT_FORM_COLORS[index % SEGMENT_FORM_COLORS.length];

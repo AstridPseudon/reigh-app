@@ -18,7 +18,6 @@ import { MultiImagePreview, SingleImagePreview } from '../ImageDragPreview';
 import BatchDropZone from '../BatchDropZone';
 import MediaLightbox from '../MediaLightbox';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { useDeviceDetection } from '@/shared/hooks/useDeviceDetection';
 import { useState, useEffect, useCallback } from 'react';
 import { useTaskDetails } from './hooks/useTaskDetails';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
@@ -180,9 +179,6 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   
   // Shot navigation for "add without position" flow
   const { navigateToShot } = useShotNavigation();
-  
-  // Detect tablet/iPad size for task details
-  const { isTabletOrLarger } = useDeviceDetection();
 
   // ===== SCRUBBING PREVIEW STATE =====
   const [activeScrubbingIndex, setActiveScrubbingIndex] = useState<number | null>(null);
@@ -327,7 +323,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
       getFramePositionForIndex={getFramePosition}
       projectAspectRatio={props.projectAspectRatio}
     >
-      {(isFileDragOver, dropTargetIndex) => (
+      {(_isFileDragOver, dropTargetIndex) => (
         <DndContext
           sensors={dragAndDrop.sensors}
           collisionDetection={closestCenter}
@@ -459,7 +455,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
                 }}
                 onNext={lightbox.handleNext}
                 onPrevious={lightbox.handlePrevious}
-                onDelete={!props.readOnly ? (mediaId: string) => {
+                onDelete={!props.readOnly ? (_mediaId: string) => {
                   const currentImage = lightbox.currentImages[lightbox.lightboxIndex];
                   const shotImageEntryId = currentImage.shotImageEntryId || currentImage.id;
                   props.onImageDelete(shotImageEntryId);

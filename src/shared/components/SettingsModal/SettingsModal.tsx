@@ -38,7 +38,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const {
     tokens,
-    isLoading: isLoadingTokens,
     generateToken,
     isGenerating,
     generatedToken,

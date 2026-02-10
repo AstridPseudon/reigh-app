@@ -357,7 +357,7 @@ export class RealtimeConnection {
         this.channel = null;
       }
 
-      const success = await this.doConnect(projectId);
+      await this.doConnect(projectId);
       // If failed, doConnect will call handleSubscribeFailure which schedules next retry
     }, delay);
   }
@@ -381,7 +381,6 @@ export class RealtimeConnection {
 
   private setState(updates: Partial<ConnectionState>): void {
     const prevStatus = this.state.status;
-    const newStatus = updates.status ?? prevStatus;
 
     this.state = {
       ...this.state,

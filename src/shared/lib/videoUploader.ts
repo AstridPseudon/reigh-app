@@ -107,8 +107,8 @@ export const extractVideoMetadataFromUrl = async (videoUrl: string): Promise<Vid
  */
 export const uploadVideoToStorage = async (
   file: File,
-  projectId: string,
-  shotId: string,
+  _projectId: string,
+  _shotId: string,
   onProgressOrOptions?: ((progress: number) => void) | VideoUploadOptions,
   maxRetriesParam: number = 3
 ): Promise<string> => {

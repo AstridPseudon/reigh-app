@@ -141,9 +141,6 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
       prefetchTaskData(currentLightboxImageId);
     }
   }, [lightbox.lightboxIndex, lightbox.currentImages, currentLightboxImageId, prefetchTaskData]);
-
-  // Detect tablet/iPad size for task details
-  const { isTabletOrLarger } = useDeviceDetection();
   
   return (
     <>

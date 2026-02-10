@@ -7,7 +7,7 @@ import { VisibilityManager, type VisibilitySignals, type VisibilityEventType } f
  * 
  * Now uses centralized VisibilityManager to prevent duplicate listeners
  */
-function usePageVisibility() {
+export function usePageVisibility() {
   const [state, setState] = useState(() => {
     const initialState = VisibilityManager.getState();
     return {
@@ -22,23 +22,20 @@ function usePageVisibility() {
     const subscriptionId = VisibilityManager.subscribe((signals: VisibilitySignals, eventType: VisibilityEventType) => {
       if (eventType === 'visibilitychange') {
         const now = new Date(signals.lastVisibilityChangeAt);
-        
+
         // Update state
-        setState(prevState => ({
+        setState(() => ({
           isVisible: signals.isVisible,
           visibilityChangeCount: signals.changeCount,
           lastVisibilityChange: now,
         }));
-        
+
       }
     }, {
       id: 'use-page-visibility',
       eventTypes: ['visibilitychange'],
       includeNoChange: false // Only get actual changes
     });
-
-    // Initial log
-    const initialState = VisibilityManager.getState();
 
     return () => {
       VisibilityManager.unsubscribe(subscriptionId);

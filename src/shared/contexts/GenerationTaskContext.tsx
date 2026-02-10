@@ -45,7 +45,7 @@ export function GenerationTaskProvider({
     if (!isPreloadingEnabled || generationIds.length === 0) return;
 
     try {
-      const result = await preloadGenerationTaskMappings(generationIds, queryClient, {
+      await preloadGenerationTaskMappings(generationIds, queryClient, {
         batchSize: preloadBatchSize,
         delayBetweenBatches: preloadDelay,
         preloadFullTaskData: true, // Preload full task data for better UX

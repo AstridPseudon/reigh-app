@@ -140,17 +140,3 @@ export async function recropAllReferences(
   return reprocessed;
 }
 
-/**
- * Checks if a reference needs reprocessing for a given aspect ratio.
- * Can be used to determine if the recrop button should be shown.
- * 
- * @param references - Array of references to check
- * @returns Boolean indicating if any references need reprocessing
- */
-function hasReferencesNeedingRecrop(references: ReferenceImage[]): boolean {
-  return references.some(ref => 
-    ref.styleReferenceImageOriginal && 
-    !ref.styleReferenceImage
-  );
-}
-

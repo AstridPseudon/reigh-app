@@ -104,8 +104,6 @@ const TrailingEndpoint: React.FC<TrailingEndpointProps> = ({
     ? currentDragFrame - imageFramePosition
     : gapToImage;
 
-  const isOverMaxGap = displayGap > maxAllowedGap;
-
   // Color scheme (blue - matches first pair in PairRegion)
   const colorScheme = {
     regionBg: 'bg-blue-50 dark:bg-blue-950/40',

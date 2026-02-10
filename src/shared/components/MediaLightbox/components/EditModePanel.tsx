@@ -245,7 +245,6 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   };
 
   // Responsive styles
-  const padding = isMobile ? 'p-3' : 'p-6';
   const spacing = isMobile ? 'space-y-2' : 'space-y-4';
   const labelSize = isMobile ? 'text-[10px] uppercase tracking-wide text-muted-foreground' : 'text-sm';
   const textareaMinHeight = isMobile ? 'min-h-[50px]' : 'min-h-[100px]';
@@ -254,9 +253,6 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   const textareaTextSize = isMobile ? 'text-base' : 'text-sm'; // 16px on mobile prevents iOS zoom
   const buttonSize = isMobile ? 'sm' : 'default';
   const iconSize = isMobile ? 'h-3 w-3' : 'h-4 w-4';
-  const togglePadding = isMobile ? 'px-1.5 py-1' : 'px-3 py-1.5';
-  const toggleTextSize = isMobile ? 'text-[10px]' : 'text-sm';
-  const toggleIconSize = isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5';
   const generationsSpacing = isMobile ? 'space-y-0.5' : 'space-y-2';
   const sliderTextSize = isMobile ? 'text-xs' : 'text-sm';
 

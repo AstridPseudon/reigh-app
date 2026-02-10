@@ -58,7 +58,7 @@ export async function extractVideoPosterFrame(videoFile: File): Promise<Blob> {
       }
     });
 
-    video.addEventListener('error', (e) => {
+    video.addEventListener('error', () => {
       reject(new Error('Failed to load video'));
     });
 
@@ -123,7 +123,7 @@ export async function extractVideoFinalFrame(videoFile: File): Promise<Blob> {
       }
     });
 
-    video.addEventListener('error', (e) => {
+    video.addEventListener('error', () => {
       reject(new Error('Failed to load video'));
     });
 

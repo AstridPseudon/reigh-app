@@ -183,7 +183,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
   
   // Pending drop state for optimistic skeleton
   const [pendingDropIndex, setPendingDropIndex] = useState<number | null>(null);
-  const [isProcessingDrop, setIsProcessingDrop] = useState(false);
   const prevItemCountRef = useRef(itemCount);
   
   // Clear pending skeleton when item count increases (new item appeared)
@@ -200,7 +199,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     if (pendingDropIndex !== null) {
       const timer = setTimeout(() => {
         setPendingDropIndex(null);
-        setIsProcessingDrop(false);
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -287,7 +285,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     // Show optimistic skeleton at drop position
     if (targetPosition !== null) {
       setPendingDropIndex(targetPosition);
-      setIsProcessingDrop(true);
     }
 
     // Handle file drops
@@ -295,7 +292,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       const files = Array.from(e.dataTransfer.files);
       if (files.length === 0) {
         setPendingDropIndex(null);
-        setIsProcessingDrop(false);
         return;
       }
 
@@ -310,7 +306,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
 
       if (validFiles.length === 0) {
         setPendingDropIndex(null);
-        setIsProcessingDrop(false);
         return;
       }
 
@@ -319,8 +314,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       } catch (error) {
         handleError(error, { context: 'BatchDropZone', toastTitle: 'Failed to add images' });
         setPendingDropIndex(null);
-      } finally {
-        setIsProcessingDrop(false);
       }
     }
 
@@ -329,7 +322,6 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       const data = getGenerationDropData(e);
       if (!data) {
         setPendingDropIndex(null);
-        setIsProcessingDrop(false);
         return;
       }
 
@@ -338,13 +330,10 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       } catch (error) {
         handleError(error, { context: 'BatchDropZone', toastTitle: 'Failed to add generation' });
         setPendingDropIndex(null);
-      } finally {
-        setIsProcessingDrop(false);
       }
     } else {
       // No handler matched, clear pending state
       setPendingDropIndex(null);
-      setIsProcessingDrop(false);
     }
   }, [columns, itemCount, disabled, onFileDrop, onGenerationDrop, getFramePositionForIndex]);
 

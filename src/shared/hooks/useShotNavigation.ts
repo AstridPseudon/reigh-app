@@ -83,29 +83,27 @@ export const useShotNavigation = (): ShotNavigationResult => {
 
   const navigateToShot = (shot: Shot, options: ShotNavigationOptions = {}) => {
     const opts = { ...defaultOptions, ...options };
-    
+
     preScrollToTopIfNeeded(opts);
 
     // Update the current shot context
-    const contextStart = Date.now();
     setCurrentShotId(shot.id);
-    
+
     // Navigate to the shot with hash
     const targetUrl = `/tools/travel-between-images#${shot.id}`;
-    const navStart = Date.now();
     navigate(targetUrl, {
-      state: { 
-        fromShotClick: true, 
+      state: {
+        fromShotClick: true,
         shotData: shot,
-        isNewlyCreated: opts.isNewlyCreated 
+        isNewlyCreated: opts.isNewlyCreated
       },
       replace: opts.replace,
     });
-    
+
     // Handle side effects
     performScroll(opts);
     closePanes(opts);
-    
+
   };
 
   const navigateToShotEditor = (options: ShotNavigationOptions = {}) => {

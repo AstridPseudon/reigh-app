@@ -299,16 +299,6 @@ export const useGenerationActions = ({
     // Start loading state targeting the specific shotImageEntryId
     actionsRef.current.setDuplicatingImageId(shotImageEntryId);
 
-    // OPTIMISTIC UPDATE: Create a temporary duplicate for immediate feedback
-    const tempDuplicateId = nanoid();
-    const optimisticDuplicate: GenerationRow = {
-      ...originalImage,
-      shotImageEntryId: tempDuplicateId,
-      id: tempDuplicateId,
-      isOptimistic: true,
-      // Place duplicate right after the original for mobile batch view
-    };
-
     // REMOVED: Optimistic duplicate insertion - two-phase loading is fast enough
 
     // Calculate the next image's frame from UI data (more reliable than database query)
@@ -428,8 +418,6 @@ export const useGenerationActions = ({
         currentShotCount: 0,
         skipAutoPosition: false, // Let server use our calculated positions
         positions: positions, // Pass pre-calculated positions
-        onProgress: (fileIndex, fileProgress, overallProgress) => {
-        }
       });
 
       if (!result?.generationIds?.length) {

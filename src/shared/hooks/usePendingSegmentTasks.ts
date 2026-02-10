@@ -71,8 +71,6 @@ export function usePendingSegmentTasks(
     queryFn: async () => {
       if (!shotId || !projectId) return [];
 
-      const queryStartTime = Date.now();
-
       // Query tasks that are Queued or In Progress
       // Filter for travel segment task types
       const { data, error } = await supabase

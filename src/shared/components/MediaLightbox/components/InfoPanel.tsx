@@ -109,9 +109,6 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const taskId = taskDetailsData?.taskId || taskIdProp;
   const { copied: idCopied, handleCopy: handleCopyId } = useCopyToClipboard(taskId ?? undefined);
 
-  // Responsive styles
-  const variantsMaxHeight = isMobile ? 'max-h-[120px]' : 'max-h-[200px]';
-
   // Render the Info/Edit toggle for images
   const renderImageToggle = () => {
     if (!showImageEditTools || readOnly || isVideo) return null;

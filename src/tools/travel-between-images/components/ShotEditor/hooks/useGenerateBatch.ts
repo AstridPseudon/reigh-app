@@ -168,7 +168,7 @@ export function useGenerateBatch({
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
 
   // Local state
-  const [isSteerableMotionEnqueuing, setIsSteerableMotionEnqueuing] = useState(false);
+  const [isSteerableMotionEnqueuing] = useState(false);
   const [steerableMotionJustQueued, setSteerableMotionJustQueued] = useState(false);
 
   // Track pending parent ID for main generations within the same shot
@@ -196,11 +196,6 @@ export function useGenerateBatch({
 
         if (!effectiveParentId && selectedShotId) {
           const pending = pendingMainParentRef.current;
-
-          if (pending) {
-            const age = Date.now() - pending.timestamp;
-            const shotIdMatches = pending.shotId === selectedShotId;
-          }
 
           // Always reuse pending parent for the same shot
           if (pending && pending.shotId === selectedShotId) {

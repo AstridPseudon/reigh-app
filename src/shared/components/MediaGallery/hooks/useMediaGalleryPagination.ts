@@ -249,9 +249,6 @@ export const useMediaGalleryPagination = ({
 
   // Handle pagination with loading state
   const handlePageChange = useCallback((newPage: number, direction: 'prev' | 'next', fromBottom = false) => {
-    // Generate unique navigation ID for tracking
-    const navId = `nav-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
     // Prevent multiple clicks while navigation is in progress
     if (navigationState.status === 'navigating') {
       return;

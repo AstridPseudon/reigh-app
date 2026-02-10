@@ -158,30 +158,20 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
         <div className="space-y-6">
           {/* Generation Summary Section */}
           <div className="space-y-3">
-            {(() => {
-              // Use content_type from database to determine if this is a video task
-              // This automatically handles all video task types including animate_character
-              const contentType = taskTypeInfo?.content_type;
-              const isVideoTask = contentType === 'video';
-              // GenerationDetails handles routing to the appropriate component
-              // based on task type (video, image edit, or image generation)
-              return (
-                <GenerationDetails
-                  task={task}
-                  inputImages={inputImages}
-                  variant="panel"
-                  isMobile={isMobile}
-                  showAllImages={showAllImages}
-                  onShowAllImagesChange={setShowAllImages}
-                  showFullPrompt={showFullPrompt}
-                  onShowFullPromptChange={setShowFullPrompt}
-                  showFullNegativePrompt={showFullNegativePrompt}
-                  onShowFullNegativePromptChange={setShowFullNegativePrompt}
-                  availableLoras={availableLoras}
-                  showCopyButtons={true}
-                />
-              );
-            })()}
+            <GenerationDetails
+              task={task}
+              inputImages={inputImages}
+              variant="panel"
+              isMobile={isMobile}
+              showAllImages={showAllImages}
+              onShowAllImagesChange={setShowAllImages}
+              showFullPrompt={showFullPrompt}
+              onShowFullPromptChange={setShowFullPrompt}
+              showFullNegativePrompt={showFullNegativePrompt}
+              onShowFullNegativePromptChange={setShowFullNegativePrompt}
+              availableLoras={availableLoras}
+              showCopyButtons={true}
+            />
           </div>
 
           {/* Detailed Parameters - Show ABOVE "Based on this" list */}

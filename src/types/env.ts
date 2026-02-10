@@ -4,6 +4,4 @@ export const AppEnv = {
   WEB: 'web',
 } as const;
 
-export type AppEnvValue = typeof AppEnv[keyof typeof AppEnv];
-
-const LOCAL_ENVS: AppEnvValue[] = [AppEnv.LOCAL]; 
+export type AppEnvValue = typeof AppEnv[keyof typeof AppEnv]; 

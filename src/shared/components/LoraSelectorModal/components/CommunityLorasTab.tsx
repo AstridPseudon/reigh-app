@@ -95,8 +95,6 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
     }
   }, [page, totalPages, onPageChange, setPage]);
 
-  const myLoraModelIds = myLorasResource.data?.map(r => (r.metadata as LoraModel)["Model ID"]) || [];
-
   return (
     <div className="relative flex flex-col h-full min-h-0 px-0 sm:px-4">
       <div className="flex gap-2 mb-3">

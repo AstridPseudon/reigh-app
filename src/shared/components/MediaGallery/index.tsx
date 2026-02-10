@@ -104,7 +104,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     onToolTypeFilterChange,
     initialStarredFilter = false,
     initialToolTypeFilter = true,
-    currentToolTypeName,
+    currentToolTypeName: _currentToolTypeName,
     formAssociatedShotId,
     onSwitchToAssociatedShot,
     reducedSpacing = false,
@@ -116,7 +116,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     enableAdjacentPagePreloading = true,
     generationFilters,
     onCreateShot,
-    lastShotNameForTooltip,
+    lastShotNameForTooltip: _lastShotNameForTooltip,
     onBackfillRequest,
     showDelete = true,
     showDownload = true,
@@ -436,7 +436,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // Handle opening lightbox after page navigation
   useEffect(() => {
     const currentSignature = `${filtersHook.filteredImages.length}-${filtersHook.filteredImages[0]?.id?.substring(0,8) ?? 'none'}-${filtersHook.filteredImages[filtersHook.filteredImages.length-1]?.id?.substring(0,8) ?? 'none'}`;
-    const signatureChanged = currentSignature !== prevFilteredImagesRef.current;
 
     prevFilteredImagesRef.current = currentSignature;
 

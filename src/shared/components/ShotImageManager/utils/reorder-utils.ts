@@ -8,7 +8,7 @@ export const calculateMultiDragOrder = (
   selectedIds: string[],
   activeIndex: number,
   overIndex: number,
-  activeId: string,
+  _activeId: string,
   overId: string
 ): GenerationRow[] => {
   // img.id is shot_generations.id - unique per entry

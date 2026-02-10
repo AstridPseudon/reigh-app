@@ -57,7 +57,7 @@ export function useSteerableMotionHandlers({
   steerableMotionSettingsSetterRef.current = setSteerableMotionSettings;
 
   // Always use 6 steps for the hardcoded model
-  const getRecommendedSteps = useCallback((modelName: string, isAccelerated: boolean) => {
+  const getRecommendedSteps = useCallback((_modelName: string, _isAccelerated: boolean) => {
     return 6;
   }, []);
 

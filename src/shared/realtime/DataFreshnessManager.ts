@@ -42,11 +42,10 @@ class DataFreshnessManager {
   /**
    * Report realtime connection status change
    */
-  onRealtimeStatusChange(status: RealtimeStatus, reason?: string) {
+  onRealtimeStatusChange(status: RealtimeStatus, _reason?: string) {
     const previousStatus = this.state.realtimeStatus;
-    const previousChangeAt = this.state.lastStatusChange;
     const now = Date.now();
-    
+
     // 🎯 KEY FIX: Ignore duplicate status changes to keep lastStatusChange stable
     // This allows the "recently connected" grace period in getPollingInterval to actually expire
     if (previousStatus === status) {
@@ -64,14 +63,12 @@ class DataFreshnessManager {
   /**
    * Report that realtime events were received for specific queries
    */
-  onRealtimeEvent(eventType: string, affectedQueries: string[][]) {
+  onRealtimeEvent(_eventType: string, affectedQueries: string[][]) {
     const now = Date.now();
-    let updatedQueries = 0;
 
     affectedQueries.forEach(queryKey => {
       const key = JSON.stringify(queryKey);
       this.state.lastEventTimes.set(key, now);
-      updatedQueries++;
     });
 
     // Notify subscribers that data freshness has changed
@@ -131,28 +128,22 @@ class DataFreshnessManager {
       failureInfo.count >= this.CIRCUIT_BREAKER_THRESHOLD;
 
     let pollingInterval: number;
-    let reason: string;
 
     if (hasRecentFailures) {
       // Circuit breaker triggered - use much longer interval
       pollingInterval = 60_000; // 60 seconds
-      reason = `Circuit breaker active (${failureInfo!.count} failures)`;
     } else if (disconnectedDuration < 30_000) {
       // First 30 seconds: 15s polling (give realtime time to reconnect)
       pollingInterval = 15_000;
-      reason = 'Recently disconnected, moderate polling';
     } else if (disconnectedDuration < 2 * 60_000) {
       // 30s - 2 minutes: 30s polling
       pollingInterval = 30_000;
-      reason = 'Disconnected 30s-2m, backing off';
     } else if (disconnectedDuration < 5 * 60_000) {
       // 2-5 minutes: 45s polling
       pollingInterval = 45_000;
-      reason = 'Disconnected 2-5m, further backoff';
     } else {
       // >5 minutes: 60s polling (realtime probably has issues)
       pollingInterval = 60_000;
-      reason = 'Disconnected >5m, maximum backoff';
     }
 
     return pollingInterval;

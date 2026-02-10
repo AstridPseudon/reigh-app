@@ -48,10 +48,9 @@ const detectScenes = async (videoFile: File, threshold: number = 0.25): Promise<
     video.onloadedmetadata = () => {
       canvas.width = 160; // Small size for performance
       canvas.height = 90;
-      
+
       const duration = video.duration;
       const fps = 30; // Assume 30fps
-      const totalFrames = Math.floor(duration * fps);
       
       const processFrame = () => {
         if (video.currentTime >= duration) {
@@ -295,13 +294,6 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
     }
   };
 
-  const getSplitModeDescription = (mode: SplitMode) => {
-    switch (mode) {
-      case 'take-all': return 'Create one segment from start to end';
-      case 'manual': return 'I\'ll create segments manually';
-      case 'auto-scene': return 'Automatically detect and create scene segments';
-    }
-  };
 
   return (
     <Card>

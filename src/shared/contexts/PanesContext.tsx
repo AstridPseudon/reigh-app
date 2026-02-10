@@ -107,22 +107,6 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [isLoading, paneLocks, isSmallMobile, isTablet]);
 
-  // Lock toggle functions
-  const toggleLock = useCallback((pane: 'shots' | 'tasks' | 'gens') => {
-    setLocks(prev => {
-      const newValue = !prev[pane];
-      const newLocks = { ...prev, [pane]: newValue };
-      
-      // Toggling pane lock
-      
-      // Save to database only on desktop
-      if (!isMobile) {
-        savePaneLocks({ [pane]: newValue });
-      }
-      
-      return newLocks;
-    });
-  }, [savePaneLocks, isMobile]);
 
   // Individual setters for backward compatibility
   // On tablets, locking one pane unlocks all others (only one lock allowed at a time)

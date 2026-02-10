@@ -174,27 +174,6 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
     setDescription(segment.description || '');
   };
 
-  const handleUpdateSegment = async () => {
-    if (!editingSegment || segmentStartTime === null || segmentEndTime === null) return;
-
-    try {
-      await updateSegment(editingSegment, {
-        startTime: segmentStartTime * 1000,
-        endTime: segmentEndTime * 1000,
-        description,
-      });
-      setEditingSegment(null);
-      clearSegmentState();
-    } catch (error) {
-      handleError(error, { context: 'VideoSegmentEditor', toastTitle: 'Failed to update segment' });
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingSegment(null);
-    clearSegmentState();
-  };
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -197,8 +197,6 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
   };
 
   const selectedTemperatureOption = temperatureOptions.find(opt => opt.value === temperature);
-  const temperatureValues = temperatureOptions.map(opt => opt.value);
-  const currentIndex = temperatureValues.indexOf(temperature);
 
   const handleTemperatureChange = (newValue: number) => {
     // Find the closest temperature option
@@ -356,9 +354,8 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                 const textarea = e.target as HTMLTextAreaElement;
                 const cursorPos = textarea.selectionStart;
                 const currentValue = textarea.value;
-                
+
                 // Insert new line with bullet point
-                const beforeCursor = currentValue.slice(0, cursorPos);
                 const afterCursor = currentValue.slice(cursorPos);
                 const newValue = beforeCursor + '\n• ' + afterCursor;
                 
@@ -603,10 +600,9 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                       const cursorPos = textarea.selectionStart;
                       const cursorEnd = textarea.selectionEnd;
                       const currentValue = textarea.value;
-                      
+
                       // Only handle if no text is selected (cursor position)
                       if (cursorPos === cursorEnd && cursorPos > 0) {
-                        const beforeCursor = currentValue.slice(0, cursorPos);
                         const lines = currentValue.split('\n');
                         
                         // Find which line the cursor is on

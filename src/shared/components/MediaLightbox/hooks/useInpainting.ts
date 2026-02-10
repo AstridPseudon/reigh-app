@@ -61,8 +61,8 @@ export const useInpainting = ({
   const [isGeneratingInpaint, setIsGeneratingInpaint] = useState(false);
   const [inpaintGenerateSuccess, setInpaintGenerateSuccess] = useState(false);
   const [showTextModeHint, setShowTextModeHint] = useState(false);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [imageLoadError, setImageLoadError] = useState<string | null>(null);
+  const [isImageLoaded] = useState(false);
+  const [imageLoadError] = useState<string | null>(null);
 
   // Selection state (owned here, synced via onSelectionChange callback from StrokeOverlay)
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);

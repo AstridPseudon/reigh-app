@@ -106,7 +106,7 @@ describe('VisibilityManager', () => {
     VisibilityManager.destroy();
     vi.resetModules();
     return import('../VisibilityManager').then(({ VisibilityManager: VM }) => {
-      const id = VM.subscribe(callback, { id: 'test-debug' });
+      VM.subscribe(callback, { id: 'test-debug' });
       const debugInfo = VM.getDebugInfo();
       expect(debugInfo).toHaveProperty('state');
       expect(debugInfo).toHaveProperty('subscriptions');

@@ -257,7 +257,6 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
     const desiredPixel = originalPixel + dragOffset.x;
     finalX = desiredPixel; // cursor-aligned
   }
-  const finalY = isDragging && dragOffset ? dragOffset.y : 0;
 
   // Use current drag frame for display if dragging, otherwise use original position
   const displayFrame = isDragging && currentDragFrame !== null ? currentDragFrame : framePosition;

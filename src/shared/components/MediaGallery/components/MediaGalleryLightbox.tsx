@@ -133,8 +133,6 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     return result;
   }, [activeLightboxMedia?.metadata?.__autoEnterEditMode, autoEnterEditMode, activeLightboxMedia?.id]);
   
-  // Detect tablet/iPad size (768px+) for side-by-side task details layout
-  const { isTabletOrLarger } = useDeviceDetection();
   
   // Calculate navigation availability for MediaLightbox
   const { hasNext, hasPrevious } = useMemo(() => {
@@ -332,7 +330,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
   }, [filteredImages, setActiveLightboxIndex, activeLightboxMedia?.id]);
 
   // Handle opening external generation (not in current filtered list)
-  const handleOpenExternalGeneration = React.useCallback(async (generationId: string, derivedContext?: string[]) => {
+  const handleOpenExternalGeneration = React.useCallback(async (generationId: string, _derivedContext?: string[]) => {
 
     // First try to find in current filtered images
     const index = filteredImages.findIndex(img => img.id === generationId);
@@ -411,23 +409,6 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     }
   }, [filteredImages, setActiveLightboxIndex]);
 
-  // Track previous shots length to detect race condition
-  const prevShotsLengthRef = React.useRef(simplifiedShotOptions?.length || 0);
-  
-  // [ShotSelectorDebug] Debug why shot selector might not show
-  React.useEffect(() => {
-    const currentShotsLength = simplifiedShotOptions?.length || 0;
-    const prevShotsLength = prevShotsLengthRef.current;
-    
-    // Detect race condition: lightbox was open with 0 shots, now shots have loaded
-    
-    prevShotsLengthRef.current = currentShotsLength;
-    
-    if (enhancedMedia) {
-      const isVideo = !!(activeLightboxMedia.type || '').includes('video');
-      const willShowShotSelector = !!(onAddToShot && simplifiedShotOptions?.length > 0 && !isVideo);
-    }
-  }, [enhancedMedia, simplifiedShotOptions, onAddToShot, onAddToShotWithoutPosition, selectedShotIdLocal, lightboxSelectedShotId, activeLightboxMedia?.type]);
 
   return (
     <>

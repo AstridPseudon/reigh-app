@@ -31,7 +31,7 @@ function ToastList() {
 const Toaster = ({ limit = 3, timeout = 5000 }: ToasterProps = {}) => {
   // next-themes integration (unused for now since we use Tailwind CSS vars,
   // but kept for parity with original sonner.tsx and future theme needs)
-  const { theme = "system" } = useTheme()
+  useTheme()
 
   return (
     <Toast.Provider toastManager={toastManager} timeout={timeout} limit={limit}>

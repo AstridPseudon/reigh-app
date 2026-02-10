@@ -74,7 +74,6 @@ export function ShotListView({
 
   // Modal state
   const [isCreateShotModalOpen, setIsCreateShotModalOpen] = useState(false);
-  const [isCreatingShot, setIsCreatingShot] = useState(false);
 
   // Skeleton setup for instant modal close
   const skeletonSetupRef = useRef<((imageCount: number) => void) | null>(null);
@@ -249,7 +248,6 @@ export function ShotListView({
 
     // Run creation in background
     (async () => {
-      setIsCreatingShot(true);
       try {
         const result = await createShot({
           name,
@@ -272,8 +270,6 @@ export function ShotListView({
         if (skeletonClearRef.current) {
           skeletonClearRef.current();
         }
-      } finally {
-        setIsCreatingShot(false);
       }
     })();
   };

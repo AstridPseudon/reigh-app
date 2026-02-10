@@ -121,7 +121,6 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     onCreateShot,
     onNewShotFromSelection,
     onDragStateChange,
-    onTrailingDurationChange,
     maxFrameLimit = 81,
     smoothContinuations = false,
     selectedOutputId,

@@ -67,8 +67,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   structureVideoMotionStrength = 1.0,
   structureVideoType = 'flow',
   onStructureVideoChange,
-  uni3cEndPercent = 0.1,
-  onUni3cEndPercentChange,
   structureVideos,
   onAddStructureVideo,
   onUpdateStructureVideo,

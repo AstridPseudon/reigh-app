@@ -128,7 +128,7 @@ interface UploadWithThumbnailOptions {
 export async function uploadImageWithThumbnail(
   originalFile: File,
   thumbnailBlob: Blob,
-  userId: string,
+  _userId: string,
   onProgressOrOptions?: ((progress: number) => void) | UploadWithThumbnailOptions
 ): Promise<{imageUrl: string, thumbnailUrl: string}> {
   // Handle both old signature and new options object

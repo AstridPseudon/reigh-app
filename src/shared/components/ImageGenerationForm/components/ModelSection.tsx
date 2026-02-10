@@ -129,9 +129,6 @@ export const ModelSection: React.FC<ModelSectionProps> = ({
     handleLoraStrengthChange: onUpdateLoraStrength,
   } = useFormLorasContext();
 
-  // Check if we have multi-reference handlers (always true when using context)
-  const hasMultiReferenceSupport = true;
-
   return (
     <div className="flex-1 space-y-4">
       {/* Header with generation source toggle */}

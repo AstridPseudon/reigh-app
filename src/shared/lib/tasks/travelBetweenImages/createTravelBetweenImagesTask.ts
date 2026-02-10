@@ -53,7 +53,7 @@ export async function createTravelBetweenImagesTask(params: TravelBetweenImagesT
         ...(params.generation_name ? { generation_name: params.generation_name } : {}),
       };
 
-      const { data: newParent, error: parentError } = await supabase
+      const { error: parentError } = await supabase
         .from('generations')
         .insert({
           id: newParentId,

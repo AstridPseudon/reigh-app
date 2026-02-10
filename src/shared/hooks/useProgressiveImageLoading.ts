@@ -69,7 +69,7 @@ export const useProgressiveImageLoading = ({
   }, [images, page]);
   
   // Helper function to safely cancel a loading session
-  const cancelActiveSession = (reason: string) => {
+  const cancelActiveSession = (_reason: string) => {
     if (activeSessionRef.current?.isActive) {
       // Abort any ongoing operations
       activeSessionRef.current.abortController.abort();
@@ -167,15 +167,12 @@ export const useProgressiveImageLoading = ({
     
     // Optimized cache check: batch check all images at once instead of individual calls
     // This is more efficient for pages with many images (especially later pages)
-    let cachedCount = 0;
-    let allCached = true;
-    
+
     // Use a single pass to check cache status
     for (const img of images) {
       if (hasLoadedImage(img)) {
-        cachedCount++;
+        // Image is cached
       } else {
-        allCached = false;
         // Early exit optimization: if we find uncached images, we know allCached is false
         // But continue counting for logging purposes
       }

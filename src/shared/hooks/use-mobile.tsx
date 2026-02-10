@@ -9,7 +9,6 @@ const computeIsTablet = (): boolean => {
   if (typeof window === 'undefined') return false;
 
   const width = window.innerWidth;
-  const height = window.innerHeight;
   
   // Tablet: wider than phone but not desktop-sized, with touch capability
   const isTabletSize = width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT;

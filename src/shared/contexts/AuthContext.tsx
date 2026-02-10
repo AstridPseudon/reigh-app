@@ -30,9 +30,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userId, setUserId] = useState<string | undefined>(undefined);
 
-  // [MobileStallFix] Add mobile detection
-  const isMobileRef = useRef(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-
   // [MobileStallFix] Enhanced auth state tracking with mobile recovery
   // [AuthDebounce] Prevent cascading updates from duplicate auth events
   useEffect(() => {

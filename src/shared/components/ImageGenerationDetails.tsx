@@ -93,7 +93,6 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
                         metadata.negative_prompt;
 
   const model = metadata.model || metadata.originalParams?.model || metadata.originalParams?.orchestrator_details?.model;
-  const seed = metadata.seed || metadata.originalParams?.orchestrator_details?.seed;
   const resolution = metadata.originalParams?.orchestrator_details?.resolution || metadata.resolution;
   const dimensions = metadata.width && metadata.height ? `${metadata.width}×${metadata.height}` : resolution;
 

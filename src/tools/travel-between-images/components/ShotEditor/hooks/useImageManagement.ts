@@ -92,7 +92,7 @@ export function useImageManagement({
       }
 
       // 2. Delete ALL variants of this generation (not just primary)
-      const { data: deletedVariants, error: deleteVariantError } = await supabase
+      const { error: deleteVariantError } = await supabase
         .from('generation_variants')
         .delete()
         .eq('generation_id', generationId)
@@ -114,7 +114,7 @@ export function useImageManagement({
   }, [queryClient, selectedShotRef, projectIdRef]);
 
   // Handler for reordering images in shot timeline
-  const handleReorderImagesInShot = useCallback((orderedShotGenerationIds: string[], draggedItemId?: string) => {
+  const handleReorderImagesInShot = useCallback((orderedShotGenerationIds: string[]) => {
     const shot = selectedShotRef.current;
     const projId = projectIdRef.current;
 

@@ -303,7 +303,7 @@ export function useSegmentSettings({
     save: mutations.savePairMetadata,
     autoSaveMs: 500,
     contextKey: pairShotGenerationId || undefined,
-    validate: (updates, current) => {
+    validate: (updates) => {
       // Enforce: basic mode = no phase config
       if (updates.motionMode === 'basic') {
         return { ...updates, phaseConfig: undefined };

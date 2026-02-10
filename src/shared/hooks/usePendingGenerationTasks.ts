@@ -83,8 +83,6 @@ export function usePendingGenerationTasks(
     queryFn: async () => {
       if (!generationId || !projectId) return [];
 
-      const queryStartTime = Date.now();
-
       // Query tasks that are Queued or In Progress
       const { data, error } = await supabase
         .from('tasks')

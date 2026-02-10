@@ -63,12 +63,6 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
   // Data comes directly from RPC - same format as the hooks
   const { generation, images, settings } = shareData;
 
-  // Debug: Log what we received from RPC
-  const videoImages = images?.filter(img => img.type?.includes('video')) || [];
-  const imagesWithParent = images?.filter(img => img.parent_generation_id) || [];
-  const parentVideos = videoImages.filter(v => !v.parent_generation_id);
-  const childVideos = videoImages.filter(v => v.parent_generation_id);
-
   // Check authentication status
   useEffect(() => {
     checkAuth();
@@ -116,7 +110,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
     setIsCopying(true);
 
     try {
-      const { data: newShotId, error: copyError } = await supabase
+      const { error: copyError } = await supabase
         .rpc('copy_shot_from_share', {
           share_slug_param: shareSlug,
           target_project_id: projectId,

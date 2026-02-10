@@ -165,7 +165,7 @@ class VisibilityManagerImpl {
 
     let notifiedCount = 0;
 
-    for (const [id, subscription] of this.subscriptions) {
+    for (const [, subscription] of this.subscriptions) {
       try {
         // Filter by event type if specified
         if (subscription.eventTypes && !subscription.eventTypes.includes(eventType)) {

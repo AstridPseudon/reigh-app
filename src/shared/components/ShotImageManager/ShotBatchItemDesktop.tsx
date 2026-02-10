@@ -142,7 +142,6 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
   const imageUrl = image.thumbUrl || image.imageUrl;
   // Use forceRefresh for flipped images to ensure immediate display update
   const isFlippedImage = imageUrl && imageUrl.includes('flipped_');
-  const displayUrl = getDisplayUrl(imageUrl, isFlippedImage);
 
   const finalClassName = cn(
     "group relative border rounded-lg overflow-hidden cursor-pointer bg-card hover:ring-2 hover:ring-primary/50 transition-colors",

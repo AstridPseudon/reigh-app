@@ -178,7 +178,7 @@ const mediaGalleryStateReducer = (
     
     case 'RECONCILE_OPTIMISTIC_STATE': {
       const currentImageIds = action.payload;
-      
+
       // Clean up optimistic sets - remove entries for images no longer in the list
       // Composite keys are in format mediaId:shotId
       const newUnpositioned = new Set<string>();
@@ -188,7 +188,7 @@ const mediaGalleryStateReducer = (
           newUnpositioned.add(key);
         }
       }
-      
+
       const newPositioned = new Set<string>();
       for (const key of state.optimisticPositionedIds) {
         const mediaId = key.split(':')[0];
@@ -196,10 +196,7 @@ const mediaGalleryStateReducer = (
           newPositioned.add(key);
         }
       }
-      
-      // [OptimisticDebug] Log reconciliation
-      const removedFromPositioned = Array.from(state.optimisticPositionedIds).filter(k => !newPositioned.has(k));
-      
+
       const newDeleted = new Set<string>();
       for (const id of state.optimisticDeletedIds) {
         if (currentImageIds.has(id)) {

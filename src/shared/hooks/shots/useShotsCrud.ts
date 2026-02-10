@@ -240,8 +240,6 @@ export const useDuplicateShot = () => {
           created_at: new Date().toISOString(),
         };
 
-        const originalIndex = previousShots.findIndex(s => s.id === shotId);
-
         updateAllShotsCaches(queryClient, projectId, (old = []) => {
           const updated = [...old];
           const idx = updated.findIndex(s => s.id === shotId);
@@ -272,7 +270,7 @@ export const useDuplicateShot = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
     },
 
-    onError: (error: Error, variables, context) => {
+    onError: (error: Error, _variables, context) => {
       if (context?.previousShots && context.projectId) {
         rollbackShotsCaches(queryClient, context.projectId, context.previousShots);
       }

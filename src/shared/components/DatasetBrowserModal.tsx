@@ -163,7 +163,6 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
   const [userId, setUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [processingResource, setProcessingResource] = useState<string | null>(null);
   const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
   const [showMyResourcesOnly, setShowMyResourcesOnly] = useState(false);
@@ -301,9 +300,8 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
     if (processingResource) {
       return; // Prevent multiple clicks
     }
-    
+
     setProcessingResource(resource.id);
-    setSelectedResource(resource);
 
     try {
       // If onResourceSelect is provided, use it directly (no re-upload)
@@ -326,7 +324,6 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
       handleError(error, { context: 'DatasetBrowserModal', toastTitle: 'Failed to process selected resource' });
     } finally {
       setProcessingResource(null);
-      setSelectedResource(null);
     }
   }, [processingResource, onImageSelect, onResourceSelect, onOpenChange, isVideoMode, resourceType]);
 

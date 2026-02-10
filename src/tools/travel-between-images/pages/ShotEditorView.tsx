@@ -167,7 +167,7 @@ export function ShotEditorView({
   const contextImages = shotToEdit.images || [];
   usePrimeShotImagesCache(shotToEdit.id, contextImages);
 
-  const fullImagesQuery = useShotImages(
+  useShotImages(
     shotToEdit.id,
     { disableRefetch: isShotOperationInProgress || isDraggingInTimeline }
   );

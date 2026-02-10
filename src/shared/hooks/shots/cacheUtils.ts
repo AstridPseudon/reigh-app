@@ -99,21 +99,6 @@ export function findShotsCache(
   return undefined;
 }
 
-/**
- * Update the shot-generations cache for a specific shot.
- * This is the fast cache used by Timeline/Editor.
- */
-function updateShotGenerationsCache(
-  queryClient: QueryClient,
-  shotId: string,
-  updater: (old: GenerationRow[] | undefined) => GenerationRow[]
-): void {
-  const key = queryKeys.generations.byShot(shotId);
-  const existing = queryClient.getQueryData<GenerationRow[]>(key);
-  if (existing !== undefined) {
-    queryClient.setQueryData(key, updater(existing));
-  }
-}
 
 /**
  * Rollback shot-generations cache to previous state.

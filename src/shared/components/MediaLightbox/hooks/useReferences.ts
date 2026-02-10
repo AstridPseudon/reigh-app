@@ -98,7 +98,7 @@ export const useReferences = ({
         const thumbnailFilename = generateThumbnailFilename();
         const thumbnailPath = storagePaths.thumbnail(session.user.id, thumbnailFilename);
         
-        const { data: thumbnailUploadData, error: thumbnailUploadError } = await supabase.storage
+        const { error: thumbnailUploadError } = await supabase.storage
           .from(MEDIA_BUCKET)
           .upload(thumbnailPath, thumbnailResult.thumbnailBlob, {
             contentType: 'image/jpeg',

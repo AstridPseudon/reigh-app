@@ -160,7 +160,7 @@ async function loadSingleImage(pos: {
     }
 
     // Strategy 3: Create new variant with the source URL
-    const { data: newVariant, error } = await supabase
+    const { error } = await supabase
       .from('generation_variants')
       .insert({
         generation_id: targetGenerationId,

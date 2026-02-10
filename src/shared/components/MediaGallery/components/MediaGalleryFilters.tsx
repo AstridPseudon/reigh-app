@@ -60,7 +60,6 @@ const MediaGalleryFilters: React.FC<MediaGalleryFiltersProps> = ({
   toolTypeFilterEnabled = true,
   onToolTypeFilterChange,
   currentToolTypeName,
-  isMobile = false,
 }) => {
   return (
     <div className="flex justify-between items-center w-full gap-3">

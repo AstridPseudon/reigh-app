@@ -757,7 +757,7 @@ const Timeline: React.FC<TimelineProps> = ({
           onNext={images.length > 1 ? wrappedGoNext : undefined}
           onPrevious={images.length > 1 ? wrappedGoPrev : undefined}
           readOnly={readOnly}
-          onDelete={!readOnly ? (mediaId: string) => {
+          onDelete={!readOnly ? (_mediaId: string) => {
             onImageDelete(currentLightboxImage.id);
           } : undefined}
           showNavigation={showNavigation}
@@ -773,7 +773,7 @@ const Timeline: React.FC<TimelineProps> = ({
             }
           }}
           onOpenExternalGeneration={externalGens.handleOpenExternalGeneration}
-          onMagicEdit={(imageUrl, prompt, numImages) => {
+          onMagicEdit={(_imageUrl, _prompt, _numImages) => {
             // TODO: Implement magic edit generation
           }}
           showTaskDetails={true}

@@ -154,7 +154,6 @@ export const useHandleExternalImageDrop = () => {
   const createShotMutation = useCreateShot();
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
-  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async (variables: {

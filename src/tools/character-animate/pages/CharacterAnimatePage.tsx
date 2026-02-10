@@ -120,7 +120,6 @@ const CharacterAnimatePage: React.FC = () => {
   const videosData = generationsQuery.data as GenerationsPaginatedResponse | undefined;
   const videosLoading = generationsQuery.isLoading;
   const videosFetching = generationsQuery.isFetching;
-  const videosError = generationsQuery.error;
   
   // Delete mutation for gallery items
   const deleteGenerationMutation = useDeleteGeneration();
@@ -343,14 +342,14 @@ const CharacterAnimatePage: React.FC = () => {
       const result = await createCharacterAnimateTask(taskParams);
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Show success state on button
       setShowSuccessState(true);
       setTimeout(() => setShowSuccessState(false), 1500);
-      
+
       // Set flag to indicate we just created a task
       setVideosViewJustEnabled(true);
-      
+
       // Invalidate both tasks and generations queries
       queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });

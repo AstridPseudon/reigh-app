@@ -152,9 +152,6 @@ export const MotionControl: React.FC<MotionControlProps> = ({
   smoothContinuations,
   onSmoothContinuationsChange,
 }) => {
-  // Derive advancedMode from motionMode - single source of truth
-  const advancedMode = motionMode === 'advanced';
-  
   // State for preset modal
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
   

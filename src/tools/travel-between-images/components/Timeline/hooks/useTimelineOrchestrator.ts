@@ -581,7 +581,7 @@ export function useTimelineOrchestrator({
   const [endpointDragFrame, setEndpointDragFrame] = useState<number | null>(null);
   const [isEndpointDragging, setIsEndpointDragging] = useState(false);
 
-  const handleEndpointMouseDown = useCallback((e: React.MouseEvent, endpointId: string) => {
+  const handleEndpointMouseDown = useCallback((e: React.MouseEvent, _endpointId: string) => {
     if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();

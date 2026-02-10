@@ -167,26 +167,12 @@ const useAllShotGenerations = (
       // Badge data (derivedCount, hasUnviewedVariants, unviewedVariantCount) is now loaded
       // lazily via useVariantBadges hook to avoid blocking gallery display
       const result = baseResult;
+      
 
-      const duration = Date.now() - startTime;
-      
-      // [DuplicateGenDebug] Check for duplicate generation_ids (same gen appearing multiple times)
-      const genIdCounts = new Map<string, number>();
-      result.forEach(r => {
-        if (r.generation_id) {
-          const count = genIdCounts.get(r.generation_id) || 0;
-          genIdCounts.set(r.generation_id, count + 1);
-        }
-      });
-      const duplicateGenIds = Array.from(genIdCounts.entries()).filter(([_, count]) => count > 1);
-      
       return result;
     },
     retryDelay: STANDARD_RETRY_DELAY,
   });
-
-  // Use the query data directly (no merging needed)
-  const mergedData = mainQuery.data;
 
   // ============================================================================
   // Return query result (simplified - single query, no phases)
@@ -233,15 +219,6 @@ export const useTimelineImages = (
                hasValidLocation;
       })
       .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-
-    // [SelectorDebug] THE GOD LOG - See exactly what's inside the data
-
-    // [SelectorDebug] Log filtering results with WHY items were filtered
-    const filteredOut = baseQuery.data.filter(g => {
-      const location = g.imageUrl || g.location;
-      const hasValidLocation = location && location !== '/placeholder.svg';
-      return g.timeline_frame == null || g.timeline_frame < 0 || g.type?.includes('video') || !hasValidLocation;
-    });
 
     return result;
   }, [baseQuery.data, shotId]);

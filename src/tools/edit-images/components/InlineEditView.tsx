@@ -48,7 +48,6 @@ interface InlineEditViewProps {
 }
 
 export function InlineEditView({ media, onClose, onNavigateToGeneration }: InlineEditViewProps) {
-  const contentRef = useRef<HTMLDivElement>(null);
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);

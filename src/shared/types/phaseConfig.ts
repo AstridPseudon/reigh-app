@@ -147,13 +147,13 @@ interface UserLoraInput {
  * regeneration (individualTravelSegment.ts).
  *
  * @param useVaceModel - Whether to use VACE model (determines base config)
- * @param amountOfMotion - 0-1 motion value (NOT 0-100)
+ * @param _amountOfMotion - 0-1 motion value (NOT 0-100)
  * @param userLoras - User-selected LoRAs to add to each phase
  * @returns PhaseConfig with base LoRAs + motion LoRA + user LoRAs
  */
 export function buildBasicModePhaseConfig(
   useVaceModel: boolean,
-  amountOfMotion: number,
+  _amountOfMotion: number,
   userLoras: UserLoraInput[]
 ): PhaseConfig {
   const baseConfig = useVaceModel ? DEFAULT_VACE_PHASE_CONFIG : DEFAULT_PHASE_CONFIG;

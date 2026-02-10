@@ -7,14 +7,13 @@ interface LightboxProps {
   isMobile?: boolean;
 }
 
-export function useLightbox({ images, shotId, isMobile = false }: LightboxProps) {
+export function useLightbox({ images, isMobile = false }: LightboxProps) {
   
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [autoEnterInpaint, setAutoEnterInpaint] = useState(false);
-  
+
   // Mobile double-tap detection refs
-  const lastTouchTimeRef = useRef<number>(0);
   const doubleTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup timeout on unmount

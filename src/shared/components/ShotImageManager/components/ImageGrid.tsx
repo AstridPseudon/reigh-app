@@ -181,7 +181,6 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
         const pairPrompt = pairPrompts?.[index];
         const enhancedPrompt = enhancedPrompts?.[index];
         const startImage = images[index];
-        const endImage = images[index + 1];
         
         // Get segment slot for this pair (if available)
         const segmentSlot = segmentSlots?.find(s => s.index === index);
@@ -196,7 +195,6 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
         const prevPairPrompt = index > 0 ? pairPrompts?.[index - 1] : undefined;
         const prevEnhancedPrompt = index > 0 ? enhancedPrompts?.[index - 1] : undefined;
         const prevStartImage = index > 0 ? images[index - 1] : undefined;
-        const prevEndImage = images[index]; // Current image is the end of the previous pair
 
         // Hide indicator if this item is being dragged OR if an external file is being dropped into this gap
         // The gap after item 'index' corresponds to insertion at 'index + 1'

@@ -72,7 +72,7 @@ export function useMarkVariantViewed() {
         );
       }
     },
-    onSuccess: ({ variantId }) => {
+    onSuccess: () => {
 
       // Invalidate variant-level queries (VariantSelector)
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantsAll });
@@ -131,7 +131,7 @@ export function useMarkVariantViewed() {
         }
       );
     },
-    onSuccess: ({ generationId }) => {
+    onSuccess: () => {
 
       // Invalidate variant-level queries
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.variantsAll });

@@ -373,16 +373,16 @@ export function usePromptManagement(props: UsePromptManagementProps): UsePromptM
     markAsInteracted();
     // De-duplicate IDs and assign new ones where necessary.
     const seenIds = new Set<string>();
-    const sanitizedPrompts = updatedPrompts.map(original => {
-      let id = original.id && !seenIds.has(original.id) ? original.id : "";
+    const sanitizedPrompts = updatedPrompts.map(p => {
+      let id = p.id && !seenIds.has(p.id) ? p.id : "";
       if (!id) {
         id = generatePromptId();
       }
       seenIds.add(id);
       return {
-        ...original,
+        ...p,
         id,
-        shortPrompt: original.shortPrompt || (original.fullPrompt.substring(0, 30) + (original.fullPrompt.length > 30 ? "..." : "")),
+        shortPrompt: p.shortPrompt || (p.fullPrompt.substring(0, 30) + (p.fullPrompt.length > 30 ? "..." : "")),
       };
     });
 

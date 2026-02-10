@@ -289,14 +289,10 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
     generateSuccess,
     isGenerateDisabled = false,
     validationErrors = [],
-    onClose,
     hideHeader = false,
 }) => {
     const enhancePromptValue = enhancePrompt;
     const [showAdvanced, setShowAdvanced] = useState(false);
-
-    // Calculate total frames to generate across all segments
-    const totalFramesToGenerate = selections.reduce((sum, s) => sum + (s.gapFrameCount ?? gapFrames), 0);
 
     // Format duration from frames
     const formatDuration = (frames: number, videoFps: number | null | undefined): string => {

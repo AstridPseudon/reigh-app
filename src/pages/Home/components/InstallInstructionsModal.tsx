@@ -43,26 +43,6 @@ const ChromeInstallIcon = () => (
   </div>
 );
 
-// Chrome's three-dot menu mockup
-const ChromeMenuIcon = () => (
-  <div className="relative w-full max-w-[280px] bg-gray-100 rounded-lg border border-gray-300 shadow-sm overflow-hidden">
-    <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-200 border-b border-gray-300">
-      <div className="flex gap-1">
-        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-      </div>
-      <div className="flex-1 flex items-center gap-2 px-2 py-1 bg-white rounded border border-gray-300 text-xs">
-        <span className="text-gray-400 truncate">reigh.art</span>
-      </div>
-      <div className="flex items-center justify-center w-6 h-6 bg-gray-50 border border-gray-300 rounded animate-pulse ring-2 ring-wes-vintage-gold ring-offset-1">
-        <MoreVertical className="w-4 h-4 text-gray-600" />
-      </div>
-    </div>
-    <div className="h-8 bg-gray-50" />
-  </div>
-);
-
 // iOS Safari share button mockup - shows bottom toolbar
 const SafariShareIcon = () => (
   <div className="relative w-full max-w-[200px] bg-gray-100 rounded-2xl border border-gray-300 shadow-sm overflow-hidden">

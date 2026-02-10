@@ -112,9 +112,6 @@ export function usePersistentToolState<T extends Record<string, unknown>>(
   // Get a unique key for the current entity (project/shot)
   const entityKey = scope === 'shot' ? context.shotId : context.projectId;
 
-  // Mobile detection for conditional behavior (no logging in production)
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
   // Reset hydration when entity changes
   useEffect(() => {
     if (entityKey !== hydratedForEntityRef.current) {

@@ -140,7 +140,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
     return null;
   }
 
-  const handlePrevPage = (e: React.MouseEvent, preventScroll = false) => {
+  const handlePrevPage = (e: React.MouseEvent, _preventScroll = false) => {
     e.preventDefault();
     const newPage = isServerPagination
       ? Math.max(1, serverPage! - 1)
@@ -148,7 +148,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
     onPageChange(newPage, 'prev', false);
   };
 
-  const handleNextPage = (e: React.MouseEvent, preventScroll = false) => {
+  const handleNextPage = (e: React.MouseEvent, _preventScroll = false) => {
     e.preventDefault();
     const newPage = isServerPagination
       ? serverPage! + 1
@@ -156,7 +156,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
     onPageChange(newPage, 'next', false);
   };
 
-  const handlePageSelect = (pageStr: string, preventScroll = false) => {
+  const handlePageSelect = (pageStr: string, _preventScroll = false) => {
     const newPage = isServerPagination ? parseInt(pageStr) : parseInt(pageStr) - 1;
     const direction = newPage > (isServerPagination ? serverPage! : currentPage) ? 'next' : 'prev';
     onPageChange(newPage, direction, false);

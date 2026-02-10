@@ -75,8 +75,7 @@ async function getUserWithTimeout(timeoutMs = 15000) {
     }
     
     const { data: sessionData } = await inflightGetSession;
-    const sessionDuration = Date.now() - sessionStart;
-    
+
     const sessionUser = sessionData?.session?.user || null;
     if (sessionUser) {
       cachedUser = { id: sessionUser.id };
@@ -131,10 +130,7 @@ async function fetchToolSettingsSupabase(toolId: string, ctx: ToolSettingsContex
       // Add timeout to prevent hanging on mobile connections (aligned with Supabase global timeout)
       // Use generous timeout for mobile networks
       const { data: { user }, error: authError } = await getUserWithTimeout();
-      const authDuration = Date.now() - fetchStart;
-      
-      // [GenerationModeDebug] Log auth timing
-      
+
       if (authError || !user) {
         throw new Error('Authentication required');
       }
@@ -171,11 +167,6 @@ async function fetchToolSettingsSupabase(toolId: string, ctx: ToolSettingsContex
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
       ]);
-
-      const dbQueryDuration = Date.now() - dbQueryStart;
-      const totalDuration = Date.now() - fetchStart;
-      
-      // [GenerationModeDebug] Log timing
 
       // Handle errors more gracefully for mobile
 

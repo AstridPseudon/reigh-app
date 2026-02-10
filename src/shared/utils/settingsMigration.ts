@@ -293,8 +293,6 @@ export function writeSegmentOverrides(
     delete metadata.segmentOverrides;
   }
 
-  const savedOverrides = metadata.segmentOverrides as Record<string, unknown> | undefined;
-
   return metadata;
 }
 

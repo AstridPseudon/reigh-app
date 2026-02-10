@@ -30,16 +30,6 @@ export interface ReferenceApiParams {
   reference_mode: ReferenceMode;
 }
 
-/** Default reference params (internal use only - not exported) */
-const DEFAULT_REFERENCE_PARAMS: ReferenceApiParams = {
-  style_reference_strength: 1.0,
-  subject_strength: 0.0,
-  subject_description: '',
-  in_this_scene: false,
-  in_this_scene_strength: 0.0,
-  reference_mode: 'style',
-};
-
 /**
  * Hires fix API parameters for image generation tasks.
  * Uses snake_case to match API directly.
@@ -456,8 +446,8 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
     });
 
     // 3. Generate individual task parameters for each image
-    const taskParams = params.prompts.flatMap((promptEntry, promptIdx) => {
-      return Array.from({ length: params.imagesPerPrompt }, (_, imgIdx) => {
+    const taskParams = params.prompts.flatMap((promptEntry) => {
+      return Array.from({ length: params.imagesPerPrompt }, () => {
         // Generate a random seed for each task to ensure diverse outputs (32-bit signed integer range)
         const seed = Math.floor(Math.random() * 0x7fffffff);
 

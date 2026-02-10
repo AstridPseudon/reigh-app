@@ -25,7 +25,6 @@ export class ReconnectScheduler {
 
   private readonly DEBOUNCE_MS = 1000; // 1 second debounce
   private readonly MIN_INTERVAL_MS = 5000; // Minimum 5 seconds between reconnects
-  private readonly OFFLINE_RETRY_INTERVAL_MS = 10000; // Check network status every 10s when offline
 
   constructor() {
     // Simple constructor - network status integration can be added later

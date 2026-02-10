@@ -237,7 +237,7 @@ export const useMagicEditMode = ({
           qwen_edit_model: qwenEditModel, // Pass model selection for cloud mode
         };
         
-        const results = await createBatchMagicEditTasks(batchParams);
+        await createBatchMagicEditTasks(batchParams);
         
         // Save the prompt to shot generation metadata
         if (currentShotId && media.id) {

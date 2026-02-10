@@ -79,7 +79,7 @@ export function useMakeMainVariant({
 
       const parentGenId = sourceGenerationData.id;
       // 1. Create a new variant on the parent generation with current media's location
-      const { data: insertedVariant, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('generation_variants')
         .insert({
           generation_id: parentGenId,
@@ -104,7 +104,7 @@ export function useMakeMainVariant({
       }
 
       // 2. Update the parent generation's location and thumbnail
-      const { error: updateError } = await supabase
+      await supabase
         .from('generations')
         .update({
           location: media.location,

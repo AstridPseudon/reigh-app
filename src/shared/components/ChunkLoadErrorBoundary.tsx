@@ -45,7 +45,7 @@ export class ChunkLoadErrorBoundary extends React.Component<
     throw error;
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(_error: Error) {
 
     // Small delay to ensure the error boundary renders before reload
     setTimeout(() => {

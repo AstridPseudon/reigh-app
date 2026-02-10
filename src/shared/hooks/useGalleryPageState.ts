@@ -212,7 +212,7 @@ function useGenerationsPageLogic({
     try {
       if (shouldPositionExisting) {
 
-        const result = await positionExistingGenerationMutation.mutateAsync({
+        await positionExistingGenerationMutation.mutateAsync({
           shot_id: targetShotId,
           generation_id: generationId,
           project_id: selectedProjectId,
@@ -220,7 +220,7 @@ function useGenerationsPageLogic({
 
       } else {
 
-        const result = await addImageToShotMutation.mutateAsync({
+        await addImageToShotMutation.mutateAsync({
           shot_id: targetShotId,
           generation_id: generationId,
           imageUrl: imageUrl,

@@ -149,7 +149,6 @@ export const downloadMedia = async (url: string, mediaId: string, isVideo: boole
     }
 
     const blob = await response.blob();
-    const downloadDuration = Date.now() - downloadStartTime;
 
     const objectUrl = URL.createObjectURL(blob);
 

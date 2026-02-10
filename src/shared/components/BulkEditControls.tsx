@@ -57,7 +57,7 @@ export const BulkEditControls: React.FC<BulkEditControlsProps> = ({
 
   // No cleanup needed since debounce is disabled
 
-  const handleBulkEditClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleBulkEditClick = async (_e: React.MouseEvent<HTMLButtonElement>) => {
     if (!hasApiKey || !editInstructions.trim() || numberOfPromptsToEdit === 0) {
         if (numberOfPromptsToEdit === 0) {
             alert('No prompts available to edit.');

@@ -61,27 +61,6 @@ const calculateMaxGap = (contextFrames: number = 0, baseMax: number = 81): numbe
 // Minimum gap between frames (4N+1 format, starting at 5)
 const MIN_GAP = 5;
 
-// Validate gap constraints
-const validateGaps = (
-  testPositions: Map<string, number>,
-  excludeId?: string,
-  checkQuantization: boolean = false
-): boolean => {
-  const positions = [...testPositions.entries()]
-    .filter(([id]) => id !== excludeId && id !== TRAILING_ENDPOINT_KEY)
-    .map(([_, pos]) => pos);
-  positions.push(0);
-  positions.sort((a, b) => a - b);
-
-  const maxGap = calculateMaxGap();
-
-  for (let i = 1; i < positions.length; i++) {
-    const diff = positions[i] - positions[i - 1];
-    if (diff > maxGap) return false;
-    if (checkQuantization && diff > 0 && !isValidFrameCount(diff)) return false;
-  }
-  return true;
-};
 
 // ---------------------------------------------------------------------------
 // Shrink oversized gaps and enforce frame 0 constraint.
@@ -150,8 +129,8 @@ export const applyFluidTimeline = (
   draggedId: string,
   targetFrame: number,
   excludeId?: string,
-  fullMin: number = 0,
-  fullMax: number = Number.MAX_SAFE_INTEGER,
+  _fullMin: number = 0,
+  _fullMax: number = Number.MAX_SAFE_INTEGER,
   skipQuantization: boolean = false,
 ): Map<string, number> => {
   const originalPos = positions.get(draggedId) ?? 0;
@@ -199,10 +178,6 @@ export const getTimelineDimensions = (
   return { fullMin, fullMax, fullRange };
 };
 
-// Clamp value between min and max
-const clamp = (value: number, min: number, max: number): number => {
-  return Math.max(min, Math.min(value, max));
-};
 
 // Get pair information from positions (excludes trailing endpoint)
 export const getPairInfo = (framePositions: Map<string, number>) => {

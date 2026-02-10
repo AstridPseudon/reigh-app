@@ -96,11 +96,6 @@ interface UpdateOptions {
 }
 
 // ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const OPERATION_TIMEOUT_MS = 10000; // 10 seconds max for any operation
-
 // ============================================================================
 // HOOK IMPLEMENTATION
 // ============================================================================
@@ -110,10 +105,9 @@ export function useTimelinePositions({
   shotGenerations,
   onPositionsChange,
 }: UseTimelinePositionsProps): UseTimelinePositionsReturn {
-  
+
   const queryClient = useQueryClient();
   const invalidateGenerations = useInvalidateGenerations();
-  const [isPending, startTransition] = useTransition();
   
   // -------------------------------------------------------------------------
   // STATE

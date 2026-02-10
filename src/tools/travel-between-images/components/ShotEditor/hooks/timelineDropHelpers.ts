@@ -206,12 +206,7 @@ const queryShotGenerationRecords = async (
       handleError(new Error('Still no records found after retry'), { context: 'AddImagesDebug', showToast: false });
       throw new Error('Shot generation records not found after retry');
     }
-    
-    // Check retry records for unexpected positions
-    const retryRecordsWithPositions = retryRecords.filter(
-      r => r.timeline_frame !== null && r.timeline_frame !== undefined
-    );
-    
+
     return retryRecords;
   }
   

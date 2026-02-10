@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { Button } from "@/shared/components/ui/button";
 import { X } from 'lucide-react';
 
-import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useExtraLargeModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
 import { useListResources, useCreateResource, useUpdateResource, useDeleteResource, Resource } from '@/shared/hooks/useResources';
@@ -25,7 +24,6 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
   selectedLoras,
   lora_type,
 }) => {
-  const isMobile = useIsMobile();
   const myLorasResource = useListResources('lora');
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();

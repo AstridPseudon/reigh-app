@@ -181,10 +181,9 @@ export function invalidateGenerationsSync(
  * Logs a warning to encourage scoped invalidation.
  */
 export function invalidateAllShotGenerations(
-  queryClient: QueryClient,
-  reason: string
+  queryClient: QueryClient
 ): void {
-  
+
   // Use predicate to invalidate all shot-generations queries regardless of shotId
   queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === queryKeys.generations.byShotAll[0]

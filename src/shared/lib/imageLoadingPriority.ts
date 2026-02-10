@@ -56,30 +56,6 @@ const performanceMetrics: PerformanceMetrics = {
   adjustedDelayMultiplier: 1.0
 };
 
-/**
- * Track image load time and adjust delays based on performance
- */
-const trackImageLoadTime = (loadTimeMs: number): void => {
-  performanceMetrics.loadTimes.push(loadTimeMs);
-  
-  // Keep only last 20 measurements
-  if (performanceMetrics.loadTimes.length > 20) {
-    performanceMetrics.loadTimes.shift();
-  }
-  
-  // Calculate average
-  const sum = performanceMetrics.loadTimes.reduce((accumulator, loadTime) => accumulator + loadTime, 0);
-  performanceMetrics.avgLoadTime = sum / performanceMetrics.loadTimes.length;
-  
-  // Adjust delay multiplier based on average load time
-  if (performanceMetrics.avgLoadTime > 500) {
-    // Slow loading: increase delays
-    performanceMetrics.adjustedDelayMultiplier = Math.min(2.0, performanceMetrics.adjustedDelayMultiplier + 0.1);
-  } else if (performanceMetrics.avgLoadTime < 200) {
-    // Fast loading: decrease delays
-    performanceMetrics.adjustedDelayMultiplier = Math.max(0.5, performanceMetrics.adjustedDelayMultiplier - 0.1);
-  }
-};
 
 /**
  * Adaptive batch configuration based on device capabilities
@@ -158,15 +134,5 @@ export const getImageLoadingStrategy = (
   };
 };
 
-/**
- * Check if an image should be included in the initial batch
- */
-const shouldIncludeInInitialBatch = (
-  index: number,
-  isMobile: boolean
-): boolean => {
-  const { initialBatchSize } = getUnifiedBatchConfig(isMobile);
-  return index < initialBatchSize;
-};
 
 // Legacy functions removed - use getImageLoadingStrategy and getUnifiedBatchConfig instead

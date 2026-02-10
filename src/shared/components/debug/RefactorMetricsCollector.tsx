@@ -165,7 +165,7 @@ export function RefactorMetricsCollector() {
  * }
  * ```
  */
-export function useRenderCount(componentName: string) {
+export function useRenderCount(_componentName: string) {
   const renderCount = useRef(0);
   const enabled = isEnabled();
 

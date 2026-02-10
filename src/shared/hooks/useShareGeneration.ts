@@ -111,12 +111,10 @@ export function useShareGeneration(
       const shareUrl = `${window.location.origin}/share/${shareSlug}`;
 
       // Use fallback for iOS compatibility
-      let copied = false;
       try {
         // Try modern API first
         if (navigator.clipboard?.writeText) {
           await navigator.clipboard.writeText(shareUrl);
-          copied = true;
         }
       } catch {
         // Fallback: use textarea + execCommand (works on iOS)
@@ -127,7 +125,7 @@ export function useShareGeneration(
         document.body.appendChild(textarea);
         textarea.focus();
         textarea.select();
-        copied = document.execCommand('copy');
+        document.execCommand('copy');
         document.body.removeChild(textarea);
       }
 

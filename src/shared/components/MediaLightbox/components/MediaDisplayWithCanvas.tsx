@@ -107,7 +107,6 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   isEraseMode = false,
   brushSize = 20,
   annotationMode = null,
-  selectedShapeId = null,
   isAnnotateMode = false,
   onStrokeComplete,
   onStrokesChange,
@@ -352,8 +351,6 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
 
     setFullImageLoaded(newFullImageLoaded);
 
-    // Debug: Log sizing mode (imageDimensions read from ref-stable prop, not a dependency)
-    const willForceThumbnailSize = imageDimensions && !newFullImageLoaded && isShowingThumbnail;
     // NOTE: imageDimensions is intentionally NOT in deps to avoid infinite loop:
     // This effect calls onImageLoad which updates imageDimensions in parent,
     // which would trigger this effect again if imageDimensions was a dependency.

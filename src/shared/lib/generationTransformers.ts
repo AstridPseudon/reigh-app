@@ -367,14 +367,14 @@ export function transformGeneration(
 
 /**
  * Transform a shot_generation record (with nested generation data)
- * 
+ *
  * Used by hooks that query shot_generations table with JOIN to generations
- * 
+ *
  * @param shotGen - Raw shot_generation from database
  * @param options - Optional customization
  * @returns Transformed generation with timeline context
  */
-function transformShotGeneration(
+export function transformShotGeneration(
   shotGen: RawShotGeneration,
   options: TransformOptions = {}
 ): GeneratedImageWithMetadata & { timeline_frame: number | null } {
@@ -464,7 +464,7 @@ export function transformForTimeline(
  * Transform for useUnifiedGenerations (VideoOutputsGallery)
  * Returns format with taskId for task tracking
  */
-function transformForUnifiedGenerations(
+export function transformForUnifiedGenerations(
   shotGen: RawShotGeneration,
   includeTaskData: boolean = false
 ): GeneratedImageWithMetadata {

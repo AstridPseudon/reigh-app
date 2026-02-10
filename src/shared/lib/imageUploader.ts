@@ -175,8 +175,6 @@ export const uploadImageToStorage = async (
         data = null;
       }
 
-      const uploadDuration = Date.now() - uploadStartTime;
-
       if (error) {
         lastError = error;
 

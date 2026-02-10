@@ -6,7 +6,6 @@ import { useCredits } from '@/shared/hooks/useCredits';
 import { useApiTokens } from '@/shared/hooks/useApiTokens';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 
-const WARNING_TASK_STATUSES = ['In Progress', 'Failed', 'Cancelled'];
 
 interface ProcessingWarningsProps {
   onOpenSettings: () => void;
@@ -24,7 +23,7 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
   } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
 
   // Force refresh trigger to handle immediate updates
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [, setRefreshTrigger] = useState(0);
 
   // Listen for storage events from other tabs/components
   useEffect(() => {
@@ -187,7 +186,7 @@ interface TasksPaneProcessingWarningProps {
   onOpenSettings: () => void;
 }
 
-export const TasksPaneProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onOpenSettings }) => {
+export const TasksPaneProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onOpenSettings: _onOpenSettings }) => {
   // This warning is now shown globally, so don't duplicate it in the tasks pane.
   return null;
 }; 

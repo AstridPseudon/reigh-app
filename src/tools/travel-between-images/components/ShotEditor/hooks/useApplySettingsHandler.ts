@@ -93,8 +93,6 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
   
   // Return stable callback that reads from ref
   return useCallback(async (taskId: string, replaceImages: boolean, inputImages: string[]) => {
-    const startTime = Date.now();
-    
     // Get latest values from ref (no stale closures!)
     const ctx = contextRef.current;
     
@@ -257,25 +255,25 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
         .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
       
       // Step 5: Apply settings (using actual exported functions)
-      
+
       results.push(await ApplySettingsService.applyModelSettings(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyPromptSettings(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyGenerationSettings(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyModeSettings(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyAdvancedModeSettings(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyTextPromptAddons(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyMotionSettings(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyLoRAs(settings, applyContext));
-      
+
       results.push(await ApplySettingsService.applyStructureVideo(settings, applyContext, taskData));
-      
+
       // Apply pair prompts using frame positions
       results.push(await ApplySettingsService.applyFramePositionsToExistingImages(
         settings,
@@ -284,9 +282,6 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
         ctx.projectId,
         ctx.updatePairPromptsByIndex
       ));
-      
-      // Step 6: Log summary
-      const successCount = results.filter(r => r.success).length;
       
       // Force reload
       if (ctx.selectedShot?.id) {
@@ -298,17 +293,13 @@ export function useApplySettingsHandler(context: ApplySettingsContext) {
       }
       await new Promise(resolve => setTimeout(resolve, 200));
       await ctx.loadPositions({ silent: true });
-      
-      const duration = Date.now() - startTime;
-      
+
     } catch (e) {
-      const duration = Date.now() - startTime;
       console.error('[ApplySettings] ❌ Failed to apply settings:', e);
       console.error('[ApplySettings] Error details:', {
         error: e,
         message: e instanceof Error ? e.message : String(e),
         stack: e instanceof Error ? e.stack : undefined,
-        duration: `${duration}ms`,
         failedAt: 'See logs above for last successful step'
       });
     }

@@ -82,7 +82,7 @@ async function extractThumbnailFromVideo(
     });
 
     // Handle errors
-    video.addEventListener('error', (e) => {
+    video.addEventListener('error', () => {
       video.remove();
       reject(new Error(`Video loading failed: ${video.error?.message || 'Unknown error'}`));
     });
@@ -99,7 +99,7 @@ async function extractThumbnailFromVideo(
 async function uploadThumbnailToStorage(
   blob: Blob,
   generationId: string,
-  projectId: string
+  _projectId: string
 ): Promise<string> {
   // Get userId for storage path
   const { data: { session } } = await supabase.auth.getSession();

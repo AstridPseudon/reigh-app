@@ -68,46 +68,6 @@ export interface StructureGuidanceConfig {
   zero_empty_frames?: boolean;
 }
 
-/**
- * Helper to convert old structure_type to new format
- * (internal use only - not exported)
- */
-function convertLegacyStructureType(
-  structureType: 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | undefined,
-  options?: {
-    motionStrength?: number;
-    uni3cStartPercent?: number;
-    uni3cEndPercent?: number;
-  }
-): StructureGuidanceConfig | undefined {
-  if (!structureType) return undefined;
-
-  if (structureType === 'uni3c') {
-    return {
-      target: 'uni3c',
-      strength: options?.motionStrength ?? 1.0,
-      step_window: [
-        options?.uni3cStartPercent ?? 0,
-        options?.uni3cEndPercent ?? 1.0,
-      ],
-    };
-  }
-
-  // VACE modes
-  const preprocessingMap: Record<string, 'flow' | 'canny' | 'depth' | 'none'> = {
-    'flow': 'flow',
-    'canny': 'canny',
-    'depth': 'depth',
-    'raw': 'none',
-  };
-
-  return {
-    target: 'vace',
-    preprocessing: preprocessingMap[structureType] ?? 'flow',
-    strength: options?.motionStrength ?? 1.0,
-  };
-}
-
 // ============================================================================
 // LEGACY INTERFACES (kept for backward compatibility)
 // ============================================================================

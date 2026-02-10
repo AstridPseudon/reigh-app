@@ -56,7 +56,7 @@ export const useModal = (size: ModalSize = 'medium'): ModalStyling => {
 // Convenience functions for common sizes
 export const useMediumModal = () => useModal('medium');
 export const useLargeModal = () => useModal('large');
-export const useExtraLargeModal = (specialCase?: string) => {
+export const useExtraLargeModal = (_specialCase?: string) => {
   // For now, ignore specialCase - the old system had 'promptEditor' and 'loraSelector' but they don't seem to do much
   return useModal('extra-large');
 };

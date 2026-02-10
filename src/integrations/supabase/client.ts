@@ -41,8 +41,6 @@ const getOrCreateSupabaseClient = (): ReturnType<typeof createClient<Database>> 
         fetch: (url: string, options: RequestInit = {}) => {
           const isEdgeFunction = url.includes('/functions/v1/');
           const isStorageUpload = url.includes('/storage/v1/object/');
-          const isAuthRequest = url.includes('/auth/v1/');
-          const isRestRequest = url.includes('/rest/v1/');
           if (!isEdgeFunction && !isStorageUpload) {
             return fetch(url, options);
           }

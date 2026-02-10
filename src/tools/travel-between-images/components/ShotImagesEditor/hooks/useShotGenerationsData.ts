@@ -100,7 +100,7 @@ export function useShotGenerationsData({
         updatePairPrompts: utilsData.updatePairPrompts,
         clearEnhancedPrompt: utilsData.clearEnhancedPrompt,
         initializeTimelineFrames: utilsData.initializeTimelineFrames,
-        getImagesForMode: (_mode: 'batch' | 'timeline') => {
+        getImagesForMode: () => {
           // BOTH modes show only positioned non-video images
           return preloadedImages
             .filter(img => isPositioned(img) && !isVideoGeneration(img))
@@ -132,7 +132,7 @@ export function useShotGenerationsData({
       updatePairPrompts: coreHookData.updatePairPrompts,
       clearEnhancedPrompt: coreHookData.clearEnhancedPrompt,
       initializeTimelineFrames: async () => {},
-      getImagesForMode: (mode: 'batch' | 'timeline') => coreHookData.positionedItems,
+      getImagesForMode: () => coreHookData.positionedItems,
       exchangePositions: async () => {},
       exchangePositionsNoReload: async () => {},
       deleteItem: coreHookData.deleteItem,

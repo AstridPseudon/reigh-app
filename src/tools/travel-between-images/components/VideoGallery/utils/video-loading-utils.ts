@@ -6,7 +6,7 @@ import { GenerationRow } from '@/types/shots';
 export const determineVideoPhase = (
   shouldLoad: boolean,
   videoPosterLoaded: boolean,
-  videoMetadataLoaded: boolean,
+  _videoMetadataLoaded: boolean,
   thumbnailLoaded: boolean,
   hasThumbnail: boolean
 ): { phase: string; readyToShow: boolean } => {

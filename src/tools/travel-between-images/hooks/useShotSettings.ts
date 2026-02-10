@@ -1,5 +1,4 @@
 import { useCallback, useRef, useMemo, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
@@ -51,8 +50,6 @@ export const useShotSettings = (
   shotId: string | null | undefined,
   projectId: string | null | undefined
 ): UseShotSettingsReturn => {
-  const queryClient = useQueryClient();
-  
   // Track if we've applied inherited settings for this shot
   const appliedInheritanceRef = useRef<string | null>(null);
   

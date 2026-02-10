@@ -67,7 +67,7 @@ export const useProgressiveImage = (
   }, [phase]);
 
   // Helper function to cancel active session
-  const cancelActiveSession = useCallback((reason: string) => {
+  const cancelActiveSession = useCallback((_reason: string) => {
     if (activeSessionRef.current?.isActive) {
       activeSessionRef.current.abortController.abort();
       activeSessionRef.current.timeouts.forEach(timeout => clearTimeout(timeout));
@@ -365,11 +365,10 @@ export const useProgressiveImage = (
   const retry = useCallback(() => {
     retryCountRef.current += 1;
     setError(null);
-    
+
     // Trigger re-run of loading effect
-    const currentSession = activeSessionRef.current;
     cancelActiveSession('retry');
-    
+
     // Small delay to ensure cleanup completes
     setTimeout(() => {
       setIsIntersecting(true);

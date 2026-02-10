@@ -92,7 +92,6 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   // Per-segment structure video management
   isTimelineMode,
   onAddSegmentStructureVideo,
-  onUpdateSegmentStructureVideo,
   onRemoveSegmentStructureVideo,
   // Navigation to constituent images
   startImageShotGenerationId,

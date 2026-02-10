@@ -131,7 +131,6 @@ export function useAutoSaveSettings<T extends Record<string, unknown>>(
   const pendingSettingsRef = useRef<T | null>(null);
   const pendingEntityIdRef = useRef<string | null>(null);
   const currentEntityIdRef = useRef<string | null>(null);
-  const isUnmountingRef = useRef(false);
   
   // Edit version counter - increments on each edit, used to detect if newer edits happened during save
   const editVersionRef = useRef<number>(0);

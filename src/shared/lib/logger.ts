@@ -189,17 +189,6 @@ export function log(tag: string, ...args: any[]): void {
   addToBuffer('INFO', tag, args);
 }
 
-function time(tag: string, label: string): void {
-  if (!shouldLog()) return;
-  // eslint-disable-next-line no-console
-  console.time(`[${tag}] ${label}`);
-}
-
-function timeEnd(tag: string, label: string): void {
-  if (!shouldLog()) return;
-  // eslint-disable-next-line no-console
-  console.timeEnd(`[${tag}] ${label}`);
-}
 
 // Dedicated onRender callback for React Profiler so callers don't need to re-implement it.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

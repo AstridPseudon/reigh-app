@@ -184,7 +184,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
     ));
   }, [settings.loras, updateField]);
   
-  const handleAddTriggerWord = useCallback((loraId: string, word: string) => {
+  const handleAddTriggerWord = useCallback((_loraId: string, word: string) => {
     const currentPrompt = settings.prompt || '';
     if (!currentPrompt.includes(word)) {
       const newPrompt = currentPrompt ? `${currentPrompt}, ${word}` : word;
@@ -192,35 +192,6 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
     }
   }, [settings.prompt, updateField]);
   
-  // Model name helper
-  // Model selection depends on structure video TYPE:
-  // - Uni3C (structureType === 'uni3c'): use I2V model
-  // - VACE types (flow, canny, depth): use VACE model
-  // - No structure video: use I2V model (default)
-  const getModelName = useCallback(() => {
-    const hasStructureVideo = !!settings.structureVideo?.path;
-    const structureType = settings.structureVideo?.structureType;
-    const isUni3c = structureType === 'uni3c' && hasStructureVideo;
-    const useVaceModel = hasStructureVideo && !isUni3c;
-    
-    const motionMode = settings.motionMode || 'basic';
-    if (motionMode === 'basic') {
-      return useVaceModel
-        ? VACE_GENERATION_DEFAULTS.model
-        : 'wan_2_2_i2v_lightning_baseline_2_2_2';
-    }
-    // Advanced mode: use phase count to pick 2-phase vs 3-phase variant
-    const phaseConfig = settings.phaseConfig || DEFAULT_PHASE_CONFIG;
-    const is2Phase = phaseConfig.num_phases === 2;
-    if (useVaceModel) {
-      return is2Phase
-        ? 'wan_2_2_vace_lightning_baseline_3_3'
-        : VACE_GENERATION_DEFAULTS.model;
-    }
-    return is2Phase
-      ? 'wan_2_2_i2v_lightning_baseline_3_3'
-      : 'wan_2_2_i2v_lightning_baseline_2_2_2';
-  }, [settings.motionMode, settings.phaseConfig, settings.structureVideo?.path, settings.structureVideo?.structureType]);
   
   // Handle generate
   const handleGenerate = useCallback(async () => {

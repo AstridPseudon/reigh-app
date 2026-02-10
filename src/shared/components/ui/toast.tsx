@@ -126,7 +126,7 @@ function toastFn(input: ToastInput, opts?: SonnerMethodOptions): string {
   }
 
   // Object form: toast({ title, description, variant })
-  const { title, description, variant, ...rest } = input
+  const { title, description, variant } = input
   const type = variant === "destructive" ? "error" : "default"
   return toastManager.add({
     type,

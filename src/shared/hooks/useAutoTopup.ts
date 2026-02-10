@@ -116,7 +116,7 @@ export function useAutoTopup() {
   // Update preferences mutation
   const updatePreferencesMutation = useMutation<void, Error, UpdateAutoTopupParams>({
     mutationFn: updateAutoTopupPreferences,
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.credits.autoTopupPreferences });
       queryClient.invalidateQueries({ queryKey: queryKeys.credits.all }); // Refresh credits info
       // Removed toast notification for smoother UX

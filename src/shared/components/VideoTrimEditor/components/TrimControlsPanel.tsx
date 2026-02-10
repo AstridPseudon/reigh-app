@@ -43,7 +43,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
   // Frame preview state
   const [startFrame, setStartFrame] = useState<string | null>(null);
   const [endFrame, setEndFrame] = useState<string | null>(null);
-  const [isExtractingFrames, setIsExtractingFrames] = useState(false);
+  const [isExtractingFrames] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
   // Queue for sequential frame extraction (prevents race conditions)
@@ -264,9 +264,6 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
   }, [videoUrl, isVideoReady, trimState.endTrim, trimState.videoDuration, queueFrameExtraction]);
 
   // Responsive styles
-  const padding = isMobile ? 'p-4' : 'p-6';
-  const spacing = isMobile ? 'space-y-4' : 'space-y-6';
-  const headerSize = isMobile ? 'text-lg' : 'text-2xl';
   const labelSize = isMobile ? 'text-xs' : 'text-sm';
 
   return (

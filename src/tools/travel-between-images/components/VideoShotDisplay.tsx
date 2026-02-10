@@ -41,7 +41,7 @@ interface VideoShotDisplayProps {
 
 const SKIP_DELETE_CONFIRMATION_KEY = 'reigh-skip-delete-shot-confirmation';
 
-const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot, currentProjectId, dragHandleProps, dragDisabledReason, shouldLoadImages = true, shotIndex = 0, projectAspectRatio, isHighlighted = false, pendingUploads = 0, imagesOverlay, dropLoadingState = 'idle', dataTour, finalVideo }) => {
+const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot, currentProjectId, dragHandleProps, dragDisabledReason, projectAspectRatio, isHighlighted = false, pendingUploads = 0, imagesOverlay, dropLoadingState = 'idle', dataTour, finalVideo }) => {
   // Check if this is a temp shot (optimistic duplicate waiting for real ID)
   const isTempShot = shot.id.startsWith('temp-');
   

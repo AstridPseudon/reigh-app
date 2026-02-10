@@ -160,7 +160,7 @@ export interface SegmentSettings {
 
 /**
  * Create default segment settings.
- * @internal Used only within this module.
+ * @internal Unused - kept for potential future use.
  */
 function createDefaultSettings(defaults?: {
   prompt?: string;
@@ -653,6 +653,9 @@ export function extractSettingsFromParams(
 
   return result;
 }
+
+// Keep for potential future use
+void createDefaultSettings;
 
 export function buildMetadataUpdate(
   currentMetadata: Record<string, unknown>,

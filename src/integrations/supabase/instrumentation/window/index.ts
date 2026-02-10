@@ -95,8 +95,6 @@ function installWindowOnlyInstrumentationLegacy() {
         });
       }
 
-      const createdAt = Date.now();
-
       ws.addEventListener('message', (event: MessageEvent) => {
         if (isSupabaseRealtime || isSupabaseWebSocket) {
           try {

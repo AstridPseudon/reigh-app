@@ -242,8 +242,6 @@ export const ShotSelectorControls: React.FC<ShotSelectorControlsProps> = ({
                 onClick={() => {
                   handleAddVariantAsNewGeneration();
                 }}
-                onPointerDown={(e) => {
-                }}
                 disabled={isAddingVariantAsNew || !activeVariantId}
                 data-testid="add-variant-as-new-button"
                 className={`h-8 w-8 ml-1 text-white ${

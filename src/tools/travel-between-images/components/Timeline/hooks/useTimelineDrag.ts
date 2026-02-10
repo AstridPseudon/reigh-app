@@ -252,10 +252,7 @@ export const useTimelineDrag = ({
     return calculateDragPositions(clientX, false);
   }, [calculateDragPositions]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent, imageId: string, containerRef: React.RefObject<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container) return;
-
+  const handleMouseDown = useCallback((e: React.MouseEvent, imageId: string, _containerRef: React.RefObject<HTMLDivElement>) => {
     currentMousePosRef.current = { x: e.clientX, y: e.clientY };
 
     const now = Date.now();

@@ -172,7 +172,7 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
     if (videoRef.current && preloadProp === 'none' && videoRef.current.readyState < 2) {
       try {
         videoRef.current.load();
-      } catch (e) {
+      } catch {
       }
     }
 
@@ -198,7 +198,7 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
     if (videoRef.current && videoRef.current.readyState === 0) {
       try {
         videoRef.current.load();
-      } catch (e) {
+      } catch {
       }
     }
 
@@ -393,7 +393,7 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
         }}
         onTouchMove={(e) => {
         }}
-        onClick={(e) => {
+        onClick={() => {
 
         }}
         onLoadStart={(e) => {

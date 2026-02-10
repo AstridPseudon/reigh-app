@@ -50,7 +50,7 @@ function useDetectVideoFps(videoUrl: string | undefined): number | null {
     let startTime = 0;
     let rafId: number | null = null;
 
-    const countFrame = (now: number, metadata: VideoFrameCallbackMetadata) => {
+    const countFrame = (_now: number, metadata: VideoFrameCallbackMetadata) => {
       if (frameCount === 0) {
         // First frame - just record start time, don't count it
         startTime = metadata.mediaTime;

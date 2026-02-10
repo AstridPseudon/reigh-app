@@ -304,8 +304,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
       }
       newStart = Math.min(newStart, effectiveOutputEnd - MIN_DURATION_FRAMES);
       newStart = Math.max(fullMin, Math.min(newStart, fullMax - MIN_DURATION_FRAMES));
-      const finalEnd = Math.min(effectiveOutputEnd, fullMax);
-      onRangeChange(newStart, finalEnd);
+      onRangeChange(newStart, effectiveOutputEnd);
     } else {
       let newEnd: number;
       if (targetFrame >= rightLimit - EDGE_SNAP_THRESHOLD) {
@@ -315,8 +314,7 @@ export const GuidanceVideoStrip: React.FC<GuidanceVideoStripProps> = ({
       }
       newEnd = Math.max(newEnd, effectiveOutputStart + MIN_DURATION_FRAMES);
       newEnd = Math.min(fullMax, Math.max(newEnd, fullMin + MIN_DURATION_FRAMES));
-      const finalStart = Math.max(effectiveOutputStart, fullMin);
-      onRangeChange(finalStart, newEnd);
+      onRangeChange(effectiveOutputStart, newEnd);
     }
 
     setSelectedEndpoint(null);
