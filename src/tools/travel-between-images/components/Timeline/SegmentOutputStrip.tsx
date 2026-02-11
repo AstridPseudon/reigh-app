@@ -12,7 +12,7 @@ import { createPortal } from 'react-dom';
 import { Loader2, X } from 'lucide-react';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { InlineSegmentVideo } from './InlineSegmentVideo';
-import { TIMELINE_HORIZONTAL_PADDING, TIMELINE_PADDING_OFFSET } from './constants';
+import { TIMELINE_HORIZONTAL_PADDING } from './constants';
 import { getDisplayUrl } from '@/shared/lib/utils';
 import { cn } from '@/shared/lib/utils';
 
@@ -90,8 +90,8 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     // Mobile
     isMobile,
     // Display data
-    displaySlots,
-    segmentPositions,
+    positionedSlots,
+    addTrailingButtonLeftPercent,
     hasPendingTask,
     hasRecentMismatch,
     // Scrubbing
@@ -126,6 +126,8 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
     onTrailingVideoInfo,
     selectedParentId,
     onSegmentFrameCountChange,
+    isMultiImage,
+    lastImageFrame,
   });
 
   // Don't render if no pairs AND not in single-image mode
@@ -204,22 +206,10 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
       >
         {/* Segment thumbnails - positioned to align with timeline pairs */}
         <div className="absolute left-0 right-0 top-5 bottom-1 overflow-visible">
-          {displaySlots.length > 0 && segmentPositions.length > 0 ? (() => {
-            const hasAnySegments = displaySlots.some(s => s.type === 'child');
-            return (
+          {positionedSlots.length > 0 ? (
             <div className="relative w-full h-full">
-              {displaySlots.map((slot, index) => {
-                const position = segmentPositions.find(p => p.pairIndex === slot.index);
-
-                if (!position) {
-                  return null;
-                }
-
-                const isTrailingSlot = 'isTrailingSegment' in slot && slot.isTrailingSegment === true;
-                if (slot.type === 'placeholder' && hasAnySegments && !isTrailingSlot) {
-                  return null;
-                }
-
+              {positionedSlots.map((positioned, index) => {
+                const { slot } = positioned;
                 const isActiveScrubbing = activeScrubbingIndex === index;
 
                 // Check if source images have recent changes (for warning indicator)
@@ -236,8 +226,8 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
                       }}
                       projectAspectRatio={projectAspectRatio}
                       isMobile={isMobile}
-                      leftPercent={position.leftPercent}
-                      widthPercent={position.widthPercent}
+                      leftPercent={positioned.leftPercent}
+                      widthPercent={positioned.widthPercent}
                       onOpenPairSettings={onOpenPairSettings ? (pairIdx: number) => {
                         const pairFrameData = pairInfo.find(p => p.index === pairIdx);
                         onOpenPairSettings(pairIdx, pairFrameData ? {
@@ -259,12 +249,12 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
                       readOnly={readOnly}
                     />
                     {/* X button to remove trailing segment */}
-                    {isTrailingSlot && onRemoveTrailingSegment && !readOnly &&
+                    {positioned.isTrailing && onRemoveTrailingSegment && !readOnly &&
                       slot.type !== 'child' && !hasPendingTask(slot.pairShotGenerationId) && (
                       <button
                         className="absolute z-20 w-5 h-5 rounded-full bg-muted/90 hover:bg-destructive border border-border/50 hover:border-destructive flex items-center justify-center text-muted-foreground hover:text-destructive-foreground transition-all duration-150"
                         style={{
-                          left: `calc(${position.leftPercent + position.widthPercent}% - 8px)`,
+                          left: `calc(${positioned.leftPercent + positioned.widthPercent}% - 8px)`,
                           top: '-4px',
                         }}
                         onClick={(e) => {
@@ -281,29 +271,18 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
               })}
 
               {/* Add trailing segment button */}
-              {isMultiImage && onAddTrailingSegment && !readOnly && lastImageFrame !== undefined && fullRange > 0 && containerWidth > 0 && (() => {
-                const trailingIndex = pairInfo.length;
-                const trailingSlot = displaySlots.find(slot => slot.index === trailingIndex);
-                if (trailingSlot) return null;
-
-                const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
-                const lastImagePixel = TIMELINE_PADDING_OFFSET + ((lastImageFrame - fullMin) / fullRange) * effectiveWidth;
-                const buttonLeftPercent = (lastImagePixel / containerWidth) * 100;
-
-                return (
-                  <button
-                    className="absolute top-0 bottom-0 w-7 rounded-md bg-muted/30 border-2 border-dashed border-border/40 hover:bg-muted/50 hover:border-primary/40 flex items-center justify-center cursor-pointer transition-all duration-150 group"
-                    style={{ left: `calc(${buttonLeftPercent}% + 2px)` }}
-                    onClick={onAddTrailingSegment}
-                    title="Add trailing video segment"
-                  >
-                    <span className="text-xl font-light leading-none text-muted-foreground group-hover:text-foreground transition-colors">+</span>
-                  </button>
-                );
-              })()}
+              {addTrailingButtonLeftPercent !== null && onAddTrailingSegment && !readOnly && (
+                <button
+                  className="absolute top-0 bottom-0 w-7 rounded-md bg-muted/30 border-2 border-dashed border-border/40 hover:bg-muted/50 hover:border-primary/40 flex items-center justify-center cursor-pointer transition-all duration-150 group"
+                  style={{ left: `calc(${addTrailingButtonLeftPercent}% + 2px)` }}
+                  onClick={onAddTrailingSegment}
+                  title="Add trailing video segment"
+                >
+                  <span className="text-xl font-light leading-none text-muted-foreground group-hover:text-foreground transition-colors">+</span>
+                </button>
+              )}
             </div>
-            );
-          })() : (
+          ) : (
             <div className="flex-1 h-full flex items-center justify-center text-xs text-muted-foreground">
               {isLoading ? (
                 <div className="flex items-center gap-1.5">
