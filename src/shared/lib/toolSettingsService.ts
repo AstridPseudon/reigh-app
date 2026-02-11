@@ -139,7 +139,7 @@ export async function fetchToolSettingsSupabase(
   try {
     // Check if request was cancelled before starting - throw to signal cancellation
     if (signal?.aborted) {
-      throw new Error('Request was cancelled');
+      throw new DOMException('Request was cancelled', 'AbortError');
     }
 
     // Single-flight dedupe key for concurrent identical requests
@@ -162,7 +162,7 @@ export async function fetchToolSettingsSupabase(
       // Check again after auth call - throw to signal cancellation
       // React Query's retry logic won't retry cancelled requests
       if (signal?.aborted) {
-        throw new Error('Request was cancelled');
+        throw new DOMException('Request was cancelled', 'AbortError');
       }
 
       // Mobile optimization: Use more efficient queries with targeted JSON extraction
@@ -226,7 +226,7 @@ export async function fetchToolSettingsSupabase(
     // Handle abort errors silently to reduce noise during task cancellation
     if (isCancellationError(error)) {
       // Don't log these as errors - they're expected during component unmounting
-      throw new Error('Request was cancelled');
+      throw new DOMException('Request was cancelled', 'AbortError');
     }
     // Enrich logging with environment context
     const errorMsg = getErrorMessage(error);
