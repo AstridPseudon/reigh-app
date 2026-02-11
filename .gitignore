@@ -64,9 +64,6 @@ temp/
 /*.rar
 /*.7z
 
-# Decruftify tool (local only)
-scripts/decruftify/
-
 # Python cache
 __pycache__/
 *.pyc
