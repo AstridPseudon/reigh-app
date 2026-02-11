@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from ..utils import c, print_table, rel, SRC_PATH
-from ..lang.typescript.deps import build_dep_graph
 
 
 def detect_coupling_violations(path: Path, graph: dict) -> list[dict]:
@@ -119,6 +118,7 @@ def detect_cross_tool_imports(path: Path, graph: dict) -> list[dict]:
 
 def cmd_coupling(args):
     """Raw detector access: show coupling violations and boundary candidates."""
+    from ..lang.typescript.deps import build_dep_graph
     graph = build_dep_graph(Path(args.path))
 
     violations = detect_coupling_violations(Path(args.path), graph)

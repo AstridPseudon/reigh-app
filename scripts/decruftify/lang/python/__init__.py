@@ -339,6 +339,83 @@ def _cmd_py_cycles(args):
               + (f" -> +{len(files) - 6}" if len(files) > 6 else ""))
 
 
+def _cmd_py_orphaned(args):
+    """Run Python orphaned file detection."""
+    import json
+    from .deps import build_dep_graph
+    from ...detectors.orphaned import detect_orphaned_files
+    graph = build_dep_graph(Path(args.path))
+    entries = detect_orphaned_files(
+        Path(args.path), graph, extensions=[".py"],
+        extra_entry_patterns=PY_ENTRY_PATTERNS,
+        extra_barrel_names={"__init__.py"})
+    if getattr(args, "json", False):
+        print(json.dumps({"count": len(entries), "entries": [
+            {"file": rel(e["file"]), "loc": e["loc"]} for e in entries
+        ]}, indent=2))
+        return
+    if not entries:
+        print(c("\nNo orphaned files found.", "green"))
+        return
+    from ...utils import print_table
+    total_loc = sum(e["loc"] for e in entries)
+    print(c(f"\nOrphaned files: {len(entries)} files, {total_loc} LOC\n", "bold"))
+    rows = []
+    for e in entries[:getattr(args, "top", 20)]:
+        rows.append([rel(e["file"]), str(e["loc"])])
+    print_table(["File", "LOC"], rows, [80, 6])
+
+
+def _cmd_py_single_use(args):
+    """Run Python single-use abstraction detection."""
+    import json
+    from .deps import build_dep_graph
+    from ...detectors.single_use import detect_single_use_abstractions
+    graph = build_dep_graph(Path(args.path))
+    entries = detect_single_use_abstractions(
+        Path(args.path), graph, barrel_names={"__init__.py"})
+    if getattr(args, "json", False):
+        print(json.dumps({"count": len(entries), "entries": entries}, indent=2))
+        return
+    if not entries:
+        print(c("No single-use abstractions found.", "green"))
+        return
+    from ...utils import print_table
+    print(c(f"\nSingle-use abstractions: {len(entries)} files\n", "bold"))
+    rows = []
+    for e in entries[:getattr(args, "top", 20)]:
+        rows.append([rel(e["file"]), str(e["loc"]), e["sole_importer"]])
+    print_table(["File", "LOC", "Only Imported By"], rows, [45, 5, 60])
+
+
+def _cmd_py_naming(args):
+    """Run Python naming consistency detection."""
+    import json
+    from ...detectors.naming import detect_naming_inconsistencies
+    py_skip_names = {
+        "__init__.py", "conftest.py", "setup.py", "manage.py",
+        "__main__.py", "wsgi.py", "asgi.py",
+    }
+    entries = detect_naming_inconsistencies(
+        Path(args.path),
+        file_finder=lambda p: find_source_files(p, [".py"], ["__pycache__", ".venv", "node_modules"]),
+        skip_names=py_skip_names)
+    if getattr(args, "json", False):
+        print(json.dumps({"count": len(entries), "entries": entries}, indent=2))
+        return
+    if not entries:
+        print(c("\nNo naming inconsistencies found.", "green"))
+        return
+    from ...utils import print_table
+    print(c(f"\nNaming inconsistencies: {len(entries)} directories\n", "bold"))
+    rows = []
+    for e in entries[:getattr(args, "top", 20)]:
+        outlier_str = ", ".join(e["outliers"][:5])
+        rows.append([e["directory"], f"{e['majority']} ({e['majority_count']})",
+                     f"{e['minority']} ({e['minority_count']})", outlier_str])
+    print_table(["Directory", "Majority", "Minority", "Outliers"], rows, [45, 20, 20, 40])
+
+
 @register_lang("python")
 class PythonConfig(LangConfig):
     def __init__(self):
