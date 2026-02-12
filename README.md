@@ -26,6 +26,10 @@ npm run dev                   # Vite on http://localhost:2222
 
 GPU task processing requires **[Reigh-Worker](https://github.com/banodoco/Reigh-Worker)** running separately. Worker and API orchestration is managed by **[Reigh-Worker-Orchestrator](https://github.com/banodoco/Reigh-Worker-Orchestrator)**.
 
+## Code Health
+
+<img src="scorecard.png">
+
 ## Documentation
 
 | Doc | Purpose |

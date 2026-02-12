@@ -195,9 +195,11 @@ serve(async (req) => {
       // ═══════════════════════════════════════════════════════════════
       // USER TOKEN PATH: Use optimized PostgreSQL function for specific user
       // ═══════════════════════════════════════════════════════════════
-      logger.info("Claiming task (user PAT path)", { user_id: callerId });
+      logger.info("Claiming task (user PAT path)", { user_id: callerId, run_type: runType });
       
       // Claim next eligible task for this user using PAT-friendly function
+      // NOTE: PAT users run on their own hardware — no run_type filtering.
+      // They can claim any task (gpu or api) regardless of what the worker sends.
       const { data: claimResult, error: claimError } = await supabaseAdmin
         .rpc('claim_next_task_user_pat', {
           p_user_id: callerId,

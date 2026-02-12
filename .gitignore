@@ -55,6 +55,7 @@ temp/
 /*.mov
 /*.gif
 /*.png
+!scorecard.png
 /*.jpg
 /*.jpeg
 /*.webp

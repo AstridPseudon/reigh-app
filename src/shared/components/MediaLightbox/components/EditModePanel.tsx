@@ -395,8 +395,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             <div className={generationsSpacing}>
               <SectionLabel>Model & LoRAs</SectionLabel>
               <div className={cn("flex items-center gap-2", isMobile ? "mb-1" : "mb-2")}>
-                {/* Model Selector - Only shown in cloud mode (40% width) */}
-                {!isLocalGeneration && setQwenEditModel && (
+                {/* Model Selector (40% width) */}
+                {setQwenEditModel && (
                   <Select value={qwenEditModel} onValueChange={setQwenEditModel}>
                     <SelectTrigger variant="retro" className={cn("w-[40%]", isMobile ? "h-7 text-xs" : "h-10")}>
                       <SelectValue />
