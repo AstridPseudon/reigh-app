@@ -38,14 +38,14 @@ export const ExamplesPane: React.FC<ExamplesPaneProps> = ({
           <X className="w-5 h-5 sm:w-4 sm:h-4 text-gray-600" />
         </button>
 
-        <div className="mb-8 text-center space-y-3">
+        <div className="mb-8 text-center gap-y-3">
           <h2 className="text-2xl sm:text-3xl font-theme-heading text-primary">reigh is a tool made just for travelling between images</h2>
           <div className="w-16 h-1 bg-gradient-to-r from-wes-vintage-gold to-wes-coral rounded-full mx-auto animate-pulse-breathe"></div>
         </div>
 
-        <div className="space-y-12 pb-4">
+        <div className="gap-y-12 pb-4">
           {/* Section 1 */}
-          <div className="space-y-4">
+          <div className="gap-y-4">
             <div className="flex flex-wrap justify-center items-center gap-4">
               {imagePairIndices.map(i => (
                 <div key={i} className="bg-muted/20 border rounded-lg w-40 sm:w-56 aspect-video flex items-center justify-center text-xs text-muted-foreground">
@@ -60,7 +60,7 @@ export const ExamplesPane: React.FC<ExamplesPaneProps> = ({
           </div>
 
           {/* Section 2 */}
-          <div className="space-y-4">
+          <div className="gap-y-4">
             <h3 className="font-theme-light text-primary text-lg text-center">You can travel between batches of images of any size – with seamless transitions</h3>
             <div className="flex flex-wrap justify-center items-center gap-3">
               {multiSquareIndices.map(i => (
@@ -76,7 +76,7 @@ export const ExamplesPane: React.FC<ExamplesPaneProps> = ({
           </div>
 
           {/* Section 3 */}
-          <div className="space-y-4">
+          <div className="gap-y-4">
             <h3 className="font-theme-light text-primary text-lg text-center">You can use LoRAs to achieve all kinds of weird and interesting motion</h3>
             <div className="flex flex-wrap justify-center items-center gap-4">
               {motionExamples.map(example => (
@@ -93,12 +93,12 @@ export const ExamplesPane: React.FC<ExamplesPaneProps> = ({
           </div>
 
           {/* Closing line + Join Us Button */}
-          <div className="text-center space-y-8 mb-6">
+          <div className="text-center gap-y-8 mb-6">
             <p className="text-base md:text-lg font-theme-light text-primary m-0 max-w-2xl mx-auto">We believe that there's endless potential in this approach waiting to be unlocked&nbsp;&mdash; and that a tool and community focusing exclusively on it can unleash its promise.</p>
             
             <div className="w-12 h-px bg-muted/30 mx-auto"></div>
             
-            <div className="flex items-center space-x-2 justify-center">
+            <div className="flex items-center gap-x-2 justify-center">
               <button
                 onClick={() => navigate('/tools')}
                 className="text-muted-foreground hover:text-primary text-xs underline transition-colors duration-200"

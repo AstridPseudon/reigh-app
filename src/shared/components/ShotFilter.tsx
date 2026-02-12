@@ -36,7 +36,7 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
   excludePositioned = true,
   onExcludePositionedChange,
   showPositionFilter = true,
-  className = "flex items-center space-x-3",
+  className = "flex items-center gap-x-3",
   triggerClassName,
   triggerWidth = "w-[180px]",
   labelText,
@@ -56,12 +56,12 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
   const variant = darkSurface ? 'zinc' : 'retro';
 
   const containerClassName = isMobile
-    ? "flex flex-col space-y-2"
+    ? "flex flex-col gap-y-2"
     : className;
 
   return (
     <div className={containerClassName}>
-      <div className={isMobile ? "flex items-center space-x-3" : "contents"}>
+      <div className={isMobile ? "flex items-center gap-x-3" : "contents"}>
         {labelText && (
           <Label className={cn("text-xs font-light", darkSurface ? "text-white" : "text-foreground")}>
             {labelText}
@@ -105,7 +105,7 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
 
       {/* Position filter checkbox - only show when a specific shot is selected */}
       {showPositionFilter && !isSpecialFilter(selectedShotId) && onExcludePositionedChange && (
-        <div className="flex items-center space-x-2 mt-2">
+        <div className="flex items-center gap-x-2 mt-2">
           <Checkbox
             id={checkboxId}
             checked={excludePositioned}

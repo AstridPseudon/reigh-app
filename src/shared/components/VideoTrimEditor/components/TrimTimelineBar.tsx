@@ -135,7 +135,7 @@ export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({
   );
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full gap-y-2">
       {/* Time labels */}
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>0:00</span>

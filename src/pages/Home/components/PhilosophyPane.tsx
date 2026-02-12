@@ -259,9 +259,9 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
         <div className="w-20 h-1.5 bg-gradient-to-r from-wes-vintage-gold to-wes-vintage-gold/50 rounded-full animate-pulse-breathe opacity-90"></div>
       </div>
 
-      <div className="space-y-8 pb-1 text-left text-foreground/85 font-medium">
+      <div className="gap-y-8 pb-1 text-left text-foreground/85 font-medium">
         {/* Intro text */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           <p className="text-sm leading-7">
             There are many tools that aim to be a 'one-stop-shop' for creating with AI - a kind of 'Amazon for art'. 
           </p>
@@ -282,7 +282,7 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
               - 3 images: L-shape (2 stacked left, 1 top-right)
               - 4 images: 2x2 grid
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="space-y-2 !mt-4 mb-4">
+        <div className="gap-y-2 !mt-4 mb-4">
           {/* Main travel visualization - fixed height container */}
           <div className="flex gap-4 items-center justify-center h-[210px] sm:h-[264px]">
             {/* Left side: Input images with dynamic layout */}
@@ -552,12 +552,12 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
             SECTION 2: Reference Videos for Motion Control
             - Images displayed above videos in rows
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           <p className="text-sm leading-7">
             You can use <span className="text-wes-vintage-gold">reference videos to steer the motion</span> - here's an example of how images and video references combine:
           </p>
 
-          <div className="space-y-3">
+          <div className="gap-y-3">
             {/* Images row - displayed in a single row */}
             <div className="grid grid-cols-8 gap-1">
               {Array.from({ length: 16 }).map((_, idx) => {
@@ -595,7 +595,7 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
             SECTION 3: LoRA Selector for Motion Styles
             - Starting/ending images left, 2x2 video grid right
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           <p className="text-sm leading-7">
             You can also combine community-trained LoRAs to <span className="text-wes-vintage-gold">craft a truly unique style of motion</span>:
           </p>
@@ -736,7 +736,7 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
         {/* ═══════════════════════════════════════════════════════════════════
             CLOSING SECTION
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           <p className="text-sm leading-7">
             We believe that there's a world of creativity that's waiting to be discovered in the AI-driven journey between images and <span className="text-wes-vintage-gold"><span className="font-theme-heading">Reigh</span> is a tool just for exploring this artform.</span>
           </p>
@@ -748,7 +748,7 @@ export const PhilosophyPane: React.FC<PhilosophyPaneProps> = ({
         {/* Divider */}
         <div className="w-16 h-px bg-foreground/20 my-2"></div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-x-2">
           <button
             onClick={() => navigate('/tools')}
             className="text-muted-foreground hover:text-primary text-xs underline transition-colors duration-200"

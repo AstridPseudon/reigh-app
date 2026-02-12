@@ -61,7 +61,7 @@ export const MobileInfoModal: React.FC<MobileInfoModalProps> = ({
           <X className="h-4 w-4" />
         </button>
 
-        <div className="space-y-3">
+        <div className="gap-y-3">
           {/* Header */}
           <div className="flex items-center gap-2 pr-8">
             <span className="text-lg font-medium">{label}</span>

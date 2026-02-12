@@ -197,7 +197,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="gap-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Video Player</CardTitle>
@@ -292,7 +292,7 @@ export function VideoSegmentEditor({ video, segments, onCreateSegment, onDeleteS
               <p className="text-sm">Create your first segment using the controls above</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="gap-y-3">
               {sortedSegments.map((segment) => {
                 const originalIndex = segments.findIndex(s => s.id === segment.id);
                 return (

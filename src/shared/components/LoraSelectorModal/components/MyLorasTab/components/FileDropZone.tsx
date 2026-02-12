@@ -23,7 +23,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
   onClear,
   placeholder,
 }) => (
-  <div className="space-y-2">
+  <div className="gap-y-2">
     <TooltipProvider>
       <div className="flex items-center gap-2">
         <Label htmlFor={id}>{label}</Label>
@@ -34,7 +34,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
             </span>
           </TooltipTrigger>
           <TooltipContent className="max-w-md">
-            <div className="text-xs space-y-1">
+            <div className="text-xs gap-y-1">
               {tooltipContent}
             </div>
           </TooltipContent>

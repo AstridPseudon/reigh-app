@@ -65,7 +65,7 @@ export const ImageUpscaleForm: React.FC<ImageUpscaleFormProps> = ({
   return (
     <div className={cn("flex flex-col gap-4", isMobile ? "px-3 py-2" : "p-4")}>
       {/* Info section */}
-      <div className="space-y-2">
+      <div className="gap-y-2">
         <div className="flex items-center gap-2">
           <ArrowUp className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">Enhance Resolution</span>
@@ -78,7 +78,7 @@ export const ImageUpscaleForm: React.FC<ImageUpscaleFormProps> = ({
       {/* Settings row: Upscale Factor Slider + Noise Dropdown */}
       <div className="flex gap-4 items-start">
         {/* Upscale Factor Slider */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 gap-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-sm">Upscale Factor</Label>
             <span className="text-sm text-muted-foreground font-mono">
@@ -96,7 +96,7 @@ export const ImageUpscaleForm: React.FC<ImageUpscaleFormProps> = ({
         </div>
 
         {/* Noise Scale Dropdown */}
-        <div className="w-28 space-y-2">
+        <div className="w-28 gap-y-2">
           <Label className="text-sm">Denoise</Label>
           <Select
             value={String(noiseScale)}

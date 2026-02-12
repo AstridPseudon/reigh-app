@@ -36,11 +36,11 @@ export const BaseGenerationSettingsSection: React.FC<BaseGenerationSettingsSecti
   onDurationFramesChange,
 }) => {
   return (
-    <div className="space-y-3 pt-2 border-t">
+    <div className="gap-y-3 pt-2 border-t">
       <Label className="text-base font-semibold">Base Generation Settings</Label>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <Label htmlFor="preset-base-prompt">Base Prompt:</Label>
           <Textarea
             id="preset-base-prompt"
@@ -58,7 +58,7 @@ export const BaseGenerationSettingsSection: React.FC<BaseGenerationSettingsSecti
           />
         </div>
 
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <Label htmlFor="preset-negative-prompt">Negative Prompt:</Label>
           <Textarea
             id="preset-negative-prompt"
@@ -77,7 +77,7 @@ export const BaseGenerationSettingsSection: React.FC<BaseGenerationSettingsSecti
         </div>
       </div>
 
-      <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg border">
+      <div className="flex items-center gap-x-2 p-3 bg-muted/30 rounded-lg border">
         <Switch
           id="preset-enhance"
           checked={enhancePrompt}
@@ -91,7 +91,7 @@ export const BaseGenerationSettingsSection: React.FC<BaseGenerationSettingsSecti
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <Label htmlFor="preset-text-before">Text Before Prompts:</Label>
           <Input
             id="preset-text-before"
@@ -101,7 +101,7 @@ export const BaseGenerationSettingsSection: React.FC<BaseGenerationSettingsSecti
           />
         </div>
 
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <Label htmlFor="preset-text-after">Text After Prompts:</Label>
           <Input
             id="preset-text-after"
@@ -112,7 +112,7 @@ export const BaseGenerationSettingsSection: React.FC<BaseGenerationSettingsSecti
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="gap-y-1">
         <Label htmlFor="preset-duration">Suggested duration:</Label>
         <div className="flex items-center gap-3">
           <Slider

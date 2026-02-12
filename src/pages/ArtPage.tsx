@@ -127,17 +127,17 @@ export default function ArtPage() {
                   
                   {/* Stats */}
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-x-4">
+                      <div className="flex items-center gap-x-1">
                         <Eye className="w-3 h-3" />
                         <span>{piece.views.toLocaleString()}</span>
                       </div>
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center gap-x-1">
                         <Heart className="w-3 h-3" />
                         <span>{piece.likes}</span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-x-1">
                       <Calendar className="w-3 h-3" />
                       <span>{new Date(piece.date).toLocaleDateString()}</span>
                     </div>
@@ -162,7 +162,7 @@ export default function ArtPage() {
             </p>
             <a
               href="#signup"
-              className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-wes-coral to-wes-pink text-white rounded-full border-2 border-wes-coral/30 hover:border-wes-coral/50 transition-all duration-300 hover:shadow-wes-ornate font-cocogoose font-light"
+              className="inline-flex items-center gap-x-2 px-6 py-3 bg-gradient-to-r from-wes-coral to-wes-pink text-white rounded-full border-2 border-wes-coral/30 hover:border-wes-coral/50 transition-all duration-300 hover:shadow-wes-ornate font-cocogoose font-light"
             >
               <span>Start Creating</span>
             </a>

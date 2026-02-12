@@ -139,7 +139,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
 
   return (
     <div
-      className="flex-shrink-0 space-y-1 sm:space-y-1 pb-2 sm:pb-1 transition-opacity duration-200"
+      className="flex-shrink-0 gap-y-1 sm:gap-y-1 pb-2 sm:pb-1 transition-opacity duration-200"
       style={{
         opacity: isSticky ? 0 : 1,
         pointerEvents: isSticky ? 'none' : 'auto'
@@ -165,7 +165,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         <div ref={centerSectionRef} className="flex items-center justify-center" data-tour="shot-selector">
           {isEditingName ? (
             // Hide navigation buttons when editing - only show name editing controls
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-x-2">
               <Button 
                 size="sm" 
                 variant="ghost" 
@@ -190,7 +190,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             </div>
           ) : (
             // Show navigation buttons tightly around the shot name
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-x-2">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -239,7 +239,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
       <div className="sm:hidden">
         {isEditingName ? (
           // Editing mode - centered editing controls
-          <div className="flex items-center justify-center space-x-2">
+          <div className="flex items-center justify-center gap-x-2">
             <Button 
               size="sm" 
               variant="ghost" 
@@ -280,7 +280,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             </div>
             
             {/* Shot name with navigation buttons - tighter spacing */}
-            <div className="flex items-center space-x-1" data-tour="shot-selector">
+            <div className="flex items-center gap-x-1" data-tour="shot-selector">
               <Button 
                 variant="ghost" 
                 size="sm" 

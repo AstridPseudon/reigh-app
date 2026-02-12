@@ -79,7 +79,7 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
           className={triggerClassName}
         >
           {selectedProject ? (
-            <div className="flex items-center space-x-2 min-w-0">
+            <div className="flex items-center gap-x-2 min-w-0">
               <div className="w-4 h-4 bg-[#6a8a8a] dark:bg-[#8a9a9a] rounded-full flex items-center justify-center flex-shrink-0">
                 <Star className="h-2 w-2 text-white flex-shrink-0" fill="white" strokeWidth={0} />
               </div>
@@ -129,7 +129,7 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
                     setIsOpen(false);
                   }}
                 >
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-x-2">
                     <div className="w-4 h-4 bg-[#6a8a8a] dark:bg-[#8a9a9a] rounded-full flex items-center justify-center flex-shrink-0">
                       <Star className="h-2 w-2 text-white flex-shrink-0" />
                     </div>
@@ -150,7 +150,7 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
                   setIsOpen(false);
                 }}
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-x-2">
                   <div className="w-4 h-4 bg-[#5a7a7a] dark:bg-[#7a9a9a] rounded-full flex items-center justify-center flex-shrink-0">
                     <PlusCircle className="h-2 w-2 text-white flex-shrink-0" />
                   </div>

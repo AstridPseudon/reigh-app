@@ -55,7 +55,7 @@ interface GenerationDetailsProps {
  */
 const LoadingSkeleton: React.FC<{ variant: DisplayVariant }> = ({ variant }) => (
   <div className={`p-3 bg-muted/30 rounded-lg border ${variant === 'panel' ? '' : 'w-[300px]'}`}>
-    <div className="space-y-3">
+    <div className="gap-y-3">
       <Skeleton className="h-4 w-24" />
       <Skeleton className="h-20 w-full" />
       <Skeleton className="h-4 w-32" />

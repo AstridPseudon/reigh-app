@@ -147,10 +147,10 @@ const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
     }, [phaseConfig, advancedMode]);
 
     return (
-        <div className="space-y-4">
+        <div className="gap-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left Column: Prompts with text before/after when applicable */}
-                <div className="space-y-4">
+                <div className="gap-y-4">
                   {/* Main Prompt */}
                   <div className="relative">
                     <Label htmlFor="batchVideoPrompt" className="text-sm font-light block mb-1.5">
@@ -271,7 +271,7 @@ const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
             
             {/* Enhance Prompt Toggle - show when turbo mode is disabled */}
             {!turboMode && (
-              <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg border">
+              <div className="flex items-center gap-x-2 p-3 bg-muted/30 rounded-lg border">
                 <Switch
                   id="enhance-prompt"
                   checked={enhancePrompt}
@@ -365,7 +365,7 @@ const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
             
             {/* Turbo Mode Toggle - DISABLED - keeping code for potential future use
             {isCloudGenerationEnabled && !isTurboModeDisabled && (
-              <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg border">
+              <div className="flex items-center gap-x-2 p-3 bg-muted/30 rounded-lg border">
                 <Switch
                   id="turbo-mode"
                   checked={turboMode}

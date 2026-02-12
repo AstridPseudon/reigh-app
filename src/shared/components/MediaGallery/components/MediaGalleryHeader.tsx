@@ -98,7 +98,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
   onMediaTypeFilterChange,
 }) => {
   return (
-    <div className="mt-0 space-y-3">
+    <div className="mt-0 gap-y-3">
       {/* Row 1: Shot filter + Search (left) + Media type filter (right) */}
       {showShotFilter && (
         <div className="flex justify-between items-center">
@@ -128,7 +128,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
                     <Search className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <div className={`flex items-center space-x-2 border rounded-md px-3 py-1 h-8 ${whiteText ? 'bg-zinc-800 border-zinc-600' : 'bg-background'}`}>
+                  <div className={`flex items-center gap-x-2 border rounded-md px-3 py-1 h-8 ${whiteText ? 'bg-zinc-800 border-zinc-600' : 'bg-background'}`}>
                     <Search className={`h-4 w-4 ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'}`} />
                     <input
                       ref={searchInputRef}

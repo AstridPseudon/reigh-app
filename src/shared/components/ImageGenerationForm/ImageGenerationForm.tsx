@@ -59,11 +59,11 @@ export const ImageGenerationForm: React.FC<ImageGenerationFormProps> = ({
 
   return (
     <ImageGenerationFormProvider value={form.contextValue}>
-      <form id="image-generation-form" onSubmit={form.handleSubmit} className="space-y-6">
+      <form id="image-generation-form" onSubmit={form.handleSubmit} className="gap-y-6">
         {/* Main Content Layout */}
         <div className="flex gap-6 flex-col md:flex-row pb-4">
           {/* Left Column - Prompts and Shot Selector */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 gap-y-6">
             <PromptsSection
               onPromptModeChange={(mode) => {
                 form.markAsInteracted();

@@ -319,7 +319,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   // ==========================================================================
 
   return (
-    <div className="space-y-4">
+    <div className="gap-y-4">
       {/* Header */}
       {showHeader && (
         <div className="flex items-center gap-2">
@@ -356,7 +356,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
             {/* Frames Slider */}
             <div className="order-last col-span-2 @[280px]:order-none @[280px]:col-span-1 flex items-center gap-2">
-              <div className="flex-1 flex flex-col justify-center space-y-1">
+              <div className="flex-1 flex flex-col justify-center gap-y-1">
                 <div className="flex flex-col items-center text-center">
                   <Label className="text-xs font-medium">Frames</Label>
                   <span className="text-xs text-muted-foreground">
@@ -398,8 +398,8 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
       )}
 
       {/* Prompt */}
-      <div className="space-y-2">
-        <div className="space-y-1">
+      <div className="gap-y-2">
+        <div className="gap-y-1">
           <div className="flex items-center gap-2">
             <Label className="text-xs font-medium">Prompt:</Label>
             {promptField.badgeType === 'enhanced' && (
@@ -440,7 +440,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
         {/* Enhance Prompt Toggle & Make Primary Variant */}
         <div className="flex gap-2">
           {onEnhancePromptChange && (
-            <div className="flex items-center space-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
+            <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
               <Switch
                 id="enhance-prompt-segment"
                 checked={enhancePromptEnabled ?? false}
@@ -451,7 +451,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
               </Label>
             </div>
           )}
-          <div className="flex items-center space-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
+          <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
             <Switch
               id="make-primary-segment"
               checked={isRegeneration ? settings.makePrimaryVariant : true}
@@ -482,10 +482,10 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className={edgeExtendAmount === 6 ? '-mx-6' : '-mx-4'}>
-          <div className={`space-y-3 bg-muted/30 border-y border-border/50 ${edgeExtendAmount === 6 ? 'px-6 py-3' : 'px-4 py-3'}`}>
+          <div className={`gap-y-3 bg-muted/30 border-y border-border/50 ${edgeExtendAmount === 6 ? 'px-6 py-3' : 'px-4 py-3'}`}>
             {/* Before/After Each Prompt */}
             {(shotDefaults?.textBeforePrompts !== undefined || shotDefaults?.textAfterPrompts !== undefined) && (
-              <div className="space-y-2">
+              <div className="gap-y-2">
                 <DefaultableTextarea
                   label="Before:"
                   value={settings.textBeforePrompts}
@@ -543,7 +543,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
               onVoiceResult={(result) => {
                 onChange({ negativePrompt: result.prompt || result.transcription });
               }}
-              containerClassName="space-y-1.5"
+              containerClassName="gap-y-1.5"
             />
 
             {/* Motion Controls */}
@@ -582,7 +582,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                     />
                   }
                   renderBasicModeContent={() => (
-                    <div className="space-y-3">
+                    <div className="gap-y-3">
                       <div className="relative">
                         <ActiveLoRAsDisplay
                           selectedLoras={effectiveLoras}
@@ -622,7 +622,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Structure Video Section */}
             {/* Timeline Mode: Loading state when uploading or waiting for props (no existing video) */}
             {isTimelineMode && videoUpload.isVideoLoading && !structureVideoType && (
-              <div className="space-y-3 pt-3 border-t border-border/50">
+              <div className="gap-y-3 pt-3 border-t border-border/50">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                   <Video className="w-3.5 h-3.5" />
                   <span>Structure Video</span>
@@ -635,7 +635,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Timeline Mode: Add Structure Video (when no video exists and not loading) */}
             {isTimelineMode && !structureVideoType && !videoUpload.isVideoLoading && onAddSegmentStructureVideo && (
               <div
-                className="relative space-y-3 pt-3 border-t border-border/50"
+                className="relative gap-y-3 pt-3 border-t border-border/50"
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
@@ -662,7 +662,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                   <Video className="w-3.5 h-3.5" />
                   <span>Structure Video</span>
                 </div>
-                <div className="space-y-2">
+                <div className="gap-y-2">
                   <input
                     ref={videoUpload.addFileInputRef}
                     type="file"
@@ -717,7 +717,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Structure Video Overrides - shown when segment has structure video */}
             {structureVideoType && (
               <div
-                className="space-y-3 pt-3 border-t border-border/50"
+                className="gap-y-3 pt-3 border-t border-border/50"
                 onDragOver={isTimelineMode ? handleDragOver : undefined}
                 onDragEnter={isTimelineMode ? handleDragEnter : undefined}
                 onDragLeave={isTimelineMode ? handleDragLeave : undefined}
@@ -794,7 +794,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
                 {/* Treatment Mode Selector with Upload/Browse - Timeline Mode Only */}
                 {isTimelineMode && (
-                  <div className="space-y-1.5">
+                  <div className="gap-y-1.5">
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <Label className="text-xs font-medium">Treatment:</Label>
@@ -875,7 +875,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                 )}
 
                 {/* Motion Strength */}
-                <div className="space-y-1.5">
+                <div className="gap-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Strength:</Label>
@@ -910,7 +910,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
                 {/* Uni3C End Percent */}
                 {structureVideoType === 'uni3c' && (
-                  <div className="space-y-1.5">
+                  <div className="gap-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Label className="text-xs font-medium">End Percent:</Label>

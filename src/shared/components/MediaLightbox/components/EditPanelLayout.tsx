@@ -86,7 +86,7 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
   const isMobile = variant === 'mobile';
   const hasVariants = variants && variants.length >= 1 && onVariantSelect;
   const padding = isMobile ? 'p-3' : 'p-6';
-  const spacing = isMobile ? 'space-y-2' : 'space-y-4';
+  const spacing = isMobile ? 'gap-y-2' : 'gap-y-4';
   const { copied: idCopied, handleCopy: handleCopyId } = useCopyToClipboard(taskId ?? undefined);
   const variantsSectionRef = useRef<HTMLDivElement>(null);
 

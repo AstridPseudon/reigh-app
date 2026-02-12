@@ -119,8 +119,8 @@ export const WorkflowControlsBar: React.FC<WorkflowControlsBarProps> = ({
   }
 
   return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 z-[60]">
-      <div className="bg-black/50 backdrop-blur-sm rounded-lg px-1.5 py-1 flex items-center space-x-2">
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-x-2 z-[60]">
+      <div className="bg-black/50 backdrop-blur-sm rounded-lg px-1.5 py-1 flex items-center gap-x-2">
         {/* Shot Selection and Add to Shot */}
         {onAddToShot && allShots.length > 0 && !isVideo && (
           <ShotSelectorControls

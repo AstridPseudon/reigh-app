@@ -31,7 +31,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 }) => {
   return (
     <>
-      <div className="space-y-1">
+      <div className="gap-y-1">
         <Label htmlFor="preset-name">Name: *</Label>
         <Input
           id="preset-name"
@@ -42,7 +42,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         />
       </div>
 
-      <div className="space-y-1">
+      <div className="gap-y-1">
         <Label htmlFor="preset-description">Description: (optional)</Label>
         <Textarea
           id="preset-description"
@@ -61,7 +61,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-x-2">
           <Checkbox
             id="created-by-you"
             checked={createdByIsYou}
@@ -78,7 +78,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             className="w-40"
           />
         )}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-x-2">
           <Checkbox
             id="is-public"
             checked={isPublic}

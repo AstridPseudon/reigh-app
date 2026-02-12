@@ -518,7 +518,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
       <div
         ref={galleryContainerRef}
         className={cn(
-          reducedSpacing ? 'space-y-6' : 'space-y-6',
+          reducedSpacing ? 'gap-y-6' : 'gap-y-6',
           // Add bottom padding: mobile gets extra padding for fixed bottom bar, desktop uses existing logic
           isMobile && !hidePagination ? 'pb-16' : (reducedSpacing ? 'pb-0' : ((!hidePagination && !hideBottomPagination) ? 'pb-[62px]' : 'pb-0')),
           className

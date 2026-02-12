@@ -46,7 +46,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
   }, [shots]);
 
   return (
-    <div className="space-y-2 mt-6">
+    <div className="gap-y-2 mt-6">
       <div className="flex items-center gap-2">
         <SectionHeader title="Shot" theme="green" htmlFor="associatedShot" />
       </div>

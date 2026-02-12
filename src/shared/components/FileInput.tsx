@@ -206,7 +206,7 @@ const FileInput: React.FC<FileInputProps> = ({
                              (currentFilePreviewUrl && !multiple ? [currentFilePreviewUrl] : []);
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`gap-y-2 ${className}`}>
       {label && <Label htmlFor="file-input-element">{label}</Label>}
       <div
         className={`border-2 border-dashed rounded-md p-6 text-center
@@ -228,14 +228,14 @@ const FileInput: React.FC<FileInputProps> = ({
           multiple={multiple}
         />
         {(forceLoading || (showLoaderDuringSingleSelection && !multiple && isSelectionLoading)) ? (
-          <div className="flex flex-col items-center space-y-2 text-muted-foreground">
+          <div className="flex flex-col items-center gap-y-2 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
             <p>Processing file...</p>
           </div>
         ) : (
           <>
             {displayFiles.length === 0 && (
-              <div className="flex flex-col items-center space-y-2 text-muted-foreground">
+              <div className="flex flex-col items-center gap-y-2 text-muted-foreground">
                 <UploadCloud className="h-10 w-10" />
                 <p>Drag & drop or click to upload {multiple ? 'files' : 'a file'}</p>
                 {!suppressAcceptedTypes && (
@@ -246,7 +246,7 @@ const FileInput: React.FC<FileInputProps> = ({
               </div>
             )}
             {displayFiles.length > 0 && (
-              <div className="space-y-2">
+              <div className="gap-y-2">
                 {!suppressSelectionSummary && (
                   <div className="text-sm text-muted-foreground p-2 border rounded-md bg-background flex items-center justify-between">
                       <div className="flex-1 text-center">

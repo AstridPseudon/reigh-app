@@ -135,7 +135,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
       }
     >
       <div className="grid gap-3 py-3">
-        <div className="space-y-2">
+        <div className="gap-y-2">
           <Label htmlFor="shot-name">
             Name:
           </Label>
@@ -156,7 +156,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
         />
 
         {/* Aspect Ratio Selection */}
-        <div className="space-y-2 pt-2 border-t">
+        <div className="gap-y-2 pt-2 border-t">
           <Label htmlFor="shot-aspect-ratio" className="text-sm font-medium">What size would you like to use?</Label>
           <AspectRatioSelector
             value={aspectRatio}
@@ -168,7 +168,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
 
           {/* Show checkbox when selected aspect ratio differs from project aspect ratio */}
           {aspectRatio && projectAspectRatio && aspectRatio !== projectAspectRatio && (
-            <div className="flex items-center space-x-2 pt-2">
+            <div className="flex items-center gap-x-2 pt-2">
               <Checkbox
                 id="update-project-aspect-ratio"
                 checked={updateProjectAspectRatio}

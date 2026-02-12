@@ -51,7 +51,7 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
   onDuplicate,
   onDelete,
 }) => (
-  <div className="flex items-center space-x-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+  <div className="flex items-center gap-x-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
     {/* Show loading indicator for temp shots */}
     {isTempShot && (
       <div className="flex items-center gap-1 text-xs text-muted-foreground mr-2">
@@ -738,7 +738,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
               Are you sure you want to delete shot "<span className="preserve-case">{shot.name}</span>"? This will permanently remove the shot and all its associated data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex items-center space-x-2 py-2">
+          <div className="flex items-center gap-x-2 py-2">
             <Checkbox
               id="skip-confirmation"
               checked={skipConfirmationChecked}

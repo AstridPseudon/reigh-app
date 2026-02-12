@@ -93,7 +93,7 @@ const TaskListSkeleton: React.FC<{ activeFilter: FilterGroup; count?: number }> 
   );
 
   return (
-    <div className="space-y-1">
+    <div className="gap-y-1">
       {skeletonItems.map((config, idx) => (
         <React.Fragment key={idx}>
           <TaskItemSkeleton {...config} />

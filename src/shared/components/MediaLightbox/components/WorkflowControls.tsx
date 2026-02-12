@@ -120,8 +120,8 @@ export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
   }
 
   return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 z-[60]">
-      <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 flex items-center space-x-2">
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-x-2 z-[60]">
+      <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 flex items-center gap-x-2">
         {/* Shot Selection and Add to Shot */}
         {onAddToShot && allShots.length > 0 && !isVideo && (
           <>

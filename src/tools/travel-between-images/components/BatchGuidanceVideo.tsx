@@ -429,7 +429,7 @@ export const BatchGuidanceVideo: React.FC<BatchGuidanceVideoProps> = ({
           )}
           
           {/* Frame scrubber at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-2 space-y-1">
+          <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-2 gap-y-1">
             <div className="flex items-center justify-between text-xs text-white/80">
               <span>Timeline Frame: {currentTimelineFrame}</span>
               <span>{minFrame} - {maxFrame}</span>
@@ -464,7 +464,7 @@ export const BatchGuidanceVideo: React.FC<BatchGuidanceVideoProps> = ({
         {/* Settings panel - below on mobile, right two thirds on desktop */}
         <div className="flex-1 p-4 bg-muted/20 flex flex-col gap-4">
           {/* Treatment mode */}
-          <div className="space-y-2">
+          <div className="gap-y-2">
             <Label className="text-sm">How would you like to cut the guidance video to match the timeline?</Label>
             <div className="flex flex-col md:flex-row md:items-center gap-3">
               <div className="flex-shrink-0 w-full md:w-[200px]">

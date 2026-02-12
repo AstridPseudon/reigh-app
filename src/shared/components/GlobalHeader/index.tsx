@@ -134,7 +134,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ contentOffsetRight =
 
         {/* Floating decorative elements */}
         <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 pointer-events-none">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-x-4">
             <div className="w-1 h-1 bg-wes-vintage-gold rounded-full animate-vintage-pulse"></div>
             <div className="text-wes-vintage-gold text-xs animate-sway">{'\u25C6'}</div>
             <div className="w-1 h-1 bg-wes-coral rounded-full animate-vintage-pulse" style={{ animationDelay: '1s' }}></div>

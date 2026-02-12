@@ -45,13 +45,13 @@ export const Img2ImgControls: React.FC<Img2ImgControlsProps> = ({
   availableLoras,
   SectionLabel,
 }) => {
-  const spacing = isMobile ? 'space-y-2' : 'space-y-4';
+  const spacing = isMobile ? 'gap-y-2' : 'gap-y-4';
   const labelSize = isMobile ? 'text-[10px] uppercase tracking-wide text-muted-foreground' : 'text-sm';
   const textareaMinHeight = isMobile ? 'min-h-[50px]' : 'min-h-[100px]';
   const textareaRows = isMobile ? 2 : 4;
   const textareaPadding = isMobile ? 'px-2 py-1.5' : 'px-3 py-2';
   const textareaTextSize = isMobile ? 'text-base' : 'text-sm';
-  const generationsSpacing = isMobile ? 'space-y-0.5' : 'space-y-2';
+  const generationsSpacing = isMobile ? 'gap-y-0.5' : 'gap-y-2';
   const sliderTextSize = isMobile ? 'text-xs' : 'text-sm';
   const buttonSize = isMobile ? 'sm' : 'default';
   const iconSize = isMobile ? 'h-3 w-3' : 'h-4 w-4';

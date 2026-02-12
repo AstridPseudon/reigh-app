@@ -52,7 +52,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
   const phaseLabels = editablePhaseConfig.num_phases === 2 ? phaseLabels2 : phaseLabels3;
 
   return (
-    <div className="space-y-3 pt-2 border-t">
+    <div className="gap-y-3 pt-2 border-t">
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Phase Configuration</Label>
         <Button
@@ -68,7 +68,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
       </div>
 
       {/* Model Type Toggle (I2V vs VACE) */}
-      <div className="space-y-2 p-3 bg-muted/30 rounded-lg border">
+      <div className="gap-y-2 p-3 bg-muted/30 rounded-lg border">
         <div className="flex items-center gap-2">
           <Label className="text-sm font-light">Model Type:</Label>
           <TooltipProvider>
@@ -90,11 +90,11 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
           onValueChange={(value) => onGenerationTypeModeChange(value as 'i2v' | 'vace')}
           className="flex flex-row gap-4"
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-x-2">
             <RadioGroupItem value="i2v" id="preset-gen-type-i2v" />
             <Label htmlFor="preset-gen-type-i2v" className="text-sm">I2V (Image-to-Video)</Label>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-x-2">
             <RadioGroupItem value="vace" id="preset-gen-type-vace" />
             <Label htmlFor="preset-gen-type-vace" className="text-sm">VACE (Structure Video)</Label>
           </div>
@@ -108,7 +108,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Number of Phases */}
-            <div className="space-y-1.5">
+            <div className="gap-y-1.5">
               <Label className="text-sm font-light">Number of Phases:</Label>
               <RadioGroup
                 value={String(editablePhaseConfig.num_phases)}
@@ -162,11 +162,11 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
                 }}
                 className="flex flex-row gap-4"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-x-2">
                   <RadioGroupItem value="2" id="preset-phases-2" />
                   <Label htmlFor="preset-phases-2" className="text-sm">2</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-x-2">
                   <RadioGroupItem value="3" id="preset-phases-3" />
                   <Label htmlFor="preset-phases-3" className="text-sm">3</Label>
                 </div>
@@ -174,22 +174,22 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
             </div>
 
             {/* Sample Solver */}
-            <div className="space-y-1.5">
+            <div className="gap-y-1.5">
               <Label className="text-sm font-light">Sample Solver:</Label>
               <RadioGroup
                 value={editablePhaseConfig.sample_solver}
                 onValueChange={(value) => updatePhaseConfig('sample_solver', value)}
                 className="flex flex-row gap-4"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-x-2">
                   <RadioGroupItem value="euler" id="preset-euler" />
                   <Label htmlFor="preset-euler" className="text-sm">Euler</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-x-2">
                   <RadioGroupItem value="unipc" id="preset-unipc" />
                   <Label htmlFor="preset-unipc" className="text-sm">UniPC</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-x-2">
                   <RadioGroupItem value="dpm++" id="preset-dpm" />
                   <Label htmlFor="preset-dpm" className="text-sm">DPM++</Label>
                 </div>
@@ -198,7 +198,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
           </div>
 
           {/* Flow Shift */}
-          <div className="space-y-1.5 mt-4">
+          <div className="gap-y-1.5 mt-4">
             <Label className="text-sm font-light">
               Flow Shift: {editablePhaseConfig.flow_shift}
             </Label>
@@ -228,9 +228,9 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Left: Steps and Guidance */}
-              <div className="space-y-3">
+              <div className="gap-y-3">
                 {/* Steps */}
-                <div className="space-y-1.5">
+                <div className="gap-y-1.5">
                   <Label className="text-sm font-light">
                     Steps: {(editablePhaseConfig.steps_per_phase || [])[phaseIdx] ?? 2}
                   </Label>
@@ -248,7 +248,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
                 </div>
 
                 {/* Guidance Scale */}
-                <div className="space-y-1.5">
+                <div className="gap-y-1.5">
                   <Label className="text-sm font-light">Guidance Scale:</Label>
                   <NumberInput
                     min={0}

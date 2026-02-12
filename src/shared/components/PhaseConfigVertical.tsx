@@ -143,7 +143,7 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
     <CardContent className="pt-12 px-4 pb-4">
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left Column */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           {/* Number of Phases */}
           <div>
             <Label htmlFor="num_phases" className="text-sm font-light block mb-1.5">
@@ -165,11 +165,11 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
               }}
               className="flex flex-row gap-4"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 <RadioGroupItem value="2" id="phases-2" />
                 <Label htmlFor="phases-2" className="text-sm">2</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 <RadioGroupItem value="3" id="phases-3" />
                 <Label htmlFor="phases-3" className="text-sm">3</Label>
               </div>
@@ -187,15 +187,15 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
               })}
               className="flex flex-row gap-4"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 <RadioGroupItem value="euler" id="euler" />
                 <Label htmlFor="euler" className="text-sm">Euler</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 <RadioGroupItem value="unipc" id="unipc" />
                 <Label htmlFor="unipc" className="text-sm">UniPC</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 <RadioGroupItem value="dpm++" id="dpm++" />
                 <Label htmlFor="dpm++" className="text-sm">DPM++</Label>
               </div>
@@ -209,7 +209,7 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
         </div>
 
         {/* Right Column */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           {/* Flow Shift */}
           <div className="relative">
             <Label htmlFor="flow_shift" className="text-sm font-light block mb-1.5">
@@ -239,7 +239,7 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
           </div>
 
           {/* Random Seed */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-x-2">
             <Switch
               id="random-seed"
               checked={randomSeed}
@@ -306,7 +306,7 @@ const PerPhaseCard: React.FC<PerPhaseCardProps> = ({
     <CardContent className="pt-12 px-4 pb-4">
       <div className="grid grid-cols-3 gap-6">
         {/* Left Column - Steps and Guidance Scale (1/3) */}
-        <div className="space-y-3">
+        <div className="gap-y-3">
           {/* Steps */}
           <div>
             <Label htmlFor={`steps_${phaseIdx}`} className="text-sm font-light block mb-1.5">
@@ -427,7 +427,7 @@ const PerPhaseCard: React.FC<PerPhaseCardProps> = ({
             const isFocused = focusedLoraInput === inputId;
             const loraValidation = lora.url ? validateHuggingFaceUrl(lora.url) : null;
             return (
-              <div key={loraIdx} className="space-y-0.5 mb-1.5">
+              <div key={loraIdx} className="gap-y-0.5 mb-1.5">
                 <div className="flex items-center gap-2">
                 <div className="relative flex-1 min-w-0">
                   <Input
@@ -676,7 +676,7 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="gap-y-3">
       <PhaseConfigHeader
         onLoadPreset={() => modals.openPresetModal('load', 'browse')}
         onSaveAsPreset={() => modals.openPresetModal('load', 'add-new')}

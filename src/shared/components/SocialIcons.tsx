@@ -4,9 +4,9 @@ import { Github, MessageCircle } from 'lucide-react';
 export const SocialIcons: React.FC = () => {
   return (
     <div className="flex justify-center pt-4 pb-14">
-      <div className="flex flex-col items-center space-y-3">
+      <div className="flex flex-col items-center gap-y-3">
         {/* GitHub and Discord icons side by side */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-x-3">
           <a
             href="http://github.com/peteromallet/reigh"
             target="_blank"

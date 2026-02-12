@@ -472,7 +472,7 @@ export const DatasetBrowserModal: React.FC<DatasetBrowserModalProps> = ({
 
         <div ref={scrollRef} className={modal.scrollClass}>
           {/* Search and Filters */}
-          <div className="space-y-4 mb-6">
+          <div className="gap-y-4 mb-6">
             {/* Filter Buttons */}
             <div className="flex items-center gap-2">
               <Button

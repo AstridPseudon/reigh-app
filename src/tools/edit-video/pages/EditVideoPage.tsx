@@ -352,7 +352,7 @@ export default function EditVideoPage() {
                   </div>
                   {/* Right panel skeleton for controls - 40% width */}
                   <div className="w-[40%] bg-background border-l border-border p-4 overflow-y-auto">
-                    <div className="space-y-4">
+                    <div className="gap-y-4">
                       <Skeleton className="h-8 w-full" />
                       <Skeleton className="h-16 w-full" />
                       <Skeleton className="h-24 w-full" />
@@ -395,8 +395,8 @@ export default function EditVideoPage() {
                 )}
                 
                 {!uploadOperation.isLoading && !isDraggingOver && (
-                 <div className="bg-background/90 backdrop-blur-sm rounded-lg border border-border/50 p-6 md:p-8 flex flex-col items-center justify-center space-y-4 md:space-y-6 max-w-md mx-4">
-                  <div className="text-center space-y-1 md:space-y-2">
+                 <div className="bg-background/90 backdrop-blur-sm rounded-lg border border-border/50 p-6 md:p-8 flex flex-col items-center justify-center gap-y-4 md:gap-y-6 max-w-md mx-4">
+                  <div className="text-center gap-y-1 md:gap-y-2">
                     <p className="text-muted-foreground text-xs md:hidden">
                       Select or upload a video
                     </p>

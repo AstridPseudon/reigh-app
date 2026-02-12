@@ -62,7 +62,7 @@ function CustomTooltip({
       className="bg-background border border-border rounded-lg shadow-lg p-4 max-w-xs z-[100011] animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
     >
       {/* Header with colored icon */}
-      <div className="text-center space-y-2 mb-3">
+      <div className="text-center gap-y-2 mb-3">
         <div className={`mx-auto w-8 h-8 ${colors.bg} rounded-full flex items-center justify-center`}>
           <Icon className={`w-4 h-4 ${colors.icon}`} />
         </div>
@@ -83,7 +83,7 @@ function CustomTooltip({
         {index > 0 ? (
           <button
             {...backProps}
-            className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-3 w-3" />
             <span>Back</span>
@@ -100,7 +100,7 @@ function CustomTooltip({
         {continuous && (
           <button
             {...primaryProps}
-            className="flex items-center space-x-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+            className="flex items-center gap-x-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
           >
             <span>{isLastStep ? "Done" : 'Next'}</span>
             {!isLastStep && <ChevronRight className="h-3 w-3" />}
@@ -109,7 +109,7 @@ function CustomTooltip({
       </div>
 
       {/* Step indicators */}
-      <div className="flex justify-center space-x-1.5 pt-3 border-t border-border mt-3">
+      <div className="flex justify-center gap-x-1.5 pt-3 border-t border-border mt-3">
         {Array.from({ length: totalSteps }).map((_, i) => (
           <div
             key={i}

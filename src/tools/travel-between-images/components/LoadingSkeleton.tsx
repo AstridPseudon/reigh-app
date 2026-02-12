@@ -16,8 +16,8 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
   if (type === 'editor') {
     return (
       <PageFadeIn className="pt-3 sm:pt-5">
-        <div className="flex flex-col space-y-4 pb-4">
-          <div className="flex-shrink-0 space-y-1 sm:space-y-1 pb-2 sm:pb-1">
+        <div className="flex flex-col gap-y-4 pb-4">
+          <div className="flex-shrink-0 gap-y-1 sm:gap-y-1 pb-2 sm:pb-1">
             {/* Desktop skeleton - 3-column layout matching actual Header with fixed widths */}
             <div className="hidden sm:flex justify-between items-center gap-y-2 px-2">
               {/* Left: Back button container - fixed width matching Header */}
@@ -28,7 +28,7 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
               
               {/* Center: Navigation buttons with shot name - matching actual layout */}
               <div className="flex items-center justify-center">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-x-2">
                 {/* ChevronLeft button - size="sm" is ~h-9 w-9 */}
                 <Skeleton className="h-9 w-9 rounded-md" />
                   {/* Shot name - text-xl font-semibold with py-2 px-4 border-2 = ~h-10 */}
@@ -53,8 +53,8 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
                 <Skeleton className="h-9 w-full rounded-md" />
               </div>
               
-                {/* Shot name with navigation buttons - matching space-x-1 */}
-                <div className="flex items-center space-x-1">
+                {/* Shot name with navigation buttons - matching gap-x-1 */}
+                <div className="flex items-center gap-x-1">
                 <Skeleton className="h-9 w-9 rounded-md" />
                   {/* Shot name - text-base with px-1 = ~h-6 */}
                   <Skeleton className="h-6 w-[70px] rounded-md" />
@@ -130,7 +130,7 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
               {/* Header: shot name + action buttons (Video, Pencil, Copy, Trash) */}
               <div className="flex justify-between items-start mb-3">
                 <Skeleton className="h-7 w-32 rounded" />
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-x-1">
                   <Skeleton className="h-8 w-8 rounded" />
                   <Skeleton className="h-8 w-8 rounded" />
                   <Skeleton className="h-8 w-8 rounded" />

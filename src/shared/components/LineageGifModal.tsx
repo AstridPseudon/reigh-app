@@ -138,7 +138,7 @@ export const LineageGifModal: React.FC<LineageGifModalProps> = ({
         {/* Download button with progress */}
         {isGenerating ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-full max-w-xs space-y-2">
+            <div className="w-full max-w-xs gap-y-2">
               <Progress value={percentage} className="h-2" />
               <p className="text-sm text-muted-foreground text-center">{progress?.message}</p>
             </div>

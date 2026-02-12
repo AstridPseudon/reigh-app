@@ -44,7 +44,7 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
       }}
     >
       {/* Left side - Brand + Project Selector */}
-      <div className="flex items-center space-x-6 pl-2 relative z-30">
+      <div className="flex items-center gap-x-6 pl-2 relative z-30">
         {/* Brand */}
         <div
           role="link"
@@ -53,7 +53,7 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
           onPointerDown={triggerBrandFlash}
           onPointerUp={() => navigate("/")}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate("/"); }}
-          className="group flex items-center space-x-4 relative p-2 -m-2 cursor-pointer z-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-wes-vintage-gold/50 rounded-2xl"
+          className="group flex items-center gap-x-4 relative p-2 -m-2 cursor-pointer z-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-wes-vintage-gold/50 rounded-2xl"
         >
           <div className="relative">
             <div
@@ -89,9 +89,9 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
         </div>
 
         {/* Project Management */}
-        <div className="flex items-center space-x-3 relative p-1 rounded-xl bg-transparent dark:bg-surface/20 z-40">
+        <div className="flex items-center gap-x-3 relative p-1 rounded-xl bg-transparent dark:bg-surface/20 z-40">
           {isLoadingProjects && projects.length === 0 ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-x-3">
               {/* Project Selector Skeleton */}
               <div className="w-[280px] h-12 bg-muted animate-pulse rounded-sm border-2 border-[#6a8a8a]/25 dark:border-[#6a7a7a]"></div>
             </div>
@@ -102,7 +102,7 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex items-center space-x-3 relative z-50">
+            <div className="flex items-center relative z-50">
               <ProjectSelectorPopover
                 projects={projects}
                 selectedProject={selectedProject}

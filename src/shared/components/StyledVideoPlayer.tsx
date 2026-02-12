@@ -315,7 +315,7 @@ export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 rounded-b-lg pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-x-3">
             {/* Play/Pause */}
             <Button
               variant="ghost"

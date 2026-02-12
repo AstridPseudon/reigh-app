@@ -23,10 +23,10 @@ const components: Components = {
     </a>
   ),
   ul: ({ children }) => (
-    <ul className="my-4 ml-6 list-disc space-y-1">{children}</ul>
+    <ul className="my-4 ml-6 list-disc gap-y-1">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="my-4 ml-6 list-decimal space-y-1">{children}</ol>
+    <ol className="my-4 ml-6 list-decimal gap-y-1">{children}</ol>
   ),
   li: ({ children }) => (
     <li className="leading-7">{children}</li>

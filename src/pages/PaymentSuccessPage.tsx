@@ -89,7 +89,7 @@ const PaymentSuccessPage: React.FC = () => {
               We couldn't verify your payment. This might be a temporary issue.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="gap-y-4">
             <div className="text-sm text-muted-foreground text-center">
               If you were charged, your credits will be added automatically within a few minutes.
               You can check your transaction history in Settings.
@@ -146,8 +146,8 @@ const PaymentSuccessPage: React.FC = () => {
             Your credits have been added to your account
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+        <CardContent className="gap-y-4">
+          <div className="bg-gray-50 p-4 rounded-lg gap-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Transaction ID:</span>
               <span className="font-mono text-xs">{sessionDetails?.sessionId?.slice(-12)}</span>

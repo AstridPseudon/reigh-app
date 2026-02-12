@@ -193,7 +193,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
     <div className="p-4">
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Main content - left side on desktop, full width on mobile */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 gap-y-2">
           {/* Main prompt input - always visible */}
           <div>
           <Label htmlFor="gen_overallPromptText" className="mb-2 block">
@@ -318,7 +318,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
           {/* Advanced settings - sidebar on desktop, below on mobile */}
           <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
             <CollapsibleContent>
-              <div className="w-full lg:w-80 space-y-4 bg-accent/30 border border-accent-foreground/10 rounded-lg p-4 lg:hidden">
+              <div className="w-full lg:w-80 gap-y-4 bg-accent/30 border border-accent-foreground/10 rounded-lg p-4 lg:hidden">
                 {/* Rules/Constraints - moved into advanced */}
                 <div>
           <Label htmlFor="gen_rulesToRememberText" className="mb-2 block">Rules/Constraints:</Label>
@@ -471,7 +471,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                 {/* Checkboxes - moved into advanced, hidden in remix mode */}
                 {!remixMode && (
                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-x-2">
                       <Checkbox 
                         id="gen_includeExistingContext" 
                         checked={includeExistingContext} 
@@ -486,7 +486,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                         Include current prompts
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-x-2">
                       <Checkbox 
                         id="gen_replaceCurrentPrompts" 
                         checked={replaceCurrentPrompts} 
@@ -506,7 +506,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
           </Collapsible>
 
           {/* Generate button */}
-          <div className="w-full sm:w-[300px] space-y-2">
+          <div className="w-full sm:w-[300px] gap-y-2">
             <Button 
               type="button"
               variant="retro"
@@ -535,7 +535,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
 
         {/* Advanced settings - sidebar on desktop only */}
         {showAdvanced && (
-          <div className="hidden lg:block w-80 space-y-4 bg-accent/30 border border-accent-foreground/10 rounded-lg p-4">
+          <div className="hidden lg:block w-80 gap-y-4 bg-accent/30 border border-accent-foreground/10 rounded-lg p-4">
               {/* Rules/Constraints - moved into advanced */}
               <div>
                 <Label htmlFor="gen_rulesToRememberText" className="mb-2 block">Rules/Constraints:</Label>
@@ -701,7 +701,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                 {/* Checkboxes stacked on right - 50% width, hidden in remix mode */}
                 {!remixMode && (
                   <div className="flex-1 flex flex-col gap-3 justify-center">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-x-2">
                       <Checkbox 
                         id="gen_includeExistingContext" 
                         checked={includeExistingContext} 
@@ -716,7 +716,7 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
                         Include current prompts
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-x-2">
                       <Checkbox 
                         id="gen_replaceCurrentPrompts" 
                         checked={replaceCurrentPrompts} 

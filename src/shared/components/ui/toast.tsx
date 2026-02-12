@@ -12,7 +12,7 @@ export const toastManager = Toast.createToastManager()
 
 // ── Variant styles ──────────────────────────────────────────────────────────
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all",
+  "group pointer-events-auto relative flex w-full items-center justify-between gap-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all",
   {
     variants: {
       variant: {

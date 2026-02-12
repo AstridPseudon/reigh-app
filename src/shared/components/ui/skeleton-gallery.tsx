@@ -101,9 +101,9 @@ export function SkeletonGallery({
   }
 
   return (
-    <div className={cn('space-y-6 pb-8', className)}>
+    <div className={cn('gap-y-6 pb-8', className)}>
       {showControls && (
-        <div className="mt-0 space-y-3">
+        <div className="mt-0 gap-y-3">
           {/* Pagination row - matches MediaGallery pagination section */}
           <div className="flex justify-between items-center">
             {/* Left side - Pagination controls skeleton */}
@@ -114,7 +114,7 @@ export function SkeletonGallery({
             </div>
 
             {/* Right side - Starred filter skeleton */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-x-2">
               <div className={cn('h-4 w-4 rounded animate-pulse', skeletonBg)} />
               <div className={cn('h-4 w-12 rounded animate-pulse', skeletonBg)} />
             </div>
@@ -132,7 +132,7 @@ export function SkeletonGallery({
             </div>
             
             {/* Right side - Media Type Filter skeleton */}
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center gap-x-1.5">
               <div className={cn('h-4 w-8 rounded animate-pulse', skeletonBg)} />
               <div className={cn('h-8 w-[100px] rounded animate-pulse', skeletonBg)} />
             </div>

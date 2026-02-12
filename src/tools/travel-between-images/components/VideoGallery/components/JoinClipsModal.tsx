@@ -50,10 +50,10 @@ export function JoinClipsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="gap-y-6 py-4">
           {/* Prompts */}
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="gap-y-4">
+            <div className="gap-y-2">
               <Label htmlFor="join-prompt">Prompt: (Optional)</Label>
               <Textarea
                 id="join-prompt"
@@ -72,7 +72,7 @@ export function JoinClipsModal({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="gap-y-2">
               <Label htmlFor="join-negative-prompt">Negative Prompt: (Optional)</Label>
               <Textarea
                 id="join-negative-prompt"
@@ -93,8 +93,8 @@ export function JoinClipsModal({
           </div>
 
           {/* Frame Controls */}
-          <div className="space-y-4">
-            <div className="space-y-3">
+          <div className="gap-y-4">
+            <div className="gap-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="join-gap-frames" className="text-sm">
                   Gap Frames
@@ -114,7 +114,7 @@ export function JoinClipsModal({
               <p className="text-xs text-muted-foreground">Frames to generate in each transition</p>
             </div>
 
-            <div className="space-y-2">
+            <div className="gap-y-2">
               <Label htmlFor="join-context-frames" className="text-sm">
                 Context Frames
               </Label>

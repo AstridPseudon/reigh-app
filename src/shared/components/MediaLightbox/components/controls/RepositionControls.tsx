@@ -54,7 +54,7 @@ export const RepositionControls: React.FC<RepositionControlsProps> = ({
     transform.flipV;
   
   return (
-    <div className="space-y-2">
+    <div className="gap-y-2">
       {/* Flip Buttons */}
       <div className="flex gap-1">
         <button
@@ -92,7 +92,7 @@ export const RepositionControls: React.FC<RepositionControlsProps> = ({
       {/* Zoom and Rotation - always side by side */}
       <div className="flex gap-2">
         {/* Zoom */}
-        <div className={"space-y-0.5 flex-1"}>
+        <div className={"gap-y-0.5 flex-1"}>
           <div className="flex items-center gap-1.5">
             <Maximize2 className={cn("text-muted-foreground shrink-0", sliderIconSize)} />
             <div className="flex-1 flex items-center justify-between">
@@ -111,7 +111,7 @@ export const RepositionControls: React.FC<RepositionControlsProps> = ({
         </div>
 
         {/* Rotation */}
-        <div className={"space-y-0.5 flex-1"}>
+        <div className={"gap-y-0.5 flex-1"}>
           <div className="flex items-center gap-1.5">
             <RotateCw className={cn("text-muted-foreground shrink-0", sliderIconSize)} />
             <div className="flex-1 flex items-center justify-between">

@@ -42,7 +42,7 @@ export function AddCreditsSection({
   onAutoTopupThresholdChange,
 }: AddCreditsSectionProps) {
   return (
-    <div className="space-y-3">
+    <div className="gap-y-3">
       {/* Current Balance Container */}
       <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-800">
         <div className="flex items-center gap-2">
@@ -59,7 +59,7 @@ export function AddCreditsSection({
       </div>
 
       {/* Add Credits Container */}
-      <div className="p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-800 space-y-3">
+      <div className="p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-800 gap-y-3">
         <div className="flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-blue-500 dark:text-blue-400" />
           <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Add credits:</span>

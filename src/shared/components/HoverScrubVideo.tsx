@@ -477,7 +477,7 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
       {!isMobile && !disableScrubbing && !thumbnailMode && isActivated && showSpeedControls && (
         <div 
           className={cn(
-            'absolute flex items-center space-x-1 opacity-0 group-hover:opacity-100 group-touch:opacity-100 transition-opacity bg-black/60 rounded-md px-2 py-1 backdrop-blur-sm z-20',
+            'absolute flex items-center gap-x-1 opacity-0 group-hover:opacity-100 group-touch:opacity-100 transition-opacity bg-black/60 rounded-md px-2 py-1 backdrop-blur-sm z-20',
             speedControlsPosition === 'top-left' 
               ? 'top-2 left-2' 
               : 'bottom-2 left-1/2 -translate-x-1/2'

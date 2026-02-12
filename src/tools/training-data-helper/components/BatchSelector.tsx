@@ -90,7 +90,7 @@ function CreateBatchDialog({ isOpen, onOpenChange, onCreateBatch, trigger }: Cre
         <DialogHeader>
           <DialogTitle>Create New Batch</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="gap-y-4">
           <div>
             <Label htmlFor="batch-name">Batch Name</Label>
             <Input
@@ -309,7 +309,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
             <DialogHeader>
               <DialogTitle>Edit Batch</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="gap-y-4">
               <div>
                 <Label htmlFor="edit-batch-name">Batch Name</Label>
                 <Input
@@ -356,7 +356,7 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
             <DialogHeader>
               <DialogTitle>Delete Batch</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="gap-y-4">
               <p className="text-sm text-muted-foreground">
                 Are you sure you want to delete "<span className="preserve-case">{batchToDelete?.name}</span>"? This action cannot be undone.
               </p>

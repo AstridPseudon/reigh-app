@@ -179,7 +179,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
 
   return (
     <div className="container mx-auto px-4 pt-8 pb-24 sm:pb-28 max-w-6xl">
-      <div className="space-y-6">
+      <div className="gap-y-6">
         {/* Output Video Display - using FinalVideoSection in read-only mode */}
         <FinalVideoSection
           shotId={shareData.shot_id}
@@ -315,10 +315,10 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                 {structureVideo?.path && (
                   <div className="mb-6 pointer-events-none opacity-75">
                     <h4 className="text-sm font-medium text-muted-foreground mb-3">Camera Guidance:</h4>
-                    <div className="space-y-4">
+                    <div className="gap-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         {/* Strength slider */}
-                        <div className="space-y-2">
+                        <div className="gap-y-2">
                           <div className="flex items-center justify-between">
                             <Label className="text-sm">Strength:</Label>
                             <span className="text-sm font-medium">{(structureVideo?.motionStrength ?? 1.0).toFixed(1)}x</span>
@@ -339,7 +339,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                         </div>
 
                         {/* Uni3C End Percent */}
-                        <div className="space-y-2">
+                        <div className="gap-y-2">
                           <div className="flex items-center justify-between">
                             <Label className="text-sm">End:</Label>
                             <span className="text-sm font-medium">{((structureVideos[0]?.uni3c_end_percent ?? 0.1) * 100).toFixed(0)}%</span>

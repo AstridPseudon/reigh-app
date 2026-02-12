@@ -225,7 +225,7 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
         ) : (
           <div className="h-5" />
         )}
-        <div className={`flex items-center space-x-1 ${isMobile && mobileInlineEditing ? 'flex-1 justify-end' : ''}`}>
+        <div className={`flex items-center gap-x-1 ${isMobile && mobileInlineEditing ? 'flex-1 justify-end' : ''}`}>
           {rightHeaderAddon ? (
             <div className={`flex items-center gap-2 ${isMobile && mobileInlineEditing ? 'w-full' : ''}`}>{rightHeaderAddon}</div>
           ) : (

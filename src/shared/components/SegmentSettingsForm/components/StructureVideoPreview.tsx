@@ -206,7 +206,7 @@ export const StructureVideoPreview: React.FC<StructureVideoPreviewProps> = ({
   const isFrameCaptured = (i: number) => capturedForUrl !== null && capturedCount > i;
 
   return (
-    <div className="space-y-1.5">
+    <div className="gap-y-1.5">
       <div className="flex items-center gap-2 text-[10px]">
         {hasCapturesForUrl || isExtracting ? (
           <>

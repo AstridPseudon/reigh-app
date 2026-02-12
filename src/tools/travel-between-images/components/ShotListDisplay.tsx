@@ -445,7 +445,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
             {/* Header: shot name + action buttons (Video, Pencil, Copy, Trash) */}
             <div className="flex justify-between items-start mb-3">
               <div className="h-7 w-32 bg-muted rounded" />
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center gap-x-1">
                 <div className="h-8 w-8 bg-muted rounded" />
                 <div className="h-8 w-8 bg-muted rounded" />
                 <div className="h-8 w-8 bg-muted rounded" />
@@ -567,7 +567,7 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
               {/* Header skeleton (Video, Pencil, Copy, Trash) */}
               <div className="flex justify-between items-start mb-3">
                 <div className="h-7 w-32 bg-muted rounded" />
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-x-1">
                   <div className="h-8 w-8 bg-muted rounded" />
                   <div className="h-8 w-8 bg-muted rounded" />
                   <div className="h-8 w-8 bg-muted rounded" />

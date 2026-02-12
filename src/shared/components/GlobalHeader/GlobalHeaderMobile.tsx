@@ -50,7 +50,7 @@ export const GlobalHeaderMobile: React.FC<GlobalHeaderMobileProps> = ({
       {/* Top row - Brand + Project Buttons + App Settings */}
       <div className="flex items-center justify-between h-16 w-full px-4">
         {/* Left side - Brand + Project Buttons */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-x-3">
           {/* Brand */}
           <div
             role="link"
@@ -61,7 +61,7 @@ export const GlobalHeaderMobile: React.FC<GlobalHeaderMobileProps> = ({
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate("/"); }}
             className="group relative cursor-pointer z-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-wes-vintage-gold/50 rounded-xl"
           >
-            <div className="relative flex items-center space-x-2">
+            <div className="relative flex items-center gap-x-2">
               <div className="relative">
                 <div
                   className={cn(

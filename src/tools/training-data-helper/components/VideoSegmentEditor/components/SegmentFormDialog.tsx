@@ -43,9 +43,9 @@ export function SegmentFormDialog({
   onClearEndTime,
 }: SegmentFormDialogProps) {
   return (
-    <div className="w-1/5 space-y-4">
+    <div className="w-1/5 gap-y-4">
       {/* Segment Creation Controls */}
-      <div className="space-y-3 bg-muted p-3 rounded">
+      <div className="gap-y-3 bg-muted p-3 rounded">
         {segmentStartTime === null ? (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -64,7 +64,7 @@ export function SegmentFormDialog({
             </TooltipContent>
           </Tooltip>
         ) : (
-          <div className="space-y-2">
+          <div className="gap-y-2">
             {/* Live preview when dragging */}
             {segmentEndTime === null && currentTime > segmentStartTime && (
               <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
@@ -77,7 +77,7 @@ export function SegmentFormDialog({
 
             {/* Description and Create Button - only show when both start and end are set */}
             {segmentEndTime !== null && (
-              <div className="space-y-2">
+              <div className="gap-y-2">
                 <div>
                   <Label htmlFor="segment-description" className="text-sm">
                     Description (optional)
@@ -132,7 +132,7 @@ export function SegmentFormDialog({
             </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="gap-y-4">
             {/* Start Frame */}
             <div className="text-center">
               <div className="text-xs text-green-700 mb-1 font-light">

@@ -23,10 +23,10 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
   const isImg2Img = task?.taskType === 'z_image_turbo_i2i';
 
   return (
-    <div className={`p-3 bg-muted/30 rounded-lg border space-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[300px]'}`}>
+    <div className={`p-3 bg-muted/30 rounded-lg border gap-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[300px]'}`}>
       {/* Input Image */}
       {effectiveInputImages.length > 0 && (
-        <div className="space-y-2">
+        <div className="gap-y-2">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>
             Input Image
           </p>
@@ -42,7 +42,7 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Prompt (if provided) */}
       {prompt && (
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap leading-relaxed preserve-case`}>
             {prompt.length > config.promptLength ? prompt.slice(0, config.promptLength) + '...' : prompt}
@@ -52,7 +52,7 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Qwen Edit Model (if specified) */}
       {parsedParams?.qwen_edit_model && (
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Model</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
             {parsedParams.qwen_edit_model}
@@ -62,7 +62,7 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Img2Img Strength */}
       {isImg2Img && typeof strength === 'number' && (
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Strength</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
             {strength.toFixed(2)}
@@ -72,9 +72,9 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
 
       {/* LoRAs */}
       {loras.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="gap-y-1.5">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>LoRAs</p>
-          <div className="space-y-1">
+          <div className="gap-y-1">
             {loras.slice(0, config.maxLoras).map((lora, idx) => (
               <div key={idx} className={`flex items-center justify-between p-1.5 bg-background/50 rounded border ${config.textSize}`}>
                 <span className={`${config.fontWeight} truncate preserve-case`} title={lora.displayName}>

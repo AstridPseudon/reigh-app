@@ -284,7 +284,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
       {/* Hidden canvas for frame capture */}
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 gap-y-4">
         {/* Header - hidden when embedded in parent panel */}
         {!hideHeader && (
           <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
 
         {/* Frame previews */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="gap-y-2">
             <span className={cn(labelSize, 'text-muted-foreground block text-center')}>First frame</span>
             <div className="aspect-video bg-muted/30 rounded-lg overflow-hidden border border-border relative">
               {startFrame ? (
@@ -342,7 +342,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
               {formatTime(trimState.startTrim, { showMilliseconds: true, millisecondsDigits: 1 })}
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="gap-y-2">
             <span className={cn(labelSize, 'text-muted-foreground block text-center')}>Last frame</span>
             <div className="aspect-video bg-muted/30 rounded-lg overflow-hidden border border-border relative">
               {endFrame ? (

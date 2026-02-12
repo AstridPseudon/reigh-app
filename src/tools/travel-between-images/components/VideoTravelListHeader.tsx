@@ -139,7 +139,7 @@ export const VideoTravelListHeader: React.FC<VideoTravelListHeaderProps> = ({
 
         {/* Desktop: Search - Shots view */}
         {!isMobile && !showVideosView && (
-          <div className="flex items-center space-x-2 border rounded-md px-3 py-1 h-8 bg-background">
+          <div className="flex items-center gap-x-2 border rounded-md px-3 py-1 h-8 bg-background">
             <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <input
               ref={searchInputRef}
@@ -164,7 +164,7 @@ export const VideoTravelListHeader: React.FC<VideoTravelListHeaderProps> = ({
 
         {/* Desktop: Search - Videos view */}
         {!isMobile && showVideosView && (
-          <div className="flex items-center space-x-2 border rounded-md px-3 py-1 h-8 bg-background">
+          <div className="flex items-center gap-x-2 border rounded-md px-3 py-1 h-8 bg-background">
             <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <input
               type="text"
@@ -231,7 +231,7 @@ export const VideoTravelListHeader: React.FC<VideoTravelListHeaderProps> = ({
             isSearchOpen ? "max-h-14 opacity-100 mt-3" : "max-h-0 opacity-0"
           )}
         >
-          <div className="flex items-center space-x-2 border rounded-md px-3 py-1 h-8 bg-background w-full">
+          <div className="flex items-center gap-x-2 border rounded-md px-3 py-1 h-8 bg-background w-full">
             <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <input
               ref={searchInputRef}

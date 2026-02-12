@@ -174,9 +174,9 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
           {structureVideo.structureVideoPath && (
             <div className="mb-6">
               <h4 className="text-sm font-medium text-muted-foreground mb-3">Camera Guidance:</h4>
-              <div className="space-y-4">
+              <div className="gap-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="gap-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm">Strength:</Label>
                       <span className="text-sm font-medium">{structureVideo.structureVideoMotionStrength.toFixed(1)}x</span>
@@ -196,7 +196,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                     </div>
                   </div>
                   {structureVideo.structureVideoType === 'uni3c' && (
-                    <div className="space-y-2">
+                    <div className="gap-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">End:</Label>
                         <span className="text-sm font-medium">{((structureVideo.structureVideoConfig.uni3c_end_percent || 0.1) * 100).toFixed(0)}%</span>

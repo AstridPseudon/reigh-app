@@ -55,7 +55,7 @@ export default function NotFoundPage() {
           </div>
 
           {/* Navigation Options */}
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-y-4 sm:gap-y-0 sm:gap-x-6">
             <Button
               variant="retro"
               size="retro-default"
@@ -66,7 +66,7 @@ export default function NotFoundPage() {
               Return Home
             </Button>
             
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className="flex items-center gap-x-2 text-muted-foreground">
               <div className="w-2 h-2 bg-wes-dusty-blue rounded-full animate-pulse"></div>
               <span className="font-cocogoose text-sm tracking-widest uppercase">or</span>
               <div className="w-2 h-2 bg-wes-mint rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
@@ -85,7 +85,7 @@ export default function NotFoundPage() {
 
           {/* Decorative Elements */}
           <div className="mt-12 flex items-center justify-center">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-x-4">
               <div className="w-16 h-px bg-gradient-to-r from-transparent to-wes-pink/50"></div>
               <div className="w-2 h-2 bg-wes-yellow rounded-full"></div>
               <div className="w-8 h-px bg-wes-pink/50"></div>

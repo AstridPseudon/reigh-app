@@ -1019,7 +1019,7 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
 
   return (
     <ShotSettingsProvider value={contextValue}>
-    <div className="flex flex-col space-y-4 pb-4">
+    <div className="flex flex-col gap-y-4 pb-4">
       {/* Header Section */}
       <HeaderSection
         onBack={onBack}

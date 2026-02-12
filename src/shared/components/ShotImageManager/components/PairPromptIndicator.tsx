@@ -132,7 +132,7 @@ const PairPromptIndicatorComponent: React.FC<PairPromptIndicatorProps> = ({
               onPairClick();
             }}
           >
-            <div className="space-y-2">
+            <div className="gap-y-2">
               <div>
                 <span className="font-medium">Prompt:</span>
                 <p className="text-sm">

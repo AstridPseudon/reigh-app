@@ -867,7 +867,7 @@ function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGenerat
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
+    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-y-4">
       <h3 className="text-xl font-medium">Image Editor</h3>
       <p className="text-muted-foreground">Select an option to start editing</p>
 

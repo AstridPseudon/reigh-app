@@ -16,7 +16,7 @@ const UploadProgressIndicator: React.FC<UploadProgressIndicatorProps> = ({ uploa
   if (uploadProgress.stage === 'idle') return null;
 
   return (
-    <div className="space-y-2 mt-2">
+    <div className="gap-y-2 mt-2">
       <div className="flex items-center gap-2 text-sm">
         {uploadProgress.stage === 'error' ? (
           <span className="text-red-600">{uploadProgress.message}</span>
@@ -68,7 +68,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   if (isMultiStageModel) {
     return (
-      <div className="space-y-4">
+      <div className="gap-y-4">
         <FileDropZone
           id="lora-high-noise-file"
           label="High Noise LoRA File:"
@@ -106,7 +106,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="gap-y-2">
       <Label htmlFor="lora-file-input">LoRA File (.safetensors): *</Label>
       <div className="flex flex-col gap-2">
         <div

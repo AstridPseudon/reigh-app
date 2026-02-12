@@ -161,7 +161,7 @@ const PairRegion: React.FC<PairRegionProps> = ({
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
-              <div className="space-y-2">
+              <div className="gap-y-2">
                 <div>
                   <span className="font-medium">Prompt:</span>
                   <p className="text-sm">

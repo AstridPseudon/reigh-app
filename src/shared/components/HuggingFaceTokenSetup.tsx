@@ -94,7 +94,7 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
   // Already connected state
   if (hasToken && isVerified && !isUpdating) {
     return (
-      <div className={cn('space-y-3', className)}>
+      <div className={cn('gap-y-3', className)}>
         <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
           <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -143,9 +143,9 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
 
   // Setup form (also used for updating)
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('gap-y-4', className)}>
       {!compact && (
-        <div className="space-y-1">
+        <div className="gap-y-1">
           <h3 className="text-sm font-medium">{isUpdating ? 'Update HuggingFace Token' : 'Connect HuggingFace'}</h3>
           <p className="text-xs text-muted-foreground">
             {isUpdating
@@ -155,7 +155,7 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="gap-y-2">
         <Label htmlFor="hf-token" className="text-sm">
           HuggingFace Token
         </Label>

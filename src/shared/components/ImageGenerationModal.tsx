@@ -133,15 +133,15 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
         <div className={`${modal.scrollClass} -mx-6 px-6 flex-1 min-h-0 pb-4`}>
           <Suspense fallback={
             <div className="flex flex-col h-full">
-              <div className="space-y-6 py-4 flex-1">
+              <div className="gap-y-6 py-4 flex-1">
                 {/* Main Content Layout - matches flex gap-6 flex-col md:flex-row */}
                 <div className="flex gap-6 flex-col md:flex-row">
                   {/* Left Column - Prompts and Shot Selector */}
-                  <div className="flex-1 space-y-6">
+                  <div className="flex-1 gap-y-6">
                     {/* PromptsSection skeleton */}
-                    <div className="space-y-4">
+                    <div className="gap-y-4">
                       <Skeleton className="h-8 w-32" />
-                      <div className="space-y-3">
+                      <div className="gap-y-3">
                         <Skeleton className="h-24 w-full rounded-md" />
                         <Skeleton className="h-24 w-full rounded-md" />
                       </div>
@@ -151,24 +151,24 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
                       </div>
                     </div>
                     {/* ShotSelector skeleton */}
-                    <div className="space-y-2">
+                    <div className="gap-y-2">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-10 w-full rounded-md" />
                     </div>
                   </div>
 
                   {/* Right Column - ModelSection */}
-                  <div className="md:w-80 space-y-6">
+                  <div className="md:w-80 gap-y-6">
                     {/* ModelSection skeleton */}
-                    <div className="space-y-4">
+                    <div className="gap-y-4">
                       <Skeleton className="h-8 w-40" />
-                      <div className="space-y-3">
+                      <div className="gap-y-3">
                         <Skeleton className="h-32 w-full rounded-md" />
-                        <div className="space-y-2">
+                        <div className="gap-y-2">
                           <Skeleton className="h-4 w-20" />
                           <Skeleton className="h-10 w-full rounded-md" />
                         </div>
-                        <div className="space-y-2">
+                        <div className="gap-y-2">
                           <Skeleton className="h-4 w-24" />
                           <Skeleton className="h-10 w-full rounded-md" />
                         </div>

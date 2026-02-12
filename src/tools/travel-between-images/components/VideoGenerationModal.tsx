@@ -349,19 +349,19 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
           
           <div className={`${modal.scrollClass} -mx-6 px-6 flex-1 min-h-0`}>
             {isLoading ? (
-              <div className="space-y-4 pb-4">
+              <div className="gap-y-4 pb-4">
                 <div className="flex flex-col lg:flex-row gap-6">
                   {/* Left column - Settings (matches BatchSettingsForm) */}
                   <div className="lg:w-1/2">
                     <div className="mb-4"><Skeleton className="h-6 w-20" /></div>
-                    <div className="space-y-4">
+                    <div className="gap-y-4">
                       {/* Prompt + Negative prompt grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="gap-y-1.5">
                           <Skeleton className="h-4 w-16" />
                           <Skeleton className="h-[70px] w-full rounded-md" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="gap-y-1.5">
                           <Skeleton className="h-4 w-24" />
                           <Skeleton className="h-[70px] w-full rounded-md" />
                         </div>
@@ -370,17 +370,17 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
                       <Skeleton className="h-12 w-full rounded-lg" />
                       {/* Before/After prompts grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="gap-y-1.5">
                           <Skeleton className="h-4 w-28" />
                           <Skeleton className="h-9 w-full rounded-md" />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="gap-y-1.5">
                           <Skeleton className="h-4 w-24" />
                           <Skeleton className="h-9 w-full rounded-md" />
                         </div>
                       </div>
                       {/* Duration slider */}
-                      <div className="space-y-1">
+                      <div className="gap-y-1">
                         <Skeleton className="h-4 w-40" />
                         <Skeleton className="h-5 w-full rounded-full" />
                       </div>
@@ -390,7 +390,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
                   {/* Right column - Motion (matches MotionControl) */}
                   <div className="lg:w-1/2">
                     <div className="mb-4"><Skeleton className="h-6 w-16" /></div>
-                    <div className="space-y-4">
+                    <div className="gap-y-4">
                       {/* LoRAs section */}
                       <Skeleton className="h-10 w-full rounded-md" />
                       {/* Preset chips */}
@@ -403,7 +403,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 pb-4">
+              <div className="gap-y-6 pb-4">
                 <div className="flex flex-col lg:flex-row gap-6">
                   <div className="lg:w-1/2">
                     <div className="mb-4"><SectionHeader title="Settings" theme="orange" /></div>

@@ -91,7 +91,7 @@ export function VideoPlayerControls({
   onSetIsPlaying,
 }: VideoPlayerControlsProps) {
   return (
-    <div className="w-4/5 space-y-4">
+    <div className="w-4/5 gap-y-4">
       <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
         {videoUrl !== '' ? (
           <video
@@ -124,7 +124,7 @@ export function VideoPlayerControls({
       </div>
 
       {/* Video Controls */}
-      <div className="space-y-2">
+      <div className="gap-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <Tooltip>
             <TooltipTrigger asChild>

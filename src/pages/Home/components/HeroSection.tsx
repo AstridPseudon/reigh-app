@@ -418,9 +418,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           >
             <div className="overflow-hidden">
               <div className="mt-2 flex justify-center">
-                <div className="flex flex-col items-center space-y-1">
+                <div className="flex flex-col items-center gap-y-1">
                   {/* GitHub and Discord icons side by side */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-x-3">
                     <div style={getPopStyle(0.8, false)}>
                       <a
                         href="https://github.com/banodoco/Reigh"

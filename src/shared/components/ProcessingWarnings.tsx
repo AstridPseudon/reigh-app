@@ -64,7 +64,7 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
       <div className="animate-in slide-in-from-top-2 fade-in duration-300" style={{ marginTop: '1.75rem' }}>
         <div className="container mx-auto px-4 md:px-6 mt-4">
           <Alert className="border-orange-200 bg-orange-50 text-orange-900 flex items-center justify-between py-3 pr-4 shadow-lg border-2">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-x-3">
               <span className="inline-flex items-center">
                 <AlertTriangle className="h-5 w-5 text-orange-700 mr-2" />
                 <span>You have disabled both cloud and local generation. Enable at least one in Settings.</span>
@@ -97,10 +97,10 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
       <div className="animate-in slide-in-from-top-2 fade-in duration-300" style={{ marginTop: '1.75rem' }}>
         <div className="container mx-auto px-4 md:px-6 mt-4">
           <Alert className="border-orange-200 bg-orange-50 text-orange-900 flex items-center justify-between py-3 pr-4 shadow-lg border-2">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-x-3">
               <span className="inline-flex items-center">
                 <AlertTriangle className="h-5 w-5 text-orange-700 mr-2" />
-                <span className="space-x-1">
+                <span className="gap-x-1">
                   <span>Cloud processing enabled but you have no credits.</span>
                   <span
                     className="text-orange-700 underline hover:text-orange-800 cursor-pointer"
@@ -133,7 +133,7 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
       <div className="animate-in slide-in-from-top-2 fade-in duration-300" style={{ marginTop: '1.75rem' }}>
         <div className="container mx-auto px-4 md:px-6 mt-4">
           <Alert className="border-orange-200 bg-orange-50 text-orange-900 flex items-center justify-between py-3 pr-4">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-x-3">
               <span className="inline-flex items-center">
                 <AlertTriangle className="h-5 w-5 text-orange-700 mr-2" />
                 <span>Local processing enabled but you need to set it up.</span>
@@ -162,7 +162,7 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
     <div className="animate-in slide-in-from-top-2 fade-in duration-300" style={{ marginTop: '1.75rem' }}>
       <div className="container mx-auto px-4 md:px-6 mt-4">
         <Alert className="border-orange-200 bg-orange-50 text-orange-900 flex items-center justify-between py-3 pr-4">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-x-3">
             <span className="inline-flex items-center">
               <AlertTriangle className="h-5 w-5 text-orange-700 mr-2" />
               <span>You don't have credits and haven't set up local processing.</span>

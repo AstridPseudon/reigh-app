@@ -243,7 +243,7 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   const textareaRows = isMobile ? 2 : 4;
   const textareaPadding = isMobile ? 'px-2 py-1.5' : 'px-3 py-2';
   const textareaTextSize = isMobile ? 'text-base' : 'text-sm'; // 16px on mobile prevents iOS zoom
-  const generationsSpacing = isMobile ? 'space-y-0.5' : 'space-y-2';
+  const generationsSpacing = isMobile ? 'gap-y-0.5' : 'gap-y-2';
 
   // Section label component for mobile
   const SectionLabel = ({ children }: { children: React.ReactNode }) => (

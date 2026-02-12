@@ -93,13 +93,13 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
     (promptMode === 'automated' || promptMode === 'managed') ? promptMode : 'automated';
   
   return (
-    <div className="space-y-4">
+    <div className="gap-y-4">
       {/* Header section - stacks on mobile */}
       <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'} mb-2`}>
         <div className="flex items-center gap-2">
           <SectionHeader title="Prompts" theme="orange" />
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-x-2">
           {/* Automated vs Managed Toggle */}
           <SegmentedControl
             value={normalizedPromptMode}
@@ -179,7 +179,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
         </div>
       ) : (
         // Managed mode: Always show summary box
-        <div className="space-y-3">
+        <div className="gap-y-3">
           {!ready ? (
             // Simple skeleton loading state
             <div>

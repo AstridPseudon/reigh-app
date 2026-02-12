@@ -15,7 +15,7 @@ export const BrushSizeSlider: React.FC<BrushSizeSliderProps> = ({
   const textSize = variant === 'tablet' ? 'text-xs' : 'text-[10px]';
   
   return (
-    <div className="space-y-0.5">
+    <div className="gap-y-0.5">
       <div className="flex items-center justify-between">
         <label className={cn("font-medium text-foreground", textSize)}>Size:</label>
         <span className={cn("text-muted-foreground", textSize)}>{value}px</span>

@@ -341,7 +341,7 @@ const GenerationsPaneComponent: React.FC = () => {
             isPointerEventsEnabled ? 'pointer-events-auto' : 'pointer-events-none'
           )}
         >
-          <div className="px-2 pt-3 pb-2 space-y-2">
+          <div className="px-2 pt-3 pb-2 gap-y-2">
             {/* Row 1: Shot filter (left) + Media type filter (right) */}
             <div className="flex items-center justify-between min-w-0 mx-2">
                 {/* Left side: Shot filter */}
@@ -415,7 +415,7 @@ const GenerationsPaneComponent: React.FC = () => {
                         <Search className="h-4 w-4" />
                       </Button>
                     ) : (
-                      <div className="flex items-center space-x-1 border rounded-md px-2 py-1 h-7 bg-zinc-800 border-zinc-600">
+                      <div className="flex items-center gap-x-1 border rounded-md px-2 py-1 h-7 bg-zinc-800 border-zinc-600">
                         <Search className="h-3.5 w-3.5 text-zinc-400" />
                         <input
                           ref={searchInputRef}
@@ -474,7 +474,7 @@ const GenerationsPaneComponent: React.FC = () => {
                 {/* Left side: Pagination */}
                 <div className="flex items-center gap-2">
                   {totalCount > GENERATIONS_PER_PAGE ? (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-x-1">
                       <button
                         onClick={() => handleServerPageChange(Math.max(1, page - 1))}
                         disabled={page === 1}
@@ -545,7 +545,7 @@ const GenerationsPaneComponent: React.FC = () => {
 
             {/* Row 3: Exclude positioned checkbox - only when a specific shot is selected */}
             {!isSpecialFilter(selectedShotFilter) && (
-              <div className="flex items-center space-x-2 mx-2">
+              <div className="flex items-center gap-x-2 mx-2">
                 <Checkbox
                   id="exclude-positioned-generations-pane"
                   checked={excludePositioned}
@@ -576,7 +576,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     whiteText={true}
                     showControls={false}
                     projectAspectRatio={projectAspectRatio}
-                    className="space-y-0 pb-4 pt-2"
+                    className="gap-y-0 pb-4 pt-2"
                 />
             )}
             {error && <p className="text-red-500 text-center">Error: {error.message}</p>}
@@ -603,7 +603,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     whiteText
                     itemsPerPage={GENERATIONS_PER_PAGE}
                     reducedSpacing={true}
-                    className="space-y-0 pb-8"
+                    className="gap-y-0 pb-8"
                     hidePagination={true}
                     hideTopFilters={true}
                     showShare={false}

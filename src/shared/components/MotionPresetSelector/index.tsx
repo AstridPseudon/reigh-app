@@ -142,7 +142,7 @@ export const MotionPresetSelector: React.FC<MotionPresetSelectorProps> = ({
   }, [builtinPreset, safeOnPhaseConfigChange, safeOnPresetSelect]);
 
   return (
-    <div className="space-y-4">
+    <div className="gap-y-4">
       <Tabs value={normalizedMotionMode} onValueChange={handleModeChange}>
         <div className="flex items-center gap-3 mb-3">
           <Label className="text-sm font-medium">Mode:</Label>
@@ -160,9 +160,9 @@ export const MotionPresetSelector: React.FC<MotionPresetSelectorProps> = ({
         </div>
 
         {/* Basic Mode: Preset Selector + Optional Custom Content */}
-        <TabsContent value="basic" className="mt-0 space-y-4">
+        <TabsContent value="basic" className="mt-0 gap-y-4">
           {/* Preset Selection Section */}
-          <div className="space-y-3">
+          <div className="gap-y-3">
             {/* Header with label and Browse button */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

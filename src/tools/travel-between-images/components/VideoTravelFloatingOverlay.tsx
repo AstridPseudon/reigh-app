@@ -110,7 +110,7 @@ export const VideoTravelFloatingOverlay: React.FC<VideoTravelFloatingOverlayProp
       <div className="flex-shrink-0 pb-2 sm:pb-1">
         <div className="flex flex-col items-center px-2">
           <div className="flex items-center justify-center">
-            <div className="flex items-center space-x-1 sm:space-x-2 bg-background/90 backdrop-blur-md shadow-xl rounded-lg border border-border/80 dark:border-border p-1 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]" style={{ pointerEvents: 'auto' }}>
+            <div className="flex items-center gap-x-1 sm:gap-x-2 bg-background/90 backdrop-blur-md shadow-xl rounded-lg border border-border/80 dark:border-border p-1 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]" style={{ pointerEvents: 'auto' }}>
               <Button
                 variant="ghost"
                 size="sm"

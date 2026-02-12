@@ -333,7 +333,7 @@ export const BrowsePresetsTab: React.FC<BrowsePresetsTabProps> = ({
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3 pt-0">
+                  <CardContent className="gap-y-3 pt-0">
                     {/* Description */}
                     {metadata.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2">
@@ -394,7 +394,7 @@ export const BrowsePresetsTab: React.FC<BrowsePresetsTabProps> = ({
 
                     {/* Prompt Preview */}
                     {(metadata.basePrompt || metadata.textBeforePrompts || metadata.textAfterPrompts || metadata.durationFrames) && (
-                      <div className="space-y-2 pt-2 border-t">
+                      <div className="gap-y-2 pt-2 border-t">
                         <p className="text-xs font-medium text-muted-foreground">Prompt Settings:</p>
                         {metadata.basePrompt && (
                           <div className="text-xs">
@@ -462,7 +462,7 @@ export const BrowsePresetsTab: React.FC<BrowsePresetsTabProps> = ({
                     </div>
 
                     {/* Phase details */}
-                    <div className="space-y-1.5 pt-1">
+                    <div className="gap-y-1.5 pt-1">
                       <p className="text-xs font-medium text-muted-foreground">Phase Details:</p>
                       {config.phases?.map((phase, idx) => (
                         <div key={idx} className="text-xs flex items-center gap-2">

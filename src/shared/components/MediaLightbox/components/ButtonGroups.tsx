@@ -42,7 +42,7 @@ export const TopRightControls: React.FC<TopRightControlsProps> = ({
   const { isVideo } = useLightboxMediaSafe();
 
   return (
-    <div className="absolute top-4 right-4 flex items-center space-x-2 z-[70]">
+    <div className="absolute top-4 right-4 flex items-center gap-x-2 z-[70]">
       {/* Download Button - Keep visible in edit mode */}
       {/* Guard: only render if handleDownload is provided (parent must supply it) */}
       {showDownload && !readOnly && handleDownload && (
@@ -120,7 +120,7 @@ export const BottomLeftControls: React.FC<BottomLeftControlsProps> = ({
   if (readOnly || !handleToggleStar) return null;
 
   return (
-    <div className="absolute bottom-4 left-4 flex items-center space-x-2 z-10">
+    <div className="absolute bottom-4 left-4 flex items-center gap-x-2 z-10">
       <Button
         variant="secondary"
         size="sm"
@@ -167,7 +167,7 @@ export const BottomRightControls: React.FC<BottomRightControlsProps> = ({
 
   // Keep visible in edit mode - users can add to references while editing
   return (
-    <div className="absolute bottom-4 right-4 flex items-center space-x-2 z-10">
+    <div className="absolute bottom-4 right-4 flex items-center gap-x-2 z-10">
       {/* Add to References Button */}
       {!readOnly && !isVideo && selectedProjectId && (
         <Tooltip>
