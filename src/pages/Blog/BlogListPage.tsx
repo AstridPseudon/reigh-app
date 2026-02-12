@@ -9,7 +9,7 @@ export default function BlogListPage() {
           &larr; Home
         </Link>
         <h1 className="mt-6 text-3xl font-bold tracking-tight">Blog</h1>
-        <div className="mt-10 gap-y-10">
+        <div className="mt-10 space-y-10">
           {blogPosts.map((post) => (
             <article key={post.slug}>
               <Link to={`/blog/${post.slug}`} className="group block">

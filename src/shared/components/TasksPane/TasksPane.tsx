@@ -430,7 +430,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
           
             {/* Status Filter Toggle */}
             <div className="p-4 border-b border-zinc-800 flex-shrink-0">
-              <div className="bg-zinc-800 rounded-lg p-1 gap-y-1">
+              <div className="bg-zinc-800 rounded-lg p-1 space-y-1">
                 {/* Processing button */}
                 <Button
                   variant={selectedFilter === 'Processing' ? "default" : "ghost"}

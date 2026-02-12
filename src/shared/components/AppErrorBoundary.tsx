@@ -70,7 +70,7 @@ export class AppErrorBoundary extends React.Component<
 
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full gap-y-6 text-center">
+          <div className="max-w-md w-full space-y-6 text-center">
             {/* Error icon */}
             <div className="flex justify-center">
               <div className="rounded-full bg-destructive/10 p-4">
@@ -79,7 +79,7 @@ export class AppErrorBoundary extends React.Component<
             </div>
 
             {/* Error message */}
-            <div className="gap-y-2">
+            <div className="space-y-2">
               <h1 className="text-2xl font-semibold text-foreground">
                 Something went wrong
               </h1>

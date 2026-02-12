@@ -17,11 +17,11 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
   setAIInputMode,
 }) => {
   return (
-    <div className="gap-y-6">
+    <div className="space-y-6">
       {/* Appearance Subsection */}
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-3">Appearance</h3>
-        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-muted/30 rounded-lg gap-y-2`}>
+        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-muted/30 rounded-lg space-y-2`}>
           <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
             <span className="font-medium">Theme:</span>
             <div className="flex items-center gap-0">
@@ -55,7 +55,7 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
         </div>
 
         {/* User Text Case Toggle */}
-        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-muted/30 rounded-lg gap-y-2 mt-3`}>
+        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-muted/30 rounded-lg space-y-2 mt-3`}>
           <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
             <span className="font-medium">User Text:</span>
             <div className="flex items-center gap-0">
@@ -87,7 +87,7 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
         </div>
 
         {/* AI Input Mode Toggle */}
-        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-muted/30 rounded-lg gap-y-2 mt-3`}>
+        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-muted/30 rounded-lg space-y-2 mt-3`}>
           <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
             <span className="font-medium">AI Input:</span>
             <div className="flex items-center gap-0">
@@ -136,9 +136,9 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-3">Privacy</h3>
         {isLoadingPrivacyDefaults ? (
-          <div className="gap-y-4">
+          <div className="space-y-4">
             {/* Resources Toggle skeleton */}
-            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-2`}>
+            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2`}>
               <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
                 <Skeleton className="h-5 w-20" />
                 <Skeleton className="h-8 w-40 rounded-full" />
@@ -146,7 +146,7 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
               <Skeleton className="h-4 w-64" />
             </div>
             {/* Generations Toggle skeleton */}
-            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-2`}>
+            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2`}>
               <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
                 <Skeleton className="h-5 w-24" />
                 <Skeleton className="h-8 w-40 rounded-full" />
@@ -155,9 +155,9 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
             </div>
           </div>
         ) : (
-          <div className="gap-y-4">
+          <div className="space-y-4">
             {/* Resources Toggle */}
-            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-2`}>
+            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2`}>
               <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
                 <span className="font-medium">Resources:</span>
                 <PrivacyToggle
@@ -173,7 +173,7 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
             </div>
 
             {/* Generations Toggle */}
-            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-2`}>
+            <div className={`${isMobile ? 'p-3' : 'p-4'} bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2`}>
               <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
                 <span className="font-medium">Generations:</span>
                 <PrivacyToggle

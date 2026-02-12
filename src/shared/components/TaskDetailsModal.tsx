@@ -205,9 +205,9 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
               </div>
             </div>
           ) : task ? (
-            <div className="gap-y-6 p-4">
+            <div className="space-y-6 p-4">
               {/* Generation Summary Section */}
-              <div className="gap-y-3">
+              <div className="space-y-3">
                 <GenerationDetails
                   task={task}
                   inputImages={inputImages}
@@ -223,7 +223,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
                 />
               </div>
 
-              <div className="gap-y-3">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-x-2">
                     <Button
@@ -273,7 +273,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
             </div>
           ) : (
             <div className="flex justify-center items-center h-64">
-              <div className="text-center gap-y-2">
+              <div className="text-center space-y-2">
                 <div className="w-12 h-12 mx-auto bg-muted rounded-full flex items-center justify-center">
                   <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

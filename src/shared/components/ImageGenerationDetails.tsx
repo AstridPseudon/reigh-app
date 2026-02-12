@@ -135,10 +135,10 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
                           metadata.originalParams?.image;
 
   return (
-    <div className={`gap-y-3 p-3 bg-muted/30 rounded-lg border ${variant === 'panel' ? '' : 'w-[360px]'}`}>
+    <div className={`space-y-3 p-3 bg-muted/30 rounded-lg border ${variant === 'panel' ? '' : 'w-[360px]'}`}>
       {/* Qwen Image Edit Source Image */}
       {showUserImage && isQwenImageEdit && qwenSourceImage && (
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>
             Source Image
           </p>
@@ -155,7 +155,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
 
       {/* User Provided Image */}
       {showUserImage && metadata.userProvidedImageUrl && !isQwenImageEdit && (
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>
             Reference Image
           </p>
@@ -223,7 +223,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
         const imageHeight = imageWidth / aspectRatio;
         
         return (
-          <div className="gap-y-2">
+          <div className="space-y-2">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>
               Reference
             </p>
@@ -260,10 +260,10 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
       {/* Prompts and Generation Settings */}
       <div className={`grid gap-3 ${variant === 'hover' ? 'grid-cols-1' : 'grid-cols-1'}`}>
         {/* Prompts Section */}
-        <div className="gap-y-3">
+        <div className="space-y-3">
           {/* Prompt */}
           {prompt ? (
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt</p>
                 {showCopyButtons && (
@@ -299,7 +299,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
               })()}
             </div>
           ) : (
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt</p>
               <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>None</p>
             </div>
@@ -307,7 +307,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
           
           {/* Negative Prompt */}
           {negativePrompt && negativePrompt !== 'N/A' ? (
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Negative Prompt</p>
               {(() => {
                 const shouldTruncate = negativePrompt.length > config.negativePromptLength;
@@ -332,7 +332,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
               })()}
             </div>
           ) : negativePrompt ? (
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Negative Prompt</p>
               <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>None</p>
             </div>
@@ -343,11 +343,11 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
       {/* Additional Settings Section */}
       {hasAdditionalSettings && (
         <div className="pt-2 border-t border-muted-foreground/20">
-          <div className="gap-y-2">
+          <div className="space-y-2">
             <p className={`${config.textSize} ${config.fontWeight} text-muted-foreground ${config.labelCase}`}>Additional Settings</p>
             <div className={`grid gap-2 ${config.gridCols}`}>
               {metadata.depthStrength !== undefined && (
-                <div className="gap-y-1">
+                <div className="space-y-1">
                   <p className={`${config.textSize} ${config.fontWeight} text-muted-foreground ${config.labelCase}`}>Depth Strength</p>
                   <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                     {(metadata.depthStrength * 100).toFixed(0)}%
@@ -355,7 +355,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
                 </div>
               )}
               {metadata.softEdgeStrength !== undefined && (
-                <div className="gap-y-1">
+                <div className="space-y-1">
                   <p className={`${config.textSize} ${config.fontWeight} text-muted-foreground ${config.labelCase}`}>Soft Edge Strength</p>
                   <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                     {(metadata.softEdgeStrength * 100).toFixed(0)}%
@@ -363,7 +363,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
                 </div>
               )}
               {metadata.userProvidedImageUrl && (
-                <div className="gap-y-1">
+                <div className="space-y-1">
                   <p className={`${config.textSize} ${config.fontWeight} text-muted-foreground ${config.labelCase}`}>Reference Image</p>
                   <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                     {(() => {
@@ -431,9 +431,9 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
       {/* LoRAs Section */}
       {lorasToDisplay.length > 0 && (
         <div className="pt-2 border-t border-muted-foreground/20">
-          <div className="gap-y-2">
+          <div className="space-y-2">
             <p className={`${config.textSize} ${config.fontWeight} text-muted-foreground ${config.labelCase}`}>LoRAs Used</p>
-            <div className="gap-y-1">
+            <div className="space-y-1">
               {lorasToDisplay.slice(0, config.maxLoras).map((lora, index) => (
                 <div key={index} className={`flex items-center justify-between p-1.5 bg-background/50 rounded border ${config.textSize}`}>
                   <div className="flex-1 min-w-0">

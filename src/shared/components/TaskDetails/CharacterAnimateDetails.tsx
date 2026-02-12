@@ -27,10 +27,10 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
   const resolution = parsedParams?.resolution || orchestratorDetails?.resolution || orchestratorPayload?.resolution;
 
   return (
-    <div className={`p-3 bg-muted/30 rounded-lg border gap-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[360px]'}`}>
+    <div className={`p-3 bg-muted/30 rounded-lg border space-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[360px]'}`}>
       {/* Mode Display */}
       {mode && (
-        <div className="gap-y-1 pb-2 border-b border-muted-foreground/20">
+        <div className="space-y-1 pb-2 border-b border-muted-foreground/20">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Mode</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground capitalize`}>
             {mode}
@@ -40,7 +40,7 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Character Image */}
       {characterImageUrl && (
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>
             {mode === 'animate' ? '✨ Character to animate' : '✨ Character to insert'}
           </p>
@@ -56,7 +56,7 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Motion Video */}
       {motionVideoUrl && (
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>
             {mode === 'animate' ? '🎬 Source of movement' : '🎬 Video to replace character in'}
           </p>
@@ -101,7 +101,7 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Prompt */}
       {prompt && (
-        <div className="gap-y-1">
+        <div className="space-y-1">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap leading-relaxed preserve-case`}>
             {prompt}
@@ -111,7 +111,7 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Resolution */}
       {resolution && (
-        <div className="gap-y-1">
+        <div className="space-y-1">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Resolution</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
             {resolution}

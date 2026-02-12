@@ -67,7 +67,7 @@ const CreditsManagement: React.FC<CreditsManagementProps> = ({
   };
 
   return (
-    <div className="gap-y-3">
+    <div className="space-y-3">
       {/* Add Credits Section */}
       {(mode === 'all' || mode === 'add-credits') && (
         <AddCreditsSection

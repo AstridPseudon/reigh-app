@@ -68,7 +68,7 @@ export const EditAdvancedSettings: React.FC<EditAdvancedSettingsProps> = ({
   }
 
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       <SliderWithValue
         label="Inference Steps"
         value={settings.num_inference_steps ?? DEFAULT_ADVANCED_SETTINGS.num_inference_steps}
@@ -81,7 +81,7 @@ export const EditAdvancedSettings: React.FC<EditAdvancedSettingsProps> = ({
       />
 
       <CollapsibleSection title="Advanced settings" headerAction={resetButton}>
-        <div className="gap-y-4">
+        <div className="space-y-4">
           {/* Enable/Disable Toggle */}
         <div className="flex items-center justify-between">
           <Label htmlFor="advanced-enabled" className="text-sm font-medium">
@@ -99,7 +99,7 @@ export const EditAdvancedSettings: React.FC<EditAdvancedSettingsProps> = ({
         {settings.enabled && (
           <>
             {/* Phase 1: Base Generation */}
-            <div className="rounded-lg border bg-muted/30 p-4 gap-y-3">
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wide">Phase 1</span>
                 <span className="text-xs text-muted-foreground">Base Generation</span>
@@ -129,7 +129,7 @@ export const EditAdvancedSettings: React.FC<EditAdvancedSettingsProps> = ({
             </div>
 
             {/* Phase 2: Hires Refinement */}
-            <div className="rounded-lg border bg-muted/30 p-4 gap-y-3">
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wide">Phase 2</span>
                 <span className="text-xs text-muted-foreground">Hires Refinement</span>

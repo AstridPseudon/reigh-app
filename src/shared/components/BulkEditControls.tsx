@@ -83,7 +83,7 @@ export const BulkEditControls: React.FC<BulkEditControlsProps> = ({
   }
 
   return (
-    <div className="gap-y-2 p-4">
+    <div className="space-y-2 p-4">
       <div>
         <Label htmlFor="bulkEditInstructions_field">Edit Instructions:</Label>
         <Textarea

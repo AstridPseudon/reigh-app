@@ -189,7 +189,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
       }
     >
       <div className="grid gap-4 py-3">
-        <div className="gap-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="project-name-settings">
             Name:
           </Label>
@@ -202,7 +202,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
             maxLength={30}
           />
         </div>
-        <div className="gap-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="aspect-ratio-settings">
             Aspect Ratio:
           </Label>
@@ -242,8 +242,8 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 gap-y-4">
-                <div className="gap-y-3">
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 space-y-4">
+                <div className="space-y-3">
                   <div>
                     <Label htmlFor="delete-confirm-input" className="text-sm font-light text-red-900 dark:text-red-300">
                       Type "confirm" to make it clear you wish to delete the project and all associated data.

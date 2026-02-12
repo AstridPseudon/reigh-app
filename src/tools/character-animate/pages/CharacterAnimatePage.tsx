@@ -418,7 +418,7 @@ const CharacterAnimatePage: React.FC = () => {
         <h1 className="text-3xl font-light tracking-tight text-foreground">Animate Characters</h1>
 
         {/* Mode Selection - First */}
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <Label>Mode:</Label>
           <div className="flex items-center gap-4">
             <div className="flex gap-x-2 flex-1">
@@ -449,7 +449,7 @@ const CharacterAnimatePage: React.FC = () => {
         {/* Input Image | Input Video */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Character Image */}
-          <div className="gap-y-3">
+          <div className="space-y-3">
             <Label className="text-lg font-medium">
               {localMode === 'animate'
                 ? '✨ Character to animate'
@@ -542,7 +542,7 @@ const CharacterAnimatePage: React.FC = () => {
           </div>
 
           {/* Motion Video */}
-          <div className="gap-y-3">
+          <div className="space-y-3">
             <Label className="text-lg font-medium">
               {localMode === 'animate'
                 ? '🎬 Source of movement'
@@ -670,9 +670,9 @@ const CharacterAnimatePage: React.FC = () => {
         </div>
 
         {/* Settings Section */}
-        <div className="gap-y-5">
+        <div className="space-y-5">
           {/* Prompt */}
-          <div className="gap-y-2">
+          <div className="space-y-2">
             <Label htmlFor="prompt">Prompt: (Optional)</Label>
             <Textarea
               id="prompt"
@@ -717,7 +717,7 @@ const CharacterAnimatePage: React.FC = () => {
 
           if (shouldShowSkeleton) {
             return (
-              <div className="gap-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t">
                 <h2 className="text-xl font-medium">
                   Previous Results ({videosData.items.length})
                 </h2>
@@ -733,7 +733,7 @@ const CharacterAnimatePage: React.FC = () => {
 
           if (hasValidData) {
             return (
-              <div className="gap-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t">
                 <h2 className="text-xl font-medium">
                   Previous Results ({videosData.items.length})
                 </h2>

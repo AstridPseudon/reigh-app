@@ -266,7 +266,7 @@ export const MotionControl: React.FC<MotionControlProps> = ({
   }, [onPhasePresetSelect]);
 
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       <Tabs value={motionMode} onValueChange={handleModeChange}>
         <div className="flex items-center gap-3 mb-3">
           <Label className="text-sm font-medium">Mode:</Label>
@@ -279,13 +279,13 @@ export const MotionControl: React.FC<MotionControlProps> = ({
         </div>
 
         {/* Basic Mode: Preset Chips + LoRAs */}
-        <TabsContent value="basic" className="gap-y-4 mt-0">
+        <TabsContent value="basic" className="space-y-4 mt-0">
           {/* Preset Selection Section */}
-          <div className="gap-y-3">
+          <div className="space-y-3">
             {/* Show preset chips OR selected non-known preset card */}
             {isSelectedPresetKnown ? (
               // Preset Chips: Built-in + Featured + Custom
-              <div className="gap-y-3">
+              <div className="space-y-3">
                 {/* Header with label, tooltip, and Browse button */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -418,7 +418,7 @@ export const MotionControl: React.FC<MotionControlProps> = ({
           )}
 
           {/* LoRA Controls */}
-          <div className="gap-y-4 pt-4 border-t">
+          <div className="space-y-4 pt-4 border-t">
             <Button 
               type="button" 
               variant="outline" 

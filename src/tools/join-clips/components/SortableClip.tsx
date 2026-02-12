@@ -102,9 +102,9 @@ export const SortableClip: React.FC<SortableClipProps> = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="gap-y-3">
+    <div ref={setNodeRef} style={style} className="space-y-3">
       {/* Clip Card */}
-      <div className="relative border rounded-lg p-3 gap-y-3 bg-card">
+      <div className="relative border rounded-lg p-3 space-y-3 bg-card">
         {/* Header with number/title, drag handle, and remove button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export const SortableClip: React.FC<SortableClipProps> = ({
         </div>
 
         {/* Video Container */}
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <div
             className={cn(
               "aspect-video bg-muted rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors relative",
@@ -254,7 +254,7 @@ export const SortableClip: React.FC<SortableClipProps> = ({
 
         {/* Transition Prompt (if not last clip and individual prompts enabled) */}
         {index < clips.length - 1 && useIndividualPrompts && (
-          <div className="gap-y-2 pt-2 border-t">
+          <div className="space-y-2 pt-2 border-t">
             <Label htmlFor={`prompt-${clips[index + 1].id}`} className="text-xs text-muted-foreground">
               Transition to Clip #{index + 2}
             </Label>

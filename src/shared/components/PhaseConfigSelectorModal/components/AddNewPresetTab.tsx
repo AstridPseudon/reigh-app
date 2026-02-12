@@ -452,7 +452,7 @@ export const AddNewPresetTab: React.FC<AddNewTabProps> = ({
   };
 
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       {isEditMode && (
         <div className={`flex items-center justify-between p-3 border rounded-lg ${
           isOverwriting
@@ -486,7 +486,7 @@ export const AddNewPresetTab: React.FC<AddNewTabProps> = ({
               : 'Save your current phase configuration for reuse.'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="gap-y-3">
+        <CardContent className="space-y-3">
           <BasicInfoSection
             name={addForm.name}
             description={addForm.description}

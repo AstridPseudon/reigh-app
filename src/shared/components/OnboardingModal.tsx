@@ -36,7 +36,7 @@ const IntroductionStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   const colors = getStepColors(1);
   return (
   <>
-    <DialogHeader className="text-center gap-y-4 mb-6">
+    <DialogHeader className="text-center space-y-4 mb-6">
       <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
         <Palette className={`w-8 h-8 ${colors.icon}`} />
       </div>
@@ -45,7 +45,7 @@ const IntroductionStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       </DialogTitle>
     </DialogHeader>
     
-    <div className="text-center gap-y-4">
+    <div className="text-center space-y-4">
       <p className="text-muted-foreground">
         We believe that combining image anchoring with additional control mechanisms can allow artists to steer AI video with unparalleled precision and ease.
       </p>
@@ -69,7 +69,7 @@ const CommunityStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   const colors = getStepColors(2);
   return (
   <>
-    <DialogHeader className="text-center gap-y-4 mb-6">
+    <DialogHeader className="text-center space-y-4 mb-6">
       <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
         <Users className={`w-8 h-8 ${colors.icon}`} />
       </div>
@@ -78,7 +78,7 @@ const CommunityStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
       </DialogTitle>
     </DialogHeader>
     
-    <div className="text-center gap-y-4">
+    <div className="text-center space-y-4">
       <p className="text-muted-foreground">
         If you want to get good at creating art, the hardest part is not giving up.
       </p>
@@ -124,7 +124,7 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   if (isLoadingGenerationMethods) {
     return (
       <>
-        <DialogHeader className="text-center gap-y-4 mb-6">
+        <DialogHeader className="text-center space-y-4 mb-6">
           <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
             <Monitor className={`w-8 h-8 ${colors.icon}`} />
           </div>
@@ -133,7 +133,7 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
           </DialogTitle>
         </DialogHeader>
         
-        <div className="gap-y-6">
+        <div className="space-y-6">
           {/* Skeleton for description text */}
           <div className="text-center">
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto w-80"></div>
@@ -157,7 +157,7 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
           </div>
 
           {/* Skeleton for additional info section */}
-          <div className="text-center gap-y-3">
+          <div className="text-center space-y-3">
             <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse">
               <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mx-auto w-64"></div>
             </div>
@@ -174,7 +174,7 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
 
   return (
     <>
-      <DialogHeader className="text-center gap-y-4 mb-6">
+      <DialogHeader className="text-center space-y-4 mb-6">
         <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
           <Monitor className={`w-8 h-8 ${colors.icon}`} />
         </div>
@@ -183,7 +183,7 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
         </DialogTitle>
       </DialogHeader>
       
-      <div className="gap-y-6">
+      <div className="space-y-6">
         <p className="text-center text-muted-foreground">
           If you have{' '}
           <TooltipProvider>
@@ -238,7 +238,7 @@ const GenerationMethodStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
         </div>
 
         {/* Additional info below toggle */}
-        <div className="text-center gap-y-3">
+        <div className="text-center space-y-3">
           {inCloudChecked && !onComputerChecked && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <p className="text-sm text-blue-800 dark:text-blue-200 font-light">
@@ -304,7 +304,7 @@ const ThemeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
 
   return (
     <>
-      <DialogHeader className="text-center gap-y-4 mb-6">
+      <DialogHeader className="text-center space-y-4 mb-6">
         <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
           {darkMode ? (
             <Moon className={`w-8 h-8 ${colors.icon}`} />
@@ -317,7 +317,7 @@ const ThemeStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
         </DialogTitle>
       </DialogHeader>
       
-      <div className="gap-y-6">
+      <div className="space-y-6">
         <p className="text-center text-muted-foreground">
           Which mode do you prefer? You can always change this later in settings.
         </p>
@@ -363,7 +363,7 @@ const PrivacyDefaultsStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
   if (isLoadingPrivacyDefaults) {
     return (
       <>
-        <DialogHeader className="text-center gap-y-4 mb-6">
+        <DialogHeader className="text-center space-y-4 mb-6">
           <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
             <Globe className={`w-8 h-8 ${colors.icon}`} />
           </div>
@@ -380,7 +380,7 @@ const PrivacyDefaultsStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
 
   return (
     <>
-      <DialogHeader className="text-center gap-y-4 mb-6">
+      <DialogHeader className="text-center space-y-4 mb-6">
         <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
           <Globe className={`w-8 h-8 ${colors.icon}`} />
         </div>
@@ -389,11 +389,11 @@ const PrivacyDefaultsStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
         </DialogTitle>
       </DialogHeader>
       
-      <div className="gap-y-4">
+      <div className="space-y-4">
         {/* Side by side toggles */}
         <div className="grid grid-cols-2 gap-3">
           {/* Resources Toggle */}
-          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-2">
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2">
             <span className="font-medium text-sm">Resources</span>
             <p className="text-xs text-muted-foreground leading-snug">
               This will allow others to use them. You can update this for individual resources.
@@ -406,7 +406,7 @@ const PrivacyDefaultsStep: React.FC<{ onNext: () => void }> = ({ onNext }) => {
           </div>
 
           {/* Generations Toggle */}
-          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-2">
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-2">
             <span className="font-medium text-sm">Generations</span>
             <p className="text-xs text-muted-foreground leading-snug">
               This will allow others to view your generations, and train LoRAs on them.
@@ -445,7 +445,7 @@ const SetupCompleteStep: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   return (
     <>
-      <DialogHeader className="text-center gap-y-4 mb-6">
+      <DialogHeader className="text-center space-y-4 mb-6">
         <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
         <MoreHorizontal className={`w-8 h-8 ${colors.icon}`} />
         </div>
@@ -454,7 +454,7 @@ const SetupCompleteStep: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </DialogTitle>
       </DialogHeader>
       
-      <div className="text-center gap-y-4">
+      <div className="text-center space-y-4">
         <p className="text-muted-foreground">
           Reigh is an early-stage tool. If there's anything that isn't working for you or could be better, please drop into our Discord and leave a message in our #support channel or DM POM.
         </p>

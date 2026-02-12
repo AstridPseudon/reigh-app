@@ -86,7 +86,7 @@ export const FloatingToolControls: React.FC<FloatingToolControlsProps> = ({
       )}
 
       <div className={cn(
-        "bg-background backdrop-blur-md rounded-lg p-2 gap-y-1.5 border border-border shadow-xl",
+        "bg-background backdrop-blur-md rounded-lg p-2 space-y-1.5 border border-border shadow-xl",
         containerWidth
       )}>
         {/* Mode Toggle - Text | Inpaint | Annotate | Reposition | Img2Img */}

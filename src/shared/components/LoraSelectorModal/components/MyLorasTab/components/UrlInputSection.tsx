@@ -16,8 +16,8 @@ interface UrlInputSectionProps {
 export const UrlInputSection: React.FC<UrlInputSectionProps> = ({ addForm, handleFormChange, isMultiStageModel }) => {
   if (isMultiStageModel) {
     return (
-      <div className="gap-y-3">
-        <div className="gap-y-1">
+      <div className="space-y-3">
+        <div className="space-y-1">
           <TooltipProvider>
             <div className="flex items-center gap-2">
               <Label htmlFor="lora-high-noise-url">High Noise LoRA URL: *</Label>
@@ -28,7 +28,7 @@ export const UrlInputSection: React.FC<UrlInputSectionProps> = ({ addForm, handl
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md">
-                  <div className="text-xs gap-y-1">
+                  <div className="text-xs space-y-1">
                     <p><strong>High Noise LoRA:</strong> Applied during early generation phases (high noise levels).</p>
                     <p>This is typically the <code>high_noise_model.safetensors</code> file.</p>
                   </div>
@@ -50,7 +50,7 @@ export const UrlInputSection: React.FC<UrlInputSectionProps> = ({ addForm, handl
           )}
         </div>
 
-        <div className="gap-y-1">
+        <div className="space-y-1">
           <TooltipProvider>
             <div className="flex items-center gap-2">
               <Label htmlFor="lora-low-noise-url">Low Noise LoRA URL: *</Label>
@@ -61,7 +61,7 @@ export const UrlInputSection: React.FC<UrlInputSectionProps> = ({ addForm, handl
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-md">
-                  <div className="text-xs gap-y-1">
+                  <div className="text-xs space-y-1">
                     <p><strong>Low Noise LoRA:</strong> Applied during the final generation phase (low noise level).</p>
                     <p>This is typically the <code>low_noise_model.safetensors</code> file.</p>
                   </div>
@@ -87,7 +87,7 @@ export const UrlInputSection: React.FC<UrlInputSectionProps> = ({ addForm, handl
   }
 
   return (
-    <div className="gap-y-1">
+    <div className="space-y-1">
       <TooltipProvider>
         <div className="flex items-center gap-2">
           <Label htmlFor="lora-url">HuggingFace Direct Download URL: *</Label>
@@ -98,9 +98,9 @@ export const UrlInputSection: React.FC<UrlInputSectionProps> = ({ addForm, handl
               </span>
             </TooltipTrigger>
             <TooltipContent className="max-w-md">
-              <div className="text-xs gap-y-1">
+              <div className="text-xs space-y-1">
                 <p><strong>How to get the correct URL:</strong></p>
-                <ol className="list-decimal list-inside gap-y-1 pl-2">
+                <ol className="list-decimal list-inside space-y-1 pl-2">
                   <li>Go to the HuggingFace model page</li>
                   <li>Click on "Files" tab</li>
                   <li>Find the .safetensors file you want</li>

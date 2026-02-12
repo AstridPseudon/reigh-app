@@ -93,7 +93,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
     (promptMode === 'automated' || promptMode === 'managed') ? promptMode : 'automated';
   
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       {/* Header section - stacks on mobile */}
       <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'} mb-2`}>
         <div className="flex items-center gap-2">
@@ -179,7 +179,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
         </div>
       ) : (
         // Managed mode: Always show summary box
-        <div className="gap-y-3">
+        <div className="space-y-3">
           {!ready ? (
             // Simple skeleton loading state
             <div>

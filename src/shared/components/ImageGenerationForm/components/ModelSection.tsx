@@ -48,9 +48,9 @@ const JustTextSection: React.FC<{
   onUpdateLoraStrength,
 }) => {
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       {/* Model Selector */}
-      <div className="gap-y-2">
+      <div className="space-y-2">
         <Label className="text-sm font-medium">Model</Label>
         <RadioGroup
           value={selectedTextModel}
@@ -130,7 +130,7 @@ export const ModelSection: React.FC<ModelSectionProps> = ({
   } = useFormLorasContext();
 
   return (
-    <div className="flex-1 gap-y-4">
+    <div className="flex-1 space-y-4">
       {/* Header with generation source toggle */}
       <div className="flex flex-row justify-between items-center">
         <SectionHeader title="Settings" theme="purple" />

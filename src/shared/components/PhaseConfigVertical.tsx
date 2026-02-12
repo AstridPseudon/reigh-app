@@ -143,7 +143,7 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
     <CardContent className="pt-12 px-4 pb-4">
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left Column */}
-        <div className="gap-y-3">
+        <div className="space-y-3">
           {/* Number of Phases */}
           <div>
             <Label htmlFor="num_phases" className="text-sm font-light block mb-1.5">
@@ -209,7 +209,7 @@ const PhaseGlobalSettings: React.FC<PhaseGlobalSettingsProps> = ({
         </div>
 
         {/* Right Column */}
-        <div className="gap-y-3">
+        <div className="space-y-3">
           {/* Flow Shift */}
           <div className="relative">
             <Label htmlFor="flow_shift" className="text-sm font-light block mb-1.5">
@@ -306,7 +306,7 @@ const PerPhaseCard: React.FC<PerPhaseCardProps> = ({
     <CardContent className="pt-12 px-4 pb-4">
       <div className="grid grid-cols-3 gap-6">
         {/* Left Column - Steps and Guidance Scale (1/3) */}
-        <div className="gap-y-3">
+        <div className="space-y-3">
           {/* Steps */}
           <div>
             <Label htmlFor={`steps_${phaseIdx}`} className="text-sm font-light block mb-1.5">
@@ -427,7 +427,7 @@ const PerPhaseCard: React.FC<PerPhaseCardProps> = ({
             const isFocused = focusedLoraInput === inputId;
             const loraValidation = lora.url ? validateHuggingFaceUrl(lora.url) : null;
             return (
-              <div key={loraIdx} className="gap-y-0.5 mb-1.5">
+              <div key={loraIdx} className="space-y-0.5 mb-1.5">
                 <div className="flex items-center gap-2">
                 <div className="relative flex-1 min-w-0">
                   <Input
@@ -676,7 +676,7 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
   }
 
   return (
-    <div className="gap-y-3">
+    <div className="space-y-3">
       <PhaseConfigHeader
         onLoadPreset={() => modals.openPresetModal('load', 'browse')}
         onSaveAsPreset={() => modals.openPresetModal('load', 'add-new')}

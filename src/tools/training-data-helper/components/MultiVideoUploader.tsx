@@ -306,7 +306,7 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
           Upload multiple videos and choose how to split them into training segments
         </CardDescription>
       </CardHeader>
-      <CardContent className="gap-y-4">
+      <CardContent className="space-y-4">
         <FileInput
           key={fileInputKey}
           acceptTypes={['video']}
@@ -316,13 +316,13 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
         />
         
         {videoFiles.length > 0 && (
-          <div className="gap-y-4">
+          <div className="space-y-4">
             <div className="text-sm font-light">
               Upload Queue ({videoFiles.length} video{videoFiles.length !== 1 ? 's' : ''})
             </div>
             
             {/* Video List with Split Options */}
-            <div className="gap-y-4">
+            <div className="space-y-4">
               {videoFiles.map((videoFile) => (
                 <Card key={videoFile.id} className="relative">
                   <CardContent className="p-4">
@@ -343,7 +343,7 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
                       </div>
                       
                       {/* Video Info */}
-                      <div className="flex-1 gap-y-2">
+                      <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="font-light text-sm truncate preserve-case" title={videoFile.file.name}>
                             {cropFilename(videoFile.file.name)}
@@ -368,7 +368,7 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
                         </div>
                         
                         {/* Split Mode Selection */}
-                        <div className="gap-y-2">
+                        <div className="space-y-2">
                           <Label className="text-xs font-light">How would you like to split this?</Label>
                           <RadioGroup
                             value={videoFile.splitMode}
@@ -414,7 +414,7 @@ export function MultiVideoUploader({ onUpload, isUploading, selectedBatchId }: M
             
             {/* Upload Progress */}
             {uploadProgress > 0 && (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Upload Progress</span>
                   <span>{uploadProgress}%</span>

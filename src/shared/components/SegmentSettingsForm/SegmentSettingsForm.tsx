@@ -319,7 +319,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   // ==========================================================================
 
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       {/* Header */}
       {showHeader && (
         <div className="flex items-center gap-2">
@@ -398,8 +398,8 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
       )}
 
       {/* Prompt */}
-      <div className="gap-y-2">
-        <div className="gap-y-1">
+      <div className="space-y-2">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Label className="text-xs font-medium">Prompt:</Label>
             {promptField.badgeType === 'enhanced' && (
@@ -482,10 +482,10 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className={edgeExtendAmount === 6 ? '-mx-6' : '-mx-4'}>
-          <div className={`gap-y-3 bg-muted/30 border-y border-border/50 ${edgeExtendAmount === 6 ? 'px-6 py-3' : 'px-4 py-3'}`}>
+          <div className={`space-y-3 bg-muted/30 border-y border-border/50 ${edgeExtendAmount === 6 ? 'px-6 py-3' : 'px-4 py-3'}`}>
             {/* Before/After Each Prompt */}
             {(shotDefaults?.textBeforePrompts !== undefined || shotDefaults?.textAfterPrompts !== undefined) && (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <DefaultableTextarea
                   label="Before:"
                   value={settings.textBeforePrompts}
@@ -543,7 +543,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
               onVoiceResult={(result) => {
                 onChange({ negativePrompt: result.prompt || result.transcription });
               }}
-              containerClassName="gap-y-1.5"
+              containerClassName="space-y-1.5"
             />
 
             {/* Motion Controls */}
@@ -582,7 +582,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                     />
                   }
                   renderBasicModeContent={() => (
-                    <div className="gap-y-3">
+                    <div className="space-y-3">
                       <div className="relative">
                         <ActiveLoRAsDisplay
                           selectedLoras={effectiveLoras}
@@ -622,7 +622,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Structure Video Section */}
             {/* Timeline Mode: Loading state when uploading or waiting for props (no existing video) */}
             {isTimelineMode && videoUpload.isVideoLoading && !structureVideoType && (
-              <div className="gap-y-3 pt-3 border-t border-border/50">
+              <div className="space-y-3 pt-3 border-t border-border/50">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                   <Video className="w-3.5 h-3.5" />
                   <span>Structure Video</span>
@@ -635,7 +635,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Timeline Mode: Add Structure Video (when no video exists and not loading) */}
             {isTimelineMode && !structureVideoType && !videoUpload.isVideoLoading && onAddSegmentStructureVideo && (
               <div
-                className="relative gap-y-3 pt-3 border-t border-border/50"
+                className="relative space-y-3 pt-3 border-t border-border/50"
                 onDragOver={handleDragOver}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
@@ -662,7 +662,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                   <Video className="w-3.5 h-3.5" />
                   <span>Structure Video</span>
                 </div>
-                <div className="gap-y-2">
+                <div className="space-y-2">
                   <input
                     ref={videoUpload.addFileInputRef}
                     type="file"
@@ -717,7 +717,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
             {/* Structure Video Overrides - shown when segment has structure video */}
             {structureVideoType && (
               <div
-                className="gap-y-3 pt-3 border-t border-border/50"
+                className="space-y-3 pt-3 border-t border-border/50"
                 onDragOver={isTimelineMode ? handleDragOver : undefined}
                 onDragEnter={isTimelineMode ? handleDragEnter : undefined}
                 onDragLeave={isTimelineMode ? handleDragLeave : undefined}
@@ -794,7 +794,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
                 {/* Treatment Mode Selector with Upload/Browse - Timeline Mode Only */}
                 {isTimelineMode && (
-                  <div className="gap-y-1.5">
+                  <div className="space-y-1.5">
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <Label className="text-xs font-medium">Treatment:</Label>
@@ -875,7 +875,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                 )}
 
                 {/* Motion Strength */}
-                <div className="gap-y-1.5">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Strength:</Label>
@@ -910,7 +910,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
                 {/* Uni3C End Percent */}
                 {structureVideoType === 'uni3c' && (
-                  <div className="gap-y-1.5">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Label className="text-xs font-medium">End Percent:</Label>

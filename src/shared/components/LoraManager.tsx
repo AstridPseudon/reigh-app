@@ -28,7 +28,7 @@ export const LoraManager: React.FC<LoraManagerProps> = ({
   const loraManager = externalLoraManager ?? internalLoraManager;
 
   return (
-    <div className={`gap-y-4 ${className}`}>
+    <div className={`space-y-4 ${className}`}>
       <h3 className="font-light text-sm">{title}</h3>
       
       <Button 

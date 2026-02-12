@@ -100,7 +100,7 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
             <div className="flex items-center gap-x-3">
               <span className="inline-flex items-center">
                 <AlertTriangle className="h-5 w-5 text-orange-700 mr-2" />
-                <span className="gap-x-1">
+                <span className="space-x-1">
                   <span>Cloud processing enabled but you have no credits.</span>
                   <span
                     className="text-orange-700 underline hover:text-orange-800 cursor-pointer"

@@ -141,12 +141,12 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
           ) : (
             <>
               {projects.length > 0 && !showNewProjectInput && (
-                <div className="gap-y-3">
+                <div className="space-y-3">
                   <Label>Select a project:</Label>
                   <RadioGroup
                     value={selectedProjectId || ''}
                     onValueChange={setSelectedProjectId}
-                    className="gap-y-2"
+                    className="space-y-2"
                   >
                     {projects.map((project) => (
                       <div
@@ -180,7 +180,7 @@ export const ProjectSelectorModal: React.FC<ProjectSelectorModalProps> = ({
               )}
 
               {showNewProjectInput && (
-                <div className="gap-y-3">
+                <div className="space-y-3">
                   <Label htmlFor="project-name">New Project Name:</Label>
                   <div className="flex gap-2">
                     <Input

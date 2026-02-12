@@ -135,7 +135,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
       }
     >
       <div className="grid gap-3 py-3">
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <Label htmlFor="shot-name">
             Name:
           </Label>
@@ -156,7 +156,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
         />
 
         {/* Aspect Ratio Selection */}
-        <div className="gap-y-2 pt-2 border-t">
+        <div className="space-y-2 pt-2 border-t">
           <Label htmlFor="shot-aspect-ratio" className="text-sm font-medium">What size would you like to use?</Label>
           <AspectRatioSelector
             value={aspectRatio}

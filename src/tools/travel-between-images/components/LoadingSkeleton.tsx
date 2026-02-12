@@ -17,7 +17,7 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
     return (
       <PageFadeIn className="pt-3 sm:pt-5">
         <div className="flex flex-col gap-y-4 pb-4">
-          <div className="flex-shrink-0 gap-y-1 sm:gap-y-1 pb-2 sm:pb-1">
+          <div className="flex-shrink-0 space-y-1 sm:space-y-1 pb-2 sm:pb-1">
             {/* Desktop skeleton - 3-column layout matching actual Header with fixed widths */}
             <div className="hidden sm:flex justify-between items-center gap-y-2 px-2">
               {/* Left: Back button container - fixed width matching Header */}

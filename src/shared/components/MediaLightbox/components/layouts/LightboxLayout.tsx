@@ -467,10 +467,10 @@ export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
             className="absolute top-20 left-4 z-[70] select-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-2 bg-background backdrop-blur-md rounded-lg p-2 gap-y-1.5 w-40 border border-border shadow-xl">
+            <div className="mb-2 bg-background backdrop-blur-md rounded-lg p-2 space-y-1.5 w-40 border border-border shadow-xl">
               {/* Brush Size Slider - Only in Inpaint mode */}
               {editMode === 'inpaint' && (
-                <div className="gap-y-0.5">
+                <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-foreground">Size:</label>
                     <span className="text-xs text-muted-foreground">{brushSize}px</span>

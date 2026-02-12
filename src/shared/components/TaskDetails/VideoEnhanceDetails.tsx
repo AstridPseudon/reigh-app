@@ -31,13 +31,13 @@ export const VideoEnhanceDetails: React.FC<TaskDetailsProps> = ({
   const outputQuality = upscale?.output_quality ?? 'high';
 
   return (
-    <div className={`p-3 bg-muted/30 rounded-lg border gap-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[300px]'}`}>
+    <div className={`p-3 bg-muted/30 rounded-lg border space-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[300px]'}`}>
       {/* Enhancement Modes */}
-      <div className="gap-y-2">
+      <div className="space-y-2">
         <p className={`${config.textSize} font-medium text-muted-foreground`}>
           Enhancement
         </p>
-        <div className="gap-y-1.5">
+        <div className="space-y-1.5">
           {/* Interpolation */}
           {enableInterpolation && (
             <div className={`flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize}`}>

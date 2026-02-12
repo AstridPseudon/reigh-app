@@ -101,7 +101,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
       }
     >
       <div className="grid gap-4 py-3">
-        <div className="gap-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="project-name">
             Name:
           </Label>
@@ -115,7 +115,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
             placeholder="Enter project name..."
           />
         </div>
-        <div className="gap-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="aspect-ratio">
             Aspect Ratio:
           </Label>

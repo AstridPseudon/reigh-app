@@ -54,7 +54,7 @@ interface ModalContainerProps {
  *     </>
  *   }
  * >
- *   <div className="gap-y-4">
+ *   <div className="space-y-4">
  *     <Input ... />
  *     <Select ... />
  *   </div>

@@ -34,7 +34,7 @@ export function TaskLogFilters({
   onClearFilters,
 }: TaskLogFiltersProps) {
   return (
-    <div className="p-4 bg-muted rounded-lg border border-border gap-y-3 sm:gap-y-0 mt-1 mb-6">
+    <div className="p-4 bg-muted rounded-lg border border-border space-y-3 sm:space-y-0 mt-1 mb-6">
       <div className="flex items-center gap-2 sm:hidden">
         <Filter className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-light text-foreground">Filter by:</span>
@@ -59,7 +59,7 @@ export function TaskLogFilters({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-48 mx-2" align="start">
-            <div className="gap-y-1.5">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <h4 className="font-light text-sm">Filter by Cost</h4>
                 {filters.costFilter !== 'all' && (
@@ -73,7 +73,7 @@ export function TaskLogFilters({
                   </Button>
                 )}
               </div>
-              <div className="gap-y-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-x-2">
                   <input
                     type="radio"
@@ -132,7 +132,7 @@ export function TaskLogFilters({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 mx-2" align="start">
-              <div className="gap-y-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-light text-sm">Filter by Status</h4>
                   {filters.status.length > 0 && (
@@ -187,7 +187,7 @@ export function TaskLogFilters({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-56 mx-2" align="start">
-              <div className="gap-y-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-light text-sm">Filter by Task Type</h4>
                   {filters.taskTypes.length > 0 && (
@@ -242,7 +242,7 @@ export function TaskLogFilters({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-64 mx-2" align="start">
-              <div className="gap-y-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-light text-sm">Filter by Project</h4>
                   {filters.projectIds.length > 0 && (

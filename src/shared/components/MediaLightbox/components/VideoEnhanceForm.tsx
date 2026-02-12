@@ -147,7 +147,7 @@ export const VideoEnhanceForm: React.FC<VideoEnhanceFormProps> = ({
   return (
     <div className={cn("flex flex-col gap-4", isMobile ? "px-3 py-2" : "p-4")}>
       {/* Interpolation Toggle & Settings */}
-      <div className="gap-y-3">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Film className="h-4 w-4 text-muted-foreground" />
@@ -165,13 +165,13 @@ export const VideoEnhanceForm: React.FC<VideoEnhanceFormProps> = ({
         </div>
 
         {settings.enableInterpolation && (
-          <div className="pl-6 gap-y-3 border-l-2 border-muted ml-2">
+          <div className="pl-6 space-y-3 border-l-2 border-muted ml-2">
             <p className="text-xs text-muted-foreground">
               Add frames between existing frames for smoother motion
             </p>
 
             {/* Frames to interpolate slider */}
-            <div className="gap-y-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Frames to add</Label>
                 <span className="text-sm text-muted-foreground font-mono">
@@ -198,7 +198,7 @@ export const VideoEnhanceForm: React.FC<VideoEnhanceFormProps> = ({
       <div className="border-t border-border" />
 
       {/* Upscale Toggle & Settings */}
-      <div className="gap-y-3">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ArrowUp className="h-4 w-4 text-muted-foreground" />
@@ -216,13 +216,13 @@ export const VideoEnhanceForm: React.FC<VideoEnhanceFormProps> = ({
         </div>
 
         {settings.enableUpscale && (
-          <div className="pl-6 gap-y-3 border-l-2 border-muted ml-2">
+          <div className="pl-6 space-y-3 border-l-2 border-muted ml-2">
             <p className="text-xs text-muted-foreground">
               Increase video resolution using AI upscaling
             </p>
 
             {/* Upscale factor slider */}
-            <div className="gap-y-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Upscale factor</Label>
                 <span className="text-sm text-muted-foreground font-mono">

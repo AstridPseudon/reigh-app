@@ -130,13 +130,13 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
 
         <div className={`${isMobile ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-6'} items-start`}>
           {/* Left column: options */}
-          <div className="gap-y-2 sm:gap-y-4">
+          <div className="space-y-2 sm:space-y-4">
             {!isMobile && (
               <p className="text-sm text-muted-foreground mb-4">How would you like to generate?</p>
             )}
 
             {isLoadingGenerationMethods ? (
-              <div className="gap-y-3">
+              <div className="space-y-3">
                 <Skeleton className="h-10 w-64 rounded-full" />
               </div>
             ) : (
@@ -176,17 +176,17 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
         </div>
       </div>
 
-      <div className={`gap-y-6 sm:gap-y-8 ${isMobile ? 'pb-2' : 'pb-2'}`}>
+      <div className={`space-y-6 sm:space-y-8 ${isMobile ? 'pb-2' : 'pb-2'}`}>
         {/* Loading state for generation sections */}
         {isLoadingGenerationMethods && (
-          <div className="gap-y-6">
+          <div className="space-y-6">
             {/* Credits section skeleton */}
-            <div className="gap-y-4">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-6 w-32" />
                 <Skeleton className="h-8 w-24 rounded-md" />
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg gap-y-3">
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <Skeleton className="h-5 w-28" />
                   <Skeleton className="h-5 w-16" />
@@ -195,9 +195,9 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
               </div>
             </div>
             {/* Settings section skeleton */}
-            <div className="gap-y-4">
+            <div className="space-y-4">
               <Skeleton className="h-6 w-40" />
-              <div className="gap-y-3">
+              <div className="space-y-3">
                 <Skeleton className="h-10 w-full rounded-md" />
                 <Skeleton className="h-10 w-full rounded-md" />
               </div>
@@ -207,16 +207,16 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
 
         {/* Credits Management Section */}
         {!isLoadingGenerationMethods && inCloudChecked && (
-          <div className="gap-y-3 sm:gap-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <CreditsManagement initialTab={creditsTab} mode="add-credits" />
           </div>
         )}
 
         {/* Local Generation Section */}
         {!isLoadingGenerationMethods && onComputerChecked && (
-          <div className="gap-y-3 sm:gap-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {!hasValidToken ? (
-              <div className="gap-y-3 sm:gap-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Key className="h-5 w-5 text-blue-600" />
@@ -232,9 +232,9 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="gap-y-4">
+              <div className="space-y-4">
                 {/* Installation section */}
-                <div className="gap-y-3">
+                <div className="space-y-4">
                   {/* System Configuration Row */}
                   <div className={`grid ${isMobile ? 'grid-cols-2' : computerType === 'windows' ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
                     {/* Computer Type */}
@@ -415,8 +415,8 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                         </TabsTrigger>
                       </TabsList>
 
-                      <TabsContent value="need-install" className="gap-y-4">
-                        <div className="gap-y-4">
+                      <TabsContent value="need-install" className="space-y-4">
+                        <div className="space-y-4">
                           {/* Windows Prerequisites */}
                           {computerType === "windows" && (
                             <div className="border border-gray-200 rounded-lg">
@@ -430,7 +430,7 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                                 <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${showPrerequisites ? 'rotate-180' : ''}`} />
                               </button>
                               {showPrerequisites && (
-                                <ul className="list-disc pl-8 pr-4 pb-3 text-sm gap-y-1.5 text-gray-600">
+                                <ul className="list-disc pl-8 pr-4 pb-3 text-sm space-y-1.5 text-gray-600">
                                   <li>
                                     NVIDIA GPU with CUDA 6.0+ (8GB+ VRAM required)
                                   </li>
@@ -525,9 +525,9 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="max-w-sm">
-                                  <div className="py-3 gap-y-3">
+                                  <div className="py-3 space-y-3">
                                     <p className="font-light">Troubleshooting steps:</p>
-                                    <ol className="text-sm gap-y-2 list-decimal list-inside">
+                                    <ol className="text-sm space-y-2 list-decimal list-inside">
                                       <li>Try running each line of the commands one-at-a-time</li>
                                       <li>Feed the command-line log into ChatGPT or your LLM of choice</li>
                                       <li>Drop into the <a href="https://discord.gg/WXrdkbkj" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">help channel</a> of the Reigh discord</li>
@@ -561,9 +561,9 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="max-w-sm">
-                                  <div className="py-2 gap-y-2">
+                                  <div className="py-2 space-y-2">
                                     <p className="font-light text-sm">Troubleshooting steps:</p>
-                                    <ol className="text-xs gap-y-1 list-decimal list-inside">
+                                    <ol className="text-xs space-y-1 list-decimal list-inside">
                                       <li>Try running each line one-at-a-time</li>
                                       <li>Feed errors into ChatGPT or your LLM</li>
                                       <li>Join the <a href="https://discord.gg/WXrdkbkj" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">Reigh discord</a></li>
@@ -591,8 +591,8 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                         </div>
                       </TabsContent>
 
-                      <TabsContent value="already-installed" className="gap-y-4">
-                        <div className="gap-y-4">
+                      <TabsContent value="already-installed" className="space-y-4">
+                        <div className="space-y-4">
                           <div>
                             <p className="text-sm text-muted-foreground mb-4">
                               Start your local worker (auto-detects folder):
@@ -653,9 +653,9 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="max-w-sm">
-                                <div className="py-2 gap-y-2">
+                                <div className="py-2 space-y-2">
                                   <p className="font-light text-sm">Troubleshooting steps:</p>
-                                  <ol className="text-xs gap-y-1 list-decimal list-inside">
+                                  <ol className="text-xs space-y-1 list-decimal list-inside">
                                     <li>Try running each line one-at-a-time</li>
                                     <li>Feed errors into ChatGPT or your LLM</li>
                                     <li>Join the <a href="https://discord.gg/WXrdkbkj" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">Reigh discord</a></li>

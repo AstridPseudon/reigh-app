@@ -35,7 +35,7 @@ const SliderWithValue = ({
   };
 
   const sliderContent = (
-    <div className="gap-y-2">
+    <div className="space-y-2">
       {!hideLabel && (
         <div className="flex justify-between items-center">
           <label className="text-sm font-light">{label}</label>

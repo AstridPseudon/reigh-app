@@ -98,7 +98,7 @@ export const ReferenceGrid: React.FC<ReferenceGridProps> = ({
   const showOnlySkeletons = isLoadingReferenceData && skeletonCount > 0;
 
   return (
-    <div className="gap-y-3">
+    <div className="space-y-3">
       <div className="grid grid-cols-4 gap-2">
         {/* Add button always first */}
         <AddReferenceButton

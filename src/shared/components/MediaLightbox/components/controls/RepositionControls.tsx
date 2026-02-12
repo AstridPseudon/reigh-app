@@ -54,7 +54,7 @@ export const RepositionControls: React.FC<RepositionControlsProps> = ({
     transform.flipV;
   
   return (
-    <div className="gap-y-2">
+    <div className="space-y-2">
       {/* Flip Buttons */}
       <div className="flex gap-1">
         <button

@@ -51,7 +51,7 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
   };
 
   const renderVideoPreview = (url: string, index: number, label: string) => (
-    <div className="gap-y-1">
+    <div className="space-y-1">
       <p className={`${config.textSize} text-muted-foreground text-center`}>{label}</p>
       <div className="relative group cursor-pointer">
         {!videoLoadedStates[index] ? (
@@ -90,10 +90,10 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
   );
 
   return (
-    <div className={`p-3 bg-muted/30 rounded-lg border gap-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[360px]'}`}>
+    <div className={`p-3 bg-muted/30 rounded-lg border space-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[360px]'}`}>
       {/* Multi-Clip Format */}
       {clipsArray && clipsArray.length > 0 && (
-        <div className="gap-y-3">
+        <div className="space-y-3">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>
             Video Clips ({clipsArray.length})
           </p>
@@ -112,11 +112,11 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
 
           {/* Individual Transition Prompts */}
           {perJoinSettings && perJoinSettings.length > 0 && (
-            <div className="gap-y-2 pt-2 border-t border-muted-foreground/20">
+            <div className="space-y-2 pt-2 border-t border-muted-foreground/20">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Transition Prompts</p>
               {perJoinSettings.map((settings: JoinSettings, index: number) => (
                 settings.prompt && (
-                  <div key={index} className="gap-y-1">
+                  <div key={index} className="space-y-1">
                     <p className={`${config.textSize} text-muted-foreground`}>
                       Clip {index + 1} → {index + 2}
                     </p>
@@ -141,11 +141,11 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Frame Configuration */}
       {(contextFrameCount != null || gapFrameCount != null || replaceMode != null || keepBridgingImages != null) && (
-        <div className={`gap-y-2 ${(clipsArray?.length > 0) || startingVideoPath || endingVideoPath ? 'pt-2 border-t border-muted-foreground/20' : ''}`}>
+        <div className={`space-y-2 ${(clipsArray?.length > 0) || startingVideoPath || endingVideoPath ? 'pt-2 border-t border-muted-foreground/20' : ''}`}>
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Configuration</p>
           <div className="grid grid-cols-2 gap-3">
             {gapFrameCount != null && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} text-muted-foreground`}>Gap Frames</p>
                 <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                   {framesToSeconds(gapFrameCount)} ({gapFrameCount} frames)
@@ -153,7 +153,7 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
               </div>
             )}
             {contextFrameCount != null && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} text-muted-foreground`}>Context Frames</p>
                 <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                   {framesToSeconds(contextFrameCount)} ({contextFrameCount} frames)
@@ -161,7 +161,7 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
               </div>
             )}
             {replaceMode != null && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} text-muted-foreground`}>Transition Mode</p>
                 <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                   {replaceMode ? 'Replace' : 'Insert'}
@@ -169,7 +169,7 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
               </div>
             )}
             {keepBridgingImages != null && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} text-muted-foreground`}>Bridge Anchors</p>
                 <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
                   {keepBridgingImages ? 'On' : 'Off'}
@@ -182,7 +182,7 @@ export const JoinClipsDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Legacy Single Prompt */}
       {!clipsArray && joinClipsPrompt && (
-        <div className="gap-y-1">
+        <div className="space-y-1">
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Transition Prompt</p>
           <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap leading-relaxed`}>
             {joinClipsPrompt}

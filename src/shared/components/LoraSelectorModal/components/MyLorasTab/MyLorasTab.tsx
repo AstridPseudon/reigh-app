@@ -58,7 +58,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
   });
 
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       {formState.isEditMode && (
         <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-center gap-2">
@@ -87,10 +87,10 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
             {formState.isEditMode ? 'Update your LoRA details.' : 'Create and save a new LoRA to your collection.'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="gap-y-3">
+        <CardContent className="space-y-3">
           {/* Name and Trigger Word */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <Label htmlFor="lora-name">Name: *</Label>
               <Input
                 id="lora-name"
@@ -101,7 +101,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
               />
             </div>
 
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <Label htmlFor="lora-trigger-word">Trigger Word:</Label>
               <Input
                 id="lora-trigger-word"
@@ -113,7 +113,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
           </div>
 
           {/* Description */}
-          <div className="gap-y-1">
+          <div className="space-y-1">
             <Label htmlFor="lora-description">Description: (optional)</Label>
             <Textarea
               id="lora-description"
@@ -132,7 +132,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
           </div>
 
           {/* Base Model */}
-          <div className="gap-y-1">
+          <div className="space-y-1">
             <Label>Base Model:</Label>
             <div className="flex gap-2">
               <Select
@@ -167,7 +167,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
 
           {/* Upload Mode Toggle */}
           {!formState.isEditMode && (
-            <div className="gap-y-2">
+            <div className="space-y-2">
               <Label>How do you want to add this LoRA?</Label>
               <div className="flex gap-2">
                 <Button
@@ -222,7 +222,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
           )}
 
           {/* Created By */}
-          <div className="gap-y-1">
+          <div className="space-y-1">
             <Label>Created By:</Label>
             <div className="flex items-center gap-x-2 mb-2">
               <Checkbox

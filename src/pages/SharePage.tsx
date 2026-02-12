@@ -203,7 +203,7 @@ const SharePage: React.FC = () => {
 
         {/* Content skeleton - matches SharedGenerationView container */}
         <div className="container mx-auto px-4 pt-8 pb-24 sm:pb-28 max-w-6xl">
-          <div className="gap-y-6">
+          <div className="space-y-6">
             {/* Final Video card skeleton - matches FinalVideoSection */}
             <div className="w-full">
               <div className="bg-card border rounded-xl shadow-sm">
@@ -227,7 +227,7 @@ const SharePage: React.FC = () => {
 
             {/* Input images card skeleton - matches Card structure */}
             <div className="bg-card border rounded-xl shadow-sm">
-              <div className="p-6 gap-y-4">
+              <div className="p-6 space-y-4">
                 <div className="h-6 w-32 bg-muted animate-pulse rounded" />
               </div>
               <div className="px-6 pb-6">
@@ -241,20 +241,20 @@ const SharePage: React.FC = () => {
 
             {/* Settings card skeleton - matches two-column layout */}
             <div className="bg-card border rounded-xl shadow-sm">
-              <div className="p-6 gap-y-4">
+              <div className="p-6 space-y-4">
                 <div className="h-6 w-40 bg-muted animate-pulse rounded" />
               </div>
               <div className="px-6 pb-6">
                 <div className="flex flex-col lg:flex-row gap-6">
                   {/* Left column */}
-                  <div className="lg:w-1/2 order-2 lg:order-1 gap-y-3">
+                  <div className="lg:w-1/2 order-2 lg:order-1 space-y-3">
                     <div className="h-4 w-20 bg-muted animate-pulse rounded" />
                     <div className="h-4 w-full bg-muted animate-pulse rounded" />
                     <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
                     <div className="h-4 w-5/6 bg-muted animate-pulse rounded" />
                   </div>
                   {/* Right column */}
-                  <div className="lg:w-1/2 order-1 lg:order-2 gap-y-3">
+                  <div className="lg:w-1/2 order-1 lg:order-2 space-y-3">
                     <div className="h-4 w-16 bg-muted animate-pulse rounded" />
                     <div className="h-4 w-full bg-muted animate-pulse rounded" />
                     <div className="h-4 w-2/3 bg-muted animate-pulse rounded" />
@@ -271,8 +271,8 @@ const SharePage: React.FC = () => {
   if (error || !shareData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <div className="max-w-md w-full gap-y-6 text-center">
-          <div className="gap-y-2">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <div className="space-y-2">
             <h1 className="text-3xl font-bold">Share Not Found</h1>
             <p className="text-muted-foreground">
               {error || 'This shared generation could not be found or is no longer available.'}

@@ -305,7 +305,7 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
     return (
         <TooltipProvider>
         <div className="w-full">
-            <div className="p-4 gap-y-4">
+            <div className="p-4 space-y-4">
             {/* Header - hidden when embedded in parent panel */}
             {!hideHeader && (
             <div className="flex items-center gap-2">
@@ -318,8 +318,8 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
 
             {/* Per-Segment Settings - Show first! */}
             {selections.length > 0 && onUpdateSelectionSettings && (
-                <div className="gap-y-2">
-                    <div className="gap-y-3">
+                <div className="space-y-2">
+                    <div className="space-y-3">
                         {selections.sort((a, b) => a.start - b.start).map((selection, index) => {
                             const segmentColor = getSegmentFormColor(index);
                             const segmentFrameCount = selection.gapFrameCount ?? gapFrames;
@@ -328,7 +328,7 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
                             return (
                             <div
                                 key={selection.id}
-                                className={cn("border rounded-lg p-3 bg-muted/20 gap-y-3", segmentColor.border)}
+                                className={cn("border rounded-lg p-3 bg-muted/20 space-y-3", segmentColor.border)}
                             >
                                 {/* Segment Header - self-identifying with time range */}
                                 <div className="flex items-center justify-between gap-2">
@@ -466,9 +466,9 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
             </button>
 
             {showAdvanced && (
-                <div className="gap-y-4 pt-2">
+                <div className="space-y-4 pt-2">
                     {/* Context Frames - Global setting */}
-                    <div className="gap-y-2">
+                    <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="context-frames" className="text-sm">Context Frames:</Label>
                             <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{contextFrames}</span>
@@ -487,7 +487,7 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
                     </div>
 
                     {/* Negative Prompt */}
-                    <div className="gap-y-2">
+                    <div className="space-y-2">
                         <Label htmlFor="negative-prompt">Negative Prompt:</Label>
                         <Textarea
                             id="negative-prompt"
@@ -540,12 +540,12 @@ export const VideoPortionEditor: React.FC<VideoPortionEditorProps> = ({
 
             {/* Validation Errors */}
             {validationErrors.length > 0 && (
-                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 gap-y-1">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-1">
                     <div className="flex items-center gap-2 text-destructive font-medium text-sm">
                         <AlertTriangle className="w-4 h-4" />
                         Cannot generate
                     </div>
-                    <ul className="text-xs text-destructive/80 gap-y-0.5 pl-6">
+                    <ul className="text-xs text-destructive/80 space-y-0.5 pl-6">
                         {validationErrors.map((error, i) => (
                             <li key={i} className="list-disc">{error}</li>
                         ))}

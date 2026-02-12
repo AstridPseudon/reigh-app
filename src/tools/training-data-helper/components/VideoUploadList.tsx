@@ -117,7 +117,7 @@ export function VideoUploadList({ videos, selectedVideo, onVideoSelect, segments
           onClick={() => onVideoSelect(video.id)}
         >
           <CardContent className="p-4">
-            <div className="gap-y-3">
+            <div className="space-y-3">
               {/* Video thumbnail/preview */}
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
                 {getVideoUrl(video) && !videoErrors.has(video.id) ? (
@@ -152,7 +152,7 @@ export function VideoUploadList({ videos, selectedVideo, onVideoSelect, segments
               </div>
 
               {/* Video info */}
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <h3 className="font-light text-sm truncate preserve-case" title={video.originalFilename}>
                   {cropFilename(video.originalFilename)}
                 </h3>

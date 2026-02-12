@@ -139,7 +139,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
 
   return (
     <div
-      className="flex-shrink-0 gap-y-1 sm:gap-y-1 pb-2 sm:pb-1 transition-opacity duration-200"
+      className="flex-shrink-0 space-y-1 sm:space-y-1 pb-2 sm:pb-1 transition-opacity duration-200"
       style={{
         opacity: isSticky ? 0 : 1,
         pointerEvents: isSticky ? 'none' : 'auto'

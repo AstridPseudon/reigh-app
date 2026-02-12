@@ -123,9 +123,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
           ref={scrollRef}
           className={`${modal.scrollClass} ${modal.isMobile ? 'px-4' : 'px-6'} overflow-x-visible [scrollbar-gutter:stable_both-edges] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:[&::-webkit-scrollbar]:block sm:[-ms-overflow-style:auto] sm:[scrollbar-width:auto] sm:pr-4 relative`}
         >
-          <div className="gap-y-4 pb-6">
+          <div className="space-y-4 pb-6">
             {/* Main Description */}
-            <div className="gap-y-3 text-sm leading-relaxed text-muted-foreground">
+            <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
               <p>
                 Artists can run Reigh for free on their computers.
               </p>
@@ -139,7 +139,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
 
             {/* Referral Link Section */}
             {username ? (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 text-sm font-mono text-muted-foreground truncate mr-3">
@@ -161,7 +161,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
                 </div>
               </div>
             ) : session ? (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
                   <div className="flex items-center gap-x-2">
                     <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -179,7 +179,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
 
               {/* Profit split bar illustration */}
               <div className="overflow-visible mt-6">
-                <ProfitSplitBar className="gap-y-2" />
+                <ProfitSplitBar className="space-y-2" />
               </div>
             </div>
             
@@ -187,7 +187,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
             <div style={{ height: '1.5px' }}></div>
             
             {/* Inspirational Message */}
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <div>
                 <p className="text-sm font-medium text-muted-foreground leading-relaxed italic text-left">
                   We hope that this motivates artists to create beautiful work, which in turn inspire others to create with AI.
@@ -225,9 +225,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
           <div className={`${modal.isMobile ? 'p-3 pt-3 pb-2' : 'p-4 pt-4 pb-2'} border-t relative z-20`}>
             <div className="flex gap-3 items-start">
               {/* Statistics Section - 3/5 width */}
-              <div className="w-3/5 gap-y-1">
+              <div className="w-3/5 space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Your referral statistics:</label>
-                <div className="gap-y-1 pr-3">
+                <div className="space-y-1 pr-3">
                   <div className="grid grid-cols-[1fr_auto] items-center">
                     <span className="text-xs text-muted-foreground">Visitors</span>
                     <span className="font-mono text-sm font-semibold justify-self-end">

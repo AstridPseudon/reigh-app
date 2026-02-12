@@ -34,13 +34,13 @@ export const CreativePartnerPane: React.FC<CreativePartnerPaneProps> = ({
         <div className="w-20 h-1.5 bg-gradient-to-r from-wes-vintage-gold to-wes-vintage-gold/50 rounded-full animate-pulse-breathe opacity-90"></div>
       </div>
       
-      <div className="gap-y-6 text-foreground/85 font-medium">
+      <div className="space-y-6 text-foreground/85 font-medium">
         <p className="text-sm leading-7">
           Practically for you, <strong>this means three things</strong>:
         </p>
 
-        <div className="gap-y-8">
-          <div className="gap-y-3">
+        <div className="space-y-8">
+          <div className="space-y-3">
             <p className="text-sm leading-7 clearfix">
               <span
                 aria-hidden
@@ -61,7 +61,7 @@ export const CreativePartnerPane: React.FC<CreativePartnerPaneProps> = ({
             
           </div>
 
-          <div className="gap-y-3">
+          <div className="space-y-3">
             <p className="text-sm leading-7 clearfix">
               <span
                 aria-hidden
@@ -79,7 +79,7 @@ export const CreativePartnerPane: React.FC<CreativePartnerPaneProps> = ({
             </blockquote>
           </div>
 
-          <div className="gap-y-3">
+          <div className="space-y-3">
             <p className="text-sm leading-7 clearfix">
               <span
                 aria-hidden
@@ -153,11 +153,11 @@ export const CreativePartnerPane: React.FC<CreativePartnerPaneProps> = ({
               After other costs like hosting, we'll <strong>split the profit three ways</strong>:
             </p>
 
-            <ProfitSplitBar className="gap-y-2" />
+            <ProfitSplitBar className="space-y-2" />
           </div>
         </div>
         
-        <div className="gap-y-4">
+        <div className="space-y-4">
           <p className="text-sm leading-7">
             We'd like to show a model for how others can build successful tools while supporting this ecosystem that makes them possible.
           </p>

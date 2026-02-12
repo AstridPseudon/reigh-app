@@ -147,10 +147,10 @@ const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
     }, [phaseConfig, advancedMode]);
 
     return (
-        <div className="gap-y-4">
+        <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left Column: Prompts with text before/after when applicable */}
-                <div className="gap-y-4">
+                <div className="space-y-4">
                   {/* Main Prompt */}
                   <div className="relative">
                     <Label htmlFor="batchVideoPrompt" className="text-sm font-light block mb-1.5">

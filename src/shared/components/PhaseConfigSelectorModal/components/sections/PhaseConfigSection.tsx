@@ -52,7 +52,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
   const phaseLabels = editablePhaseConfig.num_phases === 2 ? phaseLabels2 : phaseLabels3;
 
   return (
-    <div className="gap-y-3 pt-2 border-t">
+    <div className="space-y-3 pt-2 border-t">
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Phase Configuration</Label>
         <Button
@@ -68,7 +68,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
       </div>
 
       {/* Model Type Toggle (I2V vs VACE) */}
-      <div className="gap-y-2 p-3 bg-muted/30 rounded-lg border">
+      <div className="space-y-2 p-3 bg-muted/30 rounded-lg border">
         <div className="flex items-center gap-2">
           <Label className="text-sm font-light">Model Type:</Label>
           <TooltipProvider>
@@ -108,7 +108,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Number of Phases */}
-            <div className="gap-y-1.5">
+            <div className="space-y-1.5">
               <Label className="text-sm font-light">Number of Phases:</Label>
               <RadioGroup
                 value={String(editablePhaseConfig.num_phases)}
@@ -174,7 +174,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
             </div>
 
             {/* Sample Solver */}
-            <div className="gap-y-1.5">
+            <div className="space-y-1.5">
               <Label className="text-sm font-light">Sample Solver:</Label>
               <RadioGroup
                 value={editablePhaseConfig.sample_solver}
@@ -198,7 +198,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
           </div>
 
           {/* Flow Shift */}
-          <div className="gap-y-1.5 mt-4">
+          <div className="space-y-1.5 mt-4">
             <Label className="text-sm font-light">
               Flow Shift: {editablePhaseConfig.flow_shift}
             </Label>
@@ -228,9 +228,9 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Left: Steps and Guidance */}
-              <div className="gap-y-3">
+              <div className="space-y-3">
                 {/* Steps */}
-                <div className="gap-y-1.5">
+                <div className="space-y-1.5">
                   <Label className="text-sm font-light">
                     Steps: {(editablePhaseConfig.steps_per_phase || [])[phaseIdx] ?? 2}
                   </Label>
@@ -248,7 +248,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
                 </div>
 
                 {/* Guidance Scale */}
-                <div className="gap-y-1.5">
+                <div className="space-y-1.5">
                   <Label className="text-sm font-light">Guidance Scale:</Label>
                   <NumberInput
                     min={0}

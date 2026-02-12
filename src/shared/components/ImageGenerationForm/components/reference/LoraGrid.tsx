@@ -15,7 +15,7 @@ export const LoraGrid: React.FC<LoraGridProps> = ({
   isGenerating,
 }) => {
   return (
-    <div className="gap-y-3 rounded-lg border bg-muted/20 p-3">
+    <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">
           LoRAs {selectedLoras.length > 0 && `(${selectedLoras.length})`}
@@ -78,7 +78,7 @@ export const LoraGrid: React.FC<LoraGridProps> = ({
                   </button>
                 </div>
 
-                <div className="p-2 gap-y-2">
+                <div className="p-2 space-y-2">
                   <p
                     className="text-xs font-medium truncate preserve-case"
                     title={getDisplayNameFromUrl(lora.path, undefined, lora.name)}

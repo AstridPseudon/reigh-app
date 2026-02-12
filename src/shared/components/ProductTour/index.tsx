@@ -62,7 +62,7 @@ function CustomTooltip({
       className="bg-background border border-border rounded-lg shadow-lg p-4 max-w-xs z-[100011] animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
     >
       {/* Header with colored icon */}
-      <div className="text-center gap-y-2 mb-3">
+      <div className="text-center space-y-2 mb-3">
         <div className={`mx-auto w-8 h-8 ${colors.bg} rounded-full flex items-center justify-center`}>
           <Icon className={`w-4 h-4 ${colors.icon}`} />
         </div>

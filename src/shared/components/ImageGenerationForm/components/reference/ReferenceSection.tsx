@@ -55,7 +55,7 @@ export const ReferenceSection: React.FC<ReferenceSectionProps> = ({
   const hasSelectedReference = !!styleReferenceImage;
 
   return (
-    <div className="gap-y-4">
+    <div className="space-y-4">
       {hasReferences ? (
         // Main UI: mode controls + grid + preview
         <>
@@ -110,7 +110,7 @@ export const ReferenceSection: React.FC<ReferenceSectionProps> = ({
         </>
       ) : (
         // Empty state: no references yet
-        <div className="gap-y-3">
+        <div className="space-y-3">
           <FileInput
             onFileChange={onAddReference}
             acceptTypes={["image"]}

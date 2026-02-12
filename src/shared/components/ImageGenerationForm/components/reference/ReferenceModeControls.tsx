@@ -40,7 +40,7 @@ export const ReferenceModeControls: React.FC<ReferenceModeControlsProps> = ({
   return (
     <div className="flex gap-4 flex-col md:flex-row">
       {/* Left column - Reference Mode Selector */}
-      <div className="flex-1 gap-y-2">
+      <div className="flex-1 space-y-2">
         <Label className="text-sm font-medium">
           How would you like to use this reference?
         </Label>
@@ -78,7 +78,7 @@ export const ReferenceModeControls: React.FC<ReferenceModeControlsProps> = ({
       </div>
 
       {/* Right column - Strength sliders and inputs */}
-      <div className="flex-1 gap-y-4">
+      <div className="flex-1 space-y-4">
         {/* Scene strength slider - only show in scene mode */}
         {referenceMode === "scene" && (
           <SliderWithValue
@@ -95,7 +95,7 @@ export const ReferenceModeControls: React.FC<ReferenceModeControlsProps> = ({
 
         {/* All three sliders in custom mode */}
         {referenceMode === "custom" && (
-          <div className="gap-y-3">
+          <div className="space-y-3">
             <SliderWithValue
               label="Style strength"
               value={styleReferenceStrength}
@@ -143,9 +143,9 @@ export const ReferenceModeControls: React.FC<ReferenceModeControlsProps> = ({
 
         {/* Subject description and style-boost terms for style/subject modes */}
         {hasSelectedReference && (referenceMode === "style" || referenceMode === "subject") && (
-          <div className="gap-y-4">
+          <div className="space-y-4">
             {subjectStrength > 0 && (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="subject-description" className="text-sm font-medium">
                   Which subject from this image?
                 </Label>
@@ -163,7 +163,7 @@ export const ReferenceModeControls: React.FC<ReferenceModeControlsProps> = ({
             )}
 
             {referenceMode === "style" && (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="style-boost-terms" className="text-sm font-medium">
                   Style-boost terms:
                 </Label>

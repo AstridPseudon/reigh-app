@@ -175,7 +175,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
   return (
     <div className={`p-3 bg-muted/30 rounded-lg border ${showPhaseContentInRightColumn ? 'w-full grid grid-cols-1 lg:grid-cols-2 gap-4' : ''} ${!showPhaseContentInRightColumn && variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : !showPhaseContentInRightColumn ? 'w-[360px]' : ''}`}>
       {/* Main Content Column */}
-      <div className={showPhaseContentInRightColumn ? 'gap-y-4 min-w-0' : 'gap-y-4'}>
+      <div className={showPhaseContentInRightColumn ? 'space-y-4 min-w-0' : 'space-y-4'}>
         {/* Guidance Images */}
         {/* Guidance Images + Structure Video side by side */}
         {(effectiveInputImages.length > 0 || videoPath) && (
@@ -199,7 +199,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
             )}
 
             {videoPath && (
-              <div className="gap-y-1.5 shrink-0">
+              <div className="space-y-1.5 shrink-0">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>
                   {structureGuidance?.target ? 'Structure' : 'Video'}
                 </p>
@@ -213,7 +213,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
                       <video src={videoPath} className="w-full rounded border" loop muted playsInline autoPlay />
                     )}
                   </div>
-                  <div className={`${config.textSize} ${config.fontWeight} gap-y-0.5`}>
+                  <div className={`${config.textSize} ${config.fontWeight} space-y-0.5`}>
                     {structureGuidance?.strength != null && (
                       <div><span className="text-muted-foreground">Str: </span>{structureGuidance.strength}</div>
                     )}
@@ -231,7 +231,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 
         {/* Style Reference */}
         {styleImage && (
-          <div className="gap-y-1.5">
+          <div className="space-y-1.5">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>Style Reference</p>
             <div className="flex items-center gap-3">
               <img src={styleImage} alt="Style" className="w-[80px] object-cover rounded border" />
@@ -242,15 +242,15 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 
         {/* Preset */}
         {presetName && (
-          <div className="gap-y-1">
+          <div className="space-y-1">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>Motion Preset</p>
             <p className={`${config.textSize} ${config.fontWeight}`}>{presetName}</p>
           </div>
         )}
 
         {/* Prompts */}
-        <div className="gap-y-3 pt-1">
-          <div className="gap-y-1">
+        <div className="space-y-3 pt-1">
+          <div className="space-y-1">
             <div className="flex items-center justify-between gap-2">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt{enhancePrompt ? ' (enhanced)' : ''}</p>
               {prompt && showCopyButtons && (
@@ -273,7 +273,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
             )}
           </div>
           {negativePrompt && negativePrompt !== 'N/A' && (
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Negative Prompt</p>
               <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap preserve-case`}>
                 {showFullNegativePrompt || negativePrompt.length <= config.negativePromptLength ? negativePrompt : negativePrompt.slice(0, config.negativePromptLength) + '...'}
@@ -291,27 +291,27 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
         {isAdvancedMode && (
           <div className="grid grid-cols-2 gap-3">
             {modelName && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Model</p>
                 <p className={`${config.textSize} ${config.fontWeight}`}>{formatModelName(modelName)}</p>
               </div>
             )}
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Resolution</p>
               <p className={`${config.textSize} ${config.fontWeight}`}>{resolution || 'N/A'}</p>
             </div>
-            <div className="gap-y-1">
+            <div className="space-y-1">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>{isSegmentTask ? 'Frames' : 'Frames / Segment'}</p>
               <p className={`${config.textSize} ${config.fontWeight}`}>{frames || 'N/A'}</p>
             </div>
             {phaseConfig?.flow_shift !== undefined && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Flow Shift</p>
                 <p className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.flow_shift}</p>
               </div>
             )}
             {phaseConfig?.sample_solver && (
-              <div className="gap-y-1">
+              <div className="space-y-1">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Solver</p>
                 <p className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseConfig.sample_solver}</p>
               </div>
@@ -321,12 +321,12 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 
         {/* Phase details (when not in right column) */}
         {!showPhaseContentInRightColumn && isAdvancedMode && phaseConfig?.phases && phaseConfig.phases.length > 0 && (
-          <div className="pt-2 border-t border-muted-foreground/20 gap-y-2">
+          <div className="pt-2 border-t border-muted-foreground/20 space-y-2">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
             {phaseConfig.phases.map((phase: PhaseSettings, phaseIndex: number) => (
-              <div key={phase.phase} className="gap-y-1">
+              <div key={phase.phase} className="space-y-1">
                 <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
-                <div className="ml-2 gap-y-1">
+                <div className="ml-2 space-y-1">
                   <div className="flex gap-3">
                     <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
                     {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
@@ -354,7 +354,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 
         {/* In basic mode OR no phases with loras: show "LoRAs" from additional_loras */}
         {!showPhaseContentInRightColumn && (!isAdvancedMode || !phaseConfig?.phases?.length) && additionalLoras && Object.keys(additionalLoras).length > 0 && (
-          <div className="pt-2 border-t border-muted-foreground/20 gap-y-2">
+          <div className="pt-2 border-t border-muted-foreground/20 space-y-2">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>LoRAs</p>
             {Object.entries(additionalLoras).slice(0, config.maxLoras).map(([url, strength]) => (
               <div key={url} className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
@@ -375,9 +375,9 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Right Column: Phase Settings and LoRAs (only when showPhaseContentInRightColumn) */}
       {showPhaseContentInRightColumn && (
-        <div className="gap-y-4 lg:border-l lg:border-muted-foreground/20 lg:pl-4 min-w-0">
+        <div className="space-y-4 lg:border-l lg:border-muted-foreground/20 lg:pl-4 min-w-0">
           {phaseConfig?.phases && (
-            <div className="gap-y-2">
+            <div className="space-y-2">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Phase Settings</p>
               <div className="grid grid-cols-2 gap-2">
                 <div><span className={`${config.textSize} text-muted-foreground`}>Phases:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.num_phases || phaseConfig.phases?.length}</span></div>
@@ -389,12 +389,12 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
           )}
 
           {phaseConfig.phases.length > 0 && (
-            <div className="pt-3 border-t border-muted-foreground/20 gap-y-2">
+            <div className="pt-3 border-t border-muted-foreground/20 space-y-2">
               <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
               {phaseConfig.phases.map((phase: PhaseSettings, phaseIndex: number) => (
-                <div key={phase.phase} className="gap-y-1">
+                <div key={phase.phase} className="space-y-1">
                   <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
-                  <div className="ml-2 gap-y-1">
+                  <div className="ml-2 space-y-1">
                     <div className="flex gap-3">
                       <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
                       {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (

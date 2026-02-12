@@ -42,7 +42,7 @@ const ActiveLoRAsDisplayComponent: React.FC<ActiveLoRAsDisplayProps> = ({
   renderHeaderActions,
 }) => {
   return (
-    <div className={`gap-y-4 ${className}`}>
+    <div className={`space-y-4 ${className}`}>
       {renderHeaderActions && (
         <div className="flex items-center justify-start">
           {renderHeaderActions()}

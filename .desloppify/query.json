@@ -1,0 +1,286 @@
+{
+  "command": "status",
+  "score": 0.7,
+  "strict_score": 0.7,
+  "objective_score": 95.0,
+  "objective_strict": 95.0,
+  "dimension_scores": {
+    "Import hygiene": {
+      "score": 99.5,
+      "strict": 99.5,
+      "checks": 958,
+      "issues": 5,
+      "tier": 1,
+      "detectors": {
+        "unused": {
+          "potential": 958,
+          "pass_rate": 0.9947807933194155,
+          "issues": 5,
+          "weighted_failures": 5.0
+        }
+      }
+    },
+    "Debug cleanliness": {
+      "score": 99.4,
+      "strict": 99.4,
+      "checks": 958,
+      "issues": 6,
+      "tier": 1,
+      "detectors": {
+        "logs": {
+          "potential": 958,
+          "pass_rate": 0.9937369519832986,
+          "issues": 6,
+          "weighted_failures": 6.0
+        }
+      }
+    },
+    "API surface": {
+      "score": 99.7,
+      "strict": 99.7,
+      "checks": 1505,
+      "issues": 4,
+      "tier": 2,
+      "detectors": {
+        "exports": {
+          "potential": 1459,
+          "pass_rate": 0.9993145990404386,
+          "issues": 1,
+          "weighted_failures": 1.0
+        },
+        "deprecated": {
+          "potential": 46,
+          "pass_rate": 0.9347826086956522,
+          "issues": 3,
+          "weighted_failures": 3.0
+        }
+      }
+    },
+    "File health": {
+      "score": 92.7,
+      "strict": 92.7,
+      "checks": 958,
+      "issues": 91,
+      "tier": 3,
+      "detectors": {
+        "structural": {
+          "potential": 958,
+          "pass_rate": 0.9272442588726513,
+          "issues": 91,
+          "weighted_failures": 69.7000000000001
+        }
+      }
+    },
+    "Component design": {
+      "score": 84.3,
+      "strict": 84.3,
+      "checks": 447,
+      "issues": 97,
+      "tier": 3,
+      "detectors": {
+        "props": {
+          "potential": 447,
+          "pass_rate": 0.8434004474272928,
+          "issues": 97,
+          "weighted_failures": 70.0000000000001
+        }
+      }
+    },
+    "Coupling": {
+      "score": 99.2,
+      "strict": 99.2,
+      "checks": 3200,
+      "issues": 36,
+      "tier": 3,
+      "detectors": {
+        "single_use": {
+          "potential": 489,
+          "pass_rate": 0.9584867075664621,
+          "issues": 29,
+          "weighted_failures": 20.29999999999999
+        },
+        "coupling": {
+          "potential": 2711,
+          "pass_rate": 0.997528587237182,
+          "issues": 7,
+          "weighted_failures": 6.7
+        }
+      }
+    },
+    "Organization": {
+      "score": 99.6,
+      "strict": 99.6,
+      "checks": 1259,
+      "issues": 8,
+      "tier": 3,
+      "detectors": {
+        "orphaned": {
+          "potential": 949,
+          "pass_rate": 1.0,
+          "issues": 0,
+          "weighted_failures": 0.0
+        },
+        "flat_dirs": {
+          "potential": 165,
+          "pass_rate": 0.9660606060606061,
+          "issues": 8,
+          "weighted_failures": 5.6000000000000005
+        },
+        "naming": {
+          "potential": 145,
+          "pass_rate": 1.0,
+          "issues": 0,
+          "weighted_failures": 0.0
+        }
+      }
+    },
+    "Code quality": {
+      "score": 89.7,
+      "strict": 89.7,
+      "checks": 1180,
+      "issues": 195,
+      "tier": 3,
+      "detectors": {
+        "smells": {
+          "potential": 958,
+          "pass_rate": 0.8792275574112733,
+          "issues": 187,
+          "weighted_failures": 115.70000000000016
+        },
+        "react": {
+          "potential": 222,
+          "pass_rate": 0.9747747747747748,
+          "issues": 8,
+          "weighted_failures": 5.6000000000000005
+        }
+      }
+    },
+    "Pattern consistency": {
+      "score": 91.7,
+      "strict": 91.7,
+      "checks": 42,
+      "issues": 5,
+      "tier": 3,
+      "detectors": {
+        "patterns": {
+          "potential": 42,
+          "pass_rate": 0.9166666666666666,
+          "issues": 5,
+          "weighted_failures": 3.5
+        }
+      }
+    },
+    "Dependency health": {
+      "score": 99.9,
+      "strict": 99.9,
+      "checks": 3942,
+      "issues": 4,
+      "tier": 4,
+      "detectors": {
+        "cycles": {
+          "potential": 3942,
+          "pass_rate": 0.9989852866565195,
+          "issues": 4,
+          "weighted_failures": 4.0
+        }
+      }
+    }
+  },
+  "stats": {
+    "total": 454,
+    "open": 451,
+    "fixed": 0,
+    "auto_resolved": 3,
+    "wontfix": 0,
+    "false_positive": 0,
+    "by_tier": {
+      "1": {
+        "open": 9,
+        "fixed": 0,
+        "auto_resolved": 0,
+        "wontfix": 0,
+        "false_positive": 0
+      },
+      "2": {
+        "open": 61,
+        "fixed": 0,
+        "auto_resolved": 0,
+        "wontfix": 0,
+        "false_positive": 0
+      },
+      "3": {
+        "open": 351,
+        "fixed": 0,
+        "auto_resolved": 3,
+        "wontfix": 0,
+        "false_positive": 0
+      },
+      "4": {
+        "open": 30,
+        "fixed": 0,
+        "auto_resolved": 0,
+        "wontfix": 0,
+        "false_positive": 0
+      }
+    }
+  },
+  "scan_count": 6,
+  "last_scan": "2026-02-12T01:00:04+00:00",
+  "by_tier": {
+    "1": {
+      "open": 9,
+      "fixed": 0,
+      "auto_resolved": 0,
+      "wontfix": 0,
+      "false_positive": 0
+    },
+    "2": {
+      "open": 61,
+      "fixed": 0,
+      "auto_resolved": 0,
+      "wontfix": 0,
+      "false_positive": 0
+    },
+    "3": {
+      "open": 351,
+      "fixed": 0,
+      "auto_resolved": 3,
+      "wontfix": 0,
+      "false_positive": 0
+    },
+    "4": {
+      "open": 30,
+      "fixed": 0,
+      "auto_resolved": 0,
+      "wontfix": 0,
+      "false_positive": 0
+    }
+  },
+  "ignores": [],
+  "potentials": {
+    "typescript": {
+      "logs": 958,
+      "unused": 958,
+      "exports": 1459,
+      "deprecated": 46,
+      "structural": 958,
+      "flat_dirs": 165,
+      "props": 447,
+      "single_use": 489,
+      "coupling": 2711,
+      "cycles": 3942,
+      "orphaned": 949,
+      "patterns": 42,
+      "naming": 145,
+      "smells": 958,
+      "react": 222
+    }
+  },
+  "codebase_metrics": {
+    "typescript": {
+      "total_files": 958,
+      "total_loc": 182541,
+      "total_directories": 165
+    }
+  }
+}

@@ -46,7 +46,7 @@ export const SampleGenerationsSection: React.FC<SampleGenerationsSectionProps> =
   onDeleteFile,
 }) => {
   return (
-    <div className="gap-y-3 pt-2 border-t">
+    <div className="space-y-3 pt-2 border-t">
       <Label className="text-base font-semibold">Sample Generations</Label>
       <p className="text-sm text-muted-foreground">
         Add sample images or videos to showcase what this preset can generate.
@@ -54,7 +54,7 @@ export const SampleGenerationsSection: React.FC<SampleGenerationsSectionProps> =
 
       {/* Display existing samples when editing */}
       {isEditMode && editingPreset?.metadata.sample_generations && editingPreset.metadata.sample_generations.length > 0 && (
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <Label className="text-sm font-light">Existing Samples: ({editingPreset.metadata.sample_generations.filter(s => !deletedExistingSampleUrls.includes(s.url)).length})</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {editingPreset.metadata.sample_generations
@@ -111,7 +111,7 @@ export const SampleGenerationsSection: React.FC<SampleGenerationsSectionProps> =
 
       {/* Display initial video sample from last generation (when not editing OR overwriting) */}
       {(!isEditMode || isOverwriting) && initialVideoSample && !initialVideoDeleted && (
-        <div className="gap-y-2">
+        <div className="space-y-2">
           <Label className="text-sm font-light">Last Generated Video: (auto-included)</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <div className="relative group">
@@ -162,7 +162,7 @@ export const SampleGenerationsSection: React.FC<SampleGenerationsSectionProps> =
 
       {/* Display uploaded files */}
       {sampleFiles.length > 0 && (
-        <div className="gap-y-2 mt-3">
+        <div className="space-y-2 mt-3">
           <Label className="text-sm font-light">Uploaded Files: ({sampleFiles.length})</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {sampleFiles.map((file, index) => (

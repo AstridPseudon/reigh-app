@@ -278,16 +278,16 @@ const JoinClipsPage: React.FC = () => {
         {(joinSettings.status === 'loading' || isLoadingPersistedMedia || (settingsLoaded && joinSettings.settings?.clips?.length > 0 && clips.length === 0)) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: Math.max(2, cachedClipsCount) + 1 }).map((_, i) => (
-              <div key={i} className="gap-y-3">
-                <div className="relative border rounded-lg p-3 gap-y-3 bg-card">
+              <div key={i} className="space-y-3">
+                <div className="relative border rounded-lg p-3 space-y-3 bg-card">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Skeleton className="h-5 w-16" />
                     </div>
                   </div>
-                  <div className="gap-y-2">
+                  <div className="space-y-2">
                     <div className="aspect-video bg-muted rounded-lg border-2 border-dashed border-border flex items-center justify-center">
-                      <div className="text-center gap-y-2">
+                      <div className="text-center space-y-2">
                         <Skeleton className="h-8 w-8 rounded-full mx-auto" />
                         <Skeleton className="h-4 w-32 mx-auto" />
                         <Skeleton className="h-3 w-24 mx-auto" />
@@ -411,7 +411,7 @@ const JoinClipsPage: React.FC = () => {
           if (shouldShowSkeleton) {
             const skeletonCount = videosData?.items?.length || 6;
             return (
-              <div className="gap-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t">
                 <h2 className="text-xl font-medium">
                   {hasValidData ? `Previous Results (${videosData.items.length})` : 'Loading Results...'}
                 </h2>
@@ -427,7 +427,7 @@ const JoinClipsPage: React.FC = () => {
 
           if (hasValidData) {
             return (
-              <div className="gap-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t">
                 <h2 className="text-xl font-medium">
                   Previous Results ({videosData.items.length})
                 </h2>

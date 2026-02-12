@@ -189,7 +189,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
     const quantizedTotal = quantizeTotalFrames(actualTotal);
 
     return (
-        <div className={cn("gap-y-8", className)}>
+        <div className={cn("space-y-8", className)}>
             {headerContent && (
                 <div className="mb-6">
                     {headerContent}
@@ -199,7 +199,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
             {/* ==================== SETTINGS & MOTION (Side by Side) ==================== */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* SETTINGS (Prompts) */}
-                <div className="gap-y-4">
+                <div className="space-y-4">
                     <SectionHeader title="Settings" theme="blue" />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -289,7 +289,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                 </div>
 
                 {/* MOTION (Presets & LoRA) */}
-                <div className="gap-y-4">
+                <div className="space-y-4">
                     <SectionHeader title="Motion" theme="orange" />
                     <MotionPresetSelector
                     builtinPreset={BUILTIN_JOIN_CLIPS_PRESET}
@@ -325,7 +325,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
             <div className="h-px bg-border/50" />
 
             {/* ==================== STRUCTURE (Gap/Context/Visualization) ==================== */}
-            <div className="gap-y-4">
+            <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <SectionHeader title="Structure" theme="green" />
                     {onRestoreDefaults && (
@@ -342,10 +342,10 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Controls Column */}
-                    <div className="gap-y-6">
+                    <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-x-6 gap-y-8">
                             {/* Gap Frames */}
-                            <div className="gap-y-3">
+                            <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="join-gap-frames" className="text-sm font-medium">Gap Frames:</Label>
                                     <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{gapFrames}</span>
@@ -364,7 +364,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                             </div>
 
                             {/* Context Frames */}
-                            <div className="gap-y-3">
+                            <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="join-context-frames" className="text-sm font-medium">Context Frames:</Label>
                                     <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{contextFrames}</span>
@@ -381,7 +381,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                             </div>
 
                             {/* Replace Mode */}
-                            <div className="gap-y-3">
+                            <div className="space-y-3">
                                 <div className="flex items-center justify-between h-5">
                                     <Label className="text-sm font-medium">Transition Mode:</Label>
                                 </div>
@@ -397,7 +397,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                             </div>
 
                             {/* Keep Bridge Images */}
-                            <div className="gap-y-3">
+                            <div className="space-y-3">
                                 <div className="flex items-center justify-between h-5">
                                     <Label className={cn("text-sm font-medium", gapFrames <= 8 && "text-muted-foreground")}>Bridge Anchors:</Label>
                                 </div>
@@ -459,7 +459,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
                                             <div className="grid grid-cols-2 gap-x-6">
                                                 {/* Resolution Source */}
                                                 {showResolutionToggle && (
-                                                    <div className="gap-y-3">
+                                                    <div className="space-y-3">
                                                         <div className="flex items-center justify-between h-5">
                                                             <Label className="text-sm font-medium">Output Resolution:</Label>
                                                         </div>
@@ -490,7 +490,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
 
                                                 {/* FPS Source */}
                                                 {showFpsToggle && (
-                                                    <div className="gap-y-3">
+                                                    <div className="space-y-3">
                                                         <div className="flex items-center justify-between h-5">
                                                             <Label className="text-sm font-medium">Output FPS:</Label>
                                                         </div>
@@ -521,7 +521,7 @@ export const JoinClipsSettingsForm: React.FC<JoinClipsSettingsFormProps> = ({
 
                                                 {/* Noised Input Video */}
                                                 {setNoisedInputVideo && (
-                                                    <div className="gap-y-3 col-span-2 mt-4">
+                                                    <div className="space-y-3 col-span-2 mt-4">
                                                         <div className="flex items-center justify-between">
                                                             <TooltipProvider>
                                                                 <Tooltip>

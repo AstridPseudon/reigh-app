@@ -98,7 +98,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
   onMediaTypeFilterChange,
 }) => {
   return (
-    <div className="mt-0 gap-y-3">
+    <div className="mt-0 space-y-3">
       {/* Row 1: Shot filter + Search (left) + Media type filter (right) */}
       {showShotFilter && (
         <div className="flex justify-between items-center">

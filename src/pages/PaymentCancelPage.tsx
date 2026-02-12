@@ -31,12 +31,12 @@ const PaymentCancelPage: React.FC = () => {
             Your payment was cancelled and no charges were made
           </CardDescription>
         </CardHeader>
-        <CardContent className="gap-y-4">
+        <CardContent className="space-y-4">
           <div className="text-sm text-muted-foreground text-center">
             You can continue using Reigh with your existing credits, or try the payment process again if you'd like to add more credits.
           </div>
 
-          <div className="gap-y-2">
+          <div className="space-y-2">
             <Button variant="retro" size="retro-sm" onClick={handleRetryPayment} className="w-full">
               <CreditCard className="w-4 h-4 mr-2" />
               Try Again

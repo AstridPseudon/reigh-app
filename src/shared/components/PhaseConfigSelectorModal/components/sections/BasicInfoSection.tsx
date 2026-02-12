@@ -31,7 +31,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
 }) => {
   return (
     <>
-      <div className="gap-y-1">
+      <div className="space-y-1">
         <Label htmlFor="preset-name">Name: *</Label>
         <Input
           id="preset-name"
@@ -42,7 +42,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         />
       </div>
 
-      <div className="gap-y-1">
+      <div className="space-y-1">
         <Label htmlFor="preset-description">Description: (optional)</Label>
         <Textarea
           id="preset-description"

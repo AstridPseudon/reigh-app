@@ -206,7 +206,7 @@ const FileInput: React.FC<FileInputProps> = ({
                              (currentFilePreviewUrl && !multiple ? [currentFilePreviewUrl] : []);
 
   return (
-    <div className={`gap-y-2 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {label && <Label htmlFor="file-input-element">{label}</Label>}
       <div
         className={`border-2 border-dashed rounded-md p-6 text-center
@@ -246,7 +246,7 @@ const FileInput: React.FC<FileInputProps> = ({
               </div>
             )}
             {displayFiles.length > 0 && (
-              <div className="gap-y-2">
+              <div className="space-y-2">
                 {!suppressSelectionSummary && (
                   <div className="text-sm text-muted-foreground p-2 border rounded-md bg-background flex items-center justify-between">
                       <div className="flex-1 text-center">

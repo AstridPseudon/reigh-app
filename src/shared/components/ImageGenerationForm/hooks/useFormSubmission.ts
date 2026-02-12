@@ -428,8 +428,33 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
   const handleUseExistingPrompts = useCallback(async () => {
     const taskParams = getTaskParams(prompts, { imagesPerPromptOverride: promptMultiplier });
     if (!taskParams) return;
-    onGenerate(taskParams);
-  }, [prompts, promptMultiplier, getTaskParams, onGenerate]);
+
+    automatedSubmitButton.trigger();
+
+    const firstPrompt = prompts.find(p => p.fullPrompt.trim())?.fullPrompt || 'Generating...';
+    const truncatedPrompt = firstPrompt.length > 50
+      ? firstPrompt.substring(0, 50) + '...'
+      : firstPrompt;
+    const incomingTaskId = addIncomingTask({
+      taskType: 'image_generation',
+      label: truncatedPrompt,
+      expectedCount: actionablePromptsCount * promptMultiplier,
+      baselineCount: 0,
+    });
+
+    (async () => {
+      try {
+        await onGenerate(taskParams);
+      } catch (error) {
+        handleError(error, { context: 'useFormSubmission.handleUseExistingPrompts', toastTitle: 'Failed to create tasks. Please try again.' });
+      } finally {
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+        const newCount = queryClient.getQueryData<{ processing: number }>(queryKeys.tasks.statusCounts(formStateRef.current?.selectedProjectId))?.processing ?? 0;
+        completeIncomingTask(incomingTaskId, newCount);
+      }
+    })();
+  }, [prompts, promptMultiplier, actionablePromptsCount, getTaskParams, onGenerate, automatedSubmitButton, addIncomingTask, completeIncomingTask, queryClient]);
 
   // ============================================================================
   // Handle New Prompts Like Existing
@@ -447,32 +472,48 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
       return;
     }
 
-    try {
-      const rawResults = await aiGeneratePrompts({
-        overallPromptText: "Make me more prompts like this.",
-        numberToGenerate: imagesPerPrompt,
-        existingPrompts: activePrompts.map(p => ({ id: p.id, text: p.fullPrompt, shortText: p.shortPrompt })),
-        addSummaryForNewPrompts: true,
-        replaceCurrentPrompts: true,
-        temperature: 0.8,
-        rulesToRememberText: '',
-      });
+    automatedSubmitButton.trigger();
 
-      const newPrompts: PromptEntry[] = rawResults.map(item => ({
-        id: item.id,
-        fullPrompt: item.text,
-        shortPrompt: item.shortText || item.text.substring(0, 30) + (item.text.length > 30 ? "..." : ""),
-      }));
+    const incomingTaskId = addIncomingTask({
+      taskType: 'image_generation',
+      label: 'More like existing...',
+      expectedCount: imagesPerPrompt * promptMultiplier,
+      baselineCount: 0,
+    });
 
-      setPrompts(newPrompts);
+    (async () => {
+      try {
+        const rawResults = await aiGeneratePrompts({
+          overallPromptText: "Make me more prompts like this.",
+          numberToGenerate: imagesPerPrompt,
+          existingPrompts: activePrompts.map(p => ({ id: p.id, text: p.fullPrompt, shortText: p.shortPrompt })),
+          addSummaryForNewPrompts: true,
+          replaceCurrentPrompts: true,
+          temperature: 0.8,
+          rulesToRememberText: '',
+        });
 
-      const taskParams = getTaskParams(newPrompts, { imagesPerPromptOverride: promptMultiplier });
-      if (!taskParams) return;
+        const newPrompts: PromptEntry[] = rawResults.map(item => ({
+          id: item.id,
+          fullPrompt: item.text,
+          shortPrompt: item.shortText || item.text.substring(0, 30) + (item.text.length > 30 ? "..." : ""),
+        }));
 
-      onGenerate(taskParams);
-    } catch (error) {
-      handleError(error, { context: 'useFormSubmission.handleNewPromptsLikeExisting', toastTitle: 'Failed to generate prompts. Please try again.' });
-    }
+        setPrompts(newPrompts);
+
+        const taskParams = getTaskParams(newPrompts, { imagesPerPromptOverride: promptMultiplier });
+        if (!taskParams) return;
+
+        await onGenerate(taskParams);
+      } catch (error) {
+        handleError(error, { context: 'useFormSubmission.handleNewPromptsLikeExisting', toastTitle: 'Failed to generate prompts. Please try again.' });
+      } finally {
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
+        await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
+        const newCount = queryClient.getQueryData<{ processing: number }>(queryKeys.tasks.statusCounts(formStateRef.current?.selectedProjectId))?.processing ?? 0;
+        completeIncomingTask(incomingTaskId, newCount);
+      }
+    })();
   }, [
     prompts,
     styleReferenceImageGeneration,
@@ -483,6 +524,10 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     onGenerate,
     aiGeneratePrompts,
     setPrompts,
+    automatedSubmitButton,
+    addIncomingTask,
+    completeIncomingTask,
+    queryClient,
   ]);
 
   // ============================================================================

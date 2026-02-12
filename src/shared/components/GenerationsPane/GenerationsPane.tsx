@@ -341,7 +341,7 @@ const GenerationsPaneComponent: React.FC = () => {
             isPointerEventsEnabled ? 'pointer-events-auto' : 'pointer-events-none'
           )}
         >
-          <div className="px-2 pt-3 pb-2 gap-y-2">
+          <div className="px-2 pt-3 pb-2 space-y-2">
             {/* Row 1: Shot filter (left) + Media type filter (right) */}
             <div className="flex items-center justify-between min-w-0 mx-2">
                 {/* Left side: Shot filter */}
@@ -576,7 +576,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     whiteText={true}
                     showControls={false}
                     projectAspectRatio={projectAspectRatio}
-                    className="gap-y-0 pb-4 pt-2"
+                    className="space-y-0 pb-4 pt-2"
                 />
             )}
             {error && <p className="text-red-500 text-center">Error: {error.message}</p>}
@@ -603,7 +603,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     whiteText
                     itemsPerPage={GENERATIONS_PER_PAGE}
                     reducedSpacing={true}
-                    className="gap-y-0 pb-8"
+                    className="space-y-0 pb-8"
                     hidePagination={true}
                     hideTopFilters={true}
                     showShare={false}

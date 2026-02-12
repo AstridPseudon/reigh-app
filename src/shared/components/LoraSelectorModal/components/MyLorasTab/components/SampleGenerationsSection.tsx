@@ -35,10 +35,10 @@ export const SampleGenerationsSection: React.FC<SampleGenerationsSectionProps> =
   fileInputKey,
   setFileInputKey,
 }) => (
-  <div className="gap-y-2">
+  <div className="space-y-2">
     {/* Display existing samples when editing */}
     {isEditMode && editingLora?.metadata.sample_generations && editingLora.metadata.sample_generations.length > 0 && (
-      <div className="gap-y-2 mb-3">
+      <div className="space-y-2 mb-3">
         <Label className="text-sm font-light">
           Existing Samples: ({editingLora.metadata.sample_generations.filter((s: { url: string }) => !deletedExistingSampleUrls.includes(s.url)).length})
         </Label>
@@ -118,7 +118,7 @@ export const SampleGenerationsSection: React.FC<SampleGenerationsSectionProps> =
 
     {/* Display uploaded files */}
     {sampleFiles.length > 0 && (
-      <div className="gap-y-2 mt-3">
+      <div className="space-y-2 mt-3">
         <Label className="text-sm font-light">Uploaded Files: ({sampleFiles.length})</Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {sampleFiles.map((file, index) => (
