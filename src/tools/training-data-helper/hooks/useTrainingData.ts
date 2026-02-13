@@ -1,103 +1,33 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useVideoUrlCache } from './useVideoUrlCache';
+import { useTrainingDataBatches } from './useTrainingDataBatches';
+import { useTrainingDataUpload } from './useTrainingDataUpload';
+import { transformVideo, transformSegment } from './transforms';
+import type { TrainingDataVideo, TrainingDataSegment } from './types';
 
-// Database types (snake_case)
-interface TrainingDataBatchDB {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string | null;
-}
-
-interface TrainingDataVideoDB {
-  id: string;
-  original_filename: string;
-  storage_location: string;
-  duration: number | null;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string | null;
-  user_id: string;
-  batch_id: string;
-}
-
-interface TrainingDataSegmentDB {
-  id: string;
-  training_data_id: string;
-  start_time: number;
-  end_time: number;
-  segment_location: string | null;
-  description: string | null;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string | null;
-}
-
-// Client types (camelCase) — canonical definitions in ./types.ts
+// Re-export client types so existing consumers keep working
 export type { TrainingDataBatch, TrainingDataVideo, TrainingDataSegment } from './types';
-import type { TrainingDataBatch, TrainingDataVideo, TrainingDataSegment } from './types';
-
-// Transform functions
-const transformBatch = (batch: TrainingDataBatchDB): TrainingDataBatch => ({
-  id: batch.id,
-  userId: batch.user_id,
-  name: batch.name,
-  description: batch.description,
-  metadata: batch.metadata,
-  createdAt: batch.created_at,
-  updatedAt: batch.updated_at,
-});
-
-const transformVideo = (video: TrainingDataVideoDB): TrainingDataVideo => ({
-  id: video.id,
-  originalFilename: video.original_filename,
-  storageLocation: video.storage_location,
-  duration: video.duration,
-  metadata: video.metadata,
-  createdAt: video.created_at,
-  updatedAt: video.updated_at,
-  userId: video.user_id,
-  batchId: video.batch_id,
-});
-
-const transformSegment = (segment: TrainingDataSegmentDB): TrainingDataSegment => ({
-  id: segment.id,
-  trainingDataId: segment.training_data_id,
-  startTime: segment.start_time,
-  endTime: segment.end_time,
-  segmentLocation: segment.segment_location,
-  description: segment.description,
-  metadata: segment.metadata,
-  createdAt: segment.created_at,
-  updatedAt: segment.updated_at,
-});
 
 export function useTrainingData() {
   const [videos, setVideos] = useState<TrainingDataVideo[]>([]);
   const [segments, setSegments] = useState<TrainingDataSegment[]>([]);
-  const [batches, setBatches] = useState<TrainingDataBatch[]>([]);
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch videos on mount
-  useEffect(() => {
-    fetchBatches();
-    fetchSegments();
-  }, []);
+  // --- Sub-hooks ---
 
-  // Refetch videos when selected batch changes
-  useEffect(() => {
-    if (selectedBatchId) {
-      fetchVideos();
-    }
-  }, [selectedBatchId]);
+  const {
+    batches,
+    selectedBatchId,
+    setSelectedBatchId,
+    fetchBatches,
+    createBatch,
+    updateBatch,
+    deleteBatch,
+  } = useTrainingDataBatches({ videos });
+
+  // --- Video & segment fetching ---
 
   const fetchVideos = async () => {
     try {
@@ -106,13 +36,11 @@ export function useTrainingData() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Filter by selected batch if one is selected
       if (selectedBatchId) {
         query = query.eq('batch_id', selectedBatchId);
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       setVideos((data || []).map(transformVideo));
     } catch (error) {
@@ -136,342 +64,15 @@ export function useTrainingData() {
     }
   };
 
-  const fetchBatches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('training_data_batches')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      const batchesData = (data || []).map(transformBatch);
-      setBatches(batchesData);
-      
-      // Set the first batch as selected if none is selected
-      if (!selectedBatchId && batchesData.length > 0) {
-        setSelectedBatchId(batchesData[0].id);
-      }
-    } catch (error) {
-      handleError(error, { context: 'useTrainingData.fetchBatches', toastTitle: 'Failed to load batches' });
-    }
-  };
-
-  const createBatch = async (name: string, description?: string): Promise<string> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase
-        .from('training_data_batches')
-        .insert({
-          user_id: user.id,
-          name,
-          description,
-          metadata: {},
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newBatch = transformBatch(data);
-      setBatches(prev => [newBatch, ...prev]);
-      setSelectedBatchId(newBatch.id);
-
-      return newBatch.id;
-    } catch (error) {
-      handleError(error, { context: 'useTrainingData.createBatch', toastTitle: 'Failed to create batch' });
-      throw error;
-    }
-  };
-
-  const updateBatch = async (id: string, updates: { name?: string; description?: string }) => {
-    try {
-      const { data, error } = await supabase
-        .from('training_data_batches')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Update local state
-      setBatches(prev => prev.map(b => b.id === id ? transformBatch(data) : b));
-
-    } catch (error) {
-      handleError(error, { context: 'useTrainingData.updateBatch', toastTitle: 'Failed to update batch' });
-      throw error;
-    }
-  };
-
-  const deleteBatch = async (id: string) => {
-    try {
-      // Check if batch has videos
-      const batchVideos = videos.filter(v => v.batchId === id);
-      if (batchVideos.length > 0) {
-        toast.error('Cannot delete batch with videos. Please delete all videos first.');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('training_data_batches')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Update local state
-      setBatches(prev => prev.filter(b => b.id !== id));
-      
-      // If this was the selected batch, select another one
-      if (selectedBatchId === id) {
-        const remainingBatches = batches.filter(b => b.id !== id);
-        setSelectedBatchId(remainingBatches.length > 0 ? remainingBatches[0].id : null);
-      }
-
-    } catch (error) {
-      handleError(error, { context: 'useTrainingData.deleteBatch', toastTitle: 'Failed to delete batch' });
-    }
-  };
-
-  const uploadVideo = async (file: File): Promise<string> => {
-    setIsUploading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      if (!selectedBatchId) {
-        throw new Error('Please select a batch first');
-      }
-
-      return await uploadVideoFile(file, user.id);
-    } catch (error) {
-      console.error('[Upload] Error uploading video:', error);
-      throw error;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // New function for multi-video upload with split modes
-  const uploadVideosWithSplitModes = async (videoFiles: Array<{
-    file: File;
-    splitMode: 'take-all' | 'manual' | 'auto-scene';
-    detectedScenes?: number[];
-  }>): Promise<void> => {
-    setIsUploading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      if (!selectedBatchId) {
-        throw new Error('Please select a batch first');
-      }
-
-      for (const videoFile of videoFiles) {
-        // Upload video first
-        const videoId = await uploadVideoFile(videoFile.file, user.id);
-        
-        // Create segments based on split mode
-        switch (videoFile.splitMode) {
-          case 'take-all':
-            // Create one segment from start to end
-            await createSegmentForVideo(videoId, 0, null, 'Full video segment');
-            break;
-            
-          case 'auto-scene':
-            // Create segments based on detected scenes
-            if (videoFile.detectedScenes && videoFile.detectedScenes.length > 1) {
-              for (let i = 0; i < videoFile.detectedScenes.length - 1; i++) {
-                const startTime = videoFile.detectedScenes[i];
-                const endTime = videoFile.detectedScenes[i + 1];
-                await createSegmentForVideo(
-                  videoId, 
-                  Math.round(startTime * 1000), 
-                  Math.round(endTime * 1000), 
-                  `Auto-detected scene ${i + 1}`
-                );
-              }
-            } else {
-              // Fallback to full video if scene detection failed
-              await createSegmentForVideo(videoId, 0, null, 'Auto-scene fallback (full video)');
-            }
-            break;
-            
-          case 'manual':
-            // Don't create any segments - user will do it manually
-            break;
-        }
-             }
-       
-       // Refresh videos to ensure they're properly loaded
-       await Promise.all([fetchVideos(), fetchSegments()]);
-       
-       // Give a small delay to ensure DB has fully processed
-       await new Promise(resolve => setTimeout(resolve, 500));
-       
-       // Refresh one more time to ensure URLs are generated
-       await fetchVideos();
-       
-     } catch (error) {
-       console.error('Error uploading videos:', error);
-       throw error;
-     } finally {
-       setIsUploading(false);
-     }
-  };
-
-  // Helper function to upload just the video file
-  const uploadVideoFile = async (file: File, userId: string): Promise<string> => {
-    // Get video duration before upload
-    const duration = await getVideoDuration(file);
-    
-    // Upload file to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('training-data')
-      .upload(fileName, file);
-
-    if (uploadError) {
-      console.error('[Upload] Storage upload error:', uploadError);
-      throw uploadError;
-    }
-
-    // Create database record
-    const { data, error } = await supabase
-      .from('training_data')
-      .insert({
-        user_id: userId,
-        batch_id: selectedBatchId!,
-        original_filename: file.name,
-        storage_location: fileName,
-        duration: Math.round(duration),
-        metadata: {
-          size: file.size,
-          type: file.type,
-        },
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[Upload] Database insert error:', error);
-      throw error;
-    }
-
-    // Update local state
-    setVideos(prev => [transformVideo(data), ...prev]);
-    return data.id;
-  };
-
-  // Helper function to get video duration
-  const getVideoDuration = (file: File): Promise<number> => {
-    return new Promise((resolve) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = () => {
-        resolve(video.duration);
-        URL.revokeObjectURL(video.src);
-      };
-      video.onerror = () => {
-        console.warn('Could not get video duration for:', file.name);
-        resolve(0);
-        URL.revokeObjectURL(video.src);
-      };
-      video.src = URL.createObjectURL(file);
-    });
-  };
-
-  // Helper function to create segments for a video
-  const createSegmentForVideo = async (
-    videoId: string, 
-    startTimeMs: number, 
-    endTimeMs: number | null, 
-    description: string
-  ) => {
-    // If endTimeMs is null, we need to get the video duration
-    if (endTimeMs === null) {
-      // First try to get duration from local state
-      const localVideo = videos.find(v => v.id === videoId);
-      if (localVideo?.duration) {
-        endTimeMs = Math.round(localVideo.duration * 1000);
-      } else {
-        // Fall back to database
-        const { data, error } = await supabase
-          .from('training_data')
-          .select('duration')
-          .eq('id', videoId)
-          .single();
-        
-        if (!error && data?.duration) {
-          endTimeMs = Math.round(data.duration * 1000);
-        } else {
-          // Default to 10 seconds if we can't get duration
-          endTimeMs = 10000;
-        }
-      }
-    }
-
-    await createSegment(videoId, startTimeMs, endTimeMs, description);
-  };
-
-  const deleteVideo = async (id: string) => {
-    try {
-      const video = videos.find(v => v.id === id);
-      if (!video) return;
-
-      // Update local state immediately for instant UI feedback
-      setVideos(prev => prev.filter(v => v.id !== id));
-      setSegments(prev => prev.filter(s => s.trainingDataId !== id));
-      
-      // Clean up video URL from cache
-      clearUrlCache(id);
-
-      // Delete from database first (easier to rollback)
-      const { error: dbError } = await supabase
-        .from('training_data')
-        .delete()
-        .eq('id', id);
-
-      if (dbError) {
-        console.error('Database deletion error:', dbError);
-        // Revert local state if database deletion fails
-        await Promise.all([fetchVideos(), fetchSegments()]);
-        throw dbError;
-      }
-
-      // Delete from storage (if this fails, file was probably already gone)
-      const { error: storageError } = await supabase.storage
-        .from('training-data')
-        .remove([video.storageLocation]);
-
-      if (storageError) {
-        // Storage deletion failed - warn but don't fail the whole operation
-        // The file might already be gone, which is what we wanted anyway
-        console.warn('Storage deletion warning (file may already be deleted):', storageError);
-      }
-
-    } catch (error) {
-      handleError(error, { context: 'useTrainingData.deleteVideo', toastTitle: 'Failed to delete video' });
-    }
-  };
+  // --- Segment CRUD ---
 
   const createSegment = async (
     trainingDataId: string,
     startTime: number,
     endTime: number,
-    description?: string
+    description?: string,
   ): Promise<string> => {
     try {
-
-      // Verify the training data exists first
       const { error: checkError } = await supabase
         .from('training_data')
         .select('id, batch_id')
@@ -490,25 +91,19 @@ export function useTrainingData() {
           start_time: Math.round(startTime),
           end_time: Math.round(endTime),
           description,
-          metadata: {
-            duration: Math.round(endTime - startTime),
-          },
+          metadata: { duration: Math.round(endTime - startTime) },
         })
         .select()
         .single();
 
       if (error) {
         console.error('[CreateSegment] Supabase error details:', {
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+          error, code: error.code, message: error.message,
+          details: error.details, hint: error.hint,
         });
         throw error;
       }
 
-      // Update local state
       setSegments(prev => [transformSegment(data), ...prev]);
       return data.id;
     } catch (error) {
@@ -519,11 +114,7 @@ export function useTrainingData() {
 
   const updateSegment = async (
     id: string,
-    updates: Partial<{
-      startTime: number;
-      endTime: number;
-      description: string;
-    }>
+    updates: Partial<{ startTime: number; endTime: number; description: string }>,
   ) => {
     try {
       const { data, error } = await supabase
@@ -539,8 +130,6 @@ export function useTrainingData() {
         .single();
 
       if (error) throw error;
-
-      // Update local state
       setSegments(prev => prev.map(s => s.id === id ? transformSegment(data) : s));
     } catch (error) {
       handleError(error, { context: 'useTrainingData.updateSegment', toastTitle: 'Failed to update segment' });
@@ -555,16 +144,75 @@ export function useTrainingData() {
         .eq('id', id);
 
       if (error) throw error;
-
-      // Update local state
       setSegments(prev => prev.filter(s => s.id !== id));
     } catch (error) {
       handleError(error, { context: 'useTrainingData.deleteSegment', toastTitle: 'Failed to delete segment' });
     }
   };
 
-  // Video URL caching (signed URLs for private bucket)
+  // --- Video deletion ---
+
+  const deleteVideo = async (id: string) => {
+    try {
+      const video = videos.find(v => v.id === id);
+      if (!video) return;
+
+      setVideos(prev => prev.filter(v => v.id !== id));
+      setSegments(prev => prev.filter(s => s.trainingDataId !== id));
+      clearUrlCache(id);
+
+      const { error: dbError } = await supabase
+        .from('training_data')
+        .delete()
+        .eq('id', id);
+
+      if (dbError) {
+        console.error('Database deletion error:', dbError);
+        await Promise.all([fetchVideos(), fetchSegments()]);
+        throw dbError;
+      }
+
+      const { error: storageError } = await supabase.storage
+        .from('training-data')
+        .remove([video.storageLocation]);
+
+      if (storageError) {
+        console.warn('Storage deletion warning (file may already be deleted):', storageError);
+      }
+    } catch (error) {
+      handleError(error, { context: 'useTrainingData.deleteVideo', toastTitle: 'Failed to delete video' });
+    }
+  };
+
+  // --- Upload sub-hook ---
+
+  const { isUploading, uploadVideo, uploadVideosWithSplitModes } = useTrainingDataUpload({
+    selectedBatchId,
+    videos,
+    setVideos,
+    createSegment,
+    fetchVideos,
+    fetchSegments,
+  });
+
+  // --- Video URL caching ---
+
   const { getVideoUrl, markVideoAsInvalid, clearUrlCache } = useVideoUrlCache(videos);
+
+  // --- Effects ---
+
+  useEffect(() => {
+    fetchBatches();
+    fetchSegments();
+  }, []);
+
+  useEffect(() => {
+    if (selectedBatchId) {
+      fetchVideos();
+    }
+  }, [selectedBatchId]);
+
+  // --- Public API (unchanged) ---
 
   return {
     videos,
@@ -586,4 +234,4 @@ export function useTrainingData() {
     deleteBatch,
     setSelectedBatchId,
   };
-} 
+}

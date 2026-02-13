@@ -23,6 +23,7 @@ import {
   useRepositionMode,
   useImg2ImgMode,
   useEditSettingsPersistence,
+  useEditSettingsSync,
 } from '@/shared/components/MediaLightbox/hooks';
 
 import {
@@ -293,85 +294,26 @@ function useInlineEditState(
   } = img2imgHook;
 
   // ========================================
-  // Persistence sync effects
+  // Persistence sync (bidirectional: persistence <-> inpainting UI state)
   // ========================================
 
-  // Track if we've synced from persistence
-  const hasInitializedFromPersistenceRef = useRef(false);
-  // Track the last known good prompt to prevent race conditions
-  const lastUserPromptRef = useRef<string>('');
-  // Debounce timer for prompt sync
-  const promptSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Sync persistence -> useInpainting (on initial load)
-  useEffect(() => {
-    if (!isEditSettingsReady || hasInitializedFromPersistenceRef.current) return;
-
-    // Sync editMode
-    if (persistedEditMode && persistedEditMode !== editMode) {
-      setEditMode(persistedEditMode);
-    }
-
-    // Sync numGenerations
-    if (numGenerations !== inpaintNumGenerations) {
-      setInpaintNumGenerations(numGenerations);
-    }
-
-    // Sync prompt (only if has persisted settings - otherwise leave empty to avoid resetting user input)
-    if (hasPersistedSettings && persistedPrompt && persistedPrompt !== inpaintPrompt) {
-      setInpaintPrompt(persistedPrompt);
-      lastUserPromptRef.current = persistedPrompt;
-    }
-
-    hasInitializedFromPersistenceRef.current = true;
-  }, [isEditSettingsReady, hasPersistedSettings, persistedEditMode, editMode, setEditMode, numGenerations, inpaintNumGenerations, setInpaintNumGenerations, persistedPrompt, inpaintPrompt, setInpaintPrompt]);
-
-  // Sync editMode: useInpainting -> persistence (on change)
-  useEffect(() => {
-    if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
-
-    if (editMode !== persistedEditMode) {
-      setPersistedEditMode(editMode);
-    }
-  }, [editMode, persistedEditMode, setPersistedEditMode, isEditSettingsReady]);
-
-  // Sync numGenerations: useInpainting -> persistence (on change)
-  useEffect(() => {
-    if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
-
-    if (inpaintNumGenerations !== numGenerations) {
-      setNumGenerations(inpaintNumGenerations);
-    }
-  }, [inpaintNumGenerations, numGenerations, setNumGenerations, isEditSettingsReady]);
-
-  // Sync prompt: useInpainting -> persistence (on change, with debounce to prevent race conditions)
-  useEffect(() => {
-    if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
-
-    // If inpaintPrompt is reset to empty but we had a user prompt, it's likely a race condition - ignore
-    if (inpaintPrompt === '' && lastUserPromptRef.current !== '' && persistedPrompt !== '') {
-      // Restore the prompt from persistence after a short delay
-      if (promptSyncTimerRef.current) clearTimeout(promptSyncTimerRef.current);
-      promptSyncTimerRef.current = setTimeout(() => {
-        if (persistedPrompt) {
-          setInpaintPrompt(persistedPrompt);
-        }
-      }, 100);
-      return;
-    }
-
-    if (inpaintPrompt !== persistedPrompt) {
-      setPersistedPrompt(inpaintPrompt);
-      lastUserPromptRef.current = inpaintPrompt;
-    }
-  }, [inpaintPrompt, persistedPrompt, setPersistedPrompt, setInpaintPrompt, isEditSettingsReady]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (promptSyncTimerRef.current) clearTimeout(promptSyncTimerRef.current);
-    };
-  }, []);
+  useEditSettingsSync({
+    actualGenerationId,
+    isEditSettingsReady,
+    hasPersistedSettings,
+    persistedEditMode,
+    persistedNumGenerations: numGenerations,
+    persistedPrompt,
+    editMode,
+    inpaintNumGenerations,
+    inpaintPrompt,
+    setEditMode,
+    setInpaintNumGenerations,
+    setInpaintPrompt,
+    setPersistedEditMode,
+    setPersistedNumGenerations: setNumGenerations,
+    setPersistedPrompt,
+  });
 
   const { sourceGenerationData } = useSourceGeneration({
     media,

@@ -3,6 +3,10 @@
  *
  * Handles bidirectional sync between persisted edit settings and
  * the active inpainting UI state. Syncs on initial load and on changes.
+ *
+ * Includes prompt race-condition protection: if the inpainting hook resets
+ * its prompt to empty while persistence has a value, the prompt is restored
+ * from persistence after a short delay.
  */
 
 import { useRef, useEffect } from 'react';
@@ -46,6 +50,7 @@ interface UseEditSettingsSyncReturn {
  * Syncs edit settings bidirectionally between persistence layer and UI state.
  * - On load: applies persisted settings to UI (once per generation)
  * - On change: syncs UI changes back to persistence
+ * - Protects against prompt race conditions (empty-reset while persistence has a value)
  */
 export function useEditSettingsSync({
   actualGenerationId,
@@ -67,14 +72,26 @@ export function useEditSettingsSync({
   // Track if we've synced initial values from persistence to inpainting
   const hasInitializedFromPersistenceRef = useRef(false);
   const lastSyncedGenerationIdRef = useRef<string | null>(null);
+  // Track the last known good prompt to detect race-condition resets
+  const lastUserPromptRef = useRef<string>('');
+  // Debounce timer for prompt race-condition restoration
+  const promptSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset sync tracking when generation changes
   useEffect(() => {
     if (actualGenerationId !== lastSyncedGenerationIdRef.current) {
       hasInitializedFromPersistenceRef.current = false;
       lastSyncedGenerationIdRef.current = actualGenerationId ?? null;
+      lastUserPromptRef.current = '';
     }
   }, [actualGenerationId]);
+
+  // Cleanup prompt restore timer on unmount
+  useEffect(() => {
+    return () => {
+      if (promptSyncTimerRef.current) clearTimeout(promptSyncTimerRef.current);
+    };
+  }, []);
 
   // Initialize inpainting state from persisted/lastUsed settings (once per generation)
   // IMPORTANT: Wait for isEditSettingsReady to ensure effective values are computed correctly
@@ -99,6 +116,7 @@ export function useEditSettingsSync({
       // Sync prompt (only if has persisted settings - otherwise leave empty)
       if (hasPersistedSettings && persistedPrompt && persistedPrompt !== inpaintPrompt) {
         setInpaintPrompt(persistedPrompt);
+        lastUserPromptRef.current = persistedPrompt;
       }
     }
   }, [
@@ -135,14 +153,28 @@ export function useEditSettingsSync({
     }
   }, [inpaintNumGenerations, persistedNumGenerations, setPersistedNumGenerations, isEditSettingsReady]);
 
+  // Sync prompt changes with race-condition protection:
+  // If inpaintPrompt is reset to empty but we had a user prompt, it's likely
+  // a race condition from hook re-initialization — restore from persistence.
   useEffect(() => {
     if (!hasInitializedFromPersistenceRef.current || !isEditSettingsReady) return;
 
-    // Sync prompt changes
+    if (inpaintPrompt === '' && lastUserPromptRef.current !== '' && persistedPrompt !== '') {
+      // Restore the prompt from persistence after a short delay
+      if (promptSyncTimerRef.current) clearTimeout(promptSyncTimerRef.current);
+      promptSyncTimerRef.current = setTimeout(() => {
+        if (persistedPrompt) {
+          setInpaintPrompt(persistedPrompt);
+        }
+      }, 100);
+      return;
+    }
+
     if (inpaintPrompt !== persistedPrompt) {
       setPersistedPrompt(inpaintPrompt);
+      lastUserPromptRef.current = inpaintPrompt;
     }
-  }, [inpaintPrompt, persistedPrompt, setPersistedPrompt, isEditSettingsReady]);
+  }, [inpaintPrompt, persistedPrompt, setPersistedPrompt, setInpaintPrompt, isEditSettingsReady]);
 
   return {
     hasInitializedFromPersistence: hasInitializedFromPersistenceRef.current,
