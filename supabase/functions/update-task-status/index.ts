@@ -188,90 +188,51 @@ async function handleCascadingTaskFailure(
       is_orchestrator_task: isOrchestratorTask
     });
     
-    // Find all tasks that reference this orchestrator (including the orchestrator itself)
-    // Must check all paths where orchestrator reference might be stored
-    let query;
-    
+    // Atomically update all related tasks that haven't already reached a terminal state.
+    // Using a single UPDATE with filters instead of read-then-update-each to avoid
+    // race conditions where a child could complete between the read and the update.
+    const cascadePayload = {
+      status: failureStatus,
+      updated_at: new Date().toISOString(),
+      error_message: `Cascaded ${failureStatus.toLowerCase()} from related task ${failedTaskId}`
+    };
+
+    let cascadeResult;
+
     if (isOrchestratorTask) {
-      // If the failed task IS the orchestrator, find all children that reference it
-      query = supabaseAdmin
+      // If the failed task IS the orchestrator, cascade to all children
+      cascadeResult = await supabaseAdmin
         .from("tasks")
-        .select("id, task_type, status, params")
+        .update(cascadePayload)
         .or(buildSubTaskFilter(orchestratorTaskId))
         .neq("id", failedTaskId)
-        .neq("status", "Failed")
-        .neq("status", "Cancelled")
-        .neq("status", "Complete");
+        .not("status", "in", '("Complete","Failed","Cancelled")')
+        .select("id");
     } else {
-      // If a child task failed, find orchestrator + all siblings
-      query = supabaseAdmin
+      // If a child task failed, cascade to orchestrator + all siblings
+      cascadeResult = await supabaseAdmin
         .from("tasks")
-        .select("id, task_type, status, params")
+        .update(cascadePayload)
         .or(`id.eq.${orchestratorTaskId},${buildSubTaskFilter(orchestratorTaskId)}`)
-        .neq("status", "Failed")
-        .neq("status", "Cancelled")
-        .neq("status", "Complete");
+        .neq("id", failedTaskId)
+        .not("status", "in", '("Complete","Failed","Cancelled")')
+        .select("id");
     }
-    
-    const { data: relatedTasks, error: fetchError } = await query;
-    
-    if (fetchError) {
-      logger.error("Error fetching related tasks for cascade", { error: fetchError.message });
+
+    if (cascadeResult.error) {
+      logger.error("Error cascading failure to related tasks", { error: cascadeResult.error.message });
       return;
     }
-    
-    if (!relatedTasks || relatedTasks.length === 0) {
-      logger.debug("No related tasks found for cascade");
-      return;
-    }
-    
-    // Update all related tasks to Failed/Cancelled
-    const tasksToUpdate = relatedTasks.filter((task: any) => task.id !== failedTaskId);
-    
-    if (tasksToUpdate.length === 0) {
-      logger.debug("No additional tasks to cascade to after filtering");
-      return;
-    }
-    
-    logger.info("Cascading failure to related tasks", {
-      task_id: failedTaskId,
-      related_task_count: tasksToUpdate.length,
-      related_task_ids: tasksToUpdate.map((t: any) => t.id.substring(0, 8))
-    });
-    
-    const updatePromises = tasksToUpdate.map(async (task: any) => {
-      const updatePayload = {
-        status: failureStatus,
-        updated_at: new Date().toISOString(),
-        error_message: `Cascaded ${failureStatus.toLowerCase()} from related task ${failedTaskId}`
-      };
-      
-      const { error } = await supabaseAdmin
-        .from("tasks")
-        .update(updatePayload)
-        .eq("id", task.id);
-      
-      if (error) {
-        logger.error("Failed to cascade to task", { 
-          cascaded_task_id: task.id, 
-          error: error.message 
-        });
-      }
-      
-      return { taskId: task.id, error };
-    });
-    
-    const results = await Promise.all(updatePromises);
-    const failedUpdates = results.filter(r => r.error);
-    
-    if (failedUpdates.length > 0) {
-      logger.warn("Some cascade updates failed", { 
-        failed_count: failedUpdates.length,
-        total_count: tasksToUpdate.length
-      });
+
+    const cascadedCount = cascadeResult.data?.length ?? 0;
+
+    if (cascadedCount === 0) {
+      logger.debug("No related tasks found for cascade (all already terminal or none exist)");
     } else {
-      logger.info("Cascade complete", { 
-        cascaded_count: tasksToUpdate.length,
+      logger.info("Cascade complete", {
+        task_id: failedTaskId,
+        cascaded_count: cascadedCount,
+        cascaded_task_ids: cascadeResult.data.map((t: any) => t.id.substring(0, 8)),
         status: failureStatus
       });
     }

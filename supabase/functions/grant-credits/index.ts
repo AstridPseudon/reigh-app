@@ -108,15 +108,14 @@ serve(async (req) => {
         });
       }
 
-      // Check if user has already received welcome credits
-      let { data: user, error: userError } = await adminClient
+      // Ensure the user row exists before attempting atomic claim
+      const { data: existingUser, error: checkError } = await adminClient
         .from('users')
-        .select('given_credits')
+        .select('id')
         .eq('id', userId)
         .single();
 
-      // If the user row doesn't exist yet, create it with default values
-      if (userError && userError.code === 'PGRST116') { // no rows found
+      if (checkError && checkError.code === 'PGRST116') { // no rows found
         logger.info('No user row found, creating default user record', { user_id: userId });
 
         const { error: insertError } = await adminClient
@@ -136,38 +135,34 @@ serve(async (req) => {
             headers: corsHeaders,
           });
         }
-
-        // Re-query to proceed with welcome bonus logic
-        ({ data: user } = await adminClient
-          .from('users')
-          .select('given_credits')
-          .eq('id', userId)
-          .single());
-        if (!user) {
-          user = { given_credits: false } as any;
-        }
-      } else if (userError) {
-        logger.error('Error checking user', { error: userError.message, user_id: userId });
-        return new Response(`User not found: ${userError.message}`, { 
+      } else if (checkError) {
+        logger.error('Error checking user', { error: checkError.message, user_id: userId });
+        return new Response(`User not found: ${checkError.message}`, {
           status: 400,
           headers: corsHeaders,
         });
       }
 
-      if (!user) {
-        user = { given_credits: false } as any;
-      }
+      // Atomic check-and-set: only matches if given_credits is currently false.
+      // If two requests race, only one will match and get a row back.
+      const { data: claimedUser, error: claimError } = await adminClient
+        .from('users')
+        .update({ given_credits: true })
+        .eq('id', userId)
+        .eq('given_credits', false)
+        .select('id')
+        .single();
 
-      if (user.given_credits) {
-        return new Response("Welcome bonus already given to this user", { 
+      if (claimError || !claimedUser) {
+        logger.info('Welcome bonus already granted, skipping', { user_id: userId, claimError: claimError?.message });
+        await logger.flush();
+        return new Response("Welcome bonus already given to this user", {
           status: 400,
           headers: corsHeaders,
         });
       }
 
-      // Grant welcome bonus and mark as given
-      
-      // Insert credit grant into ledger
+      // given_credits is now true — we own the grant. Insert credit into ledger.
       const { data: ledgerEntry, error: ledgerError } = await adminClient
         .from('credits_ledger')
         .insert({
@@ -191,17 +186,6 @@ serve(async (req) => {
           status: 500,
           headers: corsHeaders,
         });
-      }
-
-      // Mark user as having received welcome credits
-      const { error: updateError } = await adminClient
-        .from('users')
-        .update({ given_credits: true })
-        .eq('id', userId);
-
-      if (updateError) {
-        logger.error("Error updating user given_credits", { error: updateError.message, user_id: userId });
-        // Note: Credits were already given, so this is not a critical failure
       }
 
       logger.info('Welcome bonus granted', { amount, user_id: userId });

@@ -126,17 +126,30 @@ serve(async (req) => {
       });
     }
 
-    // Rate limiting check
-    if (user.auto_topup_last_triggered) {
-      const timeSinceLastTrigger = Date.now() - new Date(user.auto_topup_last_triggered).getTime();
-      const oneHourInMs = 60 * 60 * 1000;
-      
-      if (timeSinceLastTrigger < oneHourInMs) {
-        return jsonResponse({ 
-          error: 'Auto-top-up rate limited - too soon since last trigger',
-          lastTriggered: user.auto_topup_last_triggered
-        }, 400);
-      }
+    // ─── 5b. Atomic rate-limit claim ──────────────────────────────────
+    // Prevents two concurrent triggers from both processing a payment.
+    // UPDATE only succeeds if auto_topup_last_triggered is NULL or older than 1 hour.
+    // Uses .or() so exactly one concurrent caller wins the row.
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: claimRow, error: claimError } = await supabaseAdmin
+      .from('users')
+      .update({ auto_topup_last_triggered: new Date().toISOString() })
+      .eq('id', userId)
+      .or(`auto_topup_last_triggered.is.null,auto_topup_last_triggered.lt.${oneHourAgo}`)
+      .select('id')
+      .single();
+
+    if (claimError || !claimRow) {
+      logger.info('Auto-top-up skipped: already claimed by concurrent process or rate limited', {
+        user_id: userId,
+        lastTriggered: user.auto_topup_last_triggered,
+        claimError: claimError?.message,
+      });
+      await logger.flush();
+      return jsonResponse({
+        error: 'Auto-top-up rate limited - too soon since last trigger or already being processed',
+        lastTriggered: user.auto_topup_last_triggered
+      }, 400);
     }
 
     // ─── 6. Initialize Stripe and create Payment Intent ─────────────
