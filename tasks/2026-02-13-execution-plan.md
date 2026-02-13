@@ -215,3 +215,23 @@ Each agent gets:
 **Agent Q (Billing consolidation):** Good extraction. Created `_shared/billing.ts` (127 lines) with 4 exports: `extractOrchestratorRef`, `getSubTaskOrchestratorId`, `buildSubTaskFilter`, `triggerCostCalculation`. Updated `calculate-task-cost`, `update-task-status`, and `complete_task/billing.ts` to use shared module. One minor improvement: `complete_task` now uses UUID-validated sub-task detection instead of raw extraction.
 
 **Sense check:** No over-engineering. The billing extraction is the largest new abstraction but justified — the duplicated sub-task detection logic was error-prone and the shared filter string was 200+ chars repeated 5 times. `tsc --noEmit` passes clean.
+
+### Wave 4 — Evaluation
+
+**Agent S (ProjectContext decomposition):** Good decomposition. ProjectContext 653→128 lines (thin provider). Three extracted hooks:
+- `useProjectCRUD.ts` (327 lines): project list state, fetch/create/update/delete. `determineProjectIdToSelect` exported as utility.
+- `useProjectSelection.ts` (150 lines): selectedProjectId state, localStorage persistence, cross-device sync.
+- `useProjectDefaults.ts` (65 lines): side-effect orchestrator — fetch trigger, cross-device sync, prefetch, mobile timeout fallback.
+
+Context shape is unchanged — all consumers (`useProject()`) get the exact same `ProjectContextType`. The callback pattern (onProjectsLoaded/Created/Deleted) is necessary for CRUD→selection communication. Not circular — `useProjectSelection` provides callbacks, `useProjectCRUD` calls them.
+
+**Agent T (App.tsx auth gate):** Clean. `AuthGate` is a 6-line component that returns `null` during auth check, preventing data-dependent providers (UserSettings, Project, Realtime, etc.) from rendering before auth state is known. This is NOT an auth wall — unauthenticated users still render normally once auth check completes.
+
+**Agent U (Edge function logging + CORS):** Mechanical. Added `SystemLogger` (buffered DB logging) to 18 edge functions. Changes are consistent: import → create logger → replace console.log/error → add `await logger.flush()` before error responses. Console output is preserved (SystemLogger writes to both console and DB). Functions that already had SystemLogger were skipped.
+
+**Post-wave review fixes applied:**
+1. **BUG FIX:** `window.__PROJECT_CONTEXT__` was incorrectly DEV-gated on write (by Wave 3 Agent R) but read in production by `useProjectGenerations`, `useTasks`, and `ImageGenerationToolPage`. Removed DEV gate — this is a `[structural]` global, not debug-only.
+2. **Anti-pattern fix:** PanesContext `savePaneLocks` moved outside `setLocks` state updater to avoid side effects in updater functions (React StrictMode double-invocation safe).
+3. **Stale comments:** Updated 3 references to deleted `useDeviceDetection` → `useDeviceInfo`.
+
+**Sense check:** The ProjectContext decomposition is the largest structural change. Reviewed for over-engineering — the hook boundaries are clean and each hook has a single responsibility. `useProjectDefaults` is a bag of side effects by design (the orchestrator pattern keeps the other hooks pure). `tsc --noEmit` passes clean.

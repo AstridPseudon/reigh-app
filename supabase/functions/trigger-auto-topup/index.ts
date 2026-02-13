@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,6 +74,8 @@ serve(async (req) => {
     }
   });
 
+  const logger = new SystemLogger(supabaseAdmin, 'trigger-auto-topup');
+
   try {
     let usersToProcess: any[] = [];
 
@@ -95,7 +98,8 @@ serve(async (req) => {
         .single();
 
       if (userError) {
-        console.error('Error fetching user:', userError);
+        logger.error('Error fetching user', { error: userError.message, user_id: userId });
+        await logger.flush();
         return jsonResponse({ error: 'User not found' }, 400);
       }
 
@@ -124,7 +128,8 @@ serve(async (req) => {
         .not('auto_topup_threshold', 'is', null);
 
       if (usersError) {
-        console.error('Error fetching eligible users:', usersError);
+        logger.error('Error fetching eligible users', { error: usersError.message });
+        await logger.flush();
         return jsonResponse({ error: 'Failed to fetch eligible users' }, 500);
       }
 
@@ -134,7 +139,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${usersToProcess.length} users eligible for auto-top-up`);
+    logger.info(`Found ${usersToProcess.length} users eligible for auto-top-up`);
 
     const results = [];
 
@@ -147,7 +152,7 @@ serve(async (req) => {
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
           
           if (lastTriggered > oneHourAgo) {
-            console.log(`Rate limited: User ${user.id} auto-topped up within last hour`);
+            logger.info('Rate limited: user auto-topped up within last hour', { user_id: user.id });
             results.push({
               userId: user.id,
               status: 'rate_limited',
@@ -177,7 +182,7 @@ serve(async (req) => {
             dollarAmount: processResult.dollarAmount,
             paymentIntentId: processResult.paymentIntentId,
           });
-          console.log(`Auto-top-up successful for user ${user.id}: $${processResult.dollarAmount}`);
+          logger.info('Auto-top-up successful', { user_id: user.id, dollarAmount: processResult.dollarAmount });
         } else {
           results.push({
             userId: user.id,
@@ -185,7 +190,7 @@ serve(async (req) => {
             error: processResult.error || 'Unknown error',
             message: processResult.message,
           });
-          console.error(`Auto-top-up failed for user ${user.id}:`, processResult.error);
+          logger.error('Auto-top-up failed', { user_id: user.id, error: processResult.error });
         }
 
       } catch (error) {
@@ -194,7 +199,7 @@ serve(async (req) => {
           status: 'error',
           error: error.message,
         });
-        console.error(`Error processing auto-top-up for user ${user.id}:`, error);
+        logger.error('Error processing auto-top-up for user', { user_id: user.id, error: error.message });
       }
     }
 
@@ -204,7 +209,7 @@ serve(async (req) => {
     const errorCount = results.filter(r => r.status === 'error').length;
     const rateLimitedCount = results.filter(r => r.status === 'rate_limited').length;
 
-    console.log('Auto-top-up processing summary:', {
+    logger.info('Auto-top-up processing summary', {
       totalProcessed: results.length,
       successful: successCount,
       failed: failedCount,
@@ -212,6 +217,7 @@ serve(async (req) => {
       rateLimited: rateLimitedCount,
     });
 
+    await logger.flush();
     return jsonResponse({
       success: true,
       summary: {
@@ -225,7 +231,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in trigger-auto-topup:', error);
+    logger.error('Error in trigger-auto-topup', { error: error.message });
+    await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });

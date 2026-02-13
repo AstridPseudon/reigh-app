@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 /**
  * Edge function: grant-credits
@@ -73,6 +74,7 @@ serve(async (req) => {
 
   // Admin client (service role) for unrestricted queries
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+  const logger = new SystemLogger(adminClient, 'grant-credits');
 
   // ─── 2. Authenticate request using shared auth module ───────────
   const auth = await authenticateRequest(req, adminClient, "[GRANT-CREDITS]", { allowJwtUserAuth: true });
@@ -115,7 +117,7 @@ serve(async (req) => {
 
       // If the user row doesn't exist yet, create it with default values
       if (userError && userError.code === 'PGRST116') { // no rows found
-        console.log(`[WelcomeBonus] No user row found for ${userId}. Creating default user record...`);
+        logger.info('No user row found, creating default user record', { user_id: userId });
 
         const { error: insertError } = await adminClient
           .from('users')
@@ -128,7 +130,7 @@ serve(async (req) => {
           }, { onConflict: 'id' });
 
         if (insertError && insertError.code !== '23505') { // ignore duplicate key
-          console.error('[WelcomeBonus] Failed to create user row:', insertError);
+          logger.error('Failed to create user row', { error: insertError.message, user_id: userId });
           return new Response(`Could not create user record: ${insertError.message}`, {
             status: 500,
             headers: corsHeaders,
@@ -145,7 +147,7 @@ serve(async (req) => {
           user = { given_credits: false } as any;
         }
       } else if (userError) {
-        console.error('Error checking user:', userError);
+        logger.error('Error checking user', { error: userError.message, user_id: userId });
         return new Response(`User not found: ${userError.message}`, { 
           status: 400,
           headers: corsHeaders,
@@ -183,8 +185,9 @@ serve(async (req) => {
         .single();
 
       if (ledgerError) {
-        console.error("Error granting welcome credits:", ledgerError);
-        return new Response(`Failed to grant welcome credits: ${ledgerError.message}`, { 
+        logger.error("Error granting welcome credits", { error: ledgerError.message, user_id: userId });
+        await logger.flush();
+        return new Response(`Failed to grant welcome credits: ${ledgerError.message}`, {
           status: 500,
           headers: corsHeaders,
         });
@@ -197,12 +200,13 @@ serve(async (req) => {
         .eq('id', userId);
 
       if (updateError) {
-        console.error("Error updating user given_credits:", updateError);
+        logger.error("Error updating user given_credits", { error: updateError.message, user_id: userId });
         // Note: Credits were already given, so this is not a critical failure
       }
 
-      console.log(`Welcome bonus granted: $${amount} to user ${userId}`);
-      
+      logger.info('Welcome bonus granted', { amount, user_id: userId });
+      await logger.flush();
+
       return new Response(JSON.stringify({
         success: true,
         transaction: ledgerEntry,
@@ -235,15 +239,17 @@ serve(async (req) => {
       .single();
 
     if (ledgerError) {
-      console.error("Error granting credits:", ledgerError);
-      return new Response(`Failed to grant credits: ${ledgerError.message}`, { 
+      logger.error("Error granting credits", { error: ledgerError.message, user_id: userId });
+      await logger.flush();
+      return new Response(`Failed to grant credits: ${ledgerError.message}`, {
         status: 500,
         headers: corsHeaders,
       });
     }
 
-    console.log(`Credits granted: $${amount} to user ${userId} by service_role`);
-    
+    logger.info('Credits granted', { amount, user_id: userId, granted_by: 'service_role' });
+    await logger.flush();
+
     return new Response(JSON.stringify({
       success: true,
       transaction: ledgerEntry,
@@ -257,8 +263,9 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Unexpected error:", error);
-    return new Response(`Internal server error: ${error.message}`, { 
+    logger.error("Unexpected error", { error: error.message });
+    await logger.flush();
+    return new Response(`Internal server error: ${error.message}`, {
       status: 500,
       headers: corsHeaders,
     });

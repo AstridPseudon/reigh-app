@@ -159,7 +159,7 @@ export function useIsTouchDevice() {
   return isTouchDevice;
 }
 
-// --- Composite hook (replaces useDeviceDetection) ---
+// --- Composite hook ---
 
 export interface DeviceInfo {
   /** Tablet device (iPad-like) */

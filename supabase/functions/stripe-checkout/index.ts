@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: any, status = 200) {
@@ -83,6 +84,7 @@ serve(async (req) => {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const logger = new SystemLogger(supabaseAdmin, 'stripe-checkout');
 
   const auth = await authenticateRequest(req, supabaseAdmin, "[STRIPE-CHECKOUT]", { allowJwtUserAuth: true });
   if (!auth.success || !auth.userId) {
@@ -107,12 +109,14 @@ serve(async (req) => {
     const frontendUrl = Deno.env.get("FRONTEND_URL");
     
     if (!stripeSecretKey) {
-      console.error("STRIPE_SECRET_KEY not set in environment");
+      logger.error("STRIPE_SECRET_KEY not set in environment");
+      await logger.flush();
       return jsonResponse({ error: "Stripe not configured" }, 500);
     }
 
     if (!frontendUrl) {
-      console.error("FRONTEND_URL not set in environment");
+      logger.error("FRONTEND_URL not set in environment");
+      await logger.flush();
       return jsonResponse({ error: "Frontend URL not configured" }, 500);
     }
 
@@ -164,8 +168,9 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
-    console.log(`Stripe checkout session created for user ${auth.userId}: $${amount} (session: ${session.id})`);
+    logger.info('Stripe checkout session created', { user_id: auth.userId, amount, sessionId: session.id });
 
+    await logger.flush();
     return jsonResponse({
       checkoutUrl: session.url,
       sessionId: session.id,
@@ -174,7 +179,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Error creating Stripe checkout session:", error);
+    logger.error('Error creating Stripe checkout session', { error: error.message });
+    await logger.flush();
     return jsonResponse({ error: `Internal server error: ${error.message}` }, 500);
   }
 }); 

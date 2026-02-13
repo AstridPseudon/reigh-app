@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -70,12 +71,12 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
 
   if (!serviceKey || !supabaseUrl) {
-    console.error("Missing required environment variables");
     return new Response("Server configuration error", { status: 500 });
   }
 
   // Create admin client for database operations
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const logger = new SystemLogger(supabaseAdmin, 'task-counts');
 
   // Parse request body
   let requestBody: any = {};
@@ -85,7 +86,7 @@ serve(async (req) => {
       requestBody = JSON.parse(bodyText);
     }
   } catch (e) {
-    console.log("No valid JSON body provided, using defaults");
+    logger.debug("No valid JSON body provided, using defaults");
   }
 
   const runType = requestBody.run_type || null; // 'gpu', 'api', or null (no filtering)
@@ -97,7 +98,8 @@ serve(async (req) => {
   const auth = await authenticateRequest(req, supabaseAdmin, "[TASK-COUNTS]");
 
   if (!auth.success) {
-    console.error("Authentication failed:", auth.error);
+    logger.error("Authentication failed", { error: auth.error });
+    await logger.flush();
     return new Response(auth.error || "Authentication failed", { status: auth.statusCode || 403 });
   }
 
@@ -106,9 +108,9 @@ serve(async (req) => {
 
   if (debug) {
     if (isServiceRole) {
-      console.log("[SERVICE_ROLE] Authenticated via service-role key");
+      logger.debug("Authenticated via service-role key");
     } else {
-      console.log(`[PERSONAL_ACCESS_TOKEN] Authenticated via PAT, user ID: ${callerId}`);
+      logger.debug("Authenticated via PAT", { user_id: callerId });
     }
   }
 
@@ -127,15 +129,15 @@ serve(async (req) => {
       ]);
 
       if (countQueuedOnly.error) {
-        console.error("Service role count (queued only) error:", countQueuedOnly.error);
+        logger.error("Service role count (queued only) error", { error: countQueuedOnly.error.message });
         throw countQueuedOnly.error;
       }
       if (countQueuedPlusActive.error) {
-        console.error("Service role count (queued+active) error:", countQueuedPlusActive.error);
+        logger.error("Service role count (queued+active) error", { error: countQueuedPlusActive.error.message });
         throw countQueuedPlusActive.error;
       }
       if (breakdownResult.error) {
-        console.error("Service role breakdown error:", breakdownResult.error);
+        logger.error("Service role breakdown error", { error: breakdownResult.error.message });
         throw breakdownResult.error;
       }
 
@@ -308,20 +310,24 @@ serve(async (req) => {
 
       // Debug logging (only when debug=true)
       if (debug) {
-        console.log(`[TASK-COUNTS] [${runType || 'ALL'}] queued_only=${queued_only}, blocked_capacity=${blocked_by_capacity}, blocked_deps=${blocked_by_deps}, blocked_settings=${blocked_by_settings}`);
-        console.log(`[TASK-COUNTS] [${runType || 'ALL'}] potentially_claimable=${potentially_claimable}, active=${active_only}`);
-        console.log(`[TASK-COUNTS] [${runType || 'ALL'}] arrays: ${queued_tasks.length} queued, ${active_tasks.length} active`);
-        console.log(`[TASK-COUNTS] [${runType || 'ALL'}] users with tasks: ${user_stats.filter(u => u.in_progress_tasks > 0 || u.queued_tasks > 0).length}`);
+        logger.debug('Service role counts', {
+          runType: runType || 'ALL',
+          queued_only, blocked_by_capacity, blocked_by_deps, blocked_by_settings,
+          potentially_claimable, active_only,
+          queued_tasks_count: queued_tasks.length,
+          active_tasks_count: active_tasks.length,
+          users_with_tasks: user_stats.filter(u => u.in_progress_tasks > 0 || u.queued_tasks > 0).length,
+        });
 
         // Validation warnings (array may differ due to 100-task limit or race conditions)
         if (active_tasks.length !== active_only) {
-          console.warn(`[TASK-COUNTS] [VALIDATION] active_tasks array (${active_tasks.length}) != active_only (${active_only})`);
+          logger.warn('active_tasks array mismatch', { array: active_tasks.length, count: active_only });
         }
       }
 
       const elapsed = Date.now() - startTime;
       if (debug) {
-        console.log(`[TASK-COUNTS] Completed in ${elapsed}ms`);
+        logger.debug('Completed', { elapsed_ms: elapsed });
       }
 
       return new Response(JSON.stringify({
@@ -361,11 +367,11 @@ serve(async (req) => {
       ]);
 
       if (countQueuedOnly.error) {
-        console.error("User count (queued only) error:", countQueuedOnly.error);
+        logger.error("User count (queued only) error", { error: countQueuedOnly.error.message, user_id: callerId });
         throw countQueuedOnly.error;
       }
       if (countQueuedPlusActive.error) {
-        console.error("User count (queued+active) error:", countQueuedPlusActive.error);
+        logger.error("User count (queued+active) error", { error: countQueuedPlusActive.error.message, user_id: callerId });
         throw countQueuedPlusActive.error;
       }
 
@@ -425,7 +431,7 @@ serve(async (req) => {
       }
 
       if (debug) {
-        console.log(`[TASK-COUNTS] [USER] queued=${queued_only}, active=${active_only}, eligible=${eligible_queued}`);
+        logger.debug('User counts', { user_id: callerId, queued_only, active_only, eligible_queued });
       }
 
       const elapsed = Date.now() - startTime;
@@ -456,7 +462,8 @@ serve(async (req) => {
       });
     }
   } catch (error) {
-    console.error("Unexpected error:", error);
+    logger.error("Unexpected error", { error: error.message });
+    await logger.flush();
     return new Response(`Internal server error: ${error.message}`, { status: 500 });
   }
 });

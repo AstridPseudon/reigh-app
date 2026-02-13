@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: unknown, status = 200) {
@@ -37,6 +38,7 @@ serve(async (req) => {
       },
     },
   );
+  const logger = new SystemLogger(supabaseAdmin, 'tasks-list');
 
   // Authenticate the request
   const auth = await authenticateRequest(req, supabaseAdmin, "[TASKS-LIST]", { allowJwtUserAuth: true });
@@ -92,14 +94,16 @@ serve(async (req) => {
     const { data: tasks, error } = await query;
 
     if (error) {
-      console.error("[TASKS-LIST] Query error:", error);
+      logger.error("Query error", { error: error.message });
+      await logger.flush();
       return jsonResponse({ error: "Failed to fetch tasks", details: error.message }, 500);
     }
 
     return jsonResponse(tasks || []);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error("[TASKS-LIST] Unexpected error:", message);
+    logger.error("Unexpected error", { error: message });
+    await logger.flush();
     return jsonResponse({ error: "Internal server error", details: message }, 500);
   }
 }); 

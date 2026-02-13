@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 // @ts-ignore - HuggingFace Hub types
 import { whoAmI, createRepo, uploadFile } from "https://esm.sh/@huggingface/hub@0.18.2";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -177,10 +178,11 @@ serve(async (req) => {
     return createResponse({ error: "Server configuration error" }, 500);
   }
 
-  try {
-    // Create admin client for storage and database operations
-    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  // Create admin client and logger early
+  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const logger = new SystemLogger(supabaseAdmin, 'huggingface-upload');
 
+  try {
     // 1. Authenticate user
     const auth = await authenticateRequest(req, supabaseAdmin, "[HF-UPLOAD]", { allowJwtUserAuth: true });
     if (!auth.success || !auth.userId) {
@@ -188,7 +190,7 @@ serve(async (req) => {
     }
 
     const userId = auth.userId;
-    console.log(`[HF-UPLOAD] Authenticated user: ${userId}`);
+    logger.info('Authenticated user', { user_id: userId });
 
     // 2. Get user's HuggingFace token (decrypted from Vault)
     const { data: apiKeyData, error: apiKeyError } = await supabaseAdmin.rpc(
@@ -197,7 +199,7 @@ serve(async (req) => {
     );
 
     if (apiKeyError || !apiKeyData || apiKeyData.length === 0) {
-      console.error("[HF-UPLOAD] HF token not found:", apiKeyError);
+      logger.error('HF token not found', { error: apiKeyError?.message, user_id: userId });
       return createResponse({
         error: "HuggingFace API key not found. Please set up your HuggingFace token first.",
         code: "HF_TOKEN_NOT_FOUND"
@@ -206,13 +208,13 @@ serve(async (req) => {
 
     const hfToken = apiKeyData[0].key_value;
     if (!hfToken) {
-      console.error("[HF-UPLOAD] HF token is empty");
+      logger.error('HF token is empty', { user_id: userId });
       return createResponse({
         error: "HuggingFace API key is empty. Please re-enter your token.",
         code: "HF_TOKEN_EMPTY"
       }, 400);
     }
-    console.log("[HF-UPLOAD] Retrieved HF token from Vault");
+    logger.info('Retrieved HF token from Vault');
 
     // 3. Parse form data
     const formData = await req.formData();
@@ -251,9 +253,13 @@ serve(async (req) => {
     const sampleVideos: { storagePath: string; originalFileName: string }[] =
       sampleVideosRaw ? JSON.parse(sampleVideosRaw) : [];
 
-    console.log(`[HF-UPLOAD] Processing LoRA: ${loraDetails.name}`);
-    console.log(`[HF-UPLOAD] Storage paths: single=${storagePaths.single || 'none'}, highNoise=${storagePaths.highNoise || 'none'}, lowNoise=${storagePaths.lowNoise || 'none'}`);
-    console.log(`[HF-UPLOAD] Sample videos: ${sampleVideos.length}`);
+    logger.info('Processing LoRA', {
+      name: loraDetails.name,
+      single: storagePaths.single || 'none',
+      highNoise: storagePaths.highNoise || 'none',
+      lowNoise: storagePaths.lowNoise || 'none',
+      sampleVideos: sampleVideos.length,
+    });
 
     // 4. Get HF username and create repo first (before downloading files)
     const hfUser = await whoAmI({ credentials: { accessToken: hfToken } });
@@ -265,7 +271,7 @@ serve(async (req) => {
     const repoName = repoNameOverride || sanitizeRepoName(loraDetails.name);
     const repoId = `${username}/${repoName}`;
 
-    console.log(`[HF-UPLOAD] Creating repo: ${repoId} (private: ${isPrivate})`);
+    logger.info('Creating repo', { repoId, isPrivate });
 
     try {
       await createRepo({
@@ -273,13 +279,13 @@ serve(async (req) => {
         private: isPrivate,
         credentials: { accessToken: hfToken },
       });
-      console.log(`[HF-UPLOAD] Repository created: ${repoId}`);
+      logger.info('Repository created', { repoId });
     } catch (repoError: any) {
       if (!repoError.message?.toLowerCase().includes("already exists")) {
-        console.error(`[HF-UPLOAD] Repo creation error:`, repoError);
+        logger.error('Repo creation error', { error: repoError.message });
         throw repoError;
       }
-      console.log(`[HF-UPLOAD] Repository already exists: ${repoId}`);
+      logger.info('Repository already exists', { repoId });
     }
 
     // 5. Download and upload LoRA file(s)
@@ -289,13 +295,13 @@ serve(async (req) => {
 
     // Helper function to download and upload a LoRA file
     async function processLoraFile(storagePath: string, fileType: 'single' | 'highNoise' | 'lowNoise'): Promise<string> {
-      console.log(`[HF-UPLOAD] Downloading ${fileType} LoRA from: ${storagePath}`);
+      logger.info(`Downloading ${fileType} LoRA`, { storagePath });
       const { data: loraBlob, error: loraDownloadError } = await supabaseAdmin.storage
         .from("temporary")
         .download(storagePath);
 
       if (loraDownloadError || !loraBlob) {
-        console.error(`[HF-UPLOAD] ${fileType} LoRA download error:`, loraDownloadError);
+        logger.error(`${fileType} LoRA download error`, { error: loraDownloadError?.message });
         throw new Error(`Failed to download ${fileType} LoRA from temporary storage`);
       }
 
@@ -303,16 +309,16 @@ serve(async (req) => {
 
       const originalName = extractOriginalFilename(storagePath);
       const loraFile = new File([loraBlob], originalName, { type: "application/octet-stream" });
-      console.log(`[HF-UPLOAD] ${fileType} LoRA file prepared: ${loraFile.name} (${loraFile.size} bytes)`);
+      logger.info(`${fileType} LoRA file prepared`, { name: loraFile.name, size: loraFile.size });
 
       // Upload to HuggingFace
-      console.log(`[HF-UPLOAD] Uploading ${fileType} LoRA file...`);
+      logger.info(`Uploading ${fileType} LoRA file...`);
       await uploadFile({
         repo: repoId,
         file: loraFile,
         credentials: { accessToken: hfToken },
       });
-      console.log(`[HF-UPLOAD] ${fileType} LoRA file uploaded successfully`);
+      logger.info(`${fileType} LoRA file uploaded successfully`);
 
       return originalName;
     }
@@ -341,13 +347,13 @@ serve(async (req) => {
 
     for (const video of sampleVideos) {
       try {
-        console.log(`[HF-UPLOAD] Downloading video: ${video.storagePath}`);
+        logger.info('Downloading video', { storagePath: video.storagePath });
         const { data: videoBlob, error: videoError } = await supabaseAdmin.storage
           .from("temporary")
           .download(video.storagePath);
 
         if (videoError || !videoBlob) {
-          console.error(`[HF-UPLOAD] Video download error:`, videoError);
+          logger.error('Video download error', { error: videoError?.message });
           continue;
         }
 
@@ -357,7 +363,7 @@ serve(async (req) => {
         const sanitizedFileName = sanitizeRepoName(video.originalFileName);
         const targetPath = `media/${sanitizedFileName}`;
 
-        console.log(`[HF-UPLOAD] Uploading video to: ${targetPath}`);
+        logger.info('Uploading video', { targetPath });
         await uploadFile({
           repo: repoId,
           file: { path: targetPath, content: videoFile },
@@ -365,15 +371,15 @@ serve(async (req) => {
         });
 
         uploadedVideoPaths.push(targetPath);
-        console.log(`[HF-UPLOAD] Video uploaded: ${targetPath}`);
+        logger.info('Video uploaded', { targetPath });
       } catch (videoUploadError: any) {
-        console.error(`[HF-UPLOAD] Video upload error:`, videoUploadError);
+        logger.error('Video upload error', { error: videoUploadError.message });
         // Continue with other videos
       }
     }
 
     // 7. Generate and upload README
-    console.log(`[HF-UPLOAD] Generating README...`);
+    logger.info('Generating README...');
     const readmeContent = generateReadmeContent(
       loraDetails,
       uploadedLoraFiles,
@@ -388,7 +394,7 @@ serve(async (req) => {
       file: readmeFile,
       credentials: { accessToken: hfToken },
     });
-    console.log(`[HF-UPLOAD] README uploaded`);
+    logger.info('README uploaded');
 
     // 8. Construct video URLs
     const videoUrls = uploadedVideoPaths.map(
@@ -396,20 +402,21 @@ serve(async (req) => {
     );
 
     // 9. Clean up temporary files
-    console.log(`[HF-UPLOAD] Cleaning up ${pathsToClean.length} temporary files...`);
+    logger.info('Cleaning up temporary files', { count: pathsToClean.length });
 
     const { error: cleanupError } = await supabaseAdmin.storage
       .from("temporary")
       .remove(pathsToClean);
 
     if (cleanupError) {
-      console.error("[HF-UPLOAD] Cleanup error:", cleanupError);
+      logger.error('Cleanup error', { error: cleanupError.message });
       // Don't fail the request for cleanup errors
     } else {
-      console.log("[HF-UPLOAD] Cleanup successful");
+      logger.info('Cleanup successful');
     }
 
-    console.log(`[HF-UPLOAD] Upload complete. Repo: ${repoId}`);
+    logger.info('Upload complete', { repoId });
+    await logger.flush();
 
     return createResponse({
       success: true,
@@ -420,7 +427,8 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error("[HF-UPLOAD] Unexpected error:", error);
+    logger.error('Unexpected error', { error: error.message });
+    await logger.flush();
     return createResponse({
       error: error.message || "An unexpected error occurred",
     }, 500);

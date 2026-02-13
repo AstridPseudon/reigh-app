@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,6 +78,8 @@ serve(async (req) => {
     }
   });
 
+  const logger = new SystemLogger(supabaseAdmin, 'process-auto-topup');
+
   try {
     // ─── 4. Get user auto-top-up settings ───────────────────────────
     const { data: user, error: userError } = await supabaseAdmin
@@ -96,7 +99,8 @@ serve(async (req) => {
       .single();
 
     if (userError || !user) {
-      console.error('User not found:', userError);
+      logger.error('User not found', { user_id: userId, error: userError?.message });
+      await logger.flush();
       return jsonResponse({ error: 'User not found' }, 400);
     }
 
@@ -138,7 +142,8 @@ serve(async (req) => {
     // ─── 6. Initialize Stripe and create Payment Intent ─────────────
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
-      console.error("STRIPE_SECRET_KEY not set in environment");
+      logger.error("STRIPE_SECRET_KEY not set in environment");
+      await logger.flush();
       return jsonResponse({ error: "Stripe not configured" }, 500);
     }
 
@@ -184,18 +189,20 @@ serve(async (req) => {
         });
 
       if (ledgerError) {
-        console.error('Error creating auto-top-up ledger entry:', ledgerError);
+        logger.error('Error creating auto-top-up ledger entry', { error: ledgerError.message, user_id: userId });
+        await logger.flush();
         // Payment succeeded but ledger failed - this is critical
         return jsonResponse({ error: 'Payment succeeded but failed to update credits' }, 500);
       }
 
-      console.log('Auto-top-up succeeded:', {
-        userId,
+      logger.info('Auto-top-up succeeded', {
+        user_id: userId,
         paymentIntentId: paymentIntent.id,
         amount: user.auto_topup_amount,
         originalBalance: user.credits,
       });
 
+      await logger.flush();
       return jsonResponse({
         success: true,
         paymentIntentId: paymentIntent.id,
@@ -207,8 +214,8 @@ serve(async (req) => {
 
     } else {
       // Payment failed
-      console.error('Auto-top-up payment failed:', {
-        userId,
+      logger.error('Auto-top-up payment failed', {
+        user_id: userId,
         paymentIntentId: paymentIntent.id,
         status: paymentIntent.status,
         lastPaymentError: paymentIntent.last_payment_error,
@@ -224,9 +231,10 @@ serve(async (req) => {
           .update({ auto_topup_enabled: false })
           .eq('id', userId);
 
-        console.log(`Auto-top-up disabled for user ${userId} due to payment failure`);
+        logger.info(`Auto-top-up disabled for user due to payment failure`, { user_id: userId });
       }
 
+      await logger.flush();
       return jsonResponse({
         error: 'Auto-top-up payment failed',
         paymentIntentId: paymentIntent.id,
@@ -236,7 +244,7 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Error in process-auto-topup:', error);
+    logger.error('Error in process-auto-topup', { error: error.message });
     
     // Handle specific Stripe errors
     if (error.type === 'StripeCardError') {
@@ -247,6 +255,7 @@ serve(async (req) => {
       }, 400);
     }
 
+    await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });

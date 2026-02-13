@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -32,6 +33,7 @@ serve(async (req) => {
 
     // Create Supabase client with service role key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const logger = new SystemLogger(supabase, 'broadcast-realtime');
 
     // Create a channel and send the broadcast
     const broadcastChannel = supabase.channel(channel);
@@ -45,13 +47,15 @@ serve(async (req) => {
 
     // Check if broadcast was successful
     if (result === 'ok') {
-      console.log(`[BroadcastRealtime] Successfully broadcast to ${channel}`);
+      logger.info('Successfully broadcast', { channel });
+      await logger.flush();
       return new Response(JSON.stringify({ success: true }), {
         headers: { "Content-Type": "application/json" },
         status: 200
       });
     } else {
-      console.error(`[BroadcastRealtime] Broadcast failed:`, result);
+      logger.error('Broadcast failed', { channel, result });
+      await logger.flush();
       return new Response(JSON.stringify({ error: 'Broadcast failed', result }), {
         status: 500,
         headers: { "Content-Type": "application/json" }

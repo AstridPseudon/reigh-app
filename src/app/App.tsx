@@ -12,6 +12,7 @@ import { NEW_GROUP_DROPPABLE_ID } from '@/shared/lib/dragDrop';
 import { LastAffectedShotProvider, LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';
 import { AppRoutes } from "./routes";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
+import { AuthGate } from "@/shared/components/AuthGate";
 import { UserSettingsProvider } from "@/shared/contexts/UserSettingsContext";
 import { ProjectProvider, useProject } from "@/shared/contexts/ProjectContext";
 import { RealtimeProvider } from '@/shared/providers/RealtimeProvider';
@@ -242,28 +243,30 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TaskTypeConfigInitializer />
       <AuthProvider>
-        <UserSettingsProvider>
-          <ProjectProvider>
-            <RealtimeProvider>
-              <ShotsProvider>
-                <GenerationTaskProvider>
-                  <IncomingTasksProvider>
-                    <PanesProvider>
-                      <LastAffectedShotProvider>
-                        <CurrentShotProvider>
-                          <ToolPageHeaderProvider>
-                            <RefactorMetricsCollector />
-                            <AppInternalContent />
-                          </ToolPageHeaderProvider>
-                        </CurrentShotProvider>
-                      </LastAffectedShotProvider>
-                    </PanesProvider>
-                  </IncomingTasksProvider>
-                </GenerationTaskProvider>
-              </ShotsProvider>
-            </RealtimeProvider>
-          </ProjectProvider>
-        </UserSettingsProvider>
+        <AuthGate>
+          <UserSettingsProvider>
+            <ProjectProvider>
+              <RealtimeProvider>
+                <ShotsProvider>
+                  <GenerationTaskProvider>
+                    <IncomingTasksProvider>
+                      <PanesProvider>
+                        <LastAffectedShotProvider>
+                          <CurrentShotProvider>
+                            <ToolPageHeaderProvider>
+                              <RefactorMetricsCollector />
+                              <AppInternalContent />
+                            </ToolPageHeaderProvider>
+                          </CurrentShotProvider>
+                        </LastAffectedShotProvider>
+                      </PanesProvider>
+                    </IncomingTasksProvider>
+                  </GenerationTaskProvider>
+                </ShotsProvider>
+              </RealtimeProvider>
+            </ProjectProvider>
+          </UserSettingsProvider>
+        </AuthGate>
       </AuthProvider>
     </QueryClientProvider>
   );

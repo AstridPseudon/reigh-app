@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -30,6 +31,7 @@ serve(async (req) => {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const logger = new SystemLogger(supabaseAdmin, 'get-task-status');
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -71,6 +73,8 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
+    logger.error('Internal server error', { task_id: taskId, error: error?.message });
+    await logger.flush();
     return new Response(`Internal server error: ${error?.message}`, { status: 500 });
   }
 });

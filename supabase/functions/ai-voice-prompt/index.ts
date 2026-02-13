@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Groq from "npm:groq-sdk@0.26.0";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -37,6 +38,7 @@ serve(async (req) => {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const logger = new SystemLogger(supabaseAdmin, 'ai-voice-prompt');
 
   const auth = await authenticateRequest(req, supabaseAdmin, "[AI-VOICE-PROMPT]", { allowJwtUserAuth: true });
   if (!auth.success) {
@@ -66,7 +68,7 @@ serve(async (req) => {
       if (!textInstructions) {
         return jsonResponse({ error: "textInstructions is required for JSON requests" }, 400);
       }
-      console.log(`[ai-voice-prompt] Text instructions received: "${textInstructions.substring(0, 100)}..."`);
+      logger.info('Text instructions received', { preview: textInstructions.substring(0, 100) });
     } else {
       // Multipart form data with audio file
       const formData = await req.formData();
@@ -80,11 +82,11 @@ serve(async (req) => {
         return jsonResponse({ error: "audio file is required" }, 400);
       }
 
-      console.log(`[ai-voice-prompt] Received audio file: ${audioFile.name}, size: ${audioFile.size}, type: ${audioFile.type}`);
+      logger.info('Received audio file', { name: audioFile.name, size: audioFile.size, type: audioFile.type });
     }
     
     if (existingValue) {
-      console.log(`[ai-voice-prompt] Existing value provided (${existingValue.length} chars)`);
+      logger.info('Existing value provided', { chars: existingValue.length });
     }
 
     // Determine transcribed text - either from audio or use text instructions directly
@@ -103,7 +105,7 @@ serve(async (req) => {
       });
 
       transcribedText = transcription.text?.trim() || "";
-      console.log(`[ai-voice-prompt] Transcription: "${transcribedText.substring(0, 100)}..."`);
+      logger.info('Transcription complete', { preview: transcribedText.substring(0, 100) });
 
       if (!transcribedText) {
         return jsonResponse({ error: "No speech detected in audio" }, 400);
@@ -167,7 +169,7 @@ CRITICAL FORMATTING:
 
 Output:`;
 
-    console.log(`[ai-voice-prompt] Calling Kimi API...`);
+    logger.info('Calling Kimi API...');
     
     let resp;
     try {
@@ -181,9 +183,9 @@ Output:`;
         max_tokens: 2048,
         top_p: 1,
       });
-      console.log(`[ai-voice-prompt] Kimi API responded successfully`);
+      logger.info('Kimi API responded successfully');
     } catch (kimiError: any) {
-      console.error(`[ai-voice-prompt] Kimi API error:`, kimiError?.message || kimiError);
+      logger.error('Kimi API error', { error: kimiError?.message || String(kimiError) });
       // Fall back to transcription if Kimi fails
       return jsonResponse({ 
         success: true, 
@@ -195,17 +197,19 @@ Output:`;
     }
 
     const promptText = resp.choices[0]?.message?.content?.trim() || transcribedText;
-    console.log(`[ai-voice-prompt] Generated prompt: "${promptText.substring(0, 100)}..."`);
+    logger.info('Generated prompt', { preview: promptText.substring(0, 100) });
 
-    return jsonResponse({ 
-      success: true, 
+    await logger.flush();
+    return jsonResponse({
+      success: true,
       transcription: transcribedText,
       prompt: promptText,
-      usage: resp.usage 
+      usage: resp.usage
     });
 
   } catch (err: any) {
-    console.error(`[ai-voice-prompt] Error:`, err?.message || err);
+    logger.error('Error', { error: err?.message || String(err) });
+    await logger.flush();
     return jsonResponse({ error: "Internal server error", details: err?.message }, 500);
   }
 });

@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: any, status = 200) {
@@ -55,40 +56,44 @@ serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
+  // Create Supabase admin client and logger early
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+  const logger = new SystemLogger(supabaseAdmin, 'stripe-webhook');
+
   try {
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
-    
+
     if (!signature) {
       return jsonResponse({ error: 'Missing stripe-signature header' }, 400);
     }
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET not set in environment');
+      logger.error('STRIPE_WEBHOOK_SECRET not set in environment');
+      await logger.flush();
       return jsonResponse({ error: 'Webhook secret not configured' }, 500);
     }
 
     // Verify the webhook signature
     const isValid = await verifyStripeSignature(body, signature, webhookSecret);
     if (!isValid) {
-      console.error('Invalid webhook signature');
+      logger.error('Invalid webhook signature');
+      await logger.flush();
       return jsonResponse({ error: 'Invalid signature' }, 401);
     }
 
     const event = JSON.parse(body);
-    console.log('Received Stripe event:', event.type);
-
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    logger.info('Received Stripe event', { eventType: event.type });
 
     // Handle different event types
     switch (event.type) {
@@ -99,7 +104,7 @@ serve(async (req) => {
         const { userId, amount, autoTopupEnabled, autoTopupAmount, autoTopupThreshold } = session.metadata || {};
         
         if (!userId || !amount) {
-          console.error('Missing required metadata in checkout session:', session.metadata);
+          logger.error('Missing required metadata in checkout session', { metadata: session.metadata });
           return jsonResponse({ error: 'Missing required metadata' }, 400);
         }
 
@@ -108,7 +113,7 @@ serve(async (req) => {
         const expectedCents = dollarAmount * 100;
         
         if (session.amount_total !== expectedCents) {
-          console.error(`Amount mismatch: expected ${expectedCents} cents, got ${session.amount_total} cents`);
+          logger.error('Amount mismatch', { expectedCents, actualCents: session.amount_total });
           return jsonResponse({ error: 'Amount mismatch' }, 400);
         }
 
@@ -136,10 +141,10 @@ serve(async (req) => {
                   .eq('id', userId);
 
                 if (autoTopupError) {
-                  console.error('Error setting up auto-top-up:', autoTopupError);
+                  logger.error('Error setting up auto-top-up', { error: autoTopupError.message, user_id: userId });
                 } else {
-                  console.log('Auto-top-up enabled for user:', {
-                    userId,
+                  logger.info('Auto-top-up enabled for user', {
+                    user_id: userId,
                     autoTopupAmount: parseFloat(autoTopupAmount),
                     autoTopupThreshold: parseFloat(autoTopupThreshold),
                     customerId: session.customer
@@ -147,7 +152,7 @@ serve(async (req) => {
                 }
               }
             } catch (error) {
-              console.error('Error processing auto-top-up setup:', error);
+              logger.error('Error processing auto-top-up setup', { error: error.message });
             }
           }
         }
@@ -164,13 +169,13 @@ serve(async (req) => {
             .maybeSingle();
 
           if (checkError) {
-            console.warn('Idempotency check query failed, proceeding with insert:', checkError.message);
+            logger.warn('Idempotency check query failed, proceeding with insert', { error: checkError.message });
           } else if (existingEntry) {
-            console.log('Webhook already processed (idempotency check):', session.id);
+            logger.info('Webhook already processed (idempotency check)', { sessionId: session.id });
             return jsonResponse({ received: true, duplicate: true });
           }
         } catch (checkErr) {
-          console.warn('Idempotency check exception, proceeding with insert:', checkErr);
+          logger.warn('Idempotency check exception, proceeding with insert', { error: String(checkErr) });
         }
 
         // Insert budget purchase into ledger
@@ -194,15 +199,15 @@ serve(async (req) => {
         if (ledgerError) {
           // Handle duplicate key violation gracefully (race condition with idempotency check)
           if (ledgerError.code === '23505') {
-            console.log('Webhook duplicate detected via constraint:', session.id);
+            logger.info('Webhook duplicate detected via constraint', { sessionId: session.id });
             return jsonResponse({ received: true, duplicate: true });
           }
-          console.error('Error creating budget ledger entry:', ledgerError);
+          logger.error('Error creating budget ledger entry', { error: ledgerError.message });
           return jsonResponse({ error: 'Failed to create budget ledger entry' }, 500);
         }
 
-        console.log('Successfully processed budget purchase:', {
-          userId,
+        logger.info('Successfully processed budget purchase', {
+          user_id: userId,
           amountCents: session.amount_total,
           dollarAmount,
           sessionId: session.id,
@@ -233,13 +238,13 @@ serve(async (req) => {
                 .maybeSingle();
 
               if (checkError) {
-                console.warn('Auto-topup idempotency check failed, proceeding with insert:', checkError.message);
+                logger.warn('Auto-topup idempotency check failed, proceeding with insert', { error: checkError.message });
               } else if (existingAutoTopup) {
-                console.log('Auto-topup webhook already processed (idempotency check):', paymentIntent.id);
+                logger.info('Auto-topup webhook already processed (idempotency check)', { paymentIntentId: paymentIntent.id });
                 skipInsert = true;
               }
             } catch (checkErr) {
-              console.warn('Auto-topup idempotency check exception, proceeding with insert:', checkErr);
+              logger.warn('Auto-topup idempotency check exception, proceeding with insert', { error: String(checkErr) });
             }
 
             if (skipInsert) {
@@ -266,13 +271,13 @@ serve(async (req) => {
             if (autoTopupLedgerError) {
               // Handle duplicate key violation gracefully
               if (autoTopupLedgerError.code === '23505') {
-                console.log('Auto-topup duplicate detected via constraint:', paymentIntent.id);
+                logger.info('Auto-topup duplicate detected via constraint', { paymentIntentId: paymentIntent.id });
                 break;
               }
-              console.error('Error creating auto-top-up ledger entry:', autoTopupLedgerError);
+              logger.error('Error creating auto-top-up ledger entry', { error: autoTopupLedgerError.message });
             } else {
-              console.log('Auto-top-up payment processed:', {
-                userId,
+              logger.info('Auto-top-up payment processed', {
+                user_id: userId,
                 paymentIntentId: paymentIntent.id,
                 topupAmount: parseInt(topupAmount),
                 dollarAmount: parseInt(topupAmount) / 100,
@@ -291,8 +296,8 @@ serve(async (req) => {
           const { userId } = failedMetadata;
           
           if (userId) {
-            console.log('Auto-top-up payment failed:', {
-              userId,
+            logger.error('Auto-top-up payment failed', {
+              user_id: userId,
               paymentIntentId: failedPaymentIntent.id,
               errorCode: failedPaymentIntent.last_payment_error?.code,
               errorMessage: failedPaymentIntent.last_payment_error?.message,
@@ -307,9 +312,9 @@ serve(async (req) => {
                 .eq('id', userId);
 
               if (disableError) {
-                console.error('Error disabling auto-top-up after payment failure:', disableError);
+                logger.error('Error disabling auto-top-up after payment failure', { error: disableError.message, user_id: userId });
               } else {
-                console.log(`Auto-top-up disabled for user ${userId} due to payment failure: ${errorCode}`);
+                logger.info('Auto-top-up disabled for user due to payment failure', { user_id: userId, errorCode });
               }
             }
           }
@@ -318,23 +323,25 @@ serve(async (req) => {
 
       case 'invoice.payment_succeeded':
         // Handle recurring subscription payments if needed in the future
-        console.log('Invoice payment succeeded (not implemented yet)');
+        logger.info('Invoice payment succeeded (not implemented yet)');
         break;
 
       case 'invoice.payment_failed':
         // Handle failed payments if needed
-        console.log('Invoice payment failed (not implemented yet)');
+        logger.info('Invoice payment failed (not implemented yet)');
         break;
 
       default:
-        console.log('Unhandled event type:', event.type);
+        logger.info('Unhandled event type', { eventType: event.type });
         break;
     }
 
+    await logger.flush();
     return jsonResponse({ received: true });
 
   } catch (error) {
-    console.error('Error processing Stripe webhook:', error);
+    logger.error('Error processing Stripe webhook', { error: error.message });
+    await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);
   }
 }); 

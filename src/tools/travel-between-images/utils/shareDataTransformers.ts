@@ -38,7 +38,7 @@ export function transformGenerationToParentRow(
  *
  * Uses the same logic as ShotEditor to ensure consistent display.
  *
- * @param mobileColumns - Column count from useDeviceDetection (2-6)
+ * @param mobileColumns - Column count from useDeviceInfo (2-6)
  * @returns Validated column count (2, 3, 4, or 6)
  */
 export function calculateColumnsForDevice(

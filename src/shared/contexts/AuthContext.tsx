@@ -14,6 +14,8 @@ interface AuthContextType {
   userId: string | null;
   /** Whether the user is authenticated */
   isAuthenticated: boolean;
+  /** Whether the initial auth check is still in progress */
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
   // [MobileStallFix] Enhanced auth state tracking with mobile recovery
   // [AuthDebounce] Prevent cascading updates from duplicate auth events
@@ -82,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUserId(session?.user?.id);
+      setIsLoading(false);
       lastProcessedState = { event: 'INITIAL_SESSION', userId: session?.user?.id };
     });
 
@@ -113,8 +117,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       userId: userId ?? null,
       isAuthenticated: !!userId,
+      isLoading,
     }),
-    [userId]
+    [userId, isLoading]
   );
 
   return (

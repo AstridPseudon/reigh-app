@@ -77,8 +77,7 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
     tasksPaneWidth 
   } = usePanes();
 
-  // Use columns from useDeviceDetection (phones=2, tablet portrait=3, tablet landscape=4)
-  // This ensures the grid scales appropriately for different screen sizes
+  // Use columns from useDeviceInfo (phones=2, tablet portrait=3, tablet landscape=4)
   const isInMoveMode = mobileSelectedIds.length > 0;
   const effectiveColumns = columns;
   

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { storagePaths, generateThumbnailFilename, MEDIA_BUCKET } from '../_shared/storagePaths.ts'
+import { SystemLogger } from "../_shared/systemLogger.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,6 +53,12 @@ serve(async (req) => {
     })
   }
 
+  // Initialize Supabase client and logger early so logger is available in catch
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const logger = new SystemLogger(supabase, 'generate-thumbnail')
+
   try {
     // Parse request body
     const { generation_id, main_image_url, user_id } = await req.json()
@@ -63,15 +70,10 @@ serve(async (req) => {
       })
     }
 
-    console.log(`[GENERATE-THUMBNAIL] Processing thumbnail for generation ${generation_id}`)
-
-    // Initialize Supabase client with service role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    logger.info('Processing thumbnail', { generation_id })
 
     // Fetch the main image
-    console.log(`[GENERATE-THUMBNAIL] Fetching main image: ${main_image_url}`)
+    logger.info('Fetching main image', { main_image_url })
     const imageResponse = await fetch(main_image_url)
     if (!imageResponse.ok) {
       throw new Error(`Failed to fetch main image: ${imageResponse.statusText}`)
@@ -89,7 +91,7 @@ serve(async (req) => {
     const thumbnailWidth = Math.round(originalWidth / 3)
     const thumbnailHeight = Math.round(originalHeight / 3)
 
-    console.log(`[GENERATE-THUMBNAIL] Resizing from ${originalWidth}x${originalHeight} to ${thumbnailWidth}x${thumbnailHeight}`)
+    logger.info('Resizing image', { from: `${originalWidth}x${originalHeight}`, to: `${thumbnailWidth}x${thumbnailHeight}` })
 
     // Create canvas and resize image
     const canvas = new OffscreenCanvas(thumbnailWidth, thumbnailHeight)
@@ -113,7 +115,7 @@ serve(async (req) => {
     const thumbnailPath = storagePaths.thumbnail(user_id, thumbnailFilename)
 
     // Upload thumbnail to Supabase Storage
-    console.log(`[GENERATE-THUMBNAIL] Uploading thumbnail to: ${thumbnailPath}`)
+    logger.info('Uploading thumbnail', { thumbnailPath })
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(MEDIA_BUCKET)
       .upload(thumbnailPath, thumbnailBlob, {
@@ -122,7 +124,7 @@ serve(async (req) => {
       })
 
     if (uploadError) {
-      console.error('[GENERATE-THUMBNAIL] Upload error:', uploadError)
+      logger.error('Upload error', { error: uploadError.message })
       throw new Error(`Thumbnail upload failed: ${uploadError.message}`)
     }
 
@@ -134,19 +136,20 @@ serve(async (req) => {
     const thumbnailUrl = urlData.publicUrl
 
     // Update the generation record with thumbnail URL in the thumbnail_url field
-    console.log(`[GENERATE-THUMBNAIL] Updating generation ${generation_id} with thumbnail: ${thumbnailUrl}`)
+    logger.info('Updating generation with thumbnail', { generation_id, thumbnailUrl })
     const { error: updateError } = await supabase
       .from('generations')
       .update({ thumbnail_url: thumbnailUrl })
       .eq('id', generation_id)
 
     if (updateError) {
-      console.error('[GENERATE-THUMBNAIL] Database update error:', updateError)
+      logger.error('Database update error', { error: updateError.message })
       // Don't fail the request if DB update fails, thumbnail was still created
     }
 
-    console.log(`[GENERATE-THUMBNAIL] Successfully generated thumbnail for generation ${generation_id}`)
+    logger.info('Successfully generated thumbnail', { generation_id })
 
+    await logger.flush()
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -161,28 +164,25 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('[GENERATE-THUMBNAIL] Error:', error)
-    
+    logger.error('Thumbnail generation error', { error: error.message })
+
     // FALLBACK: If thumbnail generation fails, store main URL as both main and thumbnail
-    console.log(`[GENERATE-THUMBNAIL] Thumbnail generation failed for ${generation_id}, using main URL as fallback`)
+    logger.info('Using main URL as fallback', { generation_id })
     try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      const supabase = createClient(supabaseUrl, supabaseServiceKey)
-      
       // Store main URL as thumbnail fallback in thumbnail_url field
       await supabase
         .from('generations')
         .update({ thumbnail_url: main_image_url })  // Use main URL as thumbnail fallback
         .eq('id', generation_id)
-      
-      console.log(`[GENERATE-THUMBNAIL] Stored main URL as fallback for generation ${generation_id}`)
+
+      logger.info('Stored main URL as fallback', { generation_id })
     } catch (fallbackError) {
-      console.error('[GENERATE-THUMBNAIL] Fallback update failed:', fallbackError)
+      logger.error('Fallback update failed', { error: fallbackError.message })
     }
-    
+
+    await logger.flush()
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || 'Internal server error',
         success: false,
         fallback: true,

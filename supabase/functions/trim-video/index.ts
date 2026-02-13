@@ -25,6 +25,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { storagePaths, MEDIA_BUCKET } from '../_shared/storagePaths.ts';
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 declare const Deno: {
   env: {
@@ -272,6 +273,12 @@ serve(async (req) => {
 
   const startProcessTime = Date.now();
 
+  // Initialize Supabase client and logger early so logger is available in catch
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const logger = new SystemLogger(supabase, 'trim-video');
+
   try {
     // Parse request
     const body: TrimRequest = await req.json();
@@ -286,13 +293,14 @@ serve(async (req) => {
       test_mode = false,
     } = body;
 
-    console.log(`[TRIM-VIDEO] ========================================`);
-    console.log(`[TRIM-VIDEO] Starting video trim request`);
-    console.log(`[TRIM-VIDEO] ========================================`);
-    console.log(`[TRIM-VIDEO] Video: ${video_url?.substring(0, 80)}...`);
-    console.log(`[TRIM-VIDEO] Trim: ${start_time}s to ${end_time}s (duration: ${end_time - start_time}s)`);
-    console.log(`[TRIM-VIDEO] Project: ${project_id?.substring(0, 8)}...`);
-    console.log(`[TRIM-VIDEO] User: ${user_id?.substring(0, 8)}...`);
+    logger.info('Starting video trim request', {
+      video_url: video_url?.substring(0, 80),
+      start_time,
+      end_time,
+      duration: end_time - start_time,
+      project_id: project_id?.substring(0, 8),
+      user_id: user_id?.substring(0, 8),
+    });
 
     // Validate required fields
     if (!video_url) {
@@ -310,7 +318,7 @@ serve(async (req) => {
     }
 
     if (start_time >= end_time) {
-      console.error(`[TRIM-VIDEO] Invalid times: start=${start_time}, end=${end_time}`);
+      logger.error('Invalid times', { start_time, end_time });
       return new Response(
         JSON.stringify({ 
           error: `start_time (${start_time}) must be less than end_time (${end_time})`, 
@@ -347,14 +355,9 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     // Test mode - validate and return mock response
     if (test_mode) {
-      console.log(`[TRIM-VIDEO] Test mode - returning mock response`);
+      logger.info('Test mode - returning mock response');
       return new Response(
         JSON.stringify({
           success: true,
@@ -367,7 +370,7 @@ serve(async (req) => {
     }
 
     // Step 1: Call Replicate to trim the video
-    console.log(`[TRIM-VIDEO] Step 1: Processing with Replicate...`);
+    logger.info('Step 1: Processing with Replicate...');
     const replicateOutputUrl = await trimWithReplicate(
       video_url,
       start_time,
@@ -376,11 +379,11 @@ serve(async (req) => {
     );
 
     // Step 2: Download the processed video from Replicate
-    console.log(`[TRIM-VIDEO] Step 2: Downloading processed video...`);
+    logger.info('Step 2: Downloading processed video...');
     const videoBuffer = await downloadVideo(replicateOutputUrl);
 
     // Step 3: Upload to Supabase storage
-    console.log(`[TRIM-VIDEO] Step 3: Uploading to Supabase storage...`);
+    logger.info('Step 3: Uploading to Supabase storage...');
     const finalVideoUrl = await uploadToStorage(
       supabase,
       videoBuffer,
@@ -396,11 +399,9 @@ serve(async (req) => {
     }
 
     const processingTime = Date.now() - startProcessTime;
-    console.log(`[TRIM-VIDEO] ========================================`);
-    console.log(`[TRIM-VIDEO] Completed in ${processingTime}ms`);
-    console.log(`[TRIM-VIDEO] Output: ${finalVideoUrl}`);
-    console.log(`[TRIM-VIDEO] ========================================`);
+    logger.info('Completed', { processingTime, output: finalVideoUrl });
 
+    await logger.flush();
     return new Response(
       JSON.stringify({
         success: true,
@@ -417,10 +418,9 @@ serve(async (req) => {
 
   } catch (error) {
     const processingTime = Date.now() - startProcessTime;
-    console.error(`[TRIM-VIDEO] ========================================`);
-    console.error(`[TRIM-VIDEO] Error after ${processingTime}ms:`, error);
-    console.error(`[TRIM-VIDEO] ========================================`);
-    
+    logger.error('Error during video trim', { processingTime, error: error instanceof Error ? error.message : 'Unknown error' });
+    await logger.flush();
+
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Internal server error',

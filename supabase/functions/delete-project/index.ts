@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { authenticateRequest } from "../_shared/auth.ts"
+import { SystemLogger } from "../_shared/systemLogger.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,12 +14,14 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Create admin client and logger early so logger is available in catch
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+  const logger = new SystemLogger(supabaseAdmin, 'delete-project')
+
   try {
-    // Use service role client for admin operations
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
 
     const auth = await authenticateRequest(req, supabaseAdmin, "[DELETE-PROJECT]", { allowJwtUserAuth: true })
     if (!auth.success || !auth.userId) {
@@ -37,7 +40,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[delete-project] Starting deletion for project ${projectId} by user ${auth.userId}`)
+    logger.info('Starting deletion', { projectId, user_id: auth.userId })
 
     // Call the PostgreSQL function with extended timeout (5 minutes)
     // This handles large projects that would otherwise timeout due to CASCADE deletes
@@ -47,21 +50,24 @@ serve(async (req) => {
     )
 
     if (deleteError) {
-      console.error(`[delete-project] Error deleting project ${projectId}:`, deleteError)
+      logger.error('Error deleting project', { projectId, error: deleteError.message })
+      await logger.flush()
       return new Response(
         JSON.stringify({ error: `Failed to delete project: ${deleteError.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log(`[delete-project] Successfully deleted project ${projectId}`)
+    logger.info('Successfully deleted project', { projectId })
 
+    await logger.flush()
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
-    console.error('[delete-project] Unexpected error:', err)
+    logger.error('Unexpected error', { error: err.message })
+    await logger.flush()
     return new Response(
       JSON.stringify({ error: err.message || 'Unexpected error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

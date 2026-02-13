@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -78,11 +79,14 @@ serve(async (req) => {
     }
   });
 
+  const logger = new SystemLogger(supabaseAdmin, 'complete-auto-topup-setup');
+
   try {
     // ─── 4. Initialize Stripe ───────────────────────────────────────
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
-      console.error("STRIPE_SECRET_KEY not set in environment");
+      logger.error("STRIPE_SECRET_KEY not set in environment");
+      await logger.flush();
       return jsonResponse({ error: "Stripe not configured" }, 500);
     }
 
@@ -123,18 +127,20 @@ serve(async (req) => {
       .eq('id', userId);
 
     if (updateError) {
-      console.error('Error updating user with payment method:', updateError);
+      logger.error('Error updating user with payment method', { error: updateError.message, user_id: userId });
+      await logger.flush();
       return jsonResponse({ error: 'Failed to save payment method' }, 500);
     }
 
-    console.log('Auto-top-up setup completed:', {
-      userId,
+    logger.info('Auto-top-up setup completed', {
+      user_id: userId,
       sessionId,
       customerId: paymentIntent.customer,
       paymentMethodId: paymentIntent.payment_method.id,
       paymentMethodType: paymentIntent.payment_method.type,
     });
 
+    await logger.flush();
     return jsonResponse({
       success: true,
       customerId: paymentIntent.customer,
@@ -144,7 +150,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in complete-auto-topup-setup:', error);
+    logger.error('Error in complete-auto-topup-setup', { error: error.message });
     
     // Handle specific Stripe errors
     if (error.type === 'StripeInvalidRequestError') {
@@ -154,6 +160,7 @@ serve(async (req) => {
       }, 400);
     }
 
+    await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });

@@ -119,17 +119,19 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         // On mobile/tablets, unlock other panes when locking this one (only one pane can be locked at a time)
         const exclusiveLock = (isMobile || isTablet) && isLocked;
-        const newLocks = exclusiveLock
+        return exclusiveLock
           ? { shots: false, tasks: false, gens: false, [lockKey]: isLocked }
           : { ...prev, [lockKey]: isLocked };
-
-        // Save to database (desktop and tablet only, not small phones)
-        if (!isSmallMobile) {
-          savePaneLocks(exclusiveLock ? newLocks : { [lockKey]: isLocked });
-        }
-
-        return newLocks;
       });
+
+      // Save to database (desktop and tablet only, not small phones)
+      // Kept outside setLocks updater to avoid side effects in state updater functions
+      if (!isSmallMobile) {
+        const exclusiveLock = (isMobile || isTablet) && isLocked;
+        savePaneLocks(exclusiveLock
+          ? { shots: false, tasks: false, gens: false, [lockKey]: isLocked }
+          : { [lockKey]: isLocked });
+      }
 
       // IMPORTANT: Sync isTasksPaneOpen with isTasksPaneLocked
       // This ensures lightboxes correctly account for locked pane state

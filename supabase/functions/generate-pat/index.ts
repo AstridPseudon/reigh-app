@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: unknown, status = 200) {
@@ -36,18 +37,19 @@ serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
-  try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
       }
-    );
+    }
+  );
+  const logger = new SystemLogger(supabaseAdmin, 'generate-pat');
 
+  try {
     const auth = await authenticateRequest(req, supabaseAdmin, "[GENERATE-PAT]", { allowJwtUserAuth: true });
     if (!auth.success || !auth.userId) {
       return jsonResponse({ error: auth.error || 'Authentication failed' }, auth.statusCode || 401);
@@ -80,7 +82,8 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      console.error('Error storing token metadata:', insertError);
+      logger.error('Error storing token metadata', { error: insertError.message, user_id: auth.userId });
+      await logger.flush();
       return jsonResponse({ error: 'Failed to store token metadata', details: insertError.message }, 500);
     }
 
@@ -90,7 +93,8 @@ serve(async (req) => {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in generate-pat function:', message);
+    logger.error('Error in generate-pat', { error: message });
+    await logger.flush();
     return jsonResponse({ error: message }, 500);
   }
 }); 

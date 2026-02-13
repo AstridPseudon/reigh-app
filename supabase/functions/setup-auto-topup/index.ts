@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { SystemLogger } from "../_shared/systemLogger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,6 +93,7 @@ serve(async (req) => {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const logger = new SystemLogger(supabaseAdmin, 'setup-auto-topup');
 
   const auth = await authenticateRequest(req, supabaseAdmin, "[SETUP-AUTO-TOPUP]", { allowJwtUserAuth: true });
   if (!auth.success || !auth.userId) {
@@ -127,25 +129,29 @@ serve(async (req) => {
       .eq('id', auth.userId);
 
     if (updateError) {
-      console.error('Error updating user auto-top-up preferences:', updateError);
+      logger.error('Error updating user auto-top-up preferences', { error: updateError.message, user_id: auth.userId });
+      await logger.flush();
       return jsonResponse({ error: 'Failed to update preferences' }, 500);
     }
 
-    console.log(`Auto-top-up preferences updated for user ${auth.userId}:`, {
+    logger.info('Auto-top-up preferences updated', {
+      user_id: auth.userId,
       enabled: autoTopupEnabled,
       amount: autoTopupEnabled ? autoTopupAmount : null,
       threshold: autoTopupEnabled ? autoTopupThreshold : null,
     });
 
+    await logger.flush();
     return jsonResponse({
       success: true,
-      message: autoTopupEnabled 
+      message: autoTopupEnabled
         ? `Auto-top-up enabled: $${autoTopupAmount} when balance drops below $${autoTopupThreshold}`
         : 'Auto-top-up disabled'
     });
 
   } catch (error) {
-    console.error('Error in setup-auto-topup:', error);
+    logger.error('Error in setup-auto-topup', { error: error.message });
+    await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });
