@@ -302,18 +302,37 @@ Fixed all bugs discovered during sense-check reviews:
 
 ---
 
+## Wave 5d Evaluation (commit `32da0fbe`)
+
+**useImageGenForm decomposition (714→424L, 41% reduction):**
+- useHiresFixConfig.ts (33L): HiresFixConfig state + legacy migration
+- useShotManagement.ts (173L): Shot selection, defaults, creation, validation effects
+- useFormContextBuilder.ts (157L): Context value assembly from sub-hook results
+- Prompt dedup effect moved into usePromptManagement where it belongs
+- Dead `promptIdCounter` prop removed from useShotManagement
+- Main hook is now purely composition — no business logic remains
+
+**Edge function hardening:**
+- ai-prompt: migrated to authenticateRequest() (removes manual JWT, anonKey dep, extra getUser() round-trip)
+- complete_task: rate limiting for user-facing callers (60/min via RATE_LIMITS.userAction), service-role workers pass through
+- delete-project: rate limiting (10/min per user)
+- calculate-task-cost: intentionally skipped — service-role only, internal
+- stripe-webhook: already had @ts-nocheck removed in earlier wave
+
+**Cleanup:**
+- Removed RefactorMetricsCollector debug component + useRenderCount calls + window global type
+- Removed dead skipNextSyncRef from ShotEditor/index.tsx
+
+---
+
 ## Final Status
 
-**Completed:** Waves 1-5c (all committed), bug fix pass, InlineEditView context bug fix.
+**Completed:** Waves 1-5d (all committed), bug fix pass, InlineEditView context bug fix, cleanup pass.
 
 **Remaining from plan:**
-- `useImageGenForm` decomposition (714L, skipped from Wave 5c)
 - `InlineEditView` / `useInlineEditState` full decomposition (893L, only bug fix + persistence dedup done)
 - Edge function deployment (0 of ~25 modified functions deployed)
 - `complete_task` FK migration (committed but not deployed — must deploy before function)
-- `stripe-webhook` @ts-nocheck removal
-- `ai-prompt` auth migration to `authenticateRequest()`
-- Rate limiting on `complete_task`, `calculate-task-cost`, `delete-project`
 
 **Mildly overzealous (no revert needed):**
 - PromptSection extraction (116L, too thin)
