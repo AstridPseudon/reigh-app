@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRenderLogger } from '@/shared/hooks/useRenderLogger';
-import { useRenderCount } from '@/shared/components/debug/RefactorMetricsCollector';
 import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { cn } from '@/shared/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -41,9 +40,6 @@ import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants
 const PANE_ROWS = 2;
 
 const GenerationsPaneComponent: React.FC = () => {
-  // [RefactorMetrics] Track render count for baseline measurements
-  useRenderCount('GenerationsPane');
-  
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();

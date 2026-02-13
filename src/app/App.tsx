@@ -26,9 +26,6 @@ import { IncomingTasksProvider } from '@/shared/contexts/IncomingTasksContext';
 // [MobileStallFix] Import debug utilities for console debugging
 import '@/shared/lib/mobileProjectDebug';
 import { getNetworkStatusManager } from '@/shared/lib/NetworkStatusManager';
-// [MobileHeatDebug] Import performance monitor for mobile heating issues
-// [RefactorMetrics] Temporary component for baseline measurements - remove after refactor
-import { RefactorMetricsCollector } from '@/shared/components/debug/RefactorMetricsCollector';
 // Initialize task type config cache early
 import { TaskTypeConfigInitializer } from '@/shared/components/TaskTypeConfigInitializer';
 
@@ -254,7 +251,6 @@ function App() {
                         <LastAffectedShotProvider>
                           <CurrentShotProvider>
                             <ToolPageHeaderProvider>
-                              <RefactorMetricsCollector />
                               <AppInternalContent />
                             </ToolPageHeaderProvider>
                           </CurrentShotProvider>

@@ -49,7 +49,6 @@ import {
 import { ShotSettingsProvider } from './ShotSettingsContext';
 import { HeaderSection, TimelineSection, ModalsSection, GenerationSection } from './sections';
 import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/useShots';
-import { useRenderCount } from '@/shared/components/debug/RefactorMetricsCollector';
 import { useSegmentOutputsForShot } from '../../hooks/useSegmentOutputsForShot';
 import { useDemoteOrphanedVariants } from '../../hooks/useDemoteOrphanedVariants';
 import { handleError } from '@/shared/lib/errorHandler';
@@ -130,8 +129,6 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
   videoJustQueued: parentVideoJustQueued,
   onDragStateChange,
 }) => {
-  // [RefactorMetrics] Track render count for baseline measurements
-  useRenderCount('ShotEditor');
 
   // ============================================================================
   // SETTINGS FROM CONTEXT (VideoTravelSettingsProvider is required)
@@ -322,10 +319,6 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
   // stability refs (allShotImagesRef, batchVideoFramesRef) now come from useShotEditorSetup
 
   const updateShotImageOrderMutation = useUpdateShotImageOrder();
-  
-  // Flag to skip next prop sync after successful operations
-  const skipNextSyncRef = useRef(false);
-  
   // Shot-specific UI settings stored in database
   const { 
     settings: shotUISettings, 

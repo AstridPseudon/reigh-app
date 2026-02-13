@@ -46,8 +46,6 @@ declare global {
     __NETWORK_STATUS_MANAGER__?: import('../shared/lib/NetworkStatusManager').NetworkStatusManager;
     /** [debug] ReconnectScheduler singleton for console diagnostics */
     __RECONNECT_SCHEDULER__?: import('../integrations/supabase/reconnect/ReconnectScheduler').ReconnectScheduler;
-    /** [debug] Refactor metrics API for performance measurement */
-    __REFACTOR_METRICS__?: { get: () => unknown; clear: () => void; export: () => unknown; enable: () => void; disable: () => void };
     /** [debug] Mobile project debug utilities */
     debugMobile?: () => void;
     enableProjectDebug?: () => void;
