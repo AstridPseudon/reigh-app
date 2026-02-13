@@ -19,9 +19,9 @@ export interface ShotImagesEditorProps {
   /** Whether the UI is currently on a mobile breakpoint */
   isMobile: boolean;
   /** Current generation mode */
-  generationMode: "batch" | "timeline";
+  generationMode: "batch" | "timeline" | "by-pair";
   /** Callback to switch modes */
-  onGenerationModeChange: (mode: "batch" | "timeline") => void;
+  onGenerationModeChange: (mode: "batch" | "timeline" | "by-pair") => void;
   /** Selected shot id */
   selectedShotId: string;
   /** Optional preloaded images (for read-only/share views) - bypasses database queries */

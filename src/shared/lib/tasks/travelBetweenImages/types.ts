@@ -310,7 +310,7 @@ export interface TravelBetweenImagesTaskParams extends
   /** Legacy LoRA format - prefer phase_config.phases[].loras */
   loras?: PathLoraConfig[];
   show_input_images?: boolean;
-  generation_mode?: 'batch' | 'timeline';
+  generation_mode?: 'batch' | 'timeline' | 'by-pair';
   dimension_source?: 'project' | 'firstImage' | 'custom';
   /** Whether to regenerate anchor images (Advanced Mode only) */
   regenerate_anchors?: boolean;

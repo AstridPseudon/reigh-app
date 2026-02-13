@@ -9,15 +9,14 @@
  */
 
 type GenerationModeRaw = 'batch' | 'timeline' | 'by-pair' | undefined;
-export type GenerationModeNormalized = 'batch' | 'timeline';
+export type GenerationModeNormalized = 'batch' | 'timeline' | 'by-pair';
 
 /**
- * Normalize generation mode to the two UI-supported values.
- * - 'by-pair' is treated as 'batch' (both show individual videos, not timeline)
- * - undefined defaults to 'timeline'
+ * Normalize generation mode: preserves all three values, defaults undefined to 'timeline'.
  */
 function normalizeGenerationMode(mode: GenerationModeRaw): GenerationModeNormalized {
-  return mode === 'batch' || mode === 'by-pair' ? 'batch' : 'timeline';
+  if (mode === 'batch' || mode === 'by-pair' || mode === 'timeline') return mode;
+  return 'timeline';
 }
 
 /**
@@ -57,7 +56,7 @@ function resolveSettingField<T>(
  * This is a convenience wrapper for the common case of resolving generationMode.
  * 
  * @param sources - Settings from each scope (should be tool-specific settings)
- * @returns Normalized generation mode ('batch' or 'timeline')
+ * @returns Normalized generation mode ('batch', 'timeline', or 'by-pair')
  */
 export function resolveGenerationMode(sources: SettingsSources): GenerationModeNormalized {
   const raw = resolveSettingField<GenerationModeRaw>('generationMode', sources);

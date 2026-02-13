@@ -6,7 +6,7 @@ import { SELECTION_BAR_DELAY } from '../constants';
 interface UseSelectionProps {
   images: GenerationRow[];
   isMobile: boolean;
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   onSelectionChange?: (hasSelection: boolean) => void;
 }
 
@@ -78,7 +78,7 @@ export function useSelection({
     event.preventDefault();
     
     // Mobile behavior for batch mode
-    if (isMobile && generationMode === 'batch') {
+    if (isMobile && generationMode !== 'timeline') {
       const wasSelected = mobileSelectedIds.includes(imageKey);
       
       if (wasSelected) {

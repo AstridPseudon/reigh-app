@@ -27,8 +27,8 @@ interface TimelineSectionProps {
   isModeReady: boolean;
   settingsError: string | null;
   isMobile: boolean;
-  generationMode?: 'batch' | 'timeline';
-  onGenerationModeChange?: (mode: 'batch' | 'timeline') => void;
+  generationMode?: 'batch' | 'timeline' | 'by-pair';
+  onGenerationModeChange?: (mode: 'batch' | 'timeline' | 'by-pair') => void;
 
   // Frame settings (from VideoTravelSettingsProvider)
   batchVideoFrames: number;

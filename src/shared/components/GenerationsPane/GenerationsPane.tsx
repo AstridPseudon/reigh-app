@@ -136,6 +136,7 @@ const GenerationsPaneComponent: React.FC = () => {
     handleAddToShot,
     handleAddToShotWithoutPosition,
     expectedItemCount, // Pre-computed count for instant skeleton display
+    DeleteConfirmDialog,
   } = useGalleryPageState({
     itemsPerPage: GENERATIONS_PER_PAGE,
     mediaType: mediaTypeFilter,
@@ -632,6 +633,9 @@ const GenerationsPaneComponent: React.FC = () => {
         onClose={() => setIsGenerationModalOpen(false)}
         initialShotId={currentShotId}
       />
+
+      {/* Delete generation confirmation dialog */}
+      <DeleteConfirmDialog />
     </>
   );
 };

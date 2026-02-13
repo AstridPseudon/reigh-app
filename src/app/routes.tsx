@@ -26,6 +26,7 @@ import ShotsPage from "@/pages/ShotsPage";
 import Layout from './Layout'; // Import the new Layout component
 import { AppEnv } from '@/types/env';
 import { ReighLoading } from '@/shared/components/ReighLoading';
+import { ToolErrorBoundary } from '@/shared/components/ToolErrorBoundary';
 import { supabase } from '@/integrations/supabase/client';
 
 // Determine the environment
@@ -110,40 +111,44 @@ const router = createBrowserRouter([
       },
       {
         path: '/tools/image-generation',
-        element: <ImageGenerationToolPage />,
+        element: <ToolErrorBoundary toolName="Image Generation"><ImageGenerationToolPage /></ToolErrorBoundary>,
         // Add a stable key to prevent remounting on route revisits
         loader: () => null,
       },
       {
         path: '/tools/travel-between-images',
-        element: <VideoTravelToolPage />, // No Suspense wrapper needed – component is loaded synchronously
+        element: <ToolErrorBoundary toolName="Video Travel"><VideoTravelToolPage /></ToolErrorBoundary>,
       },
       {
         path: '/tools/character-animate',
-        element: <CharacterAnimatePage />, // No Suspense wrapper needed – component is loaded synchronously
+        element: <ToolErrorBoundary toolName="Character Animate"><CharacterAnimatePage /></ToolErrorBoundary>,
       },
       {
         path: '/tools/join-clips',
-        element: <JoinClipsPage />, // No Suspense wrapper needed – component is loaded synchronously
+        element: <ToolErrorBoundary toolName="Join Clips"><JoinClipsPage /></ToolErrorBoundary>,
       },
       {
         path: '/tools/edit-images',
         element: (
-          <Suspense fallback={<LazyLoadingFallback />}>
-            <EditImagesPage />
-          </Suspense>
+          <ToolErrorBoundary toolName="Edit Images">
+            <Suspense fallback={<LazyLoadingFallback />}>
+              <EditImagesPage />
+            </Suspense>
+          </ToolErrorBoundary>
         ),
       },
       {
         path: '/tools/edit-video',
-        element: <EditVideoPage />, // No Suspense wrapper needed – component is loaded synchronously
+        element: <ToolErrorBoundary toolName="Edit Video"><EditVideoPage /></ToolErrorBoundary>,
       },
       {
         path: '/tools/training-data-helper',
         element: (
-          <Suspense fallback={<LazyLoadingFallback />}>
-            <TrainingDataHelperPage />
-          </Suspense>
+          <ToolErrorBoundary toolName="Training Data Helper">
+            <Suspense fallback={<LazyLoadingFallback />}>
+              <TrainingDataHelperPage />
+            </Suspense>
+          </ToolErrorBoundary>
         ),
       },
       {

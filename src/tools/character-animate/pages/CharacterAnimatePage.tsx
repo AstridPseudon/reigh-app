@@ -11,7 +11,7 @@ import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { PageFadeIn } from '@/shared/components/transitions';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
-import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
+import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
 import { MediaGallery } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
@@ -154,11 +154,11 @@ const CharacterAnimatePage: React.FC = () => {
   const videosLoading = generationsQuery.isLoading;
   const videosFetching = generationsQuery.isFetching;
 
-  // Delete mutation for gallery items
-  const deleteGenerationMutation = useDeleteGeneration();
+  // Delete mutation for gallery items (with confirmation dialog)
+  const { requestDelete: requestDeleteGeneration, DeleteConfirmDialog, deletingId } = useDeleteGenerationWithConfirm();
   const handleDeleteGeneration = useCallback((id: string) => {
-    deleteGenerationMutation.mutate(id);
-  }, [deleteGenerationMutation]);
+    requestDeleteGeneration(id);
+  }, [requestDeleteGeneration]);
 
   // Clear videosViewJustEnabled flag when data loads
   useEffect(() => {
@@ -743,7 +743,7 @@ const CharacterAnimatePage: React.FC = () => {
                   onAddToLastShot={async () => false}
                   onAddToLastShotWithoutPosition={async () => false}
                   onDelete={handleDeleteGeneration}
-                  isDeleting={deleteGenerationMutation.isPending ? deleteGenerationMutation.variables as string : null}
+                  isDeleting={deletingId}
                   currentToolType={TOOL_IDS.CHARACTER_ANIMATE}
                   defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
                   currentToolTypeName="Animate Characters"
@@ -771,6 +771,7 @@ const CharacterAnimatePage: React.FC = () => {
           return null;
         })()}
       </div>
+      <DeleteConfirmDialog />
     </PageFadeIn>
   );
 };

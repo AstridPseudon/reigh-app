@@ -31,7 +31,7 @@ interface ShotImageCoreProps {
   /** @param draggedItemId - The ID of the item that was actually dragged (for midpoint insertion) */
   onImageReorder: ImageReorderHandler;
   columns?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
   projectAspectRatio?: string;

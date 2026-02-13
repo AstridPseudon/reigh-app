@@ -99,8 +99,8 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
         return dateA - dateB;
       });
     } else {
-      // Default 'ordered' mode - sort by position
-      sorted = [...baseList].sort((a, b) => (a.position || 0) - (b.position || 0));
+      // Default 'ordered' mode - sort by timeline_frame
+      sorted = [...baseList].sort((a, b) => (a.timeline_frame || 0) - (b.timeline_frame || 0));
     }
     
     return sorted;

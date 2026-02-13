@@ -21,7 +21,7 @@ export interface UsePreviewSegmentsReturn {
 
 interface UsePreviewSegmentsProps {
   /** Current generation mode */
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   /** Frame spacing for batch mode */
   batchVideoFrames: number;
   /** All shot generations (images) */
@@ -57,7 +57,7 @@ export function usePreviewSegments({
 
     // FPS for calculating duration from frames
     const FPS = 16;
-    const isBatchMode = generationMode === 'batch';
+    const isBatchMode = generationMode !== 'timeline';
 
     // Build segments from ALL image pairs, enriching with video data from slots if available
     const segments: PreviewSegment[] = [];

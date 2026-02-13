@@ -22,7 +22,7 @@ import { useFrameCountUpdater } from './useFrameCountUpdater';
 export interface UseSegmentSlotModeProps {
   selectedShotId: string;
   projectId?: string;
-  effectiveGenerationMode: 'batch' | 'timeline';
+  effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair';
   batchVideoFrames: number;
   shotGenerations: GenerationRow[];
   segmentSlots: SegmentSlot[];
@@ -235,7 +235,7 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
       const videoStart = video.start_frame ?? 0;
       const videoEnd = video.end_frame ?? Infinity;
       return pairEndFrame > videoStart && pairStartFrame < videoEnd;
-    }) ?? (effectiveGenerationMode === 'batch' && structureVideos?.[0]);
+    }) ?? (effectiveGenerationMode !== 'timeline' && structureVideos?.[0]);
 
     // Get prompts from metadata
     const shotGen = shotGenerations.find(shotGen => shotGen.id === pairData.startImage?.id);
@@ -349,7 +349,7 @@ export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSl
       // - Normal pairs (shifts subsequent images)
       // - Trailing segments (updates metadata.end_frame)
       onFrameCountChange: (pairShotGenerationId: string, frameCount: number) => {
-        if (effectiveGenerationMode === 'batch') return;
+        if (effectiveGenerationMode !== 'timeline') return;
 
         if (frameCountDebounceRef.current) clearTimeout(frameCountDebounceRef.current);
         frameCountDebounceRef.current = setTimeout(() => {

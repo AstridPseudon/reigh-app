@@ -11,7 +11,7 @@ interface UseFrameCountUpdaterProps {
   /** Shot generations (images) */
   shotGenerations: GenerationRow[];
   /** Current generation mode */
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   /** Maximum frame limit for a single pair */
   maxFrameLimit: number;
   /** Reload positions after update */

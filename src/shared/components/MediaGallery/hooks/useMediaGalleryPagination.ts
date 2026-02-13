@@ -156,7 +156,9 @@ export const useMediaGalleryPagination = ({
   const displayedCount = isServerPagination
     ? Math.min(itemsPerPage, filteredImages.length)
     : Math.min(itemsPerPage, filteredImages.length - page * itemsPerPage);
-  const rangeEnd = rangeStart + displayedCount - 1;
+  // Guard: when totalFilteredItems is 0, rangeStart is 0 and displayedCount is 0,
+  // so rangeStart + displayedCount - 1 = -1 which is invalid. Clamp to 0.
+  const rangeEnd = totalFilteredItems === 0 ? 0 : rangeStart + displayedCount - 1;
 
   // Get paginated images
   const paginatedImages = React.useMemo(() => {
@@ -188,7 +190,7 @@ export const useMediaGalleryPagination = ({
       clearTimeout(safetyTimeoutRef.current);
       safetyTimeoutRef.current = null;
     }
-  }, [navigationState.status, navigationState.direction]);
+  }, []);
 
   // Backwards-compatible setters (for external callers)
   // These allow gradual migration - eventually these should be removed

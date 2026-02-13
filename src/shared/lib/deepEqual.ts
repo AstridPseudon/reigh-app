@@ -24,7 +24,12 @@ export function sanitizeSettings<T>(obj: T): T {
  * Deep equality check for settings objects
  */
 export function deepEqual(a: unknown, b: unknown): boolean {
-  return JSON.stringify(sanitizeSettings(a)) === JSON.stringify(sanitizeSettings(b));
+  try {
+    return JSON.stringify(sanitizeSettings(a)) === JSON.stringify(sanitizeSettings(b));
+  } catch {
+    // JSON.stringify can throw on circular references or other edge cases
+    return false;
+  }
 }
 
 /**

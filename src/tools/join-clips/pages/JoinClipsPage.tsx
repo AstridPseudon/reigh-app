@@ -4,7 +4,8 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
-import { useDeleteGeneration, useCreateGeneration } from '@/shared/hooks/useGenerationMutations';
+import { useCreateGeneration } from '@/shared/hooks/useGenerationMutations';
+import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
 import { MediaGallery } from '@/shared/components/MediaGallery';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
@@ -238,11 +239,11 @@ const JoinClipsPage: React.FC = () => {
   const videosLoading = generationsQuery.isLoading;
   const videosFetching = generationsQuery.isFetching;
 
-  // Delete mutation for gallery items
-  const deleteGenerationMutation = useDeleteGeneration();
+  // Delete mutation for gallery items (with confirmation dialog)
+  const { requestDelete: requestDeleteGeneration, DeleteConfirmDialog, deletingId } = useDeleteGenerationWithConfirm();
   const handleDeleteGeneration = useCallback((id: string) => {
-    deleteGenerationMutation.mutate(id);
-  }, [deleteGenerationMutation]);
+    requestDeleteGeneration(id);
+  }, [requestDeleteGeneration]);
 
   // Refresh gallery when returning to the page
   useEffect(() => {
@@ -437,7 +438,7 @@ const JoinClipsPage: React.FC = () => {
                   onAddToLastShot={async () => false}
                   onAddToLastShotWithoutPosition={async () => false}
                   onDelete={handleDeleteGeneration}
-                  isDeleting={deleteGenerationMutation.isPending ? deleteGenerationMutation.variables as string : null}
+                  isDeleting={deletingId}
                   currentToolType={TOOL_IDS.JOIN_CLIPS}
                   defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
                   columnsPerRow={3}
@@ -481,6 +482,9 @@ const JoinClipsPage: React.FC = () => {
           showDownload
         />
       )}
+
+      {/* Delete generation confirmation dialog */}
+      <DeleteConfirmDialog />
     </PageFadeIn>
   );
 };

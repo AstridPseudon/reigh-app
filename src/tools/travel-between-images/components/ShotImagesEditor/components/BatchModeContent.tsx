@@ -20,7 +20,7 @@ export interface BatchModeContentProps {
   projectId?: string;
   readOnly: boolean;
   isMobile: boolean;
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
 
   // Images
   images: GenerationRow[];

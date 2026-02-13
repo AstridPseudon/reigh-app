@@ -190,9 +190,17 @@ function flushAll(): void {
   processQueue();
 }
 
-// Best-effort flush on page unload
+// Best-effort flush on page unload and tab hide
+// Mobile browsers don't reliably fire beforeunload (e.g., tab switching on iOS Safari),
+// so we also flush on visibilitychange to prevent losing pending writes.
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     flushAll();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushAll();
+    }
   });
 }

@@ -52,7 +52,7 @@ export interface UseShotGenerationsDataReturn {
   /** Clear all enhanced prompts */
   clearAllEnhancedPrompts: () => Promise<void>;
   /** Get images filtered for a specific mode */
-  getImagesForMode: (mode: 'batch' | 'timeline') => GenerationRow[];
+  getImagesForMode: (mode: 'batch' | 'timeline' | 'by-pair') => GenerationRow[];
   /** Add item */
   addItem: (item: GenerationRow) => void;
   /** Whether we've ever had data (prevents unmounting during refetches) */
@@ -65,7 +65,7 @@ export interface UseShotGenerationsDataProps {
   /** Project ID */
   projectId?: string;
   /** Current generation mode */
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   /** Optional preloaded images (bypasses database queries) */
   preloadedImages?: GenerationRow[];
 }

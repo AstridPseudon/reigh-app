@@ -8,7 +8,7 @@
  * - Different generation entirely → create new variant with source URL, set as primary
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateVariantChange } from '@/shared/hooks/useGenerationInvalidation';
@@ -46,8 +46,21 @@ function pathsMatch(url1: string | undefined | null, url2: string | undefined | 
 
 export function useLoadVariantImages({ currentSegmentImages }: UseLoadVariantImagesProps) {
   const queryClient = useQueryClient();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const loadVariantImages = useCallback(async (variant: GenerationVariant) => {
+    // Abort any previous in-flight request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     if (!currentSegmentImages) return;
 
     const params = variant.params;
@@ -91,6 +104,9 @@ export function useLoadVariantImages({ currentSegmentImages }: UseLoadVariantIma
       if (!pos.variantGenId && !pos.variantUrl) continue;
       if (!pos.currentGenId) continue;
 
+      // Check if this request was superseded before each async operation
+      if (signal.aborted) return;
+
       try {
         await loadSingleImage({
           variantGenId: pos.variantGenId,
@@ -101,12 +117,17 @@ export function useLoadVariantImages({ currentSegmentImages }: UseLoadVariantIma
           currentUrl: pos.currentUrl,
         });
 
+        if (signal.aborted) return;
+
         // Invalidate caches for this generation
         await invalidateVariantChange(queryClient, {
           generationId: pos.currentGenId,
           reason: 'load-variant-images',
         });
+
+        if (signal.aborted) return;
       } catch (error) {
+        if (signal.aborted) return;
         handleError(error, { context: 'LoadVariantImages', showToast: false });
       }
     }

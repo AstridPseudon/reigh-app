@@ -14,7 +14,7 @@ export const useEnhancedShotImageReorder = (
   shotId: string | null,
   parentHook?: {
     shotGenerations: GenerationRow[];
-    getImagesForMode: (mode: 'batch' | 'timeline') => GenerationRow[];
+    getImagesForMode: (mode: 'batch' | 'timeline' | 'by-pair') => GenerationRow[];
     exchangePositions: (genIdA: string, genIdB: string) => Promise<void>;
     exchangePositionsNoReload: (shotGenIdA: string, shotGenIdB: string) => Promise<void>;
     batchExchangePositions: (exchanges: Array<{ generationIdA: string; generationIdB: string }>) => Promise<void>;

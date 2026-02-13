@@ -33,7 +33,8 @@
 import { useState, useEffect, useMemo, useContext } from 'react';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
-import { useDeleteGeneration, useToggleGenerationStar } from '@/shared/hooks/useGenerationMutations';
+import { useToggleGenerationStar } from '@/shared/hooks/useGenerationMutations';
+import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
 import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/useShots';
 import { LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
@@ -145,7 +146,7 @@ function useGenerationsPageLogic({
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const positionExistingGenerationMutation = usePositionExistingGenerationInShot();
-  const deleteGenerationMutation = useDeleteGeneration();
+  const { requestDelete, DeleteConfirmDialog, isPending: isDeletePending, deletingId } = useDeleteGenerationWithConfirm();
   const toggleStarMutation = useToggleGenerationStar();
 
   // ============================================================================
@@ -184,7 +185,7 @@ function useGenerationsPageLogic({
   };
 
   const handleDeleteGeneration = (id: string) => {
-    deleteGenerationMutation.mutate(id);
+    requestDelete(id);
   };
 
   const handleToggleStar = (id: string, starred: boolean) => {
@@ -293,7 +294,10 @@ function useGenerationsPageLogic({
     isFetching,
     isError,
     error,
-    isDeleting: deleteGenerationMutation.isPending ? deleteGenerationMutation.variables as string : null,
+    isDeleting: deletingId,
+
+    // Confirmation dialog component — render in consuming component's JSX
+    DeleteConfirmDialog,
 
     // For skeleton display when filter changes
     expectedItemCount,

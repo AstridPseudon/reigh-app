@@ -13,7 +13,7 @@ interface UsePairDataProps {
   /** Shot generations (images) */
   shotGenerations: GenerationRow[];
   /** Current generation mode */
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   /** Frame spacing for batch mode */
   batchVideoFrames: number;
 }
@@ -58,7 +58,7 @@ export function usePairData({
       return { pairDataByIndex: dataMap };
     }
 
-    const isBatchMode = generationMode === 'batch';
+    const isBatchMode = generationMode !== 'timeline';
 
     // Build pairs from consecutive images
     for (let pairIndex = 0; pairIndex < sortedImages.length - 1; pairIndex++) {

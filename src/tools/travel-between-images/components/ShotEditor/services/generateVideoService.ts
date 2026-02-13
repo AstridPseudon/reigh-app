@@ -171,7 +171,7 @@ interface GenerateVideoParams {
   selectedShot: Shot;
   queryClient: QueryClient;
   effectiveAspectRatio: string | null;
-  generationMode: 'timeline' | 'batch';
+  generationMode: 'timeline' | 'batch' | 'by-pair';
   promptConfig: PromptConfig;
   motionConfig: MotionConfig;
   modelConfig: ModelConfig;

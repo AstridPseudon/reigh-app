@@ -201,7 +201,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                   isModeReady={true}
                   settingsError={null}
                   isMobile={isMobile}
-                  generationMode={generationMode as 'batch' | 'timeline'}
+                  generationMode={generationMode as 'batch' | 'timeline' | 'by-pair'}
                   onGenerationModeChange={() => {}}
                   selectedShotId={shareData.shot_id}
                   preloadedImages={images}

@@ -17,13 +17,13 @@ interface UseModeReadinessProps {
   isShotLoraSettingsLoading: boolean;
   isPhone: boolean;
   isMobile: boolean;
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   state: {
     settingsError: string | null;
     isModeReady: boolean;
   };
   actions: ShotEditorActions;
-  onGenerationModeChange?: (mode: 'batch' | 'timeline') => void;
+  onGenerationModeChange?: (mode: 'batch' | 'timeline' | 'by-pair') => void;
 }
 
 export function useModeReadiness({
@@ -104,7 +104,7 @@ export function useModeReadiness({
   const readinessState = useMemo(() => ({
     hasImageData: contextImages.length > 0,
     criticalSettingsReady: !settingsLoading,
-    modeCorrect: !isPhone || generationMode === 'batch',
+    modeCorrect: !isPhone || generationMode !== 'timeline',
     hasError: !!state.settingsError,
     shotId: selectedShot?.id,
     isReady: state.isModeReady

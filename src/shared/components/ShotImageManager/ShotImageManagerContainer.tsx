@@ -89,7 +89,7 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
   // Call hook when:
   // 1. In batch mode AND no props.segmentSlots (normal case)
   // 2. In batch mode AND localShotGenPositions exists (optimistic update - overrides props.segmentSlots)
-  const shouldFetchSegments = props.generationMode === 'batch' &&
+  const shouldFetchSegments = props.generationMode !== 'timeline' &&
     (!props.segmentSlots || (localShotGenPositions && localShotGenPositions.size > 0));
   const hookResult = useSegmentOutputsForShot(
     shouldFetchSegments ? props.shotId || null : null,
@@ -107,8 +107,8 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
 
   // Pending segment tasks for showing loading indicator
   const { hasPendingTask } = usePendingSegmentTasks(
-    props.generationMode === 'batch' ? props.shotId || null : null,
-    props.generationMode === 'batch' ? props.projectId || null : null
+    props.generationMode !== 'timeline' ? props.shotId || null : null,
+    props.generationMode !== 'timeline' ? props.projectId || null : null
   );
   
   // Segment video lightbox state
@@ -220,7 +220,7 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
     );
   }
   
-  if (isMobile && props.generationMode === 'batch') {
+  if (isMobile && props.generationMode !== 'timeline') {
     return (
       <>
         <ShotImageManagerMobileWrapper

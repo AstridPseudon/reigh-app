@@ -35,7 +35,7 @@ interface ApplySettingsContext {
   onDimensionSourceChange: (source: 'project' | 'firstImage' | 'custom') => void;
   onCustomWidthChange: (width?: number) => void;
   onCustomHeightChange: (height?: number) => void;
-  onGenerationModeChange: (mode: 'batch' | 'timeline') => void;
+  onGenerationModeChange: (mode: 'batch' | 'timeline' | 'by-pair') => void;
   onAdvancedModeChange: (advanced: boolean) => void;
   onMotionModeChange: (mode: 'basic' | 'advanced') => void;
   onGenerationTypeModeChange: (mode: 'i2v' | 'vace') => void;
@@ -56,7 +56,7 @@ interface ApplySettingsContext {
   ) => void;
   
   // Current values
-  generationMode: 'batch' | 'timeline';
+  generationMode: 'batch' | 'timeline' | 'by-pair';
   generationTypeMode: 'i2v' | 'vace';
   advancedMode: boolean;
   motionMode: 'basic' | 'advanced';

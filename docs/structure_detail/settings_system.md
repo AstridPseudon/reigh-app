@@ -55,9 +55,9 @@ const value = resolveSettingField<string>('prompt', {
   shot: { prompt: 'shot specific' }  // wins
 });
 
-// Generation mode has normalization ('by-pair' -> 'batch', undefined -> 'timeline')
+// Generation mode normalization (undefined -> 'timeline', all other values preserved)
 import { resolveGenerationMode } from '@/shared/lib/settingsResolution';
-const mode = resolveGenerationMode(sources); // 'batch' | 'timeline'
+const mode = resolveGenerationMode(sources); // 'batch' | 'timeline' | 'by-pair'
 ```
 
 `useToolSettings` performs this merge automatically via `deepMerge(defaults, user, project, shot)`.

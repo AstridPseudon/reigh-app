@@ -72,7 +72,7 @@ interface VideoTravelSettingsProviderProps {
   selectedShot: Shot | null;
   availableLoras: LoraModel[];
   /** Function to optimistically update generation mode cache (from useProjectGenerationModesCache) */
-  updateShotMode: (shotId: string, mode: 'batch' | 'timeline') => void;
+  updateShotMode: (shotId: string, mode: 'batch' | 'timeline' | 'by-pair') => void;
   children: React.ReactNode;
 }
 

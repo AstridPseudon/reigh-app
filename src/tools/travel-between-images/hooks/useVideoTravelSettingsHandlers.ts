@@ -32,7 +32,7 @@ interface UseVideoTravelSettingsHandlersParams {
   /** Currently selected shot - used for generation mode cache updates */
   selectedShot: Shot | null;
   /** Function to optimistically update the generation mode cache */
-  updateShotMode: (shotId: string, mode: 'batch' | 'timeline') => void;
+  updateShotMode: (shotId: string, mode: 'batch' | 'timeline' | 'by-pair') => void;
 }
 
 export interface VideoTravelSettingsHandlers {
@@ -73,7 +73,7 @@ export interface VideoTravelSettingsHandlers {
   handleRestoreDefaults: () => void;
   
   // Generation mode (batch vs timeline)
-  handleGenerationModeChange: (mode: 'batch' | 'timeline') => void;
+  handleGenerationModeChange: (mode: 'batch' | 'timeline' | 'by-pair') => void;
   
   // LoRAs
   handleSelectedLorasChange: (loras: ActiveLora[]) => void;
@@ -391,7 +391,7 @@ export const useVideoTravelSettingsHandlers = ({
   // =============================================================================
   // GENERATION MODE (batch vs timeline)
   // =============================================================================
-  const handleGenerationModeChange = useCallback((mode: 'batch' | 'timeline') => {
+  const handleGenerationModeChange = useCallback((mode: 'batch' | 'timeline' | 'by-pair') => {
     
     // Optimistically update the cache for THIS shot immediately
     if (selectedShotRef.current?.id) {

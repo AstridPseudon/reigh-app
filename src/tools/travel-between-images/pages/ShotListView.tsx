@@ -7,7 +7,7 @@ import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
 import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';
-import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
+import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { handleError } from '@/shared/lib/errorHandler';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
@@ -68,7 +68,7 @@ export function ShotListView({
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
-  const deleteGenerationMutation = useDeleteGeneration();
+  const { requestDelete: requestDeleteGeneration, DeleteConfirmDialog, isPending: isDeletePending } = useDeleteGenerationWithConfirm();
 
   // Navigation
   const { navigateToShot } = useShotNavigation();
@@ -195,10 +195,10 @@ export function ShotListView({
     addImageToShotWithoutPositionMutation,
   });
 
-  // Delete generation handler
+  // Delete generation handler (with confirmation dialog)
   const handleDeleteGeneration = useCallback(async (id: string) => {
-    deleteGenerationMutation.mutate(id);
-  }, [deleteGenerationMutation]);
+    requestDeleteGeneration(id);
+  }, [requestDeleteGeneration]);
 
   // Drop handlers
   const {
@@ -328,7 +328,7 @@ export function ShotListView({
           }}
           deletion={{
             onDelete: handleDeleteGeneration,
-            isDeleting: deleteGenerationMutation.isPending,
+            isDeleting: isDeletePending,
           }}
           videosViewJustEnabled={videosViewJustEnabled}
         />
@@ -367,6 +367,9 @@ export function ShotListView({
         projectId={selectedProjectId}
         cropToProjectSize={uploadSettings?.cropToProjectSize ?? true}
       />
+
+      {/* Delete generation confirmation dialog */}
+      <DeleteConfirmDialog />
     </>
   );
 }

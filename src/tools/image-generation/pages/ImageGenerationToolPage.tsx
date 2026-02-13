@@ -207,6 +207,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
           )}
         </div>
       </div>
+      <actions.DeleteConfirmDialog />
     </PageFadeIn>
   );
 }, () => true); // Always return true since component has no props

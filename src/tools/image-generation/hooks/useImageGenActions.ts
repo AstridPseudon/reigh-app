@@ -5,7 +5,7 @@ import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistin
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
-import { useDeleteGeneration } from '@/shared/hooks/useGenerationMutations';
+import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandler';
 
@@ -33,7 +33,7 @@ export function useImageGenActions({
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const positionExistingGenerationMutation = usePositionExistingGenerationInShot();
-  const deleteGenerationMutation = useDeleteGeneration();
+  const { requestDelete, DeleteConfirmDialog } = useDeleteGenerationWithConfirm();
   const { createShot } = useShotCreation();
   const { shots } = useShots();
 
@@ -49,8 +49,8 @@ export function useImageGenActions({
   const validShots = useMemo(() => shots || [], [shots]);
 
   const handleDeleteImage = useCallback(async (id: string) => {
-    deleteGenerationMutation?.mutate(id);
-  }, [deleteGenerationMutation]);
+    requestDelete(id);
+  }, [requestDelete]);
 
   const handleAddImageToTargetShot = useCallback(async (generationId: string, imageUrl?: string, thumbUrl?: string): Promise<boolean> => {
     if (!targetShotInfo.targetShotIdForButton) {
@@ -167,5 +167,6 @@ export function useImageGenActions({
     handleBackfillRequest,
     handleCreateShot,
     setLastAffectedShotId,
+    DeleteConfirmDialog,
   };
 }

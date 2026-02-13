@@ -35,7 +35,7 @@ interface ExtractedSettings {
   inputImages?: string[];
   
   // Modes
-  generationMode?: 'batch' | 'timeline';
+  generationMode?: 'batch' | 'timeline' | 'by-pair';
   generationTypeMode?: 'i2v' | 'vace';  // I2V vs VACE mode
   advancedMode?: boolean;
   motionMode?: 'basic' | 'advanced';
@@ -72,7 +72,7 @@ export interface ApplyResult {
 
 export interface ApplyContext {
   // Current state
-  currentGenerationMode: 'batch' | 'timeline';
+  currentGenerationMode: 'batch' | 'timeline' | 'by-pair';
   currentAdvancedMode: boolean;
   
   // Callbacks for applying settings
@@ -80,7 +80,7 @@ export interface ApplyContext {
   onSteerableMotionSettingsChange: (settings: { model_name?: string; negative_prompt?: string }) => void;
   onBatchVideoFramesChange: (frames: number) => void;
   onBatchVideoStepsChange: (steps: number) => void;
-  onGenerationModeChange: (mode: 'batch' | 'timeline') => void;
+  onGenerationModeChange: (mode: 'batch' | 'timeline' | 'by-pair') => void;
   onAdvancedModeChange: (advanced: boolean) => void;
   onMotionModeChange?: (mode: 'basic' | 'advanced') => void;
   onGenerationTypeModeChange?: (mode: 'i2v' | 'vace') => void;
@@ -327,7 +327,7 @@ export const applyModeSettings = async (
   context: ApplyContext
 ): Promise<ApplyResult> => {
   // Apply generation mode
-  if (settings.generationMode && (settings.generationMode === 'batch' || settings.generationMode === 'timeline')) {
+  if (settings.generationMode && (settings.generationMode === 'batch' || settings.generationMode === 'timeline' || settings.generationMode === 'by-pair')) {
     context.onGenerationModeChange(settings.generationMode);
   }
   

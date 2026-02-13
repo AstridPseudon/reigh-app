@@ -531,7 +531,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
           {!isMobile && (
             <SegmentedControl
               value={generationMode}
-              onValueChange={(v) => !readOnly && (v === 'batch' || v === 'timeline') && onGenerationModeChange(v)}
+              onValueChange={(v) => !readOnly && (v === 'batch' || v === 'timeline' || v === 'by-pair') && onGenerationModeChange(v)}
               disabled={readOnly}
             >
               <SegmentedControlItem value="timeline">Timeline</SegmentedControlItem>
@@ -547,7 +547,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
       <CardContent>
         {showSkeleton ? (
           <div className="p-1">
-            {effectiveGenerationMode === 'batch' ? (
+            {effectiveGenerationMode !== 'timeline' ? (
               <>
                 <div className="mb-4"><SectionHeader title="Input Images" theme="blue" /></div>
                 {skeleton}
