@@ -180,7 +180,9 @@ serve(async (req) => {
         .single();
 
       if (ledgerError) {
-        logger.error("Error granting welcome credits", { error: ledgerError.message, user_id: userId });
+        // Roll back the claim so the user can retry and receive their bonus
+        await adminClient.from('users').update({ given_credits: false }).eq('id', userId);
+        logger.error("Error granting welcome credits, rolled back claim", { error: ledgerError.message, user_id: userId });
         await logger.flush();
         return new Response(`Failed to grant welcome credits: ${ledgerError.message}`, {
           status: 500,

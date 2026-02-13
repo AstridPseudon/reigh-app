@@ -231,7 +231,7 @@ serve(async (req) => {
     if (error) {
       // Handle idempotency: unique violation on idempotency_key means this is a duplicate request
       // PostgreSQL error code 23505 = unique_violation
-      if (error.code === '23505' && idempotency_key) {
+      if (error.code === '23505' && idempotency_key && error.message?.includes('idempotency_key')) {
         logger.info("Idempotent duplicate detected, returning existing task", { idempotency_key });
 
         const { data: existingTask, error: fetchError } = await supabaseAdmin

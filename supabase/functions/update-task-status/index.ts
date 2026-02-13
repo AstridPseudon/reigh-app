@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
-import { extractOrchestratorRef, getSubTaskOrchestratorId, buildSubTaskFilter, triggerCostCalculation } from "../_shared/billing.ts";
+import { extractOrchestratorRef, getSubTaskOrchestratorId, buildSubTaskFilter, triggerCostCalculation, UUID_REGEX } from "../_shared/billing.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -168,8 +168,10 @@ async function handleCascadingTaskFailure(
         : failedTaskData.params;
       
       // Check all paths (shared with calculate-task-cost and complete_task)
-      orchestratorTaskId = extractOrchestratorRef(params);
-      
+      const rawRef = extractOrchestratorRef(params);
+      // Validate UUID format before using in filter interpolation
+      orchestratorTaskId = rawRef && UUID_REGEX.test(rawRef) ? rawRef : null;
+
       // Check if this task IS the orchestrator (has orchestrator_details but no orchestrator reference)
       if (!orchestratorTaskId && params.orchestrator_details) {
         orchestratorTaskId = failedTaskId;

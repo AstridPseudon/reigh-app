@@ -69,7 +69,7 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
   // Build local shot_generation positions from the current batch order
   // This keeps segment outputs aligned with the batch grid order.
   const localShotGenPositions = useMemo(() => {
-    if (props.generationMode !== 'batch') return undefined;
+    if (props.generationMode === 'timeline') return undefined;
     // IMPORTANT: preserve current UI order (including optimistic reorder)
     // Do NOT sort by timeline_frame here, otherwise videos won't move during reorder.
     const orderedImages = lightbox.currentImages.filter(
