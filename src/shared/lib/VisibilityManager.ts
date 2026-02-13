@@ -96,7 +96,7 @@ class VisibilityManagerImpl {
   private updateGlobalTimestamp() {
     // Maintain backward compatibility with existing code that uses __VIS_CHANGE_AT__
     try {
-      (window as any).__VIS_CHANGE_AT__ = this.state.lastVisibilityChangeAt;
+      window.__VIS_CHANGE_AT__ = this.state.lastVisibilityChangeAt;
     } catch {}
   }
 
@@ -270,9 +270,9 @@ class VisibilityManagerImpl {
 // Create singleton instance
 export const VisibilityManager = new VisibilityManagerImpl();
 
-// Make available globally for debugging
-if (typeof window !== 'undefined') {
-  (window as any).__VISIBILITY_MANAGER__ = VisibilityManager;
+// Make available globally for debugging (dev only)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.__VISIBILITY_MANAGER__ = VisibilityManager;
 }
 
 // Export types for consumers

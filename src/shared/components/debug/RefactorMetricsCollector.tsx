@@ -44,9 +44,9 @@ const metricsStore: MetricsStore = {
   sessionStart: Date.now(),
 };
 
-// Expose API on window for console access
-if (typeof window !== 'undefined') {
-  (window as any).__REFACTOR_METRICS = {
+// Expose API on window for console access (dev only)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.__REFACTOR_METRICS__ = {
     // Get raw metrics
     get: () => ({ ...metricsStore }),
     

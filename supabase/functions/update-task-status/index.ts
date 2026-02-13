@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
+import { extractOrchestratorRef, getSubTaskOrchestratorId, buildSubTaskFilter, triggerCostCalculation } from "../_shared/billing.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -34,48 +35,7 @@ declare const Deno: any;
  * - 500 Internal Server Error
  */
 
-/**
- * Trigger cost calculation for an orchestrator task.
- * Used when an orchestrator is cancelled to bill for completed work.
- */
-async function triggerOrchestratorBilling(
-  supabaseUrl: string,
-  serviceKey: string,
-  orchestratorTaskId: string,
-  logger: SystemLogger
-): Promise<void> {
-  try {
-    logger.info("Triggering billing for cancelled orchestrator", { 
-      orchestrator_task_id: orchestratorTaskId 
-    });
-    
-    const costResp = await fetch(`${supabaseUrl}/functions/v1/calculate-task-cost`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${serviceKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ task_id: orchestratorTaskId })
-    });
-
-    if (costResp.ok) {
-      const costData = await costResp.json();
-      if (costData.skipped) {
-        logger.debug("Cost calculation skipped", { reason: costData.reason });
-      } else if (typeof costData.cost === 'number') {
-        logger.info("Cost calculated for cancelled orchestrator", { 
-          cost: costData.cost,
-          duration_seconds: costData.duration_seconds
-        });
-      }
-    } else {
-      const errTxt = await costResp.text();
-      logger.error("Cost calculation failed", { error: errTxt });
-    }
-  } catch (err: any) {
-    logger.error("Error triggering billing", { error: err?.message });
-  }
-}
+// triggerOrchestratorBilling replaced by shared triggerCostCalculation from _shared/billing.ts
 
 /**
  * Handles billing for cancelled orchestrator tasks.
@@ -100,20 +60,12 @@ async function handleOrchestratorCancellationBilling(
       : cancelledTaskData.params;
     
     // Check if this task references another orchestrator (meaning it's a child, not an orchestrator)
-    const orchestratorRef = params.orchestrator_task_id_ref || 
-                            params.orchestrator_details?.orchestrator_task_id ||
-                            params.originalParams?.orchestrator_details?.orchestrator_task_id ||
-                            params.orchestrator_task_id;
-    
-    // Validate if orchestratorRef is a UUID (child tasks have UUID refs, orchestrators have human-readable IDs)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const isChildTask = orchestratorRef && uuidRegex.test(orchestratorRef) && orchestratorRef !== cancelledTaskId;
-    
+    const isChildTask = getSubTaskOrchestratorId(params, cancelledTaskId) !== null;
+
     if (isChildTask) {
       // This is a child task - billing will be handled by the orchestrator
-      logger.debug("Cancelled task is a child, skipping billing", { 
-        task_id: cancelledTaskId,
-        orchestrator_ref: orchestratorRef 
+      logger.debug("Cancelled task is a child, skipping billing", {
+        task_id: cancelledTaskId
       });
       return;
     }
@@ -131,11 +83,10 @@ async function handleOrchestratorCancellationBilling(
     });
     
     // Check if there are any completed child segments
-    // Query for segments that reference this orchestrator
     const { data: completedSegments, error: segmentsError } = await supabaseAdmin
       .from('tasks')
       .select('id, generation_started_at, generation_processed_at')
-      .or(`params->>orchestrator_task_id_ref.eq.${cancelledTaskId},params->orchestrator_details->>orchestrator_task_id.eq.${cancelledTaskId},params->originalParams->orchestrator_details->>orchestrator_task_id.eq.${cancelledTaskId},params->>orchestrator_task_id.eq.${cancelledTaskId}`)
+      .or(buildSubTaskFilter(cancelledTaskId))
       .eq('status', 'Complete');
     
     if (segmentsError) {
@@ -178,7 +129,8 @@ async function handleOrchestratorCancellationBilling(
     }
     
     // Trigger cost calculation for the orchestrator
-    await triggerOrchestratorBilling(supabaseUrl, serviceKey, cancelledTaskId, logger);
+    logger.info("Triggering billing for cancelled orchestrator", { orchestrator_task_id: cancelledTaskId });
+    await triggerCostCalculation(supabaseUrl, serviceKey, cancelledTaskId, 'CancelledOrchBilling');
     
   } catch (error: any) {
     logger.error("Error in orchestrator cancellation billing", { error: error?.message });
@@ -215,11 +167,8 @@ async function handleCascadingTaskFailure(
         ? JSON.parse(failedTaskData.params) 
         : failedTaskData.params;
       
-      // Check all paths (matching extractOrchestratorTaskId in complete_task)
-      orchestratorTaskId = params.orchestrator_task_id_ref || 
-                           params.orchestrator_details?.orchestrator_task_id ||
-                           params.originalParams?.orchestrator_details?.orchestrator_task_id ||
-                           params.orchestrator_task_id;
+      // Check all paths (shared with calculate-task-cost and complete_task)
+      orchestratorTaskId = extractOrchestratorRef(params);
       
       // Check if this task IS the orchestrator (has orchestrator_details but no orchestrator reference)
       if (!orchestratorTaskId && params.orchestrator_details) {
@@ -248,7 +197,7 @@ async function handleCascadingTaskFailure(
       query = supabaseAdmin
         .from("tasks")
         .select("id, task_type, status, params")
-        .or(`params->>orchestrator_task_id_ref.eq.${orchestratorTaskId},params->orchestrator_details->>orchestrator_task_id.eq.${orchestratorTaskId},params->originalParams->orchestrator_details->>orchestrator_task_id.eq.${orchestratorTaskId},params->>orchestrator_task_id.eq.${orchestratorTaskId}`)
+        .or(buildSubTaskFilter(orchestratorTaskId))
         .neq("id", failedTaskId)
         .neq("status", "Failed")
         .neq("status", "Cancelled")
@@ -258,7 +207,7 @@ async function handleCascadingTaskFailure(
       query = supabaseAdmin
         .from("tasks")
         .select("id, task_type, status, params")
-        .or(`id.eq.${orchestratorTaskId},params->>orchestrator_task_id_ref.eq.${orchestratorTaskId},params->orchestrator_details->>orchestrator_task_id.eq.${orchestratorTaskId},params->originalParams->orchestrator_details->>orchestrator_task_id.eq.${orchestratorTaskId},params->>orchestrator_task_id.eq.${orchestratorTaskId}`)
+        .or(`id.eq.${orchestratorTaskId},${buildSubTaskFilter(orchestratorTaskId)}`)
         .neq("status", "Failed")
         .neq("status", "Cancelled")
         .neq("status", "Complete");

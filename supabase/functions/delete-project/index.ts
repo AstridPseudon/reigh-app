@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { authenticateRequest } from "../_shared/auth.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,28 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Create Supabase client with user's auth
-    const supabaseClient = createClient(
+    // Use service role client for admin operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
+    const auth = await authenticateRequest(req, supabaseAdmin, "[DELETE-PROJECT]", { allowJwtUserAuth: true })
+    if (!auth.success || !auth.userId) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: auth.error || 'Unauthorized' }),
+        { status: auth.statusCode || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -47,20 +37,13 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[delete-project] Starting deletion for project ${projectId} by user ${user.id}`)
-
-    // Use service role client to call the deletion function
-    // The PostgreSQL function handles ownership verification
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    console.log(`[delete-project] Starting deletion for project ${projectId} by user ${auth.userId}`)
 
     // Call the PostgreSQL function with extended timeout (5 minutes)
     // This handles large projects that would otherwise timeout due to CASCADE deletes
     const { error: deleteError } = await supabaseAdmin.rpc(
       'delete_project_with_extended_timeout',
-      { p_project_id: projectId, p_user_id: user.id }
+      { p_project_id: projectId, p_user_id: auth.userId }
     )
 
     if (deleteError) {

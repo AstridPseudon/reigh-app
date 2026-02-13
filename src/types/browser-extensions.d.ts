@@ -12,16 +12,53 @@ interface NavigatorWithDeviceInfo extends Navigator {
   standalone?: boolean; // iOS PWA
 }
 
-// Window extensions for debugging/instrumentation
+// Window extensions — all `window.__*` globals in one place.
+//
+// Categories:
+//   [structural] — needed at runtime for non-React access to singletons
+//   [debug]      — console helpers / instrumentation, should be gated behind import.meta.env.DEV
 declare global {
   interface Window {
+    // ── Structural globals ──────────────────────────────────────────────
+    /** [structural] Supabase client singleton — survives HMR, used by edge-function helpers */
     __supabase_client__?: import('@supabase/supabase-js').SupabaseClient;
+    /** [structural] Shorthand alias for __supabase_client__ (console convenience) */
     supabase?: import('@supabase/supabase-js').SupabaseClient;
+    /** [structural] Centralized auth-state listener — all auth subscribers go through this */
     __AUTH_MANAGER__?: import('../integrations/supabase/auth/AuthStateManager').AuthStateManager;
-    __REACT_QUERY_CLIENT__?: import('@tanstack/react-query').QueryClient;
-    __SUPABASE_WEBSOCKET_INSTANCES__?: Map<string, WebSocket>;
+    /** [structural] Project context snapshot — fallback for hooks that run before React context is available */
     __PROJECT_CONTEXT__?: { selectedProjectId?: string; projects?: unknown[] };
+    /** [structural] Visibility-change timestamp — backward-compat global set by VisibilityManager */
+    __VIS_CHANGE_AT__?: number;
+
+    // ── Debug-only globals (gate behind import.meta.env.DEV) ────────────
+    /** [debug] React Query client reference — diagnostics only */
+    __REACT_QUERY_CLIENT__?: import('@tanstack/react-query').QueryClient;
+    /** [debug] WebSocket instance map for realtime instrumentation */
+    __SUPABASE_WEBSOCKET_INSTANCES__?: Map<string, WebSocket>;
+    /** [debug] Mobile project-context debug log entries */
+    __projectDebugLog?: Array<{ timestamp: string; isMobile: boolean; projectsCount: number; selectedProjectId: string; isLoadingProjects: boolean; userAgent: string }>;
+    /** [debug] DataFreshnessManager singleton for console diagnostics */
+    __DATA_FRESHNESS_MANAGER__?: typeof import('../shared/realtime/DataFreshnessManager').dataFreshnessManager;
+    /** [debug] VisibilityManager singleton for console diagnostics */
+    __VISIBILITY_MANAGER__?: typeof import('../shared/lib/VisibilityManager').VisibilityManager;
+    /** [debug] NetworkStatusManager singleton for console diagnostics */
+    __NETWORK_STATUS_MANAGER__?: import('../shared/lib/NetworkStatusManager').NetworkStatusManager;
+    /** [debug] ReconnectScheduler singleton for console diagnostics */
+    __RECONNECT_SCHEDULER__?: import('../integrations/supabase/reconnect/ReconnectScheduler').ReconnectScheduler;
+    /** [debug] Refactor metrics API for performance measurement */
+    __REFACTOR_METRICS__?: { get: () => unknown; clear: () => void; export: () => unknown; enable: () => void; disable: () => void };
+    /** [debug] Mobile project debug utilities */
     debugMobile?: () => void;
+    enableProjectDebug?: () => void;
+    disableProjectDebug?: () => void;
+    checkProjectState?: () => void;
+    forceProjectRecovery?: () => void;
+    getProjectDebugHistory?: () => unknown[];
+    /** [debug] Network status console helper */
+    checkNetworkStatus?: () => void;
+    /** [debug] Network change simulator for testing */
+    simulateNetworkChange?: (isOnline: boolean, effectiveType?: string) => void;
   }
 }
 

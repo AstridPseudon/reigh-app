@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/toast';
 import { Project } from '@/types/project'; // Added import
 import { usePrefetchToolSettings } from '@/shared/hooks/usePrefetchToolSettings';
+import { useMobileTimeoutFallback } from '@/shared/hooks/useMobileTimeoutFallback';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useAuth } from './AuthContext';
 import { useUserSettings } from './UserSettingsContext';
@@ -179,22 +180,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [isUpdatingProject, setIsUpdatingProject] = useState(false);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
 
-  // [MobileStallFix] Add mobile detection and recovery state
-  const isMobileRef = useRef(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-  const projectsTimeoutRef = useRef<NodeJS.Timeout>();
-
   // Prefetch all tool settings for the currently selected project so that
   // tool pages hydrate instantly without an extra round-trip.
   usePrefetchToolSettings(selectedProjectId);
-
-  // [MobileStallFix] Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (projectsTimeoutRef.current) {
-        clearTimeout(projectsTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // CROSS-DEVICE SYNC: Reset sync flag when user logs out
   useEffect(() => {
@@ -347,11 +335,6 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       // The selectedProjectId should persist even if project fetching fails
       // setSelectedProjectIdState(null); // ← REMOVED: This was the root cause!
     } finally {
-      // Clear timeout when fetch completes (success or error)
-      if (projectsTimeoutRef.current) {
-        clearTimeout(projectsTimeoutRef.current);
-        projectsTimeoutRef.current = undefined;
-      }
       setIsLoadingProjects(false);
     }
   }, [updateUserSettings, selectedProjectId, handleSetSelectedProjectId]);
@@ -512,43 +495,32 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [updateUserSettings]);
 
-  // [MobileStallFix] Enhanced project loading with fallback recovery
   // [PROFILING] Track fetch invocations to detect triple-fetch issue
   const fetchInvocationCountRef = useRef(0);
   const lastFetchReasonRef = useRef<string>('');
-  
+
   useEffect(() => {
-    
+
     // FAST RESUME: Start loading projects as soon as we have userId (don't wait for preferences)
     if (userId) {
       fetchInvocationCountRef.current += 1;
       const reason = `userId=${!!userId}, isLoadingPreferences=${isLoadingPreferences}`;
-      
+
       lastFetchReasonRef.current = reason;
-      
+
       // REMOVED: 100ms delay that was causing slow tab resume
       fetchProjects();
-
-      // [MobileStallFix] Set a fallback timeout for projects loading
-      if (projectsTimeoutRef.current) {
-        clearTimeout(projectsTimeoutRef.current);
-      }
-
-      projectsTimeoutRef.current = setTimeout(() => {
-        if (isLoadingProjects) {
-          // Force retry the fetch without waiting for preferences
-          fetchProjects();
-        }
-      }, isMobileRef.current ? 15000 : 10000); // Longer timeout for mobile
-     
-      return () => {
-        if (projectsTimeoutRef.current) {
-          clearTimeout(projectsTimeoutRef.current);
-          projectsTimeoutRef.current = undefined;
-        }
-      };
     }
-  }, [userId, isLoadingPreferences, fetchProjects, isLoadingProjects]); // Refetch when user changes or preferences finish loading
+  }, [userId, isLoadingPreferences, fetchProjects]); // Refetch when user changes or preferences finish loading
+
+  // [MobileStallFix] Fallback recovery: retry fetch if projects loading stalls
+  useMobileTimeoutFallback({
+    isLoading: isLoadingProjects,
+    onTimeout: fetchProjects,
+    mobileTimeoutMs: 15000,
+    desktopTimeoutMs: 10000,
+    enabled: !!userId,
+  });
 
   const contextValue = useMemo(
     () => {

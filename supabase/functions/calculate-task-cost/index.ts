@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { SystemLogger } from "../_shared/systemLogger.ts";
+import { getSubTaskOrchestratorId, buildSubTaskFilter } from "../_shared/billing.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -204,42 +205,24 @@ serve(async (req) => {
     }
 
     // Check if task is a sub-task of an orchestrator - skip billing if so (parent will be billed)
-    // Check multiple possible paths where orchestrator reference might be stored
-    // Must match the paths checked by extractOrchestratorTaskId in complete_task
-    const orchestratorRef = task.params?.orchestrator_task_id_ref || 
-                            task.params?.orchestrator_details?.orchestrator_task_id ||
-                            task.params?.originalParams?.orchestrator_details?.orchestrator_task_id ||
-                            task.params?.orchestrator_task_id;
-    
-    // Validate that orchestratorRef is a valid UUID
-    // Some orchestrator tasks store human-readable IDs (e.g., "sm_travel_orchestrator_26011210_c627ca")
-    // in their own params, which should NOT be treated as a sub-task reference
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const isValidOrchestratorRef = orchestratorRef && uuidRegex.test(orchestratorRef);
-    
-    // IMPORTANT: Don't skip if the task references ITSELF as the orchestrator!
-    // This happens for orchestrator tasks (like join_clips_orchestrator) that store their own
-    // task ID in params.orchestrator_details.orchestrator_task_id for sub-tasks to reference.
-    if (isValidOrchestratorRef && orchestratorRef !== task.id) {
-      logger.info("Skipping cost calculation (sub-task)", { 
-        orchestrator_task_id: orchestratorRef 
+    // Uses shared detection: checks all param paths, validates UUID, guards against self-reference
+    const subTaskOrchestratorId = getSubTaskOrchestratorId(task.params, task.id);
+
+    if (subTaskOrchestratorId) {
+      logger.info("Skipping cost calculation (sub-task)", {
+        orchestrator_task_id: subTaskOrchestratorId
       });
       await logger.flush();
       return jsonResponse({
         success: true,
         skipped: true,
         reason: 'Task is sub-task of orchestrator, parent task will be billed',
-        orchestrator_task_id: orchestratorRef,
+        orchestrator_task_id: subTaskOrchestratorId,
         task_id: task.id
       });
     }
 
     // Check if this is an orchestrator task - calculate cost based on sub-task durations
-    // Sub-tasks can reference their orchestrator via multiple param paths:
-    // - params.orchestrator_task_id_ref (travel_segment)
-    // - params.orchestrator_details.orchestrator_task_id (join_clips_segment)
-    // - params.originalParams.orchestrator_details.orchestrator_task_id (individual_travel_segment legacy)
-    // - params.orchestrator_task_id (some legacy tasks)
     const { data: subTasks, error: subTasksError } = await supabaseAdmin
       .from('tasks')
       .select(`
@@ -248,7 +231,7 @@ serve(async (req) => {
         generation_processed_at,
         status
       `)
-      .or(`params->>orchestrator_task_id_ref.eq.${task_id},params->orchestrator_details->>orchestrator_task_id.eq.${task_id},params->originalParams->orchestrator_details->>orchestrator_task_id.eq.${task_id},params->>orchestrator_task_id.eq.${task_id}`)
+      .or(buildSubTaskFilter(task_id))
       .eq('status', 'Complete');
 
     let durationSeconds;

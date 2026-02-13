@@ -152,9 +152,9 @@ export function getReconnectScheduler(): ReconnectScheduler {
   if (!reconnectScheduler) {
     reconnectScheduler = new ReconnectScheduler();
     
-    // Make it globally accessible for debugging
-    if (typeof window !== 'undefined') {
-      (window as any).__RECONNECT_SCHEDULER__ = reconnectScheduler;
+    // Make it globally accessible for debugging (dev only)
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      window.__RECONNECT_SCHEDULER__ = reconnectScheduler;
     }
   }
   

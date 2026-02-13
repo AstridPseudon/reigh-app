@@ -18,28 +18,7 @@
 
 import { handleError } from '@/shared/lib/errorHandler';
 
-interface DebugLogEntry {
-  timestamp: number;
-  event: string;
-  data?: unknown;
-}
-
-declare global {
-  interface Window {
-    enableProjectDebug: () => void;
-    disableProjectDebug: () => void;
-    checkProjectState: () => void;
-    forceProjectRecovery: () => void;
-    getProjectDebugHistory: () => DebugLogEntry[];
-    __projectDebugLog?: DebugLogEntry[];
-    supabase?: {
-      auth: {
-        getSession: () => Promise<{ data: { session: { user: { id: string } } | null } }>;
-        refreshSession: () => Promise<void>;
-      };
-    };
-  }
-}
+// All window globals are typed centrally in src/types/browser-extensions.d.ts
 
 // Enable debug logging
 window.enableProjectDebug = () => {

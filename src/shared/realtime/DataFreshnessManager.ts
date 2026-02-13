@@ -342,7 +342,7 @@ class DataFreshnessManager {
 // Singleton instance - single source of truth for the entire app
 export const dataFreshnessManager = new DataFreshnessManager();
 
-// Export for debugging in browser console
-if (typeof window !== 'undefined') {
-  (window as any).__DATA_FRESHNESS_MANAGER__ = dataFreshnessManager;
+// Export for debugging in browser console (dev only)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.__DATA_FRESHNESS_MANAGER__ = dataFreshnessManager;
 }

@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 // @ts-ignore - HuggingFace Hub types
 import { whoAmI, createRepo, uploadFile } from "https://esm.sh/@huggingface/hub@0.18.2";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
@@ -177,30 +178,22 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client with user's JWT for auth
-    const supabaseClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
-      global: {
-        headers: { Authorization: req.headers.get("Authorization")! },
-      },
-    });
-
-    // Create admin client for storage operations
+    // Create admin client for storage and database operations
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
     // 1. Authenticate user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-
-    if (authError || !user) {
-      console.error("[HF-UPLOAD] Auth error:", authError);
-      return createResponse({ error: "Unauthorized" }, 401);
+    const auth = await authenticateRequest(req, supabaseAdmin, "[HF-UPLOAD]", { allowJwtUserAuth: true });
+    if (!auth.success || !auth.userId) {
+      return createResponse({ error: auth.error || "Unauthorized" }, auth.statusCode || 401);
     }
 
-    console.log(`[HF-UPLOAD] Authenticated user: ${user.id}`);
+    const userId = auth.userId;
+    console.log(`[HF-UPLOAD] Authenticated user: ${userId}`);
 
     // 2. Get user's HuggingFace token (decrypted from Vault)
     const { data: apiKeyData, error: apiKeyError } = await supabaseAdmin.rpc(
       "get_external_api_key_decrypted",
-      { p_user_id: user.id, p_service: "huggingface" }
+      { p_user_id: userId, p_service: "huggingface" }
     );
 
     if (apiKeyError || !apiKeyData || apiKeyData.length === 0) {

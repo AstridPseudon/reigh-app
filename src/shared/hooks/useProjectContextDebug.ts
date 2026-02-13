@@ -23,14 +23,14 @@ export const useProjectContextDebug = () => {
     };
 
     // Also log to a global debug array for inspection
-    if (!(window as any).__projectDebugLog) {
-      (window as any).__projectDebugLog = [];
+    if (!window.__projectDebugLog) {
+      window.__projectDebugLog = [];
     }
-    (window as any).__projectDebugLog.push(debugInfo);
-    
+    window.__projectDebugLog.push(debugInfo);
+
     // Keep only last 50 entries
-    if ((window as any).__projectDebugLog.length > 50) {
-      (window as any).__projectDebugLog = (window as any).__projectDebugLog.slice(-50);
+    if (window.__projectDebugLog.length > 50) {
+      window.__projectDebugLog = window.__projectDebugLog.slice(-50);
     }
   }, [projects, selectedProjectId, isLoadingProjects]);
 }; 

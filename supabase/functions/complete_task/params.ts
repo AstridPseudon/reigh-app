@@ -1,9 +1,11 @@
 /**
  * Parameter extraction helpers for complete_task
- * 
+ *
  * These functions extract values from deeply nested task params,
  * supporting multiple possible locations for each field.
  */
+
+import { extractOrchestratorRef } from '../_shared/billing.ts';
 
 // ===== THUMBNAIL PATH CONFIGURATION =====
 
@@ -73,20 +75,17 @@ export function extractFromParams(params: any, fieldName: string, paths: string[
 
 /**
  * Extract orchestrator_task_id from task params
- * Checks multiple possible locations where this field might be stored
+ * Delegates to shared extractOrchestratorRef (single source of truth for path list)
+ * and adds logging consistent with other complete_task extractors.
  */
 export function extractOrchestratorTaskId(params: any, logTag: string = 'OrchestratorExtract'): string | null {
-  return extractFromParams(
-    params,
-    'orchestrator_task_id',
-    [
-      ['orchestrator_details', 'orchestrator_task_id'],
-      ['originalParams', 'orchestrator_details', 'orchestrator_task_id'],
-      ['orchestrator_task_id_ref'],
-      ['orchestrator_task_id'],
-    ],
-    logTag
-  );
+  const value = extractOrchestratorRef(params);
+  if (value) {
+    console.log(`[${logTag}] Found orchestrator_task_id: ${value}`);
+  } else {
+    console.log(`[${logTag}] No orchestrator_task_id found in task params`);
+  }
+  return value;
 }
 
 /**

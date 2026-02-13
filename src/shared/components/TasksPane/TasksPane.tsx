@@ -37,9 +37,9 @@ interface TasksPaneProps {
 const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
   const queryClient = useQueryClient();
   
-  // Expose queryClient globally for diagnostics
+  // Expose queryClient globally for diagnostics (dev only)
   useEffect(() => {
-    if (typeof window !== 'undefined' && queryClient) {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && queryClient) {
       window.__REACT_QUERY_CLIENT__ = queryClient;
     }
   }, [queryClient]);

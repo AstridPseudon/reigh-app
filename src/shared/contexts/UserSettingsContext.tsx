@@ -11,6 +11,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { UserPreferences } from '@/shared/settings/userPreferences';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
+import { useMobileTimeoutFallback } from '@/shared/hooks/useMobileTimeoutFallback';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useAuth } from './AuthContext';
 
@@ -43,35 +44,11 @@ export const UserSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const userSettingsRef = useRef<UserPreferences | undefined>(undefined);
 
-  // [MobileStallFix] Add mobile detection and recovery state
-  const isMobileRef = useRef(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
-  const settingsTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // [MobileStallFix] Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (settingsTimeoutRef.current) {
-        clearTimeout(settingsTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // [MobileStallFix] Enhanced settings fetching with timeout and recovery
+  // Settings fetching
   const fetchUserSettings = useCallback(async () => {
     if (!userId) return;
 
     setIsLoadingSettings(true);
-
-    // [MobileStallFix] Set a safety timeout for mobile networks
-    if (settingsTimeoutRef.current) {
-      clearTimeout(settingsTimeoutRef.current);
-    }
-
-    settingsTimeoutRef.current = setTimeout(() => {
-      setIsLoadingSettings(false);
-      setUserSettings({});
-      userSettingsRef.current = {};
-    }, isMobileRef.current ? 10000 : 5000); // Longer timeout for mobile
 
     try {
       // Read the settings JSON for the current user
@@ -88,14 +65,10 @@ export const UserSettingsProvider = ({ children }: { children: ReactNode }) => {
       userSettingsRef.current = settings;
     } catch (error) {
       handleError(error, { context: 'UserSettingsContext', showToast: false });
-      // [MobileStallFix] Set empty settings on error instead of leaving undefined
+      // Set empty settings on error instead of leaving undefined
       setUserSettings({});
       userSettingsRef.current = {};
     } finally {
-      if (settingsTimeoutRef.current) {
-        clearTimeout(settingsTimeoutRef.current);
-        settingsTimeoutRef.current = undefined;
-      }
       setIsLoadingSettings(false);
     }
   }, [userId]);
@@ -124,21 +97,31 @@ export const UserSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [userId]);
 
-  // [MobileStallFix] Enhanced settings effect with proper cleanup
+  // Fetch settings when user changes
   useEffect(() => {
     if (userId) {
       fetchUserSettings();
     } else {
       setUserSettings(undefined);
       userSettingsRef.current = undefined;
-      // [MobileStallFix] Critical fix: Reset loading state when no user
       setIsLoadingSettings(false);
-      if (settingsTimeoutRef.current) {
-        clearTimeout(settingsTimeoutRef.current);
-        settingsTimeoutRef.current = undefined;
-      }
     }
   }, [userId, fetchUserSettings]);
+
+  // [MobileStallFix] Fallback recovery: set empty defaults if settings loading stalls
+  const handleSettingsTimeout = useCallback(() => {
+    setIsLoadingSettings(false);
+    setUserSettings({});
+    userSettingsRef.current = {};
+  }, []);
+
+  useMobileTimeoutFallback({
+    isLoading: isLoadingSettings,
+    onTimeout: handleSettingsTimeout,
+    mobileTimeoutMs: 10000,
+    desktopTimeoutMs: 5000,
+    enabled: !!userId,
+  });
 
   const contextValue = useMemo(
     () => ({

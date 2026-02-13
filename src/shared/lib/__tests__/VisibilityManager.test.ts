@@ -177,7 +177,7 @@ describe('VisibilityManager', () => {
   it('should maintain backward compatibility with global timestamp', () => {
     const state = VisibilityManager.getState();
     // Check that window-scoped timestamp is set (back-compat behavior)
-    expect((window as Record<string, unknown>).__VIS_CHANGE_AT__).toBeGreaterThanOrEqual(state.lastVisibilityChangeAt);
+    expect(window.__VIS_CHANGE_AT__).toBeGreaterThanOrEqual(state.lastVisibilityChangeAt);
   });
 
   it('should clean up properly on destroy', () => {

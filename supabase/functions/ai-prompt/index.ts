@@ -1,12 +1,11 @@
 /* eslint-disable */
-// @ts-nocheck
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Groq from "npm:groq-sdk@0.26.0";
-import { checkRateLimit, rateLimitResponse, getClientIp, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 
-function jsonResponse(body: any, status = 200) {
+function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -59,12 +58,11 @@ serve(async (req) => {
     return jsonResponse({ error: "Invalid authentication token" }, 401);
   }
 
-  // Rate limit by IP (this is an expensive AI endpoint)
-  const clientIp = getClientIp(req);
+  // Rate limit by user ID (this is an expensive AI endpoint)
   const rateLimitResult = await checkRateLimit(
     supabaseAdmin,
     'ai-prompt',
-    clientIp,
+    user.id,
     RATE_LIMITS.expensive,
     '[AI-PROMPT]'
   );
@@ -72,7 +70,7 @@ serve(async (req) => {
     return rateLimitResponse(rateLimitResult, RATE_LIMITS.expensive);
   }
 
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch (_) {
@@ -85,13 +83,11 @@ serve(async (req) => {
   try {
     switch (task) {
       case "generate_prompts": {
-        const {
-          overallPromptText = "",
-          rulesToRememberText = "",
-          numberToGenerate = 3,
-          existingPrompts = [],
-          temperature = 0.8,
-        } = body;
+        const overallPromptText = String(body.overallPromptText ?? "");
+        const rulesToRememberText = String(body.rulesToRememberText ?? "");
+        const numberToGenerate = Number(body.numberToGenerate ?? 3);
+        const existingPrompts = Array.isArray(body.existingPrompts) ? body.existingPrompts as unknown[] : [];
+        const temperature = Number(body.temperature ?? 0.8);
 
         console.log(`[RemixContextDebug] Edge function received generate_prompts request:`, {
           overallPromptText: overallPromptText.substring(0, 50),
@@ -124,11 +120,11 @@ CRITICAL FORMATTING REQUIREMENTS:
 - NO numbering, bullet points, quotation marks, empty lines, formatting, markdown or special characters`;
 
         if (existingPrompts.length) {
-          const ctx = existingPrompts.map((p: any) => `- ${typeof p === "string" ? p : p.text ?? ""}`).join("\n");
+          const ctx = existingPrompts.map((p: unknown) => `- ${typeof p === "string" ? p : (p as Record<string, unknown>)?.text ?? ""}`).join("\n");
           console.log(`[RemixContextDebug] Including ${existingPrompts.length} existing prompts as context for AI generation`);
-          console.log(`[RemixContextDebug] First 3 existing prompts:`, existingPrompts.slice(0, 3).map((p: any) => {
-            const text = typeof p === "string" ? p : p.text ?? "";
-            return text.substring(0, 60) + "...";
+          console.log(`[RemixContextDebug] First 3 existing prompts:`, existingPrompts.slice(0, 3).map((p: unknown) => {
+            const text = typeof p === "string" ? p : (p as Record<string, unknown>)?.text ?? "";
+            return String(text).substring(0, 60) + "...";
           }));
           detailedInstructions += `\n\nExisting Prompts for Context (do NOT repeat or return these, but use them as inspiration for new, distinct image generation ideas):\n${ctx}`;
           console.log(`[RemixContextDebug] Added existing prompts context to AI instructions`);
@@ -189,7 +185,8 @@ IMPORTANT: Only respond with the ${numberToGenerate} prompts, nothing else. Do n
         return jsonResponse({ prompts, usage: resp.usage });
       }
       case "edit_prompt": {
-        const { originalPromptText = "", editInstructions = "", modelType = "fast" } = body;
+        const originalPromptText = String(body.originalPromptText ?? "");
+        const editInstructions = String(body.editInstructions ?? "");
         if (!originalPromptText || !editInstructions) return jsonResponse({ error: "originalPromptText and editInstructions required" }, 400);
         const systemMsg = `You are an AI assistant that helps refine user prompts for image generation. Edit the provided prompt based on the user's instructions while maintaining optimization for AI image generation.`;
         
@@ -223,7 +220,7 @@ Revised Prompt:`;
         return jsonResponse({ success: true, newText, usage: resp.usage });
       }
       case "generate_summary": {
-        const { promptText = "" } = body;
+        const promptText = String(body.promptText ?? "");
         if (!promptText) return jsonResponse({ error: "promptText required" }, 400);
         const resp = await groq.chat.completions.create({
           model: "moonshotai/kimi-k2-instruct",
@@ -242,7 +239,8 @@ Summary:` }],
       case "enhance_segment_prompt": {
         // Enhance a single segment prompt using OpenAI GPT-5 Mini
         // Uses motion-focused prompt template for video transitions
-        const { prompt = "", temperature = 0.7 } = body;
+        const prompt = String(body.prompt ?? "");
+        const temperature = Number(body.temperature ?? 0.7);
 
         if (!prompt.trim()) {
           return jsonResponse({ error: "prompt is required" }, 400);
@@ -354,16 +352,18 @@ FINAL REMINDER: If the user's input already sounds like a prompt (describes came
             enhanced_prompt: enhancedPrompt,
             usage: data.usage,
           });
-        } catch (fetchError: any) {
-          console.error(`[ai-prompt] OpenAI fetch error:`, fetchError?.message || fetchError);
-          return jsonResponse({ error: "Failed to call OpenAI API", details: fetchError?.message }, 500);
+        } catch (fetchError: unknown) {
+          const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+          console.error(`[ai-prompt] OpenAI fetch error:`, message);
+          return jsonResponse({ error: "Failed to call OpenAI API", details: message }, 500);
         }
       }
       default:
         return jsonResponse({ error: `Unknown task: ${task}` }, 400);
     }
-  } catch (err: any) {
-    console.error(`[ai-prompt] Error handling task ${task}:`, err?.message || err);
-    return jsonResponse({ error: "Internal server error", details: err?.message }, 500);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[ai-prompt] Error handling task ${task}:`, message);
+    return jsonResponse({ error: "Internal server error", details: message }, 500);
   }
 }); 

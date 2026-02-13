@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Groq from "npm:groq-sdk@0.26.0";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -35,19 +36,11 @@ serve(async (req) => {
     return jsonResponse({ error: "Server configuration error" }, 500);
   }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Missing or invalid Authorization header" }, 401);
-  }
-
-  const token = authHeader.slice(7);
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-  // Verify the user's JWT token
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) {
-    console.error("[ai-voice-prompt] Invalid authentication token:", authError?.message);
-    return jsonResponse({ error: "Invalid authentication token" }, 401);
+  const auth = await authenticateRequest(req, supabaseAdmin, "[AI-VOICE-PROMPT]", { allowJwtUserAuth: true });
+  if (!auth.success) {
+    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
   }
 
   try {

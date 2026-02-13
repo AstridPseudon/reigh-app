@@ -201,3 +201,17 @@ Each agent gets:
 **Agent M (Task status transition guards):** Clean. Replaced ad-hoc "don't overwrite Complete" and "don't overwrite Cancelled" guards with a proper `validTransitions` lookup table. Returns 409 Conflict with the allowed transitions in the response. `In Progress → Queued` is allowed (requeue via clear_worker). No new files or abstractions.
 
 **Sense check:** No over-engineering. All changes are appropriate in scope. `tsc --noEmit` passes clean.
+
+### Wave 3 — Evaluation
+
+**Agent N (Mobile timeout extraction):** Clean. Created `useMobileTimeoutFallback.ts` hook. ProjectContext and UserSettingsContext now use the shared hook instead of inline UA sniffing + timeout patterns. Inline `navigator.userAgent` regex replaced with `isMobileUA()` from `use-mobile.tsx`. ~40 lines removed from each context.
+
+**Agent P (ai-prompt rate limit fix):** Clean. Changed `getClientIp(req)` → `user.id` for rate limiting. Also removed `@ts-nocheck`, added minimal types (`body: Record<string, unknown>` instead of `any`, safe property extraction instead of destructuring). Good two-for-one.
+
+**Agent R (Window globals cleanup):** Clean. Centralized all `window.__*` type declarations in `browser-extensions.d.ts` with `[structural]` vs `[debug]` category annotations. Removed scattered `declare global` blocks from individual files. Gated debug globals behind `import.meta.env.DEV`. No behavior changes.
+
+**Agent O (Auth standardization):** Clean. Migrated 7 edge functions from manual JWT extraction to shared `authenticateRequest()`: ai-voice-prompt, generate-pat, revoke-pat, delete-project, huggingface-upload, setup-auto-topup, stripe-checkout. Each function now has ~10 fewer lines. Functions that legitimately need different auth (stripe-webhook) were correctly skipped.
+
+**Agent Q (Billing consolidation):** Good extraction. Created `_shared/billing.ts` (127 lines) with 4 exports: `extractOrchestratorRef`, `getSubTaskOrchestratorId`, `buildSubTaskFilter`, `triggerCostCalculation`. Updated `calculate-task-cost`, `update-task-status`, and `complete_task/billing.ts` to use shared module. One minor improvement: `complete_task` now uses UUID-validated sub-task detection instead of raw extraction.
+
+**Sense check:** No over-engineering. The billing extraction is the largest new abstraction but justified — the duplicated sub-task detection logic was error-prone and the shared filter string was 200+ chars repeated 5 times. `tsc --noEmit` passes clean.

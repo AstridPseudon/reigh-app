@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,36 +82,24 @@ serve(async (req) => {
     }
   }
 
-  // ─── 2. Extract authorization header ────────────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Missing or invalid Authorization header" }, 401);
-  }
-
-  const token = authHeader.slice(7); // Remove "Bearer " prefix
+  // ─── 2. Authenticate request ────────────────────────────────────
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !serviceKey) {
     console.error("Missing required environment variables");
     return jsonResponse({ error: "Server configuration error" }, 500);
   }
 
-  // ─── 3. Create Supabase client with user's JWT ─────────────────
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: { Authorization: authHeader },
-    },
-  });
+  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-  // ─── 4. Verify user authentication ──────────────────────────────
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return jsonResponse({ error: "Authentication failed" }, 401);
+  const auth = await authenticateRequest(req, supabaseAdmin, "[SETUP-AUTO-TOPUP]", { allowJwtUserAuth: true });
+  if (!auth.success || !auth.userId) {
+    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
   }
 
   try {
-    // ─── 5. Update user auto-top-up preferences ─────────────────────
+    // ─── 3. Update user auto-top-up preferences ─────────────────────
     const updateData: any = {
       auto_topup_enabled: autoTopupEnabled,
     };
@@ -132,17 +121,17 @@ serve(async (req) => {
       updateData.auto_topup_threshold = null;
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update(updateData)
-      .eq('id', user.id);
+      .eq('id', auth.userId);
 
     if (updateError) {
       console.error('Error updating user auto-top-up preferences:', updateError);
       return jsonResponse({ error: 'Failed to update preferences' }, 500);
     }
 
-    console.log(`Auto-top-up preferences updated for user ${user.id}:`, {
+    console.log(`Auto-top-up preferences updated for user ${auth.userId}:`, {
       enabled: autoTopupEnabled,
       amount: autoTopupEnabled ? autoTopupAmount : null,
       threshold: autoTopupEnabled ? autoTopupThreshold : null,

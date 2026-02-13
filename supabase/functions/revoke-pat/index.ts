@@ -2,6 +2,7 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: unknown, status = 200) {
@@ -27,11 +28,6 @@ serve(async (req) => {
   }
 
   try {
-    const authorization = req.headers.get('Authorization');
-    if (!authorization) {
-      return jsonResponse({ error: 'No authorization header' }, 401);
-    }
-
     // Create Supabase client with service role for admin operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,12 +40,9 @@ serve(async (req) => {
       }
     );
 
-    // Verify the user's JWT
-    const token = authorization.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (authError || !user) {
-      return jsonResponse({ error: 'Invalid authentication token' }, 401);
+    const auth = await authenticateRequest(req, supabaseAdmin, "[REVOKE-PAT]", { allowJwtUserAuth: true });
+    if (!auth.success || !auth.userId) {
+      return jsonResponse({ error: auth.error || 'Authentication failed' }, auth.statusCode || 401);
     }
 
     // Get request body
@@ -64,7 +57,7 @@ serve(async (req) => {
       .from('user_api_tokens')
       .delete()
       .eq('id', tokenId)
-      .eq('user_id', user.id); // Extra safety check
+      .eq('user_id', auth.userId); // Extra safety check
 
     if (deleteError) {
       console.error('Error deleting token:', deleteError);

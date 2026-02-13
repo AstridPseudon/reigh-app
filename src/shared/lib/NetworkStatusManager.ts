@@ -119,35 +119,32 @@ export function getNetworkStatusManager(): NetworkStatusManager {
     networkStatusManager = new NetworkStatusManager();
     networkStatusManager.initialize();
     
-    if (typeof window !== 'undefined') {
-      (window as any).__NETWORK_STATUS_MANAGER__ = networkStatusManager;
-      
-      // Add debug helper
-      (window as any).checkNetworkStatus = () => {
+    // Debug helpers (dev only)
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      window.__NETWORK_STATUS_MANAGER__ = networkStatusManager;
+
+      window.checkNetworkStatus = () => {
         networkStatusManager.getStatus();
         networkStatusManager.getRecommendedIntervals();
       };
-      
-      // Add manual network change simulator for testing
-      (window as any).simulateNetworkChange = (isOnline: boolean, effectiveType?: string) => {
+
+      window.simulateNetworkChange = (isOnline: boolean, effectiveType?: string) => {
+        const nav = navigator as NavigatorWithDeviceInfo;
         const originalOnLine = navigator.onLine;
-        const originalEffectiveType = (navigator as any).connection?.effectiveType;
-        
-        // Temporarily override navigator values
+        const originalEffectiveType = nav.connection?.effectiveType;
+
         Object.defineProperty(navigator, 'onLine', { value: isOnline, configurable: true });
-        if (effectiveType && (navigator as any).connection) {
-          Object.defineProperty((navigator as any).connection, 'effectiveType', { value: effectiveType, configurable: true });
+        if (effectiveType && nav.connection) {
+          Object.defineProperty(nav.connection, 'effectiveType', { value: effectiveType, configurable: true });
         }
-        
-        // Trigger the event
+
         const event = new Event(isOnline ? 'online' : 'offline');
         window.dispatchEvent(event);
-        
-        // Restore original values after a delay
+
         setTimeout(() => {
           Object.defineProperty(navigator, 'onLine', { value: originalOnLine, configurable: true });
-          if (effectiveType && (navigator as any).connection) {
-            Object.defineProperty((navigator as any).connection, 'effectiveType', { value: originalEffectiveType, configurable: true });
+          if (effectiveType && nav.connection) {
+            Object.defineProperty(nav.connection, 'effectiveType', { value: originalEffectiveType, configurable: true });
           }
         }, 100);
       };

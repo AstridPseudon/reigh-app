@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Stripe from "https://esm.sh/stripe@12.18.0?target=deno";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: any, status = 200) {
@@ -72,48 +73,32 @@ serve(async (req) => {
     }
   }
 
-  // ─── 2. Extract authorization header ────────────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Missing or invalid Authorization header" }, 401);
-  }
-
-  const token = authHeader.slice(7); // Remove "Bearer " prefix
+  // ─── 2. Authenticate request ────────────────────────────────────
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !serviceKey) {
     console.error("Missing required environment variables");
     return jsonResponse({ error: "Server configuration error" }, 500);
   }
 
-  // ─── 3. Create Supabase client with user's JWT ─────────────────
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: { Authorization: authHeader },
-    },
-  });
+  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-  // ─── 4. Verify user authentication ──────────────────────────────
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return jsonResponse({ error: "Authentication failed" }, 401);
+  const auth = await authenticateRequest(req, supabaseAdmin, "[STRIPE-CHECKOUT]", { allowJwtUserAuth: true });
+  if (!auth.success || !auth.userId) {
+    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
   }
 
-  // ─── 5. Rate limit check ──────────────────────────────────────────
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (serviceKey) {
-    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-    const rateLimitResult = await checkRateLimit(
-      supabaseAdmin,
-      'stripe-checkout',
-      user.id,
-      RATE_LIMITS.expensive,
-      '[STRIPE-CHECKOUT]'
-    );
-    if (!rateLimitResult.allowed) {
-      return rateLimitResponse(rateLimitResult, RATE_LIMITS.expensive);
-    }
+  // ─── 3. Rate limit check ──────────────────────────────────────────
+  const rateLimitResult = await checkRateLimit(
+    supabaseAdmin,
+    'stripe-checkout',
+    auth.userId,
+    RATE_LIMITS.expensive,
+    '[STRIPE-CHECKOUT]'
+  );
+  if (!rateLimitResult.allowed) {
+    return rateLimitResponse(rateLimitResult, RATE_LIMITS.expensive);
   }
 
   try {
@@ -135,6 +120,9 @@ serve(async (req) => {
       apiVersion: "2024-06-20",
     });
 
+    // Look up user email for Stripe checkout pre-fill
+    const { data: userData } = await supabaseAdmin.from('users').select('email').eq('id', auth.userId).single();
+
     // Prepare session configuration
     const sessionConfig: any = {
       mode: "payment",
@@ -143,9 +131,9 @@ serve(async (req) => {
         {
           price_data: {
             currency: "usd",
-            product_data: { 
+            product_data: {
               name: "Reigh Credits",
-              description: autoTopupEnabled 
+              description: autoTopupEnabled
                 ? `${amount} credits + auto-top-up enabled`
                 : `${amount} credits for AI generation tasks`
             },
@@ -154,14 +142,14 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      metadata: { 
-        userId: user.id, 
+      metadata: {
+        userId: auth.userId,
         amount: amount.toString(),
         autoTopupEnabled: autoTopupEnabled ? 'true' : 'false'
       },
       success_url: `${frontendUrl}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/payments/cancel`,
-      customer_email: user.email || undefined,
+      customer_email: userData?.email || undefined,
     };
 
     // If auto-top-up enabled, configure payment method saving
@@ -176,13 +164,13 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
-    console.log(`Stripe checkout session created for user ${user.id}: $${amount} (session: ${session.id})`);
-    
+    console.log(`Stripe checkout session created for user ${auth.userId}: $${amount} (session: ${session.id})`);
+
     return jsonResponse({
       checkoutUrl: session.url,
       sessionId: session.id,
       amount,
-      userId: user.id
+      userId: auth.userId
     });
 
   } catch (error) {

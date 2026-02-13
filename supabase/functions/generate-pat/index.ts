@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: unknown, status = 200) {
@@ -36,11 +37,6 @@ serve(async (req) => {
   }
 
   try {
-    const authorization = req.headers.get('Authorization');
-    if (!authorization) {
-      return jsonResponse({ error: 'No authorization header' }, 401);
-    }
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -52,18 +48,16 @@ serve(async (req) => {
       }
     );
 
-    const token = authorization.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (authError || !user) {
-      return jsonResponse({ error: 'Invalid authentication token' }, 401);
+    const auth = await authenticateRequest(req, supabaseAdmin, "[GENERATE-PAT]", { allowJwtUserAuth: true });
+    if (!auth.success || !auth.userId) {
+      return jsonResponse({ error: auth.error || 'Authentication failed' }, auth.statusCode || 401);
     }
 
     // Rate limit: max 10 PAT generations per minute per user
     const rateLimitResult = await checkRateLimit(
       supabaseAdmin,
       'generate-pat',
-      user.id,
+      auth.userId,
       { maxRequests: 10, windowSeconds: 60, identifierType: 'user' },
       '[GENERATE-PAT]'
     );
@@ -80,7 +74,7 @@ serve(async (req) => {
     const { error: insertError } = await supabaseAdmin
       .from('user_api_tokens')
       .insert({
-        user_id: user.id,
+        user_id: auth.userId,
         token: apiToken,
         label: label || 'API Token',
       });
