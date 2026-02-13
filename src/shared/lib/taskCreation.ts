@@ -159,12 +159,18 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
   }, timeoutMs);
 
   try {
+    // Generate an idempotency key to prevent duplicate task creation from
+    // network retries or double-clicks. The server will return the existing
+    // task if this key was already used.
+    const idempotency_key = generateUUID();
+
     const { data, error } = await supabase.functions.invoke('create-task', {
       body: {
         params: taskParams.params,
         task_type: taskParams.task_type,
         project_id: taskParams.project_id,
-        dependant_on: null
+        dependant_on: null,
+        idempotency_key,
       },
       headers: {
         Authorization: `Bearer ${session.access_token}`,

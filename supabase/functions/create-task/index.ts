@@ -28,7 +28,9 @@ function createCorsResponse(body: string, status: number = 200) {
  * 
  * POST /functions/v1/create-task
  * Headers: Authorization: Bearer <JWT or PAT>
- * Body: { task_id?, params, task_type, project_id?, dependant_on? } - task_id is optional, auto-generated if not provided
+ * Body: { task_id?, params, task_type, project_id?, dependant_on?, idempotency_key? }
+ *   - task_id is optional, auto-generated if not provided
+ *   - idempotency_key is optional; if provided and a task with that key already exists, returns the existing task
  * 
  * Returns:
  * - 200 OK with success message
@@ -78,7 +80,7 @@ serve(async (req) => {
     return createCorsResponse("Invalid JSON body", 400);
   }
 
-  const { task_id, params, task_type, project_id, dependant_on } = body;
+  const { task_id, params, task_type, project_id, dependant_on, idempotency_key } = body;
 
   // Set task_id for logs if provided by client
   if (task_id) {
@@ -210,11 +212,16 @@ serve(async (req) => {
       status: "Queued",
       created_at: new Date().toISOString()
     };
-    
+
     if (task_id) {
       insertObject.id = task_id;
     }
-    
+
+    // Include idempotency_key if provided by the client
+    if (idempotency_key && typeof idempotency_key === 'string') {
+      insertObject.idempotency_key = idempotency_key;
+    }
+
     const { data: insertedTask, error } = await supabaseAdmin
       .from("tasks")
       .insert(insertObject)
@@ -222,7 +229,36 @@ serve(async (req) => {
       .single();
 
     if (error) {
-      logger.error("Task creation failed", { error: error.message });
+      // Handle idempotency: unique violation on idempotency_key means this is a duplicate request
+      // PostgreSQL error code 23505 = unique_violation
+      if (error.code === '23505' && idempotency_key) {
+        logger.info("Idempotent duplicate detected, returning existing task", { idempotency_key });
+
+        const { data: existingTask, error: fetchError } = await supabaseAdmin
+          .from("tasks")
+          .select("id, status")
+          .eq("idempotency_key", idempotency_key)
+          .single();
+
+        if (fetchError || !existingTask) {
+          logger.error("Failed to fetch existing task for idempotency key", {
+            idempotency_key,
+            error: fetchError?.message
+          });
+          await logger.flush();
+          return createCorsResponse("Duplicate task detected but could not retrieve it", 500);
+        }
+
+        logger.setDefaultTaskId(existingTask.id);
+        await logger.flush();
+        return createCorsResponse(JSON.stringify({
+          task_id: existingTask.id,
+          status: "Task queued",
+          deduplicated: true
+        }), 200);
+      }
+
+      logger.error("Task creation failed", { error: error.message, code: error.code });
       await logger.flush();
       return createCorsResponse(error.message, 500);
     }
@@ -235,13 +271,14 @@ serve(async (req) => {
       project_id: finalProjectId,
       created_by: isServiceRole ? 'service-role' : callerId,
       has_dependency: !!normalizedDependantOn,
-      dependency_count: normalizedDependantOn?.length ?? 0
+      dependency_count: normalizedDependantOn?.length ?? 0,
+      has_idempotency_key: !!idempotency_key
     });
 
     await logger.flush();
-    return createCorsResponse(JSON.stringify({ 
-      task_id: insertedTask.id, 
-      status: "Task queued" 
+    return createCorsResponse(JSON.stringify({
+      task_id: insertedTask.id,
+      status: "Task queued"
     }), 200);
 
   } catch (error: any) {
