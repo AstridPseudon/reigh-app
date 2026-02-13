@@ -325,12 +325,23 @@ Fixed all bugs discovered during sense-check reviews:
 
 ---
 
+## Wave 5e Evaluation (commit `5d05e0a3`)
+
+**InlineEditView decomposition (893→299L, 67% reduction):**
+- useInlineEditState.ts (494L): All hook orchestration + persistence sync
+- useImageEditValue.ts (372L): ImageEditState memo builder with explicit params interface
+- Component file now JSX-only: AnnotationButtons, InlineEditCanvas, InlineEditSidebar, InlineEditView
+- Dead code removed: useGenerationLineage (completely unused), canvasRef (unused)
+- isFlippedHorizontally/isSaving inlined as false literals (dead flip feature remnants)
+- Hardcoded colors in AnnotationButtons replaced with theme tokens (bg-primary, bg-destructive, bg-muted-foreground)
+
+---
+
 ## Final Status
 
-**Completed:** Waves 1-5d (all committed), bug fix pass, InlineEditView context bug fix, cleanup pass.
+**Completed:** Waves 1-5e (all committed), bug fix pass, InlineEditView decomposition, cleanup pass.
 
-**Remaining from plan:**
-- `InlineEditView` / `useInlineEditState` full decomposition (893L, only bug fix + persistence dedup done)
+**All code items from plan complete.** Remaining items are operational:
 - Edge function deployment (0 of ~25 modified functions deployed)
 - `complete_task` FK migration (committed but not deployed — must deploy before function)
 
