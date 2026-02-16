@@ -28,4 +28,3 @@ export const SocialIcons: React.FC = () => {
     </div>
   );
 };
-

@@ -4,20 +4,8 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/http.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
-
-// Helper for standard JSON responses with CORS headers
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    },
-  });
-}
 
 // Generate a cryptographically secure random 32-character token
 function generateToken(): string {
@@ -82,7 +70,7 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      logger.error('Error storing token metadata', { error: insertError.message, user_id: auth.userId });
+      logger.error('Failed to store API credential metadata', { error: insertError.message });
       await logger.flush();
       return jsonResponse({ error: 'Failed to store token metadata', details: insertError.message }, 500);
     }

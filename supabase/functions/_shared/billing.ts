@@ -28,7 +28,7 @@ export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
  *
  * Returns the raw string value (may not be a valid UUID) or null.
  */
-export function extractOrchestratorRef(params: any): string | null {
+function extractOrchestratorRef(params: any): string | null {
   if (!params || typeof params !== 'object') return null;
 
   return (
@@ -53,7 +53,7 @@ export function extractOrchestratorRef(params: any): string | null {
  * @param taskId  - the task's own ID, to guard against self-references
  * @returns The orchestrator task ID if this is a sub-task, or null otherwise
  */
-export function getSubTaskOrchestratorId(params: any, taskId: string): string | null {
+function getSubTaskOrchestratorId(params: any, taskId: string): string | null {
   const ref = extractOrchestratorRef(params);
   if (!ref) return null;
   if (!UUID_REGEX.test(ref)) return null;
@@ -72,7 +72,7 @@ export function getSubTaskOrchestratorId(params: any, taskId: string): string | 
  * Usage:
  *   supabase.from('tasks').select('...').or(buildSubTaskFilter(orchestratorId))
  */
-export function buildSubTaskFilter(orchestratorTaskId: string): string {
+function buildSubTaskFilter(orchestratorTaskId: string): string {
   return [
     `params->>orchestrator_task_id_ref.eq.${orchestratorTaskId}`,
     `params->orchestrator_details->>orchestrator_task_id.eq.${orchestratorTaskId}`,
@@ -100,7 +100,6 @@ export async function triggerCostCalculation(
   logTag: string = 'CostCalc'
 ): Promise<void> {
   try {
-    console.log(`[${logTag}] Triggering cost calculation for ${taskId}...`);
     const costResp = await fetch(`${supabaseUrl}/functions/v1/calculate-task-cost`, {
       method: "POST",
       headers: {
@@ -113,9 +112,7 @@ export async function triggerCostCalculation(
     if (costResp.ok) {
       const costData = await costResp.json();
       if (costData.skipped) {
-        console.log(`[${logTag}] Cost calculation skipped: ${costData.reason}`);
       } else if (typeof costData.cost === 'number') {
-        console.log(`[${logTag}] Cost calculation successful: $${costData.cost.toFixed(3)}`);
       }
     } else {
       const errTxt = await costResp.text();

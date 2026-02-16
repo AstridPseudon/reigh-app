@@ -10,7 +10,7 @@ import { GenerateControls } from "./components/GenerateControls";
 import { GenerationSettingsSection } from "./components/GenerationSettingsSection";
 import { ChunkLoadErrorBoundary } from "@/shared/components/ChunkLoadErrorBoundary";
 import { ImageGenerationFormProvider } from "./ImageGenerationFormContext";
-import { useImageGenForm } from "./hooks";
+import { useImageGenForm } from "./hooks/useImageGenForm";
 
 // Lazy load modals to improve initial bundle size and performance
 const LazyLoraSelectorModal = React.lazy(() =>

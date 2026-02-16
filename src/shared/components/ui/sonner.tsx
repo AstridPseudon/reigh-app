@@ -1,7 +1,6 @@
 import { useTheme } from "next-themes"
 import { Toast } from "@base-ui-components/react/toast"
 import { toastManager, ToastItem, toast } from "./toast"
-import { usePanes } from "@/shared/contexts/PanesContext"
 
 interface ToasterProps {
   /** Max toasts visible at once. @default 3 */
@@ -12,14 +11,10 @@ interface ToasterProps {
 
 function ToastList() {
   const { toasts } = Toast.useToastManager()
-  const { isTasksPaneLocked, tasksPaneWidth } = usePanes()
-
-  const rightOffset = isTasksPaneLocked ? tasksPaneWidth : 0
 
   return (
     <Toast.Viewport
       className="fixed bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col gap-2 p-4 md:max-w-[420px]"
-      style={rightOffset > 0 ? { right: `${rightOffset}px` } : undefined}
     >
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} />

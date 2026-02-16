@@ -1,74 +1,32 @@
-/**
- * Default rows per page for different screen sizes
- * Used as fallback when container height is not available
- */
 const DEFAULT_ROWS_PER_PAGE = {
   MOBILE: 5,
   DESKTOP: 6,
 } as const;
 
-/**
- * Row calculation constraints
- */
 const ROW_LIMITS = {
-  /** Minimum rows to show (prevents gallery from being too small) */
   MIN_ROWS: 2,
-  /** Maximum rows to show (prevents too many items per page) */
   MAX_ROWS: 12,
 } as const;
 
-/**
- * TARGET IMAGE WIDTH - The main tunable parameter for gallery layout
- *
- * This controls the approximate width (in pixels) each image should have.
- * The gallery will calculate how many columns fit based on:
- *   columns = floor(containerWidth / targetImageWidth)
- *
- * Adjust this value to change the overall density of the gallery:
- * - Lower value (e.g., 150) = more columns, smaller images
- * - Higher value (e.g., 250) = fewer columns, larger images
- *
- * The aspect ratio of images will also influence this - tall images
- * naturally appear narrower, so we scale the target width down for them.
- */
 const TARGET_IMAGE_WIDTH = {
-  /** Base target width in pixels - TWEAK THIS to adjust gallery density */
   BASE: 100,
-  /** Minimum columns to show (prevents images from getting too large) */
   MIN_COLUMNS: 2,
-  /** Maximum columns to show (prevents images from getting too small) */
   MAX_COLUMNS: 24,
-  /** @deprecated Use getEffectiveGap() instead — this value (8px) doesn't match the actual CSS gap (16px on sm+). Kept for backward compat. */
+  // Kept for backward compatibility. Runtime gap uses getEffectiveGap().
   GAP: 8,
 } as const;
 
-/**
- * Derive the effective CSS gap in pixels.
- *
- * Must match the Tailwind gap classes applied in MediaGalleryGrid:
- *   reducedSpacing ? 'gap-2 sm:gap-4' : 'gap-4'
- * where gap-2 = 8px, gap-4 = 16px, sm breakpoint = 640px.
- */
 function getEffectiveGap(reducedSpacing: boolean): number {
   if (!reducedSpacing) return 16;
   const isSmOrAbove = typeof window !== 'undefined' && window.innerWidth >= 640;
   return isSmOrAbove ? 16 : 8;
 }
 
-/**
- * Default items per page for different screen sizes (legacy, used as fallback)
- * Mobile: 20 (shows 10 rows of 2, or 5 rows of 4 on tablets)
- * Desktop: 45 (shows 9 rows of 5)
- */
 export const DEFAULT_ITEMS_PER_PAGE = {
   MOBILE: 20,
   DESKTOP: 45,
 } as const;
 
-/**
- * Grid column classes for different column counts
- * Extended to support up to 12 columns for dynamic width-based calculation
- */
 export const GRID_COLUMN_CLASSES = {
   2: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2',
   3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3',
@@ -83,10 +41,6 @@ export const GRID_COLUMN_CLASSES = {
   12: 'grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 2xl:grid-cols-12',
 } as const;
 
-/**
- * Skeleton column configs that match GRID_COLUMN_CLASSES for each columnsPerRow value.
- * These must stay in sync with GRID_COLUMN_CLASSES to prevent layout shift during loading.
- */
 export const SKELETON_COLUMNS = {
   2: { base: 1, sm: 2, md: 2, lg: 2, xl: 2, '2xl': 2 },
   3: { base: 1, md: 2, lg: 3, xl: 3, '2xl': 3 },
@@ -101,72 +55,39 @@ export const SKELETON_COLUMNS = {
   12: { base: 4, sm: 6, md: 7, lg: 9, xl: 10, '2xl': 12 },
 } as const;
 
-/**
- * Parse an aspect ratio string (e.g., "16:9") into a numeric ratio (width/height)
- */
 function parseAspectRatio(aspectRatioStr: string | undefined | null): number {
-  if (!aspectRatioStr) return 16 / 9; // Default to 16:9
+  if (!aspectRatioStr) return 16 / 9;
   const parts = aspectRatioStr.split(':');
   if (parts.length !== 2) return 16 / 9;
+
   const width = parseFloat(parts[0]);
   const height = parseFloat(parts[1]);
-  if (isNaN(width) || isNaN(height) || height === 0) return 16 / 9;
+  if (Number.isNaN(width) || Number.isNaN(height) || height === 0) return 16 / 9;
   return width / height;
 }
 
-/**
- * Calculate the target image width.
- *
- * Uses a consistent target width regardless of aspect ratio.
- * The actual displayed width depends on the grid column count,
- * which is calculated from container width / target width.
- */
 function getTargetImageWidth(_aspectRatio: number): number {
   return TARGET_IMAGE_WIDTH.BASE;
 }
 
-/**
- * Calculate optimal columns based on container width and image aspect ratio.
- *
- * @param containerWidth - The actual width of the gallery container in pixels
- * @param aspectRatio - width/height ratio of images (e.g., 1.78 for 16:9)
- * @returns Number of columns that fit, clamped to MIN/MAX range
- */
 function calculateDynamicColumns(
   containerWidth: number,
   aspectRatio: number,
   gap: number = 16
 ): number {
   if (!containerWidth || containerWidth <= 0) {
-    // Fallback to aspect-ratio-only calculation when container width unknown
     return getColumnsForAspectRatio(aspectRatio);
   }
 
   const targetWidth = getTargetImageWidth(aspectRatio);
-  // Account for gaps: totalWidth = n*imageWidth + (n-1)*gap
-  // Solve for n: n = (containerWidth + gap) / (targetWidth + gap)
   const effectiveWidth = targetWidth + gap;
   const columns = Math.floor((containerWidth + gap) / effectiveWidth);
-
   return Math.max(
     TARGET_IMAGE_WIDTH.MIN_COLUMNS,
     Math.min(TARGET_IMAGE_WIDTH.MAX_COLUMNS, columns)
   );
 }
 
-/**
- * Calculate optimal rows based on container dimensions and image aspect ratio.
- *
- * Uses the same logic as columns: given container height, how many rows fit?
- * Row height is derived from column width (which comes from container width / columns)
- * and the image aspect ratio.
- *
- * @param containerWidth - The width of the gallery container in pixels
- * @param containerHeight - The available height for the gallery in pixels
- * @param columns - Number of columns (already calculated)
- * @param aspectRatio - width/height ratio of images (e.g., 1.78 for 16:9)
- * @returns Number of rows that fit, clamped to MIN/MAX range
- */
 function calculateDynamicRows(
   containerWidth: number,
   containerHeight: number,
@@ -178,62 +99,25 @@ function calculateDynamicRows(
     return DEFAULT_ROWS_PER_PAGE.DESKTOP;
   }
 
-  // Calculate actual image width based on container and columns
-  // containerWidth = columns * imageWidth + (columns - 1) * gap
-  // imageWidth = (containerWidth - (columns - 1) * gap) / columns
   const totalGapWidth = (columns - 1) * gap;
   const imageWidth = (containerWidth - totalGapWidth) / columns;
-
-  // Calculate image height from width and aspect ratio
-  // aspectRatio = width / height, so height = width / aspectRatio
   const imageHeight = imageWidth / aspectRatio;
-
-  // Calculate how many rows fit in available height
-  // containerHeight = rows * imageHeight + (rows - 1) * gap
-  // Solve for rows: rows = (containerHeight + gap) / (imageHeight + gap)
-  // Subtract half a row height as safety margin so the last row isn't barely clipped
   const effectiveHeight = imageHeight + gap;
   const usableHeight = containerHeight - imageHeight * 0.5;
   const rows = Math.floor((usableHeight + gap) / effectiveHeight);
 
-  const clamped = Math.max(
+  return Math.max(
     ROW_LIMITS.MIN_ROWS,
     Math.min(ROW_LIMITS.MAX_ROWS, rows)
   );
-
-  return clamped;
 }
 
-/**
- * Calculate optimal columns per row based on aspect ratio.
- *
- * Wider images (16:9) → fewer columns (so each image isn't too wide)
- * Taller images (9:16) → more columns (so each image isn't too tall)
- *
- * Uses sqrt for smoother scaling across the ratio range.
- *
- * @param aspectRatio - width/height ratio (e.g., 1.78 for 16:9, 0.56 for 9:16)
- * @returns Number of columns (5-9 range)
- */
 function getColumnsForAspectRatio(aspectRatio: number): number {
-  const BASE_COLUMNS = 5;
-  // Inverse relationship: wider = fewer columns, taller = more columns
-  // Add 2 to shift the range up (user requested +2 to all column counts)
-  const computed = Math.round(BASE_COLUMNS / Math.sqrt(aspectRatio)) + 2;
-  // Clamp to valid range (5-9)
+  const baseColumns = 5;
+  const computed = Math.round(baseColumns / Math.sqrt(aspectRatio)) + 2;
   return Math.max(5, Math.min(9, computed));
 }
 
-/**
- * Get both columns and items per page based on aspect ratio and container dimensions.
- * Convenience function that combines the above utilities.
- *
- * @param aspectRatioStr - Aspect ratio string (e.g., "16:9", "9:16")
- * @param isMobile - Whether on mobile device
- * @param containerWidth - Optional container width in pixels for dynamic column calculation
- * @param containerHeight - Optional container height in pixels for dynamic row calculation
- * @returns { columns, rows, itemsPerPage, skeletonColumns }
- */
 export function getLayoutForAspectRatio(
   aspectRatioStr: string | undefined | null,
   isMobile: boolean,
@@ -250,16 +134,12 @@ export function getLayoutForAspectRatio(
   const ratio = parseAspectRatio(aspectRatioStr);
   const gap = getEffectiveGap(reducedSpacing);
 
-  // Use dynamic calculation if container width is known, otherwise fall back to static
   const rawColumns = containerWidth && containerWidth > 0
     ? calculateDynamicColumns(containerWidth, ratio, gap)
     : getColumnsForAspectRatio(ratio);
 
-  // Clamp to valid range for our predefined grid classes (3-12)
   const clampedColumns = Math.max(3, Math.min(12, rawColumns)) as keyof typeof GRID_COLUMN_CLASSES;
 
-  // Use dynamic row calculation only on desktop when both width and height are known
-  // Mobile always uses fixed rows for consistent scrolling behavior
   const rows = (!isMobile && containerWidth && containerWidth > 0 && containerHeight && containerHeight > 0)
     ? calculateDynamicRows(containerWidth, containerHeight, rawColumns, ratio, gap)
     : (isMobile ? DEFAULT_ROWS_PER_PAGE.MOBILE : DEFAULT_ROWS_PER_PAGE.DESKTOP);

@@ -1,450 +1,266 @@
 {
-  "command": "scan",
-  "score": 100.0,
-  "strict_score": 100.0,
-  "prev_score": 100.0,
+  "command": "review",
+  "action": "import",
+  "mode": "per_file",
   "diff": {
     "new": 0,
     "auto_resolved": 0,
-    "reopened": 2,
-    "total_current": 1338,
-    "suspect_detectors": [],
+    "reopened": 0,
+    "total_current": 0,
+    "suspect_detectors": [
+      "flat_dirs",
+      "orphaned",
+      "patterns",
+      "props",
+      "react",
+      "security",
+      "single_use",
+      "smells",
+      "structural",
+      "subjective_review",
+      "test_coverage"
+    ],
     "chronic_reopeners": [],
     "skipped_other_lang": 0,
     "skipped_out_of_scope": 0,
-    "ignored": 1,
-    "ignore_patterns": 1,
-    "raw_findings": 1340,
-    "suppressed_pct": 0.1
-  },
-  "stats": {
-    "total": 6035,
-    "open": 2,
-    "fixed": 4289,
-    "auto_resolved": 267,
-    "wontfix": 0,
-    "false_positive": 1477,
-    "by_tier": {
-      "1": {
-        "open": 0,
-        "fixed": 92,
-        "auto_resolved": 28,
-        "wontfix": 0,
-        "false_positive": 0
-      },
-      "2": {
-        "open": 0,
-        "fixed": 57,
-        "auto_resolved": 86,
-        "wontfix": 0,
-        "false_positive": 113
-      },
-      "3": {
-        "open": 0,
-        "fixed": 4140,
-        "auto_resolved": 132,
-        "wontfix": 0,
-        "false_positive": 1245
-      },
-      "4": {
-        "open": 2,
-        "fixed": 0,
-        "auto_resolved": 21,
-        "wontfix": 0,
-        "false_positive": 119
-      }
-    }
-  },
-  "warnings": [],
-  "objective_score": 95.9,
-  "objective_strict": 95.9,
-  "dimension_scores": {
-    "File health": {
-      "score": 100.0,
-      "strict": 100.0,
-      "checks": 1002,
-      "issues": 0,
-      "tier": 3,
-      "detectors": {
-        "structural": {
-          "potential": 1002,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        }
-      }
-    },
-    "Code quality": {
-      "score": 100.0,
-      "strict": 100.0,
-      "checks": 10920,
-      "issues": 0,
-      "tier": 3,
-      "detectors": {
-        "unused": {
-          "potential": 1002,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "logs": {
-          "potential": 1002,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "exports": {
-          "potential": 1499,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "deprecated": {
-          "potential": 45,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "props": {
-          "potential": 572,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "smells": {
-          "potential": 1002,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "react": {
-          "potential": 198,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "orphaned": {
-          "potential": 995,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "flat_dirs": {
-          "potential": 241,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "naming": {
-          "potential": 189,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "facade": {
-          "potential": 995,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "patterns": {
-          "potential": 7,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "single_use": {
-          "potential": 155,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "coupling": {
-          "potential": 3018,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        }
-      }
-    },
-    "Duplication": {
-      "score": 100.0,
-      "strict": 100.0,
-      "checks": 1937,
-      "issues": 0,
-      "tier": 3,
-      "detectors": {
-        "dupes": {
-          "potential": 1937,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        }
-      }
-    },
-    "Test health": {
-      "score": 100.0,
-      "strict": 100.0,
-      "checks": 13150,
-      "issues": 2,
-      "tier": 4,
-      "detectors": {
-        "test_coverage": {
-          "potential": 12308,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "subjective_review": {
-          "potential": 842,
-          "pass_rate": 0.9983372921615202,
-          "issues": 2,
-          "weighted_failures": 1.4
-        }
-      }
-    },
-    "Security": {
-      "score": 100.0,
-      "strict": 100.0,
-      "checks": 2255,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "security": {
-          "potential": 1260,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        },
-        "cycles": {
-          "potential": 995,
-          "pass_rate": 1.0,
-          "issues": 0,
-          "weighted_failures": 0.0
-        }
-      }
-    },
-    "Naming Quality": {
-      "score": 84.0,
-      "strict": 84.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.84,
-          "issues": 0,
-          "weighted_failures": 1.6
-        }
-      }
-    },
-    "Error Consistency": {
-      "score": 86.0,
-      "strict": 86.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.86,
-          "issues": 0,
-          "weighted_failures": 1.4
-        }
-      }
-    },
-    "Abstraction Fit": {
-      "score": 82.0,
-      "strict": 82.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.82,
-          "issues": 0,
-          "weighted_failures": 1.8
-        }
-      }
-    },
-    "Logic Clarity": {
-      "score": 83.0,
-      "strict": 83.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.83,
-          "issues": 0,
-          "weighted_failures": 1.7
-        }
-      }
-    },
-    "AI Generated Debt": {
-      "score": 80.0,
-      "strict": 80.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.8,
-          "issues": 0,
-          "weighted_failures": 2.0
-        }
-      }
-    },
-    "Type Safety": {
-      "score": 85.0,
-      "strict": 85.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.85,
-          "issues": 0,
-          "weighted_failures": 1.5
-        }
-      }
-    },
-    "Contracts": {
-      "score": 84.0,
-      "strict": 84.0,
-      "checks": 10,
-      "issues": 0,
-      "tier": 4,
-      "detectors": {
-        "subjective_assessment": {
-          "potential": 10,
-          "pass_rate": 0.84,
-          "issues": 0,
-          "weighted_failures": 1.6
-        }
-      }
-    }
-  },
-  "potentials": {
-    "typescript": {
-      "logs": 1002,
-      "unused": 1002,
-      "exports": 1499,
-      "deprecated": 45,
-      "structural": 1002,
-      "flat_dirs": 241,
-      "props": 572,
-      "single_use": 155,
-      "coupling": 3018,
-      "cycles": 995,
-      "orphaned": 995,
-      "patterns": 7,
-      "naming": 189,
-      "facade": 995,
-      "test_coverage": 12308,
-      "smells": 1002,
-      "react": 198,
-      "security": 1260,
-      "subjective_review": 842,
-      "dupes": 1937
-    }
-  },
-  "zone_distribution": {
-    "production": 1002,
-    "test": 255,
-    "generated": 3,
-    "config": 3
+    "ignored": 0,
+    "ignore_patterns": 0,
+    "raw_findings": 0,
+    "suppressed_pct": 0.0
   },
   "narrative": {
-    "phase": "stagnation",
-    "headline": "All T1 and T2 items cleared!",
+    "phase": "early_momentum",
+    "headline": "\u26a0 6 security findings \u2014 review before other cleanup. Crossed 80% strict!",
     "dimensions": {
       "lowest_dimensions": [
         {
-          "name": "AI Generated Debt",
-          "strict": 80.0,
-          "issues": 0,
-          "impact": 0.0,
-          "subjective": true,
-          "impact_description": "re-review to improve"
+          "name": "Test health",
+          "strict": 28.9,
+          "issues": 1506,
+          "impact": 0.0
         },
         {
-          "name": "Abstraction Fit",
-          "strict": 82.0,
-          "issues": 0,
-          "impact": 0.0,
-          "subjective": true,
-          "impact_description": "re-review to improve"
+          "name": "File health",
+          "strict": 93.3,
+          "issues": 87,
+          "impact": 0.0
         },
         {
-          "name": "Logic Clarity",
-          "strict": 83.0,
-          "issues": 0,
-          "impact": 0.0,
-          "subjective": true,
-          "impact_description": "re-review to improve"
+          "name": "Code quality",
+          "strict": 98.1,
+          "issues": 394,
+          "impact": 0.0
         }
       ],
       "biggest_gap_dimensions": [],
-      "stagnant_dimensions": [
-        {
-          "name": "Duplication",
-          "strict": 100.0,
-          "stuck_scans": 3
-        },
-        {
-          "name": "Security",
-          "strict": 100.0,
-          "stuck_scans": 5
-        }
-      ]
+      "stagnant_dimensions": []
     },
     "actions": [
       {
         "priority": 1,
+        "type": "auto_fix",
+        "detector": "smells",
+        "count": 305,
+        "description": "305 smells findings \u2014 run `desloppify fix dead-useeffect --dry-run` to preview, then apply",
+        "command": "desloppify fix dead-useeffect --dry-run",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "cleanup"
+      },
+      {
+        "priority": 2,
+        "type": "reorganize",
+        "detector": "orphaned",
+        "count": 3,
+        "description": "3 orphaned findings \u2014 delete dead files or relocate with `desloppify move`. Use `desloppify next` to start",
+        "command": "desloppify show orphaned --status open",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "restructure"
+      },
+      {
+        "priority": 3,
+        "type": "reorganize",
+        "detector": "flat_dirs",
+        "count": 12,
+        "description": "12 flat_dirs findings \u2014 create subdirectories and use `desloppify move`. Use `desloppify next` to start",
+        "command": "desloppify show flat_dirs --status open",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "restructure"
+      },
+      {
+        "priority": 4,
+        "type": "reorganize",
+        "detector": "single_use",
+        "count": 6,
+        "description": "6 single_use findings \u2014 inline or relocate with `desloppify move`. Use `desloppify next` to start",
+        "command": "desloppify show single_use --status open",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "restructure"
+      },
+      {
+        "priority": 5,
+        "type": "refactor",
+        "detector": "structural",
+        "count": 90,
+        "description": "90 structural findings \u2014 decompose large files \u2014 extract logic into focused modules",
+        "command": "desloppify show structural --status open",
+        "impact": 0.0,
+        "dimension": "File health",
+        "lane": "refactor_0"
+      },
+      {
+        "priority": 6,
+        "type": "refactor",
+        "detector": "props",
+        "count": 119,
+        "description": "119 props findings \u2014 split bloated components, extract sub-components",
+        "command": "desloppify show props --status open",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "refactor_0"
+      },
+      {
+        "priority": 7,
+        "type": "refactor",
+        "detector": "react",
+        "count": 17,
+        "description": "17 react findings \u2014 refactor React antipatterns (state sync, provider nesting, hook bloat)",
+        "command": "desloppify show react --status open",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "refactor_0"
+      },
+      {
+        "priority": 8,
+        "type": "refactor",
+        "detector": "patterns",
+        "count": 2,
+        "description": "2 patterns findings \u2014 align to single pattern across the codebase",
+        "command": "desloppify show patterns --status open",
+        "impact": 0.0,
+        "dimension": "Code quality",
+        "lane": "refactor_1"
+      },
+      {
+        "priority": 9,
+        "type": "refactor",
+        "detector": "test_coverage",
+        "count": 664,
+        "description": "664 test_coverage findings \u2014 add tests for untested production modules \u2014 prioritize by import count",
+        "command": "desloppify show test_coverage --status open",
+        "impact": 0.0,
+        "dimension": "Test health",
+        "lane": "test_coverage"
+      },
+      {
+        "priority": 10,
+        "type": "manual_fix",
+        "detector": "security",
+        "count": 6,
+        "description": "6 security findings \u2014 review and fix security findings \u2014 prioritize by severity",
+        "command": "desloppify show security --status open",
+        "impact": 0.0,
+        "dimension": "Security",
+        "lane": "refactor_0"
+      },
+      {
+        "priority": 11,
         "type": "manual_fix",
         "detector": "subjective_review",
-        "count": 2,
-        "description": "2 files need design review \u2014 run design review with dimension templates",
+        "count": 842,
+        "description": "842 files need design review \u2014 run design review with dimension templates",
         "command": "desloppify fix review",
         "impact": 0.0,
         "dimension": "Test health",
-        "lane": "refactor"
+        "lane": "refactor_0"
       }
     ],
     "strategy": {
       "fixer_leverage": {
-        "auto_fixable_count": 0,
-        "total_count": 2,
-        "coverage": 0.0,
+        "auto_fixable_count": 305,
+        "total_count": 2066,
+        "coverage": 0.148,
         "impact_ratio": 0.0,
-        "recommendation": "none"
+        "recommendation": "moderate"
       },
       "lanes": {
-        "refactor": {
+        "cleanup": {
           "actions": [
             1
+          ],
+          "file_count": 265,
+          "total_impact": 0.0,
+          "automation": "full",
+          "run_first": true
+        },
+        "restructure": {
+          "actions": [
+            2,
+            3,
+            4
+          ],
+          "file_count": 21,
+          "total_impact": 0.0,
+          "automation": "manual",
+          "run_first": false
+        },
+        "refactor_0": {
+          "actions": [
+            5,
+            6,
+            7,
+            10,
+            11
+          ],
+          "file_count": 867,
+          "total_impact": 0.0,
+          "automation": "manual",
+          "run_first": false
+        },
+        "refactor_1": {
+          "actions": [
+            8
           ],
           "file_count": 2,
           "total_impact": 0.0,
           "automation": "manual",
           "run_first": false
+        },
+        "test_coverage": {
+          "actions": [
+            9
+          ],
+          "file_count": 664,
+          "total_impact": 0.0,
+          "automation": "manual",
+          "run_first": false
         }
       },
-      "can_parallelize": false,
-      "hint": "Try a different dimension to break the plateau."
+      "can_parallelize": true,
+      "hint": "4 independent workstreams, safe to parallelize. Rescan after each phase to verify."
     },
     "tools": {
-      "fixers": [],
+      "fixers": [
+        {
+          "name": "dead-useeffect",
+          "detector": "smells",
+          "open_count": 305,
+          "command": "desloppify fix dead-useeffect --dry-run"
+        },
+        {
+          "name": "empty-if-chain",
+          "detector": "smells",
+          "open_count": 305,
+          "command": "desloppify fix empty-if-chain --dry-run"
+        }
+      ],
       "move": {
         "available": true,
-        "relevant": false,
-        "reason": null,
+        "relevant": true,
+        "reason": "3 orphaned files + 6 single-use files + 12 flat directories",
         "usage": "desloppify move <source> <dest> [--dry-run]"
       },
       "plan": {
@@ -465,70 +281,35 @@
       "worst_gap": 0.0,
       "trend": "stable"
     },
-    "milestone": "All T1 and T2 items cleared!",
+    "milestone": "Crossed 80% strict!",
     "reminders": [
       {
-        "type": "report_scores",
-        "message": "ALWAYS share ALL scores with the user: overall health (lenient + strict), every dimension score (lenient + strict), and all subjective dimension scores. The goal is to maximize strict scores.",
-        "command": null,
-        "no_decay": true
+        "type": "auto_fixers_available",
+        "message": "305 findings are auto-fixable. Run `desloppify fix dead-useeffect --dry-run`.",
+        "command": "desloppify fix dead-useeffect --dry-run"
       },
       {
-        "type": "fp_calibration_structural_production",
-        "message": "100% of structural findings in production zone are false positives. Consider reviewing detection rules for production files.",
+        "type": "dry_run_first",
+        "message": "Always --dry-run first, review changes, then apply.",
         "command": null
       },
       {
-        "type": "fp_calibration_flat_dirs_production",
-        "message": "100% of flat_dirs findings in production zone are false positives. Consider reviewing detection rules for production files.",
-        "command": null
+        "type": "zone_classification",
+        "message": "263 of 1263 files classified as non-production (3 config, 3 generated, 257 test). Override with `desloppify zone set <file> production` if any are misclassified.",
+        "command": "desloppify zone show"
       },
       {
-        "type": "fp_calibration_props_production",
-        "message": "100% of props findings in production zone are false positives. Consider reviewing detection rules for production files.",
-        "command": null
-      },
-      {
-        "type": "fp_calibration_smells_production",
-        "message": "81% of smells findings in production zone are false positives. Consider reviewing detection rules for production files.",
-        "command": null
-      },
-      {
-        "type": "fp_calibration_smells_test",
-        "message": "100% of smells findings in test zone are false positives. Consider reviewing detection rules for test files.",
-        "command": null
-      },
-      {
-        "type": "fp_calibration_react_production",
-        "message": "100% of react findings in production zone are false positives. Consider reviewing detection rules for production files.",
-        "command": null
-      },
-      {
-        "type": "fp_calibration_subjective_review_production",
-        "message": "91% of subjective_review findings in production zone are false positives. Consider reviewing detection rules for production files.",
-        "command": null
+        "type": "review_not_run",
+        "message": "Mechanical checks look good! Run a subjective design review to catch issues linters miss: desloppify review --prepare",
+        "command": "desloppify review --prepare"
       }
     ],
     "reminder_history": {
-      "auto_fixers_available": 3,
-      "dry_run_first": 3,
-      "zone_classification": 3,
-      "report_scores": 46,
-      "feedback_nudge": 3,
-      "stagnant_nudge": 10,
-      "wontfix_growing": 1,
-      "fp_calibration_security_test": 3,
-      "fp_calibration_security_production": 3,
-      "review_findings_pending": 3,
-      "fp_calibration_single_use_production": 3,
-      "fp_calibration_test_coverage_production": 3,
-      "fp_calibration_structural_production": 3,
-      "fp_calibration_flat_dirs_production": 3,
-      "fp_calibration_props_production": 3,
-      "fp_calibration_smells_production": 3,
-      "fp_calibration_smells_test": 3,
-      "fp_calibration_react_production": 3,
-      "fp_calibration_subjective_review_production": 3
+      "report_scores": 1,
+      "auto_fixers_available": 2,
+      "dry_run_first": 2,
+      "zone_classification": 2,
+      "review_not_run": 1
     }
   },
   "config": {

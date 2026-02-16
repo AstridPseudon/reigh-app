@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 
-export interface ZoomControlsProps {
+interface ZoomControlsProps {
   zoomLevel: number;
   onZoomIn: () => void;
   onZoomOut: () => void;

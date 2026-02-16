@@ -24,7 +24,7 @@ import { useHiresFixConfig } from './useHiresFixConfig';
 import { useShotManagement } from './useShotManagement';
 import { useFormContextBuilder } from './useFormContextBuilder';
 
-import { useFormUIState } from '../state';
+import { useFormUIState } from '../state/useFormUIState';
 
 import {
   type PersistedFormSettings,

@@ -27,7 +27,7 @@
  */
 
 import { PhaseConfig } from '@/shared/types/phaseConfig';
-import type { BuiltinPreset } from '@/shared/components/MotionPresetSelector';
+import type { BuiltinPreset } from '@/shared/components/MotionPresetSelector/types';
 import type { PathLoraConfig } from '@/shared/types/lora';
 
 // =============================================================================

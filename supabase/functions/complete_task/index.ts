@@ -20,12 +20,7 @@ import { triggerCostCalculationIfNotSubTask } from './billing.ts';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const Deno: any;
 
-/**
- * Task context containing all task data needed throughout the completion flow.
- * Fetched once and passed to all functions that need it.
- * Exported for use by orchestrator.ts and other modules.
- */
-export interface TaskContext {
+interface TaskContext {
   id: string;
   task_type: string;
   project_id: string;
@@ -128,8 +123,6 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
   }
   const parsedRequest = parseResult.data;
   const taskIdString = parsedRequest.taskId;
-
-  console.log(`[COMPLETE-TASK] Processing task ${taskIdString} (mode: ${parsedRequest.mode})`);
 
   // 2) Get environment variables and create Supabase client
   const env = deps.env ?? Deno.env;
@@ -237,14 +230,12 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       await logger.flush();
       return new Response("Task not found", { status: 404 });
     }
-    console.log(`[COMPLETE-TASK] Task type: ${taskContext.task_type}, tool_type: ${taskContext.tool_type}`);
 
     // 9) Handle storage operations
     const storageResult = await handleStorageOperations(supabaseAdmin, parsedRequest, userId, isServiceRole);
     const { publicUrl, objectPath, thumbnailUrl } = storageResult;
 
     // 10) Validate shot references and update params if needed
-    console.log(`[COMPLETE-TASK] Validating shot references for task ${taskIdString}`);
     try {
       let updatedParams = { ...taskContext.params };
       let needsParamsUpdate = false;
@@ -263,7 +254,6 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       }
 
       if (needsParamsUpdate) {
-        console.log(`[COMPLETE-TASK] Updating task parameters${thumbnailUrl ? ' with thumbnail_url' : ''}${shotValidation.needsUpdate ? ' with cleaned shot references' : ''}`);
         await supabaseAdmin.from("tasks").update({ params: updatedParams }).eq("id", taskIdString);
         
         // Keep in-memory context in sync so downstream steps (generation creation) use updated params
@@ -305,7 +295,6 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     }
 
     // 12) Update task to Complete
-    console.log(`[COMPLETE-TASK] Updating task ${taskIdString} to Complete status`);
     const { error: dbError } = await supabaseAdmin.from("tasks").update({
       status: "Complete",
       output_location: publicUrl,
@@ -338,7 +327,6 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     }
 
     // 15) Return success
-    console.log(`[COMPLETE-TASK] Successfully completed task ${taskIdString}`);
     const responseData = {
       success: true,
       public_url: publicUrl,
@@ -374,4 +362,3 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
 if ((import.meta as any).main) {
   serve((req) => completeTaskHandler(req));
 }
-

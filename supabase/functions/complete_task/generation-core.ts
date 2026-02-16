@@ -8,7 +8,7 @@
 /**
  * Helper to safely extract value from array by index
  */
-export function extractFromArray(arr: any[], index: number): any | undefined {
+function extractFromArray(arr: any[], index: number): any | undefined {
   if (Array.isArray(arr) && index >= 0 && index < arr.length) {
     return arr[index];
   }
@@ -47,7 +47,6 @@ export async function findSourceGenerationByImageUrl(supabase: any, imageUrl: st
   if (!imageUrl) return null;
 
   try {
-    console.log(`[BasedOn] Looking for source generation with image URL: ${imageUrl}`);
     const { data, error } = await supabase
       .from('generations')
       .select('id')
@@ -62,11 +61,9 @@ export async function findSourceGenerationByImageUrl(supabase: any, imageUrl: st
     }
 
     if (data) {
-      console.log(`[BasedOn] Found source generation: ${data.id}`);
       return data.id;
     }
 
-    console.log(`[BasedOn] No source generation found for image URL`);
     return null;
   } catch (error) {
     console.error(`[BasedOn] Exception finding source generation:`, error);
@@ -124,8 +121,6 @@ export async function createVariant(
     variantRecord.viewed_at = viewedAt;
   }
 
-  console.log(`[Variant] Creating variant for generation ${generationId}: type=${variantType}, isPrimary=${isPrimary}, viewed=${!!viewedAt}`);
-
   const { data, error } = await supabase
     .from('generation_variants')
     .insert(variantRecord)
@@ -136,7 +131,6 @@ export async function createVariant(
     throw new Error(`Failed to create variant: ${error.message}`);
   }
 
-  console.log(`[Variant] Created variant ${data.id} for generation ${generationId}`);
   return data;
 }
 
@@ -158,8 +152,6 @@ export async function linkGenerationToShot(
 
     if (error) {
       console.error(`[ShotLink] Failed to link generation ${generationId} to shot ${shotId}:`, error);
-    } else {
-      console.log(`[ShotLink] Successfully linked generation ${generationId} to shot ${shotId}`);
     }
   } catch (error) {
     console.error(`[ShotLink] Exception linking generation to shot:`, error);

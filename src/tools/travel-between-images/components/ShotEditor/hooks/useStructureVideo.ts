@@ -18,28 +18,6 @@ interface UseStructureVideoParams {
 // Re-export types from the shared lib for convenience
 export type { StructureVideoConfig, StructureVideoConfigWithMetadata };
 
-/** Legacy structure video config shape (snake_case fields matching API params) */
-type LegacyStructureVideoConfig = {
-  structure_video_path?: string | null;
-  structure_video_treatment?: 'adjust' | 'clip';
-  structure_video_motion_strength?: number;
-  structure_video_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  uni3c_end_percent?: number;
-  metadata?: VideoMetadata | null;
-  resource_id?: string | null;
-};
-
-/** Default structure video config (legacy single-video format) */
-export const DEFAULT_STRUCTURE_VIDEO_CONFIG: LegacyStructureVideoConfig = {
-  structure_video_path: null,
-  structure_video_treatment: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-  structure_video_motion_strength: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
-  structure_video_type: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_type,
-  uni3c_end_percent: 0.1, // Default 10%
-  metadata: null,
-  resource_id: null,
-};
-
 export interface UseStructureVideoReturn {
   // ============ NEW: Multi-video array interface ============
   /** Array of structure video configurations */
@@ -54,37 +32,17 @@ export interface UseStructureVideoReturn {
   clearAllStructureVideos: () => void;
   /** Set the entire array of structure videos */
   setStructureVideos: (videos: StructureVideoConfigWithMetadata[]) => void;
-  
-  // ============ Legacy single-video interface (backwards compatible) ============
-  /** @deprecated Use structureVideos[0] instead */
-  structureVideoConfig: LegacyStructureVideoConfig;
-  /** @deprecated Use setStructureVideos instead */
-  setStructureVideoConfig: (config: LegacyStructureVideoConfig) => void;
   /** Loading state */
   isLoading: boolean;
 
-  // Legacy individual accessors (deprecated - use structureVideos instead)
-  /** @deprecated Use structureVideos[0]?.path */
+  // Primary video accessors (derived from structureVideos[0])
   structureVideoPath: string | null;
-  /** @deprecated Use structureVideos[0]?.metadata */
   structureVideoMetadata: VideoMetadata | null;
-  /** @deprecated Use structureVideos[0]?.treatment */
   structureVideoTreatment: 'adjust' | 'clip';
-  /** @deprecated Use structureVideos[0]?.motion_strength */
   structureVideoMotionStrength: number;
-  /** @deprecated Use structureVideos[0]?.structure_type */
   structureVideoType: 'uni3c' | 'flow' | 'canny' | 'depth';
-  /** @deprecated Use structureVideos[0]?.resource_id */
   structureVideoResourceId: string | null;
-  /** @deprecated Use addStructureVideo or updateStructureVideo */
-  handleStructureVideoChange: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string
-  ) => void;
+  structureVideoUni3cEndPercent: number;
 }
 
 /**
@@ -119,8 +77,8 @@ function migrateToArrayFormat(
 ): StructureVideoConfigWithMetadata[] {
   if (!settings) return [];
   
-  // Already in array format - but still migrate structure_type to 'uni3c'
-  if (settings.structure_videos && settings.structure_videos.length > 0) {
+  // Prefer array format whenever present (including explicit empty array)
+  if (Array.isArray(settings.structure_videos)) {
     return settings.structure_videos.map(video => ({
       ...video,
       structure_type: 'uni3c',  // Always uni3c - migrate old flow/canny/depth settings
@@ -151,26 +109,6 @@ function migrateToArrayFormat(
   };
   
   return [singleVideo];
-}
-
-/**
- * Convert array format back to legacy single-video format (for backwards compat)
- */
-function arrayToLegacyConfig(videos: StructureVideoConfigWithMetadata[]): LegacyStructureVideoConfig {
-  if (videos.length === 0) {
-    return DEFAULT_STRUCTURE_VIDEO_CONFIG;
-  }
-  
-  const first = videos[0];
-  return {
-    structure_video_path: first.path,
-    structure_video_treatment: first.treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-    structure_video_motion_strength: first.motion_strength ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
-    structure_video_type: 'uni3c',  // Always uni3c - only supported option now
-    uni3c_end_percent: first.uni3c_end_percent ?? 0.1,
-    metadata: first.metadata ?? null,
-    resource_id: first.resource_id ?? null,
-  };
 }
 
 /**
@@ -258,40 +196,9 @@ export function useStructureVideo({
 
   // Save structure videos to database
   const saveToDatabase = useCallback((videos: StructureVideoConfigWithMetadata[]) => {
-    if (videos.length > 0) {
-      // Save in new array format (also save legacy format for backwards compat)
-      const first = videos[0];
-      updateSettingsRef.current('shot', {
-        // New array format
-        structure_videos: videos,
-        // Legacy single-video format (for consumers that don't support array yet)
-        structure_video_path: first.path,
-        structure_video_treatment: first.treatment,
-        structure_video_motion_strength: first.motion_strength,
-        structure_video_type: first.structure_type,
-        uni3c_end_percent: first.uni3c_end_percent,
-        metadata: first.metadata,
-        resource_id: first.resource_id,
-      });
-    } else {
-      // Clear all
-      updateSettingsRef.current('shot', {
-        structure_videos: [],
-        structure_video_path: null,
-        structure_video_treatment: null,
-        structure_video_motion_strength: null,
-        structure_video_type: null,
-        uni3c_end_percent: null,
-        metadata: null,
-        resource_id: null,
-        // Also clear legacy fields
-        path: null,
-        treatment: null,
-        motionStrength: null,
-        structureType: null,
-        resourceId: null,
-      });
-    }
+    updateSettingsRef.current('shot', {
+      structure_videos: videos,
+    });
   }, []);
 
   // ============ NEW: Array manipulation methods ============
@@ -342,73 +249,25 @@ export function useStructureVideo({
     saveToDatabase([]);
   }, [saveToDatabase]);
 
-  // ============ Legacy interface (backwards compatibility) ============
-  
-  const legacyConfig = useMemo(() => arrayToLegacyConfig(structureVideos), [structureVideos]);
-
-  const setStructureVideoConfig = useCallback((config: LegacyStructureVideoConfig) => {
-    
-    if (config.structure_video_path) {
-      // Convert legacy config to array format
-      // NOTE: structure_type is hardcoded to 'uni3c' - only supported option now
-      const video: StructureVideoConfigWithMetadata = {
-        path: config.structure_video_path,
-        start_frame: 0,
-        end_frame: timelineEndFrame,
-        treatment: config.structure_video_treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-        motion_strength: config.structure_video_motion_strength ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
-        structure_type: 'uni3c',  // Always uni3c - migrate old flow/canny/depth settings
-        uni3c_end_percent: config.uni3c_end_percent ?? 0.1,
-        metadata: config.metadata ?? null,
-        resource_id: config.resource_id ?? null,
-      };
-      setStructureVideos([video]);
-    } else {
-      clearAllStructureVideos();
-    }
-  }, [timelineEndFrame, setStructureVideos, clearAllStructureVideos]);
-
-  const handleStructureVideoChange = useCallback((
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    _structureType: 'uni3c' | 'flow' | 'canny' | 'depth',  // Ignored - always uni3c now
-    resourceId?: string
-  ) => {
-    setStructureVideoConfig({
-      structure_video_path: videoPath,
-      structure_video_treatment: treatment,
-      structure_video_motion_strength: motionStrength,
-      structure_video_type: 'uni3c',  // Always uni3c - only supported option now
-      metadata: metadata,
-      resource_id: resourceId ?? null,
-      // Preserve existing uni3c_end_percent from current config to avoid resetting to default
-      uni3c_end_percent: legacyConfig.uni3c_end_percent,
-    });
-  }, [setStructureVideoConfig, legacyConfig.uni3c_end_percent]);
+  const primaryStructureVideo = useMemo(
+    () => structureVideos[0] ?? null,
+    [structureVideos]
+  );
 
   return {
-    // NEW: Multi-video array interface
     structureVideos,
     addStructureVideo,
     updateStructureVideo,
     removeStructureVideo,
     clearAllStructureVideos,
     setStructureVideos,
-    
-    // Legacy interface
-    structureVideoConfig: legacyConfig,
-    setStructureVideoConfig,
     isLoading: isStructureVideoSettingsLoading,
-
-    // Legacy individual accessors
-    structureVideoPath: legacyConfig.structure_video_path ?? null,
-    structureVideoMetadata: legacyConfig.metadata ?? null,
-    structureVideoTreatment: legacyConfig.structure_video_treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-    structureVideoMotionStrength: legacyConfig.structure_video_motion_strength ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
-    structureVideoType: 'uni3c' as const,  // Always uni3c - only supported option now
-    structureVideoResourceId: legacyConfig.resource_id ?? null,
-    handleStructureVideoChange,
+    structureVideoPath: primaryStructureVideo?.path ?? null,
+    structureVideoMetadata: primaryStructureVideo?.metadata ?? null,
+    structureVideoTreatment: primaryStructureVideo?.treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
+    structureVideoMotionStrength: primaryStructureVideo?.motion_strength ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
+    structureVideoType: primaryStructureVideo?.structure_type ?? 'uni3c',
+    structureVideoResourceId: primaryStructureVideo?.resource_id ?? null,
+    structureVideoUni3cEndPercent: primaryStructureVideo?.uni3c_end_percent ?? 0.1,
   };
 }

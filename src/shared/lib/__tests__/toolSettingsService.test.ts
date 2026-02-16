@@ -18,11 +18,11 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('@/tools', () => ({
-  toolsManifest: [
-    { id: 'test-tool', defaults: { setting1: 'default1', setting2: 42 } },
-    { id: 'other-tool', defaults: { enabled: true } },
-  ],
+vi.mock('@/tooling/toolDefaultsRegistry', () => ({
+  toolDefaultsRegistry: {
+    'test-tool': { setting1: 'default1', setting2: 42 },
+    'other-tool': { enabled: true },
+  },
 }));
 
 vi.mock('@/shared/lib/deepEqual', () => ({

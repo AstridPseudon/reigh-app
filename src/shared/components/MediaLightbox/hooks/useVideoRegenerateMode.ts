@@ -153,10 +153,6 @@ export function useVideoRegenerateMode({
       toolId: 'travel-structure-video',
       patch: {
         structure_videos: updatedVideos,
-        // Also update legacy single-video fields for backwards compat
-        structure_video_motion_strength: updates.motionStrength ?? shotStructureVideos[0]?.motion_strength,
-        structure_video_treatment: updates.treatment ?? shotStructureVideos[0]?.treatment,
-        uni3c_end_percent: updates.uni3cEndPercent ?? shotStructureVideos[0]?.uni3c_end_percent,
       },
     }, undefined, 'immediate');
 

@@ -25,8 +25,8 @@ import { SectionHeader } from '@/shared/components/ImageGenerationForm/component
 import {
   generateVideo,
   buildBasicModePhaseConfig,
-  DEFAULT_STRUCTURE_VIDEO_CONFIG
 } from './ShotEditor/services/generateVideoService';
+import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { LoraModel, LoraSelectorModal } from '@/shared/components/LoraSelectorModal';
 import { useShotImages } from '@/shared/hooks/useShotImages';
@@ -216,6 +216,17 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
       const motionMode = settings.motionMode || 'basic';
       const advancedMode = motionMode === 'advanced';
       const finalPhaseConfig = advancedMode ? (settings.phaseConfig || DEFAULT_PHASE_CONFIG) : basicPhaseConfig;
+      const structureVideos: StructureVideoConfigWithMetadata[] = settings.structureVideo?.path
+        ? [{
+            path: settings.structureVideo.path,
+            start_frame: 0,
+            end_frame: settings.batchVideoFrames || 61,
+            treatment: settings.structureVideo.treatment || 'adjust',
+            motion_strength: settings.structureVideo.motionStrength ?? 1.0,
+            structure_type: settings.structureVideo.structureType || 'uni3c',
+            metadata: settings.structureVideo.metadata ?? null,
+          }]
+        : [];
       
       // Build merged steerable motion settings for extracting defaults
       const mergedSteerableSettings = { ...DEFAULT_STEERABLE_MOTION_SETTINGS, ...(settings.steerableMotionSettings || {}) };
@@ -249,13 +260,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
           debug: mergedSteerableSettings.debug || false,
           generation_type_mode: settings.generationTypeMode || 'i2v',
         },
-        structureVideoConfig: {
-          ...DEFAULT_STRUCTURE_VIDEO_CONFIG,
-          structure_video_path: settings.structureVideo?.path || null,
-          structure_video_type: settings.structureVideo?.structureType || DEFAULT_STRUCTURE_VIDEO_CONFIG.structure_video_type,
-          structure_video_treatment: settings.structureVideo?.treatment || DEFAULT_STRUCTURE_VIDEO_CONFIG.structure_video_treatment,
-          structure_video_motion_strength: settings.structureVideo?.motionStrength || DEFAULT_STRUCTURE_VIDEO_CONFIG.structure_video_motion_strength,
-        },
+        structureVideos,
         batchVideoFrames: settings.batchVideoFrames || 61,
         selectedLoras: selectedLoras.map(l => ({ id: l.id, path: l.path, strength: l.strength, name: l.name })),
         variantNameParam: '',

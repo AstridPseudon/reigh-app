@@ -36,7 +36,6 @@ export async function triggerCostCalculationIfNotSubTask(
 
     const subTaskOrchestratorRef = getSubTaskOrchestratorId(taskForCostCheck?.params, taskId);
     if (subTaskOrchestratorRef) {
-      console.log(`[COMPLETE-TASK] Task ${taskId} is a sub-task, skipping cost calculation`);
       return;
     }
 

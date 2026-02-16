@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GeneratedImageWithMetadata } from '../MediaGallery';
+import type { GeneratedImageWithMetadata } from '../types';
 
 /**
  * UNIFIED NAVIGATION STATE

@@ -36,13 +36,11 @@ export async function handleStorageOperations(
     objectPath = parsedRequest.storagePath;
     const { data: urlData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(objectPath);
     publicUrl = urlData.publicUrl;
-    console.log(`[Storage] MODE 3/4: Retrieved public URL: ${publicUrl}`);
 
     // Get thumbnail URL if path provided
     if (parsedRequest.thumbnailStoragePath) {
       const { data: thumbnailUrlData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(parsedRequest.thumbnailStoragePath);
       thumbnailUrl = thumbnailUrlData.publicUrl;
-      console.log(`[Storage] MODE 3/4: Retrieved thumbnail URL: ${thumbnailUrl}`);
     }
   } else {
     // MODE 1: Upload file from base64
@@ -50,7 +48,6 @@ export async function handleStorageOperations(
     // Use standardized task output path: {userId}/tasks/{taskId}/{filename}
     objectPath = storagePaths.taskOutput(userId, parsedRequest.taskId, parsedRequest.filename);
 
-    console.log(`[Storage] MODE 1: Uploading to ${objectPath}`);
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(MEDIA_BUCKET)
       .upload(objectPath, parsedRequest.fileData as any, {
@@ -66,7 +63,6 @@ export async function handleStorageOperations(
     // Get public URL
     const { data: urlData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(objectPath);
     publicUrl = urlData.publicUrl;
-    console.log(`[Storage] MODE 1: Upload successful: ${publicUrl}`);
 
     // Handle thumbnail
     thumbnailUrl = await handleThumbnail(
@@ -93,7 +89,6 @@ async function handleThumbnail(
 ): Promise<string | null> {
   // If thumbnail was provided, upload it
   if (parsedRequest.thumbnailData && parsedRequest.thumbnailFilename) {
-    console.log(`[Storage] Uploading provided thumbnail`);
     try {
       // Use standardized task thumbnail path: {userId}/tasks/{taskId}/thumbnails/{filename}
       const thumbnailPath = storagePaths.taskThumbnail(userId, taskId, parsedRequest.thumbnailFilename);
@@ -110,7 +105,6 @@ async function handleThumbnail(
       }
 
       const { data: thumbnailUrlData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(thumbnailPath);
-      console.log(`[Storage] Thumbnail uploaded: ${thumbnailUrlData.publicUrl}`);
       return thumbnailUrlData.publicUrl;
     } catch (thumbnailError) {
       console.error("[Storage] Error processing thumbnail:", thumbnailError);
@@ -144,7 +138,6 @@ function generateThumbnail(
   mainImageUrl: string,
   objectPath?: string
 ): string {
-  console.log(`[ThumbnailGen] Using Supabase image transforms for thumbnail`);
 
   // If we have the object path, use the SDK's transform option (recommended)
   if (objectPath) {
@@ -158,17 +151,14 @@ function generateThumbnail(
         },
       });
       if (data?.publicUrl) {
-        console.log(`[ThumbnailGen] ✅ Generated thumbnail URL via SDK transform`);
         return data.publicUrl;
       }
     } catch (err) {
-      console.warn(`[ThumbnailGen] SDK transform failed, using main URL:`, err);
     }
   }
 
   // Fallback: Use main image URL (works on all plans, just no resizing)
   // This is fine for most use cases - browser will handle display sizing
-  console.log(`[ThumbnailGen] Using main image URL as thumbnail (no transform)`);
   return mainImageUrl;
 }
 
@@ -200,7 +190,6 @@ export async function cleanupFile(
 ): Promise<void> {
   try {
     await supabase.storage.from(MEDIA_BUCKET).remove([objectPath]);
-    console.log(`[Storage] Cleaned up file: ${objectPath}`);
   } catch (error) {
     console.error(`[Storage] Failed to cleanup file:`, error);
   }

@@ -5,7 +5,7 @@ import { ProgressiveLoadingManager } from "@/shared/components/ProgressiveLoadin
 import { MediaGalleryItem } from "@/shared/components/MediaGalleryItem";
 import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { useAdjacentPagePreloader } from '@/shared/hooks/useAdjacentPagePreloader';
-import { GeneratedImageWithMetadata } from '../index';
+import type { GeneratedImageWithMetadata } from '../types';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 
 interface MediaGalleryGridProps {

@@ -18,7 +18,9 @@ import { useUserUIState } from "@/shared/hooks/useUserUIState";
 import { useDarkMode } from "@/shared/hooks/useDarkMode";
 import { useTextCase } from "@/shared/hooks/useTextCase";
 import { useAIInputMode } from "@/shared/contexts/AIInputModeContext";
-import { GenerationSection, PreferencesSection, TransactionsSection } from "./sections";
+import GenerationSection from "./sections/GenerationSection";
+import PreferencesSection from "./sections/PreferencesSection";
+import TransactionsSection from "./sections/TransactionsSection";
 import type { SettingsModalProps } from "./types";
 
 const SettingsModal: React.FC<SettingsModalProps> = ({

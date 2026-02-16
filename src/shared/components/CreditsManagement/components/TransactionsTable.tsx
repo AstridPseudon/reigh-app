@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/shared/components/ui/table';
 import { UpdatingTimeCell } from '@/shared/components/UpdatingTimeCell';
-import { formatTransactionType } from '../utils';
+import { formatTransactionType } from '../utils/formatters';
 
 interface LedgerEntry {
   type: string;

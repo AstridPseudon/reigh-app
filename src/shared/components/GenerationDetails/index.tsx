@@ -12,14 +12,12 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useGenerationDetails } from './useGenerationDetails';
 import { isImageEditTaskType, isVideoEnhanceTaskType, isImageEnhanceTaskType, parseTaskParams, derivePrompt } from '@/shared/utils/taskParamsUtils';
 import { type TaskDetailsProps } from '@/shared/types/taskDetailsTypes';
-import {
-  ImageEditTaskDetails,
-  ImageEnhanceDetails,
-  CharacterAnimateDetails,
-  JoinClipsDetails,
-  VideoTravelDetails,
-  VideoEnhanceDetails,
-} from '@/shared/components/TaskDetails';
+import { ImageEditTaskDetails } from '@/shared/components/TaskDetails/ImageEditTaskDetails';
+import { ImageEnhanceDetails } from '@/shared/components/TaskDetails/ImageEnhanceDetails';
+import { CharacterAnimateDetails } from '@/shared/components/TaskDetails/CharacterAnimateDetails';
+import { JoinClipsDetails } from '@/shared/components/TaskDetails/JoinClipsDetails';
+import { VideoTravelDetails } from '@/shared/components/TaskDetails/VideoTravelDetails';
+import { VideoEnhanceDetails } from '@/shared/components/TaskDetails/VideoEnhanceDetails';
 import { isJoinClipsTaskType, isCharacterAnimateTaskType, isTravelTaskType } from '@/shared/lib/taskTypeUtils';
 import { ImageGenerationDetails } from '@/shared/components/ImageGenerationDetails';
 import { Task } from '@/types/tasks';
@@ -173,4 +171,3 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
     />
   );
 };
-

@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useContentResponsive } from '@/shared/hooks/useContentResponsive';
 import { ReighLoading } from '@/shared/components/ReighLoading';
-import SettingsModal from '@/shared/components/SettingsModal';
+import SettingsModal from '@/shared/components/SettingsModal/SettingsModal';
 import { useHeaderState } from '@/shared/contexts/ToolPageHeaderContext';
 import { GlobalProcessingWarning } from '@/shared/components/ProcessingWarnings';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
@@ -22,9 +22,9 @@ const LazyProductTour = React.lazy(() =>
   }))
 );
 import '@/shared/lib/debugPolling';
-import { SocialIcons } from '@/shared/components/SocialIcons';
 import { AIInputModeProvider } from '@/shared/contexts/AIInputModeContext';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { SocialIcons } from './components/SocialIcons';
 
 import { useAuthGuard } from './hooks/useAuthGuard';
 import { useSplitViewScroll } from './hooks/useSplitViewScroll';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { TIMELINE_PADDING_OFFSET } from '../../constants';
 
-export interface PendingFrameMarkerProps {
+interface PendingFrameMarkerProps {
   pendingFrame: number | null;
   fullMin: number;
   fullRange: number;

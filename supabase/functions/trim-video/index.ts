@@ -89,7 +89,6 @@ async function waitForPrediction(
     }
     
     const prediction = await response.json();
-    console.log(`[TRIM-VIDEO] Prediction status: ${prediction.status}`);
     
     if (prediction.status === 'succeeded') {
       return prediction;
@@ -116,9 +115,6 @@ async function trimWithReplicate(
   endTime: number,
   apiToken: string
 ): Promise<string> {
-  console.log(`[TRIM-VIDEO] Calling Replicate trim-video model`);
-  console.log(`[TRIM-VIDEO] Input: ${videoUrl.substring(0, 80)}...`);
-  console.log(`[TRIM-VIDEO] Trim: ${startTime}s (${secondsToTimeString(startTime)}) to ${endTime}s (${secondsToTimeString(endTime)})`);
   
   // The model takes start_time and end_time in MM:SS format
   const input: Record<string, string> = {
@@ -126,8 +122,6 @@ async function trimWithReplicate(
     start_time: secondsToTimeString(startTime),
     end_time: secondsToTimeString(endTime),
   };
-  
-  console.log(`[TRIM-VIDEO] Input:`, JSON.stringify(input));
   
   // Create prediction
   const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
@@ -149,7 +143,6 @@ async function trimWithReplicate(
   }
 
   const prediction = await createResponse.json();
-  console.log(`[TRIM-VIDEO] Prediction created: ${prediction.id}`);
 
   // Wait for completion
   const result = await waitForPrediction(prediction.id, apiToken);
@@ -160,7 +153,6 @@ async function trimWithReplicate(
     throw new Error('No output URL in prediction result');
   }
   
-  console.log(`[TRIM-VIDEO] Replicate output: ${outputUrl}`);
   return outputUrl;
 }
 
@@ -168,7 +160,6 @@ async function trimWithReplicate(
  * Download video from URL
  */
 async function downloadVideo(url: string): Promise<ArrayBuffer> {
-  console.log(`[TRIM-VIDEO] Downloading from: ${url.substring(0, 80)}...`);
   
   const response = await fetch(url);
   if (!response.ok) {
@@ -176,7 +167,6 @@ async function downloadVideo(url: string): Promise<ArrayBuffer> {
   }
   
   const buffer = await response.arrayBuffer();
-  console.log(`[TRIM-VIDEO] Downloaded ${(buffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
   
   return buffer;
 }
@@ -199,9 +189,6 @@ async function uploadToStorage(
   const filename = `trimmed_${timestamp}_${randomStr}.${extension}`;
   const uploadPath = storagePaths.upload(userId, filename);
 
-  console.log(`[TRIM-VIDEO] Uploading to storage: ${uploadPath}`);
-  console.log(`[TRIM-VIDEO] Size: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
-
   const { error } = await supabase.storage
     .from(MEDIA_BUCKET)
     .upload(uploadPath, videoBuffer, {
@@ -217,10 +204,8 @@ async function uploadToStorage(
     .from(MEDIA_BUCKET)
     .getPublicUrl(uploadPath);
 
-  console.log(`[TRIM-VIDEO] Uploaded: ${urlData.publicUrl}`);
   return urlData.publicUrl;
 }
-
 
 /**
  * Update variant record with new video URL
@@ -232,7 +217,6 @@ async function updateVariantRecord(
   thumbnailUrl: string | null,
   duration: number
 ): Promise<void> {
-  console.log(`[TRIM-VIDEO] Updating variant ${variantId.substring(0, 8)}...`);
   
   const { error } = await supabase
     .from('generation_variants')
@@ -250,8 +234,6 @@ async function updateVariantRecord(
   if (error) {
     console.error(`[TRIM-VIDEO] Failed to update variant: ${error.message}`);
     // Don't throw - the video was still processed successfully
-  } else {
-    console.log(`[TRIM-VIDEO] Variant updated successfully`);
   }
 }
 

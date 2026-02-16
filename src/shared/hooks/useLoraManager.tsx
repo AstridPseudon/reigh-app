@@ -3,12 +3,12 @@ import { toast } from '@/shared/components/ui/sonner';
 import { useToolSettings } from './useToolSettings';
 import { handleError } from '@/shared/lib/errorHandler';
 import { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
-import type { LoraModel } from '@/shared/components/LoraSelectorModal';
+import type { LoraModel } from '@/shared/types/lora';
 import { LoraHeaderActions } from '@/shared/components/LoraHeaderActions';
 
 // Re-export types
 export type { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
-export type { LoraModel } from '@/shared/components/LoraSelectorModal';
+export type { LoraModel } from '@/shared/types/lora';
 
 export interface UseLoraManagerOptions {
   projectId?: string;

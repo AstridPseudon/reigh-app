@@ -34,7 +34,6 @@ export async function getOrCreateParentGeneration(
         .single();
       orchTask = data;
     } catch {
-      console.log(`[GenMigration] Could not fetch orchestrator task ${orchestratorTaskId}`);
     }
 
     // Check for parent_generation_id in orchestrator params
@@ -43,7 +42,6 @@ export async function getOrCreateParentGeneration(
                         segmentParams?.full_orchestrator_payload?.parent_generation_id;
 
     if (parentGenId) {
-      console.log(`[GenMigration] Orchestrator has parent_generation_id: ${parentGenId}`);
       const { data: existingParent, error: parentError } = await supabase
         .from('generations')
         .select('*')
@@ -51,7 +49,6 @@ export async function getOrCreateParentGeneration(
         .single();
 
       if (existingParent && !parentError) {
-        console.log(`[GenMigration] Using existing parent generation ${parentGenId}`);
         return existingParent;
       }
     }
@@ -61,8 +58,6 @@ export async function getOrCreateParentGeneration(
     if (existing) {
       return existing;
     }
-
-    console.log(`[GenMigration] Creating placeholder parent generation for orchestrator ${orchestratorTaskId}`);
 
     const newId = crypto.randomUUID();
     const baseParams = orchTask?.params || segmentParams || {};
@@ -93,14 +88,11 @@ export async function getOrCreateParentGeneration(
       return await findExistingGeneration(supabase, orchestratorTaskId);
     }
 
-    console.log(`[GenMigration] Created placeholder parent ${newId}`);
-
     // Link parent to shot if orchestrator has shot_id
     const paramsForShotExtraction = orchTask?.params || segmentParams;
     if (paramsForShotExtraction) {
       const { shotId, addInPosition } = extractShotAndPosition(paramsForShotExtraction);
       if (shotId) {
-        console.log(`[GenMigration] Linking parent generation ${newId} to shot ${shotId}`);
         await linkGenerationToShot(supabase, shotId, newId, addInPosition);
       }
     }
@@ -130,7 +122,6 @@ export async function createVariantOnParent(
   makePrimary: boolean = true,
   viewedAt?: string | null
 ): Promise<any | null> {
-  console.log(`[GenMigration] ${taskData.task_type} task ${taskId} - creating variant for parent generation ${parentGenId}`);
 
   const { data: parentGen, error: fetchError } = await supabase
     .from('generations')
@@ -161,8 +152,6 @@ export async function createVariantOnParent(
       variantName || null,
       viewedAt || null
     );
-
-    console.log(`[GenMigration] Successfully created ${variantType} variant for parent generation ${parentGen.id}${viewedAt ? ' (auto-viewed)' : ''}`);
 
     // Mark task as generation_created
     await supabase
@@ -205,7 +194,6 @@ export async function getChildVariantViewedAt(
 ): Promise<string | null> {
   // Fast path: Check explicit flag first (set during orchestrator detection)
   if (options.taskParams?._isSingleSegmentCase === true) {
-    console.log('[getChildVariantViewedAt] Single-segment detected via _isSingleSegmentCase flag');
     return new Date().toISOString();
   }
 
@@ -226,12 +214,9 @@ export async function getChildVariantViewedAt(
         .eq('is_child', true);
 
       if (count === 1) {
-        console.log(`[getChildVariantViewedAt] Single-segment detected via sibling count (parent: ${parentId})`);
         return new Date().toISOString();
       }
-      console.log(`[getChildVariantViewedAt] Multi-segment case: ${count} siblings under parent ${parentId}`);
     } catch (err) {
-      console.warn('[getChildVariantViewedAt] Error counting siblings:', err);
     }
   }
 

@@ -10,7 +10,7 @@ import { extractVideoMetadata, uploadVideoToStorage, type VideoMetadata } from '
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandler';
 
-export interface GuidanceVideoControlsProps {
+interface GuidanceVideoControlsProps {
   shotId: string;
   projectId?: string;
   readOnly?: boolean;

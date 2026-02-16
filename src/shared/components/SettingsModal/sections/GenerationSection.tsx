@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
-import CreditsManagement from "../../CreditsManagement";
+import CreditsManagement from "../../CreditsManagement/CreditsManagement";
 import { getInstallationCommand, getRunCommand, generateAIInstructions, safeCopy } from "../commandUtils";
 import type { GenerationSectionProps, CommandConfig } from "../types";
 

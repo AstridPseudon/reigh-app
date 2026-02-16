@@ -18,11 +18,11 @@ import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 
 import {
   useInpainting,
-  useEditSettingsSync,
-  useMagicEditMode,
-  useRepositionMode,
-  useImg2ImgMode,
-} from './index';
+} from './useInpainting';
+import { useEditSettingsSync } from './useEditSettingsSync';
+import { useMagicEditMode } from './useMagicEditMode';
+import { useRepositionMode } from './useRepositionMode';
+import { useImg2ImgMode } from './useImg2ImgMode';
 
 // ============================================================================
 // Props

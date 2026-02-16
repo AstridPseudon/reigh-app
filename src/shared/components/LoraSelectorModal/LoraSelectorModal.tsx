@@ -12,7 +12,7 @@ import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { LoraSelectorModalProps, LoraModel, ModelFilterCategory } from './types';
 import { getFilterCategory, getDefaultSubFilter, getSubFilterOptions } from './utils/filter-utils';
 import { CommunityLorasTab } from './components/CommunityLorasTab';
-import { MyLorasTab } from './components/MyLorasTab';
+import { MyLorasTab } from './components/MyLorasTab/MyLorasTab';
 
 export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
   isOpen,

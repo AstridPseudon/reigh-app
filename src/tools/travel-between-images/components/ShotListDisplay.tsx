@@ -22,7 +22,6 @@ import { Button } from '@/shared/components/ui/button';
 import { useReorderShots } from '@/shared/hooks/useShots';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { useCurrentProject } from '@/shared/hooks/useCurrentProject';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
 import { cn } from '@/shared/lib/utils';
@@ -64,8 +63,11 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
 }) => {
   // Get hooks first before using them in useMemo
   const { isLoading: shotsLoading, error: shotsError } = useShots();
-  const { selectedProjectId: currentProjectId } = useProject();
-  const currentProject = useCurrentProject();
+  const { selectedProjectId: currentProjectId, projects } = useProject();
+  const currentProject = React.useMemo(
+    () => projects.find((project) => project.id === currentProjectId) || null,
+    [projects, currentProjectId]
+  );
   const reorderShotsMutation = useReorderShots();
   const queryClient = useQueryClient();
   const { finalVideoMap } = useShotFinalVideos(currentProjectId);

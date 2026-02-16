@@ -40,7 +40,7 @@ import {
 
 // Import components
 import { LightboxShell, LightboxProviders } from './components';
-import { LightboxLayout } from './components/layouts';
+import { LightboxLayout } from './components/layouts/LightboxLayout';
 import { EditModePanel } from './components/EditModePanel';
 import { InfoPanel } from './components/InfoPanel';
 import { ImageEditProvider } from './contexts/ImageEditContext';

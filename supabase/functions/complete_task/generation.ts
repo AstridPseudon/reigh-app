@@ -18,7 +18,6 @@ import {
   handleVariantOnChild,
   handleChildGeneration,
   handleStandaloneGeneration,
-  type HandlerContext,
 } from './generation-handlers.ts';
 import { TASK_TYPES } from './constants.ts';
 
@@ -48,7 +47,6 @@ export async function createGenerationFromTask(
 
   // Skip orchestration tasks (they coordinate, don't produce output)
   if (taskData.category === 'orchestration') {
-    console.log(`[GenMigration] SKIP: Task ${taskId} is orchestration`);
     return null;
   }
 
@@ -56,7 +54,6 @@ export async function createGenerationFromTask(
   // Intermediate tasks (e.g., join_clips_segment) set this at creation time —
   // the final stitch task handles the parent variant instead.
   if (params.skip_generation === true) {
-    console.log(`[GenMigration] SKIP: Task ${taskId} has skip_generation=true`);
     return null;
   }
 
@@ -74,7 +71,6 @@ export async function createGenerationFromTask(
   const isSingleItem = params.is_single_item === true ||
                        (params.is_first_segment === true && params.is_last_segment === true);
 
-  console.log(`[GenMigration] Task ${taskId}: based_on=${basedOn || 'none'}, child_generation_id=${childGenerationId || 'none'}, parent_generation_id=${parentGenerationId || 'none'}, child_order=${childOrder}, is_single_item=${isSingleItem}`);
   logger?.debug("Generation routing", {
     task_id: taskId,
     based_on: basedOn,
@@ -93,14 +89,12 @@ export async function createGenerationFromTask(
 
     // 2. VARIANT ON SOURCE: based_on present → variant on that generation
     if (basedOn && !createAsGeneration) {
-      console.log(`[GenMigration] VARIANT: Task ${taskId} on ${basedOn}`);
       const success = await handleVariantCreation(supabase, taskId, taskData, basedOn, publicUrl, thumbnailUrl);
       if (success) return { id: basedOn }; // Return generation that received variant
-      console.log(`[GenMigration] Variant creation failed, falling back to generation`);
     }
 
     // Build context for remaining handlers
-    const ctx: HandlerContext = {
+    const ctx = {
       supabase,
       taskId,
       taskData,
@@ -117,7 +111,6 @@ export async function createGenerationFromTask(
 
     // 3. VARIANT ON CHILD: child_generation_id present → update existing child
     if (childGenerationId) {
-      console.log(`[GenMigration] VARIANT_ON_CHILD: Task ${taskId} updating child ${childGenerationId}`);
       result = await handleVariantOnChild(ctx);
       if (result) return result;
       // Fall through to child generation if variant failed
@@ -127,22 +120,17 @@ export async function createGenerationFromTask(
     // These have parent_generation_id but create a variant on parent, not a child under it
     const isStitchTask = taskData.task_type === TASK_TYPES.TRAVEL_STITCH || taskData.task_type === TASK_TYPES.JOIN_FINAL_STITCH;
     if (isStitchTask && parentGenerationId) {
-      console.log(`[GenMigration] STITCH: Task ${taskId} creating variant on parent ${parentGenerationId}`);
       result = await handleVariantOnParent(ctx);
       if (result) return result;
-      console.log(`[GenMigration] Stitch variant creation failed, falling back`);
     }
 
     // 5. CHILD GENERATION: parent_generation_id present → child under parent
     if (parentGenerationId) {
-      console.log(`[GenMigration] CHILD: Task ${taskId} under parent ${parentGenerationId}`);
       result = await handleChildGeneration(ctx);
       if (result) return result;
-      console.log(`[GenMigration] Child creation failed, falling back to standalone`);
     }
 
     // 6. STANDALONE: no parent/child relationship
-    console.log(`[GenMigration] STANDALONE: Task ${taskId}`);
     return handleStandaloneGeneration(ctx);
 
   } catch (error) {
@@ -167,8 +155,6 @@ async function handleRegeneration(
   thumbnailUrl: string | null | undefined,
   logger?: any
 ): Promise<any> {
-  console.log(`[GenMigration] Generation already exists for task ${taskId}: ${existingGeneration.id}`);
-  console.log(`[GenMigration] Creating new variant and making it primary`);
   logger?.info("Existing generation found - creating regenerated variant", {
     task_id: taskId,
     existing_generation_id: existingGeneration.id,
@@ -192,8 +178,6 @@ async function handleRegeneration(
     'regenerated',
     null
   );
-
-  console.log(`[GenMigration] Successfully created regenerated variant for generation ${existingGeneration.id}`);
 
   const { shotId, addInPosition } = extractShotAndPosition(taskData.params);
   if (shotId) {

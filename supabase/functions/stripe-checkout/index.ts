@@ -109,7 +109,7 @@ serve(async (req) => {
     const frontendUrl = Deno.env.get("FRONTEND_URL");
     
     if (!stripeSecretKey) {
-      logger.error("STRIPE_SECRET_KEY not set in environment");
+      logger.error("Missing Stripe configuration");
       await logger.flush();
       return jsonResponse({ error: "Stripe not configured" }, 500);
     }

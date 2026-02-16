@@ -3,14 +3,12 @@ import { cn } from '@/shared/lib/utils';
 import { Type, Paintbrush, Pencil, Move, Wand2 } from 'lucide-react';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { useImageEditCanvasSafe } from '../contexts/ImageEditCanvasContext';
-import {
-  BrushSizeSlider,
-  PaintEraseToggle,
-  AnnotationModeToggle,
-  UndoClearButtons,
-  PositionToggleButton,
-  RepositionControls,
-} from './controls';
+import { BrushSizeSlider } from './controls/BrushSizeSlider';
+import { PaintEraseToggle } from './controls/PaintEraseToggle';
+import { AnnotationModeToggle } from './controls/AnnotationModeToggle';
+import { UndoClearButtons } from './controls/UndoClearButtons';
+import { PositionToggleButton } from './controls/PositionToggleButton';
+import { RepositionControls } from './controls/RepositionControls';
 interface FloatingToolControlsProps {
   variant: 'tablet' | 'mobile';
 }

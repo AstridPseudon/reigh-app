@@ -10,7 +10,7 @@
  * - Join LoRA manager interface
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useJoinSegmentsSettings, JoinSegmentsSettings } from '../../../hooks/useJoinSegmentsSettings';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal/types';
@@ -52,7 +52,7 @@ interface JoinLoraManager {
   selectedLoras: SelectedLora[];
   setSelectedLoras: (loras: SelectedLora[]) => void;
   isLoraModalOpen: boolean;
-  setIsLoraModalOpen: () => void;
+  setIsLoraModalOpen: (open: boolean) => void;
   handleAddLora: (loraToAdd: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
   handleRemoveLora: (loraId: string) => void;
   handleLoraStrengthChange: (loraId: string, newStrength: number) => void;
@@ -104,6 +104,9 @@ export function useJoinSegmentsSetup({
   projectId,
   swapButtonRef,
 }: UseJoinSegmentsSetupOptions): UseJoinSegmentsSetupReturn {
+  // Join-specific LoRA modal state (used by JoinClipsSettingsForm via external lora manager)
+  const [isJoinLoraModalOpen, setIsJoinLoraModalOpen] = useState(false);
+
   // Join Segments settings (shot-level persistence)
   const joinSettings = useJoinSegmentsSettings(selectedShotId, projectId);
 
@@ -192,8 +195,8 @@ export function useJoinSegmentsSetup({
     setSelectedLoras: (loras: SelectedLora[]) => {
       joinSettings.updateField('selectedLoras', loras);
     },
-    isLoraModalOpen: false,
-    setIsLoraModalOpen: () => {},
+    isLoraModalOpen: isJoinLoraModalOpen,
+    setIsLoraModalOpen: (open: boolean) => setIsJoinLoraModalOpen(open),
     handleAddLora: (loraToAdd: LoraModel, _isManualAction = true, initialStrength?: number) => {
       if (joinSelectedLoras.find(sl => sl.id === loraToAdd["Model ID"])) {
         return; // Already exists
@@ -231,7 +234,7 @@ export function useJoinSegmentsSetup({
     hasEverSetLoras: joinSelectedLoras.length > 0,
     shouldApplyDefaults: false,
     markAsUserSet: () => {},
-  }), [joinSelectedLoras, joinSettings]);
+  }), [joinSelectedLoras, joinSettings, isJoinLoraModalOpen]);
 
   return {
     // Raw settings

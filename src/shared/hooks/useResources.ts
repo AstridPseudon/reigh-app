@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandler';
-import { LoraModel } from '@/shared/components/LoraSelectorModal';
+import type { LoraModel } from '@/shared/types/lora';
 import { PhaseConfig } from '@/shared/types/phaseConfig';
 import { supabase } from '@/integrations/supabase/client';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';

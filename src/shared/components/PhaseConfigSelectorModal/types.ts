@@ -6,7 +6,7 @@ export type SortOption = 'default' | 'newest' | 'oldest' | 'mostUsed' | 'name';
 
 export type ModelTypeFilter = 'all' | 'i2v' | 'vace';
 
-export interface CurrentSettings {
+interface CurrentSettings {
   textBeforePrompts?: string;
   textAfterPrompts?: string;
   basePrompt?: string;

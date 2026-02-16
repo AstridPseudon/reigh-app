@@ -190,7 +190,7 @@ serve(async (req) => {
     }
 
     const userId = auth.userId;
-    logger.info('Authenticated user', { user_id: userId });
+    logger.info('Authenticated request');
 
     // 2. Get user's HuggingFace token (decrypted from Vault)
     const { data: apiKeyData, error: apiKeyError } = await supabaseAdmin.rpc(
@@ -199,7 +199,6 @@ serve(async (req) => {
     );
 
     if (apiKeyError || !apiKeyData || apiKeyData.length === 0) {
-      logger.error('HF token not found', { error: apiKeyError?.message, user_id: userId });
       return createResponse({
         error: "HuggingFace API key not found. Please set up your HuggingFace token first.",
         code: "HF_TOKEN_NOT_FOUND"
@@ -208,13 +207,11 @@ serve(async (req) => {
 
     const hfToken = apiKeyData[0].key_value;
     if (!hfToken) {
-      logger.error('HF token is empty', { user_id: userId });
       return createResponse({
         error: "HuggingFace API key is empty. Please re-enter your token.",
         code: "HF_TOKEN_EMPTY"
       }, 400);
     }
-    logger.info('Retrieved HF token from Vault');
 
     // 3. Parse form data
     const formData = await req.formData();

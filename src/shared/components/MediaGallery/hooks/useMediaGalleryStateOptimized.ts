@@ -5,7 +5,7 @@ import {
   useMemo
 } from 'react';
 import { GenerationRow } from '@/types/shots';
-import { GeneratedImageWithMetadata } from '../index';
+import type { GeneratedImageWithMetadata } from '../types';
 
 // Consolidated state interface
 interface MediaGalleryState {

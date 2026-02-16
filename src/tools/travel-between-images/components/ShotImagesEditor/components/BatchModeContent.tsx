@@ -6,7 +6,7 @@
 import React from 'react';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { Button } from '@/shared/components/ui/button';
-import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager';
+import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager/ShotImageManagerContainer';
 import { BatchGuidanceVideo } from '../../BatchGuidanceVideo';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
 import type { PairData } from '../../Timeline/TimelineContainer';

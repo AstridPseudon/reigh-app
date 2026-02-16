@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,60 +7,24 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/shared/components/ui/dialog';
-import { useModal, ModalSize } from '@/shared/hooks/useModal';
+import { useModal, type ModalSize } from '@/shared/hooks/useModal';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
 interface ModalContainerProps {
-  /** Whether the modal is open */
   open: boolean;
-  /** Callback when the modal open state changes */
   onOpenChange: (open: boolean) => void;
-  /** Modal size variant */
   size?: ModalSize;
-  /** Modal title */
   title: ReactNode;
-  /** Optional description below the title */
   description?: ReactNode;
-  /** Modal content (scrollable area) */
   children: ReactNode;
-  /** Optional footer content. If not provided, no footer is rendered. */
   footer?: ReactNode;
-  /** Additional class names for the content wrapper */
   className?: string;
-  /** Additional class names for the scrollable content area */
   contentClassName?: string;
-  /** Whether to hide the default close button (X) */
   hideCloseButton?: boolean;
-  /** Prevent closing on outside click */
   preventOutsideClose?: boolean;
 }
 
-/**
- * Unified modal container that handles responsive sizing, header/footer/scroll structure.
- *
- * @example
- * ```tsx
- * <ModalContainer
- *   open={isOpen}
- *   onOpenChange={setIsOpen}
- *   size="large"
- *   title="Create New Shot"
- *   description="Add a new shot to your project"
- *   footer={
- *     <>
- *       <Button variant="retro-secondary" onClick={() => setIsOpen(false)}>Cancel</Button>
- *       <Button variant="retro" onClick={handleSubmit}>Create</Button>
- *     </>
- *   }
- * >
- *   <div className="space-y-4">
- *     <Input ... />
- *     <Select ... />
- *   </div>
- * </ModalContainer>
- * ```
- */
 export function ModalContainer({
   open,
   onOpenChange,
@@ -77,10 +41,7 @@ export function ModalContainer({
   const modal = useModal(size);
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && preventOutsideClose) {
-      // Only allow closing via explicit close button/action
-      return;
-    }
+    if (!newOpen && preventOutsideClose) return;
     onOpenChange(newOpen);
   };
 
@@ -89,10 +50,8 @@ export function ModalContainer({
       <DialogContent
         className={cn(modal.className, className)}
         style={modal.style}
-        // Override close button visibility via CSS if needed
         data-hide-close={hideCloseButton || undefined}
       >
-        {/* Header */}
         <div className={modal.headerClass}>
           <DialogHeader
             className={cn(
@@ -105,7 +64,6 @@ export function ModalContainer({
           </DialogHeader>
         </div>
 
-        {/* Scrollable content */}
         <div
           className={cn(
             modal.scrollClass,
@@ -116,7 +74,6 @@ export function ModalContainer({
           {children}
         </div>
 
-        {/* Footer (optional) */}
         {footer && (
           <div className={modal.footerClass}>
             <DialogFooter
@@ -134,45 +91,16 @@ export function ModalContainer({
   );
 }
 
-// ============================================================================
-// Convenience Sub-Components for Footer Patterns
-// ============================================================================
-
 interface ModalFooterButtonsProps {
-  /** Cancel button text */
   cancelText?: string;
-  /** Confirm button text */
   confirmText?: string;
-  /** Called when cancel is clicked */
   onCancel: () => void;
-  /** Called when confirm is clicked */
   onConfirm: () => void;
-  /** Whether the confirm action is loading/disabled */
   isLoading?: boolean;
-  /** Whether the confirm button should be destructive styled */
   destructive?: boolean;
-  /** Disable both buttons */
   disabled?: boolean;
 }
 
-/**
- * Standard cancel/confirm footer buttons for modals.
- *
- * @example
- * ```tsx
- * <ModalContainer
- *   ...
- *   footer={
- *     <ModalFooterButtons
- *       onCancel={() => setOpen(false)}
- *       onConfirm={handleSubmit}
- *       confirmText="Create"
- *       isLoading={isSubmitting}
- *     />
- *   }
- * >
- * ```
- */
 export function ModalFooterButtons({
   cancelText = 'Cancel',
   confirmText = 'Confirm',
@@ -204,4 +132,3 @@ export function ModalFooterButtons({
     </>
   );
 }
-

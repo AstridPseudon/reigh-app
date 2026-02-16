@@ -23,7 +23,7 @@ import { usePanes } from '@/shared/contexts/PanesContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { LightboxProviders } from './components';
-import { LightboxLayout } from './components/layouts';
+import { LightboxLayout } from './components/layouts/LightboxLayout';
 import { SegmentSlotFormView } from './components/SegmentSlotFormView';
 import { VideoEditPanel } from './components/VideoEditPanel';
 import { InfoPanel } from './components/InfoPanel';

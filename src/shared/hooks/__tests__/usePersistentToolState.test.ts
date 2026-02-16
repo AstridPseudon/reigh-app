@@ -13,13 +13,10 @@ vi.mock('./useToolSettings', () => ({
   })),
 }));
 
-vi.mock('@/tools', () => ({
-  toolsManifest: [
-    {
-      id: 'test-tool',
-      defaults: { generationMode: 'single', steps: 4 },
-    },
-  ],
+vi.mock('@/tooling/toolDefaultsRegistry', () => ({
+  toolDefaultsRegistry: {
+    'test-tool': { generationMode: 'single', steps: 4 },
+  },
 }));
 
 vi.mock('@/shared/lib/deepEqual', () => ({

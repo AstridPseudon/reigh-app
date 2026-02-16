@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
-import type { GeneratedImageWithMetadata } from "../../MediaGallery";
+import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 
 interface ImageContentProps {
   image: GeneratedImageWithMetadata;

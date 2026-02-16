@@ -18,7 +18,7 @@
  * so `location` already contains the best available URL.
  */
 
-import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
+import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
 import { GenerationRow, GenerationMetadata } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
 import { stripQueryParameters } from '@/shared/lib/utils';
@@ -464,4 +464,3 @@ export function transformVariant(
     all_shot_associations: undefined,
   };
 }
-

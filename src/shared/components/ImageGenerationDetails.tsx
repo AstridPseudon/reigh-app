@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { DisplayableMetadata } from './MediaGallery';
+import type { DisplayableMetadata } from './MediaGallery/types';
 import { getDisplayNameFromUrl } from '@/shared/lib/loraUtils';
 
 // Helper function to map model names to display names
@@ -458,4 +458,3 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
     </div>
   );
 };
-

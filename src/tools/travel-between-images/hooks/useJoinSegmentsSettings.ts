@@ -2,9 +2,9 @@ import { useRef, useMemo, useEffect } from 'react';
 import { handleError } from '@/shared/lib/errorHandler';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
-import { joinClipsSettings, JoinClipsSettings } from '@/tools/join-clips/settings';
+import { joinClipsSettings, JoinClipsSettings } from '@/shared/lib/joinClipsDefaults';
 import { ActiveLora } from '@/shared/hooks/useLoraManager';
-import { STORAGE_KEYS } from '../storageKeys';
+import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
 
 /**
  * Extended settings for Join Segments in travel-between-images

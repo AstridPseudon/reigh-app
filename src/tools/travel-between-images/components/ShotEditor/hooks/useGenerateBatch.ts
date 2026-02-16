@@ -14,22 +14,13 @@ import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { Shot, GenerationRow } from '@/types/shots';
+import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
 interface SelectedLora {
   id: string;
   path: string;
   strength: number;
   name?: string;
-}
-
-interface StructureVideoConfig {
-  uni3c_end_percent?: number;
-  [key: string]: unknown;
-}
-
-interface StructureVideo {
-  url: string;
-  [key: string]: unknown;
 }
 
 interface UseGenerateBatchOptions {
@@ -65,8 +56,7 @@ interface UseGenerateBatchOptions {
   // LoRAs
   selectedLoras: SelectedLora[];
   // Structure video
-  structureVideoConfig: StructureVideoConfig;
-  structureVideos: StructureVideo[];
+  structureVideos: StructureVideoConfigWithMetadata[];
   // Clear prompts callback
   clearAllEnhancedPrompts: () => void;
   // Output selection
@@ -135,7 +125,6 @@ export function useGenerateBatch({
   // LoRAs
   selectedLoras,
   // Structure video
-  structureVideoConfig,
   structureVideos,
   // Clear prompts callback
   clearAllEnhancedPrompts,
@@ -233,7 +222,6 @@ export function useGenerateBatch({
             generation_type_mode: generationTypeMode || 'i2v',
             use_svi: false, // SVI feature removed from UX
           },
-          structureVideoConfig,
           structureVideos,
           batchVideoFrames,
           selectedLoras: selectedLoras.map(lora => ({
@@ -244,7 +232,6 @@ export function useGenerateBatch({
           })),
           variantNameParam,
           clearAllEnhancedPrompts,
-          uni3cEndPercent: structureVideoConfig.uni3c_end_percent,
           parentGenerationId: effectiveParentId,
           stitchConfig: stitchAfterGenerate ? {
             context_frame_count: joinContextFrames,
@@ -320,7 +307,6 @@ export function useGenerateBatch({
     smoothContinuations,
     batchVideoFrames,
     selectedLoras,
-    structureVideoConfig,
     structureVideos,
     clearAllEnhancedPrompts,
     selectedOutputId,

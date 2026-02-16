@@ -199,10 +199,10 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">End:</Label>
-                        <span className="text-sm font-medium">{((structureVideo.structureVideoConfig.uni3c_end_percent || 0.1) * 100).toFixed(0)}%</span>
+                        <span className="text-sm font-medium">{(structureVideo.structureVideoUni3cEndPercent * 100).toFixed(0)}%</span>
                       </div>
                       <Slider
-                        value={structureVideo.structureVideoConfig.uni3c_end_percent || 0.1}
+                        value={structureVideo.structureVideoUni3cEndPercent}
                         onValueChange={(value) => structureVideoHandlers.handleUni3cEndPercentChange(value)}
                         min={0}
                         max={1}
@@ -234,7 +234,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             structureVideoMotionStrength={structureVideo.structureVideoMotionStrength}
             onStructureVideoMotionStrengthChange={structureVideoHandlers.handleStructureVideoMotionStrengthChange}
             onStructureTypeChange={structureVideoHandlers.handleStructureTypeChangeFromMotionControl}
-            uni3cEndPercent={structureVideo.structureVideoConfig.uni3c_end_percent}
+            uni3cEndPercent={structureVideo.structureVideoUni3cEndPercent}
             onUni3cEndPercentChange={structureVideoHandlers.handleUni3cEndPercentChange}
             selectedLoras={loraManager.selectedLoras}
             availableLoras={loraSettingsFromContext.availableLoras}

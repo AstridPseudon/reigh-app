@@ -19,6 +19,7 @@ import React, { createContext, useContext } from 'react';
 import { QueryClient } from '@tanstack/react-query';
 import { Shot, GenerationRow } from '@/types/shots';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
+import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import { ShotEditorState } from './state/types';
 import { ShotEditorActions } from './state/useShotEditorState';
 import { LoraManagerReturn } from './hooks/useLoraSync';
@@ -145,6 +146,14 @@ export interface StructureVideoHandlers {
   handleStructureVideoMotionStrengthChange: (strength: number) => void;
   handleStructureTypeChangeFromMotionControl: (type: 'uni3c' | 'flow' | 'canny' | 'depth') => void;
   handleUni3cEndPercentChange: (value: number) => void;
+  handleStructureVideoInputChange: (
+    videoPath: string | null,
+    metadata: VideoMetadata | null,
+    treatment: 'adjust' | 'clip',
+    motionStrength: number,
+    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
+    resourceId?: string
+  ) => void;
 }
 
 /** Join segments state and handlers */
@@ -385,4 +394,3 @@ export const ShotSettingsProvider: React.FC<{
     </ShotSettingsContext.Provider>
   );
 };
-

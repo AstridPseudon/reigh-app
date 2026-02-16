@@ -3,7 +3,7 @@ import MediaLightbox from "@/shared/components/MediaLightbox";
 import TaskDetailsModal from '@/shared/components/TaskDetailsModal';
 import { GenerationRow, Shot } from "@/types/shots";
 import { Task } from "@/types/tasks";
-import { GeneratedImageWithMetadata, DisplayableMetadata } from '../index';
+import type { GeneratedImageWithMetadata, DisplayableMetadata } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';

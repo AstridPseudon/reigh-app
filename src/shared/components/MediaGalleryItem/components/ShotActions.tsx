@@ -8,7 +8,7 @@ import {
 } from "@/shared/components/ui/tooltip";
 import { ShotSelector } from "@/shared/components/ShotSelector";
 import { cn } from "@/shared/lib/utils";
-import type { GeneratedImageWithMetadata } from "../../MediaGallery";
+import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 
 interface ShotActionsProps {
   image: GeneratedImageWithMetadata;

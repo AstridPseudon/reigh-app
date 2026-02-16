@@ -5,7 +5,7 @@ import { Slider } from '@/shared/components/ui/slider';
 import { Plus } from 'lucide-react';
 import { framesToSeconds } from '../../utils/time-utils';
 
-export interface TimelineBottomControlsProps {
+interface TimelineBottomControlsProps {
   resetGap: number;
   setResetGap: (value: number) => void;
   maxGap: number;

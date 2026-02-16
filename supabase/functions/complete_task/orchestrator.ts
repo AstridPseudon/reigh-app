@@ -6,7 +6,6 @@
 import { extractOrchestratorTaskId, extractOrchestratorRunId } from './params.ts';
 import { triggerCostCalculation } from './billing.ts';
 import { TASK_TYPES, SEGMENT_TYPE_CONFIG } from './constants.ts';
-import type { TaskContext } from './index.ts';
 
 /** Minimal shape for segment tasks returned from DB queries */
 interface SegmentTask {
@@ -19,6 +18,12 @@ interface SegmentTask {
 interface OrchestratorTask {
   id: string;
   status: string;
+  params: Record<string, any>;
+}
+
+interface TaskContext {
+  task_type: string;
+  project_id: string;
   params: Record<string, any>;
 }
 
@@ -47,8 +52,6 @@ export async function checkOrchestratorCompletion(
     return;
   }
 
-  console.log(`[OrchestratorComplete] ${taskType} ${taskIdString} completed. Checking siblings for orchestrator ${orchestratorTaskId}`);
-
   // FETCH: orchestrator task + sibling segments in parallel
   const segmentTypeToQuery = config.isFinalStep
     ? (config.billingSegmentType || config.segmentType)
@@ -71,18 +74,15 @@ export async function checkOrchestratorCompletion(
   }
 
   if (!orchestratorTask) {
-    console.log(`[OrchestratorComplete] Orchestrator task ${orchestratorTaskId} not found`);
     return;
   }
 
   if (orchestratorTask.status === 'Complete') {
-    console.log(`[OrchestratorComplete] Orchestrator ${orchestratorTaskId} is already Complete`);
     return;
   }
 
   // FINAL STEP: tasks like join_final_stitch complete the orchestrator directly
   if (config.isFinalStep) {
-    console.log(`[OrchestratorComplete] ${taskType} is a final step task - marking orchestrator complete directly`);
 
     await markOrchestratorComplete(
       supabase,
@@ -111,10 +111,7 @@ export async function checkOrchestratorCompletion(
     }
   }
 
-  console.log(`[OrchestratorComplete] Orchestrator expects ${expectedSegmentCount ?? 'unknown'} segments`);
-
   if (!allSegments || allSegments.length === 0) {
-    console.log(`[OrchestratorComplete] No segments found for orchestrator`);
     return;
   }
 
@@ -123,15 +120,11 @@ export async function checkOrchestratorCompletion(
   const failedSegments = allSegments.filter((s) => s.status === 'Failed' || s.status === 'Cancelled').length;
   const pendingSegments = foundSegments - completedSegments - failedSegments;
 
-  console.log(`[OrchestratorComplete] ${taskType} status: ${completedSegments} complete, ${failedSegments} failed, ${pendingSegments} pending`);
-
   if (expectedSegmentCount !== null && foundSegments !== expectedSegmentCount) {
-    console.log(`[OrchestratorComplete] Warning: Found ${foundSegments} segments but expected ${expectedSegmentCount}`);
     return;
   }
 
   if (pendingSegments > 0) {
-    console.log(`[OrchestratorComplete] Still waiting for ${pendingSegments} segments to complete`);
     return;
   }
 
@@ -150,19 +143,14 @@ export async function checkOrchestratorCompletion(
     );
 
     if (finalStitchStatus === 'pending') {
-      console.log(`[OrchestratorComplete] Waiting for ${config.waitForFinalStepType} to complete`);
       return;
     }
 
     if (finalStitchStatus === 'failed') {
-      console.log(`[OrchestratorComplete] Final stitch failed - marking orchestrator as Failed`);
       await markOrchestratorFailed(supabase, orchestratorTaskId, 1, 1);
       return;
     }
 
-    if (finalStitchStatus === 'complete') {
-      console.log(`[OrchestratorComplete] Final stitch is complete - will mark orchestrator complete`);
-    }
   }
 
   // COMPLETE: all segments done, no pending final step
@@ -191,7 +179,6 @@ async function findSiblingSegments(
   let segmentsError: any = null;
 
   if (orchestratorRunId) {
-    console.log(`[OrchestratorComplete] Querying ${segmentType} by run_id: ${orchestratorRunId}`);
 
     const runIdResult = await supabase
       .from("tasks")
@@ -204,13 +191,11 @@ async function findSiblingSegments(
     segmentsError = runIdResult.error;
 
     if (allSegments && allSegments.length > 0) {
-      console.log(`[OrchestratorComplete] Found ${allSegments.length} segments via run_id query`);
       return allSegments;
     }
   }
 
   if ((!allSegments || allSegments.length === 0) && !segmentsError) {
-    console.log(`[OrchestratorComplete] Trying orchestrator_task_id: ${orchestratorTaskId}`);
 
     const orchIdResult = await supabase
       .from("tasks")
@@ -222,9 +207,6 @@ async function findSiblingSegments(
     allSegments = orchIdResult.data;
     segmentsError = orchIdResult.error;
 
-    if (allSegments && allSegments.length > 0) {
-      console.log(`[OrchestratorComplete] Found ${allSegments.length} segments via orchestrator_task_id query`);
-    }
   }
 
   if (segmentsError) {
@@ -244,7 +226,6 @@ async function checkFinalStitchStatus(
   projectId: string,
   orchestratorTaskId: string,
 ): Promise<'not_found' | 'pending' | 'complete' | 'failed'> {
-  console.log(`[OrchestratorComplete] Checking status of ${finalStepType} tasks for orchestrator ${orchestratorTaskId}`);
 
   const { data: finalStepTasks, error } = await supabase
     .from("tasks")
@@ -259,12 +240,10 @@ async function checkFinalStitchStatus(
   }
 
   if (!finalStepTasks || finalStepTasks.length === 0) {
-    console.log(`[OrchestratorComplete] No ${finalStepType} tasks found - task not yet created`);
     return 'not_found';
   }
 
   const task = finalStepTasks[0];
-  console.log(`[OrchestratorComplete] Found ${finalStepType} task ${task.id} with status: ${task.status}`);
 
   if (task.status === 'Complete') {
     return 'complete';
@@ -284,7 +263,6 @@ async function markOrchestratorFailed(
   failedSegments: number,
   totalSegments: number
 ): Promise<void> {
-  console.log(`[OrchestratorComplete] Marking orchestrator ${orchestratorTaskId} as Failed (${failedSegments}/${totalSegments} failed)`);
 
   const { error: updateOrchError } = await supabase
     .from("tasks")
@@ -298,8 +276,6 @@ async function markOrchestratorFailed(
 
   if (updateOrchError) {
     console.error(`[OrchestratorComplete] Failed to mark orchestrator as Failed:`, updateOrchError);
-  } else {
-    console.log(`[OrchestratorComplete] Marked orchestrator ${orchestratorTaskId} as Failed`);
   }
 }
 
@@ -315,7 +291,6 @@ async function markOrchestratorComplete(
   supabaseUrl: string,
   serviceKey: string
 ): Promise<void> {
-  console.log(`[OrchestratorComplete] Marking orchestrator ${orchestratorTaskId} as Complete`);
 
   // Find earliest sub-task start time for billing
   let earliestStartTime: string | null = null;
@@ -350,8 +325,6 @@ async function markOrchestratorComplete(
     console.error(`[OrchestratorComplete] Failed to mark orchestrator ${orchestratorTaskId} as Complete:`, updateOrchError);
     return;
   }
-
-  console.log(`[OrchestratorComplete] Successfully marked orchestrator ${orchestratorTaskId} as Complete`);
 
   await triggerCostCalculation(supabaseUrl, serviceKey, orchestratorTaskId, 'OrchestratorComplete');
 }

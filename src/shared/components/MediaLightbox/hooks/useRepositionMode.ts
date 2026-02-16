@@ -1,16 +1,14 @@
 import { useCallback } from 'react';
-import {
-  useImageTransform,
-  useCanvasTransform,
-  useRepositionDrag,
-  useRepositionTaskCreation,
-  useRepositionVariantSave,
-} from './reposition';
+import { useImageTransform } from './reposition/useImageTransform';
+import { useCanvasTransform } from './reposition/useCanvasTransform';
+import { useRepositionDrag } from './reposition/useRepositionDrag';
+import { useRepositionTaskCreation } from './reposition/useRepositionTaskCreation';
+import { useRepositionVariantSave } from './reposition/useRepositionVariantSave';
 import type {
   ImageTransform,
   UseRepositionModeProps,
   UseRepositionModeReturn,
-} from './reposition';
+} from './reposition/types';
 
 // Re-export types for backward compatibility
 export type { ImageTransform, UseRepositionModeProps, UseRepositionModeReturn };

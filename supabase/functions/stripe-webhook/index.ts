@@ -103,7 +103,7 @@ serve(async (req) => {
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      logger.error('STRIPE_WEBHOOK_SECRET not set in environment');
+      logger.error('Missing webhook configuration');
       await logger.flush();
       return jsonResponse({ error: 'Webhook secret not configured' }, 500);
     }

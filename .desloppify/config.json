@@ -1,9 +1,14 @@
 {
-  "ignore": [],
+  "ignore": [
+    "exports::supabase/functions/_shared/http.ts::jsonResponse"
+  ],
   "review_max_age_days": 30,
   "holistic_max_age_days": 30,
   "generate_scorecard": true,
   "badge_path": "scorecard.png",
   "exclude": [],
-  "zone_overrides": {}
+  "zone_overrides": {},
+  "review_dimensions": [],
+  "large_files_threshold": 0,
+  "props_threshold": 0
 }

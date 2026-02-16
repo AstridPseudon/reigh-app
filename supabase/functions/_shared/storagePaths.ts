@@ -36,14 +36,20 @@ export function getFileExtension(
   mimeType?: string,
   defaultExt: string = 'bin'
 ): string {
-  const parts = filename.split('.');
-  if (parts.length > 1) {
-    return parts.pop()!;
+  // Handle URLs and query/hash suffixes from signed object paths.
+  const cleanName = filename
+    .split('?')[0]
+    .split('#')[0]
+    .split('/')
+    .pop() ?? filename;
+  const dotIndex = cleanName.lastIndexOf('.');
+  if (dotIndex > 0 && dotIndex < cleanName.length - 1) {
+    return cleanName.slice(dotIndex + 1).toLowerCase();
   }
   
   // Fallback to MIME type
   if (mimeType) {
-    const mimeExt = mimeType.split('/')[1]?.replace('jpeg', 'jpg');
+    const mimeExt = mimeType.split('/')[1]?.split(';')[0]?.replace('jpeg', 'jpg');
     if (mimeExt) return mimeExt;
   }
   
@@ -83,7 +89,6 @@ export const storagePaths = {
  * The bucket name for all media uploads
  */
 export const MEDIA_BUCKET = 'image_uploads';
-
 
 
 

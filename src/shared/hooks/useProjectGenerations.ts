@@ -28,7 +28,7 @@
  */
 
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
+import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from './useSmartPolling';
 import { queryKeys } from '@/shared/lib/queryKeys';

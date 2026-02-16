@@ -15,7 +15,7 @@ import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { getErrorMessage } from '@/shared/lib/errorUtils';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { GenerationRow } from '@/types/shots';
-import { joinClipsSettings } from '@/tools/join-clips/settings';
+import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
 import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID } from '@/shared/lib/vaceDefaults';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 

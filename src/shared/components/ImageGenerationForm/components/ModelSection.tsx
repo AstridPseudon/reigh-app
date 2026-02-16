@@ -3,7 +3,7 @@ import { Label } from "@/shared/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
 import { SegmentedControl, SegmentedControlItem } from "@/shared/components/ui/segmented-control";
 import { SectionHeader } from "./SectionHeader";
-import { ReferenceSection } from "./reference";
+import { ReferenceSection } from "./reference/ReferenceSection";
 import { LoraGrid } from "./reference/LoraGrid";
 import {
   GenerationSource,

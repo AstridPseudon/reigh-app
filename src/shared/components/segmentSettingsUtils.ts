@@ -1,31 +1,6 @@
-/**
- * Segment Settings Utilities
- *
- * Clean merge logic for per-segment video generation settings.
- *
- * Priority (highest to lowest):
- * 1. pairMetadata (pair-specific settings from shot_generations.metadata)
- * 2. shotBatchSettings (shot-level defaults from shots.settings)
- * 3. defaults (hardcoded fallbacks)
- *
- * Note: Shot settings inheritance (from previous shot) is handled separately
- * when a new shot is created - see shotSettingsInheritance.ts
- *
- * Key invariants:
- * - Basic mode = no phase_config (always cleared)
- * - New format (pair_X fields at root) takes precedence over legacy (user_overrides.X)
- *
- * Migration/conversion layer (PairMetadata, buildMetadataUpdate,
- * extractSettingsFromParams) lives in segmentSettingsMigration.ts.
- */
-
 import { PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '@/shared/types/phaseConfig';
 import type { ActiveLora } from '@/shared/hooks/useLoraManager';
 import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
-
-// =============================================================================
-// BUILT-IN PRESETS
-// =============================================================================
 
 export interface BuiltinPreset {
   id: string;
@@ -72,39 +47,16 @@ export const SEGMENT_VACE_FEATURED_PRESET_IDS: string[] = [
   'd72377eb-6d57-4af1-80a3-9b629da28a47',
 ];
 
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-/**
- * Result of computing a defaultable field's display state.
- */
 interface DefaultableFieldResult {
-  /** Whether the field is currently showing the default value */
   isUsingDefault: boolean;
-  /** The value to display in the field */
   displayValue: string;
 }
 
-/**
- * Compute display state for a field that can fall back to a default value.
- *
- * Semantics:
- * - `undefined` = no local value set, use default (show badge)
- * - `''` (empty string) = user explicitly cleared, show empty (no badge)
- * - `'value'` = user set a value, show it (no badge)
- *
- * @param localValue - The current local/settings value (may be undefined)
- * @param defaultValue - The fallback value from shot defaults
- * @param hasDbOverride - Whether there's a saved override in the database (optional)
- */
 export function getDefaultableField(
   localValue: string | undefined,
   defaultValue: string | undefined,
   hasDbOverride?: boolean
 ): DefaultableFieldResult {
-  // Key insight: check for `undefined` specifically, not falsiness
-  // Empty string '' means user explicitly cleared - don't show default
   const isUsingDefault = localValue === undefined && (
     hasDbOverride !== undefined
       ? !hasDbOverride && defaultValue !== undefined
@@ -117,22 +69,11 @@ export function getDefaultableField(
   };
 }
 
-/**
- * Detect generation mode from model name.
- */
 export function detectGenerationMode(modelName?: string): 'i2v' | 'vace' {
   if (!modelName) return 'i2v';
   return modelName.toLowerCase().includes('vace') ? 'vace' : 'i2v';
 }
 
-// =============================================================================
-// CONTROLLED FORM INTERFACE
-// =============================================================================
-
-/**
- * Complete segment settings for the controlled form.
- * This is the single source of truth passed to SegmentSettingsForm.
- */
 export interface SegmentSettings {
   // Prompts
   prompt: string;
@@ -160,11 +101,6 @@ export interface SegmentSettings {
   structureUni3cEndPercent?: number; // 0-1 scale
 }
 
-
-// =============================================================================
-// DATA SOURCE TYPES
-// =============================================================================
-
 export interface ShotBatchSettings {
   amountOfMotion?: number;
   motionMode?: 'basic' | 'advanced';
@@ -180,14 +116,6 @@ export function stripModeFromPhaseConfig(config: PhaseConfig): PhaseConfig {
   return rest as PhaseConfig;
 }
 
-// =============================================================================
-// TASK PARAMS BUILDER
-// =============================================================================
-
-/**
- * Build task params from segment settings.
- * Used by parent components to create generation tasks.
- */
 export function buildTaskParams(
   settings: SegmentSettings,
   context: {

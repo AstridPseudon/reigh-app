@@ -32,6 +32,19 @@ import {
   getChildVariantViewedAt,
 } from './generation-parent.ts';
 
+interface HandlerContext {
+  supabase: any;
+  taskId: string;
+  taskData: any;
+  publicUrl: string;
+  thumbnailUrl: string | null;
+  logger?: any;
+  childGenerationId?: string;
+  parentGenerationId?: string;
+  childOrder?: number | null;
+  isSingleItem?: boolean;
+}
+
 // Re-export child generation handlers for backward compatibility
 export {
   handleChildGeneration,
@@ -39,22 +52,6 @@ export {
   findExistingGenerationAtPosition,
   createChildGenerationRecord,
 } from './generation-child.ts';
-
-// ===== TYPES =====
-
-export interface HandlerContext {
-  supabase: any;
-  taskId: string;
-  taskData: any;
-  publicUrl: string;
-  thumbnailUrl: string | null;
-  logger?: any;
-  // Extracted params for routing (set by createGenerationFromTask)
-  childGenerationId?: string;
-  parentGenerationId?: string;
-  childOrder?: number | null;
-  isSingleItem?: boolean;
-}
 
 // ===== HANDLER: VARIANT ON SOURCE =====
 
@@ -72,8 +69,6 @@ export async function handleVariantCreation(
 ): Promise<boolean> {
   const isPrimary = taskData.params?.is_primary === true;
   const variantType = taskData.variant_type || VARIANT_TYPE_DEFAULT;
-
-  console.log(`[Variant] Task ${taskId} creating ${variantType} variant on ${basedOnGenerationId} (is_primary=${isPrimary})`);
 
   try {
     const { data: sourceGen, error: fetchError } = await supabase
@@ -107,8 +102,6 @@ export async function handleVariantCreation(
       null
     );
 
-    console.log(`[Variant] Successfully created ${variantType} variant on ${basedOnGenerationId} (is_primary=${isPrimary})`);
-
     await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
     return true;
 
@@ -132,19 +125,15 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
                      taskData.params?.full_orchestrator_payload?.orchestrator_task_id;
 
   if (!orchTaskId) {
-    console.log(`[GenHandler] ${taskData.task_type} task ${taskId} - no orchestrator_task_id found`);
     return null;
   }
 
-  console.log(`[GenHandler] ${taskData.task_type} - getting parent generation for orchestrator ${orchTaskId}`);
   const parentGen = await getOrCreateParentGeneration(supabase, orchTaskId, taskData.project_id, taskData.params);
 
   if (!parentGen?.id) {
-    console.log(`[GenHandler] ${taskData.task_type} task ${taskId} - could not find/create parent generation`);
     return null;
   }
 
-  console.log(`[GenHandler] ${taskData.task_type} task ${taskId} - creating variant on parent generation ${parentGen.id}`);
   logger?.info(`${taskData.task_type}: creating variant on parent`, {
     task_id: taskId,
     parent_generation_id: parentGen.id,
@@ -174,7 +163,6 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
   const basedOnId = orchDetails.based_on || taskData.params?.based_on;
 
   if (isLoop && basedOnId) {
-    console.log(`[GenHandler] Loop with based_on detected - also creating variant on source generation ${basedOnId}`);
     logger?.info(`${taskData.task_type}: creating loop variant on source`, {
       task_id: taskId,
       based_on: basedOnId,
@@ -204,9 +192,6 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<any | 
         'clip_join', // variant_type
         null
       );
-      console.log(`[GenHandler] Successfully created loop variant on source generation ${basedOnId}`);
-    } else {
-      console.warn(`[GenHandler] Source generation ${basedOnId} not found, skipping loop variant`);
     }
   }
 
@@ -223,13 +208,11 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
   const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger, childGenerationId } = ctx;
 
   if (!childGenerationId) {
-    console.log(`[GenHandler] No child_generation_id, falling back to child_generation behavior`);
     return null; // Fall back to child_generation behavior
   }
 
   const childGenId = childGenerationId;
 
-  console.log(`[GenHandler] individual_travel_segment - creating variant for child generation ${childGenId}`);
   logger?.info("individual_travel_segment with child_generation_id", {
     task_id: taskId,
     child_generation_id: childGenId,
@@ -264,7 +247,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
 
   // Respect make_primary_variant flag from UI (defaults to true for backward compatibility)
   const makePrimary = taskData.params?.make_primary_variant ?? true;
-  console.log(`[GenHandler] Creating variant with isPrimary=${makePrimary}`);
 
   // Always check for single-segment case (independent of makePrimary flag)
   // This determines if we should propagate to the parent generation
@@ -291,8 +273,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
     childViewedAt
   );
 
-  console.log(`[GenHandler] Successfully created variant for child generation ${childGenId}${childViewedAt ? ' (auto-viewed)' : ''}${isSingleSegmentChild ? ' (single-segment)' : ''}`);
-
   // SINGLE-SEGMENT PROPAGATION: If this child is the only child of its parent,
   // also create a variant on the parent so the main generation updates automatically
   if (isSingleSegmentChild && childGen.parent_generation_id) {
@@ -305,7 +285,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
     const isFirstParentVariant = (existingParentVariants || 0) === 0;
     const makeParentPrimary = isFirstParentVariant || makePrimary;
 
-    console.log(`[GenHandler] Single-segment child - also creating variant on parent ${childGen.parent_generation_id} (isFirst=${isFirstParentVariant}, makePrimary=${makeParentPrimary})`);
     logger?.info("Single-segment propagation to parent", {
       task_id: taskId,
       child_generation_id: childGenId,
@@ -329,7 +308,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<any | n
       variantType, // Use same variant_type as child
       null
     );
-    console.log(`[GenHandler] Successfully propagated to parent generation`);
   }
 
   await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
@@ -352,9 +330,6 @@ export async function handleStandaloneGeneration(ctx: HandlerContext): Promise<a
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(shotId)) {
       const { data: shotData, error: shotError } = await supabase.from('shots').select('id').eq('id', shotId).single();
-      if (shotError || !shotData) {
-        console.log(`[GenHandler] Shot ${shotId} does not exist, proceeding without shot link`);
-      }
     }
   }
 
@@ -378,7 +353,6 @@ export async function handleStandaloneGeneration(ctx: HandlerContext): Promise<a
       .maybeSingle();
 
     if (basedOnError || !basedOnGen) {
-      console.warn(`[GenHandler] based_on generation ${basedOnGenerationId} not found, clearing reference`);
       basedOnGenerationId = null;
     }
   }
@@ -412,10 +386,8 @@ export async function handleStandaloneGeneration(ctx: HandlerContext): Promise<a
   };
 
   const newGeneration = await insertGeneration(supabase, generationRecord);
-  console.log(`[GenHandler] Created standalone generation ${newGeneration.id}`);
 
   // Create "original" variant
-  console.log(`[GenHandler] Creating original variant`);
   await createVariant(
     supabase, newGeneration.id, publicUrl, thumbnailUrl,
     { ...generationParams, source_task_id: taskId, created_from: 'generation_original' },
@@ -429,6 +401,5 @@ export async function handleStandaloneGeneration(ctx: HandlerContext): Promise<a
 
   await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
 
-  console.log(`[GenHandler] Standalone generation creation complete`);
   return newGeneration;
 }

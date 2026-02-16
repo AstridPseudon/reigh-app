@@ -3,20 +3,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/http.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
-
-// Helper for standard JSON responses with CORS headers
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    },
-  });
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -62,7 +50,7 @@ serve(async (req) => {
       .eq('user_id', auth.userId); // Extra safety check
 
     if (deleteError) {
-      logger.error('Error deleting token', { error: deleteError.message, user_id: auth.userId, tokenId });
+      logger.error('Failed to revoke API credential', { error: deleteError.message });
       await logger.flush();
       return jsonResponse({ error: 'Failed to revoke token' }, 500);
     }

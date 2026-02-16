@@ -5,7 +5,6 @@ import { cn } from '@/shared/lib/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import PaneControlTab from '../PaneControlTab';
 import { useBottomOffset } from '@/shared/hooks/useBottomOffset';
-import { toolsUIManifest, type ToolUIDefinition } from '@/tools';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useDarkMode } from '@/shared/hooks/useDarkMode';
 import { useClickRipple } from '@/shared/hooks/useClickRipple';
@@ -19,7 +18,9 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { AppEnv, type AppEnvValue } from '@/types/env';
-import { TOOL_IDS } from '@/shared/lib/toolConstants';
+import { TOOL_IDS, TOOL_ROUTES } from '@/shared/lib/toolConstants';
+
+const SHARED_TOOL_ENVS: AppEnvValue[] = [AppEnv.LOCAL, AppEnv.WEB];
 
 // Tool definitions matching ToolSelectorPage
 const processTools = [
@@ -27,7 +28,8 @@ const processTools = [
     id: TOOL_IDS.IMAGE_GENERATION,
     name: 'Generate Images',
     description: 'Create images using AI',
-    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.IMAGE_GENERATION),
+    path: TOOL_ROUTES.IMAGE_GENERATION,
+    environments: SHARED_TOOL_ENVS,
     icon: Paintbrush,
     gradient: 'from-wes-vintage-gold via-wes-mustard to-wes-yellow',
     darkIconColor: '#a67d2a',
@@ -36,7 +38,8 @@ const processTools = [
     id: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
     name: 'Travel Between Images',
     description: 'Transform images to video',
-    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.TRAVEL_BETWEEN_IMAGES),
+    path: TOOL_ROUTES.TRAVEL_BETWEEN_IMAGES,
+    environments: SHARED_TOOL_ENVS,
     icon: Video,
     gradient: 'from-wes-mint via-wes-sage to-wes-dusty-blue',
     darkIconColor: '#3d8a62',
@@ -48,7 +51,8 @@ const assistantTools = [
     id: TOOL_IDS.EDIT_IMAGES,
     name: 'Edit Images',
     description: 'Transform images',
-    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.EDIT_IMAGES),
+    path: TOOL_ROUTES.EDIT_IMAGES,
+    environments: SHARED_TOOL_ENVS,
     icon: Edit,
     gradient: 'from-wes-mustard via-wes-vintage-gold to-wes-coral',
     darkIconColor: '#a68018',
@@ -57,7 +61,8 @@ const assistantTools = [
     id: TOOL_IDS.EDIT_VIDEO,
     name: 'Edit Videos',
     description: 'Regenerate portions',
-    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.EDIT_VIDEO),
+    path: TOOL_ROUTES.EDIT_VIDEO,
+    environments: SHARED_TOOL_ENVS,
     icon: Clapperboard,
     gradient: 'from-wes-dusty-blue via-wes-lavender to-wes-mint',
     darkIconColor: '#4a7099',
@@ -66,7 +71,8 @@ const assistantTools = [
     id: TOOL_IDS.JOIN_CLIPS,
     name: 'Join Clips',
     description: 'Connect video clips',
-    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.JOIN_CLIPS),
+    path: TOOL_ROUTES.JOIN_CLIPS,
+    environments: SHARED_TOOL_ENVS,
     icon: Link2,
     gradient: 'from-wes-pink via-wes-salmon to-wes-coral',
     darkIconColor: '#e07070',
@@ -75,7 +81,8 @@ const assistantTools = [
     id: TOOL_IDS.CHARACTER_ANIMATE,
     name: 'Characters',
     description: 'Bring to life',
-    tool: toolsUIManifest.find(t => t.id === TOOL_IDS.CHARACTER_ANIMATE),
+    path: TOOL_ROUTES.CHARACTER_ANIMATE,
+    environments: SHARED_TOOL_ENVS,
     icon: Users,
     gradient: 'from-wes-mint via-wes-sage to-wes-dusty-blue',
     darkIconColor: '#3d8a62',
@@ -104,7 +111,7 @@ const ToolCard = memo(({ item, isCurrentTool, isVisible, onNavigate }: ToolCardP
     };
   }, []);
 
-  const isDisabled = !item.tool;
+  const isDisabled = !item.path;
 
   const handleClick = (e: React.PointerEvent) => {
     if (isDisabled) {
@@ -114,9 +121,9 @@ const ToolCard = memo(({ item, isCurrentTool, isVisible, onNavigate }: ToolCardP
       return;
     }
     
-    if (item.tool?.path) {
+    if (item.path) {
       triggerRipple(e);
-      onNavigate(item.tool.path);
+      onNavigate(item.path);
     }
   };
 
@@ -221,7 +228,7 @@ const ToolsPaneComponent: React.FC = () => {
   const getCurrentTool = () => {
     const path = location.pathname;
     for (const tool of [...processTools, ...assistantTools]) {
-      if (tool.tool?.path && path.startsWith(tool.tool.path)) {
+      if (tool.path && path.startsWith(tool.path)) {
         return tool;
       }
     }
@@ -231,7 +238,7 @@ const ToolsPaneComponent: React.FC = () => {
   const currentToolId = currentTool?.id || null;
 
   // Tool visibility check
-  const isToolVisible = (tool: ToolUIDefinition | null | undefined, toolId?: string) => {
+  const isToolVisible = (tool: { environments: AppEnvValue[] } | null | undefined, toolId?: string) => {
     if (!tool) return false;
     
     // Character Animate: check cloud mode
@@ -335,7 +342,7 @@ const ToolsPaneComponent: React.FC = () => {
                       key={tool.id}
                       item={tool}
                       isCurrentTool={currentToolId === tool.id}
-                      isVisible={isToolVisible(tool.tool, tool.id)}
+                      isVisible={isToolVisible(tool, tool.id)}
                       onNavigate={handleNavigate}
                     />
                   ))}
@@ -348,12 +355,12 @@ const ToolsPaneComponent: React.FC = () => {
                   Assistant Tools
                 </h3>
                 <div className="flex flex-col gap-2">
-                  {assistantTools.filter(t => isToolVisible(t.tool, t.id) || !t.tool).map((tool) => (
+                  {assistantTools.filter(t => isToolVisible(t, t.id)).map((tool) => (
                     <ToolCard
                       key={tool.id}
                       item={tool}
                       isCurrentTool={currentToolId === tool.id}
-                      isVisible={isToolVisible(tool.tool, tool.id)}
+                      isVisible={isToolVisible(tool, tool.id)}
                       onNavigate={handleNavigate}
                     />
                   ))}
@@ -368,4 +375,3 @@ const ToolsPaneComponent: React.FC = () => {
 };
 
 export const ToolsPane = React.memo(ToolsPaneComponent);
-

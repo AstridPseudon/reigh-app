@@ -23,13 +23,11 @@ import {
 } from './hooks';
 
 // Import components
-import {
-  MediaGalleryHeader,
-  ShotNotifier,
-  MediaGalleryGrid,
-  MediaGalleryLightbox,
-  MobileBottomBar,
-} from './components';
+import { MediaGalleryHeader } from './components/MediaGalleryHeader';
+import { ShotNotifier } from './components/ShotNotifier';
+import { MediaGalleryGrid } from './components/MediaGalleryGrid';
+import { MediaGalleryLightbox } from './components/MediaGalleryLightbox';
+import { MobileBottomBar } from './components/MobileBottomBar';
 
 // Import utils
 import { GRID_COLUMN_CLASSES, getLayoutForAspectRatio } from './utils';
@@ -749,4 +747,3 @@ MediaGallery.displayName = 'MediaGallery';
 
 export { MediaGallery };
 export default MediaGallery;
-

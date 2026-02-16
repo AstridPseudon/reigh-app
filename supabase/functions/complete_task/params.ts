@@ -57,13 +57,10 @@ function extractFromParams(params: any, fieldName: string, paths: string[][], lo
 
       // If we successfully traversed the path and got a value
       if (pathValid && value !== null && value !== undefined) {
-        const pathStr = path.join('.');
-        console.log(`[${logTag}] Found ${fieldName} in ${pathStr}: ${value}`);
         return String(value);
       }
     }
 
-    console.log(`[${logTag}] No ${fieldName} found in task params`);
     return null;
   } catch (error) {
     console.error(`[${logTag}] Error extracting ${fieldName}:`, error);
@@ -78,13 +75,8 @@ function extractFromParams(params: any, fieldName: string, paths: string[][], lo
  * Delegates to shared extractOrchestratorRef (single source of truth for path list)
  * and adds logging consistent with other complete_task extractors.
  */
-export function extractOrchestratorTaskId(params: any, logTag: string = 'OrchestratorExtract'): string | null {
+function extractOrchestratorTaskId(params: any, logTag: string = 'OrchestratorExtract'): string | null {
   const value = extractOrchestratorRef(params);
-  if (value) {
-    console.log(`[${logTag}] Found orchestrator_task_id: ${value}`);
-  } else {
-    console.log(`[${logTag}] No orchestrator_task_id found in task params`);
-  }
   return value;
 }
 
@@ -92,7 +84,7 @@ export function extractOrchestratorTaskId(params: any, logTag: string = 'Orchest
  * Extract orchestrator run_id from task params
  * Used for finding sibling segment tasks
  */
-export function extractOrchestratorRunId(params: any, logTag: string = 'OrchestratorExtract'): string | null {
+function extractOrchestratorRunId(params: any, logTag: string = 'OrchestratorExtract'): string | null {
   return extractFromParams(
     params,
     'run_id',
@@ -111,7 +103,7 @@ export function extractOrchestratorRunId(params: any, logTag: string = 'Orchestr
  * Extract based_on from task params
  * Supports multiple param shapes for flexibility across different task types
  */
-export function extractBasedOn(params: any): string | null {
+function extractBasedOn(params: any): string | null {
   return extractFromParams(
     params,
     'based_on',
@@ -130,7 +122,7 @@ export function extractBasedOn(params: any): string | null {
  * Extract shot_id and add_in_position from task params
  * Supports multiple param shapes as per current DB trigger logic
  */
-export function extractShotAndPosition(params: any): { shotId?: string, addInPosition: boolean } {
+function extractShotAndPosition(params: any): { shotId?: string, addInPosition: boolean } {
   // Extract shot_id using generic helper
   const shotId = extractFromParams(
     params,
@@ -162,7 +154,6 @@ export function extractShotAndPosition(params: any): { shotId?: string, addInPos
 
   if (addInPositionValue !== null) {
     addInPosition = addInPositionValue === 'true' || addInPositionValue === '1';
-    console.log(`[GenMigration] Extracted add_in_position: ${addInPosition}`);
   }
 
   return { shotId, addInPosition };
@@ -172,7 +163,7 @@ export function extractShotAndPosition(params: any): { shotId?: string, addInPos
  * Set thumbnail URL in params at the correct location based on task_type
  * @returns Updated params object (does not mutate original)
  */
-export function setThumbnailInParams(
+function setThumbnailInParams(
   params: Record<string, any>,
   taskType: string,
   thumbnailUrl: string
@@ -209,7 +200,7 @@ export function setThumbnailInParams(
 /**
  * Get MIME content type from filename extension
  */
-export function getContentType(filename: string): string {
+function getContentType(filename: string): string {
   const ext = filename.toLowerCase().split('.').pop();
   switch (ext) {
     case 'png':
@@ -235,7 +226,7 @@ export function getContentType(filename: string): string {
 /**
  * Build generation params starting from normalized task params
  */
-export function buildGenerationParams(
+function buildGenerationParams(
   baseParams: any,
   toolType: string,
   contentType?: string,

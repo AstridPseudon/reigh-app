@@ -50,7 +50,6 @@ export async function authenticateRequest(
   // Extract authorization header
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    console.error(`${logPrefix} Missing or invalid Authorization header`);
     return {
       isServiceRole: false,
       userId: null,
@@ -76,7 +75,6 @@ export async function authenticateRequest(
 
   // 1) Check if token matches service-role key directly (SECURE)
   if (token === serviceKey) {
-    console.log(`${logPrefix} Direct service-role key match`);
     return {
       isServiceRole: true,
       userId: null,
@@ -96,7 +94,6 @@ export async function authenticateRequest(
         // Check if this is a regular user JWT (not service role)
         const role = payload.role || payload.app_metadata?.role;
         if (!["service_role", "supabase_admin"].includes(role) && payload.sub) {
-          console.log(`${logPrefix} Authenticated via JWT, user ID: ${payload.sub}`);
           return {
             isServiceRole: false,
             userId: payload.sub,
@@ -107,12 +104,10 @@ export async function authenticateRequest(
       }
     } catch (e) {
       // Not a valid JWT - continue to PAT lookup
-      console.log(`${logPrefix} Token is not a valid JWT, checking PAT...`);
     }
   }
 
   // 3) Personal Access Token (PAT) - look up in user_api_tokens table (SECURE)
-  console.log(`${logPrefix} Looking up token in user_api_token table...`);
 
   const { data, error } = await supabaseAdmin
     .from("user_api_tokens")
@@ -121,7 +116,7 @@ export async function authenticateRequest(
     .single();
 
   if (error || !data) {
-    console.error(`${logPrefix} Token lookup failed:`, error);
+    console.error(`${logPrefix} Credential lookup failed`);
     return {
       isServiceRole: false,
       userId: null,
@@ -132,7 +127,6 @@ export async function authenticateRequest(
   }
 
   const userId = data.user_id;
-  console.log(`${logPrefix} Token resolved to user ID: ${userId}`);
   return {
     isServiceRole: false,
     userId,
@@ -155,7 +149,6 @@ export async function verifyTaskOwnership(
   userId: string,
   logPrefix: string = "[AUTH]"
 ): Promise<{ success: boolean; error?: string; statusCode?: number; projectId?: string }> {
-  console.log(`${logPrefix} Verifying task ${taskId} belongs to user ${userId}...`);
 
   // Get task and its project
   const { data: taskData, error: taskError } = await supabaseAdmin
@@ -198,7 +191,6 @@ export async function verifyTaskOwnership(
     };
   }
 
-  console.log(`${logPrefix} Task ${taskId} ownership verified: user ${userId} owns project ${taskData.project_id}`);
   return {
     success: true,
     projectId: taskData.project_id
@@ -220,7 +212,6 @@ export async function verifyShotOwnership(
   userId: string,
   logPrefix: string = "[AUTH]"
 ): Promise<{ success: boolean; error?: string; statusCode?: number; projectId?: string }> {
-  console.log(`${logPrefix} Verifying shot ${shotId} belongs to user ${userId}...`);
 
   // Get shot and its project
   const { data: shotData, error: shotError } = await supabaseAdmin
@@ -263,7 +254,6 @@ export async function verifyShotOwnership(
     };
   }
 
-  console.log(`${logPrefix} Shot ${shotId} ownership verified: user ${userId} owns project ${shotData.project_id}`);
   return {
     success: true,
     projectId: shotData.project_id
@@ -283,7 +273,6 @@ export async function getTaskUserId(
   taskId: string,
   logPrefix: string = "[AUTH]"
 ): Promise<{ userId: string | null; error?: string; statusCode?: number }> {
-  console.log(`${logPrefix} Looking up user for task ${taskId}`);
 
   const { data: taskData, error: taskError } = await supabaseAdmin
     .from("tasks")
@@ -314,7 +303,6 @@ export async function getTaskUserId(
     };
   }
 
-  console.log(`${logPrefix} Task ${taskId} belongs to user ${projectData.user_id}`);
   return {
     userId: projectData.user_id
   };

@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { TIMELINE_PADDING_OFFSET } from '../../constants';
 
-export interface TimelineSkeletonItemProps {
+interface TimelineSkeletonItemProps {
   framePosition: number;
   fullMin: number;
   fullRange: number;

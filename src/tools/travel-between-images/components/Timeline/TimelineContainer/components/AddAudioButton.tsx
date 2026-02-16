@@ -3,7 +3,7 @@ import { toast } from '@/shared/components/ui/sonner';
 import { uploadVideoToStorage } from '@/shared/lib/videoUploader';
 import { handleError } from '@/shared/lib/errorHandler';
 
-export interface AddAudioButtonProps {
+interface AddAudioButtonProps {
   projectId?: string;
   shotId: string;
   onAudioChange: (

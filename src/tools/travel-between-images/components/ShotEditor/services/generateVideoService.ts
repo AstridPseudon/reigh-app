@@ -13,18 +13,6 @@ import {
   type StitchConfig,
   DEFAULT_VIDEO_STRUCTURE_PARAMS,
 } from '@/shared/lib/tasks/travelBetweenImages';
-import {
-  DEFAULT_STRUCTURE_VIDEO_CONFIG,
-} from '../hooks/useStructureVideo';
-
-/** Legacy single-video structure config shape (used by buildStructureGuidance fallback) */
-interface LegacyStructureVideoParams {
-  structure_video_path?: string | null;
-  structure_video_treatment?: 'adjust' | 'clip';
-  structure_video_motion_strength?: number;
-  structure_video_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  uni3c_end_percent?: number;
-}
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { DEFAULT_RESOLUTION } from '../utils/dimension-utils';
 import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '../state/types';
@@ -39,7 +27,6 @@ import type { Shot } from '@/types/shots';
 
 // Re-export types used by consumers (VideoGenerationModal, etc.)
 export type { StitchConfig };
-export { DEFAULT_STRUCTURE_VIDEO_CONFIG };
 
 /** Strip 'mode' field from phaseConfig - backend determines mode from actual model */
 const stripModeFromPhaseConfig = (config: PhaseConfig): PhaseConfig => {
@@ -90,77 +77,48 @@ const PREPROCESSING_MAP: Record<string, string> = {
 
 /**
  * Build unified structure_guidance object for the API request.
- * Handles both new multi-video array format and legacy single-video config.
+ * Uses the structure_videos array format.
  * Returns null if no structure video is configured.
  */
 function buildStructureGuidance(
   structureVideos: StructureVideoConfigWithMetadata[] | undefined,
-  structureVideoConfig: LegacyStructureVideoParams,
-  uni3cEndPercent: number | undefined,
-  totalFrames: number,
 ): Record<string, unknown> | null {
-  if (structureVideos && structureVideos.length > 0) {
-    const firstVideo = structureVideos[0];
-    const isUni3c = firstVideo.structure_type === 'uni3c';
-
-    const cleanedVideos = structureVideos.map(video => ({
-      path: video.path,
-      start_frame: video.start_frame ?? 0,
-      end_frame: video.end_frame ?? null,
-      treatment: video.treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-      ...(video.metadata ? { metadata: video.metadata } : {}),
-      ...(video.resource_id ? { resource_id: video.resource_id } : {}),
-    }));
-
-    const guidance: Record<string, unknown> = {
-      target: isUni3c ? 'uni3c' : 'vace',
-      videos: cleanedVideos,
-      strength: firstVideo.motion_strength ?? 1.0,
-    };
-
-    if (isUni3c) {
-      guidance.step_window = [
-        firstVideo.uni3c_start_percent ?? 0,
-        firstVideo.uni3c_end_percent ?? (uni3cEndPercent ?? 1.0),
-      ];
-      guidance.frame_policy = 'fit';
-      guidance.zero_empty_frames = true;
-    } else {
-      guidance.preprocessing = PREPROCESSING_MAP[firstVideo.structure_type ?? 'flow'] ?? 'flow';
-      if (firstVideo.canny_intensity != null) guidance.canny_intensity = firstVideo.canny_intensity;
-      if (firstVideo.depth_contrast != null) guidance.depth_contrast = firstVideo.depth_contrast;
-    }
-
-    return guidance;
+  if (!structureVideos || structureVideos.length === 0) {
+    return null;
   }
 
-  if (structureVideoConfig.structure_video_path) {
-    const isUni3c = structureVideoConfig.structure_video_type === 'uni3c';
-    const legacyUni3cEndPercent = structureVideoConfig.uni3c_end_percent ?? uni3cEndPercent ?? 1.0;
+  const firstVideo = structureVideos[0];
+  const isUni3c = firstVideo.structure_type === 'uni3c';
 
-    const guidance: Record<string, unknown> = {
-      target: isUni3c ? 'uni3c' : 'vace',
-      videos: [{
-        path: structureVideoConfig.structure_video_path,
-        start_frame: 0,
-        end_frame: totalFrames,
-        treatment: structureVideoConfig.structure_video_treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-      }],
-      strength: structureVideoConfig.structure_video_motion_strength ?? 1.0,
-    };
+  const cleanedVideos = structureVideos.map(video => ({
+    path: video.path,
+    start_frame: video.start_frame ?? 0,
+    end_frame: video.end_frame ?? null,
+    treatment: video.treatment ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
+    ...(video.metadata ? { metadata: video.metadata } : {}),
+    ...(video.resource_id ? { resource_id: video.resource_id } : {}),
+  }));
 
-    if (isUni3c) {
-      guidance.step_window = [0, legacyUni3cEndPercent];
-      guidance.frame_policy = 'fit';
-      guidance.zero_empty_frames = true;
-    } else {
-      guidance.preprocessing = PREPROCESSING_MAP[structureVideoConfig.structure_video_type ?? 'flow'] ?? 'flow';
-    }
+  const guidance: Record<string, unknown> = {
+    target: isUni3c ? 'uni3c' : 'vace',
+    videos: cleanedVideos,
+    strength: firstVideo.motion_strength ?? 1.0,
+  };
 
-    return guidance;
+  if (isUni3c) {
+    guidance.step_window = [
+      firstVideo.uni3c_start_percent ?? 0,
+      firstVideo.uni3c_end_percent ?? 1.0,
+    ];
+    guidance.frame_policy = 'fit';
+    guidance.zero_empty_frames = true;
+  } else {
+    guidance.preprocessing = PREPROCESSING_MAP[firstVideo.structure_type ?? 'flow'] ?? 'flow';
+    if (firstVideo.canny_intensity != null) guidance.canny_intensity = firstVideo.canny_intensity;
+    if (firstVideo.depth_contrast != null) guidance.depth_contrast = firstVideo.depth_contrast;
   }
 
-  return null;
+  return guidance;
 }
 
 // ============================================================================
@@ -175,14 +133,11 @@ interface GenerateVideoParams {
   promptConfig: PromptConfig;
   motionConfig: MotionConfig;
   modelConfig: ModelConfig;
-  /** Legacy single-video config (deprecated - use structureVideos instead) */
-  structureVideoConfig: LegacyStructureVideoParams;
   structureVideos?: StructureVideoConfigWithMetadata[];
   batchVideoFrames: number;
   selectedLoras: Array<{ id: string; path: string; strength: number; name: string }>;
   variantNameParam: string;
   clearAllEnhancedPrompts: () => Promise<void>;
-  uni3cEndPercent?: number;
   parentGenerationId?: string;
   stitchConfig?: StitchConfig;
 }
@@ -242,7 +197,6 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     promptConfig,
     motionConfig,
     modelConfig,
-    structureVideoConfig,
     batchVideoFrames,
     selectedLoras,
     variantNameParam,
@@ -625,12 +579,8 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
   }
 
   // Structure guidance (unified format with videos nested inside)
-  const totalFrames = segmentFrames.reduce((a, b) => a + b, 0);
   const structureGuidance = buildStructureGuidance(
     params.structureVideos,
-    structureVideoConfig,
-    params.uni3cEndPercent,
-    totalFrames,
   );
   if (structureGuidance) {
     requestBody.structure_guidance = structureGuidance;

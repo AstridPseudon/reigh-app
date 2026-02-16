@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Slider } from '@/shared/components/ui/slider';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { NumberInput } from '@/shared/components/ui/number-input';
-import { formatDollarAmount } from '../utils';
+import { formatDollarAmount } from '../utils/formatters';
 import type { AutoTopupState } from '../types';
 
 interface AddCreditsSectionProps {

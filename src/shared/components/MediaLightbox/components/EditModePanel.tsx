@@ -17,7 +17,9 @@ import type { EditAdvancedSettings as EditAdvancedSettingsType } from '../hooks/
 import { EditPanelLayout } from './EditPanelLayout';
 import { ImageUpscaleForm } from './ImageUpscaleForm';
 import { ModeSelector } from './ModeSelector';
-import { RepositionButtons, Img2ImgControls, GenerateButton } from './editModes';
+import { RepositionButtons } from './editModes/RepositionButtons';
+import { Img2ImgControls } from './editModes/Img2ImgControls';
+import { GenerateButton } from './editModes/GenerateButton';
 import type { LightboxCoreState, LightboxVariantState } from '../contexts/LightboxStateContext';
 import type { ImageEditState } from '../contexts/ImageEditContext';
 import { useEditModePanelState } from '../hooks/useEditModePanelState';

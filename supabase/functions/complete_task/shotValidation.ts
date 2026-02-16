@@ -105,14 +105,11 @@ export async function validateAndCleanupShotId(
     return { needsUpdate: false, updatedParams: params };
   }
 
-  console.log(`[ShotValidation] Checking if shot ${extractedShotId} exists...`);
-
   // Normalize to string (handles JSONB objects)
   const shotIdString = normalizeToString(extractedShotId);
 
   // Validate UUID format
   if (!isValidUuid(shotIdString)) {
-    console.log(`[ShotValidation] Invalid UUID format for shot: ${shotIdString}, removing from parameters`);
     return {
       needsUpdate: true,
       updatedParams: removeShotIdByToolType(params, toolType)
@@ -127,13 +124,11 @@ export async function validateAndCleanupShotId(
     .single();
 
   if (shotError || !shotData) {
-    console.log(`[ShotValidation] Shot ${shotIdString} does not exist (error: ${shotError?.message || 'not found'}), removing from task parameters`);
     return {
       needsUpdate: true,
       updatedParams: removeShotIdByToolType(params, toolType)
     };
   }
 
-  console.log(`[ShotValidation] Shot ${shotIdString} exists and is valid`);
   return { needsUpdate: false, updatedParams: params };
 }

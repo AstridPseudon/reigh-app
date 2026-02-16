@@ -14,7 +14,7 @@ type UploadMode = 'base64' | 'presigned' | 'reference';
 /**
  * Parsed request data from complete-task endpoint
  */
-export interface ParsedRequest {
+interface ParsedRequest {
   taskId: string;
   mode: UploadMode;
   filename: string;
@@ -80,9 +80,6 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
     thumbnail_storage_path
   } = body;
 
-  console.log(`[RequestParser] Received request with task_id: ${task_id}`);
-  console.log(`[RequestParser] Body keys: ${Object.keys(body).join(', ')}`);
-
   // Determine mode and validate accordingly
   if (storage_path) {
     // MODE 3 or MODE 4: Pre-uploaded or referenced file
@@ -96,8 +93,6 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
     const pathParts = storage_path.split('/');
     const isMode3Format = pathParts.length >= 4 && pathParts[1] === 'tasks';
     const mode: UploadMode = isMode3Format ? 'presigned' : 'reference';
-
-    console.log(`[RequestParser] ${mode === 'presigned' ? 'MODE 3' : 'MODE 4'}: storage_path=${storage_path}`);
 
     // Basic path validation for MODE 4
     if (mode === 'reference' && pathParts.length < 2) {
@@ -114,7 +109,6 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
     if (mode === 'presigned') {
       storagePathTaskId = pathParts[2];
       if (storagePathTaskId !== task_id) {
-        console.log(`[RequestParser] Path task_id (${storagePathTaskId}) != request task_id (${task_id}) - will require orchestrator check`);
         requiresOrchestratorCheck = true;
       }
 
@@ -150,7 +144,6 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
 
   } else {
     // MODE 1: Legacy base64 upload
-    console.log(`[RequestParser] MODE 1: base64 upload`);
 
     if (!task_id || !file_data || !filename) {
       return {
@@ -179,9 +172,7 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
     // Decode base64 file data
     let fileBuffer: Uint8Array;
     try {
-      console.log(`[RequestParser] Decoding base64 file data (length: ${file_data.length} chars)`);
       fileBuffer = Uint8Array.from(atob(file_data), (c) => c.charCodeAt(0));
-      console.log(`[RequestParser] Decoded file buffer size: ${fileBuffer.length} bytes`);
     } catch (e) {
       console.error("[RequestParser] Base64 decode error:", e);
       return {
@@ -195,10 +186,8 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
     let thumbnailFilename: string | undefined;
     if (first_frame_data && first_frame_filename) {
       try {
-        console.log(`[RequestParser] Decoding base64 thumbnail data`);
         thumbnailBuffer = Uint8Array.from(atob(first_frame_data), (c) => c.charCodeAt(0));
         thumbnailFilename = first_frame_filename;
-        console.log(`[RequestParser] Decoded thumbnail buffer size: ${thumbnailBuffer.length} bytes`);
       } catch (e) {
         console.error("[RequestParser] Thumbnail base64 decode error:", e);
         // Continue without thumbnail - non-fatal
@@ -252,7 +241,6 @@ export async function validateStoragePathSecurity(
 
   const isOrchestrator = task?.task_type?.includes('orchestrator');
   if (isOrchestrator) {
-    console.log(`[SecurityCheck] ✅ Orchestrator task ${taskId} referencing task ${storagePathTaskId} output - allowed`);
     return { allowed: true };
   }
 

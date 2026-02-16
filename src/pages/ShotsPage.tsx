@@ -9,7 +9,7 @@ import {
 } from '@/shared/hooks/useShots';
 import { Shot, GenerationRow } from '@/types/shots';
 import ShotListDisplay from '@/tools/travel-between-images/components/ShotListDisplay';
-import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager';
+import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager/ShotImageManagerContainer';
 import { Button } from '@/shared/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';

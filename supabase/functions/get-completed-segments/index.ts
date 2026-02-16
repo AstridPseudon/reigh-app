@@ -82,7 +82,7 @@ serve(async (req) => {
 
     if (!isServiceRole) {
       if (!effectiveProjectId) {
-        logger.error("Missing project_id for user token");
+        logger.error("Missing project_id for authenticated user");
         await logger.flush();
         return new Response("project_id required for user tokens", { status: 400 });
       }

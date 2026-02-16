@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toolsManifest } from '@/tools';
 import { handleError } from '@/shared/lib/errorHandler';
 import { deepMerge } from '@/shared/lib/deepEqual';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
+import { toolDefaultsRegistry } from '@/tooling/toolDefaultsRegistry';
 
 // Central list of tool IDs we want to preload. Update when you add more tools.
 const PREFETCH_TOOL_IDS = [
@@ -13,11 +13,6 @@ const PREFETCH_TOOL_IDS = [
   TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
   'project-image-settings', // Shared settings including reference images
 ];
-
-// Tool defaults registry - client-side version matching server
-const toolDefaults: Record<string, unknown> = Object.fromEntries(
-  toolsManifest.map(toolSettings => [toolSettings.id, toolSettings.defaults])
-);
 
 /**
  * Fetch tool settings using Supabase (for prefetching)
@@ -66,13 +61,13 @@ async function fetchToolSettingsSupabase(toolId: string, ctx: { projectId?: stri
     const projectSettings = (projectSettingsData?.[toolId] as Record<string, unknown>) ?? {};
     const shotSettings = (shotSettingsData?.[toolId] as Record<string, unknown>) ?? {};
 
-    // Merge in priority order: defaults → user → project → shot
-    return deepMerge(
-      {},
-      toolDefaults[toolId] ?? {},
-      userSettings,
-      projectSettings,
-      shotSettings
+      // Merge in priority order: defaults → user → project → shot
+      return deepMerge(
+        {},
+        toolDefaultsRegistry[toolId] ?? {},
+        userSettings,
+        projectSettings,
+        shotSettings
     );
 
   } catch (error: unknown) {

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useHuggingFaceToken } from '@/shared/hooks/useExternalApiKeys';
 import { Loader2, CheckCircle2, XCircle, ExternalLink, Trash2, Eye, EyeOff, RefreshCw } from 'lucide-react';
@@ -161,7 +160,7 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
         </Label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Input
+            <input
               id="hf-token"
               type={showToken ? 'text' : 'password'}
               placeholder="hf_xxxxxxxxxxxxxxxxxx"
@@ -173,7 +172,7 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
                 setVerifiedUsername(null);
               }}
               className={cn(
-                'pr-10',
+                'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 lg:text-sm preserve-case pr-10',
                 state === 'error' && 'border-red-500 focus-visible:ring-red-500'
               )}
             />

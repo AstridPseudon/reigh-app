@@ -2,7 +2,7 @@
  * Shot hooks - re-exports from modular files.
  *
  * This file provides backwards compatibility for existing imports.
- * New code should import directly from '@/shared/hooks/shots'.
+ * New code should import directly from the modular shots hook folder.
  *
  * The implementation has been split into:
  * - shots/cacheUtils.ts     - Cache key management utilities

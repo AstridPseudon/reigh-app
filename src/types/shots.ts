@@ -85,8 +85,7 @@ export interface GenerationMetadata {
  * - Use `id` for delete, reorder, position updates (targets the shot entry)
  * - Use `generation_id` for fetching generation data, lineage tracking
  * 
- * @deprecated shotImageEntryId - Use `id` instead (same value)
- * @deprecated shot_generation_id - Use `id` instead (same value)
+ * Legacy alias fields (`shotImageEntryId`, `shot_generation_id`) map to `id`.
  */
 export interface GenerationRow {
   id: string; // shot_generations.id - unique per entry in shot
@@ -101,10 +100,8 @@ export interface GenerationRow {
   createdAt?: string;
   metadata?: GenerationMetadata; // Typed metadata field
   isOptimistic?: boolean;
-  /** @deprecated Use `id` instead - this is the same value */
-  shotImageEntryId?: string; // Deprecated: ID from the shot_generations table
-  /** @deprecated Use `id` instead - this is the same value */
-  shot_generation_id?: string; // Deprecated: alias for shotImageEntryId
+  shotImageEntryId?: string; // Legacy alias for id from the shot_generations table
+  shot_generation_id?: string; // Legacy snake_case alias for shotImageEntryId
   name?: string; // Optional variant name
   timeline_frame?: number; // Position in timeline (from shot_generations table)
   starred?: boolean; // Whether this generation is starred

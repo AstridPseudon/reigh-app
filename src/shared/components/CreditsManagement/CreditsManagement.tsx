@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
 import { useCredits } from '@/shared/hooks/useCredits';
 import { useTaskLog } from '@/shared/hooks/useTaskLog';
-import { useAutoTopupState, useTaskLogFilters, useTaskLogDownload } from './hooks';
-import { AddCreditsSection, TransactionsTable, TaskLogPanel } from './components';
+import { useAutoTopupState } from './hooks/useAutoTopupState';
+import { useTaskLogFilters } from './hooks/useTaskLogFilters';
+import { useTaskLogDownload } from './hooks/useTaskLogDownload';
+import { AddCreditsSection } from './components/AddCreditsSection';
+import { TransactionsTable } from './components/TransactionsTable';
+import { TaskLogPanel } from './components/TaskLogPanel';
 import type { CreditsManagementProps } from './types';
 
 const CreditsManagement: React.FC<CreditsManagementProps> = ({

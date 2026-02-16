@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { PageFadeIn } from '@/shared/components/transitions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { VideoUploadList } from '../components/VideoUploadList';
-import { VideoSegmentEditor } from '../components/VideoSegmentEditor';
+import { VideoSegmentEditor } from '../components/VideoSegmentEditor/VideoSegmentEditor';
 import { BatchSelector } from '../components/BatchSelector';
 import { MultiVideoUploader } from '../components/MultiVideoUploader';
 import { useTrainingData } from '../hooks/useTrainingData';

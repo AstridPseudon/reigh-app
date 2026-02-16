@@ -7,7 +7,7 @@ import { Copy, Check, LogIn } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { ProjectSelectorModal } from '@/shared/components/ProjectSelectorModal';
+import { ProjectSelectorModal } from './ProjectSelectorModal';
 import BatchSettingsForm from './BatchSettingsForm';
 import { MotionControl } from './MotionControl';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';

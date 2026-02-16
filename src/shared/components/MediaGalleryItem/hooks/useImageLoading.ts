@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getDisplayUrl, stripQueryParameters } from "@/shared/lib/utils";
 import { hasLoadedImage, setImageLoadStatus } from "@/shared/lib/preloading";
-import type { GeneratedImageWithMetadata } from "../../MediaGallery";
+import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 
 interface UseImageLoadingProps {
   image: GeneratedImageWithMetadata;

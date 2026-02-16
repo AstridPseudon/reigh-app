@@ -7,7 +7,7 @@ import {
 } from "@/shared/components/ui/tooltip";
 import { GenerationDetails } from "@/shared/components/GenerationDetails";
 import { ImageGenerationDetails } from "@/shared/components/ImageGenerationDetails";
-import type { GeneratedImageWithMetadata } from "../../MediaGallery";
+import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 import type { Task } from "@/types/tasks";
 
 interface InfoTooltipProps {

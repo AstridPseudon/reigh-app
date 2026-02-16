@@ -10,12 +10,10 @@ import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { handleError } from '@/shared/lib/errorHandler';
 import { usePresetSampleFiles } from '../hooks/usePresetSampleFiles';
 
-import {
-  BasicInfoSection,
-  BaseGenerationSettingsSection,
-  PhaseConfigSection,
-  SampleGenerationsSection,
-} from './sections';
+import { BasicInfoSection } from './sections/BasicInfoSection';
+import { BaseGenerationSettingsSection } from './sections/BaseGenerationSettingsSection';
+import { PhaseConfigSection } from './sections/PhaseConfigSection';
+import { SampleGenerationsSection } from './sections/SampleGenerationsSection';
 
 interface AddNewTabProps {
   createResource: ReturnType<typeof useCreateResource>;

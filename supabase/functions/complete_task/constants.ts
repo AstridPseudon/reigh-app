@@ -2,7 +2,7 @@
  * Constants for complete_task edge function
  */
 
-export const TASK_TYPES = {
+const TASK_TYPES = {
   TRAVEL_SEGMENT: 'travel_segment',
   JOIN_CLIPS_SEGMENT: 'join_clips_segment',
   INDIVIDUAL_TRAVEL_SEGMENT: 'individual_travel_segment',
@@ -12,13 +12,13 @@ export const TASK_TYPES = {
 
 type TaskType = typeof TASK_TYPES[keyof typeof TASK_TYPES];
 
-export const TOOL_TYPES = {
+const TOOL_TYPES = {
   TRAVEL_BETWEEN_IMAGES: 'travel-between-images',
 } as const;
 
 // ToolType was unused — removed
 
-export const VARIANT_TYPE_DEFAULT = 'edit' as const;
+const VARIANT_TYPE_DEFAULT = 'edit' as const;
 
 interface SegmentTypeConfig {
   segmentType: TaskType;
@@ -30,7 +30,7 @@ interface SegmentTypeConfig {
   waitForFinalStepType?: TaskType;
 }
 
-export const SEGMENT_TYPE_CONFIG: Record<string, SegmentTypeConfig> = {
+const SEGMENT_TYPE_CONFIG: Record<string, SegmentTypeConfig> = {
   [TASK_TYPES.TRAVEL_SEGMENT]: {
     segmentType: TASK_TYPES.TRAVEL_SEGMENT,
   },

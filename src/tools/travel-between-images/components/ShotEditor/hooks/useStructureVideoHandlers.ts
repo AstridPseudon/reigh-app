@@ -1,37 +1,21 @@
 /**
  * useStructureVideoHandlers - Structure video setting handlers
  *
- * Extracted from ShotEditor to reduce component size.
- * Handles:
- * - Uni3c end percent changes
- * - Motion strength changes
- * - Structure type changes with auto mode switching
- * - Structure video change with mode switch wrapper
- * - Auto-switch effect when structure video is added/removed
+ * Array-first handlers for the travel structure video state.
+ * Keeps the mode-switch behavior centralized while avoiding legacy config shims.
  */
 
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
+import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { UseStructureVideoReturn } from './useStructureVideo';
 
-interface StructureVideoEntry {
-  structure_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  [key: string]: unknown;
-}
-
 interface UseStructureVideoHandlersOptions {
-  // Structure video hook return values
-  structureVideoConfig: UseStructureVideoReturn['structureVideoConfig'];
-  setStructureVideoConfig: UseStructureVideoReturn['setStructureVideoConfig'];
+  structureVideos: StructureVideoConfigWithMetadata[];
+  setStructureVideos: UseStructureVideoReturn['setStructureVideos'];
+  updateStructureVideo: UseStructureVideoReturn['updateStructureVideo'];
   structureVideoPath: UseStructureVideoReturn['structureVideoPath'];
-  structureVideoMetadata: UseStructureVideoReturn['structureVideoMetadata'];
-  structureVideoTreatment: UseStructureVideoReturn['structureVideoTreatment'];
-  structureVideoMotionStrength: UseStructureVideoReturn['structureVideoMotionStrength'];
   structureVideoType: UseStructureVideoReturn['structureVideoType'];
-  handleStructureVideoChange: UseStructureVideoReturn['handleStructureVideoChange'];
-  structureVideos: StructureVideoEntry[];
-  updateStructureVideo: (index: number, updates: Partial<StructureVideoEntry>) => void;
-  // Generation type mode from context
   generationTypeMode: 'i2v' | 'vace';
   setGenerationTypeMode: (mode: 'i2v' | 'vace') => void;
 }
@@ -40,7 +24,7 @@ interface UseStructureVideoHandlersReturn {
   handleUni3cEndPercentChange: (value: number) => void;
   handleStructureVideoMotionStrengthChange: (strength: number) => void;
   handleStructureTypeChangeFromMotionControl: (type: 'uni3c' | 'flow' | 'canny' | 'depth') => void;
-  handleStructureVideoChangeWithModeSwitch: (
+  handleStructureVideoInputChange: (
     videoPath: string | null,
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
@@ -51,70 +35,41 @@ interface UseStructureVideoHandlersReturn {
 }
 
 export function useStructureVideoHandlers({
-  structureVideoConfig,
-  setStructureVideoConfig,
-  structureVideoPath,
-  structureVideoMetadata,
-  structureVideoTreatment,
-  structureVideoMotionStrength,
-  structureVideoType,
-  handleStructureVideoChange,
   structureVideos,
+  setStructureVideos,
   updateStructureVideo,
+  structureVideoPath,
+  structureVideoType,
   generationTypeMode,
   setGenerationTypeMode,
 }: UseStructureVideoHandlersOptions): UseStructureVideoHandlersReturn {
-  // Handler for changing uni3c end percent
+  const switchModeForStructureType = useCallback((type: 'uni3c' | 'flow' | 'canny' | 'depth') => {
+    const targetMode = type === 'uni3c' ? 'i2v' : 'vace';
+    if (generationTypeMode !== targetMode) {
+      setGenerationTypeMode(targetMode);
+    }
+  }, [generationTypeMode, setGenerationTypeMode]);
+
   const handleUni3cEndPercentChange = useCallback((value: number) => {
-    setStructureVideoConfig({
-      ...structureVideoConfig,
-      uni3c_end_percent: value,
-    });
-  }, [structureVideoConfig, setStructureVideoConfig]);
+    if (structureVideos.length === 0) return;
+    updateStructureVideo(0, { uni3c_end_percent: value });
+  }, [structureVideos.length, updateStructureVideo]);
 
-  // Handler for changing just the structure video motion strength (from MotionControl)
   const handleStructureVideoMotionStrengthChange = useCallback((strength: number) => {
-    if (structureVideoPath && structureVideoMetadata) {
-      handleStructureVideoChange(
-        structureVideoPath,
-        structureVideoMetadata,
-        structureVideoTreatment,
-        strength,
-        structureVideoType
-      );
-    }
-  }, [structureVideoPath, structureVideoMetadata, structureVideoTreatment, structureVideoType, handleStructureVideoChange]);
+    if (structureVideos.length === 0) return;
+    updateStructureVideo(0, { motion_strength: strength });
+  }, [structureVideos.length, updateStructureVideo]);
 
-  // Handler for changing just the structure video type (from MotionControl)
   const handleStructureTypeChangeFromMotionControl = useCallback((type: 'uni3c' | 'flow' | 'canny' | 'depth') => {
-    // Update legacy single-video config
-    handleStructureVideoChange(
-      structureVideoPath,
-      structureVideoMetadata,
-      structureVideoTreatment,
-      structureVideoMotionStrength,
-      type
-    );
-
-    // Also update ALL videos in the structureVideos array to keep them in sync
-    structureVideos.forEach((_, index) => {
-      updateStructureVideo(index, { structure_type: type });
-    });
-
-    // Auto-switch generation type mode based on structure type
-    if (type === 'uni3c') {
-      if (generationTypeMode !== 'i2v') {
-        setGenerationTypeMode('i2v');
-      }
-    } else {
-      if (generationTypeMode !== 'vace') {
-        setGenerationTypeMode('vace');
-      }
+    if (structureVideos.length > 0) {
+      structureVideos.forEach((_, index) => {
+        updateStructureVideo(index, { structure_type: type });
+      });
     }
-  }, [structureVideoPath, structureVideoMetadata, structureVideoTreatment, structureVideoMotionStrength, handleStructureVideoChange, structureVideos, updateStructureVideo, setGenerationTypeMode, generationTypeMode]);
+    switchModeForStructureType(type);
+  }, [structureVideos, updateStructureVideo, switchModeForStructureType]);
 
-  // Wrapper for structure video change that also auto-switches generation type mode
-  const handleStructureVideoChangeWithModeSwitch = useCallback((
+  const handleStructureVideoInputChange = useCallback((
     videoPath: string | null,
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
@@ -122,29 +77,44 @@ export function useStructureVideoHandlers({
     structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
     resourceId?: string
   ) => {
-    // Call the original handler
-    handleStructureVideoChange(videoPath, metadata, treatment, motionStrength, structureType, resourceId);
-
-    // Auto-switch generation type mode based on structure type
-    if (videoPath) {
-      if (structureType === 'uni3c') {
-        // Uni3C uses I2V mode
-        if (generationTypeMode !== 'i2v') {
-          setGenerationTypeMode('i2v');
-        }
-      } else {
-        // flow, canny, depth use VACE mode
-        if (generationTypeMode !== 'vace') {
-          setGenerationTypeMode('vace');
-        }
+    if (!videoPath) {
+      setStructureVideos([]);
+      if (generationTypeMode !== 'i2v') {
+        setGenerationTypeMode('i2v');
       }
+      return;
     }
-  }, [handleStructureVideoChange, setGenerationTypeMode, generationTypeMode]);
 
-  // Auto-switch generationTypeMode when structure video is added/removed
+    const existing = structureVideos[0];
+    const nextPrimary: StructureVideoConfigWithMetadata = {
+      path: videoPath,
+      start_frame: existing?.start_frame ?? 0,
+      end_frame: existing?.end_frame ?? 81,
+      treatment,
+      motion_strength: motionStrength,
+      structure_type: structureType,
+      uni3c_end_percent: existing?.uni3c_end_percent ?? 0.1,
+      metadata: metadata ?? null,
+      resource_id: resourceId ?? null,
+    };
+
+    if (structureVideos.length > 0) {
+      setStructureVideos([nextPrimary, ...structureVideos.slice(1)]);
+    } else {
+      setStructureVideos([nextPrimary]);
+    }
+
+    switchModeForStructureType(structureType);
+  }, [
+    generationTypeMode,
+    setGenerationTypeMode,
+    setStructureVideos,
+    structureVideos,
+    switchModeForStructureType,
+  ]);
+
   const prevStructureVideoPath = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    // Skip on first render (undefined -> initial value)
     if (prevStructureVideoPath.current === undefined) {
       prevStructureVideoPath.current = structureVideoPath;
       return;
@@ -154,22 +124,24 @@ export function useStructureVideoHandlers({
     const wasRemoved = prevStructureVideoPath.current && !structureVideoPath;
 
     if (wasAdded) {
-      // When adding structure video, switch to appropriate mode based on structure type
-      const targetMode = structureVideoType === 'uni3c' ? 'i2v' : 'vace';
-      if (generationTypeMode !== targetMode) {
-        setGenerationTypeMode(targetMode);
-      }
+      switchModeForStructureType(structureVideoType);
     } else if (wasRemoved && generationTypeMode !== 'i2v') {
       setGenerationTypeMode('i2v');
     }
 
     prevStructureVideoPath.current = structureVideoPath;
-  }, [structureVideoPath, structureVideoType, generationTypeMode, setGenerationTypeMode]);
+  }, [
+    generationTypeMode,
+    setGenerationTypeMode,
+    structureVideoPath,
+    structureVideoType,
+    switchModeForStructureType,
+  ]);
 
   return {
     handleUni3cEndPercentChange,
     handleStructureVideoMotionStrengthChange,
     handleStructureTypeChangeFromMotionControl,
-    handleStructureVideoChangeWithModeSwitch,
+    handleStructureVideoInputChange,
   };
 }

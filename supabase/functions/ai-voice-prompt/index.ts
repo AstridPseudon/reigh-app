@@ -4,23 +4,12 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Groq from "npm:groq-sdk@0.26.0";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/http.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
-
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    },
-  });
-}
 
 const apiKey = Deno.env.get("GROQ_API_KEY");
 if (!apiKey) {
-  console.error("[ai-voice-prompt] GROQ_API_KEY not set in env vars");
+  console.error("[ai-voice-prompt] Missing Groq provider configuration");
 }
 const groq = new Groq({ apiKey });
 
@@ -213,4 +202,3 @@ Output:`;
     return jsonResponse({ error: "Internal server error", details: err?.message }, 500);
   }
 });
-

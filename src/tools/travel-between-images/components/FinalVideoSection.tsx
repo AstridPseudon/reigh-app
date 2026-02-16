@@ -10,7 +10,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Check, Film, Loader2, Trash2, Share2, Copy } from 'lucide-react';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { Separator } from '@/shared/components/ui/separator';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import {
@@ -401,7 +400,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
             </div>
           )}
           
-          <Separator className="my-3" />
+          <div className="my-3 h-px w-full bg-border" />
           
           {/* Video Display */}
           {shouldShowSkeleton ? (
@@ -557,4 +556,3 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
     </div>
   );
 };
-

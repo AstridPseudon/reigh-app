@@ -209,22 +209,19 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
 
   // Structure video management (extracted to hook)
   const {
-    // New grouped config (preferred for generateVideo)
-    structureVideoConfig,
-    setStructureVideoConfig,
-    // Legacy individual accessors (for UI components that haven't migrated)
     structureVideoPath,
     structureVideoMetadata,
     structureVideoTreatment,
     structureVideoMotionStrength,
     structureVideoType,
-    handleStructureVideoChange,
+    structureVideoResourceId,
+    structureVideoUni3cEndPercent,
     isLoading: isStructureVideoSettingsLoading,
-    // NEW: Multi-video array support
     structureVideos,
     addStructureVideo,
     updateStructureVideo,
     removeStructureVideo,
+    clearAllStructureVideos,
     setStructureVideos,
   } = useStructureVideo({
     projectId,
@@ -236,18 +233,13 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
     handleUni3cEndPercentChange,
     handleStructureVideoMotionStrengthChange,
     handleStructureTypeChangeFromMotionControl,
-    handleStructureVideoChangeWithModeSwitch,
+    handleStructureVideoInputChange,
   } = useStructureVideoHandlers({
-    structureVideoConfig,
-    setStructureVideoConfig,
-    structureVideoPath,
-    structureVideoMetadata,
-    structureVideoTreatment,
-    structureVideoMotionStrength,
-    structureVideoType,
-    handleStructureVideoChange,
     structureVideos,
+    setStructureVideos,
     updateStructureVideo,
+    structureVideoPath,
+    structureVideoType,
     generationTypeMode: phaseConfigSettings.generationTypeMode,
     setGenerationTypeMode: phaseConfigSettings.setGenerationTypeMode,
   });
@@ -737,7 +729,7 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
     onAmountOfMotionChange: motionSettings.setAmountOfMotion,
     onTextBeforePromptsChange: promptSettings.setTextBeforePrompts,
     onTextAfterPromptsChange: promptSettings.setTextAfterPrompts,
-    handleStructureVideoChange,
+    handleStructureVideoChange: handleStructureVideoInputChange,
     generationMode: generationModeSettings.generationMode,
     generationTypeMode: phaseConfigSettings.generationTypeMode,
     advancedMode: phaseConfigSettings.advancedMode,
@@ -821,7 +813,6 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
     // LoRAs
     selectedLoras: loraManager.selectedLoras,
     // Structure video
-    structureVideoConfig,
     structureVideos,
     // Clear prompts callback
     clearAllEnhancedPrompts,
@@ -919,26 +910,26 @@ const ShotSettingsEditor: React.FC<ShotEditorProps> = ({
     simpleFilteredImages,
     // Structure video
     structureVideo: {
-      structureVideoConfig,
-      setStructureVideoConfig,
       structureVideoPath,
       structureVideoMetadata,
       structureVideoTreatment,
       structureVideoMotionStrength,
       structureVideoType,
-      handleStructureVideoChange,
+      structureVideoResourceId,
+      structureVideoUni3cEndPercent,
       isLoading: isStructureVideoSettingsLoading,
       structureVideos,
       addStructureVideo,
       updateStructureVideo,
       removeStructureVideo,
+      clearAllStructureVideos,
       setStructureVideos,
     },
-    handleStructureVideoChangeWithModeSwitch,
     structureVideoHandlers: {
       handleStructureVideoMotionStrengthChange,
       handleStructureTypeChangeFromMotionControl,
       handleUni3cEndPercentChange,
+      handleStructureVideoInputChange,
     },
     // Audio
     audio: {

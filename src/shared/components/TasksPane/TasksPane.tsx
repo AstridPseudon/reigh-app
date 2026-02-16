@@ -27,8 +27,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSe
 
 // Import from new modules
 import { ITEMS_PER_PAGE, STATUS_GROUPS, FilterGroup } from './constants';
-import { StatusIndicator, PaginationControls } from './components';
-import { useTasksLightbox, useShotActions } from './hooks';
+import { StatusIndicator } from './components/StatusIndicator';
+import { PaginationControls } from './components/PaginationControls';
+import { useTasksLightbox } from './hooks/useTasksLightbox';
+import { useShotActions } from './hooks/useShotActions';
 
 interface TasksPaneProps {
   onOpenSettings: () => void;

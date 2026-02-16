@@ -11,10 +11,10 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { toolsManifest } from '@/tools';
 import { deepMerge } from '@/shared/lib/deepEqual';
 import { isCancellationError, isAbortError, getErrorMessage } from '@/shared/lib/errorUtils';
 import { handleError } from '@/shared/lib/errorHandler';
+import { toolDefaultsRegistry } from '@/tooling/toolDefaultsRegistry';
 
 // ============================================================================
 // Module-level state
@@ -30,11 +30,6 @@ let inflightGetSession: Promise<{ data: { session: { user: { id: string } } | nu
 let cachedUser: { id: string } | null = null;
 let cachedUserAt: number = 0;
 const USER_CACHE_MS = 10_000; // 10 seconds
-
-// Tool defaults registry - client-side version matching server
-const toolDefaults: Record<string, unknown> = Object.fromEntries(
-  toolsManifest.map(toolSettings => [toolSettings.id, toolSettings.defaults])
-);
 
 // ============================================================================
 // Types
@@ -204,13 +199,13 @@ export async function fetchToolSettingsSupabase(
       // Check if shot actually had settings stored (not just empty object)
       const hasShotSettings = shotSettings && Object.keys(shotSettings).length > 0;
 
-      // Merge in priority order: defaults -> user -> project -> shot
-      const merged = deepMerge(
-        {},
-        toolDefaults[toolId] ?? {},
-        userSettings,
-        projectSettings,
-        shotSettings
+        // Merge in priority order: defaults -> user -> project -> shot
+        const merged = deepMerge(
+          {},
+          toolDefaultsRegistry[toolId] ?? {},
+          userSettings,
+          projectSettings,
+          shotSettings
       );
 
       return { settings: merged, hasShotSettings };
@@ -241,7 +236,7 @@ export async function fetchToolSettingsSupabase(
 
       if (errorMsg.includes('Auth timeout') || errorMsg.includes('Auth request was cancelled')) {
         // Return defaults rather than erroring, so UI remains usable
-        return { settings: deepMerge({}, toolDefaults[toolId] ?? {}), hasShotSettings: false };
+        return { settings: deepMerge({}, toolDefaultsRegistry[toolId] ?? {}), hasShotSettings: false };
       }
 
       if (errorMsg.includes('Failed to fetch')) {

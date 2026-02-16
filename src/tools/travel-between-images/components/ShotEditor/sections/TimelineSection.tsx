@@ -13,6 +13,7 @@ import {
   useShotUI,
   useShotImages,
   useShotStructureVideo,
+  useStructureVideoHandlers,
   useShotAudio,
   useShotImageHandlers,
   useShotManagement,
@@ -94,6 +95,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
   const { state } = useShotUI();
   const { allShotImages, unpositionedImages, contextImages } = useShotImages();
   const structureVideo = useShotStructureVideo();
+  const structureVideoHandlers = useStructureVideoHandlers();
   const audio = useShotAudio();
   const imageHandlers = useShotImageHandlers();
   const shotManagement = useShotManagement();
@@ -155,14 +157,9 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
         structureVideoTreatment={structureVideo.structureVideoTreatment}
         structureVideoMotionStrength={structureVideo.structureVideoMotionStrength}
         structureVideoType={structureVideo.structureVideoType}
-        onStructureVideoChange={structureVideo.handleStructureVideoChange}
-        uni3cEndPercent={structureVideo.structureVideoConfig.uni3c_end_percent}
-        onUni3cEndPercentChange={(value) => {
-          structureVideo.setStructureVideoConfig({
-            ...structureVideo.structureVideoConfig,
-            uni3c_end_percent: value,
-          });
-        }}
+        onStructureVideoChange={structureVideoHandlers.handleStructureVideoInputChange}
+        uni3cEndPercent={structureVideo.structureVideoUni3cEndPercent}
+        onUni3cEndPercentChange={structureVideoHandlers.handleUni3cEndPercentChange}
         structureVideos={structureVideo.structureVideos}
         isStructureVideoLoading={structureVideo.isLoading}
         cachedHasStructureVideo={cachedHasStructureVideo}

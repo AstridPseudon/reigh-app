@@ -36,7 +36,7 @@ const formatTimeWithMs = (seconds: number) =>
 
 const formatDuration = (ms: number) => formatTimeWithMs(msToSeconds(ms));
 
-export interface VideoSegmentEditorProps {
+interface VideoSegmentEditorProps {
   video: TrainingDataVideo;
   segments: TrainingDataSegment[];
   onCreateSegment: (videoId: string, startTime: number, endTime: number, description?: string) => Promise<string>;

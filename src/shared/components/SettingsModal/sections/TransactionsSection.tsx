@@ -1,5 +1,5 @@
 import React from "react";
-import CreditsManagement from "../../CreditsManagement";
+import CreditsManagement from "../../CreditsManagement/CreditsManagement";
 
 const TransactionsSection: React.FC = () => {
   return (

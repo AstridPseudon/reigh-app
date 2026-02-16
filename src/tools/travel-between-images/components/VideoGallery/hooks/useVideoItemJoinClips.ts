@@ -26,7 +26,7 @@ export interface JoinSettings {
   setKeepBridgingImages: (v: boolean) => void;
 }
 
-export interface UseVideoItemJoinClipsResult {
+interface UseVideoItemJoinClipsResult {
   childGenerations: GenerationRow[];
   showCollage: boolean;
   shouldShowJoinButton: boolean;

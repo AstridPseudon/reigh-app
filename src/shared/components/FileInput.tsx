@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
 import { X, UploadCloud, ImagePlus, VideoIcon, FileText, Loader2, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/shared/components/ui/tooltip";
-import { toast } from "@/shared/components/ui/sonner";
+import { toast } from "@/shared/components/ui/toast";
 import { cropFilename } from "@/shared/lib/utils";
 
 interface FileInputProps {
@@ -217,7 +216,7 @@ const FileInput: React.FC<FileInputProps> = ({
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
       >
-        <Input
+        <input
           id="file-input-element"
           ref={fileInputRef}
           type="file"

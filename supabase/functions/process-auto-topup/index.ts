@@ -155,7 +155,7 @@ serve(async (req) => {
     // ─── 6. Initialize Stripe and create Payment Intent ─────────────
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
-      logger.error("STRIPE_SECRET_KEY not set in environment");
+      logger.error("Missing Stripe configuration");
       await logger.flush();
       return jsonResponse({ error: "Stripe not configured" }, 500);
     }

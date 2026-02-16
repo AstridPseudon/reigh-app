@@ -17,14 +17,12 @@ import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
 import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
 
 // Extracted sub-components
-import {
-  TimelineSkeletonItem,
-  ZoomControls,
-  GuidanceVideoControls,
-  TimelineBottomControls,
-  PendingFrameMarker,
-  AddAudioButton,
-} from './components';
+import { TimelineSkeletonItem } from './components/TimelineSkeletonItem';
+import { ZoomControls } from './components/ZoomControls';
+import { GuidanceVideoControls } from './components/GuidanceVideoControls';
+import { TimelineBottomControls } from './components/TimelineBottomControls';
+import { PendingFrameMarker } from './components/PendingFrameMarker';
+import { AddAudioButton } from './components/AddAudioButton';
 
 // Hooks
 import { useTimelineOrchestrator } from '../hooks/useTimelineOrchestrator';

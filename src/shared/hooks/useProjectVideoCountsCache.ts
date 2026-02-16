@@ -65,7 +65,7 @@ function shotSettingsHaveStructureVideo(settings: Record<string, unknown> | null
 
   // New array format
   const videos = svSettings.structure_videos as unknown[] | undefined;
-  if (videos && videos.length > 0) return true;
+  if (Array.isArray(videos)) return videos.length > 0;
 
   // Legacy single-video format
   const path = svSettings.structure_video_path;

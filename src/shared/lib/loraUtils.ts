@@ -6,7 +6,18 @@
  * because these are generic utilities used across shared components.
  */
 
-import { LoraModel } from '@/shared/components/LoraSelectorModal';
+/**
+ * Minimal LoRA model shape used by display helpers.
+ * Keep this local to avoid pulling UI modules into shared/lib.
+ */
+export interface LoraDisplayModel {
+  "Model ID"?: string;
+  Name?: string;
+  huggingface_url?: string;
+  trigger_word?: string;
+  Images?: Array<{ type?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
 
 // Pre-defined LoRA options for quick selection
 export const PREDEFINED_LORAS = [
@@ -125,7 +136,7 @@ function cleanFilename(filename: string): string {
  * @param availableLoras - Optional array of available LoRAs to check against
  * @param fallbackName - Optional name to use if URL doesn't match anything
  */
-export function getDisplayNameFromUrl(url: string, availableLoras?: LoraModel[], fallbackName?: string): string {
+export function getDisplayNameFromUrl(url: string, availableLoras?: LoraDisplayModel[], fallbackName?: string): string {
   // Check if this is a predefined LoRA
   if (url) {
     const predefinedLora = PREDEFINED_LORAS.find(lora => lora.url === url);

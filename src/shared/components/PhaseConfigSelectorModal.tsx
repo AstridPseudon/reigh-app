@@ -1,3 +1,2 @@
-// Re-export from new directory structure
-export { PhaseConfigSelectorModal } from './PhaseConfigSelectorModal/index';
+export { PhaseConfigSelectorModal } from './PhaseConfigSelectorModal/PhaseConfigSelectorModal';
 export type { PhaseConfigSelectorModalProps } from './PhaseConfigSelectorModal/types';

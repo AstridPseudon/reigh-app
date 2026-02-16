@@ -31,7 +31,7 @@ interface BufferedLog {
   metadata: Record<string, any>;
 }
 
-export class SystemLogger {
+class SystemLogger {
   private supabaseAdmin: any;
   private functionName: string;
   private logPrefix: string;

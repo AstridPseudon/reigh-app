@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useEffect, useCallback } from 'react';
-import { useProject } from '@/shared/contexts/ProjectContext';
 import { handleError } from '@/shared/lib/errorHandler';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
@@ -208,14 +207,18 @@ export function useToolSettings<T>(
   toolId: string,
   context?: { projectId?: string; shotId?: string; enabled?: boolean }
 ) {
-  const { selectedProjectId } = useProject();
   const queryClient = useQueryClient();
 
   // Ref to track active update controllers for cleanup
   const updateControllersRef = useRef<Set<AbortController>>(new Set());
 
   // Determine parameter shapes
-  const projectId: string | undefined = context?.projectId ?? selectedProjectId;
+  const projectIdFromGlobal =
+    typeof window !== 'undefined'
+      ? (window as Window & { __PROJECT_CONTEXT__?: { selectedProjectId?: string | null } })
+          .__PROJECT_CONTEXT__?.selectedProjectId ?? undefined
+      : undefined;
+  const projectId: string | undefined = context?.projectId ?? projectIdFromGlobal ?? undefined;
   const shotId: string | undefined = context?.shotId;
   const fetchEnabled: boolean = context?.enabled ?? true;
 

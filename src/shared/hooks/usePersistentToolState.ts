@@ -1,8 +1,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useToolSettings, SettingsScope } from './useToolSettings';
 import { deepEqual, sanitizeSettings } from '../lib/deepEqual';
-import { toolsManifest } from '@/tools';
 import { handleError } from '@/shared/lib/errorHandler';
+import { toolDefaultsRegistry } from '@/tooling/toolDefaultsRegistry';
 
 /**
  * Infer an appropriate "empty" value for a given value based on its type.
@@ -150,7 +150,7 @@ export function usePersistentToolState<T extends Record<string, unknown>>(
       const effectiveSettings: Partial<T> = (settings as Partial<T>) || {};
       
       // Get defaults for this tool to reset undefined values
-      const toolDefaults = explicitDefaults || toolsManifest.find(t => t.id === toolId)?.defaults || {};
+      const toolDefaults = explicitDefaults || toolDefaultsRegistry[toolId] || {};
       
       hasHydratedRef.current = true;
       userHasInteractedRef.current = false;

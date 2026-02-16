@@ -1,5 +1,5 @@
 import React from 'react';
-import { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery'; // Updated import path
+import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
 
 interface DraggableImageProps {
   image: GeneratedImageWithMetadata;

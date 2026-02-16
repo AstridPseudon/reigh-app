@@ -84,7 +84,6 @@ export interface UseShotSettingsValueProps {
 
   // Structure video hook return
   structureVideo: UseStructureVideoReturn;
-  handleStructureVideoChangeWithModeSwitch: UseStructureVideoReturn['handleStructureVideoChange'];
 
   // Structure video compound handlers
   structureVideoHandlers: StructureVideoHandlers;
@@ -144,7 +143,6 @@ export function useShotSettingsValue({
   simpleFilteredImages,
   // Structure video
   structureVideo,
-  handleStructureVideoChangeWithModeSwitch,
   structureVideoHandlers,
   // Audio
   audio,
@@ -169,27 +167,22 @@ export function useShotSettingsValue({
   // Build structure video domain for context
   const structureVideoForContext = useMemo(
     (): ShotSettingsContextValue['structureVideo'] => ({
-      // Multi-video array interface
       structureVideos: structureVideo.structureVideos,
       addStructureVideo: structureVideo.addStructureVideo,
       updateStructureVideo: structureVideo.updateStructureVideo,
       removeStructureVideo: structureVideo.removeStructureVideo,
-      clearAllStructureVideos: () => structureVideo.setStructureVideos([]),
+      clearAllStructureVideos: structureVideo.clearAllStructureVideos,
       setStructureVideos: structureVideo.setStructureVideos,
-      // Legacy interface
-      structureVideoConfig: structureVideo.structureVideoConfig,
-      setStructureVideoConfig: structureVideo.setStructureVideoConfig,
       isLoading: structureVideo.isLoading,
-      // Legacy individual accessors
       structureVideoPath: structureVideo.structureVideoPath,
       structureVideoMetadata: structureVideo.structureVideoMetadata,
       structureVideoTreatment: structureVideo.structureVideoTreatment,
       structureVideoMotionStrength: structureVideo.structureVideoMotionStrength,
       structureVideoType: structureVideo.structureVideoType,
-      structureVideoResourceId: null,
-      handleStructureVideoChange: handleStructureVideoChangeWithModeSwitch,
+      structureVideoResourceId: structureVideo.structureVideoResourceId,
+      structureVideoUni3cEndPercent: structureVideo.structureVideoUni3cEndPercent,
     }),
-    [structureVideo, handleStructureVideoChangeWithModeSwitch]
+    [structureVideo]
   );
 
   // Build audio domain for context

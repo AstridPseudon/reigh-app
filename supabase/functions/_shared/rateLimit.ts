@@ -27,7 +27,7 @@ interface RateLimitResult {
 /**
  * Default rate limit configs for different function types
  */
-export const RATE_LIMITS = {
+const RATE_LIMITS = {
   // Unauthenticated/webhook endpoints - stricter
   webhook: { maxRequests: 100, windowSeconds: 60, identifierType: 'ip' as const },
   
@@ -48,7 +48,7 @@ export const RATE_LIMITS = {
  * Extract client IP from request headers
  * Handles Cloudflare, standard proxies, and direct connections
  */
-export function getClientIp(req: Request): string {
+function getClientIp(req: Request): string {
   // Cloudflare
   const cfIp = req.headers.get('cf-connecting-ip');
   if (cfIp) return cfIp;
@@ -100,7 +100,6 @@ export async function checkRateLimit(
     
     if (error) {
       // If the RPC doesn't exist yet, fall through to allow (fail open)
-      console.warn(`${logPrefix} Rate limit check failed (allowing request):`, error.message);
       return {
         allowed: true,
         remaining: config.maxRequests,
@@ -114,7 +113,6 @@ export async function checkRateLimit(
     
     if (!result.allowed) {
       const retryAfter = Math.ceil((resetAt.getTime() - now.getTime()) / 1000);
-      console.warn(`${logPrefix} Rate limit exceeded for ${key}: ${result.count}/${config.maxRequests}`);
       return {
         allowed: false,
         remaining: 0,
@@ -159,7 +157,7 @@ function rateLimitHeaders(result: RateLimitResult, config: RateLimitConfig): Rec
 /**
  * Create a 429 Too Many Requests response
  */
-export function rateLimitResponse(result: RateLimitResult, config: RateLimitConfig): Response {
+function rateLimitResponse(result: RateLimitResult, config: RateLimitConfig): Response {
   return new Response(
     JSON.stringify({
       error: 'Too many requests',
@@ -176,8 +174,4 @@ export function rateLimitResponse(result: RateLimitResult, config: RateLimitConf
     }
   );
 }
-
-
-
-
 

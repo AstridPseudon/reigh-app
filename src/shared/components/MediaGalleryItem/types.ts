@@ -1,4 +1,4 @@
-import { GeneratedImageWithMetadata, DisplayableMetadata } from "../MediaGallery";
+import type { GeneratedImageWithMetadata, DisplayableMetadata } from "../MediaGallery/types";
 
 export interface MediaGalleryItemProps {
   image: GeneratedImageWithMetadata;
@@ -63,4 +63,4 @@ export interface MediaGalleryItemProps {
 }
 
 // Re-export types that are used by sub-components
-export type { GeneratedImageWithMetadata, DisplayableMetadata } from "../MediaGallery";
+export type { GeneratedImageWithMetadata, DisplayableMetadata } from "../MediaGallery/types";

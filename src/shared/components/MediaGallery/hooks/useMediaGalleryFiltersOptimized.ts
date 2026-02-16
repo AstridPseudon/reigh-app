@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useMemo, useRef } from 'react';
-import { GeneratedImageWithMetadata } from '../index';
+import type { GeneratedImageWithMetadata } from '../types';
 import { GalleryFilterState, DEFAULT_GALLERY_FILTERS } from '../types';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
 
