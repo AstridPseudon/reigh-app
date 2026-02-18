@@ -8,8 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhaseConfig, buildBasicModePhaseConfig } from '@/shared/types/phaseConfig';
 import { handleError } from '@/shared/lib/errorHandler';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
-import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import type { PathLoraConfig } from '@/shared/types/lora';
+import { ensureShotParentGenerationId } from './shotParentGeneration';
 
 /**
  * Interface for individual travel segment regeneration task parameters
@@ -560,65 +560,14 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
     // 1. Validate parameters
     validateIndividualTravelSegmentParams(params);
 
-    // 2. Ensure we have a parent_generation_id (create placeholder if needed)
-    let effectiveParentGenerationId = params.parent_generation_id;
-
-    if (!effectiveParentGenerationId && params.shot_id) {
-
-      // Create a placeholder parent generation
-      const newParentId = crypto.randomUUID();
-      // Build input images array (end_image_url is optional for trailing segments)
-      const placeholderInputImages = params.end_image_url
-        ? [params.start_image_url, params.end_image_url]
-        : [params.start_image_url];
-
-      const placeholderParams = {
-        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
-        created_from: 'individual_segment_first_generation',
-        // Include basic orchestrator_details structure so it shows in segment outputs
-        orchestrator_details: {
-          num_new_segments_to_generate: 1, // Will be updated as more segments are generated
-          input_image_paths_resolved: placeholderInputImages,
-        },
-      };
-
-      const { error: parentError } = await supabase
-        .from('generations')
-        .insert({
-          id: newParentId,
-          project_id: params.project_id,
-          type: 'video',
-          is_child: false,
-          location: null, // Placeholder - no video yet
-          params: placeholderParams,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      
-      if (parentError) {
-        console.error("[IndividualTravelSegment] Error creating placeholder parent:", parentError);
-        throw new Error(`Failed to create placeholder parent generation: ${parentError.message}`);
-      }
-      
-      effectiveParentGenerationId = newParentId;
-      
-      // Link the parent to the shot using the RPC
-      const { error: linkError } = await supabase.rpc('add_generation_to_shot', {
-        p_shot_id: params.shot_id,
-        p_generation_id: newParentId,
-        p_with_position: false, // Don't add to timeline position
-      });
-      
-      if (linkError) {
-        handleError(linkError, { context: 'IndividualTravelSegment:linkParentToShot', showToast: false });
-        // Don't fail - the generation was created, just not linked
-      }
-    }
-    
-    if (!effectiveParentGenerationId) {
-      throw new Error("Could not determine or create parent_generation_id");
-    }
+    // 2. Ensure we have a canonical parent generation for this shot.
+    // If one already exists, reuse it. If none exists yet, create exactly one.
+    const effectiveParentGenerationId = await ensureShotParentGenerationId({
+      projectId: params.project_id,
+      shotId: params.shot_id,
+      parentGenerationId: params.parent_generation_id,
+      context: 'IndividualTravelSegment',
+    });
 
     // 3. Look up existing child to create variant on
     // Priority: pair_shot_generation_id match > child_order match

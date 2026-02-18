@@ -171,6 +171,8 @@ function handleGenerationsInserted(queryClient: QueryClient, event: GenerationsI
   queryClient.invalidateQueries({ queryKey: queryKeys.unified.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.generations.detailAll });
+  // Keep segment parent dropdowns fresh when parent generations are inserted.
+  queryClient.invalidateQueries({ queryKey: queryKeys.segments.parentsAll });
 
   // Invalidate shot-generations
   invalidateAllShotGenerations(queryClient, 'generations-inserted');
@@ -191,6 +193,7 @@ function handleGenerationsInserted(queryClient: QueryClient, event: GenerationsI
     queryKeys.unified.all,
     queryKeys.generations.all,
     queryKeys.generations.detailAll,
+    queryKeys.segments.parentsAll,
   ]);
 }
 
