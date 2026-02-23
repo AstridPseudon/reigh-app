@@ -152,6 +152,9 @@ export const useAddImageToShot = () => {
       // (e.g., adding to a different shot than the one currently viewed),
       // since no optimistic item would have been created in that case.
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.byShot(shot_id) });
+      // Invalidate segment position map so videos reposition to match new timeline order
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.liveTimeline(shot_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.parents(shot_id, project_id) });
     },
   });
 };

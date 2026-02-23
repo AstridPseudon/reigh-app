@@ -6,7 +6,7 @@ import { useProject } from "@/shared/contexts/ProjectContext";
 import {
   useAddImageToShot,
   useHandleExternalImageDrop,
-} from "@/shared/hooks/useShots";
+} from "@/shared/hooks/shots";
 import { useQueryClient } from '@tanstack/react-query';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { supabase } from '@/integrations/supabase/client';

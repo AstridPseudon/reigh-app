@@ -479,7 +479,14 @@ export function useSegmentOutputsForShot(
 
     // Use slotCount (current timeline) for positioning, not expectedCount (original generation)
     if (slotCount === 0) {
-      // No position data, just show what we have
+      if (!effectiveTimelineData) {
+        // Timeline still loading — return empty to avoid collision/shift artifacts.
+        // The child_order fallback below causes two problems when timeline data arrives:
+        // (1) segments with the same child_order collide, making one permanently invisible,
+        // (2) segments visually shift position when the FK-based layout kicks in.
+        return [];
+      }
+      // Genuinely no timeline images — show what we have at child_order positions
       const fallbackSlots = segments.map((child, index) => ({
         type: 'child' as const,
         child,
@@ -497,8 +504,13 @@ export function useSegmentOutputsForShot(
     // 1. pair_shot_generation_id → position (LOCAL for instant, LIVE as fallback)
     // 2. child_order (fallback ONLY for videos without pair_shot_generation_id)
     segments.forEach(child => {
-      const { pairShotGenId } = getPairIdentifiers(child, child.params as Record<string, unknown> | null);
+      const childParams = child.params as Record<string, unknown> | null;
+      const { pairShotGenId } = getPairIdentifiers(child, childParams);
       const childOrder = child.child_order;
+
+      // Extract end image generation_id for pair validation
+      const individualParams = (childParams?.individual_segment_params || {}) as Record<string, unknown>;
+      const endGenId = (individualParams.end_image_generation_id || childParams?.end_image_generation_id) as string | undefined;
 
       let derivedSlot: number | undefined;
       let slotSource = 'NONE';
@@ -521,19 +533,30 @@ export function useSegmentOutputsForShot(
           // Image is at last position - no valid pair starts there
           slotSource = 'PAIR_AT_END_NO_SLOT';
         }
+
+        // Verify end image still matches — catches insertion between pair images.
+        // If image X was inserted between A and B, the A→B segment resolves to A's
+        // slot but the END image at that slot is now X, not B. Show a placeholder
+        // instead of a wrong video.
+        if (derivedSlot !== undefined && endGenId && effectiveTimelineData) {
+          const endImageInTimeline = effectiveTimelineData[derivedSlot + 1];
+          if (endImageInTimeline && endImageInTimeline.generation_id !== endGenId) {
+            derivedSlot = undefined;
+            slotSource = 'STALE_END_IMAGE';
+          }
+        }
       }
 
-      // Priority 2: child_order fallback
-      // Fall back to child_order when:
-      // - No pairShotGenId at all, OR
-      // - pairShotGenId is stale (not in position map) — e.g. after image duplication
-      //   creates new shot_generation IDs but segments still reference the originals
-      // Do NOT fall back if pairShotGenId was found but at an invalid position (end)
-      const pairShotGenIdIsStale = !!pairShotGenId && !positionMap.has(pairShotGenId);
-      if (derivedSlot === undefined && (!pairShotGenId || pairShotGenIdIsStale) &&
+      // Priority 2: child_order fallback (legacy segments only)
+      // Fall back to child_order ONLY when there's no pairShotGenId at all.
+      // A stale FK (pairShotGenId exists but not in positionMap) means the source
+      // image was removed from the timeline — the segment is orphaned and should
+      // NOT claim a slot. Letting it fall back to child_order would block valid
+      // segments from their correct positions.
+      if (derivedSlot === undefined && !pairShotGenId &&
           typeof childOrder === 'number' && childOrder >= 0 && childOrder < slotCount) {
         derivedSlot = childOrder;
-        slotSource = pairShotGenIdIsStale ? 'CHILD_ORDER_STALE_FK' : 'CHILD_ORDER';
+        slotSource = 'CHILD_ORDER';
       }
 
       // Skip videos whose pair_shot_gen is at an invalid position (e.g., last image)
@@ -547,8 +570,16 @@ export function useSegmentOutputsForShot(
         childrenBySlot.set(derivedSlot, child);
         usedSlots.add(derivedSlot);
       } else if (derivedSlot !== undefined && usedSlots.has(derivedSlot)) {
-        // Slot collision! Another segment wants the same slot
-        childrenWithoutValidSlot.push(child);
+        // Slot collision — prefer the segment with actual content (location).
+        // This prevents demoted/empty segments from blocking valid ones,
+        // even in timing windows where demote hasn't cleared location yet.
+        const existing = childrenBySlot.get(derivedSlot)!;
+        if (!existing.location && child.location) {
+          childrenBySlot.set(derivedSlot, child);
+          childrenWithoutValidSlot.push(existing);
+        } else {
+          childrenWithoutValidSlot.push(child);
+        }
       } else {
         childrenWithoutValidSlot.push(child);
       }
