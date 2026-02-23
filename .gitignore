@@ -66,9 +66,19 @@ temp/
 /*.rar
 /*.7z
 
-# Python cache
+# Python cache/venvs
 __pycache__/
 *.pyc
+.venv*/
+.ruff_cache/
+
+# Audit/review artifacts (keep .desloppify/ tracked)
+findings*.json
+perfile_findings.json
+type_safety_review*.json
+
+# Localhost dev logs (already covered by *.log but be explicit)
+localhost-*.log
 
 # Supabase CLI artifacts
 supabase/.temp/
