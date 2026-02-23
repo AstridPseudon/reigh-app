@@ -2,17 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useShotImages } from '@/shared/hooks/useShotImages';
-import type { Shot, GenerationRow } from '@/types/shots';
+import type { Shot, GenerationRow, ShotOption } from '@/types/shots';
 
 interface UseShotSelectionInput {
   shots: Shot[] | undefined;
   currentShotId: string | null;
   setCurrentShotId: (shotId: string | null) => void;
-}
-
-interface ShotOption {
-  id: string;
-  name: string;
 }
 
 interface UseShotSelectionResult {

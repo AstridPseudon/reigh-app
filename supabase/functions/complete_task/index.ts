@@ -1,13 +1,14 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest, verifyTaskOwnership, getTaskUserId } from "../_shared/auth.ts";
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { SystemLogger } from "../_shared/systemLogger.ts";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 
 // Import from refactored modules
 import { parseCompleteTaskRequest, validateStoragePathSecurity } from './request.ts';
-import { handleStorageOperations, verifyFileExists, cleanupFile } from './storage.ts';
+import { handleStorageOperations, getStoragePublicUrl, cleanupFile } from './storage.ts';
 import { setThumbnailInParams } from './params.ts';
 import { createGenerationFromTask } from './generation.ts';
 import { checkOrchestratorCompletion } from './orchestrator.ts';
@@ -34,7 +35,7 @@ interface TaskContext {
  * Returns null if task not found or on error.
  */
 async function fetchTaskContext(
-  supabase: unknown,
+  supabase: SupabaseClient,
   taskId: string
 ): Promise<TaskContext | null> {
   const { data: task, error } = await supabase
@@ -87,11 +88,11 @@ export interface CompleteTaskDeps {
   /**
    * Override Supabase client factory for tests.
    */
-  createClient?: (supabaseUrl: string, serviceKey: string) => unknown;
+  createClient?: (supabaseUrl: string, serviceKey: string) => SupabaseClient;
   /**
    * Provide a pre-constructed Supabase client (bypasses createClient).
    */
-  supabaseAdmin?: unknown;
+  supabaseAdmin?: SupabaseClient;
   /**
    * Override auth + ownership utilities for tests.
    */
@@ -200,7 +201,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       const isMode3Format = pathParts.length >= 4 && pathParts[1] === 'tasks';
 
       if (!isMode3Format) {
-        const fileCheck = await verifyFileExists(supabaseAdmin, parsedRequest.storagePath);
+        const fileCheck = getStoragePublicUrl(supabaseAdmin, parsedRequest.storagePath);
         if (!fileCheck.exists) {
           return new Response("Referenced file does not exist or is not accessible in storage", { status: 404 });
         }
@@ -285,9 +286,10 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       } catch (genErr: unknown) {
         const msg = genErr?.message || String(genErr);
         logger.error("Generation creation failed", { error: msg });
+        console.error("[COMPLETE-TASK] Generation creation failed:", genErr);
         await logger.flush();
         // Preserve atomic semantics: do NOT mark the task Complete if generation creation failed.
-        return new Response(`Generation creation failed: ${msg}`, { status: 500 });
+        return new Response('Internal server error', { status: 500 });
       }
     }
 
@@ -299,9 +301,9 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     }).eq("id", taskIdString).eq("status", "In Progress");
 
     if (dbError) {
-      console.error("[COMPLETE-TASK] Database update error:", dbError);
+      console.error("[COMPLETE-TASK] Database update failed:", dbError);
       await cleanupFile(supabaseAdmin, objectPath);
-      return new Response(`Database update failed: ${dbError.message}`, { status: 500 });
+      return new Response('Internal server error', { status: 500 });
     }
 
     // 13) Check orchestrator completion (for segment tasks) - uses task context
@@ -344,14 +346,14 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     });
 
   } catch (error: unknown) {
-    logger.critical("Unexpected error", { 
-      task_id: taskIdString, 
+    logger.critical("Unexpected error", {
+      task_id: taskIdString,
       error: error?.message,
       stack: error?.stack?.substring(0, 500)
     });
-    console.error("[COMPLETE-TASK] Edge function error:", error);
+    console.error("[COMPLETE-TASK] Internal error:", error);
     await logger.flush();
-    return new Response(`Internal error: ${error?.message}`, { status: 500 });
+    return new Response('Internal server error', { status: 500 });
   }
 }
 

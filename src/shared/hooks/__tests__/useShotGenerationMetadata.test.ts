@@ -20,7 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('@/shared/hooks/useGenerationInvalidation', () => ({
+vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
   useInvalidateGenerations: vi.fn(() => vi.fn()),
 }));
 

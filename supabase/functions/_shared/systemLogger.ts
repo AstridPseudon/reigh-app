@@ -1,16 +1,18 @@
 // deno-lint-ignore-file
 /**
  * System Logger for Edge Functions
- * 
+ *
  * Logs to both console (for immediate visibility) AND system_logs table (for persistence/querying).
  * Uses a buffer pattern to batch database writes for efficiency.
- * 
+ *
  * Usage:
  *   const logger = new SystemLogger(supabaseAdmin, 'my-function-name');
  *   logger.info('Processing request', { task_id, shot_id });
  *   logger.error('Something failed', { task_id, error: err.message });
  *   await logger.flush(); // Call before returning response
  */
+
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
 
@@ -32,13 +34,13 @@ interface BufferedLog {
 }
 
 export class SystemLogger {
-  private supabaseAdmin: unknown;
+  private supabaseAdmin: SupabaseClient;
   private functionName: string;
   private logPrefix: string;
   private logBuffer: BufferedLog[] = [];
   private defaultTaskId: string | null = null;
 
-  constructor(supabaseAdmin: unknown, functionName: string, defaultTaskId?: string) {
+  constructor(supabaseAdmin: SupabaseClient, functionName: string, defaultTaskId?: string) {
     this.supabaseAdmin = supabaseAdmin;
     this.functionName = functionName;
     this.logPrefix = `[${functionName.toUpperCase()}]`;

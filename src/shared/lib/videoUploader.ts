@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { SUPABASE_URL } from "@/integrations/supabase/config/env";
+import { getSupabaseUrl } from "@/integrations/supabase/config/env";
 import { storagePaths, getFileExtension, generateUniqueFilename, MEDIA_BUCKET } from "./storagePaths";
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
@@ -163,7 +163,7 @@ export const uploadVideoToStorage = async (
 
     try {
 
-      const bucketUrl = `${SUPABASE_URL}/storage/v1/object/${MEDIA_BUCKET}/${fileName}`;
+      const bucketUrl = `${getSupabaseUrl()}/storage/v1/object/${MEDIA_BUCKET}/${fileName}`;
 
       // Upload with XMLHttpRequest to track progress, with timeout and stall detection
       await new Promise<void>((resolve, reject) => {

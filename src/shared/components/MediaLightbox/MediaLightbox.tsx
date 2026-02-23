@@ -3,9 +3,10 @@ import type { GenerationRow, Shot } from '@/types/shots';
 import { isVideoAny } from '@/shared/lib/typeGuards';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from './types';
 import type { ShotOption, TaskDetailsData } from './types';
+import type { LightboxNavigationProps, LightboxShotWorkflowProps, LightboxFeatureFlags, LightboxActionHandlers } from './types';
 import { ImageLightbox } from './ImageLightbox';
-import type { LightboxNavigationProps, LightboxShotWorkflowProps, LightboxFeatureFlags, LightboxActionHandlers } from './ImageLightbox';
 import { VideoLightbox } from './VideoLightbox';
+import type { VideoLightboxVideoProps } from './VideoLightbox';
 
 interface MediaLightboxProps {
   media?: GenerationRow;
@@ -74,8 +75,8 @@ interface MediaLightboxProps {
   adjacentSegments?: AdjacentSegmentsData;
 }
 
-/** Bundle flat MediaLightboxProps into the grouped ImageLightbox sub-interfaces. */
-function useBundledImageProps(props: MediaLightboxProps & { media: GenerationRow }) {
+/** Bundle flat MediaLightboxProps into the grouped sub-interfaces shared by Image/VideoLightbox. */
+function useBundledLightboxProps(props: MediaLightboxProps) {
   const navigation: LightboxNavigationProps = useMemo(() => ({
     onNext: props.onNext,
     onPrevious: props.onPrevious,
@@ -126,19 +127,51 @@ function useBundledImageProps(props: MediaLightboxProps & { media: GenerationRow
     starred: props.starred,
   }), [props.onDelete, props.isDeleting, props.onApplySettings, props.onToggleStar, props.starred]);
 
-  return { navigation, shotWorkflow, features, actions };
+  const videoProps: VideoLightboxVideoProps = useMemo(() => ({
+    initialVideoTrimMode: props.initialVideoTrimMode,
+    fetchVariantsForSelf: props.fetchVariantsForSelf,
+    currentSegmentImages: props.currentSegmentImages,
+    onSegmentFrameCountChange: props.onSegmentFrameCountChange,
+    currentFrameCount: props.currentFrameCount,
+    onTrimModeChange: props.onTrimModeChange,
+    onShowTaskDetails: props.onShowTaskDetails,
+  }), [
+    props.initialVideoTrimMode, props.fetchVariantsForSelf,
+    props.currentSegmentImages, props.onSegmentFrameCountChange,
+    props.currentFrameCount, props.onTrimModeChange,
+    props.onShowTaskDetails,
+  ]);
+
+  return { navigation, shotWorkflow, features, actions, videoProps };
 }
 
-const MediaLightbox: React.FC<MediaLightboxProps> = ({ media, segmentSlotMode, ...restProps }) => {
-  // Bundle flat props for ImageLightbox (hook must be called unconditionally)
-  const bundled = useBundledImageProps({ media: media!, ...restProps } as MediaLightboxProps & { media: GenerationRow });
+const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
+  const { media, segmentSlotMode } = props;
+
+  // Bundle flat props into grouped sub-interfaces (hook must be called unconditionally)
+  const bundled = useBundledLightboxProps(props);
 
   if (segmentSlotMode) {
     return (
       <VideoLightbox
         media={media}
+        onClose={props.onClose}
         segmentSlotMode={segmentSlotMode}
-        {...restProps}
+        readOnly={props.readOnly}
+        shotId={props.shotId}
+        initialVariantId={props.initialVariantId}
+        taskDetailsData={props.taskDetailsData}
+        onOpenExternalGeneration={props.onOpenExternalGeneration}
+        showTickForImageId={props.showTickForImageId}
+        showTickForSecondaryImageId={props.showTickForSecondaryImageId}
+        tasksPaneOpen={props.tasksPaneOpen}
+        tasksPaneWidth={props.tasksPaneWidth}
+        adjacentSegments={props.adjacentSegments}
+        navigation={bundled.navigation}
+        shotWorkflow={bundled.shotWorkflow}
+        features={bundled.features}
+        actions={bundled.actions}
+        videoProps={bundled.videoProps}
       />
     );
   }
@@ -151,7 +184,22 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({ media, segmentSlotMode, .
     return (
       <VideoLightbox
         media={media}
-        {...restProps}
+        onClose={props.onClose}
+        readOnly={props.readOnly}
+        shotId={props.shotId}
+        initialVariantId={props.initialVariantId}
+        taskDetailsData={props.taskDetailsData}
+        onOpenExternalGeneration={props.onOpenExternalGeneration}
+        showTickForImageId={props.showTickForImageId}
+        showTickForSecondaryImageId={props.showTickForSecondaryImageId}
+        tasksPaneOpen={props.tasksPaneOpen}
+        tasksPaneWidth={props.tasksPaneWidth}
+        adjacentSegments={props.adjacentSegments}
+        navigation={bundled.navigation}
+        shotWorkflow={bundled.shotWorkflow}
+        features={bundled.features}
+        actions={bundled.actions}
+        videoProps={bundled.videoProps}
       />
     );
   }
@@ -159,19 +207,19 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({ media, segmentSlotMode, .
   return (
     <ImageLightbox
       media={media}
-      onClose={restProps.onClose}
-      readOnly={restProps.readOnly}
-      shotId={restProps.shotId}
-      initialVariantId={restProps.initialVariantId}
-      toolTypeOverride={restProps.toolTypeOverride}
-      taskDetailsData={restProps.taskDetailsData}
-      onOpenExternalGeneration={restProps.onOpenExternalGeneration}
-      onNavigateToGeneration={restProps.onNavigateToGeneration}
-      showTickForImageId={restProps.showTickForImageId}
-      showTickForSecondaryImageId={restProps.showTickForSecondaryImageId}
-      tasksPaneOpen={restProps.tasksPaneOpen}
-      tasksPaneWidth={restProps.tasksPaneWidth}
-      adjacentSegments={restProps.adjacentSegments}
+      onClose={props.onClose}
+      readOnly={props.readOnly}
+      shotId={props.shotId}
+      initialVariantId={props.initialVariantId}
+      toolTypeOverride={props.toolTypeOverride}
+      taskDetailsData={props.taskDetailsData}
+      onOpenExternalGeneration={props.onOpenExternalGeneration}
+      onNavigateToGeneration={props.onNavigateToGeneration}
+      showTickForImageId={props.showTickForImageId}
+      showTickForSecondaryImageId={props.showTickForSecondaryImageId}
+      tasksPaneOpen={props.tasksPaneOpen}
+      tasksPaneWidth={props.tasksPaneWidth}
+      adjacentSegments={props.adjacentSegments}
       navigation={bundled.navigation}
       shotWorkflow={bundled.shotWorkflow}
       features={bundled.features}

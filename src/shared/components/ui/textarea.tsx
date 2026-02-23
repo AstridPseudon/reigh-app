@@ -3,7 +3,7 @@ import { X } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
 import { AIInputButton } from "./ai-input-button"
-import { useIsMobile } from "@/shared/hooks/use-mobile"
+import { useIsMobile } from "@/shared/hooks/useMobile"
 import { useAIInputMode } from "@/shared/contexts/AIInputModeContext"
 
 export interface TextareaProps

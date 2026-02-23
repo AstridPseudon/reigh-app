@@ -16,7 +16,7 @@ import { GenerationRow, Shot } from '@/types/shots';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
-import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import type { AddImageToShotVariables } from '@/shared/hooks/shots/addImageToShotHelpers';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';

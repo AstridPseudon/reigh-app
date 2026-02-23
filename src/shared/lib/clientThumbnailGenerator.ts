@@ -14,6 +14,34 @@ interface ThumbnailResult {
   originalHeight: number;
 }
 
+// ── promise helpers wrapping callback-based browser APIs ──────────────────
+
+/** Read a File as a data-URL string. */
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        resolve(e.target.result as string);
+      } else {
+        reject(new Error('Failed to read image file'));
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Load an HTMLImageElement from a data-URL. */
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image for thumbnail generation'));
+    img.src = dataUrl;
+  });
+}
+
 /**
  * Generate a thumbnail from an image file on the client side
  * @param file - The image file to generate thumbnail from
@@ -21,95 +49,65 @@ interface ThumbnailResult {
  * @param quality - JPEG quality (0-1, default: 0.8)
  * @returns Promise<ThumbnailResult>
  */
-export function generateClientThumbnail(
+export async function generateClientThumbnail(
   file: File,
   maxSize: number = 300,
   quality: number = 0.8
 ): Promise<ThumbnailResult> {
-  return new Promise((resolve, reject) => {
-    // Create an image element to load the file
-    const img = new Image();
-    
-    img.onload = () => {
-      try {
-        const originalWidth = img.width;
-        const originalHeight = img.height;
-        
-        // Calculate thumbnail dimensions (maintain aspect ratio)
-        let thumbnailWidth = originalWidth;
-        let thumbnailHeight = originalHeight;
-        
-        if (originalWidth > originalHeight) {
-          if (originalWidth > maxSize) {
-            thumbnailWidth = maxSize;
-            thumbnailHeight = (originalHeight * maxSize) / originalWidth;
-          }
-        } else {
-          if (originalHeight > maxSize) {
-            thumbnailHeight = maxSize;
-            thumbnailWidth = (originalWidth * maxSize) / originalHeight;
-          }
-        }
-        
-        // Ensure minimum size of 1px
-        thumbnailWidth = Math.max(1, Math.round(thumbnailWidth));
-        thumbnailHeight = Math.max(1, Math.round(thumbnailHeight));
-        
-        // Create canvas and resize image
-        const canvas = document.createElement('canvas');
-        canvas.width = thumbnailWidth;
-        canvas.height = thumbnailHeight;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          throw new Error('Failed to get canvas context');
-        }
-        
-        // Draw and resize the image
-        ctx.drawImage(img, 0, 0, thumbnailWidth, thumbnailHeight);
-        
-        // Convert canvas to blob (JPEG with specified quality)
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Failed to generate thumbnail blob'));
-              return;
-            }
-            
-            resolve({
-              thumbnailBlob: blob,
-              thumbnailWidth,
-              thumbnailHeight,
-              originalWidth,
-              originalHeight
-            });
-          },
-          'image/jpeg',
-          quality
-        );
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    img.onerror = () => {
-      reject(new Error('Failed to load image for thumbnail generation'));
-    };
-    
-    // Load the image file
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        img.src = e.target.result as string;
-      } else {
-        reject(new Error('Failed to read image file'));
-      }
-    };
-    reader.onerror = () => {
-      reject(new Error('Failed to read image file'));
-    };
-    reader.readAsDataURL(file);
+  const dataUrl = await readFileAsDataUrl(file);
+  const img = await loadImage(dataUrl);
+
+  const originalWidth = img.width;
+  const originalHeight = img.height;
+
+  // Calculate thumbnail dimensions (maintain aspect ratio)
+  let thumbnailWidth = originalWidth;
+  let thumbnailHeight = originalHeight;
+
+  if (originalWidth > originalHeight) {
+    if (originalWidth > maxSize) {
+      thumbnailWidth = maxSize;
+      thumbnailHeight = (originalHeight * maxSize) / originalWidth;
+    }
+  } else {
+    if (originalHeight > maxSize) {
+      thumbnailHeight = maxSize;
+      thumbnailWidth = (originalWidth * maxSize) / originalHeight;
+    }
+  }
+
+  // Ensure minimum size of 1px
+  thumbnailWidth = Math.max(1, Math.round(thumbnailWidth));
+  thumbnailHeight = Math.max(1, Math.round(thumbnailHeight));
+
+  // Create canvas and resize image
+  const canvas = document.createElement('canvas');
+  canvas.width = thumbnailWidth;
+  canvas.height = thumbnailHeight;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
+
+  ctx.drawImage(img, 0, 0, thumbnailWidth, thumbnailHeight);
+
+  // Convert canvas to blob (JPEG with specified quality)
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('Failed to generate thumbnail blob'))),
+      'image/jpeg',
+      quality,
+    );
   });
+
+  return {
+    thumbnailBlob: blob,
+    thumbnailWidth,
+    thumbnailHeight,
+    originalWidth,
+    originalHeight,
+  };
 }
 
 interface UploadWithThumbnailOptions {
@@ -121,25 +119,17 @@ interface UploadWithThumbnailOptions {
  * Upload both original image and thumbnail to storage
  * @param originalFile - The original image file
  * @param thumbnailBlob - The generated thumbnail blob
- * @param userId - User ID for storage path organization (kept for backwards compat, not used)
- * @param onProgressOrOptions - Progress callback or options object
+ * @param options - Optional progress callback and abort signal
  * @returns Promise<{imageUrl: string, thumbnailUrl: string}>
  */
 export async function uploadImageWithThumbnail(
   originalFile: File,
   thumbnailBlob: Blob,
-  _userId: string,
-  onProgressOrOptions?: ((progress: number) => void) | UploadWithThumbnailOptions
+  options?: UploadWithThumbnailOptions
 ): Promise<{imageUrl: string, thumbnailUrl: string}> {
-  // Handle both old signature and new options object
-  let options: UploadWithThumbnailOptions;
-  if (typeof onProgressOrOptions === 'function') {
-    options = { onProgress: onProgressOrOptions };
-  } else {
-    options = onProgressOrOptions || {};
-  }
+  const resolvedOptions: UploadWithThumbnailOptions = options || {};
 
-  const { onProgress, signal } = options;
+  const { onProgress, signal } = resolvedOptions;
 
   // Upload original image using existing utility (with progress tracking)
   // Original image is ~90% of the work, thumbnail is ~10%

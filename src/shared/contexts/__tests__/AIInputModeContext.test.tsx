@@ -48,39 +48,18 @@ describe('AIInputModeContext', () => {
   });
 
   describe('useAIInputMode hook', () => {
-    it('returns default values when used outside provider (graceful fallback)', () => {
+    it('throws when used outside provider', () => {
       function FallbackConsumer() {
-        const { mode, isLoading } = useAIInputMode();
-        return (
-          <div>
-            <span data-testid="mode">{mode}</span>
-            <span data-testid="isLoading">{String(isLoading)}</span>
-          </div>
-        );
+        const { mode } = useAIInputMode();
+        return <span>{mode}</span>;
       }
 
-      render(<FallbackConsumer />);
-
-      expect(screen.getByTestId('mode')).toHaveTextContent('voice');
-      expect(screen.getByTestId('isLoading')).toHaveTextContent('false');
-    });
-
-    it('graceful fallback setMode is a no-op', () => {
-      function FallbackConsumer() {
-        const { setMode } = useAIInputMode();
-        return (
-          <button data-testid="setMode" onClick={() => setMode('text')}>
-            Set
-          </button>
-        );
-      }
-
-      render(<FallbackConsumer />);
-
-      // Should not throw
-      act(() => {
-        screen.getByTestId('setMode').click();
-      });
+      // Suppress React error boundary console output
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(() => render(<FallbackConsumer />)).toThrow(
+        'useAIInputMode must be used within an AIInputModeProvider'
+      );
+      consoleSpy.mockRestore();
     });
   });
 

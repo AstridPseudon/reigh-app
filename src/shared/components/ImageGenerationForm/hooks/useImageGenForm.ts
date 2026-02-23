@@ -10,7 +10,6 @@ import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePersistentToolState } from '@/shared/hooks/usePersistentToolState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useAIInteractionService } from '@/shared/hooks/useAIInteractionService';
-import { useSubmitButtonState } from '@/shared/hooks/useSubmitButtonState';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
@@ -84,7 +83,26 @@ export function useImageGenForm({
   const [noShotMasterPrompt, setNoShotMasterPrompt] = useState('');
 
   // Optimistic button state for immediate feedback: idle -> submitting -> success -> idle
-  const automatedSubmitButton = useSubmitButtonState();
+  const [submitButtonState, setSubmitButtonState] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => () => { if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current); }, []);
+  const automatedSubmitButton = useMemo(() => ({
+    isSubmitting: submitButtonState === 'submitting',
+    isSuccess: submitButtonState === 'success',
+    state: submitButtonState,
+    trigger: () => {
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      setSubmitButtonState('submitting');
+      submitTimeoutRef.current = setTimeout(() => {
+        setSubmitButtonState('success');
+        submitTimeoutRef.current = setTimeout(() => setSubmitButtonState('idle'), 2000);
+      }, 1000);
+    },
+    reset: () => {
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      setSubmitButtonState('idle');
+    },
+  }), [submitButtonState]);
 
   // Define generatePromptId before using it in hooks
   const promptIdCounter = useRef(1);
@@ -92,7 +110,6 @@ export function useImageGenForm({
 
   // AI interaction service for automated prompt generation
   const { generatePrompts: aiGeneratePrompts } = useAIInteractionService({
-    apiKey: openaiApiKey,
     generatePromptId,
   });
 

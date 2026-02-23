@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { getImageRange } from '../utils/image-utils';
 import { SELECTION_BAR_DELAY } from '../constants';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface UseSelectionProps {
   images: GenerationRow[];
@@ -48,13 +49,13 @@ export function useSelection({
   useEffect(() => {
     if (isMobile) {
       const hasSelection = mobileSelectedIds.length > 0;
-      window.dispatchEvent(new CustomEvent('mobileSelectionActive', { detail: hasSelection }));
+      dispatchAppEvent('mobileSelectionActive', hasSelection);
     }
-    
+
     // Cleanup: ensure pane controls are restored when component unmounts
     return () => {
       if (isMobile) {
-        window.dispatchEvent(new CustomEvent('mobileSelectionActive', { detail: false }));
+        dispatchAppEvent('mobileSelectionActive', false);
       }
     };
   }, [mobileSelectedIds.length, isMobile]);

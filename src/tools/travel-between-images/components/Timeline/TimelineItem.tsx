@@ -10,7 +10,7 @@ import { framesToSeconds } from "./utils/time-utils";
 import { TIMELINE_PADDING_OFFSET } from "./constants";
 import { VariantBadge } from "@/shared/components/VariantBadge";
 import { useMarkVariantViewed } from "@/shared/hooks/useMarkVariantViewed";
-import { useIsTouchDevice } from "@/shared/hooks/use-mobile";
+import { useIsTouchDevice } from "@/shared/hooks/useMobile";
 import { getAspectRatioStyle as getProjectAspectRatioStyle } from "@/shared/components/ShotImageManager/utils/image-utils";
 
 // Props for individual timeline items
@@ -552,6 +552,4 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   );
 };
 
-// 🎯 PERF FIX: Wrap in React.memo to prevent re-renders when props haven't changed
-// TimelineItem is rendered for each image, so memoization is important for performance
-export default React.memo(TimelineItem); 
+export default React.memo(TimelineItem);

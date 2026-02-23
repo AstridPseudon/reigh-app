@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 import type { Shot } from '@/types/shots';
 
 import type { GeneratedImageWithMetadata } from '../types';
@@ -87,10 +88,8 @@ export function useMediaGalleryHandlers({
     }
 
     setSelectedImageForDetails(activeLightboxMedia);
-    setTimeout(() => {
-      setShowTaskDetailsModal(true);
-      setActiveLightboxMedia(null);
-    }, 100);
+    setShowTaskDetailsModal(true);
+    setActiveLightboxMedia(null);
   }, [
     activeLightboxMedia,
     setSelectedImageForDetails,
@@ -98,15 +97,9 @@ export function useMediaGalleryHandlers({
     setActiveLightboxMedia,
   ]);
 
-  useEffect(() => {
-    const handleSelectShotForAddition = (event: CustomEvent<{ shotId: string; shotName: string }>) => {
-      const { shotId } = event.detail;
-      handleShotChange(shotId);
-    };
-
-    window.addEventListener('selectShotForAddition', handleSelectShotForAddition as EventListener);
-    return () => window.removeEventListener('selectShotForAddition', handleSelectShotForAddition as EventListener);
-  }, [handleShotChange]);
+  useAppEventListener('selectShotForAddition', useCallback(({ shotId }) => {
+    handleShotChange(shotId);
+  }, [handleShotChange]));
 
   return {
     handleNavigateToShot,

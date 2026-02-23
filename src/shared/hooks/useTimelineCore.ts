@@ -22,7 +22,7 @@ import type { GenerationRow } from '@/types/shots';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { useShotImages } from '@/shared/hooks/useShotImages';
-import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/settingsMigration';
 import { calculateNextAvailableFrame, extractExistingFrames, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
@@ -49,7 +49,9 @@ interface PairPrompts {
   negativePrompt: string;
 }
 
-// Legacy types - exported for backward compatibility during migration
+// Timeline-specific generation shape (richer than types/database.ts ShotGeneration).
+// Imported by: timelineFrameCalculators, useTimelineFrameUpdates,
+// useTimelinePositionUtils, useTimelineInitialization, useSegmentPromptMetadata.
 export interface ShotGeneration {
   id: string;
   shot_id: string;

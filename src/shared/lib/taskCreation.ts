@@ -1,31 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ASPECT_RATIO_TO_RESOLUTION } from "./aspectRatios";
 import { nanoid } from "nanoid";
-import { AppError, AuthError, NetworkError, ServerError, ValidationError } from "./errors";
+import { AppError, AuthError, NetworkError, ServerError, ValidationError } from "./errorHandling/errors";
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { isAbortError } from '@/shared/lib/errorUtils';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/config/env';
+import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
+import { getSupabaseUrl, getSupabasePublishableKey } from '@/integrations/supabase/config/env';
+import { readAccessTokenFromStorage } from '@/shared/lib/supabaseSession';
 
 /**
  * Default aspect ratio to use when project aspect ratio is not found
  */
 const DEFAULT_ASPECT_RATIO = "1:1";
-
-// Read access token directly from localStorage — synchronous, no navigator.locks.
-// supabase.auth.getSession() acquires a shared navigator.lock which blocks during
-// token refresh (exclusive lock held for 600ms-16s). Same pattern as createSupabaseClient.ts.
-function readAccessTokenFromStorage(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
-    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { access_token?: string };
-    return parsed?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Interface for project resolution lookup result
@@ -191,12 +176,12 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
     // task if this key was already used.
     const idempotency_key = generateUUID();
 
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/create-task`, {
+    const response = await fetch(`${getSupabaseUrl()}/functions/v1/create-task`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
-        apikey: SUPABASE_PUBLISHABLE_KEY,
+        apikey: getSupabasePublishableKey(),
       },
       body: JSON.stringify({
         params: taskParams.params,
@@ -229,7 +214,7 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
       durationMs: Date.now() - startTime,
     };
 
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('[createTask] invoke FAILED', context, err);
     }
 

@@ -12,12 +12,6 @@ describe('STORAGE_KEYS', () => {
     });
   });
 
-  describe('LAST_ACTIVE_LORA_SETTINGS (deprecated)', () => {
-    it('returns project-scoped key', () => {
-      expect(STORAGE_KEYS.LAST_ACTIVE_LORA_SETTINGS('proj-456')).toBe('last-active-lora-settings-proj-456');
-    });
-  });
-
   describe('LAST_ACTIVE_UI_SETTINGS', () => {
     it('returns project-scoped key', () => {
       expect(STORAGE_KEYS.LAST_ACTIVE_UI_SETTINGS('proj-789')).toBe('last-active-ui-settings-proj-789');
@@ -29,9 +23,6 @@ describe('STORAGE_KEYS', () => {
       expect(STORAGE_KEYS.GLOBAL_LAST_ACTIVE_SHOT_SETTINGS).toBe('global-last-active-shot-settings');
     });
 
-    it('GLOBAL_LAST_ACTIVE_LORA_SETTINGS is a static string', () => {
-      expect(STORAGE_KEYS.GLOBAL_LAST_ACTIVE_LORA_SETTINGS).toBe('global-last-active-lora-settings');
-    });
   });
 
   describe('APPLY_PROJECT_DEFAULTS', () => {

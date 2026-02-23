@@ -187,7 +187,6 @@ export const ImageGenerationForm: React.FC<ImageGenerationFormProps> = ({
             prompts={form.prompts}
             onSave={form.handleSavePromptsFromModal}
             generatePromptId={form.generatePromptId}
-            apiKey={form.openaiApiKey}
             openWithAIExpanded={form.uiState.openPromptModalWithAIExpanded}
             onGenerateAndQueue={form.handleGenerateAndQueue}
           />

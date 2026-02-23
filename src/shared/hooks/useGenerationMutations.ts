@@ -20,8 +20,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { queryKeys } from '@/shared/lib/queryKeys';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import type { GenerationRow } from '@/types/shots';
+import type { Shot } from '@/types/shots';
 
 // ===== Helper Functions (internal) =====
 
@@ -63,7 +65,7 @@ async function createGeneration(params: {
   resolution?: string;
   /** Standard aspect ratio (e.g., "16:9") */
   aspectRatio?: string;
-}): Promise<Record<string, unknown>> {
+}): Promise<GenerationRow> {
   const generationParams: Record<string, Json | undefined> = {
     prompt: params.prompt,
     source: 'external_upload',
@@ -111,6 +113,7 @@ async function createGeneration(params: {
 
   if (variantError) {
     console.error('[useGenerationMutations] Failed to create variant:', variantError);
+    throw variantError;
   }
 
   return data;
@@ -230,11 +233,11 @@ export function useToggleGenerationStar() {
       shotsQueries.forEach(([queryKey, data]) => {
         if (Array.isArray(data)) {
           previousShotsQueries.set(queryKey, data);
-          const updatedShots = (data as Array<Record<string, unknown>>).map((shot) => {
+          const updatedShots = (data as Shot[]).map((shot) => {
             if (!shot.images) return shot;
             return {
               ...shot,
-              images: (shot.images as Array<Record<string, unknown>>).map((img) => (img.id === id ? { ...img, starred } : img)),
+              images: shot.images.map((img) => (img.id === id ? { ...img, starred } : img)),
             };
           });
           queryClient.setQueryData(queryKey, updatedShots);
@@ -278,9 +281,9 @@ export function useToggleGenerationStar() {
     onSuccess: (_data, variables) => {
       // Emit custom event so Timeline knows to refetch star data
       if (variables.shotId) {
-        window.dispatchEvent(new CustomEvent('generation-star-updated', {
-          detail: { generationId: variables.id, shotId: variables.shotId, starred: variables.starred }
-        }));
+        dispatchAppEvent('generation-star-updated', {
+          generationId: variables.id, shotId: variables.shotId!, starred: variables.starred,
+        });
       }
     },
   });

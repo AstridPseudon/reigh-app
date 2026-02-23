@@ -5,7 +5,24 @@ import type { Json } from '@/integrations/supabase/types';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
-// Shared cache to prevent duplicate database calls
+// Module-level request deduplication cache for the raw `users.settings` DB fetch.
+//
+// WHY THIS EXISTS (instead of React Query):
+// This hook reads a single key from `users.settings.ui`, but many instances
+// mount concurrently for different keys (generationMethods, privacyDefaults,
+// theme, etc.). Without deduplication, each mount fires an identical
+// `SELECT settings FROM users WHERE id = ?` query.
+//
+// WHY NOT React Query: The hook's read path has complex per-key logic
+// (fallback merging, normalization, auto-backfill of missing DB fields)
+// that runs after fetching the raw settings row. Migrating to React Query
+// would require either (a) a single shared query that all instances subscribe
+// to (losing per-key granularity for loading/error states), or (b) per-key
+// queries that each fetch the same row (defeating deduplication). The current
+// approach deduplicates at the network layer while keeping per-key logic local.
+//
+// WRITES already go through useToolSettings' global write queue, so there is
+// no write-side duplication -- only this read-side cache is parallel.
 interface CachedUserSettingsRow {
   settings?: Json;
 }

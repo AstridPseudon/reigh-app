@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import { getPreviewDimensions } from '@/shared/lib/aspectRatios';
 import type { SegmentSlot } from '@/shared/hooks/segments';

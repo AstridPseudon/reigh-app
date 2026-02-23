@@ -3,18 +3,17 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { useAsyncOperation } from '@/shared/hooks/useAsyncOperation';
 import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 
 import { useCharacterAnimateGenerate } from '@/tools/character-animate/hooks/useCharacterAnimateGenerate';
 import { useCharacterAnimateSettings } from '@/tools/character-animate/hooks/useCharacterAnimateSettings';
 import type { CharacterImageState, MotionVideoState } from '../characterAnimate.types';
 
 export function useCharacterAnimateBaseState() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedProjectId, projects } = useProject();
   const isMobile = useIsMobile();

@@ -10,11 +10,120 @@ import { Download, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Progress } from '@/shared/components/ui/progress';
 import { useLineageChain } from '@/shared/hooks/useLineageChain';
-import {
-  createLineageGif,
-  downloadBlob,
-  type CreateGifProgress,
-} from '@/shared/utils/createLineageGif';
+import { GIFEncoder, quantize, applyPalette } from 'gifenc';
+
+interface CreateGifProgress {
+  stage: 'loading' | 'encoding' | 'complete';
+  current: number;
+  total: number;
+  message: string;
+}
+
+function loadImageFromBlobUrl(blobUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image from blob'));
+    img.src = blobUrl;
+  });
+}
+
+async function createLineageGif(
+  imageUrls: string[],
+  options: { frameDelay?: number; width?: number } = {},
+  onProgress?: (progress: CreateGifProgress) => void
+): Promise<Blob> {
+  const { frameDelay = 800, width = 512 } = options;
+  if (imageUrls.length === 0) throw new Error('No images provided for GIF creation');
+
+  onProgress?.({ stage: 'loading', current: 0, total: imageUrls.length, message: 'Loading images...' });
+
+  const images: HTMLImageElement[] = [];
+  const blobUrls: string[] = [];
+
+  for (let i = 0; i < imageUrls.length; i++) {
+    try {
+      const response = await fetch(imageUrls[i]);
+      if (!response.ok) continue;
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      blobUrls.push(blobUrl);
+      const img = await loadImageFromBlobUrl(blobUrl);
+      images.push(img);
+      onProgress?.({ stage: 'loading', current: i + 1, total: imageUrls.length, message: `Loading images ${i + 1}/${imageUrls.length}` });
+    } catch { /* Skip failed images */ }
+  }
+
+  if (images.length === 0) {
+    blobUrls.forEach(url => URL.revokeObjectURL(url));
+    throw new Error('No images could be loaded');
+  }
+
+  const firstImage = images[0];
+  const aspectRatio = firstImage.width / firstImage.height;
+  const height = Math.round(width / aspectRatio);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  if (!ctx) {
+    blobUrls.forEach(url => URL.revokeObjectURL(url));
+    throw new Error('Could not get canvas context');
+  }
+
+  const gif = GIFEncoder();
+  onProgress?.({ stage: 'encoding', current: 0, total: images.length, message: 'Encoding frames...' });
+
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i];
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, width, height);
+
+    const imgAspect = img.width / img.height;
+    const targetAspect = width / height;
+    let drawWidth: number, drawHeight: number, drawX: number, drawY: number;
+
+    if (imgAspect > targetAspect) {
+      drawWidth = width;
+      drawHeight = width / imgAspect;
+      drawX = 0;
+      drawY = (height - drawHeight) / 2;
+    } else {
+      drawHeight = height;
+      drawWidth = height * imgAspect;
+      drawX = (width - drawWidth) / 2;
+      drawY = 0;
+    }
+
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const rgbaPixels = new Uint8Array(imageData.data);
+    const palette = quantize(rgbaPixels, 256, { format: 'rgba4444' });
+    const indexedPixels = applyPalette(rgbaPixels, palette);
+    gif.writeFrame(indexedPixels, width, height, { palette, delay: frameDelay / 10 });
+    onProgress?.({ stage: 'encoding', current: i + 1, total: images.length, message: `Encoding frames ${i + 1}/${images.length}` });
+  }
+
+  blobUrls.forEach(url => URL.revokeObjectURL(url));
+  gif.finish();
+  const gifBytes = gif.bytes();
+  const blob = new Blob([gifBytes], { type: 'image/gif' });
+  onProgress?.({ stage: 'complete', current: images.length, total: images.length, message: 'Complete!' });
+  return blob;
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { ModalContainer } from '@/shared/components/ModalContainer';
 

@@ -218,7 +218,7 @@ function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGenerat
 // ============================================================================
 
 export function InlineEditView({ media, onClose, onNavigateToGeneration }: InlineEditViewProps) {
-  const state = useInlineEditState(media, onClose, onNavigateToGeneration);
+  const state = useInlineEditState(media, onNavigateToGeneration);
 
   if (state.isMobile) {
     return (

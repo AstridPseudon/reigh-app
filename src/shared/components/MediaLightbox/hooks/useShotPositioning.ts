@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import { GenerationRow, Shot } from '@/types/shots';
+import { GenerationRow, Shot, ShotOption } from '@/types/shots';
 import { getGenerationId, getMediaUrl, getThumbnailUrl } from '@/shared/lib/mediaTypeHelpers';
 
 /**
@@ -20,11 +20,6 @@ interface MediaWithShotFields {
   url?: string;
   thumbnail_url?: string;
   all_shot_associations?: ShotAssociation[];
-}
-
-export interface ShotOption {
-  id: string;
-  name: string;
 }
 
 interface UseShotPositioningProps {

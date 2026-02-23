@@ -5,7 +5,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Slider } from "@/shared/components/ui/slider";
 import { Pencil, Trash2 } from 'lucide-react';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import type { Resource } from '@/shared/hooks/useResources';
 import type { LoraModel } from '../types';
 import { LoraCardProps } from '../types';

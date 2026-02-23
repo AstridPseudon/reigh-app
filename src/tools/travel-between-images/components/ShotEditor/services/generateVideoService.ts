@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError, type HandleErrorOptions } from '@/shared/lib/errorHandling/handleError';
 import { getDisplayUrl } from '@/shared/lib/mediaUrl';
-import { ValidationError } from '@/shared/lib/errors';
+import { ValidationError } from '@/shared/lib/errorHandling/errors';
 import {
   createTravelBetweenImagesTask,
   type TravelBetweenImagesTaskParams,
@@ -527,6 +527,28 @@ function buildTravelRequestBody(params: {
     use_svi: false,
   };
 }
+
+// =============================================================================
+// TEST-ONLY EXPORTS
+// These internal functions are exported for unit testing.
+// Consumers should use generateVideo() as the public API.
+// =============================================================================
+export {
+  stripModeFromPhaseConfig as _stripModeFromPhaseConfig,
+  extractPairOverrides as _extractPairOverrides,
+  filterImageShotGenerations as _filterImageShotGenerations,
+  resolveGenerationResolution as _resolveGenerationResolution,
+  buildStructureGuidance as _buildStructureGuidance,
+  buildTravelRequestBody as _buildTravelRequestBody,
+};
+export {
+  buildImagePayload,
+  buildTimelinePairConfig,
+  buildBatchPairConfig,
+  resolveModelPhaseSelection,
+  validatePhaseConfigConsistency,
+};
+export type { ShotGenRow, ImagePayload, PairConfigPayload, ModelPhaseSelection };
 
 /**
  * Prepare and submit a video generation task.

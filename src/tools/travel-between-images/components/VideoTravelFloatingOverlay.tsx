@@ -10,7 +10,7 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Shot } from '@/types/shots';
-import { useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsTablet } from '@/shared/hooks/useMobile';
 
 // =============================================================================
 // PROP TYPES

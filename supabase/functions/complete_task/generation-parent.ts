@@ -3,6 +3,7 @@
  * Manages parent/child relationships and variant creation on parents
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { extractShotAndPosition } from './params.ts';
 import {
   findExistingGeneration,
@@ -16,7 +17,7 @@ import {
  * Never creates ad-hoc placeholder generations.
  */
 export async function getOrCreateParentGeneration(
-  supabase: unknown,
+  supabase: SupabaseClient,
   orchestratorTaskId: string,
   projectId: string,
   segmentParams?: unknown
@@ -102,7 +103,7 @@ export async function getOrCreateParentGeneration(
  * @param viewedAt - Optional: if provided, marks the variant as already viewed (for single-segment cases)
  */
 export async function createVariantOnParent(
-  supabase: unknown,
+  supabase: SupabaseClient,
   parentGenId: string,
   publicUrl: string,
   thumbnailUrl: string | null,
@@ -175,7 +176,7 @@ export async function createVariantOnParent(
  * @returns ISO timestamp string if single-segment, null otherwise
  */
 export async function getChildVariantViewedAt(
-  supabase: unknown,
+  supabase: SupabaseClient,
   options: {
     // Check 1: Explicit flag from orchestrator detection (fastest)
     taskParams?: { _isSingleSegmentCase?: boolean };

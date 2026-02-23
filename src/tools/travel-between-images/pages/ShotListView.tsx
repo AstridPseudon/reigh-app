@@ -3,7 +3,7 @@ import { Shot } from '@/types/shots';
 import { Button } from '@/shared/components/ui/button';
 import CreateShotModal from '@/shared/components/CreateShotModal';
 import ShotListDisplay from '../components/ShotListDisplay';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
 import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';

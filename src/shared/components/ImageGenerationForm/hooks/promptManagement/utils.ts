@@ -1,7 +1,3 @@
-export function toShortPrompt(fullPrompt: string): string {
-  return `${fullPrompt.substring(0, 30)}${fullPrompt.length > 30 ? '...' : ''}`;
-}
-
 export function getStoredPromptCount(effectiveShotId: string): number {
   try {
     if (typeof window !== 'undefined') {

@@ -50,8 +50,6 @@ interface DeleteProps {
 }
 
 interface PreloadingProps {
-  /** @deprecated Use generationFilters instead */
-  onPrefetchAdjacentPages?: (prevPage: number | null, nextPage: number | null) => void;
   enableAdjacentPagePreloading?: boolean;
   /** Filters for automatic preloading */
   generationFilters?: Record<string, unknown>;

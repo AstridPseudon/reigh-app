@@ -2,11 +2,14 @@ import { processStyleReferenceForAspectRatioString } from './styleReferenceProce
 import { uploadImageToStorage } from './imageUploader';
 import { dataURLtoFile } from './fileConversion';
 import { generateClientThumbnail, uploadImageWithThumbnail } from './clientThumbnailGenerator';
-import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
-// Import the ReferenceImage type from the image generation form
-export interface ReferenceImage {
+/**
+ * Legacy reference image shape used by the recrop pipeline.
+ * Different from the modern ReferenceImage in @/shared/types/referenceImage
+ * which uses resourceId and optional fields.
+ */
+export interface RecropReferenceInput {
   id: string;
   name: string;
   styleReferenceImage: string | null;
@@ -32,12 +35,12 @@ export interface ReferenceImage {
  * @returns Promise with array of updated references
  */
 export async function recropAllReferences(
-  references: ReferenceImage[],
+  references: RecropReferenceInput[],
   newAspectRatio: string,
   onProgress?: (current: number, total: number) => void
-): Promise<ReferenceImage[]> {
+): Promise<RecropReferenceInput[]> {
   
-  const reprocessed: ReferenceImage[] = [];
+  const reprocessed: RecropReferenceInput[] = [];
   
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
@@ -89,18 +92,11 @@ export async function recropAllReferences(
       let newThumbnailUrl = '';
       
       try {
-        // Get current user ID for storage path
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          throw new Error('User not authenticated');
-        }
-        const userId = session.user.id;
-
         // Generate thumbnail for reprocessed image
         const thumbnailResult = await generateClientThumbnail(processedFile, 300, 0.8);
-        
+
         // Upload both main image and thumbnail
-        const uploadResult = await uploadImageWithThumbnail(processedFile, thumbnailResult.thumbnailBlob, userId);
+        const uploadResult = await uploadImageWithThumbnail(processedFile, thumbnailResult.thumbnailBlob);
         newProcessedUrl = uploadResult.imageUrl;
         newThumbnailUrl = uploadResult.thumbnailUrl;
         

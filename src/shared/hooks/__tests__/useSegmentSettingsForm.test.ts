@@ -11,7 +11,7 @@ const mockGetSettingsForTaskCreation = vi.fn(() => mockSettings);
 const mockClearEnhancedPrompt = vi.fn();
 const mockSaveEnhancePromptEnabled = vi.fn().mockResolvedValue(true);
 
-vi.mock('../useSegmentSettings', () => ({
+vi.mock('../segments', () => ({
   useSegmentSettings: vi.fn(() => ({
     settings: mockSettings,
     updateSettings: mockUpdateSettings,

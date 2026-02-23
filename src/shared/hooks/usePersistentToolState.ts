@@ -127,7 +127,7 @@ export function usePersistentToolState<T extends object>(
       const inferred = inferEmptyValue(currentValue);
       merged[key] = inferred;
 
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         const warningKey = `${toolId}:${key}`;
         if (!warnedMissingDefaultsRef.current.has(warningKey)) {
           warnedMissingDefaultsRef.current.add(warningKey);

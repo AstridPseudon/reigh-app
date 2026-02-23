@@ -25,7 +25,7 @@ export function PaymentSuccessView(props: PaymentSuccessViewProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+          <div className="bg-muted p-4 rounded-lg space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Transaction ID:</span>
               <span className="font-mono text-xs">{sessionDetails?.sessionId?.slice(-12)}</span>

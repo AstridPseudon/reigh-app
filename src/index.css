@@ -208,6 +208,13 @@
     --icon-warning: 40 60% 80%;             /* Vintage Gold */
     --icon-danger: 0 70% 60%;               /* Red */
 
+    /* Retro button palette */
+    --retro: 42 22% 88%;                    /* Warm cream bg #e8e4db */
+    --retro-hover: 42 14% 82%;             /* Darker cream hover #d8d4cb */
+    --retro-border: 180 13% 48%;           /* Teal border #6a8a8a */
+    --retro-foreground: 180 15% 42%;       /* Deeper teal text #5a7a7a */
+    --retro-shadow: 180 13% 48%;           /* Teal shadow (matches border in light) */
+
     /* Retro offset-shadow palette (header + retro buttons) */
     --shadow-retro: 180 13% 48%;            /* Teal #6a8a8a — light-mode retro */
     --shadow-retro-deep: 180 20% 10%;       /* Near-black teal — dark-mode retro */
@@ -262,7 +269,14 @@
     --hero-retro-border: 180 10% 57%;
     --hero-retro-text: 45 14% 82%;
     --hero-retro-light: 45 22% 91%;
-    
+
+    /* Retro button palette - dark mode overrides */
+    --retro: 180 12% 26%;                    /* Dark teal bg #3a4a4a */
+    --retro-hover: 180 24% 23%;             /* Darker teal hover #2d4a4a */
+    --retro-border: 180 7% 57%;             /* Lighter teal border #8a9a9a */
+    --retro-foreground: 42 14% 82%;         /* Warm cream text #d8d4cb */
+    --retro-shadow: 180 20% 10%;            /* Deep dark teal shadow #141e1e */
+
     /* Accent - subtle forest highlight */
     --accent: 150 15% 25%;                  /* Forest green hover */
     --accent-foreground: 45 20% 88%;        /* Cream text for readability */
@@ -423,9 +437,6 @@
       0 0 30px hsl(var(--wes-pink) / 0.1);
   }
 
-  /* Legacy aliases for backward compatibility */
-  .shadow-lala { @apply shadow-theme; }
-  .shadow-lala-hover { @apply shadow-theme-hover; }
 
   /* ========================================= */
   /* THEME-ADAPTIVE ICON COLORS */
@@ -3067,64 +3078,42 @@ body.lightbox-transitioning [data-dialog-content] {
   transition: none !important;
 }
 
-/* ── Painterly video reveal ────────────────────────────────────── */
+/* ── Side-curtain video reveal ─────────────────────────────────── */
 
 /* Register custom property so CSS can interpolate it */
-@property --blob-r {
+@property --reveal {
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
 }
 
 .video-reveal {
-  --blob-r: 0;
+  --reveal: 0;
 
   /*
-   * 11 overlapping radial-gradient blobs clustered slightly toward the
-   * bottom-right (~62% 58%) so the reveal originates from that corner
-   * and sweeps toward center. Each blob is offset within ~8% of the
-   * cluster center and sized as a fraction of --blob-r.
-   * The first blob has a 3-stop gradient (solid core) to prevent
-   * semi-transparency at the cluster center during mid-animation.
+   * Horizontal center-out reveal: an opaque band centered at 50%
+   * expands outward, pushing darkness off the left and right edges.
+   * 5vmax soft feather on each side keeps the transition cinematic.
    */
-  -webkit-mask-image:
-    radial-gradient(circle at 62% 58%,
-      black 0%, black calc(var(--blob-r) * 0.5vmax), transparent calc(var(--blob-r) * 1vmax)),
-    radial-gradient(circle at 59% 54%, black 0%, transparent calc(var(--blob-r) * 0.92vmax)),
-    radial-gradient(circle at 66% 61%, black 0%, transparent calc(var(--blob-r) * 0.88vmax)),
-    radial-gradient(circle at 56% 63%, black 0%, transparent calc(var(--blob-r) * 0.78vmax)),
-    radial-gradient(circle at 68% 52%, black 0%, transparent calc(var(--blob-r) * 0.82vmax)),
-    radial-gradient(circle at 60% 66%, black 0%, transparent calc(var(--blob-r) * 0.68vmax)),
-    radial-gradient(circle at 65% 50%, black 0%, transparent calc(var(--blob-r) * 0.72vmax)),
-    radial-gradient(circle at 54% 57%, black 0%, transparent calc(var(--blob-r) * 0.62vmax)),
-    radial-gradient(circle at 70% 59%, black 0%, transparent calc(var(--blob-r) * 0.58vmax)),
-    radial-gradient(circle at 58% 51%, black 0%, transparent calc(var(--blob-r) * 0.52vmax)),
-    radial-gradient(circle at 67% 65%, black 0%, transparent calc(var(--blob-r) * 0.48vmax));
-  mask-image:
-    radial-gradient(circle at 62% 58%,
-      black 0%, black calc(var(--blob-r) * 0.5vmax), transparent calc(var(--blob-r) * 1vmax)),
-    radial-gradient(circle at 59% 54%, black 0%, transparent calc(var(--blob-r) * 0.92vmax)),
-    radial-gradient(circle at 66% 61%, black 0%, transparent calc(var(--blob-r) * 0.88vmax)),
-    radial-gradient(circle at 56% 63%, black 0%, transparent calc(var(--blob-r) * 0.78vmax)),
-    radial-gradient(circle at 68% 52%, black 0%, transparent calc(var(--blob-r) * 0.82vmax)),
-    radial-gradient(circle at 60% 66%, black 0%, transparent calc(var(--blob-r) * 0.68vmax)),
-    radial-gradient(circle at 65% 50%, black 0%, transparent calc(var(--blob-r) * 0.72vmax)),
-    radial-gradient(circle at 54% 57%, black 0%, transparent calc(var(--blob-r) * 0.62vmax)),
-    radial-gradient(circle at 70% 59%, black 0%, transparent calc(var(--blob-r) * 0.58vmax)),
-    radial-gradient(circle at 58% 51%, black 0%, transparent calc(var(--blob-r) * 0.52vmax)),
-    radial-gradient(circle at 67% 65%, black 0%, transparent calc(var(--blob-r) * 0.48vmax));
-
-  -webkit-mask-composite: source-over;
-  mask-composite: add;
+  -webkit-mask-image: linear-gradient(to right,
+    transparent calc(50% - var(--reveal) * 0.55vmax - 5vmax),
+    black       calc(50% - var(--reveal) * 0.55vmax),
+    black       calc(50% + var(--reveal) * 0.55vmax),
+    transparent calc(50% + var(--reveal) * 0.55vmax + 5vmax));
+  mask-image: linear-gradient(to right,
+    transparent calc(50% - var(--reveal) * 0.55vmax - 5vmax),
+    black       calc(50% - var(--reveal) * 0.55vmax),
+    black       calc(50% + var(--reveal) * 0.55vmax),
+    transparent calc(50% + var(--reveal) * 0.55vmax + 5vmax));
 }
 
 .video-reveal.revealing {
-  animation: blob-reveal 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: side-reveal 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes blob-reveal {
-  from { --blob-r: 0; }
-  to   { --blob-r: 120; }
+@keyframes side-reveal {
+  from { --reveal: 0; }
+  to   { --reveal: 100; }
 }
 
 /* Fallback: browsers without @property support get a simple opacity fade */

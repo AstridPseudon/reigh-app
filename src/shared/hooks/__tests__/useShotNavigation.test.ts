@@ -15,7 +15,7 @@ vi.mock('@/shared/contexts/CurrentShotContext', () => ({
   }),
 }));
 
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }));
 

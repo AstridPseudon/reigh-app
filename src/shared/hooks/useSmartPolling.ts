@@ -1,65 +1,25 @@
 import { useEffect, useMemo, useReducer, useRef } from 'react';
 import { dataFreshnessManager } from '@/shared/realtime/DataFreshnessManager';
 
-/**
- * Smart polling hook that integrates with DataFreshnessManager
- * 
- * This hook replaces the old useResurrectionPolling system with a simpler,
- * more reliable approach that works with our centralized freshness management.
- */
-
 interface SmartPollingConfig {
-  /**
-   * The query key this polling config applies to
-   */
   queryKey: readonly string[];
-  
-  /**
-   * Minimum polling interval when realtime is working (default: 5 minutes)
-   * Set to false to disable polling entirely when realtime is healthy
-   */
+  /** Default: 5 minutes. Set to false to disable polling when realtime is healthy. */
   minInterval?: number | false;
-  
-  /**
-   * Maximum polling interval when realtime is broken (default: 5 seconds)
-   */
+  /** Polling interval when realtime is broken. Default: 5 seconds. */
   maxInterval?: number;
-  
-  /**
-   * How fresh data needs to be to avoid aggressive polling (default: 30 seconds)
-   */
+  /** How fresh data needs to be to avoid aggressive polling. Default: 30 seconds. */
   freshnessThreshold?: number;
-  
-  /**
-   * Enable debug logging for this query
-   */
   debug?: boolean;
 }
 
 interface SmartPollingResult {
-  /**
-   * React Query refetchInterval - use this in your useQuery config
-   */
+  /** Use as React Query refetchInterval */
   refetchInterval: number | false;
-  
-  /**
-   * React Query staleTime - use this in your useQuery config
-   */
+  /** Use as React Query staleTime */
   staleTime: number;
-  
-  /**
-   * Whether data is considered fresh based on realtime events
-   */
   isDataFresh: boolean;
-  
-  /**
-   * Current realtime connection status
-   */
   realtimeStatus: 'connected' | 'disconnected' | 'error';
-  
-  /**
-   * Debug information (only if debug: true)
-   */
+  /** Only populated when debug: true */
   debug?: {
     pollingReason: string;
     lastEventAge?: number;
@@ -73,104 +33,81 @@ interface SmartPollingResult {
 function useSmartPolling(config: SmartPollingConfig): SmartPollingResult {
   const {
     queryKey,
-    minInterval = 5 * 60 * 1000, // 5 minutes default
-    // [MobileHeatDebug] Increased from 5s to 15s to reduce mobile CPU usage
-    // Desktop can handle aggressive polling, but mobile overheats with 5s intervals
-    maxInterval = 15000, // 15 seconds default (was 5s)
-    freshnessThreshold = 30000, // 30 seconds default
+    minInterval = 5 * 60 * 1000,
+    maxInterval = 15000,
+    freshnessThreshold = 30000,
     debug = false
   } = config;
 
-  // [MobileHeatDebug] Detect mobile devices and increase polling intervals
+  // Mobile devices get longer polling intervals to reduce CPU/battery usage
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // Force re-render when freshness manager state changes
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const lastIntervalRef = useRef<number | false | null>(null);
 
-  // 🎯 FIX: Stabilize queryKey for dependency comparison
-  // Arrays are compared by reference, so ['a', 'b'] !== ['a', 'b'] on every render
-  // Use a ref to store current queryKey so callback always has latest without needing it in deps
+  // Ref keeps queryKey current without adding it to effect deps (arrays are new refs each render)
   const queryKeyRef = useRef(queryKey);
   queryKeyRef.current = queryKey;
   const queryKeyString = JSON.stringify(queryKey);
 
-  // 🎯 FIX: Throttle forceUpdate to prevent rapid re-renders
-  // DataFreshnessManager can emit many notifications in quick succession
+  // Batch rapid DataFreshnessManager notifications into a single re-render
   const pendingUpdateRef = useRef(false);
-  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const throttleTimeout = throttleTimeoutRef.current;
-    // Subscribe to freshness manager updates
+    let active = true;
+
     const unsubscribe = dataFreshnessManager.subscribe(() => {
-      // 🎯 OPTIMIZATION: Only re-render if the calculated polling interval actually changes
       const currentInterval = dataFreshnessManager.getPollingInterval(queryKeyRef.current);
       if (lastIntervalRef.current !== currentInterval) {
-        // 🎯 THROTTLE: Batch rapid updates into a single re-render
         if (!pendingUpdateRef.current) {
           pendingUpdateRef.current = true;
-          // Use microtask to batch synchronous notifications
           queueMicrotask(() => {
             pendingUpdateRef.current = false;
-            forceUpdate();
+            if (active) {
+              forceUpdate();
+            }
           });
         }
       }
     });
 
     return () => {
+      active = false;
       unsubscribe();
-      if (throttleTimeout) {
-        clearTimeout(throttleTimeout);
-      }
     };
   }, [queryKeyString, debug]);
 
-  // Get current state from freshness manager
   const pollingInterval = dataFreshnessManager.getPollingInterval(queryKey);
   lastIntervalRef.current = pollingInterval;
   const isDataFresh = dataFreshnessManager.isDataFresh(queryKey, freshnessThreshold);
   const diagnostics = debug ? dataFreshnessManager.getDiagnostics() : null;
 
-  // Apply our min/max constraints
   let finalInterval: number | false;
   let pollingReason: string;
-  
-  // [MobileHeatDebug] On mobile, multiply all intervals by 2x to reduce CPU usage
+
   const mobileMultiplier = isMobile ? 2 : 1;
   const effectiveMaxInterval = maxInterval * mobileMultiplier;
   const effectiveMinInterval = minInterval === false ? false : minInterval * mobileMultiplier;
 
   if (pollingInterval === false) {
-    // 🎯 NEW: Respect when freshness manager disables polling completely
     if (effectiveMinInterval === false) {
       finalInterval = false;
-      pollingReason = 'Polling DISABLED - realtime is healthy and working';
+      pollingReason = 'disabled (realtime healthy)';
     } else {
       finalInterval = effectiveMinInterval;
-      pollingReason = isMobile 
-        ? 'Freshness manager disabled polling, using minInterval fallback (2x for mobile)'
-        : 'Freshness manager disabled polling, using minInterval fallback';
+      pollingReason = 'minInterval fallback';
     }
   } else if (effectiveMinInterval !== false && pollingInterval > effectiveMinInterval && isDataFresh) {
     finalInterval = effectiveMinInterval;
-    pollingReason = isMobile 
-      ? 'Data is fresh, using minInterval (2x for mobile)'
-      : 'Data is fresh, using minInterval';
+    pollingReason = 'data fresh, using minInterval';
   } else if (pollingInterval < effectiveMaxInterval) {
     finalInterval = effectiveMaxInterval;
-    pollingReason = isMobile
-      ? 'Clamping to maxInterval for aggressive polling (2x for mobile - 30s)'
-      : 'Clamping to maxInterval for aggressive polling';
+    pollingReason = 'clamped to maxInterval';
   } else {
     finalInterval = pollingInterval * mobileMultiplier;
-    pollingReason = isMobile
-      ? 'Using freshness manager interval (2x for mobile)'
-      : 'Using freshness manager interval';
+    pollingReason = 'freshness manager interval';
   }
 
-  // Calculate stale time based on freshness
   const staleTime = isDataFresh ? freshnessThreshold : 0;
 
   const result: SmartPollingResult = {
@@ -192,29 +129,22 @@ function useSmartPolling(config: SmartPollingConfig): SmartPollingResult {
     };
 
   }
-  
-  // [MobileHeatDebug] Log aggressive polling on mobile for debugging
 
   return result;
 }
 
 /**
- * Simplified version for common use cases
- * Just returns the config object to spread into useQuery
- * 
- * By default, minInterval is set to false to allow polling to be completely disabled
- * when realtime is working. Pass minInterval: number if you want a fallback interval.
+ * Returns { refetchInterval, staleTime } to spread into useQuery options.
+ * Defaults to minInterval: false so polling is fully disabled when realtime is healthy.
  */
 export function useSmartPollingConfig(queryKey: readonly string[], debug = false) {
-  // 🎯 NEW: Default to minInterval: false to allow full polling disable
   const { refetchInterval, staleTime } = useSmartPolling({
     queryKey,
     debug,
-    minInterval: false // Allow polling to be disabled when realtime is healthy
+    minInterval: false,
   });
 
-  // Memoize to avoid creating a new object every render. When spread into useQuery
-  // options, unstable objects contribute to observer.setOptions() seeing "changed" options.
+  // Stable reference so useQuery doesn't see "changed" options on every render
   return useMemo(() => ({
     refetchInterval,
     staleTime

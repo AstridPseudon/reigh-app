@@ -10,6 +10,7 @@
  * - generation-parent.ts: Parent relationship helpers
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { extractShotAndPosition, extractBasedOn } from './params.ts';
 import { findExistingGeneration, createVariant, linkGenerationToShot } from './generation-core.ts';
 import {
@@ -36,7 +37,7 @@ import { TASK_TYPES } from './constants.ts';
  * Child order: child_order OR segment_index OR join_index
  */
 export async function createGenerationFromTask(
-  supabase: unknown,
+  supabase: SupabaseClient,
   taskId: string,
   taskData: unknown,
   publicUrl: string,
@@ -147,7 +148,7 @@ export async function createGenerationFromTask(
  * Handle regeneration case - task already has a generation, create new variant
  */
 async function handleRegeneration(
-  supabase: unknown,
+  supabase: SupabaseClient,
   taskId: string,
   taskData: unknown,
   existingGeneration: unknown,

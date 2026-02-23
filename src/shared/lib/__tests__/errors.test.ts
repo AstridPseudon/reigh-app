@@ -10,7 +10,7 @@ import {
   isNetworkError,
   isAuthError,
   categorizeError,
-} from '../errors';
+} from '../errorHandling/errors';
 
 describe('AppError', () => {
   it('creates with default options', () => {

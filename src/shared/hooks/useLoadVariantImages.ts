@@ -11,10 +11,10 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
-import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/utils';
+import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/variantSourceImages';
 
 interface UseLoadVariantImagesProps {
   currentSegmentImages?: CurrentSegmentImagesData & {

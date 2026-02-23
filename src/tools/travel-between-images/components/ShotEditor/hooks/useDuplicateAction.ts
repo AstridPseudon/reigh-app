@@ -5,6 +5,7 @@ import { GenerationRow, Shot } from "@/types/shots";
 import { useDuplicateAsNewGeneration } from "@/shared/hooks/useShots";
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { ShotEditorState } from '../state/types';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface UseDuplicateActionProps {
   state: ShotEditorState;
@@ -115,12 +116,10 @@ export const useDuplicateAction = ({
           actionsRef.current.setPendingFramePositions(newPendingPositions);
 
           // Notify skeleton to wait for this specific item ID before clearing
-          window.dispatchEvent(new CustomEvent('timeline:duplicate-complete', {
-            detail: {
-              shotId: currentShot.id,
-              newItemId: result.new_shot_generation_id
-            }
-          }));
+          dispatchAppEvent('timeline:duplicate-complete', {
+            shotId: currentShot.id,
+            newItemId: result.new_shot_generation_id
+          });
         }
 
         // Show success state

@@ -5,7 +5,7 @@ import { ProgressiveLoadingManager } from "@/shared/components/ProgressiveLoadin
 import { MediaGalleryItem } from "@/shared/components/MediaGalleryItem";
 import { getImageLoadingStrategy } from '@/shared/lib/imageLoadingPriority';
 import { useAdjacentPagePreloader } from '@/shared/hooks/useAdjacentPagePreloader';
-import type { MediaGalleryItemProps } from '@/shared/components/MediaGalleryItem/types';
+import type { ItemShotWorkflow, ItemMobileInteraction, ItemFeatures, ItemActions, ItemLoading } from '@/shared/components/MediaGalleryItem/types';
 import type { GeneratedImageWithMetadata } from '../types';
 import { parseRatio } from '@/shared/lib/aspectRatios';
 
@@ -17,7 +17,7 @@ interface MediaGalleryGridDataProps {
 
 interface MediaGalleryGridLayoutProps {
   reducedSpacing?: boolean;
-  whiteText?: boolean;
+  darkSurface?: boolean;
   gridColumnClasses: string;
   columnsPerRow?: number;
   projectAspectRatio?: string;
@@ -45,7 +45,6 @@ interface MediaGalleryGridPreloadProps {
   serverPage?: number;
   totalFilteredItems: number;
   itemsPerPage: number;
-  onPrefetchAdjacentPages?: (prevPage: number | null, nextPage: number | null) => void;
   selectedProjectId?: string;
   generationFilters?: Record<string, unknown>;
 }
@@ -60,6 +59,20 @@ interface MediaGalleryGridBackfillMetricsProps {
   optimisticDeletedCount?: number;
 }
 
+/** Props for the MediaGalleryItem grouped sub-objects, passed through from the parent */
+interface MediaGalleryGridItemProps {
+  /** Shot workflow props (per-item fields like image/index are added by Grid) */
+  itemShotWorkflow: ItemShotWorkflow;
+  /** Mobile interaction props (isMobile is lifted to grid level) */
+  itemMobileInteraction: Omit<ItemMobileInteraction, 'isMobile'>;
+  /** Feature flags */
+  itemFeatures: ItemFeatures;
+  /** Action callbacks */
+  itemActions: ItemActions;
+  /** Loading state (per-item fields like shouldLoad/isPriority are added by Grid) */
+  itemLoading: Omit<ItemLoading, 'shouldLoad' | 'isPriority' | 'isGalleryLoading'>;
+}
+
 type MediaGalleryGridProps =
   & MediaGalleryGridDataProps
   & MediaGalleryGridLayoutProps
@@ -67,10 +80,7 @@ type MediaGalleryGridProps =
   & MediaGalleryGridPreloadProps
   & MediaGalleryGridFilterProps
   & MediaGalleryGridBackfillMetricsProps
-  & Omit<
-    MediaGalleryItemProps,
-    'image' | 'index' | 'shouldLoad' | 'isPriority' | 'isGalleryLoading' | 'isMobile' | 'projectAspectRatio'
-  >;
+  & MediaGalleryGridItemProps;
 
 // Memoized grid component to prevent unnecessary re-renders from parent
 const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
@@ -81,7 +91,7 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
 
   // Layout props
   reducedSpacing = false,
-  whiteText = false,
+  darkSurface = false,
   gridColumnClasses,
   columnsPerRow = 5,
   projectAspectRatio,
@@ -98,27 +108,26 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
   setIsGalleryLoading,
   setLoadingButton,
   safetyTimeoutRef,
-  
+
   // Progressive loading props
   effectivePage,
   isMobile,
-  
+
   // Lightbox state
   isLightboxOpen = false,
-  
+
   // Preloading props
   enableAdjacentPagePreloading = true,
   page,
   serverPage,
   totalFilteredItems,
   itemsPerPage,
-  onPrefetchAdjacentPages, // Deprecated - kept for backwards compatibility
   selectedProjectId,
   generationFilters,
-  
+
   // Filter state
   hasFilters,
-  
+
   // Backfill state
   isBackfillLoading = false,
   setIsBackfillLoading,
@@ -131,8 +140,12 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
   // Pagination display state
   hideBottomPagination = false,
 
-  // Pass through all other props for MediaGalleryItem
-  ...itemProps
+  // MediaGalleryItem grouped props (passed through)
+  itemShotWorkflow,
+  itemMobileInteraction,
+  itemFeatures,
+  itemActions,
+  itemLoading,
 }) => {
 
   // === SIMPLE PAGE CHANGE DETECTION ===
@@ -211,6 +224,12 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
     paused: isLightboxOpen,
   });
 
+  // Assemble the mobileInteraction object with isMobile included
+  const mobileInteraction: ItemMobileInteraction = React.useMemo(() => ({
+    isMobile,
+    ...itemMobileInteraction,
+  }), [isMobile, itemMobileInteraction]);
+
   // Show full skeleton gallery when loading new data
   if (isLoading) {
     // Match the gap classes used in the actual grid
@@ -222,7 +241,7 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
           count={itemsPerPage}
           fixedColumns={columnsPerRow}
           gapClasses={skeletonGapClasses}
-          whiteText={whiteText}
+          darkSurface={darkSurface}
           showControls={false}
           projectAspectRatio={projectAspectRatio}
         />
@@ -236,27 +255,19 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
       <div className={paginatedImages.length > 0 && !reducedSpacing && !hideBottomPagination ? "min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]" : ""}>
         {/* No items match filters message */}
         {images.length > 0 && filteredImages.length === 0 && hasFilters && !isGalleryLoading && (
-          <div className={`text-center py-10 mt-6 rounded-lg ${
-            whiteText 
-              ? "text-zinc-400 border-zinc-700 bg-zinc-800/50" 
-              : "text-muted-foreground border bg-card shadow-sm"
-          }`}>
-            <Filter className={`mx-auto h-10 w-10 mb-3 opacity-60 ${whiteText ? "text-zinc-500" : ""}`} />
-            <p className={`font-light ${whiteText ? "text-zinc-300" : ""}`}>No items match the current filters.</p>
-            <p className={`text-sm ${whiteText ? "text-zinc-400" : ""}`}>Adjust the filters or clear the search to see all items.</p>
+          <div className="text-center py-10 mt-6 rounded-lg text-muted-foreground border border-border bg-card shadow-sm">
+            <Filter className="mx-auto h-10 w-10 mb-3 opacity-60" />
+            <p className="font-light text-foreground">No items match the current filters.</p>
+            <p className="text-sm text-muted-foreground">Adjust the filters or clear the search to see all items.</p>
           </div>
         )}
 
         {/* No images generated yet message */}
         {images.length === 0 && !isGalleryLoading && (
-           <div className={`text-center py-12 mt-8 rounded-lg ${
-             whiteText 
-               ? "text-zinc-400 border-zinc-700 bg-zinc-800/50" 
-               : "text-muted-foreground border bg-card shadow-sm"
-           }`}>
-             <Sparkles className={`mx-auto h-10 w-10 mb-3 opacity-60 ${whiteText ? "text-zinc-500" : ""}`} />
-             <p className={`font-light ${whiteText ? "text-zinc-300" : ""}`}>No images generated yet.</p>
-             <p className={`text-sm ${whiteText ? "text-zinc-400" : ""}`}>Use the controls above to generate some images.</p>
+           <div className="text-center py-12 mt-8 rounded-lg text-muted-foreground border border-border bg-card shadow-sm">
+             <Sparkles className="mx-auto h-10 w-10 mb-3 opacity-60" />
+             <p className="font-light text-foreground">No images generated yet.</p>
+             <p className="text-sm text-muted-foreground">Use the controls above to generate some images.</p>
            </div>
         )}
 
@@ -283,29 +294,30 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
                 >
                   {paginatedImages.map((image, index) => {
                     const shouldShow = showImageIndices.has(index);
-                    
+
                     // Use unified loading strategy system
                     const loadingStrategy = getImageLoadingStrategy(index, {
                       isMobile,
                       totalImages: paginatedImages.length,
                       isPreloaded: false // Will be checked inside the component
                     });
-                    
-                    // Debug logging disabled for performance (was causing excessive re-renders)
-                    // if (index < 8 || (loadingStrategy.shouldLoadInInitialBatch && !shouldShow)) {
-                    // }
-                    
+
                     return (
                       <MediaGalleryItem
                         key={image.id || `image-${index}`}
                         image={image}
                         index={index}
-                        shouldLoad={shouldShow}
-                        isPriority={loadingStrategy.shouldLoadInInitialBatch}
-                        isGalleryLoading={isGalleryLoading}
-                        isMobile={isMobile}
+                        shotWorkflow={itemShotWorkflow}
+                        mobileInteraction={mobileInteraction}
+                        features={itemFeatures}
+                        actions={itemActions}
+                        loading={{
+                          ...itemLoading,
+                          shouldLoad: shouldShow,
+                          isPriority: loadingStrategy.shouldLoadInInitialBatch,
+                          isGalleryLoading,
+                        }}
                         projectAspectRatio={projectAspectRatio}
-                        {...itemProps}
                       />
                     );
                   })}
@@ -320,7 +332,7 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
                             className="relative bg-muted/50"
                           >
                             <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted/30 animate-pulse">
-                              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"></div>
+                              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-muted-foreground"></div>
                             </div>
                           </div>
                         </div>

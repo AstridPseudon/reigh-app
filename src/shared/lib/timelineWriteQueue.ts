@@ -1,3 +1,5 @@
+import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
+
 type TimelineWritePhase = 'queued' | 'start' | 'end';
 
 interface TimelineWriteEventMeta {
@@ -31,17 +33,6 @@ class TimelineWriteTimeoutError extends Error {
       (this as { cause?: unknown }).cause = cause;
     }
   }
-}
-
-function isAbortError(error: unknown): boolean {
-  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
-    return error.name === 'AbortError';
-  }
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  const lowerMessage = error.message.toLowerCase();
-  return error.name === 'AbortError' || lowerMessage.includes('abort');
 }
 
 export function isTimelineWriteTimeoutError(error: unknown): error is TimelineWriteTimeoutError {

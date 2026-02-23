@@ -11,13 +11,14 @@ import { Button } from "@/shared/components/ui/button";
 import { useApiTokens } from "@/shared/hooks/useApiTokens";
 import usePersistentState from "@/shared/hooks/usePersistentState";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import { useLargeModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from "@/shared/hooks/useScrollFade";
 import { useUserUIState } from "@/shared/hooks/useUserUIState";
 import { useDarkMode } from "@/shared/hooks/useDarkMode";
 import { useTextCase } from "@/shared/hooks/useTextCase";
 import { useAIInputMode } from "@/shared/contexts/AIInputModeContext";
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import GenerationSection from "./sections/GenerationSection";
 import PreferencesSection from "./sections/PreferencesSection";
 import TransactionsSection from "./sections/TransactionsSection";
@@ -113,7 +114,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     updateGenerationMethods(patch);
 
     // Notify other components immediately
-    window.dispatchEvent(new CustomEvent('generation-settings-changed'));
+    dispatchAppEvent('generation-settings-changed');
 
     // For cross-tab communication
     localStorage.setItem('generation-settings-updated', Date.now().toString());
@@ -157,13 +158,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <DialogTitle className={`text-2xl ${isMobile ? 'mb-1' : 'md:mt-[11px]'}`}>
                 App Settings
               </DialogTitle>
-              <div className="relative inline-flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-0.5 shadow-inner md:mt-[11px] w-fit">
+              <div className="relative inline-flex items-center bg-muted rounded-full p-0.5 shadow-inner md:mt-[11px] w-fit">
                 <button
                   onClick={() => setSettingsSection('app')}
                   className={`${isMobile ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'} font-medium rounded-full transition-all duration-200 focus:outline-none ${
                     settingsSection === 'app'
-                      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Generation
@@ -172,8 +173,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   onClick={() => setSettingsSection('transactions')}
                   className={`${isMobile ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'} font-medium rounded-full transition-all duration-200 focus:outline-none ${
                     settingsSection === 'transactions'
-                      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Transactions
@@ -182,8 +183,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   onClick={() => setSettingsSection('preferences')}
                   className={`${isMobile ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'} font-medium rounded-full transition-all duration-200 focus:outline-none ${
                     settingsSection === 'preferences'
-                      ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Preferences
@@ -255,7 +256,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               className="absolute top-0 left-0 right-0 h-16 pointer-events-none z-10"
               style={{ transform: 'translateY(-64px)' }}
             >
-              <div className="h-full bg-gradient-to-t from-white via-white/95 to-transparent dark:from-gray-950 dark:via-gray-950/95 dark:to-transparent" />
+              <div className="h-full bg-gradient-to-t from-background via-background/95 to-transparent" />
             </div>
           )}
 

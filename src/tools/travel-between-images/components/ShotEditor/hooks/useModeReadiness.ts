@@ -8,6 +8,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import type { ShotEditorActions } from '../state/useShotEditorState';
 import { Shot, GenerationRow } from '@/types/shots';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface UseModeReadinessProps {
   selectedShot: Shot | undefined;
@@ -70,9 +71,7 @@ export function useModeReadiness({
 
       // Mobile-specific: dispatch event to notify other components
       if (isMobile) {
-        window.dispatchEvent(new CustomEvent('shotEditorRecovery', {
-          detail: { shotId: selectedShot?.id, reason: 'settings_timeout' }
-        }));
+        dispatchAppEvent('shotEditorRecovery', { shotId: selectedShot?.id, reason: 'settings_timeout' });
       }
     }, timeoutMs);
 

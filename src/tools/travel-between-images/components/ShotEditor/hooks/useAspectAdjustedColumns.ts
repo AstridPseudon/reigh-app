@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { useDeviceInfo } from '@/shared/hooks/use-mobile';
+import { useDeviceInfo } from '@/shared/hooks/useMobile';
 
 export function useAspectAdjustedColumns(effectiveAspectRatio?: string): {
   isPhone: boolean;

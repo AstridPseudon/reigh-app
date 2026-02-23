@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 
 interface GlassSidePaneProps {
   isOpen: boolean;

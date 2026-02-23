@@ -10,7 +10,7 @@ vi.mock('@/integrations/supabase/config/env', () => ({
   get __IS_DEV_ENV__() {
     return isDevEnvState.value;
   },
-  SUPABASE_URL: 'https://testproject.supabase.co',
+  getSupabaseUrl: () => 'https://testproject.supabase.co',
 }));
 
 vi.mock('@/shared/lib/errorHandling/handleError', () => ({

@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSplitViewScroll } from './useSplitViewScroll';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 describe('useSplitViewScroll', () => {
   beforeEach(() => {
@@ -52,7 +53,7 @@ describe('useSplitViewScroll', () => {
     });
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('app:scrollToTop', { detail: { behavior: 'smooth' } }));
+      dispatchAppEvent('app:scrollToTop', { behavior: 'smooth' });
     });
 
     expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });

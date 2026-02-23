@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { projectStatsQueryKeys } from '@/shared/lib/queryKeys/projectStats';
+import { ProjectScopedCache } from '@/shared/lib/ProjectScopedCache';
 
 /** Counts stored per shot */
 interface ShotCounts {
@@ -11,48 +12,8 @@ interface ShotCounts {
   hasStructureVideo: boolean;
 }
 
-/**
- * Project-wide video counts cache
- * Fetches all shot video counts for a project in a single query
- */
-class ProjectVideoCountsCache {
-  private cache = new Map<string, Map<string, ShotCounts>>(); // projectId -> shotId -> counts
-
-  getProjectCounts(projectId: string): Map<string, ShotCounts> | null {
-    return this.cache.get(projectId) || null;
-  }
-
-  getShotCounts(projectId: string, shotId: string): ShotCounts | null {
-    const projectCounts = this.cache.get(projectId);
-    if (!projectCounts) return null;
-    return projectCounts.get(shotId) || null;
-  }
-
-  setProjectCounts(projectId: string, counts: Map<string, ShotCounts>): void {
-    this.cache.set(projectId, counts);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  deleteProject(projectId: string): void {
-    this.cache.delete(projectId);
-  }
-
-  // Get cache size for debugging
-  size(): number {
-    return this.cache.size;
-  }
-
-  // Get all cached project IDs for debugging
-  getCachedProjectIds(): string[] {
-    return Array.from(this.cache.keys());
-  }
-}
-
 // Global cache instance that persists across component remounts
-const globalProjectVideoCountsCache = new ProjectVideoCountsCache();
+const globalProjectVideoCountsCache = new ProjectScopedCache<ShotCounts>();
 
 /**
  * Check if a shot's settings contain structure video configuration.
@@ -139,17 +100,14 @@ export function useProjectVideoCountsCache(projectId: string | null) {
   const cacheRef = useRef(globalProjectVideoCountsCache);
   const effectiveProjectId = projectId ?? '__no-project__';
 
-  // 🎯 SMART POLLING: Use DataFreshnessManager for intelligent polling decisions
   const smartPollingConfig = useSmartPollingConfig(projectStatsQueryKeys.videos(effectiveProjectId));
 
-  // Query to fetch all shot video counts for the project
   const { data: projectCounts, isLoading, error, refetch } = useQuery<Map<string, ShotCounts>>({
     queryKey: projectStatsQueryKeys.videos(effectiveProjectId),
     queryFn: () => fetchProjectShotDataFromDB(projectId!),
     enabled: !!projectId,
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    placeholderData: (previousData) => previousData, // Keep showing previous data while refetching
-    // 🎯 SMART POLLING: Intelligent polling based on realtime health
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
     ...smartPollingConfig,
     refetchIntervalInBackground: true, // Enable background polling
   });
@@ -160,15 +118,15 @@ export function useProjectVideoCountsCache(projectId: string | null) {
   const projectCountsRef = useRef(projectCounts);
   projectCountsRef.current = projectCounts;
 
-  // 🎯 PERF FIX: Ref for refetch — useQuery returns a new refetch reference on every render
-  // (it's bound in createResult). Using it in useCallback deps would recreate callbacks every render.
+  // Ref for refetch: useQuery returns a new refetch reference on every render,
+  // so using it in useCallback deps would recreate callbacks every render.
   const refetchRef = useRef(refetch);
   refetchRef.current = refetch;
 
   // Update cache when data changes
   React.useEffect(() => {
     if (projectCounts && projectId) {
-      cacheRef.current.setProjectCounts(projectId, projectCounts);
+      cacheRef.current.setProject(projectId, projectCounts);
     }
   }, [projectCounts, projectId]);
 
@@ -176,7 +134,7 @@ export function useProjectVideoCountsCache(projectId: string | null) {
     if (!projectId || !shotId) return null;
 
     // First try cache
-    const cachedCounts = cacheRef.current.getShotCounts(projectId, shotId);
+    const cachedCounts = cacheRef.current.getItem(projectId, shotId);
     if (cachedCounts !== null) {
       return cachedCounts.videoCount;
     }
@@ -190,7 +148,7 @@ export function useProjectVideoCountsCache(projectId: string | null) {
     if (!projectId || !shotId) return null;
 
     // First try cache
-    const cachedCounts = cacheRef.current.getShotCounts(projectId, shotId);
+    const cachedCounts = cacheRef.current.getItem(projectId, shotId);
     if (cachedCounts !== null) {
       return cachedCounts.finalVideoCount;
     }
@@ -204,7 +162,7 @@ export function useProjectVideoCountsCache(projectId: string | null) {
     if (!projectId || !shotId) return null;
 
     // First try cache
-    const cachedCounts = cacheRef.current.getShotCounts(projectId, shotId);
+    const cachedCounts = cacheRef.current.getItem(projectId, shotId);
     if (cachedCounts !== null) {
       return cachedCounts.hasStructureVideo;
     }
@@ -218,7 +176,7 @@ export function useProjectVideoCountsCache(projectId: string | null) {
     if (!projectId) return null;
 
     // First try cache
-    const cachedCounts = cacheRef.current.getProjectCounts(projectId);
+    const cachedCounts = cacheRef.current.getProject(projectId);
     if (cachedCounts) {
       return cachedCounts;
     }

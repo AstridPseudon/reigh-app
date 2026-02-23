@@ -3,7 +3,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useTaskStatusCounts } from '@/shared/hooks/useTasks';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useEditSettingsPersistence } from './useEditSettingsPersistence';
 import { extractDimensionsFromMedia } from '../utils';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
@@ -11,12 +11,11 @@ import type { GenerationRow } from '@/types/shots';
 import type { SegmentSlotModeData } from '../types';
 import type { VideoEditSubMode } from './editSettingsTypes';
 
+import type { LightboxNavigationProps } from '../types';
+
 interface VideoLightboxModeOptions {
   segmentSlotMode?: SegmentSlotModeData;
-  hasNext?: boolean;
-  hasPrevious?: boolean;
-  onNext?: () => void;
-  onPrevious?: () => void;
+  navigation?: LightboxNavigationProps;
 }
 
 function resolveInitialVideoEditSubMode(
@@ -51,11 +50,12 @@ function resolveInitialVideoEditSubMode(
 export function useVideoLightboxMode(options: VideoLightboxModeOptions) {
   const {
     segmentSlotMode,
-    hasNext: hasNextProp = false,
-    hasPrevious: hasPreviousProp = false,
-    onNext,
-    onPrevious,
+    navigation,
   } = options;
+  const hasNextProp = navigation?.hasNext ?? false;
+  const hasPreviousProp = navigation?.hasPrevious ?? false;
+  const onNext = navigation?.onNext;
+  const onPrevious = navigation?.onPrevious;
 
   const isSegmentSlotMode = !!segmentSlotMode;
   const hasSegmentVideo = isSegmentSlotMode && !!segmentSlotMode.segmentVideo;
@@ -106,15 +106,19 @@ interface VideoLightboxEnvironmentOptions {
   media?: GenerationRow;
   tasksPaneOpen?: boolean;
   tasksPaneWidth?: number;
-  fetchVariantsForSelf?: boolean;
-  initialVideoTrimMode?: boolean;
+  videoProps?: {
+    fetchVariantsForSelf?: boolean;
+    initialVideoTrimMode?: boolean;
+  };
 }
 
 export function useVideoLightboxEnvironment(
   options: VideoLightboxEnvironmentOptions,
   modeModel: VideoLightboxModeModel,
 ) {
-  const { media, tasksPaneOpen, tasksPaneWidth, fetchVariantsForSelf, initialVideoTrimMode } = options;
+  const { media, tasksPaneOpen, tasksPaneWidth } = options;
+  const fetchVariantsForSelf = options.videoProps?.fetchVariantsForSelf;
+  const initialVideoTrimMode = options.videoProps?.initialVideoTrimMode;
 
   const isMobile = useIsMobile();
   const { project, selectedProjectId } = useProject();

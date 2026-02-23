@@ -19,8 +19,6 @@ interface ShotFilterProps {
   labelText?: string;
   positionFilterLabel?: string;
   checkboxId?: string;
-  /** @deprecated Use darkSurface instead */
-  whiteText?: boolean;
   /** Use when component is on a permanently dark surface (e.g., GenerationsPane) */
   darkSurface?: boolean;
   isMobile?: boolean;
@@ -42,16 +40,12 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
   labelText,
   positionFilterLabel = "Exclude items with a position",
   checkboxId = "exclude-positioned",
-  whiteText,
-  darkSurface: darkSurfaceProp,
+  darkSurface,
   isMobile = false,
   open,
   onOpenChange,
   contentRef,
 }) => {
-  // Support both old whiteText and new darkSurface props
-  const darkSurface = darkSurfaceProp ?? whiteText ?? false;
-
   // Variant selection: zinc for dark surfaces, retro for normal (handles app dark mode automatically)
   const variant = darkSurface ? 'zinc' : 'retro';
 

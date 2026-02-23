@@ -2,17 +2,13 @@ import { useState, useCallback } from 'react';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import type { ShotOption } from '@/types/shots';
 
 interface QuickCreateSuccessState {
   isSuccessful: boolean;
   shotId: string | null;
   shotName: string | null;
   isLoading?: boolean;
-}
-
-interface ShotOption {
-  id: string;
-  name: string;
 }
 
 interface UseQuickShotCreateProps {

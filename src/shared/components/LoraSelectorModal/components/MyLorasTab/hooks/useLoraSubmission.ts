@@ -344,30 +344,16 @@ function buildLoraMetadata(input: {
 
 function isButtonDisabled(args: UseLoraSubmissionArgs): boolean {
   const { isSubmitting, isUploading, addForm, uploadMode, isEditMode, hasHfToken, isMultiStageModel, loraFiles } = args;
-  if (isSubmitting || isUploading || !addForm.name.trim()) {
+  if (isSubmitting || isUploading) {
     return true;
   }
 
-  if (uploadMode === 'file' && !isEditMode) {
-    if (!hasHfToken) {
-      return true;
-    }
-
-    if (isMultiStageModel) {
-      return !(loraFiles.highNoise || loraFiles.lowNoise);
-    }
-
-    return !loraFiles.single;
+  if (uploadMode === 'file' && !isEditMode && !hasHfToken) {
+    return true;
   }
 
-  if (isMultiStageModel) {
-    return !(
-      (addForm.high_noise_url.trim() && validateHuggingFaceUrl(addForm.high_noise_url).isValid) ||
-      (addForm.low_noise_url.trim() && validateHuggingFaceUrl(addForm.low_noise_url).isValid)
-    );
-  }
-
-  return !validateHuggingFaceUrl(addForm.huggingface_url).isValid;
+  const mode = getSubmissionMode(uploadMode, isMultiStageModel, isEditMode);
+  return getValidationError(addForm, loraFiles, mode) !== null;
 }
 
 export function useLoraSubmission(args: UseLoraSubmissionArgs) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { useRenderLogger } from '@/shared/hooks/useRenderLogger';
+import { useRenderLogger } from '@/shared/lib/debugRendering';
 import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { cn } from '@/shared/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +19,7 @@ import PaneControlTab from '../PaneControlTab';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { ShotFilter } from '@/shared/components/ShotFilter';
 import { useGalleryPageState } from '@/shared/hooks/useGalleryPageState';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
@@ -35,6 +35,7 @@ import {
 } from '@/shared/components/ui/select';
 import { MediaTypeFilter } from '@/shared/components/MediaTypeFilter';
 import { SHOT_FILTER, isSpecialFilter } from '@/shared/constants/filterConstants';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 // Fallback rows for pane (smaller than full page galleries)
 const PANE_ROWS = 2;
@@ -98,16 +99,10 @@ const GenerationsPaneComponent: React.FC = () => {
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
 
   // Listen for custom events from product tour to open/close modal
-  useEffect(() => {
-    const handleOpenModal = () => setIsGenerationModalOpen(true);
-    const handleCloseModal = () => setIsGenerationModalOpen(false);
-    window.addEventListener('openGenerationModal', handleOpenModal);
-    window.addEventListener('closeGenerationModal', handleCloseModal);
-    return () => {
-      window.removeEventListener('openGenerationModal', handleOpenModal);
-      window.removeEventListener('closeGenerationModal', handleCloseModal);
-    };
-  }, []);
+  const handleOpenModal = useCallback(() => setIsGenerationModalOpen(true), []);
+  const handleCloseModal = useCallback(() => setIsGenerationModalOpen(false), []);
+  useAppEventListener('openGenerationModal', handleOpenModal);
+  useAppEventListener('closeGenerationModal', handleCloseModal);
 
   // Use the generalized logic - data loading now enabled on all pages
   const {
@@ -228,14 +223,11 @@ const GenerationsPaneComponent: React.FC = () => {
   }, [paneIsOpen]);
 
   // Listen for custom event to open the pane (used on mobile from other components)
-  useEffect(() => {
-    const handleOpenGenerationsPane = () => {
-      openPane();
-    };
-
-    window.addEventListener('openGenerationsPane', handleOpenGenerationsPane);
-    return () => window.removeEventListener('openGenerationsPane', handleOpenGenerationsPane);
+  const handleOpenGenerationsPane = useCallback(() => {
+    openPane();
   }, [openPane]);
+
+  useAppEventListener('openGenerationsPane', handleOpenGenerationsPane);
 
   // Prevent immediate interaction after pane opens (especially on mobile)
   const [isInteractionDisabled, setIsInteractionDisabled] = useState(false);
@@ -577,7 +569,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     count={expectedItemCount ?? paneLayout.itemsPerPage}
                     fixedColumns={paneLayout.columns}
                     gapClasses="gap-2 sm:gap-4"
-                    whiteText={true}
+                    darkSurface={true}
                     showControls={false}
                     projectAspectRatio={projectAspectRatio}
                     className="space-y-0 pb-4 pt-2"
@@ -607,7 +599,7 @@ const GenerationsPaneComponent: React.FC = () => {
                     itemsPerPage={GENERATIONS_PER_PAGE}
                     className="space-y-0 pb-8"
                     config={{
-                      whiteText: true,
+                      darkSurface: true,
                       reducedSpacing: true,
                       hidePagination: true,
                       hideTopFilters: true,

@@ -1,7 +1,7 @@
 import React, { useState, ReactNode } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { Task } from '@/types/tasks';
 import { Check, Copy, CornerDownLeft, ImageIcon } from 'lucide-react';

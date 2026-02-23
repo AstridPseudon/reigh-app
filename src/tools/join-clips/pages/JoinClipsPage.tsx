@@ -11,7 +11,7 @@ import MediaLightbox from '@/shared/components/MediaLightbox';
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { Card } from '@/shared/components/ui/card';
@@ -284,7 +284,7 @@ function JoinClipsResults({
     return (
       <div className="space-y-4 pt-4 border-t">
         <h2 className="text-xl font-medium">
-          {hasValidData ? `Previous Results (${videosData.items.length})` : 'Loading Results...'}
+          Loading Results...
         </h2>
         <SkeletonGallery
           count={skeletonCount}

@@ -101,36 +101,13 @@ export function useLineageChain(variantId: string | null): LineageChainResult {
  * Count the lineage chain length for a variant.
  * Returns the number of ancestors (0 if no lineage, 1+ if has ancestors).
  * This fetches directly without caching - use sparingly for initial checks.
+ *
+ * Reuses fetchLineageChain to avoid duplicating the traversal logic.
  */
 export async function getLineageDepth(variantId: string): Promise<number> {
-  let depth = 0;
-  let currentId: string | null = variantId;
-  const visited = new Set<string>();
-
-  while (currentId && !visited.has(currentId)) {
-    visited.add(currentId);
-
-    const { data, error } = await supabase
-      .from('generation_variants')
-      .select('params')
-      .eq('id', currentId)
-      .single();
-
-    if (error || !data) {
-      break;
-    }
-
-    const params = data.params as Record<string, unknown> | null;
-    currentId = typeof params?.source_variant_id === 'string'
-      ? params.source_variant_id
-      : null;
-
-    if (currentId) {
-      depth++;
-    }
-  }
-
-  return depth;
+  const chain = await fetchLineageChain(variantId);
+  // chain includes the variant itself; ancestors = chain length - 1
+  return Math.max(0, chain.length - 1);
 }
 
 // NOTE: Default export removed - use named export { useLineageChain } instead

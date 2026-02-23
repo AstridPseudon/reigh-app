@@ -21,7 +21,7 @@ import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGaller
 import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { extractVideoPosterFrame } from '@/shared/utils/videoPosterExtractor';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';

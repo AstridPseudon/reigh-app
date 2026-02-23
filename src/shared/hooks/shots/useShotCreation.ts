@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useCreateShot } from './useShotsCrud';
 import { useAddImageToShot, useAddImageToShotWithoutPosition } from './useShotGenerationMutations';

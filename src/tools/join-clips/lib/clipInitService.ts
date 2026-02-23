@@ -121,7 +121,6 @@ const PENDING_CLIPS_TTL_MS = 5 * 60 * 1000;
  * - `{ type: 'append', clip }` -- append as a new clip
  */
 export interface PendingClipAction {
-  type: 'fill' | 'append';
   clip: VideoClip;
 }
 
@@ -142,8 +141,6 @@ export async function consumePendingJoinClips(): Promise<PendingClipAction[]> {
     }
 
     const actions: PendingClipAction[] = [];
-    // Track how many empty slots we've "used" so far across iterations
-    let filledCount = 0;
 
     for (const { videoUrl, thumbnailUrl, generationId } of recentClips) {
       if (!videoUrl) continue;
@@ -160,10 +157,7 @@ export async function consumePendingJoinClips(): Promise<PendingClipAction[]> {
         generationId,
       };
 
-      // We'll mark as 'fill' and let the caller decide ordering
-      // (the hook applies fills to first empty slot, then appends)
-      actions.push({ type: filledCount === 0 ? 'fill' : 'append', clip });
-      filledCount++;
+      actions.push({ clip });
     }
 
     localStorage.removeItem(PENDING_CLIPS_KEY);

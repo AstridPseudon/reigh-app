@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Label } from '@/shared/components/ui/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Copy, Check, LogIn } from 'lucide-react';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { ProjectSelectorModal } from './ProjectSelectorModal';
 import BatchSettingsForm from './BatchSettingsForm';
 import { MotionControl } from './MotionControl';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
-import { useIsMobile, useDeviceInfo } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useDeviceInfo } from '@/shared/hooks/useMobile';
 import ShotImagesEditor from './ShotImagesEditor';
 import { VideoTravelSettings } from '../settings';
 import { GenerationRow } from '@/types/shots';
@@ -50,7 +50,6 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
   shareData,
   shareSlug
 }) => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCopying, setIsCopying] = useState(false);

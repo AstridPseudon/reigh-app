@@ -15,15 +15,22 @@
  */
 
 import React, { useState, useRef, useMemo, useEffect, useCallback, useLayoutEffect } from 'react';
-import type { GenerationRow, GenerationMetadata, Shot } from '@/types/shots';
-import type { AdjacentSegmentsData, ShotOption, TaskDetailsData } from './types';
+import type { GenerationRow } from '@/types/shots';
+import type {
+  AdjacentSegmentsData,
+  TaskDetailsData,
+  LightboxNavigationProps,
+  LightboxShotWorkflowProps,
+  LightboxFeatureFlags,
+  LightboxActionHandlers,
+} from './types';
 
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 
 import {
   useUpscale,
@@ -46,55 +53,13 @@ import { ImageEditProvider } from './contexts/ImageEditContext';
 import { extractDimensionsFromMedia, handleLightboxDownload } from './utils';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 
-// ============================================================================
-// Props Sub-Interfaces (grouped by concern)
-// ============================================================================
-
-/** Shot workflow: shot selection, positioning, and optimistic state */
-export interface LightboxShotWorkflowProps {
-  allShots?: ShotOption[];
-  selectedShotId?: string;
-  onShotChange?: (shotId: string) => void;
-  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
-  onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
-  onShowTick?: (imageId: string) => void;
-  onShowSecondaryTick?: (imageId: string) => void;
-  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
-  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
-  optimisticPositionedIds?: Set<string>;
-  optimisticUnpositionedIds?: Set<string>;
-  positionedInSelectedShot?: boolean;
-  associatedWithoutPositionInSelectedShot?: boolean;
-}
-
-/** Gallery navigation: next/prev and indicators */
-export interface LightboxNavigationProps {
-  onNext?: () => void;
-  onPrevious?: () => void;
-  showNavigation?: boolean;
-  hasNext?: boolean;
-  hasPrevious?: boolean;
-}
-
-/** Feature toggles: which UI elements to show */
-export interface LightboxFeatureFlags {
-  showImageEditTools?: boolean;
-  showDownload?: boolean;
-  showMagicEdit?: boolean;
-  autoEnterInpaint?: boolean;
-  showTaskDetails?: boolean;
-}
-
-/** Action handlers: delete, star, apply settings */
-export interface LightboxActionHandlers {
-  onDelete?: (id: string) => void;
-  isDeleting?: string | null;
-  onApplySettings?: (metadata: GenerationMetadata | undefined) => void;
-  onToggleStar?: (id: string, starred: boolean) => void;
-  starred?: boolean;
-}
+// Re-export grouped sub-interfaces for consumers that import from ImageLightbox
+export type {
+  LightboxNavigationProps,
+  LightboxShotWorkflowProps,
+  LightboxFeatureFlags,
+  LightboxActionHandlers,
+} from './types';
 
 // ============================================================================
 // Main Props Interface

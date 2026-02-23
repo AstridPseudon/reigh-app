@@ -49,8 +49,6 @@ interface VariantBadgeProps {
   className?: string;
   /** Callback to mark all variants as viewed */
   onMarkAllViewed?: () => void;
-  /** @deprecated No longer used - dismiss action is in tooltip */
-  dismissHoverDelay?: number;
   /** Optional click handler for the badge (e.g., to scroll to variants section) */
   onClick?: () => void;
 }
@@ -89,62 +87,26 @@ export const VariantBadge: React.FC<VariantBadgeProps> = ({
     lg: 'h-6 w-6 sm:h-7 sm:w-7 text-[10px]',
   }[size];
 
-  const effectiveTooltipSide = variant === 'overlay' ? 'bottom' : tooltipSide;
+  const isOverlay = variant === 'overlay';
+  const effectiveTooltipSide = isOverlay ? 'bottom' : tooltipSide;
 
-  // Overlay variant: absolute positioned
-  if (variant === 'overlay') {
-    return (
-      <div
-        className={cn(
-          'absolute flex items-center gap-0.5',
-          position,
-          className
-        )}
-        style={{ zIndex }}
-      >
-        {hasNew && (
-          <StatusBadge
-            label={`${unviewedVariantCount} new`}
-            color="yellow"
-            tooltipText={`${unviewedVariantCount} unviewed variant${unviewedVariantCount !== 1 ? 's' : ''}`}
-            tooltipSide={effectiveTooltipSide}
-            size="sm"
-            onClick={onClick}
-            action={onMarkAllViewed ? {
-              label: 'Mark all as viewed',
-              onClick: onMarkAllViewed,
-            } : undefined}
-          />
-        )}
-        {showCountBadge && (
-          <TouchableTooltip
-            side={effectiveTooltipSide}
-            content={<p>{derivedCount} variant{derivedCount !== 1 ? 's' : ''}</p>}
-          >
-            <div
-              className={cn(
-                'rounded-full bg-black/60 text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
-                countSizeClasses
-              )}
-            >
-              {derivedCount}
-            </div>
-          </TouchableTooltip>
-        )}
-      </div>
-    );
-  }
-
-  // Inline variant
   return (
-    <div className={cn('flex items-center gap-1', className)}>
+    <div
+      className={cn(
+        'flex items-center',
+        isOverlay ? 'absolute gap-0.5' : 'gap-1',
+        isOverlay && position,
+        className
+      )}
+      style={isOverlay ? { zIndex } : undefined}
+    >
       {hasNew && (
         <StatusBadge
           label={`${unviewedVariantCount} new`}
           color="yellow"
           tooltipText={`${unviewedVariantCount} unviewed variant${unviewedVariantCount !== 1 ? 's' : ''}`}
           tooltipSide={effectiveTooltipSide}
-          size="md"
+          size={isOverlay ? 'sm' : 'md'}
           onClick={onClick}
           action={onMarkAllViewed ? {
             label: 'Mark all as viewed',
@@ -159,7 +121,8 @@ export const VariantBadge: React.FC<VariantBadgeProps> = ({
         >
           <div
             className={cn(
-              'rounded-full bg-black/50 text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
+              'rounded-full text-white font-medium flex items-center justify-center backdrop-blur-sm cursor-help',
+              isOverlay ? 'bg-black/60' : 'bg-black/50',
               countSizeClasses
             )}
           >

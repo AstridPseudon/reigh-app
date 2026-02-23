@@ -2,6 +2,7 @@
  * Request parsing and validation for complete_task
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { getContentType } from './params.ts';
 
 // ===== TYPES =====
@@ -219,7 +220,7 @@ export async function parseCompleteTaskRequest(req: Request): Promise<ParseResul
  * Called after Supabase client is available for orchestrator check
  */
 export async function validateStoragePathSecurity(
-  supabase: unknown,
+  supabase: SupabaseClient,
   taskId: string,
   storagePath: string,
   storagePathTaskId: string | undefined

@@ -1,4 +1,4 @@
-import React from 'react';
+import { useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Task, TaskStatus, TASK_STATUS } from '@/types/tasks';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,8 +99,8 @@ function buildCountQuery(filters: PaginatedQueryFilters) {
 
   if (filters.allProjects && filters.allProjectIds) {
     query = query.in('project_id', filters.allProjectIds);
-  } else {
-    query = query.eq('project_id', filters.effectiveProjectId!);
+  } else if (filters.effectiveProjectId) {
+    query = query.eq('project_id', filters.effectiveProjectId);
   }
 
   if (filters.status?.length) {
@@ -126,8 +126,8 @@ function buildDataQuery(filters: PaginatedDataQueryFilters) {
 
   if (filters.allProjects && filters.allProjectIds) {
     query = query.in('project_id', filters.allProjectIds);
-  } else {
-    query = query.eq('project_id', filters.effectiveProjectId!);
+  } else if (filters.effectiveProjectId) {
+    query = query.eq('project_id', filters.effectiveProjectId);
   }
 
   if (succeededOnly) {
@@ -223,15 +223,15 @@ function createPaginatedTasksQueryFn(filters: PaginatedDataQueryFilters) {
     const { count, error: countError } = countResult;
 
     if (countError) {
-      dataFreshnessManager.onFetchFailure(taskQueryKeys.paginated(filters.effectiveProjectId!), countError as Error);
+      dataFreshnessManager.onFetchFailure(taskQueryKeys.paginated(filters.effectiveProjectId ?? '__no-project__'), countError as Error);
       throw countError;
     }
     if (dataError) {
-      dataFreshnessManager.onFetchFailure(taskQueryKeys.paginated(filters.effectiveProjectId!), dataError as Error);
+      dataFreshnessManager.onFetchFailure(taskQueryKeys.paginated(filters.effectiveProjectId ?? '__no-project__'), dataError as Error);
       throw dataError;
     }
 
-    dataFreshnessManager.onFetchSuccess(taskQueryKeys.paginated(filters.effectiveProjectId!));
+    dataFreshnessManager.onFetchSuccess(taskQueryKeys.paginated(filters.effectiveProjectId ?? '__no-project__'));
     const allTasks = (data || []).map(mapDbTaskToTask);
     const visibleTasks = filterVisibleTasks(allTasks);
 
@@ -349,12 +349,14 @@ export const usePaginatedTasks = (params: PaginatedTasksParams) => {
     retryDelay: STANDARD_RETRY_DELAY,
   });
 
-  const lastRefetchRef = React.useRef<number>(0);
-  const timeSinceLastRefetch = Date.now() - lastRefetchRef.current;
-  if (shouldForceProcessingRefetch(status, query, timeSinceLastRefetch)) {
-    lastRefetchRef.current = Date.now();
-    query.refetch();
-  }
+  const lastRefetchRef = useRef<number>(0);
+  useEffect(() => {
+    const timeSinceLastRefetch = Date.now() - lastRefetchRef.current;
+    if (shouldForceProcessingRefetch(status, query, timeSinceLastRefetch)) {
+      lastRefetchRef.current = Date.now();
+      query.refetch();
+    }
+  }, [status, query.data, query.isFetching, query.status, query.dataUpdatedAt, query.refetch]);
 
   return query;
 };

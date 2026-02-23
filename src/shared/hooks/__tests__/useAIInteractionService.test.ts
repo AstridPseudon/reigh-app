@@ -5,7 +5,7 @@ vi.mock('@/shared/lib/invokeWithTimeout', () => ({
   invokeWithTimeout: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/errorHandler', () => ({
+vi.mock('@/shared/lib/errorHandling/handleError', () => ({
   handleError: vi.fn(),
 }));
 

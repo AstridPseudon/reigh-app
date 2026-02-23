@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 /** Shape of the joined shot_generations rows returned by the Supabase query */
 interface ShotGenerationJoin {
@@ -42,59 +43,54 @@ export function useExternalGenerations({
   const { mutateAsync: addToShotWithoutPositionMutation } = useAddImageToShotWithoutPosition();
   
   // Listen for realtime generation updates
-  useEffect(() => {
-    const handleGenerationUpdate = async (event: Event) => {
-      const { payloads = [] } = (event as CustomEvent).detail || {};
-      
-      for (const payload of payloads) {
-        const { generationId, upscaleCompleted } = payload;
-        
-        if (!generationId) continue;
-        
-        const isInExternal = externalGenerations.some(gen => gen.id === generationId);
-        const isInTempDerived = tempDerivedGenerations.some(gen => gen.id === generationId);
-        
-        if (upscaleCompleted && (isInExternal || isInTempDerived)) {
-          
-          try {
-            const { data, error } = await supabase
-              .from('generations')
-              .select(`
-                *,
-                shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-              `)
-              .eq('id', generationId)
-              .single();
-            
-            if (error) throw error;
-            
-            if (data) {
-              const shotGenerations = (data as unknown as GenerationWithShotJoin).shot_generations || [];
-              const transformedData = transformExternalGeneration(data, shotGenerations);
-              
-              if (isInExternal) {
-                setExternalGenerations(prev => 
-                  prev.map(gen => gen.id === generationId ? transformedData : gen)
-                );
-              }
-              if (isInTempDerived) {
-                setTempDerivedGenerations(prev => 
-                  prev.map(gen => gen.id === generationId ? transformedData : gen)
-                );
-              }
+  const handleGenerationUpdate = useCallback(async (detail: { payloads: Array<{ generationId: string; upscaleCompleted?: boolean }> }) => {
+    const { payloads = [] } = detail || {};
+
+    for (const payload of payloads) {
+      const { generationId, upscaleCompleted } = payload;
+
+      if (!generationId) continue;
+
+      const isInExternal = externalGenerations.some(gen => gen.id === generationId);
+      const isInTempDerived = tempDerivedGenerations.some(gen => gen.id === generationId);
+
+      if (upscaleCompleted && (isInExternal || isInTempDerived)) {
+
+        try {
+          const { data, error } = await supabase
+            .from('generations')
+            .select(`
+              *,
+              shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
+            `)
+            .eq('id', generationId)
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            const shotGenerations = (data as unknown as GenerationWithShotJoin).shot_generations || [];
+            const transformedData = transformExternalGeneration(data, shotGenerations);
+
+            if (isInExternal) {
+              setExternalGenerations(prev =>
+                prev.map(gen => gen.id === generationId ? transformedData : gen)
+              );
             }
-          } catch (err) {
-            handleError(err, { context: 'useExternalGenerations', showToast: false });
+            if (isInTempDerived) {
+              setTempDerivedGenerations(prev =>
+                prev.map(gen => gen.id === generationId ? transformedData : gen)
+              );
+            }
           }
+        } catch (err) {
+          handleError(err, { context: 'useExternalGenerations', showToast: false });
         }
       }
-    };
-    
-    window.addEventListener('realtime:generation-update-batch', handleGenerationUpdate);
-    return () => {
-      window.removeEventListener('realtime:generation-update-batch', handleGenerationUpdate);
-    };
+    }
   }, [externalGenerations, tempDerivedGenerations]);
+
+  useAppEventListener('realtime:generation-update-batch', handleGenerationUpdate);
   
   // Adapter functions for shot management
   const handleExternalGenAddToShot = useCallback(async (generationId: string, imageUrl?: string, thumbUrl?: string): Promise<boolean> => {

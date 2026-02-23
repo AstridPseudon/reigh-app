@@ -1,13 +1,8 @@
 import React, { createContext, useContext, type RefObject } from 'react';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
+import type { TrimState } from '@/shared/types/videoTrim';
 
 export type VideoEditSubMode = 'trim' | 'replace' | 'regenerate' | 'enhance' | null;
-
-export interface TrimState {
-  startTrim: number;
-  endTrim: number;
-  videoDuration: number;
-}
 
 interface EnhanceSettings {
   enableInterpolation: boolean;
@@ -60,6 +55,7 @@ const DEFAULT_TRIM_STATE: TrimState = {
   startTrim: 0,
   endTrim: 0,
   videoDuration: 0,
+  isValid: true,
 };
 
 const DEFAULT_ENHANCE_SETTINGS: EnhanceSettings = {

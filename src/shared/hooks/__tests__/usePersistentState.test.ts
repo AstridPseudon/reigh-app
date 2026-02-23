@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 // Mock errorHandler before importing hook
 vi.mock('@/shared/lib/errorHandler', () => ({
@@ -130,11 +131,7 @@ describe('usePersistentState', () => {
     const { result } = renderHook(() => usePersistentState('shared-key', 'initial'));
 
     act(() => {
-      window.dispatchEvent(
-        new CustomEvent('persistentStateChange', {
-          detail: { key: 'shared-key', value: 'external-update' },
-        })
-      );
+      dispatchAppEvent('persistentStateChange', { key: 'shared-key', value: 'external-update' });
     });
 
     expect(result.current[0]).toBe('external-update');
@@ -144,11 +141,7 @@ describe('usePersistentState', () => {
     const { result } = renderHook(() => usePersistentState('my-key', 'initial'));
 
     act(() => {
-      window.dispatchEvent(
-        new CustomEvent('persistentStateChange', {
-          detail: { key: 'other-key', value: 'should-not-apply' },
-        })
-      );
+      dispatchAppEvent('persistentStateChange', { key: 'other-key', value: 'should-not-apply' });
     });
 
     expect(result.current[0]).toBe('initial');

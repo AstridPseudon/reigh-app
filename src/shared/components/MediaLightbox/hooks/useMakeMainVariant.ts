@@ -11,7 +11,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import type { GenerationRow } from '@/types/shots';
 

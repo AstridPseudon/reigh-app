@@ -2,8 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
 // Mock external dependencies
-vi.mock('@/shared/hooks/use-toast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
+vi.mock('@/shared/components/ui/toast', () => ({
+  toast: Object.assign(vi.fn(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  }),
 }));
 
 vi.mock('@/shared/lib/errorHandler', () => ({

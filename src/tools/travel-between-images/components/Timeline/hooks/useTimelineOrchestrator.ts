@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { getPairInfo, getTimelineDimensions, calculateNewVideoPlacement, TRAILING_ENDPOINT_KEY } from '../utils/timeline-utils';
 import { useZoom } from './useZoom';

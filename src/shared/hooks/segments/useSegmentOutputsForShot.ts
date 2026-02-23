@@ -13,6 +13,7 @@ import { GenerationRow } from '@/types/shots';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { segmentQueryKeys } from '@/shared/lib/queryKeys/segments';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 // Slot type - either a real child or a placeholder for a processing segment
 export type SegmentSlot =
@@ -251,7 +252,11 @@ export function useSegmentOutputsForShot(
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[useSegmentOutputsForShot] Error fetching parent generations:', error);
+        handleError(error, {
+          context: 'useSegmentOutputsForShot.fetchParents',
+          showToast: false,
+          logData: { shotId, projectId },
+        });
         throw error;
       }
 
@@ -347,7 +352,11 @@ export function useSegmentOutputsForShot(
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[useSegmentOutputsForShot] Error fetching children:', error);
+        handleError(error, {
+          context: 'useSegmentOutputsForShot.fetchChildren',
+          showToast: false,
+          logData: { selectedParentId },
+        });
         throw error;
       }
 
@@ -410,7 +419,11 @@ export function useSegmentOutputsForShot(
         .order('timeline_frame', { ascending: true });
 
       if (error) {
-        console.error('[PairSlot] Error fetching live timeline:', error);
+        handleError(error, {
+          context: 'useSegmentOutputsForShot.fetchLiveTimeline',
+          showToast: false,
+          logData: { shotId },
+        });
         throw error;
       }
 

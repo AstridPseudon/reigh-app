@@ -11,4 +11,4 @@ export type {
   PairMotionSettings,
 } from '@/types/generationMetadata';
 export type { GenerationRow } from '@/types/generationRow';
-export type { Shot } from '@/types/shot';
+export type { Shot, ShotOption } from '@/types/shot';

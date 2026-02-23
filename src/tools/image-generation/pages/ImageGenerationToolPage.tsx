@@ -8,7 +8,7 @@ import { Button } from "@/shared/components/ui/button";
 import { useProject } from "@/shared/contexts/ProjectContext";
 import { usePublicLoras, usePublicStyleReferences, useMyStyleReferences } from '@/shared/hooks/useResources';
 import { PageFadeIn } from '@/shared/components/transitions';
-import { useIsMobile, useIsTablet } from "@/shared/hooks/use-mobile";
+import { useIsMobile, useIsTablet } from "@/shared/hooks/useMobile";
 import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { ChevronDown, ChevronLeft, Sparkles, Settings2 } from 'lucide-react';

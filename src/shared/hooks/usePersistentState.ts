@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { dispatchAppEvent, useAppEventListener } from '@/shared/lib/typedEvents';
 
 const MAX_LOCAL_STORAGE_ITEM_LENGTH = 4 * 1024 * 1024; // 4MB
-
-const PERSISTENT_STATE_EVENT = 'persistentStateChange';
 
 // Check if localStorage is available (can fail in iOS Safari private mode)
 function isLocalStorageAvailable(): boolean {
@@ -37,17 +36,13 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
   });
 
   // Listen for updates from other components using the same key
-  useEffect(() => {
-    function handleExternalUpdate(e: Event) {
-      const customEvt = e as CustomEvent<{ key: string; value: unknown }>;
-      if (customEvt.detail?.key === key) {
-        setState(customEvt.detail.value as T);
-      }
+  const handleExternalUpdate = useCallback((detail: { key: string; value: unknown }) => {
+    if (detail?.key === key) {
+      setState(detail.value as T);
     }
-
-    window.addEventListener(PERSISTENT_STATE_EVENT, handleExternalUpdate);
-    return () => window.removeEventListener(PERSISTENT_STATE_EVENT, handleExternalUpdate);
   }, [key]);
+
+  useAppEventListener('persistentStateChange', handleExternalUpdate);
 
   useEffect(() => {
     // Skip localStorage writes if not available
@@ -66,11 +61,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
       localStorage.setItem(key, serializedState);
 
       // Broadcast change to other hook instances in the same tab
-      window.dispatchEvent(
-        new CustomEvent(PERSISTENT_STATE_EVENT, {
-          detail: { key, value: state },
-        })
-      );
+      dispatchAppEvent('persistentStateChange', { key, value: state });
     } catch (error) {
       // Different error message for mobile users
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);

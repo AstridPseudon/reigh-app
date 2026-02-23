@@ -99,7 +99,7 @@ export function useHeroVideo(isMobile: boolean) {
     if (!el) return;
 
     const handleEnd = (e: AnimationEvent) => {
-      if (e.animationName !== 'blob-reveal') return;
+      if (e.animationName !== 'side-reveal') return;
       el.style.maskImage = 'none';
       el.style.webkitMaskImage = 'none';
       el.classList.remove('video-reveal', 'revealing');

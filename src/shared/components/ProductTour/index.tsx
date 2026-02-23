@@ -24,6 +24,7 @@ import {
   PartyPopper,
   Layers
 } from 'lucide-react';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 // Icons for each step (matching the step content)
 const stepIcons = [
@@ -141,7 +142,7 @@ function pauseThenAdvance(
 }
 
 function dispatchTourEvent(name: 'openGenerationModal' | 'closeGenerationModal') {
-  window.dispatchEvent(new CustomEvent(name));
+  dispatchAppEvent(name);
 }
 
 function useTourProgressState(isRunning: boolean, resetAllPaneLocks: () => void) {

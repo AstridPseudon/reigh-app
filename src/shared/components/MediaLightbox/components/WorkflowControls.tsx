@@ -8,11 +8,7 @@ import {
 } from 'lucide-react';
 import { ShotSelectorWithAdd } from '@/shared/components/ShotSelectorWithAdd';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-
-interface ShotOption {
-  id: string;
-  name: string;
-}
+import type { ShotOption } from '@/types/shots';
 
 interface WorkflowControlsProps {
   // Media info

@@ -7,6 +7,18 @@ import { authenticateRequest } from "../_shared/auth.ts";
 
 declare const Deno: { env: { get: (key: string) => string | undefined } };
 
+/** Shape returned by tasks.select('..., projects(user_id)') with joined project */
+interface TaskWithProject {
+  id: string;
+  task_type: string;
+  params: TaskCostParams;
+  status: string;
+  generation_started_at: string | null;
+  generation_processed_at: string | null;
+  project_id: string;
+  projects: { user_id: string };
+}
+
 // Helper for standard JSON responses with CORS headers
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -28,11 +40,24 @@ const VIDEO_ENHANCE_PRICING = {
   FLASHVSR_COST_PER_MEGAPIXEL: 0.0005,
 };
 
+interface VideoEnhanceResult {
+  interpolation_compute_seconds?: number;
+  output_width?: number;
+  output_height?: number;
+  output_frames?: number;
+  result?: VideoEnhanceResult;
+}
+
+interface VideoEnhanceBreakdown {
+  interpolation?: { compute_seconds: number; cost_per_second: number; cost: number };
+  upscale?: { output_width: number; output_height: number; output_frames: number; megapixels: number; cost_per_megapixel: number; cost: number };
+}
+
 // Special cost calculation for video_enhance task
 // Combines FILM (time-based) and FlashVSR (megapixel-based) pricing
-function calculateVideoEnhanceCost(taskParams: unknown): { cost: number; breakdown: unknown } {
+function calculateVideoEnhanceCost(taskParams: VideoEnhanceResult): { cost: number; breakdown: VideoEnhanceBreakdown } {
   let totalCost = 0;
-  const breakdown: unknown = {};
+  const breakdown: VideoEnhanceBreakdown = {};
 
   // Get result data from task params (worker should populate this)
   const result = taskParams?.result || taskParams;
@@ -69,6 +94,20 @@ function calculateVideoEnhanceCost(taskParams: unknown): { cost: number; breakdo
   };
 }
 
+interface CostFactors {
+  resolution?: Record<string, number>;
+  frameCount?: number;
+  modelType?: Record<string, number>;
+}
+
+interface TaskCostParams {
+  resolution?: string;
+  frame_count?: number;
+  model_type?: string;
+  result?: VideoEnhanceResult;
+  [key: string]: unknown;
+}
+
 // Calculate cost based on billing type and task configuration
 function calculateTaskCost(
   taskType: string,
@@ -76,9 +115,9 @@ function calculateTaskCost(
   baseCostPerSecond: number,
   unitCost: number,
   durationSeconds: number,
-  costFactors: unknown,
-  taskParams: unknown
-): { cost: number; breakdown?: unknown } {
+  costFactors: CostFactors | null,
+  taskParams: TaskCostParams
+): { cost: number; breakdown?: VideoEnhanceBreakdown } {
   // Special case: video_enhance has compound pricing (FILM + FlashVSR)
   if (taskType === 'video_enhance') {
     return calculateVideoEnhanceCost(taskParams);
@@ -185,23 +224,25 @@ serve(async (req) => {
       .eq('id', task_id)
       .single();
 
-    if (taskError || !task) {
+    const typedTask = task as unknown as TaskWithProject | null;
+
+    if (taskError || !typedTask) {
       logger.error("Task not found", { error: taskError?.message });
       await logger.flush();
       return jsonResponse({ error: 'Task not found' }, 404);
     }
 
-    logger.debug("Task found", { 
-      task_type: task.task_type, 
-      status: task.status,
-      has_timestamps: !!(task.generation_started_at && task.generation_processed_at)
+    logger.debug("Task found", {
+      task_type: typedTask.task_type,
+      status: typedTask.status,
+      has_timestamps: !!(typedTask.generation_started_at && typedTask.generation_processed_at)
     });
 
     // Check if task has both start and end times
-    if (!task.generation_started_at || !task.generation_processed_at) {
-      logger.error("Missing timestamps", { 
-        has_started_at: !!task.generation_started_at, 
-        has_processed_at: !!task.generation_processed_at 
+    if (!typedTask.generation_started_at || !typedTask.generation_processed_at) {
+      logger.error("Missing timestamps", {
+        has_started_at: !!typedTask.generation_started_at,
+        has_processed_at: !!typedTask.generation_processed_at
       });
       await logger.flush();
       return jsonResponse({
@@ -211,7 +252,7 @@ serve(async (req) => {
 
     // Check if task is a sub-task of an orchestrator - skip billing if so (parent will be billed)
     // Uses shared detection: checks all param paths, validates UUID, guards against self-reference
-    const subTaskOrchestratorId = getSubTaskOrchestratorId(task.params, task.id);
+    const subTaskOrchestratorId = getSubTaskOrchestratorId(typedTask.params, typedTask.id);
 
     if (subTaskOrchestratorId) {
       logger.info("Skipping cost calculation (sub-task)", {
@@ -223,7 +264,7 @@ serve(async (req) => {
         skipped: true,
         reason: 'Task is sub-task of orchestrator, parent task will be billed',
         orchestrator_task_id: subTaskOrchestratorId,
-        task_id: task.id
+        task_id: typedTask.id
       });
     }
 
@@ -261,8 +302,8 @@ serve(async (req) => {
       });
     } else {
       // Regular task - use its own duration
-      const startTime = new Date(task.generation_started_at);
-      const endTime = new Date(task.generation_processed_at);
+      const startTime = new Date(typedTask.generation_started_at);
+      const endTime = new Date(typedTask.generation_processed_at);
       durationSeconds = Math.max(1, Math.ceil((endTime.getTime() - startTime.getTime()) / 1000));
     }
 
@@ -271,7 +312,7 @@ serve(async (req) => {
     const { data: existingSpendEntries, error: existingSpendError } = await supabaseAdmin
       .from('credits_ledger')
       .select('id, amount, created_at')
-      .eq('task_id', task.id)
+      .eq('task_id', typedTask.id)
       .eq('type', 'spend')
       .order('created_at', { ascending: false })
       .limit(1);
@@ -293,7 +334,7 @@ serve(async (req) => {
         success: true,
         skipped: true,
         reason: 'Cost already recorded for this task',
-        task_id: task.id,
+        task_id: typedTask.id,
         ledger_id: existing.id,
         existing_amount: existing.amount
       });
@@ -303,24 +344,24 @@ serve(async (req) => {
     const { data: taskType, error: taskTypeError } = await supabaseAdmin
       .from('task_types')
       .select('*')
-      .eq('name', task.task_type)
+      .eq('name', typedTask.task_type)
       .eq('is_active', true)
       .single();
 
     if (taskTypeError || !taskType) {
-      logger.error("No task type config found, using defaults", { task_type: task.task_type });
+      logger.error("No task type config found, using defaults", { task_type: typedTask.task_type });
 
       // Use default cost if no config found — must match DB-level get_task_cost() default of 0.0278
       const defaultCostPerSecond = 0.0278;
       const cost = defaultCostPerSecond * durationSeconds;
 
       const { error: ledgerError } = await supabaseAdmin.from('credits_ledger').insert({
-        user_id: (task as unknown).projects.user_id,
-        task_id: task.id,
+        user_id: typedTask.projects.user_id,
+        task_id: typedTask.id,
         amount: -cost,
         type: 'spend',
         metadata: {
-          task_type: task.task_type,
+          task_type: typedTask.task_type,
           duration_seconds: durationSeconds,
           base_cost_per_second: defaultCostPerSecond,
           billing_type: 'per_second',
@@ -355,13 +396,13 @@ serve(async (req) => {
 
     // Calculate cost based on task type configuration
     const costResult = calculateTaskCost(
-      task.task_type,
+      typedTask.task_type,
       taskType.billing_type,
       taskType.base_cost_per_second,
       taskType.unit_cost,
       durationSeconds,
       taskType.cost_factors,
-      task.params
+      typedTask.params
     );
     const cost = costResult.cost;
     const costBreakdown = costResult.breakdown;
@@ -384,12 +425,12 @@ serve(async (req) => {
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('id', (task as unknown).projects.user_id)
+      .eq('id', typedTask.projects.user_id)
       .single();
 
     if (userError || !user) {
       logger.error("User not found for credit ledger", { 
-        user_id: (task as unknown).projects.user_id, 
+        user_id: typedTask.projects.user_id, 
         error: userError?.message 
       });
       await logger.flush();
@@ -398,18 +439,18 @@ serve(async (req) => {
 
     // Insert cost into credit ledger
     const { error: ledgerError } = await supabaseAdmin.from('credits_ledger').insert({
-      user_id: (task as unknown).projects.user_id,
-      task_id: task.id,
+      user_id: typedTask.projects.user_id,
+      task_id: typedTask.id,
       amount: -cost,
       type: 'spend',
       metadata: {
-        task_type: task.task_type,
+        task_type: typedTask.task_type,
         billing_type: taskType.billing_type,
         duration_seconds: durationSeconds,
         base_cost_per_second: taskType.base_cost_per_second,
         unit_cost: taskType.unit_cost,
         cost_factors: taskType.cost_factors,
-        task_params: task.params,
+        task_params: typedTask.params,
         calculated_at: new Date().toISOString(),
         task_type_id: taskType.id,
         // Include breakdown for compound pricing (e.g., video_enhance)
@@ -420,7 +461,7 @@ serve(async (req) => {
     if (ledgerError) {
       logger.error("Failed to insert into credit ledger", { 
         error: ledgerError.message,
-        user_id: (task as unknown).projects.user_id,
+        user_id: typedTask.projects.user_id,
         cost
       });
       await logger.flush();
@@ -431,7 +472,7 @@ serve(async (req) => {
       cost,
       billing_type: taskType.billing_type,
       duration_seconds: durationSeconds,
-      user_id: (task as unknown).projects.user_id,
+      user_id: typedTask.projects.user_id,
       ...(costBreakdown ? { breakdown: costBreakdown } : {})
     });
     await logger.flush();
@@ -444,8 +485,8 @@ serve(async (req) => {
       base_cost_per_second: taskType.base_cost_per_second,
       unit_cost: taskType.unit_cost,
       cost_factors: taskType.cost_factors,
-      task_type: task.task_type,
-      task_id: task.id,
+      task_type: typedTask.task_type,
+      task_id: typedTask.id,
       // Include breakdown for compound pricing (e.g., video_enhance)
       ...(costBreakdown ? { cost_breakdown: costBreakdown } : {})
     });

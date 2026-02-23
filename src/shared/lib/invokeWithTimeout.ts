@@ -1,5 +1,6 @@
-import { isAbortError } from '@/shared/lib/errorUtils';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/config/env';
+import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
+import { readAccessTokenFromStorage } from '@/shared/lib/supabaseSession';
+import { getSupabaseUrl, getSupabasePublishableKey } from '@/integrations/supabase/config/env';
 
 type InvokeOptions = {
   body?: unknown;
@@ -7,23 +8,6 @@ type InvokeOptions = {
   timeoutMs?: number;
   signal?: AbortSignal;
 };
-
-// Read access token directly from localStorage — synchronous, no navigator.locks.
-// supabase.functions.invoke normally calls getSession() which acquires a shared
-// navigator.lock — blocked when a token refresh holds the exclusive lock for 600ms-16s.
-// Same pattern as createSupabaseClient.ts for data requests.
-function readAccessTokenFromStorage(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
-    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { access_token?: string };
-    return parsed?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Calls a Supabase edge function with a client-side timeout and abort propagation.
@@ -52,13 +36,15 @@ export async function invokeWithTimeout<T = unknown>(functionName: string, optio
 
   try {
     const accessToken = readAccessTokenFromStorage();
-    const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
+    const supabaseUrl = getSupabaseUrl();
+    const anonKey = getSupabasePublishableKey();
+    const url = `${supabaseUrl}/functions/v1/${functionName}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken ?? SUPABASE_PUBLISHABLE_KEY}`,
-        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${accessToken ?? anonKey}`,
+        apikey: anonKey,
         ...(headers ?? {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

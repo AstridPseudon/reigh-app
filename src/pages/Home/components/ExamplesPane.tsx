@@ -25,7 +25,7 @@ export const ExamplesPane: React.FC<ExamplesPaneProps> = ({
 
   return (
     <div
-      className={`fixed left-0 bottom-0 w-full h-1/2 max-h-[50vh] bg-card dark:bg-gray-900 shadow-2xl z-[60] transform transition-transform duration-300 ease-in-out ${
+      className={`fixed left-0 bottom-0 w-full h-1/2 max-h-[50vh] bg-card shadow-2xl z-[60] transform transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-y-0' : 'translate-y-full'
       }`}
     >
@@ -33,9 +33,9 @@ export const ExamplesPane: React.FC<ExamplesPaneProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 sm:p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors duration-200 z-10"
+          className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 sm:p-2 rounded-full bg-muted hover:bg-accent transition-colors duration-200 z-10"
         >
-          <X className="w-5 h-5 sm:w-4 sm:h-4 text-gray-600" />
+          <X className="w-5 h-5 sm:w-4 sm:h-4 text-muted-foreground" />
         </button>
 
         <div className="mb-8 text-center space-y-3">

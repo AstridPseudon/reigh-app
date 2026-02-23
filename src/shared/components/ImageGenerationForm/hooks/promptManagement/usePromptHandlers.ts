@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/sonner';
 import type { PromptEntry } from '../../types';
 import type { PromptRoutingResult } from './types';
-import { toShortPrompt } from './utils';
+import { toShortPrompt } from '../promptUtils';
 
 interface PromptHandlersInput {
   prompts: PromptEntry[];

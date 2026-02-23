@@ -1,4 +1,3 @@
-import { useTheme } from "next-themes"
 import { Toast } from "@base-ui-components/react/toast"
 import { toastManager, ToastItem, toast } from "./toast"
 
@@ -24,10 +23,6 @@ function ToastList() {
 }
 
 const Toaster = ({ limit = 3, timeout = 5000 }: ToasterProps = {}) => {
-  // next-themes integration (unused for now since we use Tailwind CSS vars,
-  // but kept for parity with original sonner.tsx and future theme needs)
-  useTheme()
-
   return (
     <Toast.Provider toastManager={toastManager} timeout={timeout} limit={limit}>
       <ToastList />

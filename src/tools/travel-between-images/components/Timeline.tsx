@@ -4,22 +4,21 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useAppEventListener } from "@/shared/lib/typedEvents";
 import { GenerationRow } from "@/types/shots";
 import { toast } from "@/shared/components/ui/sonner";
 import { handleError } from "@/shared/lib/errorHandling/handleError";
 import { TOOL_IDS } from "@/shared/lib/toolConstants";
 import MediaLightbox from "@/shared/components/MediaLightbox";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import { TimelineEmptyState } from "./TimelineEmptyState";
 import { isVideoGeneration } from "@/shared/lib/typeGuards";
 import { useTaskFromUnifiedCache } from "@/shared/hooks/useTaskPrefetch";
 import { useGetTask } from "@/shared/hooks/useTasks";
 import { deriveInputImages } from "@/shared/components/MediaGallery/utils";
-import type { SegmentSlot } from "../hooks/useSegmentOutputsForShot";
+import type { SegmentSlot } from "@/shared/hooks/segments";
 import type { PairData } from "@/shared/types/pairData";
 
-// Clear legacy timeline cache on import
-import "@/utils/clearTimelineCache";
 
 import { useAdjacentSegments } from "./Timeline/hooks/useAdjacentSegments";
 import { usePositionManagement } from "./Timeline/hooks/usePositionManagement";
@@ -429,20 +428,12 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [lightboxIndex, currentLightboxImage, closeLightbox]);
 
   // Listen for star updates and refetch shot data
-  useEffect(() => {
-    const handleStarUpdated = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { shotId: updatedShotId } = customEvent.detail || {};
-      
-      // Only refetch if this event is for our current shot
-      if (updatedShotId === shotId) {
-        loadPositions?.({ silent: true, reason: 'shot_change' });
-      }
-    };
-
-    window.addEventListener('generation-star-updated', handleStarUpdated);
-    return () => window.removeEventListener('generation-star-updated', handleStarUpdated);
-  }, [shotId, loadPositions]);
+  useAppEventListener('generation-star-updated', useCallback(({ shotId: updatedShotId }) => {
+    // Only refetch if this event is for our current shot
+    if (updatedShotId === shotId) {
+      loadPositions?.({ silent: true, reason: 'shot_change' });
+    }
+  }, [shotId, loadPositions]));
 
   // Handle resetting frames to evenly spaced intervals
   // Gap values are quantized to 4N+1 format for Wan model compatibility
@@ -627,6 +618,4 @@ const Timeline: React.FC<TimelineProps> = ({
   );
 };
 
-// 🎯 PERF FIX: Wrap in React.memo to prevent re-renders when props haven't changed
-// Timeline receives many callback props from ShotImagesEditor that are now stable (via refs)
 export default React.memo(Timeline);

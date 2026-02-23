@@ -8,8 +8,8 @@ vi.hoisted(() => {
 import * as envModule from './env';
 
 describe('env module direct import', () => {
-  it('exposes required supabase constants', () => {
-    expect(envModule.SUPABASE_URL).toBeDefined();
-    expect(envModule.SUPABASE_PUBLISHABLE_KEY).toBeDefined();
+  it('exposes lazy getter functions for supabase constants', () => {
+    expect(envModule.getSupabaseUrl()).toBe('https://example.supabase.co');
+    expect(envModule.getSupabasePublishableKey()).toBe('anon-key');
   });
 });

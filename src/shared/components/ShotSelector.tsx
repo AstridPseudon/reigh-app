@@ -3,13 +3,11 @@ import { PlusCircle, Check, ArrowRight, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/shared/components/ui/command";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import { cn } from "@/shared/lib/utils";
+import type { ShotOption } from "@/types/shots";
 
-export interface ShotOption {
-  id: string;
-  name: string;
-}
+export type { ShotOption };
 
 interface ShotSelectorProps {
   // Core selection props

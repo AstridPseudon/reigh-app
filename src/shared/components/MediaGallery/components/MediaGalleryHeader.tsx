@@ -15,7 +15,7 @@ interface MediaGalleryHeaderPaginationProps {
   rangeEnd: number;
   totalFilteredItems: number;
   loadingButton: 'prev' | 'next' | null;
-  whiteText?: boolean;
+  darkSurface?: boolean;
   reducedSpacing?: boolean;
   hidePagination?: boolean;
   onPageChange: (newPage: number, direction: 'prev' | 'next', fromBottom?: boolean) => void;
@@ -70,7 +70,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
   rangeEnd,
   totalFilteredItems,
   loadingButton,
-  whiteText = false,
+  darkSurface = false,
   reducedSpacing = false,
   hidePagination = false,
   onPageChange,
@@ -117,7 +117,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
               onShotChange={onShotFilterChange ?? (() => {})}
               excludePositioned={excludePositioned}
               onExcludePositionedChange={onExcludePositionedChange ?? (() => {})}
-              darkSurface={whiteText}
+              darkSurface={darkSurface}
               checkboxId="exclude-positioned-media-gallery"
               triggerWidth="w-[100px] sm:w-[140px]"
             />
@@ -130,21 +130,21 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={toggleSearch}
-                    className={`h-8 px-2 ${whiteText ? 'text-white border-zinc-600 hover:bg-zinc-700' : ''}`}
+                    className={`h-8 px-2 ${darkSurface ? 'text-white border-zinc-600 hover:bg-zinc-700' : ''}`}
                     aria-label="Search prompts"
                   >
                     <Search className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <div className={`flex items-center gap-x-2 border rounded-md px-3 py-1 h-8 ${whiteText ? 'bg-zinc-800 border-zinc-600' : 'bg-background'}`}>
-                    <Search className={`h-4 w-4 ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'}`} />
+                  <div className={`flex items-center gap-x-2 border rounded-md px-3 py-1 h-8 ${darkSurface ? 'bg-zinc-800 border-zinc-600' : 'bg-background'}`}>
+                    <Search className={`h-4 w-4 ${darkSurface ? 'text-zinc-400' : 'text-muted-foreground'}`} />
                     <input
                       ref={searchInputRef}
                       type="text"
                       placeholder="Search prompts..."
                       value={searchTerm}
                       onChange={(e) => handleSearchChange?.(e.target.value)}
-                      className={`bg-transparent border-none outline-none text-base w-32 sm:w-40 preserve-case ${whiteText ? 'text-white placeholder-zinc-400' : ''}`}
+                      className={`bg-transparent border-none outline-none text-base w-32 sm:w-40 preserve-case ${darkSurface ? 'text-white placeholder-zinc-400' : ''}`}
                     />
                     {searchTerm && (
                       <Button
@@ -167,7 +167,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
               id="media-type-filter"
               value={mediaTypeFilter}
               onChange={onMediaTypeFilterChange}
-              whiteText={whiteText}
+              darkSurface={darkSurface}
             />
           )}
         </div>
@@ -185,7 +185,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
             rangeEnd={rangeEnd}
             totalFilteredItems={totalFilteredItems}
             loadingButton={loadingButton}
-            whiteText={whiteText}
+            darkSurface={darkSurface}
             reducedSpacing={reducedSpacing}
             hidePagination={hidePagination}
             onPageChange={onPageChange}
@@ -195,7 +195,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className={`p-1 h-8 w-8 ${whiteText ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`p-1 h-8 w-8 ${darkSurface ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={() => onStarredFilterChange?.(!showStarredOnly)}
                 aria-label={showStarredOnly ? "Show all items" : "Show only starred items"}
               >
@@ -209,7 +209,7 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
       {/* Single page display - only show when pagination is hidden but we have items (hidden on mobile) */}
       {!isPhoneOnly && totalPages === 1 && !hidePagination && !showShotFilter && (
         <div className="flex justify-between items-center">
-          <span className={`text-sm ${whiteText ? 'text-white' : 'text-muted-foreground'}`}>
+          <span className={`text-sm ${darkSurface ? 'text-white' : 'text-muted-foreground'}`}>
             Showing {rangeStart}-{rangeEnd} of {totalFilteredItems}
           </span>
 
@@ -220,13 +220,13 @@ export const MediaGalleryHeader: React.FC<MediaGalleryHeaderProps> = ({
                   id="media-type-filter-single"
                   value={mediaTypeFilter}
                   onChange={onMediaTypeFilterChange}
-                  whiteText={whiteText}
+                  darkSurface={darkSurface}
                 />
               )}
               <Button
                 variant="ghost"
                 size="sm"
-                className={`p-1 h-8 w-8 ${whiteText ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`p-1 h-8 w-8 ${darkSurface ? 'text-zinc-400 hover:text-white hover:bg-zinc-700' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={() => onStarredFilterChange?.(!showStarredOnly)}
                 aria-label={showStarredOnly ? "Show all items" : "Show only starred items"}
               >

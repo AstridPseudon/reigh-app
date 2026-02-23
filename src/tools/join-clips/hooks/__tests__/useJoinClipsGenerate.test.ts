@@ -13,8 +13,13 @@ vi.mock('@/shared/lib/tasks/joinClips', () => ({
   createJoinClipsTask: (...args: unknown[]) => mockCreateJoinClipsTask(...args),
 }));
 
-vi.mock('@/shared/hooks/use-toast', () => ({
-  useToast: () => ({ toast: mockToast }),
+vi.mock('@/shared/components/ui/toast', () => ({
+  toast: Object.assign(mockToast, {
+    error: mockToast,
+    success: mockToast,
+    warning: mockToast,
+    info: mockToast,
+  }),
 }));
 
 vi.mock('@/shared/lib/queryKeys', () => ({

@@ -9,6 +9,16 @@ import { storagePaths, MEDIA_BUCKET } from '../_shared/storagePaths.ts';
 
 // ===== TYPES =====
 
+interface StorageBucket {
+  getPublicUrl(path: string, options?: { transform?: { width: number; height: number; resize: string; quality: number } }): { data: { publicUrl: string } };
+  upload(path: string, data: unknown, options: { contentType: string; upsert: boolean }): Promise<{ error: { message: string } | null }>;
+  remove(paths: string[]): Promise<{ error: { message: string } | null }>;
+}
+
+interface SupabaseStorageClient {
+  storage: { from(bucket: string): StorageBucket };
+}
+
 interface StorageResult {
   publicUrl: string;
   objectPath: string;
@@ -22,7 +32,7 @@ interface StorageResult {
  * Returns the public URLs for the main file and thumbnail
  */
 export async function handleStorageOperations(
-  supabase: unknown,
+  supabase: SupabaseStorageClient,
   parsedRequest: ParsedRequest,
   userId: string,
   _isServiceRole: boolean
@@ -81,7 +91,7 @@ export async function handleStorageOperations(
  * Handle thumbnail upload or generation
  */
 async function handleThumbnail(
-  supabase: unknown,
+  supabase: SupabaseStorageClient,
   parsedRequest: ParsedRequest,
   userId: string,
   taskId: string,
@@ -131,7 +141,7 @@ async function handleThumbnail(
  * @see https://supabase.com/docs/guides/storage/serving/image-transformations
  */
 function generateThumbnail(
-  supabase: unknown,
+  supabase: SupabaseStorageClient,
   _sourceBytes: Uint8Array,
   _userId: string,
   _taskId: string,
@@ -164,12 +174,13 @@ function generateThumbnail(
 }
 
 /**
- * Verify that a file exists in storage (for MODE 4)
+ * Build a public URL for a storage path.
+ * Note: This does NOT verify the file exists -- it only constructs the URL via getPublicUrl.
  */
-export function verifyFileExists(
-  supabase: unknown,
+export function getStoragePublicUrl(
+  supabase: SupabaseStorageClient,
   storagePath: string
-): Promise<{ exists: boolean; publicUrl?: string }> {
+): { exists: boolean; publicUrl?: string } {
   try {
     const { data: urlData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath);
     if (!urlData?.publicUrl) {
@@ -186,7 +197,7 @@ export function verifyFileExists(
  * Clean up uploaded file (e.g., on DB error)
  */
 export async function cleanupFile(
-  supabase: unknown,
+  supabase: SupabaseStorageClient,
   objectPath: string
 ): Promise<void> {
   try {

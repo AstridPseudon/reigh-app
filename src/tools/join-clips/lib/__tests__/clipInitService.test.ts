@@ -119,7 +119,6 @@ describe('applyPendingClipActions', () => {
 
     const actions: PendingClipAction[] = [
       {
-        type: 'fill',
         clip: { id: 'new', url: 'new.mp4', loaded: false, playing: false },
       },
     ];
@@ -137,7 +136,6 @@ describe('applyPendingClipActions', () => {
 
     const actions: PendingClipAction[] = [
       {
-        type: 'append',
         clip: { id: 'new', url: 'new.mp4', loaded: false, playing: false },
       },
     ];
@@ -154,8 +152,8 @@ describe('applyPendingClipActions', () => {
     ];
 
     const actions: PendingClipAction[] = [
-      { type: 'fill', clip: { id: 'c1', url: 'c1.mp4', loaded: false, playing: false } },
-      { type: 'append', clip: { id: 'c2', url: 'c2.mp4', loaded: false, playing: false } },
+      { clip: { id: 'c1', url: 'c1.mp4', loaded: false, playing: false } },
+      { clip: { id: 'c2', url: 'c2.mp4', loaded: false, playing: false } },
     ];
 
     const result = applyPendingClipActions(prevClips, actions);

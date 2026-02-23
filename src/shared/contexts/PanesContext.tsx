@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 import { PANE_CONFIG } from '@/shared/config/panes';
 
 interface PanesContextType {

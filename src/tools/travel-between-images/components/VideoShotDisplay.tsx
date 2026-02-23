@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { dispatchAppEvent, useAppEventListener } from '@/shared/lib/typedEvents';
 import { Shot, GenerationRow } from '../../../types/shots';
 import { useUpdateShotName, useDeleteShot, useDuplicateShot } from '../../../shared/hooks/useShots';
 import { Input } from '@/shared/components/ui/input';
@@ -15,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shar
 import { isVideoGeneration, isPositioned } from '@/shared/lib/typeGuards';
 import { VideoGenerationModal } from './VideoGenerationModal';
 import { usePanes } from '@/shared/contexts/PanesContext';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import type { ShotFinalVideo } from '../hooks/useShotFinalVideos';
@@ -498,24 +499,17 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
   const handleSelectShotForAddition = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Dispatch custom event that MediaGallery listens for to update its shot selector
-    window.dispatchEvent(new CustomEvent('selectShotForAddition', {
-      detail: { shotId: shot.id, shotName: shot.name }
-    }));
+    dispatchAppEvent('selectShotForAddition', { shotId: shot.id, shotName: shot.name });
     // Show success state
     setIsSelectedForAddition(true);
   };
 
   // Listen for other shots being selected to clear our success state
-  useEffect(() => {
-    const handleOtherShotSelected = (event: CustomEvent<{ shotId: string }>) => {
-      if (event.detail.shotId !== shot.id) {
-        setIsSelectedForAddition(false);
-      }
-    };
-
-    window.addEventListener('selectShotForAddition', handleOtherShotSelected as EventListener);
-    return () => window.removeEventListener('selectShotForAddition', handleOtherShotSelected as EventListener);
-  }, [shot.id]);
+  useAppEventListener('selectShotForAddition', useCallback(({ shotId: selectedShotId }) => {
+    if (selectedShotId !== shot.id) {
+      setIsSelectedForAddition(false);
+    }
+  }, [shot.id]));
 
   // Clear selection state when GenerationsPane is unlocked
   useEffect(() => {

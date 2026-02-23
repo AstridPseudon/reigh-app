@@ -28,7 +28,7 @@ import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { GenerationRow } from '@/types/shots';
 import { quantizePositions, TRAILING_ENDPOINT_KEY } from '../utils/timeline-utils';
-import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import {
   isTimelineWriteTimeoutError,
   isTimelineWriteActive,

@@ -40,7 +40,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('@/shared/lib/errorHandler', () => ({
+vi.mock('@/shared/lib/errorHandling/handleError', () => ({
   handleError: vi.fn(),
 }));
 
@@ -48,12 +48,10 @@ vi.mock('@/shared/constants/supabaseErrors', () => ({
   isNotFoundError: (_err: unknown) => false,
 }));
 
-vi.mock('@/shared/lib/queryKeys', () => ({
-  queryKeys: {
-    api: {
-      keys: ['api', 'keys'],
-      tokens: ['api', 'tokens'],
-    },
+vi.mock('@/shared/lib/queryKeys/api', () => ({
+  apiQueryKeys: {
+    keys: ['api', 'keys'],
+    tokens: ['api', 'tokens'],
   },
 }));
 

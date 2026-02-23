@@ -1,14 +1,9 @@
 import type { GeneratedPromptResult, UseFormSubmissionProps } from './types';
-import { toShortPrompt } from '../promptManagement/utils';
-
-const MAX_LABEL_LENGTH = 50;
+import { truncateText } from '@/shared/lib/utils';
+import { toShortPrompt } from '../promptUtils';
 
 export function truncateLabel(text: string): string {
-  if (text.length <= MAX_LABEL_LENGTH) {
-    return text;
-  }
-
-  return `${text.slice(0, MAX_LABEL_LENGTH)}...`;
+  return truncateText(text, 50);
 }
 
 export function toPromptEntries(results: GeneratedPromptResult[]) {

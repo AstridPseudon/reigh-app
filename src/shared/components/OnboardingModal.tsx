@@ -10,6 +10,7 @@ import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useDarkMode } from '@/shared/hooks/useDarkMode';
 import { useMediumModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -439,7 +440,7 @@ const SetupCompleteStep: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     // Trigger settings modal to open - we'll need to communicate this back to the parent
     setTimeout(() => {
       // This is a bit hacky, but we can trigger a custom event or use a callback
-      window.dispatchEvent(new CustomEvent('openSettings', { detail: { tab: 'generate-locally' } }));
+      dispatchAppEvent('openSettings', { tab: 'generate-locally' });
     }, 100);
   };
 

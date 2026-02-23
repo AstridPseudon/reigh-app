@@ -1,0 +1,127 @@
+{
+  "batch": "Architecture & Coupling",
+  "assessments": {
+    "cross_module_architecture": 85,
+    "high_level_elegance": 86
+  },
+  "findings": [
+    {
+      "dimension": "cross_module_architecture",
+      "identifier": "arch::custom_event_coupling",
+      "summary": "useSettingsModal and useMediaGalleryHandlers use window CustomEvents ('openSettings', 'selectShotForAddition') as a cross-module communication channel, bypassing React's data flow and creating invisible coupling between unrelated modules.",
+      "related_files": [
+        "src/app/hooks/useSettingsModal.ts",
+        "src/shared/components/MediaGallery/hooks/useMediaGalleryHandlers.ts"
+      ],
+      "evidence": [
+        "useSettingsModal.ts line 27-38: window.addEventListener('openSettings', handler) with CustomEvent dispatch from OnboardingModal",
+        "useMediaGalleryHandlers.ts line 101-109: window.addEventListener('selectShotForAddition', ...) with dispatch from VideoShotDisplay"
+      ],
+      "suggestion": "Replace CustomEvents with a lightweight event bus or React context. At minimum, document the event contracts (payload shape, producer, consumer) in a central location so they're discoverable.",
+      "reasoning": "CustomEvents on window create invisible dependencies that don't appear in imports or type checking. A new developer won't discover these connections through normal code navigation. The blast radius of changing an event name or payload shape is hard to assess.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "cross_module_architecture",
+      "identifier": "arch::legacy_button_shim",
+      "summary": "Button component carries a legacy variant/size shim ('lala' -> 'theme', 'lala-ghost' -> 'theme-ghost') that only appears in test files, suggesting the migration is complete but the compatibility layer persists.",
+      "related_files": [
+        "src/shared/components/ui/button.tsx",
+        "src/shared/components/ui/button.test.tsx"
+      ],
+      "evidence": [
+        "button.tsx lines 53-87: LegacyButtonVariant/LegacyButtonSize types and LEGACY_VARIANT_MAP/LEGACY_SIZE_MAP with normalizeVariant/normalizeSize functions",
+        "Only usage of 'lala' variant found in button.test.tsx (test file), not in production code"
+      ],
+      "suggestion": "Remove the legacy shim (LegacyButtonVariant, LegacyButtonSize, LEGACY_VARIANT_MAP, LEGACY_SIZE_MAP, normalizeVariant, normalizeSize) since no production code references 'lala' variants anymore. Update the test to test current variant names directly.",
+      "reasoning": "Compatibility shims that outlive their migration add cognitive overhead. Every reader of Button has to understand two naming systems. The CLAUDE.md explicitly calls out 'compatibility shims persisting without need' as something to flag.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "high_level_elegance",
+      "identifier": "elegance::device_detection_duplication",
+      "summary": "use-mobile.tsx contains significant internal duplication: iPad/tablet UA detection logic (isIpadOsLike, tabletUA regex, maxTouchPoints check) is repeated verbatim across computeIsMobile, computeIsTablet, and computeIsTouchDevice.",
+      "related_files": [
+        "src/shared/hooks/use-mobile.tsx"
+      ],
+      "evidence": [
+        "Lines 28-29 (computeIsTablet), 45-50 (computeIsMobile), 58-62 (computeIsTouchDevice): identical navigator.maxTouchPoints / isIpadOsLike / tabletUA regex patterns appear three times",
+        "The regex /iPad|Tablet|Android(?!.*Mobile)|Silk|Kindle|PlayBook/i appears at lines 33, 50, and 59"
+      ],
+      "suggestion": "Extract shared device detection primitives (isIpadOsLike(), isTabletUA(), hasTouchCapability()) into small helper functions at the top of the file, then compose the compute* functions from them.",
+      "reasoning": "Triple duplication of the same detection logic means a bug fix or UA update must be applied in three places. This is a maintainability risk in a file that will need periodic updates as browsers evolve.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "high_level_elegance",
+      "identifier": "elegance::install_modal_hardcoded_colors",
+      "summary": "InstallInstructionsModal.tsx uses ~92 instances of hardcoded gray/color values (bg-gray-100, text-gray-400, etc.) for browser mockup SVG illustrations, violating the project's 'never hardcode colors' convention.",
+      "related_files": [
+        "src/pages/Home/components/InstallInstructionsModal.tsx"
+      ],
+      "evidence": [
+        "Throughout the file: bg-gray-100, bg-gray-200, bg-gray-800, text-gray-400, text-gray-500, text-gray-600, border-gray-200, border-gray-300 used extensively in browser mockup components (ChromeInstallIcon, SafariShareIcon, etc.)",
+        "92 occurrences of hardcoded gray-* color classes in a single file"
+      ],
+      "suggestion": "These are decorative browser mockup illustrations so the hardcoding is somewhat defensible (they represent external UI, not app UI). However, consider extracting the mockup components to a separate file and using semantic color tokens where possible for consistency with dark mode.",
+      "reasoning": "While the CLAUDE.md says 'never hardcode colors', browser mockups are a reasonable exception since they're depicting external UIs. The bigger concern is that none of these mockups will adapt to dark mode. Low severity but worth noting.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "high_level_elegance",
+      "identifier": "elegance::shot_actions_prop_count",
+      "summary": "ShotActions component receives 22 props, indicating it may be doing too much or that intermediate state should be consolidated into a context or composed object.",
+      "related_files": [
+        "src/shared/components/MediaGalleryItem/components/ShotActions.tsx"
+      ],
+      "evidence": [
+        "ShotActionsProps interface (lines 14-47) defines 22 individual props spanning shot selection state, action state, quick create state, and callbacks"
+      ],
+      "suggestion": "Group related props into composite objects (e.g., shotState: { selectedShotId, simplifiedShotOptions, isShotSelectorOpen, ... }, actionState: { addingToShotImageId, showTickForImageId, ... }). Alternatively, consider a context or custom hook that provides these values closer to where they're used.",
+      "reasoning": "22 props is a sign of prop drilling. The component's parent (MediaGalleryItem) likely has to thread most of these through from its own props or hooks, creating a fragile coupling chain. Grouped prop objects would make the interface more readable and the component easier to refactor.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "cross_module_architecture",
+      "identifier": "arch::shots_barrel_reexport",
+      "summary": "src/types/shots.ts serves as a backward-compatible barrel file re-exporting from four separate type modules. This is a well-structured compatibility layer that keeps imports stable during a type decomposition.",
+      "related_files": [
+        "src/types/shots.ts"
+      ],
+      "evidence": [
+        "Lines 1-14: Clear documentation of purpose, re-exports from generationParams, generationMetadata, generationRow, and shot modules"
+      ],
+      "suggestion": "No action needed. This is a well-documented intentional facade. Consider adding a deprecation comment if the goal is to eventually migrate all consumers to direct imports.",
+      "reasoning": "This is a positive pattern - breaking up a monolithic type file while maintaining backward compatibility. Noted here as a positive signal for the architecture score.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "high_level_elegance",
+      "identifier": "elegance::error_handling_clean",
+      "summary": "handleError.ts demonstrates clean, well-decomposed error handling: normalize, log, optionally toast, callback. The separation of concerns (normalization, presentation, handling) across sibling files is excellent.",
+      "related_files": [
+        "src/shared/lib/errorHandling/handleError.ts"
+      ],
+      "evidence": [
+        "Lines 1-40: Clear imports from errorPresentation and errorNormalization sibling modules, single-responsibility function with well-documented return type"
+      ],
+      "suggestion": "No action needed. This is a model of good decomposition.",
+      "reasoning": "Positive signal: the error handling system follows clear separation of concerns and is consistently used across the codebase (seen in LineageGifModal, useMediaGalleryItemState, useMediaGalleryHandlers).",
+      "confidence": "high"
+    },
+    {
+      "dimension": "high_level_elegance",
+      "identifier": "elegance::sonner_unused_theme",
+      "summary": "Toaster component calls useTheme() but doesn't use the return value, kept only for 'parity with original sonner.tsx and future theme needs' per the comment.",
+      "related_files": [
+        "src/shared/components/ui/sonner.tsx"
+      ],
+      "evidence": [
+        "Line 29: useTheme() called with no destructured values, comment on line 28 explains it's kept for future use"
+      ],
+      "suggestion": "Remove the useTheme() call. If theme integration is needed later, it can be added back. Dead code 'for future use' adds confusion.",
+      "reasoning": "Minor issue. The comment makes it understandable, but unused hook calls can cause unnecessary re-renders on theme changes. Given the recent cleanup of dead code, this is a small leftover.",
+      "confidence": "medium"
+    }
+  ]
+}

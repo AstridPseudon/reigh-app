@@ -6,10 +6,10 @@ import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import {
   getVariantIcon,
   getVariantLabel,
-  hasDifferentSourceImages,
   hasLoadableSettings,
   isNewVariant,
 } from '../utils';
+import { hasDifferentSourceImages } from '../variantSourceImages';
 
 const baseVariant: GenerationVariant = {
   id: 'variant-1',

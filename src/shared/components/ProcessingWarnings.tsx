@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Alert } from '@/shared/components/ui/alert';
 import { Button } from '@/shared/components/ui/button';
 import { useCredits } from '@/shared/hooks/useCredits';
 import { useApiTokens } from '@/shared/hooks/useApiTokens';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 
 interface ProcessingWarningsProps {
@@ -35,19 +36,17 @@ export const GlobalProcessingWarning: React.FC<ProcessingWarningsProps> = ({ onO
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom events from the same tab
-    const handleCustomEvent = () => {
-      setRefreshTrigger(prev => prev + 1);
-    };
-    
-    window.addEventListener('generation-settings-changed', handleCustomEvent);
-
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('generation-settings-changed', handleCustomEvent);
     };
   }, []);
+
+  // Also listen for custom events from the same tab
+  const handleSettingsChanged = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  useAppEventListener('generation-settings-changed', handleSettingsChanged);
 
   const onComputerChecked = generationMethods.onComputer;
   const inCloudChecked = generationMethods.inCloud;

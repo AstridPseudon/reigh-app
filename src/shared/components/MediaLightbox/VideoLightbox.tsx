@@ -15,8 +15,17 @@
  */
 
 import React from 'react';
-import type { GenerationRow, Shot } from '@/types/shots';
-import type { SegmentSlotModeData, AdjacentSegmentsData, ShotOption, TaskDetailsData } from './types';
+import type { GenerationRow } from '@/types/shots';
+import type {
+  SegmentSlotModeData,
+  AdjacentSegmentsData,
+  TaskDetailsData,
+  LightboxNavigationProps,
+  LightboxShotWorkflowProps,
+  LightboxFeatureFlags,
+  LightboxActionHandlers,
+} from './types';
+import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 import { LightboxProviders } from './components';
 import { LightboxLayout } from './components/layouts/LightboxLayout';
@@ -35,47 +44,9 @@ import {
 import { LightboxShell } from './components';
 import { VideoEditProvider } from './contexts/VideoEditContext';
 
-export interface VideoLightboxProps {
-  media?: GenerationRow;
-  onClose: () => void;
-  onNext?: () => void;
-  onPrevious?: () => void;
-  segmentSlotMode?: SegmentSlotModeData;
-  readOnly?: boolean;
-  showNavigation?: boolean;
-  showDownload?: boolean;
-  hasNext?: boolean;
-  hasPrevious?: boolean;
-  allShots?: ShotOption[];
-  selectedShotId?: string;
-  onShotChange?: (shotId: string) => void;
-  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onDelete?: (id: string) => void;
-  isDeleting?: string | null;
-  onApplySettings?: (metadata: GenerationRow['metadata']) => void;
-  showTickForImageId?: string | null;
-  onShowTick?: (imageId: string) => void;
-  showTickForSecondaryImageId?: string | null;
-  onShowSecondaryTick?: (imageId: string) => void;
-  starred?: boolean;
-  showTaskDetails?: boolean;
-  taskDetailsData?: TaskDetailsData;
-  onShowTaskDetails?: () => void;
-  onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
-  onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
-  optimisticPositionedIds?: Set<string>;
-  optimisticUnpositionedIds?: Set<string>;
-  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
-  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
-  positionedInSelectedShot?: boolean;
-  associatedWithoutPositionInSelectedShot?: boolean;
-  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
-  shotId?: string;
-  tasksPaneOpen?: boolean;
-  tasksPaneWidth?: number;
+/** Video-specific props that don't fit into shared groups */
+export interface VideoLightboxVideoProps {
   initialVideoTrimMode?: boolean;
-  initialVariantId?: string;
   fetchVariantsForSelf?: boolean;
   currentSegmentImages?: {
     startUrl?: string;
@@ -91,7 +62,29 @@ export interface VideoLightboxProps {
   onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
   currentFrameCount?: number;
   onTrimModeChange?: (isTrimMode: boolean) => void;
+  onShowTaskDetails?: () => void;
+}
+
+export interface VideoLightboxProps {
+  media?: GenerationRow;
+  onClose: () => void;
+  segmentSlotMode?: SegmentSlotModeData;
+  readOnly?: boolean;
+  shotId?: string;
+  initialVariantId?: string;
+  taskDetailsData?: TaskDetailsData;
+  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
+  showTickForImageId?: string | null;
+  showTickForSecondaryImageId?: string | null;
+  tasksPaneOpen?: boolean;
+  tasksPaneWidth?: number;
   adjacentSegments?: AdjacentSegmentsData;
+  // Grouped props
+  navigation?: LightboxNavigationProps;
+  shotWorkflow?: LightboxShotWorkflowProps;
+  features?: LightboxFeatureFlags;
+  actions?: LightboxActionHandlers;
+  videoProps?: VideoLightboxVideoProps;
 }
 
 export type {
@@ -149,7 +142,10 @@ export const VideoLightbox: React.FC<VideoLightboxProps> = (props) => {
   const isFormOnlyMode = isSegmentSlotMode && !hasSegmentVideo;
 
   if (!props.media && !isFormOnlyMode) {
-    console.error('[VideoLightbox] ❌ No media prop provided and not in form-only mode!');
+    handleError(new Error('No media prop provided and not in form-only mode'), {
+      context: 'VideoLightbox',
+      showToast: false,
+    });
     return null;
   }
 

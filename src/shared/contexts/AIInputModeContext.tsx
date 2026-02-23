@@ -35,12 +35,10 @@ export function AIInputModeProvider({ children }: { children: React.ReactNode })
 export function useAIInputMode() {
   const context = React.useContext(AIInputModeContext)
   if (!context) {
-    // Return default values if not wrapped in provider (graceful fallback)
-    return {
-      mode: 'voice' as AIInputMode,
-      setMode: () => {},
-      isLoading: false
-    }
+    throw new Error(
+      'useAIInputMode must be used within an AIInputModeProvider. ' +
+      'Make sure the component is rendered inside the AIInputModeProvider tree.'
+    )
   }
   return context
 }

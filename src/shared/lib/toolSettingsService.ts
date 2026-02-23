@@ -11,10 +11,10 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { SUPABASE_URL } from '@/integrations/supabase/config/env';
 import { deepMerge } from '@/shared/lib/deepEqual';
-import { isCancellationError, getErrorMessage } from '@/shared/lib/errorUtils';
+import { isCancellationError, getErrorMessage } from '@/shared/lib/errorHandling/errorUtils';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { readUserIdFromStorage } from '@/shared/lib/supabaseSession';
 import { toolDefaultsRegistry } from '@/tooling/toolDefaultsRegistry';
 
 // ============================================================================
@@ -46,28 +46,6 @@ export function setCachedUserId(userId: string) {
 export function _resetCachedUserForTesting() {
   cachedUser = null;
   cachedUserAt = 0;
-}
-
-/**
- * Read the user ID directly from localStorage without acquiring navigator.locks.
- *
- * Supabase stores the full session JSON (including user.id) under
- * `sb-${projectRef}-auth-token`. Reading this is synchronous and never
- * contends with token-refresh exclusive locks, unlike getSession()/getUser().
- *
- * Returns null if no session exists in storage (user is signed out).
- */
-function readUserIdFromStorage(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
-    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { user?: { id?: string } };
-    return parsed?.user?.id ?? null;
-  } catch {
-    return null;
-  }
 }
 
 // ============================================================================
@@ -103,7 +81,7 @@ export interface SettingsFetchResult<T = unknown> {
  * the user ID from localStorage instead we avoid locks entirely. Token validity
  * for actual data requests is handled by createSupabaseClient's cached token.
  */
-export function getUserWithTimeout(_timeoutMs = 15000): Promise<{ data: { user: { id: string } | null }; error: null }> {
+export function getUserWithTimeout(): Promise<{ data: { user: { id: string } | null }; error: null }> {
   // Check in-memory cache first
   if (cachedUser && (Date.now() - cachedUserAt) < USER_CACHE_MS) {
     return Promise.resolve({ data: { user: { id: cachedUser.id } }, error: null });
@@ -216,9 +194,9 @@ export async function fetchToolSettingsSupabase(
     }
 
     const promise = (async (): Promise<SettingsFetchResult> => {
-      const { data: { user }, error: authError } = await getUserWithTimeout();
+      const { data: { user } } = await getUserWithTimeout();
 
-      if (authError || !user) {
+      if (!user) {
         throw new Error('Authentication required');
       }
 

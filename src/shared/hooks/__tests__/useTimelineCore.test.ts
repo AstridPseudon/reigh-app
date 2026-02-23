@@ -79,7 +79,7 @@ vi.mock('@/shared/hooks/useShotImages', () => ({
   useShotImages: (...args: unknown[]) => useShotImagesMock(...args),
 }));
 
-vi.mock('@/shared/hooks/useGenerationInvalidation', () => ({
+vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
   useInvalidateGenerations: () => vi.fn(),
 }));
 

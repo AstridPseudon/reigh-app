@@ -1,51 +1,60 @@
 import type { GeneratedImageWithMetadata, DisplayableMetadata } from "../MediaGallery/types";
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
 
-export interface MediaGalleryItemProps {
-  image: GeneratedImageWithMetadata;
-  index: number;
-  isDeleting?: string | boolean | null;
-  onDelete?: (id: string) => void;
-  onApplySettings?: (metadata: DisplayableMetadata) => void;
-  onOpenLightbox: (image: GeneratedImageWithMetadata, autoEnterEditMode?: boolean) => void;
-  onAddToLastShot?: AddToShotHandler;
-  onAddToLastShotWithoutPosition?: AddToShotHandler;
-  onDownloadImage: (rawUrl: string, filename: string, imageId?: string, isVideo?: boolean, originalContentType?: string) => void;
-  onToggleStar?: (id: string, starred: boolean) => void;
+// ── Shot workflow: selector state, optimistic IDs, adding-to-shot state ──
+
+/** Shot selector state, optimistic position tracking, and add-to-shot loading state */
+export interface ItemShotWorkflow {
   selectedShotIdLocal: string;
   simplifiedShotOptions: { id: string; name: string }[];
+  setSelectedShotIdLocal: (id: string) => void;
+  setLastAffectedShotId: (id: string) => void;
+
+  /** Tick feedback after adding to shot */
   showTickForImageId: string | null;
   onShowTick: (imageId: string) => void;
   showTickForSecondaryImageId?: string | null;
   onShowSecondaryTick?: (imageId: string) => void;
+
+  /** Optimistic position tracking */
   optimisticUnpositionedIds?: Set<string>;
   optimisticPositionedIds?: Set<string>;
   optimisticDeletedIds?: Set<string>;
   onOptimisticUnpositioned?: (imageId: string, shotId: string) => void;
   onOptimisticPositioned?: (imageId: string, shotId: string) => void;
+
+  /** Which image is currently being added to a shot (loading indicator) */
   addingToShotImageId: string | null;
   setAddingToShotImageId: (id: string | null) => void;
   addingToShotWithoutPositionImageId?: string | null;
   setAddingToShotWithoutPositionImageId?: (id: string | null) => void;
-  downloadingImageId: string | null;
+
+  /** ID of the shot currently being viewed (hides navigation buttons) */
+  currentViewingShotId?: string;
+
+  /** Shot creation callback */
+  onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
+
+  /** Handlers for adding image to shot */
+  onAddToLastShot?: AddToShotHandler;
+  onAddToLastShotWithoutPosition?: AddToShotHandler;
+}
+
+// ── Mobile interaction state ──
+
+/** Mobile-specific interaction state and handlers */
+export interface ItemMobileInteraction {
   isMobile: boolean;
   mobileActiveImageId: string | null;
   mobilePopoverOpenImageId: string | null;
   onMobileTap: (image: GeneratedImageWithMetadata) => void;
   setMobilePopoverOpenImageId: (id: string | null) => void;
-  setSelectedShotIdLocal: (id: string) => void;
-  setLastAffectedShotId: (id: string) => void;
-  toggleStarMutation: { mutate: (vars: { id: string; starred: boolean }, options?: { onSettled?: () => void }) => void };
-  // Progressive loading props
-  shouldLoad?: boolean;
-  isPriority?: boolean;
-  isGalleryLoading?: boolean;
-  // Shot creation props
-  onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
-  /** ID of the shot currently being viewed (hides navigation buttons) */
-  currentViewingShotId?: string;
-  // Project dimensions
-  projectAspectRatio?: string;
+}
+
+// ── Feature flags: what buttons/features to show ──
+
+/** Boolean feature flags controlling which UI elements are visible */
+export interface ItemFeatures {
   showShare?: boolean;
   showDelete?: boolean;
   showDownload?: boolean;
@@ -53,13 +62,59 @@ export interface MediaGalleryItemProps {
   showStar?: boolean;
   showAddToShot?: boolean;
   enableSingleClick?: boolean;
-  onImageClick?: (image: GeneratedImageWithMetadata) => void;
   /** When true, videos are rendered as static thumbnail images instead of HoverScrubVideo for better performance */
   videosAsThumbnails?: boolean;
-  /** Optional data-tour attribute for product tour targeting */
-  dataTour?: string;
+}
+
+// ── Action callbacks ──
+
+/** Core action callbacks for the gallery item */
+export interface ItemActions {
+  onOpenLightbox: (image: GeneratedImageWithMetadata, autoEnterEditMode?: boolean) => void;
+  onDelete?: (id: string) => void;
+  onApplySettings?: (metadata: DisplayableMetadata) => void;
+  onDownloadImage: (rawUrl: string, filename: string, imageId?: string, isVideo?: boolean, originalContentType?: string) => void;
+  onToggleStar?: (id: string, starred: boolean) => void;
+  onImageClick?: (image: GeneratedImageWithMetadata) => void;
+  toggleStarMutation: { mutate: (vars: { id: string; starred: boolean }, options?: { onSettled?: () => void }) => void };
   /** Callback when the image has fully loaded and is visible */
   onImageLoaded?: (imageId: string) => void;
+}
+
+// ── Loading / progressive state ──
+
+/** Progressive loading and gallery loading state */
+export interface ItemLoading {
+  shouldLoad?: boolean;
+  isPriority?: boolean;
+  isGalleryLoading?: boolean;
+  isDeleting?: string | boolean | null;
+  downloadingImageId: string | null;
+}
+
+// ── Top-level props ──
+
+export interface MediaGalleryItemProps {
+  /** The media item to render */
+  image: GeneratedImageWithMetadata;
+  /** Index within the current page */
+  index: number;
+
+  /** Shot workflow: selector, optimistic IDs, add-to-shot state */
+  shotWorkflow: ItemShotWorkflow;
+  /** Mobile interaction state and handlers */
+  mobileInteraction: ItemMobileInteraction;
+  /** Feature flags controlling visible UI elements */
+  features: ItemFeatures;
+  /** Core action callbacks */
+  actions: ItemActions;
+  /** Loading and progress state */
+  loading: ItemLoading;
+
+  /** Project aspect ratio for sizing */
+  projectAspectRatio?: string;
+  /** Optional data-tour attribute for product tour targeting */
+  dataTour?: string;
 }
 
 // Re-export types that are used by sub-components

@@ -21,6 +21,14 @@ export function cropFilename(filename: string, maxLength: number = 24): string {
   return `${nameWithoutExtension.substring(0, croppedLength)}...${extension}`;
 }
 
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength)}...`;
+}
+
 export function formatTime(
   seconds: number,
   options: { showMilliseconds?: boolean; millisecondsDigits?: 1 | 2 | 3 } = {}

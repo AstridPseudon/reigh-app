@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/shared/components/ui/tooltip";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import { useTouchDragDetection } from "@/shared/hooks/useTouchDragDetection";
 import { PromptInputRowProps } from "../types";
 

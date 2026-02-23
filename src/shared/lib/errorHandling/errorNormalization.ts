@@ -1,4 +1,4 @@
-import { AppError, categorizeError } from '@/shared/lib/errors';
+import { AppError, categorizeError } from './errors';
 
 interface ErrorNormalizationOptions {
   context: string;

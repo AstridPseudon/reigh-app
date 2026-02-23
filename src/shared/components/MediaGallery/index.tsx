@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useCallback, useRef } from "react";
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { useIsMobile, useIsTablet } from "@/shared/hooks/use-mobile";
+import { useIsMobile, useIsTablet } from "@/shared/hooks/useMobile";
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useToggleGenerationStar } from '@/shared/hooks/useGenerationMutations';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
@@ -86,7 +86,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     formAssociatedShotId,
     onSwitchToAssociatedShot,
     className,
-    onPrefetchAdjacentPages, // Deprecated - use generationFilters instead
     enableAdjacentPagePreloading = true,
     generationFilters,
     onCreateShot,
@@ -105,7 +104,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   // Destructure config for convenience (avoids config.X everywhere in JSX)
   const {
     showDelete, showDownload, showShare, showEdit, showStar, showAddToShot,
-    enableSingleClick, videosAsThumbnails, whiteText, reducedSpacing,
+    enableSingleClick, videosAsThumbnails, darkSurface, reducedSpacing,
     showShotFilter, showSearch,
     hidePagination, hideTopFilters, hideMediaTypeFilter, hideBottomPagination, hideShotNotifier,
   } = config;
@@ -402,7 +401,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
       <div
         ref={galleryContainerRef as React.RefObject<HTMLDivElement>}
         className={cn(
-          reducedSpacing ? 'space-y-6' : 'space-y-6',
+          'space-y-6',
           // Add bottom padding: mobile gets extra padding for fixed bottom bar, desktop uses existing logic
           isMobile && !hidePagination ? 'pb-16' : (reducedSpacing ? 'pb-0' : ((!hidePagination && !hideBottomPagination) ? 'pb-[62px]' : 'pb-0')),
           className
@@ -420,7 +419,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
             rangeEnd={paginationHook.rangeEnd}
             totalFilteredItems={paginationHook.totalFilteredItems}
             loadingButton={paginationHook.loadingButton}
-            whiteText={whiteText}
+            darkSurface={darkSurface}
             reducedSpacing={reducedSpacing}
             hidePagination={hidePagination}
             onPageChange={paginationHook.handlePageChange}
@@ -477,7 +476,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
 
           // Layout props
           reducedSpacing={reducedSpacing}
-          whiteText={whiteText}
+          darkSurface={darkSurface}
           gridColumnClasses={gridColumnClasses}
           columnsPerRow={effectiveColumnsPerRow}
           projectAspectRatio={projectAspectRatio}
@@ -502,7 +501,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
           serverPage={serverPage}
           totalFilteredItems={paginationHook.totalFilteredItems}
           itemsPerPage={actualItemsPerPage}
-          onPrefetchAdjacentPages={onPrefetchAdjacentPages}
           selectedProjectId={selectedProjectId ?? undefined}
           generationFilters={generationFilters}
           
@@ -518,50 +516,60 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
           offset={offset}
           optimisticDeletedCount={stateHook.state.optimisticDeletedIds.size}
           
-          // MediaGalleryItem props
-          isDeleting={isDeleting}
-          onDelete={actionsHook.handleOptimisticDelete}
-          onApplySettings={onApplySettings}
-          onOpenLightbox={actionsHook.handleOpenLightbox}
-          onAddToLastShot={onAddToLastShot}
-          onAddToLastShotWithoutPosition={onAddToLastShotWithoutPosition}
-          onDownloadImage={actionsHook.handleDownloadImage}
-          onToggleStar={onToggleStar}
-          selectedShotIdLocal={stateHook.state.selectedShotIdLocal}
-          simplifiedShotOptions={simplifiedShotOptions}
-          showTickForImageId={stateHook.state.showTickForImageId}
-          onShowTick={actionsHook.handleShowTick}
-          showTickForSecondaryImageId={stateHook.state.showTickForSecondaryImageId}
-          onShowSecondaryTick={actionsHook.handleShowSecondaryTick}
-          optimisticUnpositionedIds={stateHook.state.optimisticUnpositionedIds}
-          optimisticPositionedIds={stateHook.state.optimisticPositionedIds}
-          optimisticDeletedIds={stateHook.state.optimisticDeletedIds}
-          onOptimisticUnpositioned={stateHook.markOptimisticUnpositioned}
-          onOptimisticPositioned={stateHook.markOptimisticPositioned}
-          addingToShotImageId={stateHook.state.addingToShotImageId}
-          setAddingToShotImageId={stateHook.setAddingToShotImageId}
-          addingToShotWithoutPositionImageId={stateHook.state.addingToShotWithoutPositionImageId}
-          setAddingToShotWithoutPositionImageId={stateHook.setAddingToShotWithoutPositionImageId}
-          downloadingImageId={stateHook.state.downloadingImageId}
-          mobileActiveImageId={stateHook.state.mobileActiveImageId}
-          mobilePopoverOpenImageId={stateHook.state.mobilePopoverOpenImageId}
-          onMobileTap={mobileHook.handleMobileTap}
-          setMobilePopoverOpenImageId={stateHook.setMobilePopoverOpenImageId}
-          setSelectedShotIdLocal={stateHook.setSelectedShotIdLocal}
-          setLastAffectedShotId={actionsHook.handleShotChange}
-          toggleStarMutation={toggleStarMutation}
-          onCreateShot={onCreateShot}
-          currentViewingShotId={currentViewingShotId}
-          showDelete={showDelete}
-          showDownload={showDownload}
-          showShare={showShare}
-          showEdit={showEdit}
-          showStar={showStar}
-          showAddToShot={showAddToShot}
-          enableSingleClick={enableSingleClick}
-          onImageClick={onImageClick}
+          // MediaGalleryItem grouped props
+          itemShotWorkflow={{
+            selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
+            simplifiedShotOptions,
+            setSelectedShotIdLocal: stateHook.setSelectedShotIdLocal,
+            setLastAffectedShotId: actionsHook.handleShotChange,
+            showTickForImageId: stateHook.state.showTickForImageId,
+            onShowTick: actionsHook.handleShowTick,
+            showTickForSecondaryImageId: stateHook.state.showTickForSecondaryImageId,
+            onShowSecondaryTick: actionsHook.handleShowSecondaryTick,
+            optimisticUnpositionedIds: stateHook.state.optimisticUnpositionedIds,
+            optimisticPositionedIds: stateHook.state.optimisticPositionedIds,
+            optimisticDeletedIds: stateHook.state.optimisticDeletedIds,
+            onOptimisticUnpositioned: stateHook.markOptimisticUnpositioned,
+            onOptimisticPositioned: stateHook.markOptimisticPositioned,
+            addingToShotImageId: stateHook.state.addingToShotImageId,
+            setAddingToShotImageId: stateHook.setAddingToShotImageId,
+            addingToShotWithoutPositionImageId: stateHook.state.addingToShotWithoutPositionImageId,
+            setAddingToShotWithoutPositionImageId: stateHook.setAddingToShotWithoutPositionImageId,
+            currentViewingShotId,
+            onCreateShot,
+            onAddToLastShot,
+            onAddToLastShotWithoutPosition,
+          }}
+          itemMobileInteraction={{
+            mobileActiveImageId: stateHook.state.mobileActiveImageId,
+            mobilePopoverOpenImageId: stateHook.state.mobilePopoverOpenImageId,
+            onMobileTap: mobileHook.handleMobileTap,
+            setMobilePopoverOpenImageId: stateHook.setMobilePopoverOpenImageId,
+          }}
+          itemFeatures={{
+            showDelete,
+            showDownload,
+            showShare,
+            showEdit,
+            showStar,
+            showAddToShot,
+            enableSingleClick,
+            videosAsThumbnails,
+          }}
+          itemActions={{
+            onOpenLightbox: actionsHook.handleOpenLightbox,
+            onDelete: actionsHook.handleOptimisticDelete,
+            onApplySettings,
+            onDownloadImage: actionsHook.handleDownloadImage,
+            onToggleStar,
+            onImageClick,
+            toggleStarMutation,
+          }}
+          itemLoading={{
+            isDeleting,
+            downloadingImageId: stateHook.state.downloadingImageId,
+          }}
           hideBottomPagination={hideBottomPagination}
-          videosAsThumbnails={videosAsThumbnails}
         />
       </div>
 

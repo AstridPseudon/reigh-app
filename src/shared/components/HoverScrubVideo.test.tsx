@@ -20,7 +20,7 @@ const {
   onMouseLeaveMock: vi.fn(),
 }));
 
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }));
 

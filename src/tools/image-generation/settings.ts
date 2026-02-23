@@ -16,22 +16,9 @@ export interface ActiveLora {
 
 export type PromptMode = 'managed' | 'automated';
 
-export interface HiresFixConfig {
-  enabled: boolean;
-  base_steps: number;
-  hires_scale: number;
-  hires_steps: number;
-  hires_denoise: number;
-  lightning_lora_strength_phase_1: number;
-  lightning_lora_strength_phase_2: number;
-  phaseLoraStrengths: Array<{
-    loraId: string;
-    loraPath: string;
-    loraName: string;
-    pass1Strength: number;
-    pass2Strength: number;
-  }>;
-}
+import type { HiresFixConfig } from '@/shared/components/ImageGenerationForm/types';
+
+export type { HiresFixConfig };
 
 interface ImageGenerationSettings {
   prompts?: PromptEntry[];
@@ -75,6 +62,8 @@ const defaultImageGenerationSettings: ImageGenerationSettings = {
   masterPromptText: '', // Legacy - kept for migration
   hiresFixConfig: {
     enabled: true,
+    resolution_mode: 'project',
+    resolution_scale: 1.5,
     base_steps: 8,
     hires_scale: 1.1,
     hires_steps: 8,

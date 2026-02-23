@@ -11,7 +11,8 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
-import { getVariantLabel, hasLoadableSettings, hasDifferentSourceImages, type CurrentSegmentImagesData } from '../utils';
+import { getVariantLabel, hasLoadableSettings } from '../utils';
+import { hasDifferentSourceImages, type CurrentSegmentImagesData } from '../variantSourceImages';
 import { VariantDetails } from './VariantDetails';
 
 // --- MobileInfoModal ---

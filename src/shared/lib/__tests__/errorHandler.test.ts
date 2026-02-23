@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the toast function
-const mockToast = vi.fn();
-vi.mock('@/shared/hooks/use-toast', () => ({
-  toast: (...args: unknown[]) => mockToast(...args),
+const mockToast = Object.assign(vi.fn(), {
+  error: vi.fn(),
+  success: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+});
+vi.mock('@/shared/components/ui/toast', () => ({
+  toast: mockToast,
 }));
 
 // Mock navigator.onLine for NetworkError detection

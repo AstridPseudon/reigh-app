@@ -11,6 +11,7 @@
  * All routing is determined by params extracted in createGenerationFromTask
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { VARIANT_TYPE_DEFAULT } from './constants.ts';
 
 import {
@@ -33,7 +34,7 @@ import {
 } from './generation-parent.ts';
 
 interface HandlerContext {
-  supabase: unknown;
+  supabase: SupabaseClient;
   taskId: string;
   taskData: unknown;
   publicUrl: string;
@@ -60,7 +61,7 @@ export {
  * Reads is_primary and variant_type from task data
  */
 export async function handleVariantCreation(
-  supabase: unknown,
+  supabase: SupabaseClient,
   taskId: string,
   taskData: unknown,
   basedOnGenerationId: string,

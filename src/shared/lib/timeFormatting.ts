@@ -1,0 +1,96 @@
+/**
+ * Shared relative-time formatting utilities.
+ *
+ * Two flavours:
+ *  - `formatRelativeDuration` – hand-rolls the diff from a Date to *now* and
+ *    returns abbreviated strings like "5 mins", "1 hr, 30 mins", "2 days".
+ *    Used where we need precise compound durations (e.g. "Processing for 1 hr, 30 mins").
+ *
+ *  - `abbreviateRelativeTime` – post-processes a date-fns `formatDistanceToNow`
+ *    string into a shorter form ("about 2 hours ago" → "2 hrs ago").
+ *    Used for simple "X ago" timestamps in task lists / galleries.
+ */
+
+// ── helpers ──────────────────────────────────────────────────────────────
+
+function pluralize(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+// ── precise duration from a Date ─────────────────────────────────────────
+
+export interface FormatRelativeDurationOptions {
+  /** Include days in the output (default true). When false, hours keep accumulating. */
+  includeDays?: boolean;
+}
+
+/**
+ * Format the duration between `date` and *now* as an abbreviated string.
+ *
+ * Examples:
+ *  - 30 s  → "<1 min"
+ *  - 5 min → "5 mins"
+ *  - 90 min → "1 hr, 30 mins"
+ *  - 48 h  → "2 days"
+ *  - 25 h  → "1 day, 1 hr"
+ */
+export function formatRelativeDuration(
+  date: Date,
+  options?: FormatRelativeDurationOptions,
+): string {
+  const { includeDays = true } = options ?? {};
+
+  const diffMs = Date.now() - date.getTime();
+  const totalMinutes = Math.floor(diffMs / 60_000);
+
+  if (totalMinutes < 1) return '<1 min';
+
+  if (totalMinutes < 60) return pluralize(totalMinutes, 'min', 'mins');
+
+  if (!includeDays) {
+    const hours = Math.floor(totalMinutes / 60);
+    const remainingMinutes = totalMinutes % 60;
+    if (remainingMinutes === 0) return pluralize(hours, 'hr', 'hrs');
+    return `${pluralize(hours, 'hr', 'hrs')}, ${pluralize(remainingMinutes, 'min', 'mins')}`;
+  }
+
+  // < 24 hours — show hours + minutes
+  if (totalMinutes < 24 * 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const remainingMinutes = totalMinutes % 60;
+    if (remainingMinutes === 0) return pluralize(hours, 'hr', 'hrs');
+    return `${pluralize(hours, 'hr', 'hrs')}, ${pluralize(remainingMinutes, 'min', 'mins')}`;
+  }
+
+  // >= 24 hours — show days + hours
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const remainingHours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  if (remainingHours === 0) return pluralize(days, 'day', 'days');
+  return `${pluralize(days, 'day', 'days')}, ${pluralize(remainingHours, 'hr', 'hrs')}`;
+}
+
+// ── abbreviate a date-fns "formatDistanceToNow" string ───────────────────
+
+/**
+ * Shorten a `formatDistanceToNow(..., { addSuffix: true })` result.
+ *
+ * "less than a minute ago" → "<1 min ago"
+ * "about 2 hours ago"      → "2 hrs ago"
+ * "3 minutes ago"           → "3 mins ago"
+ */
+export function abbreviateRelativeTime(str: string): string {
+  // Handle singular special-cases first (date-fns may prefix with "about")
+  if (str.includes('1 hr') || str.includes('1 hour'))   return '1 hr ago';
+  if (str.includes('1 day'))                             return '1 day ago';
+  if (str.includes('less than a minute'))                return '<1 min ago';
+  if (str.includes('1 minute'))                          return '1 min ago';
+  if (str.includes('1 second'))                          return '1 sec ago';
+
+  // General abbreviation
+  return str
+    .replace(/^about /, '')
+    .replace(/minutes?/, 'mins')
+    .replace(/hours?/, 'hrs')
+    .replace(/seconds?/, 'secs')
+    .replace(/\bday\b/, 'days');
+}

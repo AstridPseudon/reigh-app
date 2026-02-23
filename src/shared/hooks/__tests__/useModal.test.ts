@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 // Mock dependencies
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: vi.fn(() => false),
 }));
 
@@ -19,7 +19,7 @@ vi.mock('@/shared/lib/safeArea', () => ({
 }));
 
 import { useModal, useMediumModal, useLargeModal, useExtraLargeModal } from '../useModal';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 
 const mockUseIsMobile = vi.mocked(useIsMobile);
 

@@ -16,7 +16,7 @@ vi.mock('@/shared/hooks/useUserUIState', () => ({
   }),
 }));
 
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: vi.fn().mockReturnValue(false),
   useIsTablet: vi.fn().mockReturnValue(false),
 }));

@@ -294,7 +294,7 @@ async function fetchGenerationsForProject(
   }
   const totalCount = count || 0;
 
-  // 🚀 PERFORMANCE FIX: Optimize query - select only needed fields
+  // Select only the fields needed for the gallery view
   let dataQuery = supabase
     .from('generations')
     .select(`
@@ -424,8 +424,8 @@ export function useProjectGenerations(
   );
 
 
-  // 🎯 SMART POLLING: Use DataFreshnessManager for intelligent polling decisions
-  // Can be disabled for tools with long-running tasks to prevent gallery flicker
+  // Use DataFreshnessManager for intelligent polling decisions.
+  // Can be disabled for tools with long-running tasks to prevent gallery flicker.
   const smartPollingConfig = useSmartPollingConfig(['generations', effectiveProjectId ?? '__no-project__']);
   const pollingDisabled = Boolean(options?.disablePolling);
   const pollingConfig: { refetchInterval: number | false; staleTime: number } = pollingDisabled
@@ -442,7 +442,7 @@ export function useProjectGenerations(
     gcTime: GENERATIONS_GC_TIME_MS,
     refetchOnWindowFocus: false, // Prevent double-fetches
 
-    // 🎯 SMART POLLING: Intelligent polling based on realtime health (or disabled)
+    // Intelligent polling based on realtime health (or disabled)
     ...pollingConfig,
     refetchIntervalInBackground: !pollingDisabled, // Only poll in background if polling is enabled
     refetchOnReconnect: false, // Prevent double-fetches

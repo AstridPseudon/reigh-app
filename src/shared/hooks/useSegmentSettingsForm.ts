@@ -25,7 +25,7 @@
  */
 
 import { useMemo, useRef, useCallback } from 'react';
-import { useSegmentSettings, UseSegmentSettingsOptions } from './useSegmentSettings';
+import { useSegmentSettings, UseSegmentSettingsOptions } from './segments';
 import type { SegmentSettingsFormProps } from '@/shared/components/SegmentSettingsForm';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
@@ -141,17 +141,6 @@ interface UseSegmentSettingsFormReturn {
    */
   handleEnhancePromptChange: (enabled: boolean) => void;
 
-  /**
-   * @deprecated Use effectiveEnhanceEnabled instead
-   * Persisted enhance prompt preference (undefined = not yet set)
-   */
-  persistedEnhancePromptEnabled: boolean | undefined;
-
-  /**
-   * @deprecated Use handleEnhancePromptChange instead
-   * Save the enhance prompt enabled preference to metadata.
-   */
-  saveEnhancePromptEnabled: (enabled: boolean) => Promise<boolean>;
 }
 
 interface UseEnhancePromptToggleInput {
@@ -386,12 +375,9 @@ export function useSegmentSettingsForm(
     settings,
     isLoading,
     isDirty,
-    // New consolidated API
+    // Enhance prompt consolidated API
     effectiveEnhanceEnabled,
     enhancePromptRef,
     handleEnhancePromptChange,
-    // Deprecated (kept for backwards compatibility during migration)
-    persistedEnhancePromptEnabled: enhancePromptEnabled,
-    saveEnhancePromptEnabled,
   };
 }

@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
 import { cn, formatTime } from '@/shared/lib/utils';
 import { getDisplayUrl } from '@/shared/lib/mediaUrl';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 interface StyledVideoPlayerProps {

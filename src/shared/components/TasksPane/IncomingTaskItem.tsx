@@ -1,6 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn, truncateText } from '@/shared/lib/utils';
 import { IncomingTask } from '@/shared/contexts/IncomingTasksContext';
 import { getTaskDisplayName } from '@/shared/lib/taskConfig';
 
@@ -17,10 +17,7 @@ const IncomingTaskItem: React.FC<IncomingTaskItemProps> = ({ task }) => {
   // Get display name for task type, with fallback
   const displayTaskType = getTaskDisplayName(task.taskType) || 'Task';
 
-  // Truncate label if too long
-  const truncatedLabel = task.label.length > 60
-    ? `${task.label.substring(0, 60)}...`
-    : task.label;
+  const truncatedLabel = truncateText(task.label, 60);
 
   return (
     <div

@@ -19,22 +19,6 @@ import { handleError } from '@/shared/lib/errorHandling/handleError';
 // - VideoOutputsGallery.tsx (manual preloading)
 
 // ================================================================
-// TYPES
-// ================================================================
-
-interface GenerationTaskMapping {
-  generationId: string;
-  taskId: string | null;
-  taskData?: Task; // Full task object when available
-}
-
-interface TaskGenerationMapping {
-  taskId: string;
-  generationId: string | null;
-  generationData?: GenerationRow; // Full generation object when available
-}
-
-// ================================================================
 // CORE MAPPING FUNCTIONS
 // ================================================================
 

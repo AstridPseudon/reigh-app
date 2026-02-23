@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/components/ui/button';
 import { X } from 'lucide-react';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
 import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
@@ -37,7 +37,6 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
   hasNext,
   readOnly = false,
 }) => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // For background task submission with placeholder

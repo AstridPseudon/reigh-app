@@ -11,7 +11,7 @@ export const SocialIcons: React.FC = () => {
             href="http://github.com/peteromallet/reigh"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 bg-card/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full border border-wes-vintage-gold/20 hover:border-wes-vintage-gold/40 transition-all duration-300 hover:bg-card/70 dark:hover:bg-gray-800/70 group opacity-80 hover:opacity-100 shadow-md"
+            className="p-2 bg-card/50 backdrop-blur-sm rounded-full border border-wes-vintage-gold/20 hover:border-wes-vintage-gold/40 transition-all duration-300 hover:bg-card/70 group opacity-80 hover:opacity-100 shadow-md"
           >
             <Github className="w-4 h-4 text-wes-vintage-gold/80 group-hover:text-wes-vintage-gold transition-colors duration-300" />
           </a>
@@ -19,7 +19,7 @@ export const SocialIcons: React.FC = () => {
             href="https://discord.gg/D5K2c6kfhy"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 bg-card/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full border border-wes-vintage-gold/20 hover:border-wes-vintage-gold/40 transition-all duration-300 hover:bg-card/70 dark:hover:bg-gray-800/70 group opacity-80 hover:opacity-100 shadow-md"
+            className="p-2 bg-card/50 backdrop-blur-sm rounded-full border border-wes-vintage-gold/20 hover:border-wes-vintage-gold/40 transition-all duration-300 hover:bg-card/70 group opacity-80 hover:opacity-100 shadow-md"
           >
             <MessageCircle className="w-4 h-4 text-wes-vintage-gold/80 group-hover:text-wes-vintage-gold transition-colors duration-300" />
           </a>

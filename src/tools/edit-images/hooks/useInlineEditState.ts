@@ -5,7 +5,7 @@ import {
 } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { isVideoAny } from '@/shared/lib/typeGuards';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
@@ -395,7 +395,6 @@ function buildInlineEditStateResult(params: BuildInlineEditStateResultParams) {
 
 export function useInlineEditState(
   media: GenerationRow,
-  _onClose: () => void,
   onNavigateToGeneration?: (generationId: string) => Promise<void>,
 ) {
   const env = useInlineEditEnvironment(media);

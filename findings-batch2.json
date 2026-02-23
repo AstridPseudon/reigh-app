@@ -1,0 +1,220 @@
+{
+  "batch": "Abstractions & Dependencies",
+  "assessments": {
+    "abstraction_fitness": 81,
+    "mid_level_elegance": 83,
+    "low_level_elegance": 84
+  },
+  "findings": [
+    {
+      "dimension": "abstraction_fitness",
+      "identifier": "pane-strategy-skeleton",
+      "summary": "BasePanePositionStrategy is a 15-line abstract class with a single `getBaseStyle()` helper returning `{ position: 'fixed' }`. The abstract class + interface pair adds ceremony for negligible value.",
+      "related_files": ["src/shared/hooks/pane-positioning/strategies/PanePositionStrategy.ts"],
+      "evidence": ["Lines 7-14: BasePanePositionStrategy has one concrete method returning a single CSS property, plus an abstract method that duplicates the PanePositionStrategy interface contract"],
+      "suggestion": "Collapse into the interface alone. Concrete implementations can inline `position: 'fixed'` or use a shared const. The base class adds a class hierarchy for a one-liner.",
+      "reasoning": "Abstract classes are warranted when they share meaningful logic. A single property literal doesn't justify inheritance overhead.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "abstraction_fitness",
+      "identifier": "button-group-props-passthrough",
+      "summary": "useButtonGroupProps is a 180-line hook that accepts ~25 parameters, redistributes them into four sub-objects, and wraps the result in useMemo. It's a pure redistribution layer with no transformation logic.",
+      "related_files": ["src/shared/components/MediaLightbox/hooks/useButtonGroupProps.ts"],
+      "evidence": ["Lines 54-176: Every input parameter is directly assigned to one or more output sub-objects with no computation, filtering, or derivation. The useMemo dependency array lists all 25 params."],
+      "suggestion": "Consider having the consumer directly construct the sub-objects at the call site, or defining the four prop groups as inline interfaces that callers assemble. The hook-as-redistribution pattern forces all callers to pass every parameter even when only one button group is relevant.",
+      "reasoning": "A hook that purely reshuffles inputs to outputs without deriving or transforming is ceremony. The stated goal of 'preventing prop divergence' is valid but could be achieved with shared types instead of a runtime hook.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "abstraction_fitness",
+      "identifier": "inline-edit-state-surface-area",
+      "summary": "useInlineEditState orchestrates ~10 sub-hooks and returns a ~60-field flat object via buildInlineEditStateResult. The return type surface area is very large, making it hard to know what the consumer actually needs.",
+      "related_files": ["src/tools/edit-images/hooks/useInlineEditState.ts"],
+      "evidence": ["Lines 319-394: buildInlineEditStateResult spreads out 60+ fields from env, inpainting, magic, reposition, img2img, starToggle into a flat object", "Lines 228-303: buildImageEditValueParams similarly spreads 70+ fields into a flat value"],
+      "suggestion": "Return grouped sub-objects (e.g., `{ inpainting, reposition, img2img, star, env }`) instead of flattening. The internal decomposition into useInlineEditEnvironment / useInlineEditPersistence etc. is good but the benefit is lost when everything flattens at the end.",
+      "reasoning": "A 60-field return type defeats the purpose of sub-hook decomposition. Consumers can't easily see which concern a field belongs to.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "abstraction_fitness",
+      "identifier": "get-cta-text-icon-long-params",
+      "summary": "getCtaText and getCtaIcon take 7 positional parameters each (isStandalone, installMethod, isWaitingForPrompt, isAppInstalled, promptTimedOut, isDesktopChromium, platform) instead of using a context object like getInstallMethod does.",
+      "related_files": ["src/shared/hooks/platformInstall/helpers.ts"],
+      "evidence": ["Lines 154-181: getCtaText with 7 positional params", "Lines 183-197: getCtaIcon with identical 7 positional params"],
+      "suggestion": "Accept a single context object (similar to InstallMethodContext or InstallInstructionContext already in the file) to reduce the positional parameter burden and improve readability at call sites.",
+      "reasoning": "The file already demonstrates the context-object pattern for getInstallMethod and getInstallInstructions. getCtaText/getCtaIcon are inconsistent with that established pattern.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "media-gallery-prop-sprawl",
+      "summary": "The MediaGallery component receives ~45 props, then passes large subsets to 5 child hooks and 5 child components, creating a wide integration surface. MediaGalleryGrid alone receives ~50 props.",
+      "related_files": ["src/shared/components/MediaGallery/index.tsx"],
+      "evidence": ["Lines 62-97: 45+ destructured props from MediaGalleryProps", "Lines 472-565: MediaGalleryGrid receiving ~50 distinct props"],
+      "suggestion": "Group related props into sub-interfaces (e.g., `paginationProps`, `filterProps`, `selectionProps`) and pass them as objects. The config pattern already used for GalleryConfig is a good model to extend.",
+      "reasoning": "When a component boundary has 50+ props, it's nearly impossible to maintain correct handoffs. Changes to any intermediate value risk touching many consumers.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "lightbox-hook-chain-depth",
+      "summary": "ImageLightbox chains 4 custom hook layers (environment -> sharedState -> editing -> renderModel), each passing the full result of the previous layer. This creates deep coupling where changes to any layer's return type cascade through all downstream layers.",
+      "related_files": ["src/shared/components/MediaLightbox/ImageLightbox.tsx", "src/shared/components/MediaLightbox/hooks/useVideoLightboxRenderModel.tsx"],
+      "evidence": ["Lines 733-737 in ImageLightbox.tsx: env -> sharedModel -> editModel -> renderModel chain", "Lines 145-151 in useVideoLightboxRenderModel.tsx: same 5-parameter chain with props, modeModel, env, sharedState, editModel"],
+      "suggestion": "The layered decomposition is structurally sound, but consider narrowing what each layer receives from the previous. Rather than passing the entire ReturnType, define explicit minimal interfaces for what each downstream layer actually reads.",
+      "reasoning": "When each layer takes the full output of the previous, any addition to an upstream layer's return value becomes available downstream implicitly, making dependency boundaries fuzzy.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "data-freshness-well-designed",
+      "summary": "DataFreshnessManager is a well-designed singleton with clear boundaries: realtime status tracking, graduated polling intervals, circuit breaker pattern, and subscriber notification. The API surface is minimal and the state machine is explicit.",
+      "related_files": ["src/shared/realtime/DataFreshnessManager.ts"],
+      "evidence": ["Lines 25-31: Clean internal state interface", "Lines 91-159: getPollingInterval implements graduated backoff with clear thresholds", "Lines 164-196: Circuit breaker with proper reset semantics"],
+      "suggestion": "No change needed. This is a good example of mid-level elegance: a clean integration seam between React Query polling and realtime subscriptions.",
+      "reasoning": "Positive finding. The class centralizes a cross-cutting concern with clear inputs (status changes, events) and outputs (polling intervals, diagnostics).",
+      "confidence": "high"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "generation-task-bridge-clean",
+      "summary": "generationTaskBridge.ts cleanly consolidates previously-scattered generation-to-task mapping logic into one module with batch support, cache management, and a React hook wrapper.",
+      "related_files": ["src/shared/lib/generationTaskBridge.ts"],
+      "evidence": ["Lines 8-20: Comment documents the 5 places this logic was previously duplicated", "Lines 64-84: Batch fetch with efficient Map-based result", "Lines 110-164: Preload with configurable batching and throttling"],
+      "suggestion": "Minor: the unused `GenerationTaskMapping` and `TaskGenerationMapping` interfaces (lines 25-35) could be cleaned up since they're not referenced.",
+      "reasoning": "Good consolidation pattern. The batch preloading with throttle is a thoughtful integration seam.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "debounced-settings-save-well-factored",
+      "summary": "useDebouncedSettingsSave is a well-factored sub-hook that isolates the complex debounce + flush-on-unmount + edit-version-tracking lifecycle into a single reusable unit. The statusRef pattern for reference stability is a good technique.",
+      "related_files": ["src/shared/hooks/useDebouncedSettingsSave.ts"],
+      "evidence": ["Lines 109-111: statusRef pattern to avoid recreating scheduleSave on every status transition", "Lines 160-177: Edit version tracking prevents race conditions during fast typing", "Lines 220-250: Flush-on-cleanup with proper entity matching"],
+      "suggestion": "The flushPendingSettings function (line 183) is defined as a plain function inside the hook body rather than a useCallback. This is intentional (used in cleanup where ref stability doesn't matter) but could benefit from a brief comment explaining why.",
+      "reasoning": "This hook manages genuinely complex lifecycle coordination and does it well. The edit version tracking is a nice touch for preventing stale overwrites.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "image-gen-iife-params-assembly",
+      "summary": "createImageGenerationTask uses nested IIFEs with spread to build the params object, making the data flow hard to trace. The additional_loras assembly (lines 346-406) builds the loras map twice in separate IIFEs.",
+      "related_files": ["src/shared/lib/tasks/imageGeneration.ts"],
+      "evidence": ["Lines 346-362: First IIFE builds lorasMap from params.loras and in_this_scene LoRA", "Lines 394-406: Second IIFE rebuilds the same lorasMap from params.loras, then overlays params.additional_loras", "Lines 364-382: Third IIFE for style reference settings with spread"],
+      "suggestion": "Build the task params object step-by-step with a mutable `taskParams` variable, adding fields conditionally with simple if-statements. This is clearer than nested IIFEs with conditional spread.",
+      "reasoning": "Multiple IIFEs with conditional spread obfuscate what fields end up in the final object and in what order. The duplicate lora map construction could also introduce subtle ordering bugs.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "apply-settings-service-solid",
+      "summary": "applySettingsService.ts demonstrates good low-level patterns: extractSettings returns a typed ExtractedSettings from untyped JSON, each apply* function is a small unit with clear success/error reporting, and the overall flow is easy to trace.",
+      "related_files": ["src/tools/travel-between-images/components/ShotEditor/services/applySettingsService.ts"],
+      "evidence": ["Lines 159-284: extractSettings handles all the messy JSON-to-typed extraction in one place", "Lines 288-299, 342-360: Each apply* function is 10-25 lines with consistent ApplyResult return"],
+      "suggestion": "Minor: the `applyLoRAs` function (lines 467-514) uses a setTimeout(100ms) delay as a workaround for state clearing. This is fragile and could be replaced with a sequential state update pattern.",
+      "reasoning": "Positive finding overall. The service-pattern factoring is a good example of isolating messy integration work (applying task settings) into testable units.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "updating-timestamp-dead-effect",
+      "summary": "useUpdatingTimestamp contains a useEffect (lines 81-84) that was clearly intended for debug logging but the body is now empty. It still runs on every updateTrigger change, creating unnecessary overhead.",
+      "related_files": ["src/shared/hooks/useUpdatingTimestamp.ts"],
+      "evidence": ["Lines 81-84: useEffect with empty body but non-trivial dependency array [updateTrigger, parsedDate], runs for every timestamp update for tasks less than 24 hours old"],
+      "suggestion": "Remove the empty useEffect entirely. It was debug instrumentation that was stripped but not removed.",
+      "reasoning": "Dead effects create confusion about intent and waste cycles on dependency comparison.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "processing-timestamp-good-extraction",
+      "summary": "useProcessingTimestamp demonstrates clean extraction: the shared `useLiveTimestamp` helper deduplicates the date-parsing + update-triggering pattern, while formatProcessingDuration and formatCompletedTime remain simple pure functions.",
+      "related_files": ["src/shared/hooks/useProcessingTimestamp.ts"],
+      "evidence": ["Lines 100-125: useLiveTimestamp factored as a shared internal helper", "Lines 27-52 and 57-94: Formatters are pure functions with clear edge-case handling"],
+      "suggestion": "No changes needed. This is a good example of balanced extraction.",
+      "reasoning": "Positive finding. The DRY pattern here is well-calibrated: shared mechanics are extracted, domain-specific formatting stays separate.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "lora-submission-clean-decomposition",
+      "summary": "useLoraSubmission decomposes a complex form submission flow into small, testable pure functions (getSubmissionMode, getValidationError, buildLoraMetadata, etc.) with clear data flow through each step.",
+      "related_files": ["src/shared/components/LoraSelectorModal/components/MyLorasTab/hooks/useLoraSubmission.ts"],
+      "evidence": ["Lines 67-78: getSubmissionMode returns a typed mode object", "Lines 88-132: getValidationError returns null or error string, no side effects", "Lines 298-343: buildLoraMetadata constructs the full metadata object from typed inputs"],
+      "suggestion": "Minor: the UseLoraSubmissionArgs interface (lines 12-46) has 18 fields. Some grouping (e.g., mutation handles, form state, upload state) could improve readability.",
+      "reasoning": "Good functional decomposition of what was likely a monolithic async function. Each step is independently testable.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "join-clips-page-well-structured",
+      "summary": "JoinClipsPage demonstrates good page-level decomposition: the main component is a thin orchestration layer that delegates to focused sub-hooks (useJoinClipsSettings, useClipManager, etc.) and renders via a JoinClipsPageLayout component.",
+      "related_files": ["src/tools/join-clips/pages/JoinClipsPage.tsx"],
+      "evidence": ["Lines 480-592: Main component is pure orchestration - hook calls + conditional render", "Lines 357-478: JoinClipsPageLayout receives typed props and renders the page structure", "Lines 81-151: Validation and clip pairs computed in focused hooks"],
+      "suggestion": "No significant issues. The page follows the documented tool pattern well.",
+      "reasoning": "Positive finding. The separation between data management (hooks) and presentation (layout component) is clean.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "video-lightbox-props-flat-spread",
+      "summary": "VideoLightboxProps is a flat interface with 35+ optional props covering navigation, shots, variants, segments, and feature flags. Unlike ImageLightbox which groups props into sub-interfaces (navigation, shotWorkflow, features, actions), VideoLightbox uses flat props.",
+      "related_files": ["src/shared/components/MediaLightbox/VideoLightbox.tsx", "src/shared/components/MediaLightbox/ImageLightbox.tsx"],
+      "evidence": ["Lines 38-95 in VideoLightbox.tsx: 35+ flat props", "Lines 54-98, 103-123 in ImageLightbox.tsx: Same concerns grouped into navigation, shotWorkflow, features, actions sub-interfaces"],
+      "suggestion": "Align VideoLightbox with ImageLightbox's grouped prop pattern. This would reduce the API surface and make it easier to pass the correct subset of props at each call site.",
+      "reasoning": "The two lightbox types serve parallel roles but have divergent API designs. ImageLightbox's grouped approach is better and should be the shared pattern.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "abstraction_fitness",
+      "identifier": "visibility-manager-comprehensive",
+      "summary": "VisibilityManager is a well-designed singleton that eliminates duplicated visibility listeners across the app. The subscription model with event type filtering and change detection is clean.",
+      "related_files": ["src/shared/lib/VisibilityManager.ts"],
+      "evidence": ["Lines 58-265: Complete lifecycle management with consistent state, derived signals (justBecameVisible, justHidden), and subscriber filtering", "Lines 155-184: Proper error isolation per subscriber"],
+      "suggestion": "The subscribe() method returns a string ID rather than an unsubscribe function directly. Returning a function would be more idiomatic for React useEffect cleanup patterns.",
+      "reasoning": "Positive finding. The class properly centralizes a cross-cutting concern. The subscription API is the only minor ergonomic gap.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "utils-formatTime-clean",
+      "summary": "The shared utils.ts file (cn, cropFilename, formatTime) contains only small, well-focused utility functions with clear edge-case handling. formatTime handles NaN/negative inputs and configurable millisecond precision cleanly.",
+      "related_files": ["src/shared/lib/utils.ts"],
+      "evidence": ["Lines 24-45: formatTime handles edge cases (NaN, negative), supports configurable millisecond digits, and uses a clean calculation flow"],
+      "suggestion": "No issues. This is the right size and scope for a shared utility module.",
+      "reasoning": "Positive finding. Small, focused, well-tested utility functions.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "mid_level_elegance",
+      "identifier": "tasks-hook-refetch-in-render",
+      "summary": "usePaginatedTasks calls shouldForceProcessingRefetch during render and may trigger query.refetch() as a side effect of rendering, which is an anti-pattern in React.",
+      "related_files": ["src/shared/hooks/useTasks.ts"],
+      "evidence": ["Lines 352-357: Synchronous check during render that may call query.refetch(), a side effect. The lastRefetchRef update also happens during render."],
+      "suggestion": "Move the force-refetch logic into a useEffect so it runs after render, not during. This avoids potential issues with React's concurrent mode and makes the side effect explicit.",
+      "reasoning": "Side effects during render can cause issues with StrictMode and concurrent features. The logic is sound but should be an effect.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "abstraction_fitness",
+      "identifier": "generation-mutations-well-scoped",
+      "summary": "useGenerationMutations provides a clean, well-documented set of mutation hooks with a shared factory (useDeleteFromTable) for DRY delete logic and comprehensive optimistic update handling for star toggle.",
+      "related_files": ["src/shared/hooks/useGenerationMutations.ts"],
+      "evidence": ["Lines 145-161: useDeleteFromTable factory eliminates duplication between generation and variant delete", "Lines 195-287: useToggleGenerationStar with proper optimistic updates across 3 cache types and rollback"],
+      "suggestion": "The custom event dispatch (line 281) for star updates is a cross-boundary communication mechanism that could eventually be replaced by React Query's built-in invalidation. But it's acceptable for now given the Timeline's separate data model.",
+      "reasoning": "Positive finding. Good separation of query vs mutation concerns, and the optimistic update pattern is thorough.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "low_level_elegance",
+      "identifier": "shot-image-manager-container-segment-slot-logic",
+      "summary": "The segmentSlots derivation logic in useShotImageManagerContainerState (lines 197-199) has a complex conditional that's hard to follow: it checks localShotGenPositions size and hookResult.segmentSlots length with fallbacks to props.segmentSlots.",
+      "related_files": ["src/shared/components/ShotImageManager/ShotImageManagerContainer.tsx"],
+      "evidence": ["Lines 197-199: Ternary-in-ternary deriving segmentSlots from three possible sources based on two conditions"],
+      "suggestion": "Extract this into a named helper function like `resolveSegmentSlots(localPositions, hookResult, propsSlots)` with explicit priority documentation.",
+      "reasoning": "Nested ternaries with fallback logic are hard to reason about and easy to break when adding new conditions.",
+      "confidence": "medium"
+    }
+  ]
+}

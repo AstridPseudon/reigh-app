@@ -141,6 +141,23 @@ export interface BatchImageGenerationTaskParams extends Partial<ReferenceApiPara
 }
 
 /**
+ * Validates an array of LoRA configs.
+ * Shared by single and batch image generation validation.
+ * @throws TaskValidationError if any LoRA is invalid
+ */
+function validateLoras(loras: PathLoraConfig[] | undefined): void {
+  if (!loras || loras.length === 0) return;
+  loras.forEach((lora, index) => {
+    if (!lora.path || lora.path.trim() === '') {
+      throw new TaskValidationError(`LoRA ${index + 1}: path is required`, `loras[${index}].path`);
+    }
+    if (typeof lora.strength !== 'number' || lora.strength < 0 || lora.strength > 2) {
+      throw new TaskValidationError(`LoRA ${index + 1}: strength must be a number between 0 and 2`, `loras[${index}].strength`);
+    }
+  });
+}
+
+/**
  * Validates image generation task parameters
  * @param params - Parameters to validate
  * @throws TaskValidationError if validation fails
@@ -157,16 +174,7 @@ function validateImageGenerationParams(params: ImageGenerationTaskParams): void 
     throw new TaskValidationError('Seed must be a 32-bit positive integer', 'seed');
   }
 
-  if (params.loras && params.loras.length > 0) {
-    params.loras.forEach((lora, index) => {
-      if (!lora.path || lora.path.trim() === '') {
-        throw new TaskValidationError(`LoRA ${index + 1}: path is required`, `loras[${index}].path`);
-      }
-      if (typeof lora.strength !== 'number' || lora.strength < 0 || lora.strength > 2) {
-        throw new TaskValidationError(`LoRA ${index + 1}: strength must be a number between 0 and 2`, `loras[${index}].strength`);
-      }
-    });
-  }
+  validateLoras(params.loras);
 }
 
 /**
@@ -191,17 +199,7 @@ function validateBatchImageGenerationParams(params: BatchImageGenerationTaskPara
     }
   });
 
-  // Validate loras if provided (same as single image)
-  if (params.loras && params.loras.length > 0) {
-    params.loras.forEach((lora, index) => {
-      if (!lora.path || lora.path.trim() === '') {
-        throw new TaskValidationError(`LoRA ${index + 1}: path is required`, `loras[${index}].path`);
-      }
-      if (typeof lora.strength !== 'number' || lora.strength < 0 || lora.strength > 2) {
-        throw new TaskValidationError(`LoRA ${index + 1}: strength must be a number between 0 and 2`, `loras[${index}].strength`);
-      }
-    });
-  }
+  validateLoras(params.loras);
 }
 
 // Removed buildImageGenerationPayload function - now storing all data at top level to avoid duplication
@@ -225,35 +223,15 @@ interface CalculateTaskResolutionOptions {
 }
 
 /**
- * Calculates the final resolution for image generation tasks
- * Applies user-configurable scaling for supported image generation models
+ * Calculates the final resolution for image generation tasks.
+ * Applies user-configurable scaling for supported image generation models.
  * (internal use only - not exported)
  * @param options - Resolution calculation options
  * @returns Promise resolving to the final resolution string
  */
 async function calculateTaskResolution(
   options: CalculateTaskResolutionOptions
-): Promise<string>;
-
-/**
- * @deprecated Use the options object form instead
- */
-async function calculateTaskResolution(
-  projectId: string,
-  customResolution?: string,
-  modelName?: string
-): Promise<string>;
-
-async function calculateTaskResolution(
-  projectIdOrOptions: string | CalculateTaskResolutionOptions,
-  customResolution?: string,
-  modelName?: string
 ): Promise<string> {
-  // Handle both old and new API
-  const options: CalculateTaskResolutionOptions = typeof projectIdOrOptions === 'string'
-    ? { projectId: projectIdOrOptions, customResolution, modelName }
-    : projectIdOrOptions;
-
   const { projectId, resolution_scale, resolution_mode, custom_aspect_ratio } = options;
 
   // 1. If explicit custom resolution is provided, use it as-is (assumes it's already final)
@@ -302,11 +280,11 @@ async function createImageGenerationTask(params: ImageGenerationTaskParams): Pro
     validateImageGenerationParams(params);
 
     // 2. Calculate final resolution (handles Qwen scaling automatically)
-    const finalResolution = await calculateTaskResolution(
-      params.project_id,
-      params.resolution,
-      params.model_name
-    );
+    const finalResolution = await calculateTaskResolution({
+      projectId: params.project_id,
+      customResolution: params.resolution,
+      modelName: params.model_name,
+    });
 
     // 3. Determine task type based on model and whether there's a style reference
     const taskType = (() => {
@@ -331,69 +309,64 @@ async function createImageGenerationTask(params: ImageGenerationTaskParams): Pro
     // 4. Generate task ID for orchestrator payload (stored in params, not as DB ID)
     const taskId = generateTaskId(taskType);
 
-    // 5. Create task using unified create-task function (let DB auto-generate UUID)
+    // 5. Build intermediate params before assembling the final object
+
+    // Build LoRA map: user-selected LoRAs + "in this scene" LoRA for Qwen models
+    const lorasMap: Record<string, number> = {};
+    if (params.loras?.length) {
+      params.loras.forEach(lora => {
+        lorasMap[lora.path] = lora.strength;
+      });
+    }
+    if (isQwenModel && params.in_this_scene && params.in_this_scene_strength && params.in_this_scene_strength > 0) {
+      lorasMap['https://huggingface.co/peteromallet/random_junk/resolve/main/in_scene_different_object_000010500.safetensors'] = params.in_this_scene_strength;
+    }
+    const lorasParam = Object.keys(lorasMap).length > 0 ? { additional_loras: lorasMap } : {};
+
+    // Build style reference settings filtered by reference mode (Qwen models only)
+    let referenceParams: Record<string, unknown> = {};
+    if (isQwenModel && params.style_reference_image) {
+      const filteredSettings = filterReferenceSettingsByMode(params.reference_mode, {
+        style_reference_strength: params.style_reference_strength ?? 1.0,
+        subject_strength: params.subject_strength ?? 0.0,
+        subject_description: params.subject_description,
+        in_this_scene: params.in_this_scene,
+        in_this_scene_strength: params.in_this_scene_strength
+      });
+      referenceParams = {
+        style_reference_image: params.style_reference_image,
+        subject_reference_image: params.subject_reference_image || params.style_reference_image,
+        ...filteredSettings,
+        ...(filteredSettings.in_this_scene_strength !== undefined && {
+          scene_reference_strength: filteredSettings.in_this_scene_strength
+        })
+      };
+    }
+
+    // Merge per-phase LoRA overrides with base LoRA map if present
+    const hiresLorasOverride = params.additional_loras && Object.keys(params.additional_loras).length > 0
+      ? { additional_loras: { ...lorasMap, ...params.additional_loras } }
+      : {};
+
+    // 6. Create task using unified create-task function (let DB auto-generate UUID)
     const taskParamsToSend = {
-      // Store all task data at top level - no duplication
       task_id: taskId,
       model: params.model_name ?? "optimised-t2i",
       prompt: params.prompt,
       resolution: finalResolution,
       seed: params.seed ?? 11111,
       negative_prompt: params.negative_prompt,
-      // Use provided steps value if available, otherwise use default of 12
       steps: params.steps ?? 12,
-      // Include LoRAs if present, plus the "in this scene" LoRA if enabled
-      ...(() => {
-        const lorasMap: Record<string, number> = {};
-        
-        // Add user-selected LoRAs
-        if (params.loras?.length) {
-          params.loras.forEach(lora => {
-            lorasMap[lora.path] = lora.strength;
-          });
-        }
-        
-        // Add "in this scene" LoRA if enabled for Qwen models
-        if (isQwenModel && params.in_this_scene && params.in_this_scene_strength && params.in_this_scene_strength > 0) {
-          lorasMap['https://huggingface.co/peteromallet/random_junk/resolve/main/in_scene_different_object_000010500.safetensors'] = params.in_this_scene_strength;
-        }
-        
-        return Object.keys(lorasMap).length > 0 ? { additional_loras: lorasMap } : {};
-      })(),
-      // Include style reference for Qwen.Image - filtered by reference mode to only include relevant settings
-      ...(isQwenModel && params.style_reference_image && (() => {
-        const filteredSettings = filterReferenceSettingsByMode(params.reference_mode, {
-          style_reference_strength: params.style_reference_strength ?? 1.0,
-          subject_strength: params.subject_strength ?? 0.0,
-          subject_description: params.subject_description,
-          in_this_scene: params.in_this_scene,
-          in_this_scene_strength: params.in_this_scene_strength
-        });
-        
-        return {
-          style_reference_image: params.style_reference_image,
-          subject_reference_image: params.subject_reference_image || params.style_reference_image, // Fallback to style image
-          ...filteredSettings,
-          // Add scene_reference_strength if in_this_scene_strength was included in filtered settings
-          ...(filteredSettings.in_this_scene_strength !== undefined && {
-            scene_reference_strength: filteredSettings.in_this_scene_strength
-          })
-        };
-      })()),
-      // Include shot association
+      ...lorasParam,
+      ...referenceParams,
       ...(params.shot_id ? { shot_id: params.shot_id } : {}),
-      // Make new image generations unpositioned by default
       add_in_position: false,
-      // Two-pass hires fix settings
       ...(params.hires_scale !== undefined && { hires_scale: params.hires_scale }),
       ...(params.hires_steps !== undefined && { hires_steps: params.hires_steps }),
       ...(params.hires_denoise !== undefined && { hires_denoise: params.hires_denoise }),
       ...(params.lightning_lora_strength_phase_1 !== undefined && { lightning_lora_strength_phase_1: params.lightning_lora_strength_phase_1 }),
       ...(params.lightning_lora_strength_phase_2 !== undefined && { lightning_lora_strength_phase_2: params.lightning_lora_strength_phase_2 }),
-      // Per-phase LoRA strengths for hires fix (overrides additional_loras if provided)
-      ...(params.additional_loras && Object.keys(params.additional_loras).length > 0 && {
-        additional_loras: params.additional_loras
-      }),
+      ...hiresLorasOverride,
     };
     
     const result = await createTask({
@@ -433,7 +406,24 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
       custom_aspect_ratio: params.custom_aspect_ratio,
     });
 
-    // 3. Generate individual task parameters for each image
+    // 3. Build reference settings once for all tasks (filtered by reference mode)
+    let batchReferenceParams: Record<string, unknown> = {};
+    if (params.style_reference_image) {
+      const filteredSettings = filterReferenceSettingsByMode(params.reference_mode, {
+        style_reference_strength: params.style_reference_strength,
+        subject_strength: params.subject_strength,
+        subject_description: params.subject_description,
+        in_this_scene: params.in_this_scene,
+        in_this_scene_strength: params.in_this_scene_strength
+      });
+      batchReferenceParams = {
+        style_reference_image: params.style_reference_image,
+        subject_reference_image: params.subject_reference_image || params.style_reference_image,
+        ...filteredSettings
+      };
+    }
+
+    // 4. Generate individual task parameters for each image
     const taskParams = params.prompts.flatMap((promptEntry) => {
       return Array.from({ length: params.imagesPerPrompt }, () => {
         // Generate a random seed for each task to ensure diverse outputs (32-bit signed integer range)
@@ -442,30 +432,14 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
         return {
           project_id: params.project_id,
           prompt: promptEntry.fullPrompt,
-          resolution: finalResolution, // Pass the pre-calculated resolution
+          resolution: finalResolution,
           seed,
           loras: params.loras,
           shot_id: params.shot_id,
           model_name: params.model_name,
-          steps: params.steps, // Pass through the steps parameter
-          reference_mode: params.reference_mode, // Pass reference mode for filtering
-          // Include style reference for Qwen.Image model - filtered by reference mode
-          ...(params.style_reference_image && (() => {
-            const filteredSettings = filterReferenceSettingsByMode(params.reference_mode, {
-              style_reference_strength: params.style_reference_strength,
-              subject_strength: params.subject_strength,
-              subject_description: params.subject_description,
-              in_this_scene: params.in_this_scene,
-              in_this_scene_strength: params.in_this_scene_strength
-            });
-            
-            return {
-              style_reference_image: params.style_reference_image,
-              subject_reference_image: params.subject_reference_image || params.style_reference_image,
-              ...filteredSettings
-            };
-          })()),
-          // Two-pass hires fix settings
+          steps: params.steps,
+          reference_mode: params.reference_mode,
+          ...batchReferenceParams,
           ...(params.hires_scale !== undefined && { hires_scale: params.hires_scale }),
           ...(params.hires_steps !== undefined && { hires_steps: params.hires_steps }),
           ...(params.hires_denoise !== undefined && { hires_denoise: params.hires_denoise }),
@@ -476,12 +450,12 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
       });
     });
 
-    // 4. Create all tasks in parallel (matching original behavior)
+    // 5. Create all tasks in parallel (matching original behavior)
     const results = await Promise.allSettled(
       taskParams.map(taskParam => createImageGenerationTask(taskParam))
     );
 
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       results.forEach((r, i) => {
         if (r.status === 'rejected') {
           console.error(`[createBatch] task ${i} FAILED:`, r.reason);
@@ -492,7 +466,7 @@ export async function createBatchImageGenerationTasks(params: BatchImageGenerati
     return processBatchResults(results, 'createBatchImageGenerationTasks');
 
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('[createBatch] outer catch:', error);
     }
     handleError(error, { context: 'BatchImageGeneration', showToast: false });

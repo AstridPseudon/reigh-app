@@ -8,12 +8,7 @@
  */
 
 import React from 'react';
-
-export interface TrimState {
-  startTrim: number;
-  endTrim: number;
-  videoDuration: number;
-}
+import type { TrimState } from '@/shared/types/videoTrim';
 
 interface VideoTrimModeDisplayProps {
   /** Reference to the video element */

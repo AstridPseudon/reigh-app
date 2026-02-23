@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { useTimestampUpdater } from './useTimestampUpdater';
+import { abbreviateRelativeTime } from '@/shared/lib/timeFormatting';
 
 /**
  * Simple hook that returns a live-updating formatted timestamp string
@@ -16,41 +17,6 @@ interface UseUpdatingTimestampOptions {
   disabled?: boolean;
 }
 
-// Simple, direct abbreviation function
-const defaultAbbreviate = (str: string) => {
-  // Handle all variations of "1 hour" - remove "about" and use singular
-  if (str.includes('1 hr') || str.includes('1 hour')) {
-    return '1 hr ago';
-  }
-  
-  // Handle all variations of "1 day" - remove "about" and use singular  
-  if (str.includes('1 day')) {
-    return '1 day ago';
-  }
-  
-  // Handle "less than a minute ago"
-  if (str.includes('less than a minute')) {
-    return '<1 min ago';
-  }
-  
-  // Handle other single units
-  if (str.includes('1 minute')) {
-    return '1 min ago';
-  }
-  
-  if (str.includes('1 second')) {
-    return '1 sec ago';
-  }
-  
-  // Handle plurals - remove "about" prefix and abbreviate
-  return str
-    .replace(/^about /, '') // Remove "about" prefix
-    .replace(/minutes?/, 'mins')
-    .replace(/hours?/, 'hrs')
-    .replace(/seconds?/, 'secs')
-    .replace(/days?/, 'days');
-};
-
 /**
  * Hook that returns a formatted, live-updating timestamp string
  * 
@@ -60,7 +26,7 @@ const defaultAbbreviate = (str: string) => {
  */
 export function useUpdatingTimestamp({ 
   date, 
-  abbreviate = defaultAbbreviate,
+  abbreviate = abbreviateRelativeTime,
   disabled = false 
 }: UseUpdatingTimestampOptions = {}) {
   
@@ -76,12 +42,6 @@ export function useUpdatingTimestamp({
     disabled,
     isVisible: true // Explicitly set to ensure TaskPane timestamps update
   });
-  
-  // Debug logging for task timestamps
-  React.useEffect(() => {
-    if (parsedDate && parsedDate.getTime() > Date.now() - 24 * 60 * 60 * 1000) { // Only log for recent tasks
-    }
-  }, [updateTrigger, parsedDate]);
   
   // Format timestamp with live updates
   const formattedTime = useMemo(() => {
@@ -103,6 +63,6 @@ export function useUpdatingTimestamp({
 export function useTaskTimestamp(date?: string | Date | null) {
   return useUpdatingTimestamp({ 
     date,
-    abbreviate: defaultAbbreviate 
+    abbreviate: abbreviateRelativeTime
   });
 }

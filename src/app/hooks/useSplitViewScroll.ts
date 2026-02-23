@@ -1,4 +1,5 @@
-import { useRef, useEffect, useLayoutEffect } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 export function useSplitViewScroll(isMobileSplitView: boolean) {
   const splitViewWrapperRef = useRef<HTMLDivElement>(null);
@@ -58,21 +59,16 @@ export function useSplitViewScroll(isMobileSplitView: boolean) {
   }, [isMobileSplitView]);
 
   // Listen for global scrollToTop event (for cases where window.scrollTo doesn't work, e.g. split view)
-  useEffect(() => {
-    const handleScrollToTop = (e: CustomEvent<{ behavior?: ScrollBehavior }>) => {
-      if (isMobileSplitView && splitViewWrapperRef.current) {
-        splitViewWrapperRef.current.scrollTo({
-          top: 0,
-          behavior: e.detail?.behavior || 'auto'
-        });
-      }
-    };
-
-    window.addEventListener('app:scrollToTop', handleScrollToTop as EventListener);
-    return () => {
-      window.removeEventListener('app:scrollToTop', handleScrollToTop as EventListener);
-    };
+  const handleScrollToTop = useCallback((detail: { behavior?: ScrollBehavior }) => {
+    if (isMobileSplitView && splitViewWrapperRef.current) {
+      splitViewWrapperRef.current.scrollTo({
+        top: 0,
+        behavior: detail?.behavior || 'auto'
+      });
+    }
   }, [isMobileSplitView]);
+
+  useAppEventListener('app:scrollToTop', handleScrollToTop);
 
   return { splitViewWrapperRef };
 }

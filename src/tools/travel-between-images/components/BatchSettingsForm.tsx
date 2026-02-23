@@ -8,7 +8,7 @@ import { Info, Eraser, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { CollapsibleSection } from "@/shared/components/ui/collapsible-section";
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { Project } from '@/types/project';
 import { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';

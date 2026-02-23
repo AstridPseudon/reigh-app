@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { hasLoadedImage, getImageElement } from '@/shared/lib/preloading';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 /**
  * Check if the browser already has the image decoded/cached.
@@ -95,28 +96,23 @@ export const useThumbnailLoader = (video: GenerationRow) => {
   }, [currentCacheStatus.isCurrentlyCached, thumbnailLoaded, video.thumbUrl]);
 
   // Listen for global cache updates (from useVideoGalleryPreloader)
-  useEffect(() => {
+  const handleCacheUpdate = useCallback((detail: { projectId: string; updatedUrls: string[] }) => {
     const thumbUrl = video.thumbUrl;
+    if (!thumbUrl) return;
 
-    const handleCacheUpdate = (event: Event) => {
-      if (!thumbUrl) return;
+    const updatedUrls = Array.isArray(detail?.updatedUrls) ? detail.updatedUrls : [];
+    if (!updatedUrls.includes(thumbUrl)) return;
 
-      const detail = (event as CustomEvent).detail;
-      const updatedUrls = Array.isArray(detail?.updatedUrls) ? detail.updatedUrls as string[] : [];
-      if (!updatedUrls.includes(thumbUrl)) return;
+    const inPreloaderCache = hasLoadedImage(thumbUrl);
+    const inBrowserCacheResult = isInBrowserCache(thumbUrl);
+    const isCached = inPreloaderCache || inBrowserCacheResult;
 
-      const inPreloaderCache = hasLoadedImage(thumbUrl);
-      const inBrowserCache = isInBrowserCache(thumbUrl);
-      const isCached = inPreloaderCache || inBrowserCache;
-
-      if (isCached && !thumbnailLoaded) {
-        setThumbnailLoaded(true);
-      }
-    };
-
-    window.addEventListener('videogallery-cache-updated', handleCacheUpdate);
-    return () => window.removeEventListener('videogallery-cache-updated', handleCacheUpdate);
+    if (isCached && !thumbnailLoaded) {
+      setThumbnailLoaded(true);
+    }
   }, [video.thumbUrl, thumbnailLoaded]);
+
+  useAppEventListener('videogallery-cache-updated', handleCacheUpdate);
 
   return {
     thumbnailLoaded,

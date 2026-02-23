@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { GenerationRow } from '@/types/shots';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 interface UsePendingFramesProps {
   shotId: string;
@@ -37,39 +38,29 @@ export function usePendingFrames({
   const [isInternalDropProcessing, setIsInternalDropProcessing] = useState(false);
 
   // Listen for global pending add events (from GenerationsPane)
-  useEffect(() => {
-    const handlePendingAdd = (event: CustomEvent) => {
-      const { frame, shotId: targetShotId } = event.detail;
+  const handlePendingAdd = useCallback((detail: { frame: number; shotId?: string }) => {
+    const { frame, shotId: targetShotId } = detail;
 
-      // Only handle if this is for the current shot
-      if (targetShotId && targetShotId !== shotId) {
-        return;
-      }
+    // Only handle if this is for the current shot
+    if (targetShotId && targetShotId !== shotId) {
+      return;
+    }
 
-      setPendingExternalAddFrame(frame);
-    };
-
-    window.addEventListener('timeline:pending-add', handlePendingAdd as EventListener);
-    return () => {
-      window.removeEventListener('timeline:pending-add', handlePendingAdd as EventListener);
-    };
+    setPendingExternalAddFrame(frame);
   }, [shotId]);
+
+  useAppEventListener('timeline:pending-add', handlePendingAdd);
 
   // Listen for duplicate complete event to get the new item's ID
-  useEffect(() => {
-    const handleDuplicateComplete = (event: CustomEvent) => {
-      const { shotId: targetShotId, newItemId } = event.detail;
-      if (!targetShotId || targetShotId === shotId) {
-        // Store the ID so we can clear skeleton when this item appears
-        setPendingDuplicateId(newItemId);
-      }
-    };
-
-    window.addEventListener('timeline:duplicate-complete', handleDuplicateComplete as EventListener);
-    return () => {
-      window.removeEventListener('timeline:duplicate-complete', handleDuplicateComplete as EventListener);
-    };
+  const handleDuplicateComplete = useCallback((detail: { shotId: string; newItemId: string }) => {
+    const { shotId: targetShotId, newItemId } = detail;
+    if (!targetShotId || targetShotId === shotId) {
+      // Store the ID so we can clear skeleton when this item appears
+      setPendingDuplicateId(newItemId);
+    }
   }, [shotId]);
+
+  useAppEventListener('timeline:duplicate-complete', handleDuplicateComplete);
 
   // Clear pending drop frame when upload finishes
   useEffect(() => {

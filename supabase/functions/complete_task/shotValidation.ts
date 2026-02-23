@@ -3,6 +3,8 @@
  * Validates shot_id references and removes invalid ones from task params
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+
 // ===== TYPES =====
 
 interface ShotValidationResult {
@@ -93,7 +95,7 @@ function isValidUuid(str: string): boolean {
  * @returns Updated params if changes needed, or original params if valid
  */
 export async function validateAndCleanupShotId(
-  supabase: unknown,
+  supabase: SupabaseClient,
   params: Record<string, unknown>,
   toolType: string | null
 ): Promise<ShotValidationResult> {

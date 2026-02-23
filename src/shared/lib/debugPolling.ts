@@ -21,13 +21,7 @@ export const debugPolling = {
         .limit(1);
         
       if (error) {
-        console.error('[PollingDebug] Connection test failed:', {
-          error,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorDetails: error.details,
-          errorHint: error.hint
-        });
+        console.error('[PollingDebug] Connection test failed:', error);
         return false;
       }
       
@@ -54,14 +48,7 @@ export const debugPolling = {
       const { error } = await processingQuery;
       
       if (error) {
-        console.error('[PollingDebug] Processing query failed:', {
-          error,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorDetails: error.details,
-          errorHint: error.hint,
-          sql: processingQuery.toString ? processingQuery.toString() : 'N/A'
-        });
+        console.error('[PollingDebug] Processing query failed:', error);
         return false;
       }
       
@@ -70,12 +57,6 @@ export const debugPolling = {
       console.error('[PollingDebug] Query test exception:', err);
       return false;
     }
-  },
-
-  /**
-   * Check current page visibility state
-   */
-  checkPageVisibility() {
   },
 
   /**
@@ -101,8 +82,6 @@ export const debugPolling = {
    * Full diagnostic
    */
   async runFullDiagnostic(projectId: string, queryClient?: QueryClient) {
-    
-    this.checkPageVisibility();
     
     const connectionOk = await this.testConnection(projectId);
     const queryOk = await this.testTaskStatusQuery(projectId);

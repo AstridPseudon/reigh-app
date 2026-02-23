@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { Shot } from '@/types/shots';
 import { TOOL_ROUTES, travelShotUrl } from '@/shared/lib/toolConstants';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface ShotNavigationOptions {
   /** Whether to scroll to top after navigation */
@@ -45,7 +46,7 @@ function performScroll(options: Required<ShotNavigationOptions>) {
     const scrollFn = () => {
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: options.scrollBehavior });
-        window.dispatchEvent(new CustomEvent('app:scrollToTop', { detail: { behavior: options.scrollBehavior } }));
+        dispatchAppEvent('app:scrollToTop', { behavior: options.scrollBehavior });
       });
     };
 
@@ -59,7 +60,7 @@ function performScroll(options: Required<ShotNavigationOptions>) {
 
 function closeMobilePanes(options: Required<ShotNavigationOptions>, isMobile: boolean) {
   if (options.closeMobilePanes && isMobile) {
-    window.dispatchEvent(new CustomEvent('mobilePaneOpen', { detail: { side: null } }));
+    dispatchAppEvent('mobilePaneOpen', { side: null });
   }
 }
 
@@ -68,10 +69,9 @@ export const useShotNavigation = (): ShotNavigationResult => {
   const { setCurrentShotId } = useCurrentShot();
   const isMobile = useIsMobile();
 
-  // 🎯 PERF FIX: Refs for all dependencies so callbacks are stable (empty deps).
-  // Without this, every component consuming useShotNavigation gets new function
-  // references on every render, breaking React.memo on downstream components
-  // and cascading re-renders through the entire shot editor tree.
+  // Refs for all dependencies so callbacks are stable (empty deps).
+  // Without this, every consumer gets new function references on every render,
+  // breaking React.memo on downstream components and cascading re-renders.
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
   const setCurrentShotIdRef = useRef(setCurrentShotId);

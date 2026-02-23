@@ -1,10 +1,6 @@
 import { Film, Scissors, Sparkles } from 'lucide-react';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
-import {
-  hasDifferentSourceImages,
-  type CurrentSegmentImagesData,
-} from './variantSourceImages';
 
 const VARIANT_ICON_BY_TYPE: Record<string, typeof Film> = {
   trimmed: Scissors,
@@ -78,7 +74,5 @@ export const hasLoadableSettings = (variant: GenerationVariant): boolean => {
 
   return !!params.prompt || !!params.orchestrator_details;
 };
-export { hasDifferentSourceImages };
-export type { CurrentSegmentImagesData };
 
 export type RelationshipFilter = 'all' | 'parents' | 'children' | 'starred';

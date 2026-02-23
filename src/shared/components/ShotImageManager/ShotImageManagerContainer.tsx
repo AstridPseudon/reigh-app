@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GenerationRow } from '@/types/shots';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import { usePendingSegmentTasks } from '@/shared/hooks/usePendingSegmentTasks';
 import { useSegmentOutputsForShot } from '@/shared/hooks/segments';

@@ -69,7 +69,10 @@ export function useResourceMigration(input: ResourceMigrationInput): void {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          console.error('[RefMigration] ❌ Not authenticated');
+          handleError(new Error('Not authenticated during reference migration'), {
+            context: 'useResourceMigration',
+            showToast: false,
+          });
           return;
         }
 

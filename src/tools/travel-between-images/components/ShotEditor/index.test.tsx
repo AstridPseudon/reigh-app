@@ -14,7 +14,7 @@ vi.mock('@/shared/hooks/useShotCreation', () => ({
   useShotCreation: () => ({ createShot: vi.fn() }),
 }));
 
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: () => false,
   useDeviceInfo: () => ({ isPhone: false, mobileColumns: 3 }),
 }));
@@ -60,16 +60,20 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('../../hooks/useSegmentOutputsForShot', () => ({
-  useSegmentOutputsForShot: () => ({
-    segmentSlots: [],
-    segments: [],
-    selectedParent: null,
-    parentGenerations: [],
-    segmentProgress: {},
-    isLoading: false,
-  }),
-}));
+vi.mock('@/shared/hooks/segments', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/hooks/segments')>();
+  return {
+    ...actual,
+    useSegmentOutputsForShot: () => ({
+      segmentSlots: [],
+      segments: [],
+      selectedParent: null,
+      parentGenerations: [],
+      segmentProgress: {},
+      isLoading: false,
+    }),
+  };
+});
 
 vi.mock('../../hooks/useDemoteOrphanedVariants', () => ({
   useDemoteOrphanedVariants: () => ({ demoteOrphanedVariants: vi.fn() }),

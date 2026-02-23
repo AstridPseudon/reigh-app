@@ -12,13 +12,14 @@
  * - extractSegmentSpecificParams: Extract per-segment params from orchestrator arrays
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { TASK_TYPES, VARIANT_TYPE_DEFAULT } from './constants.ts';
 import { extractBasedOn, extractShotAndPosition, buildGenerationParams } from './params.ts';
 import { insertGeneration, createVariant, findSourceGenerationByImageUrl, extractFromArray } from './generation-core.ts';
 import { createVariantOnParent, getChildVariantViewedAt } from './generation-parent.ts';
 
 interface HandlerContext {
-  supabase: unknown;
+  supabase: SupabaseClient;
   taskId: string;
   taskData: unknown;
   publicUrl: string;
@@ -174,7 +175,7 @@ export async function createSingleItemVariant(
  * Find existing generation at a position (for variant creation)
  */
 export async function findExistingGenerationAtPosition(
-  supabase: unknown,
+  supabase: SupabaseClient,
   parentGenerationId: string,
   childOrder: number,
   pairShotGenId?: string

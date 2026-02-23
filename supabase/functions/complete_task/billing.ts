@@ -4,6 +4,7 @@
  * Re-exports shared billing logic and adds complete_task-specific helpers.
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import {
   getSubTaskOrchestratorId,
   triggerCostCalculation,
@@ -22,7 +23,7 @@ export { triggerCostCalculation };
  * @param taskId - The task ID to calculate cost for
  */
 export async function triggerCostCalculationIfNotSubTask(
-  supabase: unknown,
+  supabase: SupabaseClient,
   supabaseUrl: string,
   serviceKey: string,
   taskId: string

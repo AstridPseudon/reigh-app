@@ -1,5 +1,6 @@
 import type {
   Browser,
+  CtaContext,
   DeviceType,
   InstallMethod,
   InstallMethodContext,
@@ -94,14 +95,6 @@ export const getInstallMethod = (context: InstallMethodContext): InstallMethod =
   if (platform === 'ios' && browser === 'chrome') return 'safari-home-screen';
   if (platform === 'ios' && browser === 'edge') return 'safari-home-screen';
 
-  if (browser === 'firefox' && isDesktopPlatform(platform)) {
-    return 'none';
-  }
-
-  if (isDesktopChromium) {
-    return 'none';
-  }
-
   return 'none';
 };
 
@@ -159,20 +152,12 @@ export const getInstallInstructions = (context: InstallInstructionContext): stri
   }
 };
 
-export const getCtaText = (
-  isStandalone: boolean,
-  installMethod: InstallMethod,
-  isWaitingForPrompt: boolean,
-  isAppInstalled: boolean,
-  promptTimedOut: boolean,
-  isDesktopChromium: boolean,
-  platform: Platform,
-): string => {
-  if (isStandalone) return 'Sign in with Discord';
-  if (isAppInstalled || (promptTimedOut && isDesktopChromium)) return 'Open Reigh App';
-  if (installMethod === 'none' && !isWaitingForPrompt) return 'Sign in with Discord';
+export const getCtaText = (ctx: CtaContext): string => {
+  if (ctx.isStandalone) return 'Sign in with Discord';
+  if (ctx.isAppInstalled || (ctx.promptTimedOut && ctx.isDesktopChromium)) return 'Open Reigh App';
+  if (ctx.installMethod === 'none' && !ctx.isWaitingForPrompt) return 'Sign in with Discord';
 
-  switch (platform) {
+  switch (ctx.platform) {
     case 'mac':
       return 'Install for Mac';
     case 'windows':
@@ -188,18 +173,10 @@ export const getCtaText = (
   }
 };
 
-export const getCtaIcon = (
-  isStandalone: boolean,
-  installMethod: InstallMethod,
-  isWaitingForPrompt: boolean,
-  isAppInstalled: boolean,
-  promptTimedOut: boolean,
-  isDesktopChromium: boolean,
-  platform: Platform,
-): 'download' | 'plus' | 'discord' | 'external' => {
-  if (isStandalone) return 'discord';
-  if (isAppInstalled || (promptTimedOut && isDesktopChromium)) return 'external';
-  if (installMethod === 'none' && !isWaitingForPrompt) return 'discord';
-  if (platform === 'ios') return 'plus';
+export const getCtaIcon = (ctx: CtaContext): 'download' | 'plus' | 'discord' | 'external' => {
+  if (ctx.isStandalone) return 'discord';
+  if (ctx.isAppInstalled || (ctx.promptTimedOut && ctx.isDesktopChromium)) return 'external';
+  if (ctx.installMethod === 'none' && !ctx.isWaitingForPrompt) return 'discord';
+  if (ctx.platform === 'ios') return 'plus';
   return 'download';
 };

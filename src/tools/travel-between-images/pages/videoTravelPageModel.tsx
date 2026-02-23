@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { ShotListView } from './ShotListView';
 import { ShotEditorView, ShotEditorLoading, ShotEditorNotFound } from './ShotEditorView';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 export type ShotEditorViewProps = React.ComponentProps<typeof ShotEditorView>;
 export type ShotListViewProps = React.ComponentProps<typeof ShotListView>;
@@ -99,7 +100,7 @@ export function useScrollToTopOnHashChange(hash: string) {
     // Does NOT fire for hash→hash changes (chevron navigation handles its own scroll).
     if ((isFirstRender && !hasHash) || (!isFirstRender && hasHash !== hadHash)) {
       window.scrollTo(0, 0);
-      window.dispatchEvent(new CustomEvent('app:scrollToTop', { detail: { behavior: 'auto' } }));
+      dispatchAppEvent('app:scrollToTop', { behavior: 'auto' });
     }
 
     prevHashRef.current = hash;

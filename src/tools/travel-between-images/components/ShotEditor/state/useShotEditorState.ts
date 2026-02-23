@@ -166,9 +166,9 @@ export const useShotEditorState = (): { state: ShotEditorState; actions: ShotEdi
     dispatch({ type: 'SET_HAS_INITIALIZED_UI_SETTINGS', payload: value });
   }, []);
 
-  // 🎯 PERF FIX: Memoize actions object — all callbacks have [] deps so this
-  // object is truly stable. Without memoization, a new actions object every render
-  // causes ShotSettingsContext value to change → all consumers re-render.
+  // Memoize actions object — all callbacks have [] deps so this object is truly
+  // stable. Without memoization, a new actions object every render causes the
+  // ShotSettingsContext value to change and all consumers to re-render.
   const actions = useMemo<ShotEditorActions>(() => ({
     setUploadingImage,
     setUploadProgress,

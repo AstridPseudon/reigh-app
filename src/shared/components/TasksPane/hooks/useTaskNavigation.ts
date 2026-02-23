@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { parseTaskParams } from '@/shared/lib/taskTypeUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,7 +84,6 @@ export function useTaskNavigation({
   isMobileActive,
   onMobileActiveChange,
 }: UseTaskNavigationOptions): UseTaskNavigationReturn {
-  const { toast } = useToast();
   const { selectedProjectId, setSelectedProjectId } = useProject();
   const { setActiveTaskId, setIsTasksPaneOpen } = usePanes();
   const { setCurrentShotId } = useCurrentShot();

@@ -12,7 +12,7 @@ import { GenerationRow } from '@/types/shots';
 import { Button } from '@/shared/components/ui/button';
 import { Trash2, Copy, Check } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useBatchImageLoading } from '@/shared/hooks/useBatchImageLoading';
 import { getImageAspectRatioStyle } from '@/shared/lib/imageAspectRatio';
 import { framesToSeconds } from '@/shared/lib/videoUtils';
@@ -283,7 +283,6 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
   );
 };
 
-// 🎯 PERFORMANCE: Memoize component to prevent unnecessary re-renders
 // Only re-render when these specific props change
 export const ShotBatchItemDesktop = React.memo(
   ShotBatchItemDesktopComponent,

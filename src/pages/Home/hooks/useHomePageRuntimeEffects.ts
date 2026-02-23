@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from '@/shared/components/ui/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 
 interface UseHomePageRuntimeEffectsInput {
   isMobile: boolean;

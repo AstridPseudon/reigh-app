@@ -3,23 +3,19 @@ import { Shot, GenerationRow } from '@/types/shots';
 import { queryKeys } from '@/shared/lib/queryKeys';
 
 /**
- * Cache key variants for shots queries.
- * Different parts of the app use different maxImagesPerShot values:
- * - undefined: base key (useListShots default)
- * - 0: unlimited images (ShotsContext)
- * - 2: sidebar preview
- * - 5: compact view
+ * All maxImagesPerShot values used across the app.
+ * Cache operations must iterate these to keep every variant in sync.
  *
- * @internal Used only within cacheUtils.ts
+ *   undefined - useListShots default (no explicit limit)
+ *   0         - unlimited (ShotsContext main query)
+ *   2         - sidebar / mobile compact view
+ *   5         - compact desktop view
+ *
+ * If you add a new useListShots call with a different maxImagesPerShot,
+ * add its value here so cache updates propagate correctly.
  */
-const SHOTS_CACHE_VARIANTS = [undefined, 0, 2, 5] as const;
+export const SHOTS_CACHE_VARIANTS = [undefined, 0, 2, 5] as const;
 
-/**
- * Get all cache key variants for a project's shots.
- * Use this to ensure all cache entries are updated consistently.
- *
- * @internal Used only within cacheUtils.ts
- */
 function getShotsCacheKeys(projectId: string): readonly QueryKey[] {
   return SHOTS_CACHE_VARIANTS.map(variant =>
     variant === undefined
@@ -29,9 +25,6 @@ function getShotsCacheKeys(projectId: string): readonly QueryKey[] {
 }
 
 /**
- * Update all shots cache variants for a project.
- * Ensures consistent state across all cache entries.
- *
  * @param onlyExisting - If true, only update caches that already exist.
  *                       If false (default), will create cache entries if needed.
  */
@@ -54,10 +47,6 @@ export function updateAllShotsCaches(
   });
 }
 
-/**
- * Rollback all shots cache variants to a previous state.
- * Used in onError handlers for optimistic updates.
- */
 export function rollbackShotsCaches(
   queryClient: QueryClient,
   projectId: string,
@@ -69,10 +58,6 @@ export function rollbackShotsCaches(
   });
 }
 
-/**
- * Cancel all in-flight shots queries for a project.
- * Call this at the start of onMutate for optimistic updates.
- */
 export async function cancelShotsQueries(
   queryClient: QueryClient,
   projectId: string
@@ -84,10 +69,6 @@ export async function cancelShotsQueries(
   );
 }
 
-/**
- * Find the first non-empty shots cache for a project.
- * Searches through all cache variants and returns the first one with data.
- */
 export function findShotsCache(
   queryClient: QueryClient,
   projectId: string
@@ -99,10 +80,6 @@ export function findShotsCache(
   return undefined;
 }
 
-
-/**
- * Rollback shot-generations cache to previous state.
- */
 export function rollbackShotGenerationsCache(
   queryClient: QueryClient,
   shotId: string,
@@ -112,9 +89,6 @@ export function rollbackShotGenerationsCache(
   queryClient.setQueryData(queryKeys.generations.byShot(shotId), previous);
 }
 
-/**
- * Cancel in-flight shot-generations query.
- */
 export async function cancelShotGenerationsQuery(
   queryClient: QueryClient,
   shotId: string

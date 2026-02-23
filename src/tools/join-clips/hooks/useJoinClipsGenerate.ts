@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
@@ -33,7 +33,6 @@ export function useJoinClipsGenerate({
   projectAspectRatio,
   validationResult,
 }: UseJoinClipsGenerateParams) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
   const incomingTaskIdRef = useRef<string | null>(null);

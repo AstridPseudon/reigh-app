@@ -1,5 +1,14 @@
 // deno-lint-ignore-file
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+
 declare const Deno: { env: { get: (key: string) => string | undefined } };
+
+/**
+ * Fallback user ID used when task ownership cannot be resolved
+ * (e.g., project lookup fails). Used for storage path construction
+ * so files land in a known "system" folder instead of failing entirely.
+ */
+export const SYSTEM_USER_ID = 'system' as const;
 
 /**
  * Authentication result for edge functions
@@ -41,7 +50,7 @@ interface AuthOptions {
  */
 export async function authenticateRequest(
   req: Request,
-  supabaseAdmin: unknown,
+  supabaseAdmin: SupabaseClient,
   logPrefix: string = "[AUTH]",
   options: AuthOptions = {}
 ): Promise<AuthResult> {
@@ -142,7 +151,7 @@ export async function authenticateRequest(
  * @returns Object with success status and optional error details
  */
 export async function verifyTaskOwnership(
-  supabaseAdmin: unknown,
+  supabaseAdmin: SupabaseClient,
   taskId: string,
   userId: string,
   logPrefix: string = "[AUTH]"
@@ -205,7 +214,7 @@ export async function verifyTaskOwnership(
  * @returns Object with success status and optional error details
  */
 export async function verifyShotOwnership(
-  supabaseAdmin: unknown,
+  supabaseAdmin: SupabaseClient,
   shotId: string,
   userId: string,
   logPrefix: string = "[AUTH]"
@@ -267,7 +276,7 @@ export async function verifyShotOwnership(
  * @returns Object with userId or error
  */
 export async function getTaskUserId(
-  supabaseAdmin: unknown,
+  supabaseAdmin: SupabaseClient,
   taskId: string,
   logPrefix: string = "[AUTH]"
 ): Promise<{ userId: string | null; error?: string; statusCode?: number }> {
@@ -295,9 +304,10 @@ export async function getTaskUserId(
 
   if (projectError || !projectData) {
     console.error(`${logPrefix} Project lookup error:`, projectError);
-    // Fallback to system folder
+    // Fallback to system folder — files are stored under SYSTEM_USER_ID
+    // so the task can still complete even if the project was deleted
     return {
-      userId: 'system'
+      userId: SYSTEM_USER_ID
     };
   }
 

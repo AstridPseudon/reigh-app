@@ -4,11 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { CheckCircle, PlusCircle, ImagePlus, Loader2, ArrowRight } from 'lucide-react';
 import { ShotSelectorWithAdd } from '@/shared/components/ShotSelectorWithAdd';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-
-interface ShotOption {
-  id: string;
-  name: string;
-}
+import type { ShotOption } from '@/types/shots';
 
 interface ShotSelectorControlsProps {
   // Media info

@@ -4,6 +4,7 @@
 
 import { useBase64Migration } from './legacyMigrations/useBase64Migration';
 import { useInvalidPointerCleanup } from './legacyMigrations/useInvalidPointerCleanup';
+import { useLoraCategoryMigration } from './legacyMigrations/useLoraCategoryMigration';
 import { useReferenceStructureMigration } from './legacyMigrations/useReferenceStructureMigration';
 import { useResourceMigration } from './legacyMigrations/useResourceMigration';
 import { useSceneModeMigration } from './legacyMigrations/useSceneModeMigration';
@@ -26,6 +27,12 @@ export function useLegacyMigrations(input: LegacyMigrationsInput): void {
 
   useBase64Migration({
     rawStyleReferenceImage,
+    selectedProjectId,
+    updateProjectImageSettings,
+  });
+
+  useLoraCategoryMigration({
+    projectImageSettings,
     selectedProjectId,
     updateProjectImageSettings,
   });

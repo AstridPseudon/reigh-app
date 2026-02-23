@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import {
   DragEndEvent,
@@ -48,8 +48,6 @@ export function useClipManager({
   loopFirstClip,
   createGenerationMutation,
 }: UseClipManagerParams) {
-  const { toast } = useToast();
-
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------

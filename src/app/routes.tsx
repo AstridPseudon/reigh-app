@@ -24,7 +24,7 @@ import Layout from './Layout'; // Import the new Layout component
 import { AppEnv } from '@/types/env';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import { ToolErrorBoundary } from '@/shared/components/ToolErrorBoundary';
-import { SUPABASE_URL } from '@/integrations/supabase/config/env';
+import { getSupabaseUrl } from '@/integrations/supabase/config/env';
 
 // Determine the environment
 const currentEnv = (import.meta.env.VITE_APP_ENV?.toLowerCase() || AppEnv.WEB);
@@ -38,7 +38,7 @@ const LazyLoadingFallback = () => (
 // Key format matches GoTrueClient: sb-${hostname[0]}-auth-token
 function hasStoredSession(): boolean {
   try {
-    const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
+    const projectRef = new URL(getSupabaseUrl()).hostname.split('.')[0];
     const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (!raw) return false;
     return !!(JSON.parse(raw) as { access_token?: string })?.access_token;

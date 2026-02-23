@@ -1,5 +1,5 @@
-import { toast } from '@/shared/hooks/use-toast';
-import { AppError } from '@/shared/lib/errors';
+import { toast } from '@/shared/components/ui/toast';
+import { AppError } from './errors';
 import {
   getErrorDescription,
   getErrorTitle,

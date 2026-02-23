@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { SUPABASE_URL } from '@/integrations/supabase/config/env';
+import { getSupabaseUrl } from '@/integrations/supabase/config/env';
 import { storagePaths, getFileExtension, generateUniqueFilename, MEDIA_BUCKET } from './storagePaths';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
@@ -88,7 +88,7 @@ async function uploadFileWithXhr(input: {
   onProgress?: (progress: number) => void;
 }): Promise<void> {
   const { file, filePath, accessToken, timeoutMs, signal, onProgress } = input;
-  const bucketUrl = `${SUPABASE_URL}/storage/v1/object/${MEDIA_BUCKET}/${filePath}`;
+  const bucketUrl = `${getSupabaseUrl()}/storage/v1/object/${MEDIA_BUCKET}/${filePath}`;
 
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();

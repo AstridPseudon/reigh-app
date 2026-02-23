@@ -4,6 +4,7 @@ import {
   getTaskUserId,
   verifyShotOwnership,
   verifyTaskOwnership,
+  SYSTEM_USER_ID,
 } from '../../supabase/functions/_shared/auth';
 
 type SingleResponse = { data: unknown; error: unknown };
@@ -115,6 +116,6 @@ describe('supabase auth shared helpers', () => {
       'task-1',
     );
 
-    expect(result.userId).toBe('system');
+    expect(result.userId).toBe(SYSTEM_USER_ID);
   });
 });

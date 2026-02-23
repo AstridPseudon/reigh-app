@@ -31,6 +31,7 @@ import { GenerationRow, Shot } from '@/types/shots';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 // ============================================================================
 // TYPES
@@ -393,13 +394,11 @@ async function createEmptyShotPath(input: CreateEmptyShotPathInput): Promise<Sho
 }
 
 function dispatchShotSkeletonEvent(imageCount: number): void {
-  window.dispatchEvent(new CustomEvent('shot-pending-create', {
-    detail: { imageCount },
-  }));
+  dispatchAppEvent('shot-pending-create', { imageCount });
 }
 
 function clearShotSkeletonEvent(): void {
-  window.dispatchEvent(new CustomEvent('shot-pending-create-clear'));
+  dispatchAppEvent('shot-pending-create-clear');
 }
 
 function useShotCreationPostEffects(params: {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
-import { useRenderLogger } from '@/shared/hooks/useRenderLogger';
+import { useRenderLogger } from '@/shared/lib/debugRendering';
 import TaskList from './TaskList';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
@@ -14,7 +14,7 @@ import PaneControlTab from '../PaneControlTab';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useCancelAllPendingTasks, useTaskStatusCounts, usePaginatedTasks, useAllTaskTypes, type PaginatedTasksResponse } from '@/shared/hooks/useTasks';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { TasksPaneProcessingWarning } from '../ProcessingWarnings';
 import { useBottomOffset } from '@/shared/hooks/useBottomOffset';
@@ -212,7 +212,6 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
   }, [dbCount, incomingTasks]);
 
   const cancelAllPendingMutation = useCancelAllPendingTasks();
-  const { toast } = useToast();
 
   useRenderLogger('TasksPane', { cancellableCount: cancellableTaskCount });
 
@@ -392,7 +391,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
           data-tasks-pane="true"
           data-scroll-lock-scrollable="true"
           className={cn(
-            'absolute top-0 right-0 h-full w-full bg-zinc-900/95 border-l border-zinc-600 shadow-xl transform transition-transform duration-300 ease-smooth flex flex-col pointer-events-auto',
+            'absolute top-0 right-0 h-full w-full bg-zinc-900/95 border-l border-zinc-700 shadow-xl transform transition-transform duration-300 ease-smooth flex flex-col pointer-events-auto',
             transformClass
           )}
         >
@@ -440,8 +439,8 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
                   onClick={() => handleFilterChange('Processing')}
                   className={cn(
                     "w-full text-xs flex items-center justify-center",
-                    selectedFilter === 'Processing' 
-                      ? "bg-zinc-600 text-zinc-100 md:hover:bg-zinc-500" 
+                    selectedFilter === 'Processing'
+                      ? "bg-zinc-600 text-zinc-100 md:hover:bg-zinc-500"
                       : "text-zinc-400 md:hover:text-zinc-200 md:hover:bg-zinc-700"
                   )}
                 >
@@ -468,9 +467,9 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
                         onClick={() => handleFilterChange(filter)}
                         className={cn(
                           "flex-1 text-xs flex items-center justify-center",
-                          selectedFilter === filter 
-                            ? "bg-zinc-600 text-zinc-100 md:hover:bg-zinc-500" 
-                            : "text-zinc-400 md:hover:text-zinc-200 md:hover:bg-zinc-700"
+                          selectedFilter === filter
+                            ? "bg-accent text-accent-foreground md:hover:bg-accent/80"
+                            : "text-muted-foreground md:hover:text-foreground md:hover:bg-accent"
                         )}
                       >
                         <span>{filter}</span>

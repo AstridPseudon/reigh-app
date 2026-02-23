@@ -28,9 +28,6 @@ declare global {
     __AUTH_MANAGER__?: import('../integrations/supabase/auth/AuthStateManager').AuthStateManager;
     /** [structural] Project context snapshot — fallback for hooks that run before React context is available */
     __PROJECT_CONTEXT__?: { selectedProjectId?: string; projects?: unknown[] };
-    /** [structural] Visibility-change timestamp — backward-compat global set by VisibilityManager */
-    __VIS_CHANGE_AT__?: number;
-
     // ── Debug-only globals (gate behind import.meta.env.DEV) ────────────
     /** [debug] React Query client reference — diagnostics only */
     __REACT_QUERY_CLIENT__?: import('@tanstack/react-query').QueryClient;
@@ -46,8 +43,6 @@ declare global {
     __projectDebugLog?: Array<{ timestamp: string; isMobile: boolean; projectsCount: number; selectedProjectId: string; isLoadingProjects: boolean; userAgent: string }>;
     /** [debug] DataFreshnessManager singleton for console diagnostics */
     __DATA_FRESHNESS_MANAGER__?: typeof import('../shared/realtime/DataFreshnessManager').dataFreshnessManager;
-    /** [debug] VisibilityManager singleton for console diagnostics */
-    __VISIBILITY_MANAGER__?: typeof import('../shared/lib/VisibilityManager').VisibilityManager;
     /** [debug] NetworkStatusManager singleton for console diagnostics */
     __NETWORK_STATUS_MANAGER__?: import('../shared/lib/NetworkStatusManager').NetworkStatusManager;
     /** [debug] ReconnectScheduler singleton for console diagnostics */

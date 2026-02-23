@@ -1,5 +1,11 @@
 import type { GenerationRow } from '@/types/generationRow';
 
+/** Simplified shot reference used in selectors and dropdowns */
+export interface ShotOption {
+  id: string;
+  name: string;
+}
+
 export interface Shot {
   id: string;
   name: string;

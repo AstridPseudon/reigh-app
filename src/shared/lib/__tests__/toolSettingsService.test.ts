@@ -14,7 +14,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/integrations/supabase/config/env', () => ({
-  SUPABASE_URL: 'https://testproject.supabase.co',
+  getSupabaseUrl: () => 'https://testproject.supabase.co',
 }));
 
 vi.mock('@/tooling/toolDefaultsRegistry', () => ({
@@ -30,7 +30,7 @@ vi.mock('@/shared/lib/deepEqual', () => ({
   },
 }));
 
-vi.mock('@/shared/lib/errorUtils', () => ({
+vi.mock('@/shared/lib/errorHandling/errorUtils', () => ({
   isCancellationError: (err: unknown) =>
     err instanceof DOMException && err.name === 'AbortError',
   getErrorMessage: (err: unknown) =>

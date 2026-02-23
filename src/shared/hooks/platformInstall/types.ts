@@ -58,3 +58,13 @@ export interface InstallInstructionContext {
   promptTimedOut: boolean;
   isDesktopChromium: boolean;
 }
+
+export interface CtaContext {
+  isStandalone: boolean;
+  installMethod: InstallMethod;
+  isWaitingForPrompt: boolean;
+  isAppInstalled: boolean;
+  promptTimedOut: boolean;
+  isDesktopChromium: boolean;
+  platform: Platform;
+}

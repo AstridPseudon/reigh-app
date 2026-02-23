@@ -11,6 +11,7 @@ import type { LoraModel } from '@/shared/components/LoraSelectorModal/types';
 import type { Shot } from '@/types/shots';
 import type { GenerationRow } from '@/types/shots';
 import type { AddImageToShotVariables } from '@/shared/hooks/shots/addImageToShotHelpers';
+import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 // ==================== Types ====================
 
@@ -140,7 +141,11 @@ export const fetchTask = async (taskId: string): Promise<TaskData | null> => {
       .single();
     
     if (error || !data) {
-      console.error('[ApplySettings] ❌ Failed to fetch task:', error);
+      handleError(error ?? new Error('No task data returned'), {
+        context: 'ApplySettings.fetchTask',
+        showToast: false,
+        logData: { taskId },
+      });
       return null;
     }
     
@@ -149,7 +154,11 @@ export const fetchTask = async (taskId: string): Promise<TaskData | null> => {
     
     return { params, orchestrator };
   } catch (queryError) {
-    console.error('[ApplySettings] ❌ Exception fetching task:', queryError);
+    handleError(queryError, {
+      context: 'ApplySettings.fetchTask',
+      showToast: false,
+      logData: { taskId },
+    });
     return null;
   }
 };
@@ -320,7 +329,11 @@ export const applyPromptSettings = async (
         try {
           await context.updatePairPromptsByIndex(i, pairPrompt, pairNegativePrompt);
         } catch (e) {
-          console.error(`[ApplySettings] ❌ Failed to apply prompt for pair ${i}:`, e);
+          handleError(e, {
+            context: 'ApplySettings.applyPromptSettings',
+            showToast: false,
+            logData: { pairIndex: i },
+          });
           errors.push(`Pair ${i}: ${e}`);
         }
       }
@@ -538,7 +551,10 @@ export const applyStructureVideo = async (
   if (structureVideoPath) {
     
     if (!context.onStructureVideoInputChange) {
-      console.error('[ApplySettings] ❌ onStructureVideoInputChange is not defined!');
+      handleError(new Error('onStructureVideoInputChange is not defined'), {
+        context: 'ApplySettings.applyStructureVideo',
+        showToast: false,
+      });
       return { success: false, settingName: 'structureVideo', error: 'handler not defined' };
     }
     
@@ -558,9 +574,11 @@ export const applyStructureVideo = async (
       
       return { success: true, settingName: 'structureVideo' };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[ApplySettings] ❌ Error applying structure video:', error);
-      return { success: false, settingName: 'structureVideo', error: errorMessage };
+      const appError = handleError(error, {
+        context: 'ApplySettings.applyStructureVideo',
+        showToast: false,
+      });
+      return { success: false, settingName: 'structureVideo', error: appError.message };
     }
   } else {
     if (context.onStructureVideoInputChange) {
@@ -618,7 +636,11 @@ export const applyFramePositionsToExistingImages = async (
         .eq('id', img.id); // img.id is shot_generations.id
       
       if (error) {
-        console.error('[ApplySettings] ❌ Failed to update timeline_frame:', error);
+        handleError(error, {
+          context: 'ApplySettings.applyFramePositions',
+          showToast: false,
+          logData: { shotGenerationId: img.id },
+        });
         return null;
       }
       
@@ -634,12 +656,14 @@ export const applyFramePositionsToExistingImages = async (
       details: { updated: successCount, total: simpleFilteredImages.length }
     };
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    console.error('[ApplySettings] ❌ Error applying frame positions:', e);
+    const appError = handleError(e, {
+      context: 'ApplySettings.applyFramePositions',
+      showToast: false,
+    });
     return {
       success: false,
       settingName: 'framePositions',
-      error: errorMessage
+      error: appError.message
     };
   }
 };
@@ -721,7 +745,11 @@ export const replaceImagesIfRequested = async (
       .in('location', effectiveInputImages);
     
     if (lookupError) {
-      console.error('[ApplySettings] ❌ Failed to look up generations by URL:', lookupError);
+      handleError(lookupError, {
+        context: 'ApplySettings.replaceImages',
+        showToast: false,
+        logData: { imageCount: effectiveInputImages.length },
+      });
       return { success: false, settingName: 'images', error: 'Failed to look up generation IDs for input images' };
     }
     
@@ -771,12 +799,14 @@ export const replaceImagesIfRequested = async (
       details: { removed: imagesToDelete.length, added: effectiveInputImages.length }
     };
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    console.error('[ApplySettings] ❌ Error replacing images:', e);
+    const appError = handleError(e, {
+      context: 'ApplySettings.replaceImages',
+      showToast: false,
+    });
     return {
       success: false,
       settingName: 'images',
-      error: errorMessage
+      error: appError.message
     };
   }
 };

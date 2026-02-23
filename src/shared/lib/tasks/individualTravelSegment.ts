@@ -362,8 +362,7 @@ function buildSegmentState(params: IndividualTravelSegmentParams): SegmentBuildS
   );
   const modelName = (orig.model_name as string | undefined)
     ?? (orchDetails.model_name as string | undefined)
-    ?? DEFAULT_I2V_MODEL
-    ?? VACE_GENERATION_DEFAULTS.model;
+    ?? DEFAULT_I2V_MODEL;
   const flowShift = (phaseConfig.flow_shift as number | undefined)
     ?? (orig.flow_shift as number | undefined)
     ?? (orchDetails.flow_shift as number | undefined)

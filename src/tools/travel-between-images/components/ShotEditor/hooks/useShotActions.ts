@@ -16,6 +16,7 @@ import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { GenerationRow, Shot } from '@/types/shots';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import type { AddImageToShotVariables } from '@/shared/hooks/shots/addImageToShotHelpers';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface AddToShotParams {
   shot_id: string;
@@ -74,7 +75,7 @@ export function useShotActions({
     }
 
     if (isMobile) {
-      window.dispatchEvent(new CustomEvent('openGenerationsPane'));
+      dispatchAppEvent('openGenerationsPane');
     } else {
       setIsGenerationsPaneLockedRef.current(true);
     }

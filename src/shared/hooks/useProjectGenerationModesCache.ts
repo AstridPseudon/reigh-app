@@ -10,50 +10,10 @@ import {
 } from '@/shared/lib/settingsResolution';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
-
-/**
- * Project-wide generation modes cache
- * Fetches all shot generation modes for a project in a single query
- */
-class ProjectGenerationModesCache {
-  private cache = new Map<string, Map<string, GenerationModeNormalized>>(); // projectId -> shotId -> generationMode
-  
-  getProjectModes(projectId: string): Map<string, GenerationModeNormalized> | null {
-    return this.cache.get(projectId) || null;
-  }
-  
-  getShotMode(projectId: string, shotId: string): GenerationModeNormalized | null {
-    const projectModes = this.cache.get(projectId);
-    if (!projectModes) return null;
-    const value = projectModes.get(shotId);
-    return value !== undefined ? value : null;
-  }
-  
-  setProjectModes(projectId: string, modes: Map<string, GenerationModeNormalized>): void {
-    this.cache.set(projectId, modes);
-  }
-  
-  clear(): void {
-    this.cache.clear();
-  }
-  
-  deleteProject(projectId: string): void {
-    this.cache.delete(projectId);
-  }
-  
-  // Get cache size for debugging
-  size(): number {
-    return this.cache.size;
-  }
-  
-  // Get all cached project IDs for debugging
-  getCachedProjectIds(): string[] {
-    return Array.from(this.cache.keys());
-  }
-}
+import { ProjectScopedCache } from '@/shared/lib/ProjectScopedCache';
 
 // Global cache instance that persists across component remounts
-const globalProjectGenerationModesCache = new ProjectGenerationModesCache();
+const globalProjectGenerationModesCache = new ProjectScopedCache<GenerationModeNormalized>();
 
 function toSettingsRecord(value: Json | null | undefined): Record<string, unknown> | null {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -127,7 +87,6 @@ export function useProjectGenerationModesCache(projectId: string | null, options
   const cacheRef = useRef(globalProjectGenerationModesCache);
   const queryClient = useQueryClient();
   
-  // 🎯 SMART POLLING: Use DataFreshnessManager for intelligent polling decisions
   const smartPollingConfig = useSmartPollingConfig(settingsQueryKeys.generationModes(projectId ?? '__no-project__'));
   
   // Query to fetch all shot generation modes for the project
@@ -137,7 +96,6 @@ export function useProjectGenerationModesCache(projectId: string | null, options
     enabled: !!projectId && enabled,
     gcTime: 10 * 60 * 1000, // 10 minutes
     placeholderData: (previousData) => previousData, // Keep showing previous data while refetching
-    // 🎯 SMART POLLING: Intelligent polling based on realtime health
     ...smartPollingConfig,
     refetchIntervalInBackground: true, // Enable background polling
   });
@@ -151,7 +109,7 @@ export function useProjectGenerationModesCache(projectId: string | null, options
   // Update cache when data changes
   React.useEffect(() => {
     if (projectModes && projectId) {
-      cacheRef.current.setProjectModes(projectId, projectModes);
+      cacheRef.current.setProject(projectId, projectModes);
     }
   }, [projectModes, projectId]);
 
@@ -164,7 +122,7 @@ export function useProjectGenerationModesCache(projectId: string | null, options
     if (!projectId || !shotId) return null;
 
     // First try cache
-    const cachedMode = cacheRef.current.getShotMode(projectId, shotId);
+    const cachedMode = cacheRef.current.getItem(projectId, shotId);
     if (cachedMode !== null) {
       return cachedMode;
     }
@@ -178,7 +136,7 @@ export function useProjectGenerationModesCache(projectId: string | null, options
     if (!projectId) return null;
 
     // First try cache
-    const cachedModes = cacheRef.current.getProjectModes(projectId);
+    const cachedModes = cacheRef.current.getProject(projectId);
     if (cachedModes) {
       return cachedModes;
     }
@@ -205,10 +163,10 @@ export function useProjectGenerationModesCache(projectId: string | null, options
     if (!projectId || !shotId) return;
     
     // Update in-memory cache immediately
-    const currentModes = cacheRef.current.getProjectModes(projectId);
+    const currentModes = cacheRef.current.getProject(projectId);
     if (currentModes) {
       currentModes.set(shotId, mode);
-      cacheRef.current.setProjectModes(projectId, currentModes);
+      cacheRef.current.setProject(projectId, currentModes);
     }
     
     // CRITICAL: Also update React Query cache so it persists across re-renders

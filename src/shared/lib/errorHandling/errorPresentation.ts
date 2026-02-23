@@ -1,4 +1,4 @@
-import { AppError, isNetworkError, SilentError } from '@/shared/lib/errors';
+import { AppError, isNetworkError, SilentError } from './errors';
 
 const DEFAULT_ERROR_TITLES: Record<string, string> = {
   NetworkError: 'Connection Error',

@@ -23,6 +23,7 @@ import { PairPromptIndicator } from './components/PairPromptIndicator';
 import { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import { getAspectRatioStyle } from './utils/image-utils';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   images,
@@ -128,13 +129,13 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
   // Dispatch selection state to hide pane controls on mobile
   React.useEffect(() => {
     const hasSelection = mobileSelectedIds.length > 0;
-    window.dispatchEvent(new CustomEvent('mobileSelectionActive', { detail: hasSelection }));
+    dispatchAppEvent('mobileSelectionActive', hasSelection);
     // Notify parent component of selection change
     onSelectionChange?.(hasSelection);
 
     // Cleanup: ensure pane controls are restored when component unmounts
     return () => {
-      window.dispatchEvent(new CustomEvent('mobileSelectionActive', { detail: false }));
+      dispatchAppEvent('mobileSelectionActive', false);
     };
   }, [mobileSelectedIds.length, onSelectionChange]);
 

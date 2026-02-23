@@ -10,12 +10,12 @@ import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { ChevronDown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { AspectRatioSelector } from '@/shared/components/AspectRatioSelector';
-import { recropAllReferences, ReferenceImage } from '@/shared/lib/recropReferences';
+import { recropAllReferences, type RecropReferenceInput } from '@/shared/lib/recropReferences';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { ModalContainer } from '@/shared/components/ModalContainer';
 
 interface ProjectImageSettings {
-  references?: ReferenceImage[];
+  references?: RecropReferenceInput[];
   selectedReferenceIdByShot?: Record<string, string | null>;
   [key: string]: unknown;
 }

@@ -8,6 +8,7 @@ import { ReighLoading } from '@/shared/components/ReighLoading';
 import SettingsModal from '@/shared/components/SettingsModal/SettingsModal';
 import { OnboardingModal } from '@/shared/components/OnboardingModal';
 import { ChunkLoadErrorBoundary } from '@/shared/components/ChunkLoadErrorBoundary';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 // Lazy load ProductTour since it only shows during onboarding
 const LazyProductTour = React.lazy(() =>
@@ -16,7 +17,7 @@ const LazyProductTour = React.lazy(() =>
   }))
 );
 import { AIInputModeProvider } from '@/shared/contexts/AIInputModeContext';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 import { SocialIcons } from './components/SocialIcons';
 
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -33,7 +34,7 @@ function ScrollToTop() {
   useEffect(() => {
     window.scrollTo(0, 0);
     // Also dispatch event for custom scroll containers
-    window.dispatchEvent(new CustomEvent('app:scrollToTop', { detail: { behavior: 'auto' } }));
+    dispatchAppEvent('app:scrollToTop', { behavior: 'auto' });
   }, [pathname]);
 
   return null;

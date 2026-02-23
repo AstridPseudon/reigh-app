@@ -23,10 +23,10 @@ function useVideoLightboxControlsPanel(
 ) {
   const {
     media,
-    selectedShotId,
     shotId,
     onOpenExternalGeneration,
   } = props;
+  const selectedShotId = props.shotWorkflow?.selectedShotId;
   const primaryVariant = sharedState.variants.primaryVariant;
   const setActiveVariantId = sharedState.variants.setActiveVariantId;
   const handleSwitchToPrimary = useCallback(() => {
@@ -153,27 +153,19 @@ export function useVideoLightboxRenderModel(
     media,
     onClose,
     readOnly = false,
-    showNavigation = true,
-    showTaskDetails = false,
-    allShots,
-    selectedShotId,
-    onShotChange,
-    onCreateShot,
-    onAddToShot,
-    onAddToShotWithoutPosition,
-    onDelete,
-    onApplySettings,
-    isDeleting,
-    onNavigateToShot,
     showTickForImageId,
     showTickForSecondaryImageId,
-    onShowTick,
-    onShowSecondaryTick,
-    onOptimisticPositioned,
-    onOptimisticUnpositioned,
     adjacentSegments,
     segmentSlotMode,
   } = props;
+
+  const nav = props.navigation;
+  const sw = props.shotWorkflow;
+  const feat = props.features;
+  const act = props.actions;
+
+  const showNavigation = nav?.showNavigation ?? true;
+  const showTaskDetails = feat?.showTaskDetails ?? false;
 
   const fallbackMedia = media || ({} as GenerationRow);
 
@@ -235,17 +227,18 @@ export function useVideoLightboxRenderModel(
   };
 
   const handleDelete = () => {
-    if (onDelete && media) {
-      onDelete(media.id);
+    if (act?.onDelete && media) {
+      act.onDelete(media.id);
     }
   };
 
   const handleApplySettings = () => {
-    if (onApplySettings && media) {
-      onApplySettings(media.metadata);
+    if (act?.onApplySettings && media) {
+      act.onApplySettings(media.metadata);
     }
   };
 
+  const onNavigateToShot = sw?.onNavigateToShot;
   const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
     if (!onNavigateToShot) {
       return;
@@ -303,27 +296,27 @@ export function useVideoLightboxRenderModel(
       effectiveTasksPaneWidth: env.effectiveTasksPaneWidth,
     },
     shotWorkflow: {
-      allShots: allShots || [],
-      selectedShotId,
-      onShotChange,
-      onCreateShot,
-      onAddToShot,
-      onAddToShotWithoutPosition,
+      allShots: sw?.allShots || [],
+      selectedShotId: sw?.selectedShotId,
+      onShotChange: sw?.onShotChange,
+      onCreateShot: sw?.onCreateShot,
+      onAddToShot: sw?.onAddToShot,
+      onAddToShotWithoutPosition: sw?.onAddToShotWithoutPosition,
       isAlreadyPositionedInSelectedShot: sharedState.shots.isAlreadyPositionedInSelectedShot,
       isAlreadyAssociatedWithoutPosition: sharedState.shots.isAlreadyAssociatedWithoutPosition,
       showTickForImageId,
       showTickForSecondaryImageId,
-      onShowTick,
-      onShowSecondaryTick,
-      onOptimisticPositioned,
-      onOptimisticUnpositioned,
+      onShowTick: sw?.onShowTick,
+      onShowSecondaryTick: sw?.onShowSecondaryTick,
+      onOptimisticPositioned: sw?.onOptimisticPositioned,
+      onOptimisticUnpositioned: sw?.onOptimisticUnpositioned,
     },
     actions: {
-      onDelete,
-      onApplySettings,
+      onDelete: act?.onDelete,
+      onApplySettings: act?.onApplySettings,
       handleApplySettings,
       handleDelete,
-      isDeleting,
+      isDeleting: act?.isDeleting,
       handleNavigateToShotFromSelector,
       handleAddVariantAsNewGenerationToShot: sharedState.variants.handleAddVariantAsNewGenerationToShot,
     },

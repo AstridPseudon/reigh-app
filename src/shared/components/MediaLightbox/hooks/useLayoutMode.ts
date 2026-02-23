@@ -1,4 +1,4 @@
-import { useDeviceInfo } from '@/shared/hooks/use-mobile';
+import { useDeviceInfo } from '@/shared/hooks/useMobile';
 
 interface UseLayoutModeParams {
   isMobile: boolean;

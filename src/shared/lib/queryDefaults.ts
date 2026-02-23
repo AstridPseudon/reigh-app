@@ -13,7 +13,7 @@
  */
 
 import { UseQueryOptions } from '@tanstack/react-query';
-import { isErrorWithCode, isErrorWithStatus, SUPABASE_ERROR } from '@/shared/lib/errorUtils';
+import { isErrorWithCode, isErrorWithStatus, SUPABASE_ERROR } from '@/shared/lib/errorHandling/errorUtils';
 
 /**
  * For queries backed by Supabase realtime subscriptions.

@@ -11,17 +11,20 @@ import { ShotSelector } from "@/shared/components/ShotSelector";
 import { cn } from "@/shared/lib/utils";
 import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 
-interface ShotActionsProps {
-  image: GeneratedImageWithMetadata;
-  isMobile: boolean;
-  isVideoContent: boolean;
+/** Shot selector dropdown state and options */
+export interface ShotSelectorState {
   selectedShotId: string;
   simplifiedShotOptions: { id: string; name: string }[];
   isShotSelectorOpen: boolean;
   setIsShotSelectorOpen: (open: boolean) => void;
   setSelectedShotIdLocal: (id: string) => void;
   setLastAffectedShotId: (id: string) => void;
-  // Shot action state
+}
+
+/** Loading IDs, position flags, and visual status indicators */
+export interface ShotActionStatus {
+  isMobile: boolean;
+  isVideoContent: boolean;
   addingToShotImageId: string | null;
   addingToShotWithoutPositionImageId: string | null;
   showTickForImageId: string | null;
@@ -29,48 +32,77 @@ interface ShotActionsProps {
   isAlreadyAssociatedWithoutPosition: boolean;
   shouldShowAddWithoutPositionButton: boolean;
   currentTargetShotName: string | undefined;
-  // Quick create state
+}
+
+/** Quick-create shot state and callbacks */
+export interface ShotQuickCreateState {
   quickCreateSuccess: {
     isSuccessful: boolean;
     shotId: string | null;
     shotName: string | null;
     isLoading?: boolean;
   };
-  // Callbacks
-  onCreateShot?: (name: string, files: File[]) => Promise<void>;
   handleQuickCreateAndAdd: () => void;
   handleQuickCreateSuccess: () => void;
+}
+
+/** Callback handlers for shot actions */
+export interface ShotActionCallbacks {
+  onCreateShot?: (name: string, files: File[]) => Promise<void>;
   onNavigateToShot: (shot: { id: string; name: string }) => void;
-  // Add to shot actions (from useShotActions hook)
   onAddToShot: () => Promise<void>;
   onAddToShotWithoutPosition: () => Promise<void>;
 }
 
+interface ShotActionsProps {
+  image: GeneratedImageWithMetadata;
+  selector: ShotSelectorState;
+  status: ShotActionStatus;
+  quickCreate: ShotQuickCreateState;
+  actions: ShotActionCallbacks;
+}
+
 export const ShotActions: React.FC<ShotActionsProps> = ({
   image,
-  isMobile,
-  isVideoContent,
-  selectedShotId,
-  simplifiedShotOptions,
-  isShotSelectorOpen,
-  setIsShotSelectorOpen,
-  setSelectedShotIdLocal,
-  setLastAffectedShotId,
-  addingToShotImageId,
-  addingToShotWithoutPositionImageId,
-  showTickForImageId,
-  isAlreadyPositionedInSelectedShot,
-  isAlreadyAssociatedWithoutPosition,
-  shouldShowAddWithoutPositionButton,
-  currentTargetShotName,
-  quickCreateSuccess,
-  onCreateShot,
-  handleQuickCreateAndAdd,
-  handleQuickCreateSuccess,
-  onNavigateToShot,
-  onAddToShot,
-  onAddToShotWithoutPosition,
+  selector,
+  status,
+  quickCreate,
+  actions,
 }) => {
+  const {
+    selectedShotId,
+    simplifiedShotOptions,
+    isShotSelectorOpen,
+    setIsShotSelectorOpen,
+    setSelectedShotIdLocal,
+    setLastAffectedShotId,
+  } = selector;
+
+  const {
+    isMobile,
+    isVideoContent,
+    addingToShotImageId,
+    addingToShotWithoutPositionImageId,
+    showTickForImageId,
+    isAlreadyPositionedInSelectedShot,
+    isAlreadyAssociatedWithoutPosition,
+    shouldShowAddWithoutPositionButton,
+    currentTargetShotName,
+  } = status;
+
+  const {
+    quickCreateSuccess,
+    handleQuickCreateAndAdd,
+    handleQuickCreateSuccess,
+  } = quickCreate;
+
+  const {
+    onCreateShot,
+    onNavigateToShot,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+  } = actions;
+
   // Handle add to shot click - navigate if already positioned, otherwise add
   const handleAddToShotClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -151,9 +183,9 @@ export const ShotActions: React.FC<ShotActionsProps> = ({
                   size="icon"
                   className={`h-7 w-7 p-0 rounded-full bg-black/50 hover:bg-black/70 text-white ${
                     showTickForImageId === image.id
-                      ? 'bg-green-500 hover:bg-green-600 !text-white'
+                      ? 'bg-emerald-500 hover:bg-emerald-600'
                       : isAlreadyPositionedInSelectedShot
-                        ? 'bg-gray-500/60 hover:bg-gray-600/70 !text-white'
+                        ? 'bg-muted/60 hover:bg-muted/70 text-foreground'
                         : ''
                   }`}
                   onClick={handleAddToShotClick}
@@ -194,7 +226,7 @@ export const ShotActions: React.FC<ShotActionsProps> = ({
                     size="icon"
                     className={`absolute -top-1 -right-1 h-4 w-4 p-0 rounded-full border-0 scale-75 hover:scale-100 transition-transform duration-200 ease-out ${
                       isAlreadyAssociatedWithoutPosition
-                        ? 'bg-gray-500/80 hover:bg-gray-600/90 text-white'
+                        ? 'bg-muted/80 hover:bg-muted/90 text-foreground'
                         : 'bg-black/60 hover:bg-black/80 text-white'
                     }`}
                     onClick={handleAddWithoutPositionClick}

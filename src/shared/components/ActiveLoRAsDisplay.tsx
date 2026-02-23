@@ -49,7 +49,7 @@ const ActiveLoRAsDisplayComponent: React.FC<ActiveLoRAsDisplayProps> = ({
       )}
       
       {selectedLoras.length === 0 ? (
-        <div className="p-4 border rounded-md shadow-sm bg-slate-50/50 dark:bg-slate-800/30 text-center">
+        <div className="p-4 border rounded-md shadow-sm bg-muted/50 text-center">
           <p className="text-sm text-muted-foreground">None selected</p>
         </div>
       ) : (
@@ -65,7 +65,7 @@ const ActiveLoRAsDisplayComponent: React.FC<ActiveLoRAsDisplayProps> = ({
           const displayName = getDisplayNameFromUrl(lora.path, availableLoras, lora.name);
 
           return (
-            <div key={lora.id} className="p-3 border rounded-md shadow-sm bg-slate-50/50 dark:bg-slate-800/30">
+            <div key={lora.id} className="p-3 border rounded-md shadow-sm bg-muted/50">
               <div className="flex items-start gap-3 mb-3">
                 {lora.previewImageUrl && (
                   <div className="h-16 w-16 flex-shrink-0">

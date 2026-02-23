@@ -10,7 +10,7 @@ import {
   type QueuedWrite
 } from '@/shared/lib/settingsWriteQueue';
 import { deepMerge } from '@/shared/lib/deepEqual';
-import { isCancellationError } from '@/shared/lib/errorUtils';
+import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import {
   fetchToolSettingsSupabase,
   getUserWithTimeout,

@@ -138,7 +138,7 @@ export function buildTravelBetweenImagesPayload(
     after_first_post_generation_saturation: params.after_first_post_generation_saturation ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.after_first_post_generation_saturation,
     after_first_post_generation_brightness: params.after_first_post_generation_brightness ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.after_first_post_generation_brightness,
     debug_mode_enabled: params.debug ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.debug,
-    shot_id: params.shot_id ?? undefined,
+    shot_id: params.shot_id,
     // Include parent_generation_id so complete_task uses it instead of creating a new one
     ...(parentGenerationId ? { parent_generation_id: parentGenerationId } : {}),
     main_output_dir_for_run: params.main_output_dir_for_run ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.main_output_dir_for_run,
@@ -152,7 +152,7 @@ export function buildTravelBetweenImagesPayload(
     // Always set regenerate_anchors to false in Advanced Mode
     ...(params.advanced_mode ? { regenerate_anchors: false } : {}),
     // Include generation_name in orchestrator payload so it flows to child tasks
-    generation_name: params.generation_name ?? undefined,
+    generation_name: params.generation_name,
     independent_segments: params.independent_segments ?? true,
     // Text before/after prompts
     ...(params.text_before_prompts ? { text_before_prompts: params.text_before_prompts } : {}),

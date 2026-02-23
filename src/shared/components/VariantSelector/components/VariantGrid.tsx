@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
-import type { CurrentSegmentImagesData } from '../utils';
+import type { CurrentSegmentImagesData } from '../variantSourceImages';
 import { VariantCard } from './VariantCard';
 
 const ITEMS_PER_PAGE = 20;

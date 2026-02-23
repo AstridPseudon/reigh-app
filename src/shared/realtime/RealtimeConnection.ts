@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { dataFreshnessManager } from './DataFreshnessManager';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { listenAppEvent } from '@/shared/lib/typedEvents';
 import {
   ConnectionState,
   ConnectionStatusCallback,
@@ -34,13 +35,14 @@ export class RealtimeConnection {
 
   private statusCallbacks = new Set<ConnectionStatusCallback>();
   private eventCallbacks = new Set<RawEventCallback>();
+  private unsubAuthHeal: (() => void) | null = null;
 
   constructor(config: Partial<RealtimeConfig> = {}) {
     this.config = { ...DEFAULT_REALTIME_CONFIG, ...config };
 
     // Listen for auth heal events
     if (typeof window !== 'undefined') {
-      window.addEventListener('realtime:auth-heal', this.handleAuthHeal);
+      this.unsubAuthHeal = listenAppEvent('realtime:auth-heal', () => this.handleAuthHeal());
     }
   }
 
@@ -130,9 +132,8 @@ export class RealtimeConnection {
    * Clean up resources.
    */
   destroy(): void {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('realtime:auth-heal', this.handleAuthHeal);
-    }
+    this.unsubAuthHeal?.();
+    this.unsubAuthHeal = null;
     this.disconnect();
     this.statusCallbacks.clear();
     this.eventCallbacks.clear();

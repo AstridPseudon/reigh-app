@@ -5,7 +5,7 @@ import {
   useCallback,
 } from 'react';
 import { GenerationRow } from '@/types/shots';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { Button } from '@/shared/components/ui/button';
 import {

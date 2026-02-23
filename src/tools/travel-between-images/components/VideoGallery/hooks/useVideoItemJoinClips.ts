@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GenerationRow, GenerationParams } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
@@ -59,7 +59,7 @@ interface UseConfirmJoinHandlerParams {
   addIncomingTask: ReturnType<typeof useIncomingTasks>['addIncomingTask'];
   removeIncomingTask: ReturnType<typeof useIncomingTasks>['removeIncomingTask'];
   queryClient: ReturnType<typeof useQueryClient>;
-  toast: ReturnType<typeof useToast>['toast'];
+  toast: typeof toast;
 }
 
 function deduplicateChildGenerations(children: GenerationRow[]): GenerationRow[] {
@@ -301,7 +301,6 @@ export function useVideoItemJoinClips(
   projectId: string | null | undefined,
   projectAspectRatio: string | undefined,
 ): UseVideoItemJoinClipsResult {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
   const { childGenerations, isLoadingChildren } = useParentChildGenerations(video);

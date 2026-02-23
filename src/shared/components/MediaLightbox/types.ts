@@ -1,6 +1,58 @@
-import type { GenerationRow } from '@/types/shots';
+import type { GenerationRow, Shot, ShotOption } from '@/types/shots';
 import type { Task } from '@/types/database';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+
+export type { ShotOption };
+
+// ============================================================================
+// Props Sub-Interfaces (grouped by concern, shared by ImageLightbox & VideoLightbox)
+// ============================================================================
+
+/** Shot workflow: shot selection, positioning, and optimistic state */
+export interface LightboxShotWorkflowProps {
+  allShots?: ShotOption[];
+  selectedShotId?: string;
+  onShotChange?: (shotId: string) => void;
+  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
+  onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
+  onShowTick?: (imageId: string) => void;
+  onShowSecondaryTick?: (imageId: string) => void;
+  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
+  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
+  optimisticPositionedIds?: Set<string>;
+  optimisticUnpositionedIds?: Set<string>;
+  positionedInSelectedShot?: boolean;
+  associatedWithoutPositionInSelectedShot?: boolean;
+}
+
+/** Gallery navigation: next/prev and indicators */
+export interface LightboxNavigationProps {
+  onNext?: () => void;
+  onPrevious?: () => void;
+  showNavigation?: boolean;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
+}
+
+/** Feature toggles: which UI elements to show */
+export interface LightboxFeatureFlags {
+  showImageEditTools?: boolean;
+  showDownload?: boolean;
+  showMagicEdit?: boolean;
+  autoEnterInpaint?: boolean;
+  showTaskDetails?: boolean;
+}
+
+/** Action handlers: delete, star, apply settings */
+export interface LightboxActionHandlers {
+  onDelete?: (id: string) => void;
+  isDeleting?: string | null;
+  onApplySettings?: (metadata: GenerationRow['metadata']) => void;
+  onToggleStar?: (id: string, starred: boolean) => void;
+  starred?: boolean;
+}
 
 /**
  * Shared task details data shape used by lightbox components.
@@ -56,10 +108,6 @@ export interface QuickCreateSuccess {
   isLoading?: boolean; // True when shot is created but still syncing/loading
 }
 
-export interface ShotOption {
-  id: string;
-  name: string;
-}
 
 /**
  * Unified segment slot data for MediaLightbox segment editor mode.

@@ -2,11 +2,12 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { LockIcon, UnlockIcon, ChevronLeft, ChevronRight, ChevronUp, Square, LayoutGrid, Images, ListTodo } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 import { PANE_CONFIG, PaneSide, PanePosition } from '@/shared/config/panes';
-import { usePositionStrategy } from '@/shared/hooks/pane-positioning/usePositionStrategy';
+import { usePositionStrategy } from '@/shared/hooks/panePositioning/usePositionStrategy';
 import { safeAreaCalc } from '@/shared/lib/safeArea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 // Icon type for pane controls
 type PaneIconType = 'chevron' | 'tools' | 'gallery' | 'tasks';
@@ -118,11 +119,8 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
   };
 
   // Listen for selection events to hide controls
-  React.useEffect(() => {
-    const handler = (e: CustomEvent<boolean>) => setSelectionActive(!!e.detail);
-    window.addEventListener('mobileSelectionActive', handler as EventListener);
-    return () => window.removeEventListener('mobileSelectionActive', handler as EventListener);
-  }, []);
+  const handleSelectionActive = React.useCallback((detail: boolean) => setSelectionActive(!!detail), []);
+  useAppEventListener('mobileSelectionActive', handleSelectionActive);
 
   // Position calculation
   const isVisible = isLocked || (isOpen && !isLocked);

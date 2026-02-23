@@ -62,7 +62,7 @@ vi.mock('../MediaLightbox', () => ({
   ),
 }));
 
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: () => mocks.isMobile,
 }));
 

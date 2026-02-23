@@ -58,10 +58,10 @@ class MockFileReader {
 }
 vi.stubGlobal('FileReader', MockFileReader);
 
-import { recropAllReferences, type ReferenceImage } from '../recropReferences';
+import { recropAllReferences, type RecropReferenceInput } from '../recropReferences';
 
 describe('recropAllReferences', () => {
-  const makeRef = (overrides: Partial<ReferenceImage> = {}): ReferenceImage => ({
+  const makeRef = (overrides: Partial<RecropReferenceInput> = {}): RecropReferenceInput => ({
     id: 'ref-1',
     name: 'Test Reference',
     styleReferenceImage: 'https://storage.com/cropped.jpg',

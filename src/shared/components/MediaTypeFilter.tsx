@@ -11,8 +11,6 @@ import { cn } from '@/shared/lib/utils';
 interface MediaTypeFilterProps {
   value: 'all' | 'image' | 'video';
   onChange?: (value: 'all' | 'image' | 'video') => void;
-  /** @deprecated Use darkSurface instead */
-  whiteText?: boolean;
   /** Use when component is on a permanently dark surface (e.g., GenerationsPane) */
   darkSurface?: boolean;
   className?: string;
@@ -25,17 +23,13 @@ interface MediaTypeFilterProps {
 export const MediaTypeFilter: React.FC<MediaTypeFilterProps> = ({
   value,
   onChange,
-  whiteText,
-  darkSurface: darkSurfaceProp,
+  darkSurface,
   className = '',
   id,
   open,
   onOpenChange,
   contentRef,
 }) => {
-  // Support both old whiteText and new darkSurface props
-  const darkSurface = darkSurfaceProp ?? whiteText ?? false;
-
   // Variant selection: zinc for dark surfaces, retro for normal (handles app dark mode automatically)
   const variant = darkSurface ? 'zinc' : 'retro';
 

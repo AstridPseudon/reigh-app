@@ -5,7 +5,7 @@ import { GenerationRow, Shot } from "@/types/shots";
 import { useRemoveImageFromShot } from "@/shared/hooks/useShots";
 import { useQueryClient } from '@tanstack/react-query';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
-import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { useDemoteOrphanedVariants } from '../../../hooks/useDemoteOrphanedVariants';
 
 interface UseDeleteActionsProps {
@@ -47,11 +47,12 @@ export const useDeleteActions = ({
     const currentProjectId = projectIdRef.current;
 
     if (!currentShot || !currentProjectId) {
-      console.error('[DeleteDebug] ❌ Missing shot or project', {
-        hasSelectedShot: !!currentShot,
-        hasProjectId: !!currentProjectId
+      handleError(new Error('Missing shot or project context'), {
+        context: 'useDeleteActions.handleDeleteImageFromShot',
+        showToast: true,
+        toastTitle: 'Cannot remove image: No shot or project selected.',
+        logData: { hasSelectedShot: !!currentShot, hasProjectId: !!currentProjectId },
       });
-      toast.error("Cannot remove image: No shot or project selected.");
       return;
     }
 
@@ -69,14 +70,18 @@ export const useDeleteActions = ({
     const actualGenerationId = imageToDelete?.generation_id;
 
     if (!actualGenerationId) {
-      console.error('[DeleteDebug] ❌ Could not find generation ID for shotImageEntryId', {
-        shotImageEntryId: shotImageEntryId.substring(0, 8),
-        availableIds: currentOrderedImages.map(img => ({
-          id: img.id?.substring(0, 8),
-          generation_id: img.generation_id?.substring(0, 8)
-        }))
+      handleError(new Error('Could not find generation ID for shot image entry'), {
+        context: 'useDeleteActions.handleDeleteImageFromShot',
+        showToast: true,
+        toastTitle: 'Cannot remove image: Image not found.',
+        logData: {
+          shotImageEntryId: shotImageEntryId.substring(0, 8),
+          availableIds: currentOrderedImages.map(img => ({
+            id: img.id?.substring(0, 8),
+            generation_id: img.generation_id?.substring(0, 8)
+          })),
+        },
       });
-      toast.error("Cannot remove image: Image not found.");
       return;
     }
 
@@ -160,8 +165,12 @@ export const useDeleteActions = ({
 
       // Check for orphaned video variants after batch deletion
       await demoteOrphanedVariantsRef.current(currentShot.id, 'batch-image-delete');
-    } catch {
-      toast.error('Failed to remove some images from timeline');
+    } catch (error) {
+      handleError(error, {
+        context: 'useDeleteActions.handleBatchDeleteImages',
+        showToast: true,
+        toastTitle: 'Failed to remove some images from timeline',
+      });
     }
   }, []);
 

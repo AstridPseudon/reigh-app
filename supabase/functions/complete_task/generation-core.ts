@@ -3,6 +3,8 @@
  * Basic database operations for generations and variants
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+
 // ===== HELPERS =====
 
 /**
@@ -20,7 +22,7 @@ function _extractFromArray(arr: unknown[], index: number): unknown | undefined {
 /**
  * Check for existing generation referencing this task_id
  */
-export async function findExistingGeneration(supabase: unknown, taskId: string): Promise<unknown | null> {
+export async function findExistingGeneration(supabase: SupabaseClient, taskId: string): Promise<unknown | null> {
   try {
     const { data, error } = await supabase
       .from('generations')
@@ -43,7 +45,7 @@ export async function findExistingGeneration(supabase: unknown, taskId: string):
 /**
  * Find source generation by image URL (for magic edit tracking)
  */
-export async function findSourceGenerationByImageUrl(supabase: unknown, imageUrl: string): Promise<string | null> {
+export async function findSourceGenerationByImageUrl(supabase: SupabaseClient, imageUrl: string): Promise<string | null> {
   if (!imageUrl) return null;
 
   try {
@@ -76,7 +78,7 @@ export async function findSourceGenerationByImageUrl(supabase: unknown, imageUrl
 /**
  * Insert generation record
  */
-export async function insertGeneration(supabase: unknown, record: unknown): Promise<unknown> {
+export async function insertGeneration(supabase: SupabaseClient, record: unknown): Promise<unknown> {
   const { data, error } = await supabase
     .from('generations')
     .insert(record)
@@ -95,7 +97,7 @@ export async function insertGeneration(supabase: unknown, record: unknown): Prom
  * @param viewedAt - Optional: if provided, marks the variant as already viewed (for single-segment cases)
  */
 export async function createVariant(
-  supabase: unknown,
+  supabase: SupabaseClient,
   generationId: string,
   location: string,
   thumbnailUrl: string | null,
@@ -138,7 +140,7 @@ export async function createVariant(
  * Link generation to shot using the existing RPC
  */
 export async function linkGenerationToShot(
-  supabase: unknown,
+  supabase: SupabaseClient,
   shotId: string,
   generationId: string,
   addInPosition: boolean

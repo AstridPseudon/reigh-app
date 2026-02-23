@@ -15,7 +15,7 @@ import { useMemo, RefObject } from 'react';
 import type { GenerationRow } from '@/types/shots';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { LightboxStateValue } from '../contexts/LightboxStateContext';
-import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/utils';
+import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/variantSourceImages';
 
 interface UseLightboxStateValueInput {
   // Core

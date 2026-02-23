@@ -3,11 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { Settings } from 'lucide-react';
 import { ShotSelectorControls } from './ShotSelectorControls';
-
-interface ShotOption {
-  id: string;
-  name: string;
-}
+import type { ShotOption } from '@/types/shots';
 
 interface WorkflowControlsBarProps {
   // Visibility

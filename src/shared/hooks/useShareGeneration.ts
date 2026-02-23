@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { isNotFoundError, isUniqueViolationError } from '@/shared/constants/supabaseErrors';
 
@@ -71,8 +71,6 @@ export function useShareGeneration(
   const [shareSlug, setShareSlug] = useState<string | null>(options?.initialShareSlug ?? null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const { toast } = useToast();
-
   // Reset share state when shot/generation changes
   useEffect(() => {
     setShareSlug(options?.initialShareSlug ?? null);

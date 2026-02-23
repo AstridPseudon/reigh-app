@@ -11,9 +11,10 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 /**
  * A variant of a generation (from generation_variants table)
@@ -93,22 +94,15 @@ export const useVariants = ({
   });
 
   // Listen for realtime variant changes and refetch when our generationId is affected
-  useEffect(() => {
+  const handleVariantChange = useCallback((detail: { affectedGenerationIds: string[] }) => {
     if (!generationId || !enabled) return;
-
-    const handleVariantChange = (event: CustomEvent) => {
-      const affectedIds = event.detail?.affectedGenerationIds || [];
-      if (affectedIds.includes(generationId)) {
-        refetch();
-      }
-    };
-
-    window.addEventListener('realtime:variant-change-batch', handleVariantChange as EventListener);
-
-    return () => {
-      window.removeEventListener('realtime:variant-change-batch', handleVariantChange as EventListener);
-    };
+    const affectedIds = detail?.affectedGenerationIds || [];
+    if (affectedIds.includes(generationId)) {
+      refetch();
+    }
   }, [generationId, enabled, refetch]);
+
+  useAppEventListener('realtime:variant-change-batch', handleVariantChange);
 
   // Find the primary variant
   const primaryVariant = useMemo(() => {

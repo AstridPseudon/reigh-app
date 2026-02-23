@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { useRenderLogger } from '../useRenderLogger';
+import { useRenderLogger } from '@/shared/lib/debugRendering';
 
 describe('useRenderLogger', () => {
   it('exports expected members', () => {

@@ -34,43 +34,19 @@ const fetchApiKeys = async (): Promise<ApiKeys> => {
   return (data?.api_keys as ApiKeys) || {};
 };
 
-// Update API keys in the database
+// Update API keys in the database using upsert (atomic insert-or-update)
 const updateApiKeys = async (apiKeys: ApiKeys): Promise<ApiKeys> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
-  
-  // Check if user exists
-  const { data: existingUser } = await supabase
+
+  const { data, error } = await supabase
     .from('users')
-    .select('id')
-    .eq('id', user.id)
+    .upsert({ id: user.id, api_keys: apiKeys }, { onConflict: 'id' })
+    .select('api_keys')
     .single();
-  
-  if (!existingUser) {
-    // Create user with API keys
-    const { data, error } = await supabase
-      .from('users')
-      .insert({
-        id: user.id,
-        api_keys: apiKeys
-      })
-      .select('api_keys')
-      .single();
-    
-    if (error) throw error;
-    return (data?.api_keys as ApiKeys) || {};
-  } else {
-    // Update existing user's API keys
-    const { data, error } = await supabase
-      .from('users')
-      .update({ api_keys: apiKeys })
-      .eq('id', user.id)
-      .select('api_keys')
-      .single();
-    
-    if (error) throw error;
-    return (data?.api_keys as ApiKeys) || {};
-  }
+
+  if (error) throw error;
+  return (data?.api_keys as ApiKeys) || {};
 };
 
 export const useApiKeys = () => {

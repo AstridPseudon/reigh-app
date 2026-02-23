@@ -1,7 +1,8 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 import { useLocation } from 'react-router-dom';
 import { PANE_CONFIG } from '@/shared/config/panes';
+import { dispatchAppEvent, useAppEventListener } from '@/shared/lib/typedEvents';
 
 interface UseSlidingPaneOptions {
   side: 'left' | 'right' | 'bottom';
@@ -153,23 +154,18 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
 
   // Exclusive pane coordination on small phones
   // When another pane opens, this one should close (locking the other will handle unlocking this via PanesContext)
-  useEffect(() => {
+  const handleMobilePaneOpen = useCallback((detail: { side: string | null }) => {
     if (!isSmallMobile) return;
-
-    const handleMobilePaneOpen = (evt: Event) => {
-      const customEvt = evt as CustomEvent<{ side: string | null }>;
-      const openedSide = customEvt.detail?.side ?? null;
-      if (openedSide !== side && !isLocked) {
-        // Another pane (or null) requested and we're not locked – close this one
-        setIsOpen(false);
-      }
-      // Note: If this pane IS locked, PanesContext will handle unlocking it
-      // when the other pane gets locked (only one can be locked at a time on mobile)
-    };
-
-    window.addEventListener('mobilePaneOpen', handleMobilePaneOpen as EventListener);
-    return () => window.removeEventListener('mobilePaneOpen', handleMobilePaneOpen as EventListener);
+    const openedSide = detail?.side ?? null;
+    if (openedSide !== side && !isLocked) {
+      // Another pane (or null) requested and we're not locked - close this one
+      setIsOpen(false);
+    }
+    // Note: If this pane IS locked, PanesContext will handle unlocking it
+    // when the other pane gets locked (only one can be locked at a time on mobile)
   }, [isSmallMobile, side, isLocked, setIsOpen]);
+
+  useAppEventListener('mobilePaneOpen', handleMobilePaneOpen);
 
   const openPane = () => {
     if (leaveTimeoutRef.current) {
@@ -179,8 +175,7 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
 
     if (isSmallMobile) {
       // Dispatch global event so other panes close immediately
-      const evt = new CustomEvent('mobilePaneOpen', { detail: { side } });
-      window.dispatchEvent(evt);
+      dispatchAppEvent('mobilePaneOpen', { side });
     }
     setOpen(true);
   }

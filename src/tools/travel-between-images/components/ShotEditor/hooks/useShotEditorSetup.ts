@@ -95,8 +95,8 @@ export function useShotEditorSetup({
   // ============================================================================
   // STABILITY REFS
   // ============================================================================
-  // 🎯 PERF FIX: Create refs for values that are used in callbacks but shouldn't cause callback recreation
-  // This prevents the cascade of 22+ callback recreations on every shot/settings change
+  // Refs for values used in callbacks that shouldn't trigger callback recreation.
+  // This prevents the cascade of callback recreations on every shot/settings change.
   const selectedShotRef = useRef(selectedShot);
   selectedShotRef.current = selectedShot;
   const projectIdRef = useRef(projectId);

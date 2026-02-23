@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { getDisplayUrl, stripQueryParameters } from '@/shared/lib/mediaUrl';
 import { Button } from '@/shared/components/ui/button';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 

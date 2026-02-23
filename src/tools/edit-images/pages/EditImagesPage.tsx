@@ -24,7 +24,7 @@ import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGaller
 import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/lib/clientThumbnailGenerator';
 import MediaLightbox from '@/shared/components/MediaLightbox';
@@ -108,14 +108,13 @@ export default function EditImagesPage() {
     if (!session?.user?.id) {
       throw new Error('User not authenticated');
     }
-    const userId = session.user.id;
 
     let publicUrl = '';
     let thumbnailUrl = '';
 
     try {
       const thumbnailResult = await generateClientThumbnail(file, 300, 0.8);
-      const uploadResult = await uploadImageWithThumbnail(file, thumbnailResult.thumbnailBlob, userId);
+      const uploadResult = await uploadImageWithThumbnail(file, thumbnailResult.thumbnailBlob);
       publicUrl = uploadResult.imageUrl;
       thumbnailUrl = uploadResult.thumbnailUrl;
     } catch {

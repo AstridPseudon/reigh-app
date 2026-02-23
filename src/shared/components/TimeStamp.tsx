@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDistanceToNow, isValid } from 'date-fns';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useTimestampUpdater, useTimestampVisibility } from '@/shared/hooks/useTimestampUpdater';
 
 interface TimeStampProps {
@@ -35,7 +35,7 @@ export const TimeStamp: React.FC<TimeStampProps> = ({
   }, [createdAt]);
 
   // Track visibility for performance (only update visible timestamps)
-  // ⚠️ CRITICAL: All hooks must be called unconditionally (React rules of hooks)
+  // All hooks must be called unconditionally (React rules of hooks)
   const isVisible = useTimestampVisibility(elementRef);
   
   // Determine if we should enable updates

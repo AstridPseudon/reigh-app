@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { getDisplayUrl } from '@/shared/lib/mediaUrl';
 import type { GeneratedImageWithMetadata, DisplayableMetadata } from '../types';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
@@ -74,7 +74,6 @@ export const useMediaGalleryActions = ({
   onPageBoundsExceeded,
 }: UseMediaGalleryActionsProps): UseMediaGalleryActionsReturn => {
 
-  const { toast } = useToast();
   const { setLastAffectedShotId } = useLastAffectedShot();
 
   // Track in-flight delete operations for debouncing rapid deletions

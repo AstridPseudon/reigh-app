@@ -1,0 +1,293 @@
+{
+  "batch": "Governance & Contracts",
+  "assessments": {
+    "error_consistency": 90,
+    "authorization_consistency": 92,
+    "convention_outlier": 84,
+    "naming_quality": 88,
+    "contract_coherence": 82,
+    "dependency_health": 85,
+    "initialization_coupling": 86,
+    "test_strategy": 78
+  },
+  "findings": [
+    {
+      "dimension": "error_consistency",
+      "identifier": "error-hierarchy-well-structured",
+      "summary": "The error handling system is well-layered: errors.ts defines a clear hierarchy (AppError, NetworkError, AuthError, ValidationError, ServerError, SilentError), errorNormalization.ts converts unknowns, errorPresentation.ts handles display, and handleError.ts orchestrates the pipeline. 468 call sites use handleError consistently.",
+      "related_files": [
+        "src/shared/lib/errors.ts",
+        "src/shared/lib/errorHandling/handleError.ts",
+        "src/shared/lib/errorHandling/errorNormalization.ts",
+        "src/shared/lib/errorHandling/errorPresentation.ts"
+      ],
+      "evidence": [
+        "errors.ts: Full class hierarchy with typed properties (lines 11-166)",
+        "handleError.ts: Clean normalize -> log -> toast -> callback pipeline (lines 24-40)",
+        "468 handleError call sites across 226 files show strong adoption"
+      ],
+      "suggestion": "No action needed. This is a strength.",
+      "reasoning": "The separation of normalization, presentation, and orchestration is clean. Most code paths use the unified handleError rather than raw console.error.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "error_consistency",
+      "identifier": "navigator-online-in-categorize",
+      "summary": "categorizeError in errors.ts checks `!navigator.onLine` as a condition to classify errors as NetworkError. This is a side-effect in what should be a pure categorization function, and will throw in non-browser environments (SSR, tests, edge functions).",
+      "related_files": [
+        "src/shared/lib/errors.ts"
+      ],
+      "evidence": [
+        "errors.ts line 209: `!navigator.onLine` in categorizeError conditions",
+        "errors.ts line 56: NetworkError constructor also reads navigator.onLine",
+        "errors.ts line 62: NetworkError.fromError also reads navigator.onLine"
+      ],
+      "suggestion": "Guard navigator access with `typeof navigator !== 'undefined'` or extract online status as a parameter to categorizeError.",
+      "reasoning": "Pure functions should not reach into globals. This couples error categorization to the browser environment and could misclassify errors when the user is offline but the error is actually a validation error.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "error_consistency",
+      "identifier": "edge-fn-raw-console-error",
+      "summary": "Edge functions (billing.ts, storage.ts, auth.ts) use raw console.error for error logging rather than a structured error handling pattern. This is acceptable for the Deno edge function environment but represents a separate error strategy from the frontend.",
+      "related_files": [
+        "supabase/functions/_shared/billing.ts",
+        "supabase/functions/_shared/auth.ts",
+        "supabase/functions/complete_task/storage.ts"
+      ],
+      "evidence": [
+        "billing.ts lines 126, 129: console.error with [CostCalc] tag",
+        "auth.ts lines 64, 117, 159, 174, 184, 247: console.error with [AUTH] tag",
+        "storage.ts lines 69, 113, 130, 190, 205: console.error with [Storage] tag"
+      ],
+      "suggestion": "Consider a lightweight shared logger for edge functions with consistent structured output (JSON logs for observability). Low priority since tags are already consistent.",
+      "reasoning": "Edge functions run in Deno, so the frontend error system doesn't apply. The use of consistent log tags ([AUTH], [Storage], [CostCalc]) is good practice. A structured logger would improve observability.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "authorization_consistency",
+      "identifier": "auth-coverage-excellent",
+      "summary": "All 33 non-utility edge functions use authenticateRequest from the shared auth module. Only stripe-webhook (correctly) uses its own Stripe signature verification. Ownership verification helpers (verifyTaskOwnership, verifyShotOwnership) exist but are only used in 3 of 33 functions.",
+      "related_files": [
+        "supabase/functions/_shared/auth.ts"
+      ],
+      "evidence": [
+        "35 files import authenticateRequest, covering all edge functions except stripe-webhook",
+        "Only 4 files use verifyTaskOwnership/verifyShotOwnership (update-shot-pair-prompts, generate-upload-url, auth.ts itself, complete_task)",
+        "stripe-webhook correctly uses Stripe's own signature verification instead"
+      ],
+      "suggestion": "Audit which user-facing functions should also verify resource ownership (not just authentication). Functions like trim-video, get-task-output may benefit from ownership checks.",
+      "reasoning": "Authentication is universally applied, which is excellent. However, authorization (ownership checks) is only applied in a few places. Many functions that take a task_id or shot_id parameter authenticate the user but don't verify they own the resource.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "authorization_consistency",
+      "identifier": "auth-supabaseAdmin-typed-as-unknown",
+      "summary": "The authenticateRequest function and all ownership verification functions type supabaseAdmin as `unknown`, requiring unsafe property access via `.from()` without type checking.",
+      "related_files": [
+        "supabase/functions/_shared/auth.ts"
+      ],
+      "evidence": [
+        "auth.ts lines 44, 145, 208, 270: `supabaseAdmin: unknown`",
+        "auth.ts line 110-114: direct .from().select().eq().single() chain on unknown type"
+      ],
+      "suggestion": "Define a minimal interface (e.g., `SupabaseAdminClient`) like rateLimit.ts does (line 56-58), or use the actual SupabaseClient type from the SDK.",
+      "reasoning": "Using `unknown` defeats TypeScript's type checking. The rateLimit.ts file already demonstrates the correct pattern with a local SupabaseAdminClient interface. Applying the same pattern to auth.ts would catch type errors at compile time.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "convention_outlier",
+      "identifier": "button-hardcoded-colors",
+      "summary": "The button component's 'retro' and 'retro-secondary' variants use hardcoded hex colors (#e8e4db, #d8d4cb, #3a4a4a, #6a8a8a, etc.) rather than Tailwind theme tokens, violating the CLAUDE.md rule to 'never hardcode colors'.",
+      "related_files": [
+        "src/shared/components/ui/button.tsx"
+      ],
+      "evidence": [
+        "button.tsx line 21: retro variant with 14+ hardcoded hex values",
+        "button.tsx line 22: retro-secondary variant with 10+ hardcoded hex values",
+        "CLAUDE.md: 'never hardcode colors (use bg-background, text-foreground, etc.)'"
+      ],
+      "suggestion": "Extract retro colors to Tailwind theme config (e.g., `retro-bg`, `retro-border`, `retro-text`) and reference them as `bg-retro-bg`, `border-retro-border`, etc.",
+      "reasoning": "Hardcoded colors create maintenance burden and dark mode fragility. While these variants have both light and dark values, they bypass the theme system and would need manual updates if the design changes.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "convention_outlier",
+      "identifier": "legacy-button-variant-compat",
+      "summary": "Button component maintains backward compatibility for 'lala' variants via LEGACY_VARIANT_MAP and LEGACY_SIZE_MAP. This is a code smell -- legacy names should be migrated and removed.",
+      "related_files": [
+        "src/shared/components/ui/button.tsx"
+      ],
+      "evidence": [
+        "button.tsx lines 53-73: LegacyButtonVariant type and maps for 'lala' -> 'theme'",
+        "button.tsx lines 75-87: normalizeVariant and normalizeSize functions"
+      ],
+      "suggestion": "Search for remaining 'lala' variant usage, replace with 'theme'/'theme-ghost', and remove the legacy mapping code.",
+      "reasoning": "Legacy compatibility layers accumulate. The 'lala' naming is opaque and the mapping adds indirection. If no callsites remain, this is dead code; if some do, they should be migrated.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "naming_quality",
+      "identifier": "naming-generally-strong",
+      "summary": "Naming quality is generally good across the reviewed files. Error classes (AppError, NetworkError, AuthError, etc.), utility functions (handleError, categorizeError, normalizeAppError), and edge function helpers (authenticateRequest, verifyTaskOwnership, extractOrchestratorRef) all use clear, domain-appropriate names.",
+      "related_files": [
+        "src/shared/lib/errors.ts",
+        "src/shared/lib/errorHandling/handleError.ts",
+        "supabase/functions/_shared/auth.ts",
+        "supabase/functions/_shared/billing.ts"
+      ],
+      "evidence": [
+        "errors.ts: AppError, NetworkError, AuthError, ValidationError, ServerError, SilentError - clear hierarchy",
+        "auth.ts: authenticateRequest, verifyTaskOwnership, verifyShotOwnership, getTaskUserId - action-oriented",
+        "billing.ts: extractOrchestratorRef, getSubTaskOrchestratorId, buildSubTaskFilter - precise names"
+      ],
+      "suggestion": "No action needed.",
+      "reasoning": "Names communicate intent clearly. The only questionable name is 'lala' in the button component (addressed separately as a convention outlier).",
+      "confidence": "high"
+    },
+    {
+      "dimension": "contract_coherence",
+      "identifier": "auth-return-type-inconsistency",
+      "summary": "getTaskUserId returns `{ userId: 'system' }` as a fallback when the project lookup fails (line 301), but the return type declares `userId: string | null`. Callers expecting null for failure won't catch this 'system' sentinel value.",
+      "related_files": [
+        "supabase/functions/_shared/auth.ts"
+      ],
+      "evidence": [
+        "auth.ts line 273: return type `{ userId: string | null; ... }`",
+        "auth.ts line 300-302: returns `{ userId: 'system' }` on project lookup failure instead of null or an error"
+      ],
+      "suggestion": "Either document the 'system' sentinel value in the return type (via a tagged union or comment), or return null/error to be consistent with the declared contract.",
+      "reasoning": "A function that can return 'system' as a userId when it can't find the project owner creates a subtle bug vector. Callers checking for null will miss this case, potentially storing files in a 'system' user directory.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "contract_coherence",
+      "identifier": "storage-verify-not-actual-verify",
+      "summary": "verifyFileExists in storage.ts doesn't actually verify the file exists in storage -- it just generates a public URL for the path. Supabase's getPublicUrl always succeeds even for non-existent files.",
+      "related_files": [
+        "supabase/functions/complete_task/storage.ts"
+      ],
+      "evidence": [
+        "storage.ts lines 179-193: verifyFileExists calls getPublicUrl which always returns a URL",
+        "getPublicUrl is a URL construction function, not a storage check"
+      ],
+      "suggestion": "Use `supabase.storage.from(bucket).list()` or a HEAD request to actually verify the file exists, or rename the function to `getPublicUrl` to match its actual behavior.",
+      "reasoning": "The function name promises verification but delivers URL generation. This could mask bugs where MODE 4 (file already in storage) references a non-existent path.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "contract_coherence",
+      "identifier": "rate-limit-fail-open",
+      "summary": "checkRateLimit fails open on both RPC errors and exceptions, which is a deliberate design choice documented in comments. While reasonable for availability, this means rate limiting is effectively optional when the DB is under load (exactly when you'd want it most).",
+      "related_files": [
+        "supabase/functions/_shared/rateLimit.ts"
+      ],
+      "evidence": [
+        "rateLimit.ts lines 79-86: returns allowed=true when RPC errors",
+        "rateLimit.ts lines 107-114: returns allowed=true on exceptions"
+      ],
+      "suggestion": "Consider adding a circuit breaker pattern: if rate limiting has failed N consecutive times, start rejecting requests rather than allowing all through.",
+      "reasoning": "Fail-open is standard practice, but under heavy load the rate limiter becomes a no-op. A circuit breaker would provide degraded-but-present rate limiting during partial outages.",
+      "confidence": "medium"
+    },
+    {
+      "dimension": "dependency_health",
+      "identifier": "shots-barrel-clean",
+      "summary": "shots.ts has been cleanly refactored into a barrel file re-exporting from specialized type modules (generationParams, generationMetadata, generationRow, shot). This reduces coupling and allows targeted imports.",
+      "related_files": [
+        "src/types/shots.ts"
+      ],
+      "evidence": [
+        "shots.ts: 15 lines, pure re-exports from 4 type modules",
+        "Comment: 'Backward-compatible barrel for shot/generation-related types'"
+      ],
+      "suggestion": "No action needed. Good refactoring pattern.",
+      "reasoning": "Clean barrel files maintain backward compatibility while allowing incremental migration to direct imports.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "dependency_health",
+      "identifier": "supabase-client-window-coupling",
+      "summary": "The Supabase client singleton uses window.__supabase_client__ for HMR persistence and diagnostics. While pragmatic, this couples the module to the browser environment and uses untyped window properties.",
+      "related_files": [
+        "src/integrations/supabase/client.ts"
+      ],
+      "evidence": [
+        "client.ts line 29: `window.__supabase_client__` check",
+        "client.ts line 22: `window.__supabase_client__` and `window.supabase` assignment",
+        "No type declaration for these window properties visible in this file"
+      ],
+      "suggestion": "Add a global.d.ts augmentation for `Window.__supabase_client__` to get type safety. Low priority since this is dev-only HMR handling.",
+      "reasoning": "Untyped window properties are a TypeScript anti-pattern. A global type augmentation would prevent accidental misspellings and provide IDE support.",
+      "confidence": "low"
+    },
+    {
+      "dimension": "initialization_coupling",
+      "identifier": "supabase-client-init-order",
+      "summary": "The Supabase client module has explicit initialization ordering: installWindowOnlyInstrumentation() runs before client creation, then registerSupabaseGlobals, then initializeSupabaseRuntime. The HMR guard prevents duplicate initialization. This is well-structured.",
+      "related_files": [
+        "src/integrations/supabase/client.ts"
+      ],
+      "evidence": [
+        "client.ts line 17: instrumentation installed first",
+        "client.ts line 33: createSupabaseClient",
+        "client.ts line 36: registerSupabaseGlobals",
+        "client.ts line 38: initializeSupabaseRuntime",
+        "client.ts line 29-30: HMR guard prevents re-initialization"
+      ],
+      "suggestion": "No action needed. Well-ordered initialization.",
+      "reasoning": "The initialization sequence is explicit, documented via comments, and protected against HMR-related duplicate execution.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "test_strategy",
+      "identifier": "high-test-count-good-coverage",
+      "summary": "895 test files in src/ and 39 in supabase/ represent substantial test coverage. Test patterns show proper use of vitest, react-testing-library, fake timers, and async/act patterns.",
+      "related_files": [
+        "src/shared/hooks/__tests__/useAutoSaveSettings.test.ts",
+        "src/shared/hooks/__tests__/useDebouncedSettingsSave.test.ts"
+      ],
+      "evidence": [
+        "895 test files in src/, 39 in supabase/",
+        "useAutoSaveSettings.test.ts: 638 lines covering initial state, React Query mode, custom load/save, field updates, revert, reset, initializeFrom, disabled hook, entity-change flush, pending-edit protection, and race conditions",
+        "useDebouncedSettingsSave.test.ts: 287 lines covering tracking, scheduling, cancellation, entity-change flush"
+      ],
+      "suggestion": "Continue expanding edge function tests (only 39 files for 33 functions). Consider adding integration tests for the auth->ownership->action pipeline.",
+      "reasoning": "The test count and quality of the examined tests are strong. Tests cover race conditions, async flows, and edge cases. The relative gap is in edge function testing.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "test_strategy",
+      "identifier": "test-mock-path-inconsistency",
+      "summary": "useDebouncedSettingsSave.test.ts mocks useToolSettings with a relative path ('./useToolSettings') while useAutoSaveSettings.test.ts uses an aliased path ('../useToolSettings'). Both work due to vitest's mock hoisting, but the inconsistency could cause confusion.",
+      "related_files": [
+        "src/shared/hooks/__tests__/useDebouncedSettingsSave.test.ts",
+        "src/shared/hooks/__tests__/useAutoSaveSettings.test.ts"
+      ],
+      "evidence": [
+        "useDebouncedSettingsSave.test.ts line 10: vi.mock('./useToolSettings', ...)",
+        "useAutoSaveSettings.test.ts line 7: vi.mock('../useToolSettings', ...)"
+      ],
+      "suggestion": "Standardize mock paths to use relative paths from the test file location (../useToolSettings) consistently.",
+      "reasoning": "Mock path inconsistency can cause subtle test failures if file structure changes. A consistent convention prevents confusion.",
+      "confidence": "low"
+    },
+    {
+      "dimension": "test_strategy",
+      "identifier": "stale-mock-errorHandler-path",
+      "summary": "Both test files mock '@/shared/lib/errorHandler' but the actual module is at '@/shared/lib/errorHandling/handleError'. The mock works because vitest just prevents import errors for non-existent paths, but this suggests the tests may have been written before the error handling refactor.",
+      "related_files": [
+        "src/shared/hooks/__tests__/useAutoSaveSettings.test.ts",
+        "src/shared/hooks/__tests__/useDebouncedSettingsSave.test.ts"
+      ],
+      "evidence": [
+        "useAutoSaveSettings.test.ts line 21: vi.mock('@/shared/lib/errorHandler', ...)",
+        "useDebouncedSettingsSave.test.ts line 6: vi.mock('@/shared/lib/errorHandler', ...)",
+        "Actual error handler at: src/shared/lib/errorHandling/handleError.ts"
+      ],
+      "suggestion": "Check whether the source files import from '@/shared/lib/errorHandler' (which may be a re-export barrel) or if these mocks are stale and should be updated to '@/shared/lib/errorHandling/handleError'.",
+      "reasoning": "Stale mock paths can silently stop mocking the intended module, leading to tests that pass but don't properly isolate the unit under test.",
+      "confidence": "medium"
+    }
+  ]
+}

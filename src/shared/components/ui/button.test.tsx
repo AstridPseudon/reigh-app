@@ -12,9 +12,9 @@ describe('Button', () => {
     expect(button.className).toContain('inline-flex');
   });
 
-  it('maps legacy variant and size aliases to modern styles', () => {
-    render(<Button variant="lala" size="lala-sm">Legacy</Button>);
-    const button = screen.getByRole('button', { name: 'Legacy' });
+  it('applies theme variant and size correctly', () => {
+    render(<Button variant="theme" size="theme-sm">Themed</Button>);
+    const button = screen.getByRole('button', { name: 'Themed' });
 
     expect(button.className).toContain('theme-button');
     expect(button.className).toContain('h-9');

@@ -41,7 +41,7 @@ export function useImageGenSubmit({
 
       return createdTaskIds;
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.error('[handleNewGenerate] FAILED:', error);
       }
       handleError(error, { context: 'ImageGenerationToolPage.handleNewGenerate', toastTitle: error instanceof Error ? error.message : 'Failed to create tasks.' });

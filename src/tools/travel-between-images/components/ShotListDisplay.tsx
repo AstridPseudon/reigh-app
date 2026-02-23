@@ -31,6 +31,7 @@ import { getDragType, getGenerationDropData, isFileDrag, type GenerationDropData
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import { useShotFinalVideos } from '../hooks/useShotFinalVideos';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 interface ShotListDisplayProps {
   onSelectShot: (shot: Shot) => void;
@@ -357,23 +358,16 @@ const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
   }, [onSkeletonSetupReady, setupPendingNewShot, clearPendingNewShot]);
 
   // Listen for shot-pending-create events (from ShotSelectorWithAdd quick create)
-  React.useEffect(() => {
-    const handlePendingCreate = (event: CustomEvent<{ imageCount: number }>) => {
-      const { imageCount } = event.detail;
-      setupPendingNewShot(imageCount);
-    };
+  const handlePendingCreate = useCallback((detail: { imageCount: number }) => {
+    setupPendingNewShot(detail.imageCount);
+  }, [setupPendingNewShot]);
 
-    const handlePendingCreateClear = () => {
-      clearPendingNewShot();
-    };
+  const handlePendingCreateClear = useCallback(() => {
+    clearPendingNewShot();
+  }, [clearPendingNewShot]);
 
-    window.addEventListener('shot-pending-create', handlePendingCreate as EventListener);
-    window.addEventListener('shot-pending-create-clear', handlePendingCreateClear);
-    return () => {
-      window.removeEventListener('shot-pending-create', handlePendingCreate as EventListener);
-      window.removeEventListener('shot-pending-create-clear', handlePendingCreateClear);
-    };
-  }, [setupPendingNewShot, clearPendingNewShot]);
+  useAppEventListener('shot-pending-create', handlePendingCreate);
+  useAppEventListener('shot-pending-create-clear', handlePendingCreateClear);
 
   // Handle drop for new shot
   const handleNewShotDrop = useCallback(async (e: React.DragEvent) => {

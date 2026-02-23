@@ -173,11 +173,6 @@ export function usePromptFieldState({
     defaultPrompt,
   ]);
 
-  // Handlers
-  const handleChange = useCallback((value: string) => {
-    onSettingsChange(value);
-  }, [onSettingsChange]);
-
   const handleClearAll = useCallback(() => {
     // Clear user edit (undefined = use defaults)
     onSettingsChange(undefined);
@@ -201,7 +196,7 @@ export function usePromptFieldState({
     hasEnhancedPrompt,
     userHasSetPrompt: hasSettingsPrompt,
     userHasEditedAfterEnhancement,
-    handleChange,
+    handleChange: onSettingsChange,
     handleClearAll,
     handleClearEnhanced,
     handleVoiceResult,

@@ -215,19 +215,11 @@ async function uploadImageWithFallback(
   let thumbnailUrl = '';
 
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user?.id) {
-      throw new Error('User not authenticated');
-    }
-
     const thumbnailResult = await generateClientThumbnail(imageFile, 300, 0.8);
     const uploadResult = await uploadImageWithThumbnail(
       imageFile,
       thumbnailResult.thumbnailBlob,
-      session.user.id,
-      progressHandler,
+      { onProgress: progressHandler },
     );
     imageUrl = uploadResult.imageUrl;
     thumbnailUrl = uploadResult.thumbnailUrl;

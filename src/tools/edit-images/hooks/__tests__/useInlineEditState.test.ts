@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Mock all heavy dependencies
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }));
 
@@ -221,9 +221,8 @@ describe('useInlineEditState', () => {
   });
 
   it('returns all expected sections of state', () => {
-    const onClose = vi.fn();
     const { result } = renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -270,9 +269,8 @@ describe('useInlineEditState', () => {
   });
 
   it('passes correct params to useUpscale', () => {
-    const onClose = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -284,9 +282,8 @@ describe('useInlineEditState', () => {
   });
 
   it('passes TOOL_IDS.EDIT_IMAGES as toolTypeOverride to useInpainting', () => {
-    const onClose = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -298,9 +295,8 @@ describe('useInlineEditState', () => {
   });
 
   it('sets imageDimensions via setImageDimensions', () => {
-    const onClose = vi.fn();
     const { result } = renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -327,9 +323,8 @@ describe('useInlineEditState', () => {
       isSpecialEditMode: false,
     });
 
-    const onClose = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -349,9 +344,8 @@ describe('useInlineEditState', () => {
       isSpecialEditMode: true,
     });
 
-    const onClose = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -360,9 +354,8 @@ describe('useInlineEditState', () => {
 
   it('derives actualGenerationId from media.generation_id', () => {
     // useInpainting should receive activeVariantId from useVariants
-    const onClose = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -376,9 +369,8 @@ describe('useInlineEditState', () => {
   });
 
   it('passes createAsGeneration=false by default', () => {
-    const onClose = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 
@@ -390,10 +382,9 @@ describe('useInlineEditState', () => {
   });
 
   it('passes onNavigateToGeneration to useSourceGeneration', () => {
-    const onClose = vi.fn();
     const onNavigate = vi.fn();
     renderHook(
-      () => useInlineEditState(mockMedia, onClose, onNavigate),
+      () => useInlineEditState(mockMedia, onNavigate),
       { wrapper: createWrapper() },
     );
 
@@ -402,9 +393,8 @@ describe('useInlineEditState', () => {
   });
 
   it('returns imageEditValue with correct structure', () => {
-    const onClose = vi.fn();
     const { result } = renderHook(
-      () => useInlineEditState(mockMedia, onClose),
+      () => useInlineEditState(mockMedia),
       { wrapper: createWrapper() },
     );
 

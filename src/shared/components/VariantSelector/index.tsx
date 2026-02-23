@@ -13,7 +13,7 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/shared/components/ui/tooltip';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { ChunkLoadErrorBoundary } from '@/shared/components/ChunkLoadErrorBoundary';
 // Lazy load LineageGifModal since it's only opened on demand
@@ -23,7 +23,8 @@ const LazyLineageGifModal = React.lazy(() =>
   }))
 );
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
-import type { RelationshipFilter, CurrentSegmentImagesData } from './utils';
+import type { RelationshipFilter } from './utils';
+import type { CurrentSegmentImagesData } from './variantSourceImages';
 import { VariantGrid } from './components/VariantGrid';
 import { MobileInfoModal } from './components/MobileInfoModal';
 import { useVariantActions } from './hooks/useVariantActions';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { ProfitSplitBar } from '@/shared/components/ProfitSplitBar';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { GlassSidePane } from './GlassSidePane';
 
 interface CreativePartnerPaneProps {
@@ -51,7 +51,7 @@ export const CreativePartnerPane: React.FC<CreativePartnerPaneProps> = ({
               If you have a decent computer, <span className="text-wes-vintage-gold">you can run Reigh for free</span>. We make it very easy - you can use the app in any browser while tasks process locally. Just run this command:
             </p>
             
-            <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+            <div className="rounded-lg overflow-hidden border border-border shadow-sm">
               <img 
                 src="/gpu.webp"
                 alt="Screenshot showing how easy it is to run Reigh locally"
@@ -136,7 +136,7 @@ export const CreativePartnerPane: React.FC<CreativePartnerPaneProps> = ({
                       }
                     }}
                   >
-                    <div className="w-[360px] h-[270px] overflow-hidden rounded border relative bg-card dark:bg-gray-800">
+                    <div className="w-[360px] h-[270px] overflow-hidden rounded border relative bg-card">
                       <iframe
                         title="Open Source Ecosystem"
                         style={{ width: '360px', height: '270px', border: 0 }}

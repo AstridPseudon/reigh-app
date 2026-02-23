@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useMemo } from "react";
 import { useUpdateShotImageOrder, useAddImageToShotWithoutPosition } from "@/shared/hooks/useShots";
 import { useShotCreation } from "@/shared/hooks/useShotCreation";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import { Shot } from '@/types/shots';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
@@ -48,7 +48,7 @@ import {
   useVideoTravelSettings,
 } from '@/tools/travel-between-images/providers';
 import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/useShots';
-import { useSegmentOutputsForShot } from '../../hooks/useSegmentOutputsForShot';
+import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
 import { useDemoteOrphanedVariants } from '../../hooks/useDemoteOrphanedVariants';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { ShotEditorLayoutProps } from './ShotEditorLayout';
@@ -161,8 +161,8 @@ export function useShotEditorController({
   // Orphaned variant detection - demotes videos when source images change
   const { demoteOrphanedVariants } = useDemoteOrphanedVariants();
 
-  // 🎯 PERF FIX: Refs for mutation functions to prevent callback recreation
-  // React Query mutations change reference on state changes (idle → pending → success)
+  // Refs for mutation functions — React Query mutations change reference on
+  // state transitions (idle -> pending -> success), which would recreate callbacks.
   const createShotRef = useRef(createShot);
   createShotRef.current = createShot;
   const addToShotMutationRef = useRef(addToShotMutation);
@@ -281,7 +281,7 @@ export function useShotEditorController({
   // Use the new modular state management
   const { state, actions } = useShotEditorState();
 
-  // 🎯 PERF FIX: Refs for context/hook values to prevent callback recreation
+  // Refs for context/hook values to keep callbacks stable
   const setIsGenerationsPaneLockedRef = useRef(setIsGenerationsPaneLocked);
   setIsGenerationsPaneLockedRef.current = setIsGenerationsPaneLocked;
   const actionsRef = useRef(actions);
@@ -436,11 +436,10 @@ export function useShotEditorController({
   // REMOVED: Local optimistic list sync - no longer needed with two-phase loading
 
   // Function to update GenerationsPane settings for current shot
-  // 🎯 STABILITY FIX: Wrap in useCallback to prevent recreation on every render
+  // Wrap in useCallback to prevent recreation on every render
   const selectedShotIdRef = useRef(selectedShotId);
   selectedShotIdRef.current = selectedShotId;
   
-  // 🎯 PERF FIX: Uses ref to prevent callback recreation
   const updateGenerationsPaneSettings = useCallback((settings: Partial<GenerationsPaneSettings>) => {
     const shotId = selectedShotIdRef.current;
     if (shotId) {
@@ -716,9 +715,9 @@ export function useShotEditorController({
   // Must be called before early return (Rules of Hooks)
   // If selectedShot is undefined, we return early and this value is never used
 
-  // 🎯 PERF FIX: Memoize domain objects to prevent useShotSettingsValue's useMemo
-  // from recomputing every render. Without this, inline object literals create new
-  // references every render → context value always changes → all consumers re-render.
+  // Memoize domain objects so useShotSettingsValue's useMemo doesn't recompute
+  // every render. Without this, inline object literals create new references each
+  // render, causing the context value to change and all consumers to re-render.
   const structureVideoMemo = useMemo(() => ({
     structureVideoPath,
     structureVideoMetadata,

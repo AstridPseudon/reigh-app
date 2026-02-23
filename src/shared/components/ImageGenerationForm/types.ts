@@ -27,42 +27,11 @@ export function getLoraTypeForModel(model: TextToImageModel): string {
   return TEXT_TO_IMAGE_MODELS.find(m => m.id === model)?.loraType ?? 'Qwen Image';
 }
 
-interface MetadataLora {
-  id: string;
-  name: string;
-  path: string;
-  strength: number; 
-  previewImageUrl?: string;
-}
-
 export interface PromptEntry {
   id: string;
   fullPrompt: string;
   shortPrompt?: string;
   selected?: boolean;
-}
-
-interface PersistedFormSettings {
-  // Project-level settings (NOT shot-specific)
-  imagesPerPrompt?: number;
-  selectedLoras?: ActiveLora[];
-  depthStrength?: number;
-  softEdgeStrength?: number;
-  /** Text to prepend to every prompt (defaults to empty, not inherited) */
-  beforeEachPromptText?: string;
-  /** Text to append to every prompt (defaults to empty, not inherited) */
-  afterEachPromptText?: string;
-  selectedLorasByMode?: Record<GenerationMode, ActiveLora[]>;
-  associatedShotId?: string | null;
-  promptMode?: PromptMode;
-  /** Two-pass hires fix configuration for local generation */
-  hiresFixConfig?: HiresFixConfig;
-
-  /** Prompts when no shot is selected (project-level fallback) */
-  prompts?: PromptEntry[];
-  /** Master prompt when no shot is selected (project-level fallback) */
-  masterPrompt?: string;
-
 }
 
 /**
@@ -71,17 +40,14 @@ interface PersistedFormSettings {
  * Uses useAutoSaveSettings for automatic persistence.
  */
 export interface ImageGenShotSettings extends Record<string, unknown> {
-  /** Prompts for this shot */
   prompts: PromptEntry[];
   /** Master prompt for automated mode */
   masterPrompt: string;
-  /** Prompt mode: automated vs managed */
   promptMode?: PromptMode;
-  /** Selected reference ID for this shot */
   selectedReferenceId?: string | null;
-  /** Text to prepend to every prompt (defaults to empty, not inherited between shots) */
+  /** Defaults to empty, not inherited between shots */
   beforeEachPromptText?: string;
-  /** Text to append to every prompt (defaults to empty, not inherited between shots) */
+  /** Defaults to empty, not inherited between shots */
   afterEachPromptText?: string;
 }
 
@@ -90,8 +56,8 @@ export type { ReferenceImage } from '@/shared/types/referenceImage';
 
 // Hydrated reference with full data from resources table
 export interface HydratedReferenceImage {
-  id: string; // UI identifier
-  resourceId: string; // Resource table ID
+  id: string;
+  resourceId: string;
   name: string;
   styleReferenceImage: string;
   styleReferenceImageOriginal: string;
@@ -105,8 +71,8 @@ export interface HydratedReferenceImage {
   styleBoostTerms: string;
   createdAt: string;
   updatedAt: string;
-  isPublic: boolean; // Whether this reference is visible to other users
-  isOwner: boolean; // Whether the current user owns this reference
+  isPublic: boolean;
+  isOwner: boolean;
 }
 
 // LoRA category for storage - Qwen models and by-reference share one bucket, Z-Image has its own
@@ -124,32 +90,28 @@ export function getLoraCategoryForModel(model: TextToImageModel): LoraCategory {
 // This interface stores model selection and reference image settings in 'project-image-settings'.
 export interface ProjectImageSettings extends Record<string, unknown> {
   selectedModel?: GenerationMode;
-
-  // Generation source: by-reference or just-text
   generationSource?: GenerationSource;
-  // Model for just-text mode
   selectedTextModel?: TextToImageModel;
-  // Per-category LoRA selections: 'qwen' (shared by all Qwen models + by-reference) and 'z-image'
+  /** Per-category LoRA selections: 'qwen' (shared by all Qwen models + by-reference) and 'z-image' */
   selectedLorasByCategory?: Record<LoraCategory, ActiveLora[]>;
-  // DEPRECATED: per-model storage (migrated to selectedLorasByCategory)
+  /** @deprecated migrated to selectedLorasByCategory — used by useLoraCategoryMigration */
   selectedLorasByTextModel?: Record<TextToImageModel, ActiveLora[]>;
-
-  // DEPRECATED: projectPrompts moved to 'image-generation' tool settings via usePersistentToolState
-  // Kept for migration - will be removed after all users migrate
-  projectPrompts?: PromptEntry[];
-
-  // Multi-reference structure (shot-specific selection)
-  selectedReferenceIdByShot?: Record<string, string | null>; // Map of shotId -> referenceId
-  references?: ReferenceImage[]; // Array of references (project-wide)
-
-  // Legacy structures (deprecated, kept for migration)
-  selectedReferenceId?: string | null; // Old project-wide selection (deprecated)
-  styleReferenceImage?: string | null; // URL of processed style reference image (used for generation)
-  styleReferenceImageOriginal?: string | null; // URL of original uploaded image (used for display)
-  styleReferenceStrength?: number; // Style strength slider value
-  subjectStrength?: number; // Subject strength slider value
-  subjectDescription?: string; // Subject description text input
-  inThisScene?: boolean; // Whether subject is "in this scene" checkbox
+  selectedReferenceIdByShot?: Record<string, string | null>;
+  references?: ReferenceImage[];
+  /** @deprecated use selectedReferenceIdByShot */
+  selectedReferenceId?: string | null;
+  /** @deprecated */
+  styleReferenceImage?: string | null;
+  /** @deprecated */
+  styleReferenceImageOriginal?: string | null;
+  /** @deprecated */
+  styleReferenceStrength?: number;
+  /** @deprecated */
+  subjectStrength?: number;
+  /** @deprecated */
+  subjectDescription?: string;
+  /** @deprecated */
+  inThisScene?: boolean;
 }
 
 export interface PromptInputRowProps {

@@ -3,6 +3,7 @@
  * Handles checking if all child segments are complete and marking orchestrator done
  */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { extractOrchestratorTaskId, extractOrchestratorRunId } from './params.ts';
 import { triggerCostCalculation } from './billing.ts';
 import { TASK_TYPES, SEGMENT_TYPE_CONFIG } from './constants.ts';
@@ -31,7 +32,7 @@ interface TaskContext {
  * Check if all sibling segments are complete and mark orchestrator done if so
  */
 export async function checkOrchestratorCompletion(
-  supabase: unknown,
+  supabase: SupabaseClient,
   taskIdString: string,
   completedTask: TaskContext,
   publicUrl: string,
@@ -169,7 +170,7 @@ export async function checkOrchestratorCompletion(
  * Find sibling segment tasks using run_id (preferred) or orchestrator_task_id (fallback)
  */
 async function findSiblingSegments(
-  supabase: unknown,
+  supabase: SupabaseClient,
   segmentType: string,
   projectId: string,
   orchestratorTaskId: string,
@@ -221,7 +222,7 @@ async function findSiblingSegments(
  * Check the status of the final stitch task for this orchestrator
  */
 async function checkFinalStitchStatus(
-  supabase: unknown,
+  supabase: SupabaseClient,
   finalStepType: string,
   projectId: string,
   orchestratorTaskId: string,
@@ -258,7 +259,7 @@ async function checkFinalStitchStatus(
  * Mark orchestrator as Failed
  */
 async function markOrchestratorFailed(
-  supabase: unknown,
+  supabase: SupabaseClient,
   orchestratorTaskId: string,
   failedSegments: number,
   totalSegments: number
@@ -283,7 +284,7 @@ async function markOrchestratorFailed(
  * Mark orchestrator as Complete and trigger billing
  */
 async function markOrchestratorComplete(
-  supabase: unknown,
+  supabase: SupabaseClient,
   orchestratorTaskId: string,
   allSegments: SegmentTask[],
   publicUrl: string,

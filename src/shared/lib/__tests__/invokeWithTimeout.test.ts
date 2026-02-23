@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@/shared/lib/errorUtils', () => ({
+vi.mock('@/shared/lib/errorHandling/errorUtils', () => ({
   isAbortError: (err: unknown) =>
     err instanceof Error &&
     (err.name === 'AbortError' || err.message.includes('aborted')),
 }));
 
 vi.mock('@/integrations/supabase/config/env', () => ({
-  SUPABASE_URL: 'https://test-project.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'anon-key',
+  getSupabaseUrl: () => 'https://test-project.supabase.co',
+  getSupabasePublishableKey: () => 'anon-key',
 }));
 
 import { invokeWithTimeout } from '../invokeWithTimeout';

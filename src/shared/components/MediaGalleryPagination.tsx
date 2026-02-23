@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useIsMobile, useIsTablet } from '@/shared/hooks/use-mobile';
+import { useIsMobile, useIsTablet } from '@/shared/hooks/useMobile';
 
 interface MediaGalleryPaginationProps {
   totalPages: number;
@@ -18,7 +18,7 @@ interface MediaGalleryPaginationProps {
   rangeEnd: number;
   totalFilteredItems: number;
   loadingButton: string | null;
-  whiteText?: boolean;
+  darkSurface?: boolean;
   reducedSpacing?: boolean;
   hidePagination?: boolean;
   onPageChange: (page: number, direction: 'next' | 'prev', fromBottom?: boolean) => void;
@@ -39,7 +39,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
   rangeEnd,
   totalFilteredItems,
   loadingButton,
-  whiteText = false,
+  darkSurface = false,
   hidePagination = false,
   onPageChange,
   compact = false,
@@ -181,7 +181,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
         <button
           onClick={(e) => handlePrevPage(e, isSticky)}
           disabled={isPrevDisabled}
-          className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText && !isSticky ? 'hover:bg-zinc-700' : ''}`}
+          className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${darkSurface && !isSticky ? 'hover:bg-zinc-700' : ''}`}
         >
           {renderButtonContent('prev', loadingButton === 'prev')}
         </button>
@@ -192,18 +192,18 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
             onValueChange={(value) => handlePageSelect(value, isSticky)}
             disabled={loadingButton !== null}
           >
-            <SelectTrigger variant={isSticky ? "retro" : (whiteText ? "retro-dark" : "retro")} colorScheme={isSticky ? "default" : (whiteText ? "zinc" : "default")} size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
+            <SelectTrigger variant={isSticky ? "retro" : (darkSurface ? "retro-dark" : "retro")} colorScheme={isSticky ? "default" : (darkSurface ? "zinc" : "default")} size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent variant={isSticky ? "retro" : (whiteText ? "zinc" : "retro")} className="!min-w-0 w-11 text-xs">
+            <SelectContent variant={isSticky ? "retro" : (darkSurface ? "zinc" : "retro")} className="!min-w-0 w-11 text-xs">
               {Array.from({ length: totalPages }, (_, i) => (
-                <SelectItem variant={isSticky ? "retro" : (whiteText ? "zinc" : "retro")} key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
+                <SelectItem variant={isSticky ? "retro" : (darkSurface ? "zinc" : "retro")} key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
                   {i + 1}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <span className={`text-xs ml-1 ${isSticky ? 'text-muted-foreground' : (whiteText ? 'text-zinc-400' : 'text-muted-foreground')}`}>
+          <span className={`text-xs ml-1 ${isSticky ? 'text-muted-foreground' : (darkSurface ? 'text-zinc-400' : 'text-muted-foreground')}`}>
             of {totalPages}
           </span>
         </div>
@@ -211,7 +211,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
         <button
           onClick={(e) => handleNextPage(e, isSticky)}
           disabled={isNextDisabled}
-          className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText && !isSticky ? 'hover:bg-zinc-700' : ''}`}
+          className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${darkSurface && !isSticky ? 'hover:bg-zinc-700' : ''}`}
         >
           {renderButtonContent('next', loadingButton === 'next')}
         </button>
@@ -223,7 +223,7 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
         {/* Original pagination (scrolls with content) - fades out when sticky appears */}
         <div
           ref={compactPaginationRef}
-          className={`flex justify-between items-center mt-2 transition-opacity duration-200 ${whiteText ? 'text-white' : 'text-foreground'} ${showStickyTopPagination ? 'opacity-0' : 'opacity-100'}`}
+          className={`flex justify-between items-center mt-2 transition-opacity duration-200 ${darkSurface ? 'text-white' : 'text-foreground'} ${showStickyTopPagination ? 'opacity-0' : 'opacity-100'}`}
         >
           {paginationControls(false)}
 
@@ -275,11 +275,11 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
 
   // Regular layout for non-compact pagination
   return (
-    <div className={`flex justify-center items-center gap-2 mt-4 ${whiteText ? 'text-white' : 'text-foreground'}`}>
+    <div className={`flex justify-center items-center gap-2 mt-4 ${darkSurface ? 'text-white' : 'text-foreground'}`}>
       <button
         onClick={handlePrevPage}
         disabled={isPrevDisabled}
-        className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText ? 'hover:bg-zinc-700' : ''}`}
+        className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${darkSurface ? 'hover:bg-zinc-700' : ''}`}
       >
         {renderButtonContent('prev', loadingButton === 'prev')}
       </button>
@@ -290,18 +290,18 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
           onValueChange={(value) => handlePageSelect(value)}
           disabled={loadingButton !== null}
         >
-          <SelectTrigger variant={whiteText ? "retro-dark" : "retro"} colorScheme={whiteText ? "zinc" : "default"} size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
+          <SelectTrigger variant={darkSurface ? "retro-dark" : "retro"} colorScheme={darkSurface ? "zinc" : "default"} size="sm" className="h-6 w-9 text-xs px-1 !justify-center [&>span]:!text-center" hideIcon>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent variant={whiteText ? "zinc" : "retro"} className="!min-w-0 w-11 text-xs">
+          <SelectContent variant={darkSurface ? "zinc" : "retro"} className="!min-w-0 w-11 text-xs">
             {Array.from({ length: totalPages }, (_, i) => (
-              <SelectItem variant={whiteText ? "zinc" : "retro"} key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
+              <SelectItem variant={darkSurface ? "zinc" : "retro"} key={i + 1} value={(i + 1).toString()} className="text-xs !px-0 !justify-center [&>span]:!text-center [&>span]:!w-full">
                 {i + 1}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <span className={`text-xs ml-1 ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'}`}>
+        <span className={`text-xs ml-1 ${darkSurface ? 'text-zinc-400' : 'text-muted-foreground'}`}>
             of {totalPages}
           </span>
       </div>
@@ -309,12 +309,12 @@ export const MediaGalleryPagination: React.FC<MediaGalleryPaginationProps> = ({
       <button
         onClick={handleNextPage}
         disabled={isNextDisabled}
-        className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${whiteText ? 'hover:bg-zinc-700' : ''}`}
+        className={`p-1 rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${darkSurface ? 'hover:bg-zinc-700' : ''}`}
       >
         {renderButtonContent('next', loadingButton === 'next')}
       </button>
 
-      <span className={`text-xs ${whiteText ? 'text-zinc-400' : 'text-muted-foreground'} whitespace-nowrap`}>
+      <span className={`text-xs ${darkSurface ? 'text-zinc-400' : 'text-muted-foreground'} whitespace-nowrap`}>
         ({rangeStart}-{rangeEnd} of {totalFilteredItems})
       </span>
     </div>

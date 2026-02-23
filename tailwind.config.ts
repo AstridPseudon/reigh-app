@@ -69,6 +69,12 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				retro: {
+					DEFAULT: 'hsl(var(--retro))',
+					hover: 'hsl(var(--retro-hover))',
+					border: 'hsl(var(--retro-border))',
+					foreground: 'hsl(var(--retro-foreground))',
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/shared/components/ui/command';
 import { Star, ChevronsUpDown, PlusCircle } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn, truncateText } from '@/shared/lib/utils';
 import type { Project } from '@/types/project';
 
 interface ProjectSelectorPopoverProps {
@@ -60,8 +60,7 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
     }
   };
 
-  const truncatedName = (name: string) =>
-    name.length > 30 ? `${name.substring(0, 30)}...` : name;
+  const truncatedName = (name: string) => truncateText(name, 30);
 
   return (
     <Popover

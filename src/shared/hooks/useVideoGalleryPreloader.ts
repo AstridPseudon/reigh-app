@@ -6,6 +6,7 @@ import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { useProjectVideoCountsCache } from '@/shared/hooks/useProjectVideoCountsCache';
 import { Shot } from '@/types/shots';
 import { preloadingService, hasLoadedImage, PRIORITY } from '@/shared/lib/preloading';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 /**
  * Smart thumbnail preloader for video gallery performance optimization
@@ -154,12 +155,10 @@ export const useVideoGalleryPreloader = (options?: {
       (preloadedUrlCount.current[selectedProjectId] || 0) + newUrls.length;
 
     // Notify listeners of cache update (for useThumbnailLoader)
-    window.dispatchEvent(new CustomEvent('videogallery-cache-updated', {
-      detail: {
-        projectId: selectedProjectId,
-        updatedUrls: newUrls
-      }
-    }));
+    dispatchAppEvent('videogallery-cache-updated', {
+      projectId: selectedProjectId,
+      updatedUrls: newUrls
+    });
 
     // Mark page as preloaded
     if (!preloadedPagesByShot.current[shotId]) {

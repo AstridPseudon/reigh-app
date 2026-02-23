@@ -1,6 +1,8 @@
 import { PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '@/shared/types/phaseConfig';
-import type { ActiveLora } from '@/shared/hooks/useLoraManager';
 import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
+import type { SegmentSettings, LoraConfig } from '@/shared/types/segmentSettings';
+
+export type { SegmentSettings };
 
 export interface BuiltinPreset {
   id: string;
@@ -74,38 +76,11 @@ export function detectGenerationMode(modelName?: string): 'i2v' | 'vace' {
   return modelName.toLowerCase().includes('vace') ? 'vace' : 'i2v';
 }
 
-export interface SegmentSettings {
-  // Prompts
-  prompt: string;
-  negativePrompt: string;
-  // Text before/after prompts (merged into final prompt when generating)
-  textBeforePrompts?: string;
-  textAfterPrompts?: string;
-  // Motion
-  motionMode: 'basic' | 'advanced';
-  amountOfMotion: number; // 0-100 (UI scale)
-  // Phase config (only when motionMode is advanced)
-  phaseConfig: PhaseConfig | undefined;
-  selectedPhasePresetId: string | null;
-  // LoRAs
-  loras: ActiveLora[];
-  // Video settings
-  numFrames: number;
-  randomSeed: boolean;
-  seed?: number;
-  // Variant behavior
-  makePrimaryVariant: boolean;
-  // Structure video overrides (only when segment has structure video)
-  structureMotionStrength?: number; // 0-2 scale
-  structureTreatment?: 'adjust' | 'clip';
-  structureUni3cEndPercent?: number; // 0-1 scale
-  [key: string]: unknown;
-}
 
 export interface ShotBatchSettings {
   amountOfMotion?: number;
   motionMode?: 'basic' | 'advanced';
-  selectedLoras?: ActiveLora[];
+  selectedLoras?: LoraConfig[];
   phaseConfig?: PhaseConfig;
   prompt?: string;
   negativePrompt?: string;

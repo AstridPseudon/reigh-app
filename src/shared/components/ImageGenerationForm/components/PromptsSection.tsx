@@ -18,7 +18,7 @@ import { SegmentedControl, SegmentedControlItem } from "@/shared/components/ui/s
 import { CollapsibleSection } from "@/shared/components/ui/collapsible-section";
 import { PromptMode } from "../types";
 import { SectionHeader } from "./SectionHeader";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import {
   useFormUIContext,
   useFormCoreContext,

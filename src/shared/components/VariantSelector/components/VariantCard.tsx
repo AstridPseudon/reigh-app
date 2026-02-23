@@ -17,7 +17,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/shared/components/ui/hover-card';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
-import { getVariantIcon, getVariantLabel, isNewVariant, getTimeAgo, hasLoadableSettings, hasDifferentSourceImages, type CurrentSegmentImagesData } from '../utils';
+import { getVariantIcon, getVariantLabel, isNewVariant, getTimeAgo, hasLoadableSettings } from '../utils';
+import { hasDifferentSourceImages, type CurrentSegmentImagesData } from '../variantSourceImages';
 import { VariantDetails } from './VariantDetails';
 
 // --- VariantCard ---

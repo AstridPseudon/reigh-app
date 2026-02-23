@@ -1,5 +1,5 @@
 import React from 'react';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
 
 interface MediaPreviewProps {

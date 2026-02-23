@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cropFilename, formatTime } from '../utils';
+import { cropFilename, formatTime, truncateText } from '../utils';
 
 describe('cropFilename', () => {
   it('returns short filenames unchanged', () => {
@@ -28,6 +28,24 @@ describe('cropFilename', () => {
   it('uses default maxLength of 24', () => {
     const shortName = 'short.txt';
     expect(cropFilename(shortName)).toBe(shortName);
+  });
+});
+
+describe('truncateText', () => {
+  it('returns short text unchanged', () => {
+    expect(truncateText('hello', 10)).toBe('hello');
+  });
+
+  it('returns text at exactly maxLength unchanged', () => {
+    expect(truncateText('abcde', 5)).toBe('abcde');
+  });
+
+  it('truncates long text with ellipsis', () => {
+    expect(truncateText('hello world', 5)).toBe('hello...');
+  });
+
+  it('handles empty string', () => {
+    expect(truncateText('', 10)).toBe('');
   });
 });
 

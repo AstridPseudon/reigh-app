@@ -101,14 +101,15 @@ export function usePlatformInstall(): PlatformInstallState {
     ],
   );
 
-  const ctaText = useMemo<string>(
-    () => getCtaText(isStandalone, installMethod, isWaitingForPrompt, isAppInstalled, promptTimedOut, isDesktopChromium, platform),
+  const ctaContext = useMemo(
+    () => ({ isStandalone, installMethod, isWaitingForPrompt, isAppInstalled, promptTimedOut, isDesktopChromium, platform }),
     [isStandalone, installMethod, isWaitingForPrompt, isAppInstalled, promptTimedOut, isDesktopChromium, platform],
   );
 
+  const ctaText = useMemo<string>(() => getCtaText(ctaContext), [ctaContext]);
+
   const ctaIcon = useMemo<'download' | 'plus' | 'discord' | 'external'>(
-    () => getCtaIcon(isStandalone, installMethod, isWaitingForPrompt, isAppInstalled, promptTimedOut, isDesktopChromium, platform),
-    [isStandalone, installMethod, isWaitingForPrompt, isAppInstalled, promptTimedOut, isDesktopChromium, platform],
+    () => getCtaIcon(ctaContext), [ctaContext],
   );
 
   const showInstallCTA = useMemo<boolean>(() => {

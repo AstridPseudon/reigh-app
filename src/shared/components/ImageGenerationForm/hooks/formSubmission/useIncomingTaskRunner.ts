@@ -49,7 +49,7 @@ export function useIncomingTaskRunner(input: UseIncomingTaskRunnerInput): RunInc
       try {
         await options.execute();
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           console.error('[IncomingTaskRunner] execute FAILED', options.context, error);
         }
         handleError(error, { context: options.context, toastTitle: options.toastTitle });

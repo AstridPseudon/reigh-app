@@ -225,5 +225,4 @@ const PairRegion: React.FC<PairRegionProps> = ({
   );
 };
 
-// 🎯 PERF FIX: Wrap in React.memo to prevent re-renders when props haven't changed
-export default React.memo(PairRegion); 
+export default React.memo(PairRegion);

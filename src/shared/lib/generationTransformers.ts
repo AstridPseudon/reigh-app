@@ -24,7 +24,7 @@ import type { GenerationMetadata } from '@/types/generationMetadata';
 import { supabase } from '@/integrations/supabase/client';
 import { stripQueryParameters } from '@/shared/lib/mediaUrl';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
-import { ServerError } from '@/shared/lib/errors';
+import { ServerError } from '@/shared/lib/errorHandling/errors';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 /**
@@ -239,6 +239,7 @@ function extractThumbnailUrl(item: RawGeneration, mainUrl: string): string {
  * Extract task ID from tasks field (handles both array and single value)
  */
 function extractTaskId(tasks: string[] | string | null | undefined): string | null {
+  if (typeof tasks === 'string') return tasks;
   if (Array.isArray(tasks) && tasks.length > 0) {
     return tasks[0];
   }
@@ -430,9 +431,9 @@ export function transformForTimeline(
     createdAt: genData.created_at,
     timeline_frame: shotGen.timeline_frame ?? undefined,
     metadata: (shotGen.metadata as GenerationMetadata | undefined) ?? undefined,
-    starred: genData.starred ?? false, // ⭐ Pass through starred status
-    based_on: genData.based_on ?? undefined, // 🔗 Pass through based_on for lineage tracking
-    derivedCount: genData.derivedCount ?? 0, // 🔢 Pass through variant count
+    starred: genData.starred ?? false,
+    based_on: genData.based_on ?? undefined,
+    derivedCount: genData.derivedCount ?? 0,
   };
 }
 
@@ -467,7 +468,7 @@ export function transformVariant(
   let contentType: string | undefined;
   if (storedContentType === 'video' || isVideo) {
     contentType = 'video/mp4';
-  } else if (storedContentType === 'image' || !isVideo) {
+  } else {
     contentType = 'image/png';
   }
 

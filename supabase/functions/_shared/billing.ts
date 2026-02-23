@@ -31,11 +31,16 @@ export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 export function extractOrchestratorRef(params: unknown): string | null {
   if (!params || typeof params !== 'object') return null;
 
+  const p = params as Record<string, unknown>;
+  const details = p.orchestrator_details as Record<string, unknown> | undefined;
+  const originalParams = p.originalParams as Record<string, unknown> | undefined;
+  const originalDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
+
   return (
-    params.orchestrator_task_id_ref ||
-    params.orchestrator_details?.orchestrator_task_id ||
-    params.originalParams?.orchestrator_details?.orchestrator_task_id ||
-    params.orchestrator_task_id ||
+    (p.orchestrator_task_id_ref as string) ||
+    (details?.orchestrator_task_id as string) ||
+    (originalDetails?.orchestrator_task_id as string) ||
+    (p.orchestrator_task_id as string) ||
     null
   );
 }

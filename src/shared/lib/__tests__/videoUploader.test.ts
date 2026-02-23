@@ -24,7 +24,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/integrations/supabase/config/env', () => ({
-  SUPABASE_URL: 'https://test.supabase.co',
+  getSupabaseUrl: () => 'https://test.supabase.co',
 }));
 
 vi.mock('@/shared/lib/storagePaths', () => ({

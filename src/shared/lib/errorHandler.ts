@@ -7,4 +7,15 @@ export {
   isAppError,
   isAuthError,
   isNetworkError,
-} from './errors';
+  ValidationError,
+  ServerError,
+  categorizeError,
+} from './errorHandling/errors';
+export {
+  isError,
+  isErrorWithCode,
+  isErrorWithStatus,
+  getErrorMessage,
+  isAbortError,
+  isCancellationError,
+} from './errorHandling/errorUtils';

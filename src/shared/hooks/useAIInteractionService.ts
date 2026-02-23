@@ -9,24 +9,21 @@ import {
 } from '@/types/ai';
 
 interface UseAIInteractionServiceOptions {
-  apiKey?: string; // API key for the AI service - now strictly relies on this being passed.
   generatePromptId: () => string; // Function to generate unique IDs for new prompts
 }
 
 export const useAIInteractionService = ({
-  apiKey: _apiKey,
   generatePromptId,
 }: UseAIInteractionServiceOptions) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
 
-  const generateSummaryForPromptInternal = useCallback(
+  const generateSummary = useCallback(
     async (promptText: string): Promise<string | null> => {
       setIsSummarizing(true);
 
       try {
-        // Invoke the new edge function
         const data = await invokeWithTimeout<{ summary?: string }>('ai-prompt', {
           body: {
             task: 'generate_summary',
@@ -45,14 +42,11 @@ export const useAIInteractionService = ({
     []
   );
 
-  // === New implementation: delegate prompt generation to Supabase Edge Function ===
   const generatePrompts = useCallback(
     async (params: GeneratePromptsParams): Promise<AIPromptItem[]> => {
       setIsGenerating(true);
 
       try {
-        // Invoke the new edge function. We pass the full params object so the server can replicate previous behaviour.
-        
         const data = await invokeWithTimeout<{ prompts?: string[] }>('ai-prompt', {
           body: {
             task: 'generate_prompts',
@@ -72,9 +66,9 @@ export const useAIInteractionService = ({
           const newId = generatePromptId();
           let shortText = '';
 
-          // Optionally generate summaries client-side if requested and we have an API key available.
+          // Optionally generate summaries if requested.
           if (params.addSummaryForNewPrompts) {
-            const summary = await generateSummaryForPromptInternal(text);
+            const summary = await generateSummary(text);
             shortText = summary || '';
           }
 
@@ -93,7 +87,7 @@ export const useAIInteractionService = ({
         setIsGenerating(false);
       }
     },
-    [generatePromptId, generateSummaryForPromptInternal]
+    [generatePromptId, generateSummary]
   );
 
   const editPromptWithAI = useCallback(
@@ -101,7 +95,6 @@ export const useAIInteractionService = ({
       setIsEditing(true);
       
       try {
-        // Invoke the new edge function
         const result = await invokeWithTimeout<{ newText?: string }>('ai-prompt', {
           body: {
             task: 'edit_prompt',
@@ -124,19 +117,10 @@ export const useAIInteractionService = ({
     []
   );
 
-  // Expose a version of generateSummaryForPromptInternal that uses the hook's API key.
-  const generateSummary = useCallback(
-    async (promptText: string): Promise<string | null> => {
-      // Directly call the internal function
-      return generateSummaryForPromptInternal(promptText);
-    },
-    [generateSummaryForPromptInternal]
-  );
-
   return {
     generatePrompts,
     editPromptWithAI,
-    generateSummary, // Expose the summary generation function
+    generateSummary,
     isGenerating,
     isEditing,
     isSummarizing,

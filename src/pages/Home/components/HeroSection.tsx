@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Github, MessageCircle, Plus } from 'lucide-react';
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { usePlatformInstall } from '@/shared/hooks/usePlatformInstall';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { InstallInstructionsModal } from './InstallInstructionsModal';
 import { GoldSpotlight } from './GoldSpotlight';
 import { HeroCtaContent } from './HeroCtaContent';
@@ -89,29 +89,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           aria-hidden={hideHeroContent}
         >
 
-          {/* Top Section: Icon + Title */}
-          {/* Use grid-template-rows for height animation from 0 to auto */}
+          {/* Title (grid-template-rows animates height from 0 to auto) */}
           <div
             className="grid transition-[grid-template-rows] duration-1000 ease-out"
             style={{ gridTemplateRows: isRevealing ? '1fr' : '0fr' }}
           >
             <div className={phase === 'complete' ? "overflow-visible" : "overflow-hidden"}>
-              {/* Main title with gold hover spotlight */}
               <div style={getFadeStyle(0.5, 20)}>
                 <GoldSpotlight />
               </div>
             </div>
           </div>
 
-          {/* Loading Bar - fixed in viewport center, fades out when content reveals */}
+          {/* Loading bar */}
           <div
             className={`fixed top-1/2 left-1/2 -translate-x-1/2 translate-y-[calc(-50%+1.5rem)] w-32 h-1.5 z-10 pointer-events-none transition-opacity duration-500 ${
               isRevealing ? 'opacity-0' : 'opacity-100'
             }`}
           >
-            {/* Background track */}
             <div className="absolute inset-0 bg-amber-900/30 rounded-full"></div>
-            {/* Animated progress bar - golden gradient */}
             <div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.4)]"
               style={{
@@ -121,13 +117,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             ></div>
           </div>
 
-          {/* Bottom Section: Subtitle + Buttons + Footer */}
+          {/* Subtitle + Buttons */}
           <div
             className="grid transition-[grid-template-rows] duration-1000 ease-out"
             style={{ gridTemplateRows: isRevealing ? '1fr' : '0fr' }}
           >
             <div className={phase === 'complete' ? "overflow-visible" : "overflow-hidden"}>
-              {/* Subtitle */}
               <div className="mt-4 flex justify-center" style={getFadeStyle(4.5, -60, false)}>
                 <p className="subtitle-container font-theme text-2xl md:text-3xl font-theme-body text-[#ecede3]/90 leading-snug tracking-wide mb-8 md:mb-10">
                   <TooltipProvider>
@@ -141,14 +136,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                           }}
                           className="subtitle-link-left cursor-pointer transition-all duration-200"
                         >
-                          {/* Left arrow tail (pushed out + more angular) */}
                           <svg
                             className="arrow-wrap-left absolute -left-5 -bottom-[1px] w-5 h-5 pointer-events-none"
                             viewBox="0 0 20 20"
                             fill="none"
                           >
                             <g className="arrow-group-left" opacity="0.5">
-                              {/* Curve from right edge to arrow */}
                               <path
                                 className="arrow-curve-left arrow-draw-curve-left"
                                 d="M20 17.25 Q12 17.25 12 11 Q12 6 1 6"
@@ -187,14 +180,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                           className="subtitle-link-right cursor-pointer transition-all duration-200"
                         >
                           <span className="subtitle-link-text">traveling between images</span>
-                          {/* Right arrow tail (pushed out + more angular) */}
                           <svg
                             className="arrow-wrap-right absolute -right-5 -bottom-[1px] w-5 h-5 pointer-events-none"
                             viewBox="0 0 20 20"
                             fill="none"
                           >
                             <g className="arrow-group-right" opacity="0.5">
-                              {/* Curve from left edge to arrow */}
                               <path
                                 className="arrow-curve-right arrow-draw-curve-right"
                                 d="M0 17.25 Q8 17.25 8 11 Q8 6 19 6"
@@ -223,10 +214,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 </p>
               </div>
 
-            {/* CTA button */}
             <div style={getFadeStyle(2.5, -140, false)} className="pt-2 pb-4 md:pb-6 overflow-visible flex justify-center">
               {session ? (
-                // User is logged in - show install CTA if available, otherwise go to tools
                 <div className="flex flex-col items-center gap-2 md:gap-3">
                   <button
                     className={retroButtonBaseStyles}
@@ -251,7 +240,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                       text={platformInstall.showInstallCTA ? platformInstall.ctaText : 'go to tools'}
                     />
                   </button>
-                  {/* Show secondary browser option when install CTA is showing */}
                   <div
                     className={`transition-all duration-300 ${
                       platformInstall.showInstallCTA
@@ -268,25 +256,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   </div>
                 </div>
               ) : (
-                // Not logged in - show install CTA or Discord sign-in
                 <div className="flex flex-col items-center gap-2 md:gap-3">
                   <button
                     className={retroButtonBaseStyles}
                     style={retroButtonInlineStyles}
                     onClick={async () => {
                       if (platformInstall.showInstallCTA) {
-                        // If we can trigger the browser's install prompt, do it
                         if (platformInstall.canInstall) {
                           const installed = await platformInstall.triggerInstall();
                           if (!installed) {
                             setShowInstallModal(true);
                           }
                         } else {
-                          // Manual install or waiting - show instructions modal
                           setShowInstallModal(true);
                         }
                       } else {
-                        // No install CTA - do Discord sign-in
                         handleDiscordSignIn();
                       }
                     }}
@@ -296,7 +280,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                       text={platformInstall.showInstallCTA ? platformInstall.ctaText : 'sign in with Discord'}
                     />
                   </button>
-                  {/* Show secondary Discord option only when install CTA is showing */}
                   <div
                     className={`transition-all duration-300 ${
                       platformInstall.showInstallCTA
@@ -317,7 +300,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
           </div>
 
-          {/* Social Icons & Banodoco - Pop-in animation (completely independent) */}
+          {/* Social Icons & Banodoco */}
           <div
             className="grid transition-[grid-template-rows] duration-1000 ease-out"
             style={{ gridTemplateRows: isRevealing ? '1fr' : '0fr' }}
@@ -325,7 +308,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="overflow-hidden">
               <div className="mt-2 flex justify-center">
                 <div className="flex flex-col items-center gap-y-1">
-                  {/* GitHub and Discord icons side by side */}
                   <div className="flex items-center gap-x-3">
                     <div style={getPopStyle(0.8, false)}>
                       <a
@@ -349,7 +331,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* Placeholder icon beneath them */}
                   <div style={getPopStyle(1.1, false)}>
                     <div className="p-1 opacity-0">
                       <Plus className="w-2 h-2 text-transparent" />
@@ -358,7 +339,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 </div>
               </div>
 
-              {/* Banodoco Logo */}
               <div className="flex justify-center mt-4">
                   <a
                     href={BANODOCO_URL}
@@ -383,7 +363,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         </div>
 
-        {/* Install Instructions Modal - outside hidden wrapper so it stays visible */}
         <InstallInstructionsModal
           open={showInstallModal}
           onOpenChange={setShowInstallModal}

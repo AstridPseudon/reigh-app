@@ -95,7 +95,7 @@ const logVideoStateChanges = (current: VideoState[], previous: VideoState[]) => 
 };
 
 const startAutoplayMonitoring = () => {
-  if (monitoringActive || process.env.NODE_ENV !== 'development') return;
+  if (monitoringActive || !import.meta.env.DEV) return;
   
   monitoringActive = true;
   previousVideoStates = captureVideoStates();
@@ -111,7 +111,7 @@ const startAutoplayMonitoring = () => {
 };
 
 // Auto-start monitoring in development
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   // Start monitoring after a short delay to let the page load
   setTimeout(() => {
     startAutoplayMonitoring();

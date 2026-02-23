@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useToast } from "@/shared/hooks/use-toast";
+import { toast } from '@/shared/components/ui/toast';
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
 
 /**
@@ -46,7 +46,7 @@ interface UseAddToShotWithRetryOptions {
  */
 async function executeWithRetry(
   options: UseAddToShotWithRetryOptions,
-  toast: ReturnType<typeof useToast>['toast']
+  toast: typeof toast
 ): Promise<void> {
   const {
     generationId,
@@ -130,7 +130,6 @@ interface UseShotActionsProps {
  * Hook to manage add-to-shot actions with retry logic
  */
 export function useShotActions(props: UseShotActionsProps) {
-  const { toast } = useToast();
   const {
     imageId,
     generationId,

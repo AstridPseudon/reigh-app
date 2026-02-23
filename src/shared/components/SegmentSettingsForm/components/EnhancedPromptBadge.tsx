@@ -8,6 +8,7 @@
 import React from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { StatusBadge } from '@/shared/components/StatusBadge';
+import { truncateText } from '@/shared/lib/utils';
 
 interface EnhancedPromptBadgeProps {
   onClear: () => void;
@@ -22,10 +23,7 @@ export const EnhancedPromptBadge: React.FC<EnhancedPromptBadgeProps> = ({
   isSaving,
   basePrompt,
 }) => {
-  // Truncate base prompt for display
-  const truncatedBase = basePrompt && basePrompt.length > 50
-    ? basePrompt.substring(0, 50) + '...'
-    : basePrompt;
+  const truncatedBase = basePrompt ? truncateText(basePrompt, 50) : basePrompt;
 
   const tooltipText = basePrompt
     ? `Enhanced from: "${truncatedBase}"`

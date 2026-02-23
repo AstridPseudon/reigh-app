@@ -55,7 +55,7 @@ vi.mock('@/shared/lib/aspectRatios', () => ({
   parseRatio: vi.fn(() => 16 / 9),
 }));
 
-vi.mock('@/shared/hooks/useGenerationInvalidation', () => ({
+vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
   invalidateGenerationsSync: vi.fn(),
 }));
 

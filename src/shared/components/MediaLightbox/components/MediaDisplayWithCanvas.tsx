@@ -3,6 +3,7 @@ import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 import { StrokeOverlay } from './StrokeOverlay';
 import { RepositionOverlay } from './RepositionOverlay';
 import { useImageEditCanvasSafe } from '../contexts/ImageEditCanvasContext';
+import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 interface MediaDisplayWithCanvasProps {
   // Media info
@@ -355,7 +356,7 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
 
   // Check if URL is missing
   if (!effectiveImageUrl) {
-    console.error(`[${debugContext}] ❌ Missing effectiveImageUrl!`);
+    console.warn(`[${debugContext}] Missing effectiveImageUrl`);
     return (
       <div className={`relative flex items-center justify-center ${containerClassName}`}>
         <div className="text-center text-white bg-red-900/80 rounded-lg p-6 backdrop-blur-sm border border-red-500/50">
@@ -369,7 +370,7 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
   
   // Show error state if image failed to load
   if (imageLoadError && !isVideo) {
-    console.error(`[${debugContext}] ❌ Image failed to load:`, effectiveImageUrl);
+    console.warn(`[${debugContext}] Image failed to load:`, effectiveImageUrl);
     return (
       <div className={`relative flex items-center justify-center ${containerClassName}`}>
         <div className="text-center text-white bg-red-900/80 rounded-lg p-6 backdrop-blur-sm border border-red-500/50 max-w-md">
@@ -526,10 +527,11 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
                   });
                 }
               }}
-              onError={(e) => {
-                console.error(`[${debugContext}] ❌ Image load error:`, {
-                  url: effectiveImageUrl,
-                  error: e
+              onError={() => {
+                handleError(new Error(`Image load failed: ${effectiveImageUrl}`), {
+                  context: `${debugContext}.onImageError`,
+                  showToast: false,
+                  logData: { url: effectiveImageUrl },
                 });
                 setImageLoadError(true);
               }}
@@ -588,7 +590,11 @@ export const MediaDisplayWithCanvas: React.FC<MediaDisplayWithCanvasProps> = ({
                 });
               }}
               onError={() => {
-                console.error(`[${debugContext}] ❌ Full image preload failed`);
+                handleError(new Error(`Full image preload failed: ${effectiveImageUrl}`), {
+                  context: `${debugContext}.onPreloadError`,
+                  showToast: false,
+                  logData: { url: effectiveImageUrl },
+                });
                 // Still try to show thumbnail
               }}
             />

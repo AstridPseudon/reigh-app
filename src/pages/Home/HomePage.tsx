@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useReferralTracking } from '@/shared/hooks/useReferralTracking';
-import { useDebounce } from '@/shared/hooks/use-debounce';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import usePersistentState from '@/shared/hooks/usePersistentState';
 
 import { HeroSection } from './components/HeroSection';

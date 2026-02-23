@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSettingsModal } from './useSettingsModal';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 let locationState: unknown = null;
 
@@ -46,7 +47,7 @@ describe('useSettingsModal', () => {
     const { result } = renderHook(() => useSettingsModal());
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('openSettings', { detail: { tab: 'credits' } }));
+      dispatchAppEvent('openSettings', { tab: 'credits' });
     });
 
     expect(result.current.isSettingsModalOpen).toBe(true);

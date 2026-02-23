@@ -55,8 +55,8 @@ class DataFreshnessManager {
     const previousStatus = this.state.realtimeStatus;
     const now = Date.now();
 
-    // 🎯 KEY FIX: Ignore duplicate status changes to keep lastStatusChange stable
-    // This allows the "recently connected" grace period in getPollingInterval to actually expire
+    // Ignore duplicate status changes to keep lastStatusChange stable.
+    // This allows the "recently connected" grace period in getPollingInterval to actually expire.
     if (previousStatus === status) {
       return; // Don't update state or notify subscribers for duplicates
     }
@@ -94,32 +94,31 @@ class DataFreshnessManager {
     const now = Date.now();
     const timeSinceStatusChange = now - this.state.lastStatusChange;
 
-    // 🎯 If realtime is connected, trust it after it's been stable
+    // If realtime is connected, trust it after it's been stable
     if (this.state.realtimeStatus === 'connected') {
       // If realtime just connected (< 30 seconds), give it time to prove it's stable
       if (timeSinceStatusChange < 30000) {
         return 30000; // 30 seconds - wait for realtime to prove it's stable
       }
 
-      // ✅ FIXED: If realtime has been stable for >30 seconds, trust it
-      // "No events" just means "nothing changed" - not "realtime is broken"
+      // If realtime has been stable for >30 seconds, trust it.
+      // "No events" just means "nothing changed" — not "realtime is broken".
       
       if (lastEvent) {
         const eventAge = now - lastEvent;
         
         if (eventAge < 60000) { // Events within 1 minute
-          return false; // ✨ DISABLE POLLING - realtime is working!
+          return false; // Disable polling — realtime is working
         } else if (eventAge < 3 * 60 * 1000) { // Events within 3 minutes
           return 60000; // 60 seconds - light backup polling
         }
       }
 
-      // ✅ KEY FIX: Realtime stable for >30s but no events
-      // This is NORMAL when idle - don't assume it's broken
-      // Use very light polling as safety net only
+      // Realtime stable for >30s but no events — this is normal when idle.
+      // Use very light polling as a safety net only.
       if (timeSinceStatusChange > 5 * 60 * 1000) {
         // Realtime been stable for >5 minutes - fully trust it
-        return false; // ✨ DISABLE POLLING - realtime is stable, idle is OK
+        return false; // Disable polling — realtime is stable, idle is OK
       } else {
         // Realtime stable for 30s-5min - use safety net polling
         return 60000; // 60 seconds - safety net while realtime proves long-term stability

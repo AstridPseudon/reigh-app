@@ -16,12 +16,16 @@ vi.mock('@/shared/lib/errorHandling/handleError', () => ({
 }));
 
 vi.mock('@/integrations/supabase/config/env', () => ({
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'anon-key',
+  getSupabaseUrl: () => 'https://example.supabase.co',
+  getSupabasePublishableKey: () => 'anon-key',
 }));
 
 vi.mock('./fetchWithTimeout', () => ({
   fetchWithTimeout: fetchWithTimeoutMock,
+}));
+
+vi.mock('@/shared/lib/supabaseSession', () => ({
+  readAccessTokenFromStorage: vi.fn().mockReturnValue(null),
 }));
 
 describe('createSupabaseClient', () => {

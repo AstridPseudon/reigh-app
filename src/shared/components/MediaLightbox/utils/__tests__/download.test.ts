@@ -8,7 +8,7 @@ vi.mock('@/shared/lib/errorHandler', () => ({
   handleError: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/errorUtils', () => ({
+vi.mock('@/shared/lib/errorHandling/errorUtils', () => ({
   isAbortError: vi.fn((error: unknown) => error instanceof Error && error.name === 'AbortError'),
 }));
 

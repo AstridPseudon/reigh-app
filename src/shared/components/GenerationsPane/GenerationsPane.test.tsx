@@ -1,6 +1,7 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 const mocks = vi.hoisted(() => ({
   location: { pathname: '/home' },
@@ -68,7 +69,7 @@ vi.mock('@/shared/hooks/useGalleryPageState', () => ({
   useGalleryPageState: () => mocks.galleryState,
 }));
 
-vi.mock('@/shared/hooks/use-mobile', () => ({
+vi.mock('@/shared/hooks/useMobile', () => ({
   useIsMobile: () => false,
 }));
 
@@ -214,14 +215,14 @@ describe('GenerationsPane', () => {
     expect(screen.getByTestId('generation-modal')).toHaveTextContent('closed');
 
     act(() => {
-      window.dispatchEvent(new Event('openGenerationModal'));
+      dispatchAppEvent('openGenerationModal');
     });
     await waitFor(() => {
       expect(screen.getByTestId('generation-modal')).toHaveTextContent('open');
     });
 
     act(() => {
-      window.dispatchEvent(new Event('closeGenerationModal'));
+      dispatchAppEvent('closeGenerationModal');
     });
     await waitFor(() => {
       expect(screen.getByTestId('generation-modal')).toHaveTextContent('closed');

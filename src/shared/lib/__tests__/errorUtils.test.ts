@@ -6,7 +6,7 @@ import {
   getErrorMessage,
   isAbortError,
   isCancellationError,
-} from '../errorUtils';
+} from '../errorHandling/errorUtils';
 
 describe('isError', () => {
   it('returns true for Error instances', () => {

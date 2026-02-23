@@ -1,6 +1,7 @@
 // Network status integration can be added later if needed
 
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 /**
  * ReconnectScheduler - Centralized manager for realtime reconnection intents
@@ -97,16 +98,14 @@ export class ReconnectScheduler {
     try {
       
       // Dispatch the single, coalesced reconnect event
-      window.dispatchEvent(new CustomEvent('realtime:auth-heal', {
-        detail: {
-          source: primaryIntent.source,
-          reason: primaryIntent.reason,
-          priority: primaryIntent.priority,
-          coalescedSources: allSources,
-          coalescedReasons: allReasons,
-          timestamp: now
-        }
-      }));
+      dispatchAppEvent('realtime:auth-heal', {
+        source: primaryIntent.source,
+        reason: primaryIntent.reason,
+        priority: primaryIntent.priority,
+        coalescedSources: allSources,
+        coalescedReasons: allReasons,
+        timestamp: now
+      });
       
     } catch (error) {
       handleError(error, { context: 'ReconnectScheduler', showToast: false });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toShortPrompt } from './utils';
+import { toShortPrompt } from '../promptUtils';
 
 describe('promptManagement utils', () => {
   it('creates truncated short prompt strings', () => {

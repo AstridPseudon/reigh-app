@@ -42,6 +42,7 @@ import { useShots } from '@/shared/contexts/ShotsContext';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { useGalleryFilterState } from '@/shared/hooks/gallery/useGalleryFilterState';
+import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface UseGenerationsPageLogicOptions {
   itemsPerPage?: number;
@@ -204,9 +205,7 @@ function useGenerationsPageLogic({
     const shouldPositionExisting = selectedShotFilter === resolvedTargetShotId && excludePositioned;
 
     // Dispatch event to trigger skeleton animation in ShotListDisplay
-    window.dispatchEvent(new CustomEvent('shot-pending-upload', {
-      detail: { shotId: resolvedTargetShotId, expectedCount: 1 }
-    }));
+    dispatchAppEvent('shot-pending-upload', { shotId: resolvedTargetShotId, expectedCount: 1 });
 
     try {
       if (shouldPositionExisting) {

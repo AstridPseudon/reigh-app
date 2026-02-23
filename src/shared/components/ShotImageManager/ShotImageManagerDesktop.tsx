@@ -17,7 +17,7 @@ import { DeleteConfirmationDialog } from './components/DeleteConfirmationDialog'
 import { MultiImagePreview, SingleImagePreview } from '../ImageDragPreview';
 import BatchDropZone from '../BatchDropZone';
 import MediaLightbox from '../MediaLightbox';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useState, useEffect, useCallback } from 'react';
 import { useTaskDetails } from './hooks/useTaskDetails';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';

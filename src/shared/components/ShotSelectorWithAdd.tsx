@@ -7,7 +7,7 @@ import {
   TooltipTrigger
 } from "@/shared/components/ui/tooltip";
 import { ShotSelector, ShotOption } from "@/shared/components/ShotSelector";
-import { useToast } from "@/shared/hooks/use-toast";
+import { toast } from '@/shared/components/ui/toast';
 import { useShotNavigation } from "@/shared/hooks/useShotNavigation";
 import { useLastAffectedShot } from "@/shared/hooks/useLastAffectedShot";
 import { useQuickShotCreate } from "@/shared/hooks/useQuickShotCreate";
@@ -79,7 +79,6 @@ export const ShotSelectorWithAdd: React.FC<ShotSelectorWithAddProps> = ({
   buttonClassName,
   container,
 }) => {
-  const { toast } = useToast();
   const { navigateToShot } = useShotNavigation();
   const { setLastAffectedShotId } = useLastAffectedShot();
   

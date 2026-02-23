@@ -19,7 +19,7 @@ interface SkeletonGalleryProps {
   /** Custom gap classes (e.g. "gap-2 sm:gap-3 md:gap-4") - defaults to "gap-4" */
   gapClasses?: string;
   /** Whether to use white text/styling (for dark panes) */
-  whiteText?: boolean;
+  darkSurface?: boolean;
   /** Custom className for the container */
   className?: string;
   /** Whether to show skeleton controls at the top (pagination, filters, search) */
@@ -37,7 +37,7 @@ export function SkeletonGallery({
   columns = { base: 2, sm: 3, md: 4, lg: 5, xl: 6 },
   fixedColumns,
   gapClasses = 'gap-4',
-  whiteText = false,
+  darkSurface = false,
   className,
   showControls = false,
   projectAspectRatio
@@ -84,7 +84,7 @@ export function SkeletonGallery({
     columns['2xl'] && columns['2xl'] === 6 && '2xl:grid-cols-6'
   );
 
-  const skeletonBg = whiteText ? 'bg-zinc-700/60' : 'bg-muted';
+  const skeletonBg = darkSurface ? 'bg-zinc-700/60' : 'bg-muted';
 
   // Calculate aspect ratio for skeleton items
   let aspectRatioPadding = '100%'; // Default to square (1:1)

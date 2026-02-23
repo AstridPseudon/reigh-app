@@ -53,8 +53,12 @@ export const RATE_LIMITS = {
  * @param logPrefix - Optional log prefix
  * @returns Rate limit check result
  */
+interface SupabaseAdminClient {
+  rpc: (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+}
+
 export async function checkRateLimit(
-  supabaseAdmin: unknown,
+  supabaseAdmin: SupabaseAdminClient,
   functionName: string,
   identifier: string,
   config: RateLimitConfig,
@@ -73,7 +77,10 @@ export async function checkRateLimit(
     });
     
     if (error) {
-      // If the RPC doesn't exist yet, fall through to allow (fail open)
+      // Fail open: allow the request through if the rate-limit RPC fails.
+      // This is intentional — we prefer availability over strict rate enforcement.
+      // Common causes: RPC doesn't exist yet (pre-migration), transient DB error.
+      console.error(`${logPrefix} Rate limit RPC error for key "${key}" (allowing request):`, error);
       return {
         allowed: true,
         remaining: config.maxRequests,
@@ -101,8 +108,11 @@ export async function checkRateLimit(
       resetAt
     };
   } catch (err) {
-    // Fail open - don't block requests if rate limiting fails
-    console.error(`${logPrefix} Rate limit error (allowing request):`, err);
+    // Fail open: don't block requests if rate limiting infrastructure fails.
+    // Availability > strict enforcement — a broken rate limiter should not
+    // take down the entire service. If this fires frequently, investigate
+    // the underlying cause (DB connectivity, missing RPC, etc.).
+    console.error(`${logPrefix} Rate limit error for key "${key}" (allowing request):`, err);
     return {
       allowed: true,
       remaining: config.maxRequests,

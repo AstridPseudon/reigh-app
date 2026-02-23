@@ -25,7 +25,7 @@ describe('uploadImageWithThumbnail', () => {
     const file = new File(['test'], 'test.png', { type: 'image/png' });
     const thumbnailBlob = new Blob(['thumb'], { type: 'image/jpeg' });
 
-    const result = await uploadImageWithThumbnail(file, thumbnailBlob, 'user-123');
+    const result = await uploadImageWithThumbnail(file, thumbnailBlob);
 
     expect(result.imageUrl).toBe('https://storage.com/original.jpg');
     expect(result.thumbnailUrl).toBe('https://storage.com/thumb.jpg');
@@ -40,7 +40,7 @@ describe('uploadImageWithThumbnail', () => {
     const file = new File(['test'], 'test.png', { type: 'image/png' });
     const thumbnailBlob = new Blob(['thumb'], { type: 'image/jpeg' });
 
-    const result = await uploadImageWithThumbnail(file, thumbnailBlob, 'user-123');
+    const result = await uploadImageWithThumbnail(file, thumbnailBlob);
 
     expect(result.imageUrl).toBe('https://storage.com/original.jpg');
     expect(result.thumbnailUrl).toBe('https://storage.com/original.jpg');
@@ -54,14 +54,14 @@ describe('uploadImageWithThumbnail', () => {
     const file = new File(['test'], 'test.png', { type: 'image/png' });
     const thumbnailBlob = new Blob(['thumb'], { type: 'image/jpeg' });
 
-    await uploadImageWithThumbnail(file, thumbnailBlob, 'user-123', onProgress);
+    await uploadImageWithThumbnail(file, thumbnailBlob, { onProgress });
 
     // Should report 90% before thumbnail and 100% after
     expect(onProgress).toHaveBeenCalledWith(90);
     expect(onProgress).toHaveBeenCalledWith(100);
   });
 
-  it('accepts options object instead of callback', async () => {
+  it('accepts options object with onProgress', async () => {
     vi.mocked(uploadImageToStorage).mockResolvedValue('https://storage.com/original.jpg');
     vi.mocked(uploadBlobToStorage).mockResolvedValue('https://storage.com/thumb.jpg');
 
@@ -69,7 +69,7 @@ describe('uploadImageWithThumbnail', () => {
     const file = new File(['test'], 'test.png', { type: 'image/png' });
     const thumbnailBlob = new Blob(['thumb'], { type: 'image/jpeg' });
 
-    await uploadImageWithThumbnail(file, thumbnailBlob, 'user-123', { onProgress });
+    await uploadImageWithThumbnail(file, thumbnailBlob, { onProgress });
 
     expect(onProgress).toHaveBeenCalledWith(90);
     expect(onProgress).toHaveBeenCalledWith(100);
@@ -83,7 +83,7 @@ describe('uploadImageWithThumbnail', () => {
     const file = new File(['test'], 'test.png', { type: 'image/png' });
     const thumbnailBlob = new Blob(['thumb'], { type: 'image/jpeg' });
 
-    await uploadImageWithThumbnail(file, thumbnailBlob, 'user-123', {
+    await uploadImageWithThumbnail(file, thumbnailBlob, {
       signal: controller.signal,
     });
 

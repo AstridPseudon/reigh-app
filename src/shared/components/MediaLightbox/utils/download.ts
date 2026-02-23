@@ -1,6 +1,6 @@
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { isAbortError } from '@/shared/lib/errorUtils';
+import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
 import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
 
 /**

@@ -4,7 +4,7 @@ import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { ImageTransform } from './types';
 import type { GenerationRow } from '@/types/shots';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';

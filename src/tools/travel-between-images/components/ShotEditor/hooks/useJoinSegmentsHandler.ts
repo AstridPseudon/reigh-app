@@ -12,7 +12,7 @@ import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
-import { getErrorMessage } from '@/shared/lib/errorUtils';
+import { getErrorMessage } from '@/shared/lib/errorHandling/errorUtils';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { GenerationRow } from '@/types/shots';
 import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';

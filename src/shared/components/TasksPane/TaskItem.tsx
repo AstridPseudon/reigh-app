@@ -4,7 +4,7 @@ import { Task } from '@/types/tasks';
 import { getTaskDisplayName, taskSupportsProgress } from '@/shared/lib/taskConfig';
 import { useCancelTask } from '@/shared/hooks/useTasks';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { cn } from '@/shared/lib/utils';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { useTaskTimestamp } from '@/shared/hooks/useUpdatingTimestamp';
 import { useProcessingTimestamp, useCompletedTimestamp } from '@/shared/hooks/useProcessingTimestamp';
 import { GenerationRow } from '@/types/shots';
 import { useQueryClient } from '@tanstack/react-query';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useTaskType } from '@/shared/hooks/useTaskType';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 
@@ -61,7 +61,6 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
   showProjectIndicator = false,
   projectName
 }) => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const { selectedProjectId, setSelectedProjectId } = useProject();
   const navigate = useNavigate();

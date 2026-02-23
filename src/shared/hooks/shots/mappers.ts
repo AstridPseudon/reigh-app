@@ -1,20 +1,11 @@
-/**
- * Data mappers for shot-related data transformations.
- * These ensure consistent data shapes across all hooks.
- */
-
 import { GenerationRow } from '@/types/shots';
 
-/**
- * Row type for shot_generations table entries.
- */
 interface ShotGenerationRow {
   id: string;
   generation_id: string;
   timeline_frame: number;
 }
 
-/** Shape of the joined generation data from Supabase shot_generations query */
 interface JoinedGeneration {
   id: string;
   location: string | null;
@@ -32,7 +23,6 @@ interface JoinedGeneration {
   } | null;
 }
 
-/** Shape of a raw Supabase shot_generations row with joined generation data */
 interface RawShotGeneration {
   id: string;
   shot_id?: string;
@@ -68,15 +58,13 @@ export const mapShotGenerationToRow = (sg: RawShotGeneration): GenerationRow | n
   const effectiveThumbnail = primaryVariant?.thumbnail_url || gen.thumbnail_url || effectiveLocation;
 
   return {
-    // PRIMARY ID FIELDS:
-    id: sg.id, // shot_generations.id - unique per entry in shot
-    generation_id: gen.id, // generations.id - the actual generation
+    id: sg.id, // shot_generations.id (unique per entry in shot)
+    generation_id: gen.id, // generations.id (the actual generation)
 
-    // DEPRECATED (kept for backwards compat during transition):
+    // Deprecated aliases (kept for backwards compat during transition)
     shotImageEntryId: sg.id,
     shot_generation_id: sg.id,
 
-    // Generation data - uses primary variant URLs for display/submission
     location: effectiveLocation,
     imageUrl: effectiveLocation,
     thumbUrl: effectiveThumbnail,
@@ -88,12 +76,10 @@ export const mapShotGenerationToRow = (sg: RawShotGeneration): GenerationRow | n
     based_on: gen.based_on,
     params: toRecord(gen.params),
 
-    // From shot_generations table:
     timeline_frame: sg.timeline_frame,
     metadata: toRecord(sg.metadata),
     primary_variant_id: gen.primary_variant_id || null,
 
-    // Legacy support:
     position: sg.timeline_frame != null ? Math.floor(sg.timeline_frame / 50) : undefined,
   } as GenerationRow;
 };

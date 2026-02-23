@@ -162,7 +162,7 @@ export const VideoItem = React.memo<VideoItemProps>(({
   const lastLoggedStateRef = useRef<string>('');
   useEffect(() => {
     const currentState = `${shouldLoad}-${videoPosterLoaded}-${videoMetadataLoaded}-${thumbnailLoaded}-${hasThumbnail}`;
-    if (currentState !== lastLoggedStateRef.current && process.env.NODE_ENV === 'development') {
+    if (currentState !== lastLoggedStateRef.current && import.meta.env.DEV) {
       const { phase, readyToShow } = determineVideoPhase(shouldLoad, videoPosterLoaded, videoMetadataLoaded, thumbnailLoaded, hasThumbnail);
 
       logVideoEvent(phase, {

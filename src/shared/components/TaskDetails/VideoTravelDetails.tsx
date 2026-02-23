@@ -173,6 +173,61 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
       .replace(/_/g, ' ');
   };
 
+  const renderPhasesList = (phases: PhaseSettings[], stepsPerPhase?: number[]) => (
+    <>
+      {phases.map((phase: PhaseSettings, phaseIndex: number) => (
+        <div key={phase.phase} className="space-y-1">
+          <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
+          <div className="ml-2 space-y-1">
+            <div className="flex gap-3">
+              <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
+              {stepsPerPhase?.[phaseIndex] !== undefined && (
+                <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{stepsPerPhase[phaseIndex]}</span></span>
+              )}
+            </div>
+            {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
+              <div key={idx} className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
+                <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}</span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(lora.url); setCopiedLoraUrl(lora.url); setTimeout(() => setCopiedLoraUrl(null), 2000); }}
+                  className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover/lora:opacity-100 shrink-0"
+                  title="Copy LoRA URL"
+                >
+                  {copiedLoraUrl === lora.url ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                </button>
+                <span className="text-muted-foreground shrink-0">{Number(lora.multiplier).toFixed(1)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+
+  /** Renders the "Phase Settings" summary + phases list. Used in both inline and right-column layouts. */
+  const renderPhaseConfigSection = (opts: { showSummary: boolean; borderTop?: string }) => {
+    if (!phaseConfig?.phases || phaseConfig.phases.length === 0) return null;
+    return (
+      <>
+        {opts.showSummary && (
+          <div className="space-y-2">
+            <p className={`${config.textSize} font-medium text-muted-foreground`}>Phase Settings</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div><span className={`${config.textSize} text-muted-foreground`}>Phases:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.num_phases || phaseConfig.phases?.length}</span></div>
+              {phaseConfig.flow_shift !== undefined && <div><span className={`${config.textSize} text-muted-foreground`}>Flow Shift:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.flow_shift}</span></div>}
+              {phaseConfig.sample_solver && <div><span className={`${config.textSize} text-muted-foreground`}>Solver:</span> <span className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseConfig.sample_solver}</span></div>}
+            </div>
+            {phaseStepsDisplay && <div><span className={`${config.textSize} text-muted-foreground`}>Steps per Phase:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseStepsDisplay}</span></div>}
+          </div>
+        )}
+        <div className={`${opts.borderTop ?? 'pt-2'} border-t border-muted-foreground/20 space-y-2`}>
+          <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
+          {renderPhasesList(phaseConfig.phases, phaseConfig.steps_per_phase)}
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className={`p-3 bg-muted/30 rounded-lg border ${showPhaseContentInRightColumn ? 'w-full grid grid-cols-1 lg:grid-cols-2 gap-4' : ''} ${!showPhaseContentInRightColumn && variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : !showPhaseContentInRightColumn ? 'w-[360px]' : ''}`}>
       {/* Main Content Column */}
@@ -320,38 +375,7 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
           </div>
         )}
 
-        {/* Phase details (when not in right column) */}
-        {!showPhaseContentInRightColumn && isAdvancedMode && phaseConfig?.phases && phaseConfig.phases.length > 0 && (
-          <div className="pt-2 border-t border-muted-foreground/20 space-y-2">
-            <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
-            {phaseConfig.phases.map((phase: PhaseSettings, phaseIndex: number) => (
-              <div key={phase.phase} className="space-y-1">
-                <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
-                <div className="ml-2 space-y-1">
-                  <div className="flex gap-3">
-                    <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
-                    {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
-                      <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{phaseConfig.steps_per_phase[phaseIndex]}</span></span>
-                    )}
-                  </div>
-                  {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
-                    <div key={idx} className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
-                      <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}</span>
-                      <button
-                        onClick={() => { navigator.clipboard.writeText(lora.url); setCopiedLoraUrl(lora.url); setTimeout(() => setCopiedLoraUrl(null), 2000); }}
-                        className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover/lora:opacity-100 shrink-0"
-                        title="Copy LoRA URL"
-                      >
-                        {copiedLoraUrl === lora.url ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                      </button>
-                      <span className="text-muted-foreground shrink-0">{Number(lora.multiplier).toFixed(1)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {!showPhaseContentInRightColumn && isAdvancedMode && renderPhaseConfigSection({ showSummary: false })}
 
         {/* In basic mode OR no phases with loras: show "LoRAs" from additional_loras */}
         {!showPhaseContentInRightColumn && (!isAdvancedMode || !phaseConfig?.phases?.length) && additionalLoras && Object.keys(additionalLoras).length > 0 && (
@@ -374,52 +398,9 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
         )}
       </div>
 
-      {/* Right Column: Phase Settings and LoRAs (only when showPhaseContentInRightColumn) */}
       {showPhaseContentInRightColumn && (
         <div className="space-y-4 lg:border-l lg:border-muted-foreground/20 lg:pl-4 min-w-0">
-          {phaseConfig?.phases && (
-            <div className="space-y-2">
-              <p className={`${config.textSize} font-medium text-muted-foreground`}>Phase Settings</p>
-              <div className="grid grid-cols-2 gap-2">
-                <div><span className={`${config.textSize} text-muted-foreground`}>Phases:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.num_phases || phaseConfig.phases?.length}</span></div>
-                {phaseConfig.flow_shift !== undefined && <div><span className={`${config.textSize} text-muted-foreground`}>Flow Shift:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.flow_shift}</span></div>}
-                {phaseConfig.sample_solver && <div><span className={`${config.textSize} text-muted-foreground`}>Solver:</span> <span className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseConfig.sample_solver}</span></div>}
-              </div>
-              {phaseStepsDisplay && <div><span className={`${config.textSize} text-muted-foreground`}>Steps per Phase:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseStepsDisplay}</span></div>}
-            </div>
-          )}
-
-          {phaseConfig.phases.length > 0 && (
-            <div className="pt-3 border-t border-muted-foreground/20 space-y-2">
-              <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
-              {phaseConfig.phases.map((phase: PhaseSettings, phaseIndex: number) => (
-                <div key={phase.phase} className="space-y-1">
-                  <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
-                  <div className="ml-2 space-y-1">
-                    <div className="flex gap-3">
-                      <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
-                      {phaseConfig.steps_per_phase?.[phaseIndex] !== undefined && (
-                        <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{phaseConfig.steps_per_phase[phaseIndex]}</span></span>
-                      )}
-                    </div>
-                    {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
-                      <div key={idx} className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
-                        <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}</span>
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(lora.url); setCopiedLoraUrl(lora.url); setTimeout(() => setCopiedLoraUrl(null), 2000); }}
-                          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover/lora:opacity-100 shrink-0"
-                          title="Copy LoRA URL"
-                        >
-                          {copiedLoraUrl === lora.url ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                        <span className="text-muted-foreground shrink-0">{Number(lora.multiplier).toFixed(1)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {renderPhaseConfigSection({ showSummary: true, borderTop: 'pt-3' })}
         </div>
       )}
     </div>

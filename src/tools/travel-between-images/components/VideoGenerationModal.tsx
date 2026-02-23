@@ -33,7 +33,7 @@ import { useShotImages } from '@/shared/hooks/useShotImages';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import { findClosestAspectRatio } from '@/shared/lib/aspectRatios';
 import { DEFAULT_PHASE_CONFIG } from '@/shared/types/phaseConfig';
-import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { BUILTIN_DEFAULT_I2V_ID, BUILTIN_DEFAULT_VACE_ID, FEATURED_PRESET_IDS } from './MotionControl';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';

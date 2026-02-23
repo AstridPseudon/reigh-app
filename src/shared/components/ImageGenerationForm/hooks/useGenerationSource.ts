@@ -118,8 +118,6 @@ function useGenerationSourceInitialization(input: InitializationInput): void {
     let categoryLoras: ActiveLora[] = [];
     if (projectImageSettings?.selectedLorasByCategory) {
       categoryLoras = projectImageSettings.selectedLorasByCategory[category] ?? [];
-    } else if (projectImageSettings?.selectedLorasByTextModel) {
-      categoryLoras = projectImageSettings.selectedLorasByTextModel[textModel] ?? [];
     }
 
     if (categoryLoras.length > 0) {
@@ -129,7 +127,6 @@ function useGenerationSourceInitialization(input: InitializationInput): void {
     hasInitializedLoras.current = true;
   }, [
     projectImageSettings?.selectedLorasByCategory,
-    projectImageSettings?.selectedLorasByTextModel,
     projectImageSettings?.generationSource,
     isLoadingProjectSettings,
     loraManager,

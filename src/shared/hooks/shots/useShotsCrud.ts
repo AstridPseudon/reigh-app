@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Shot } from '@/types/shots';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { invalidateGenerationsSync } from '@/shared/hooks/useGenerationInvalidation';
+import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { isNotFoundError } from '@/shared/constants/supabaseErrors';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import {

@@ -19,12 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
-import { useSegmentOutputsForShot } from '../hooks/useSegmentOutputsForShot';
+import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
 import { VideoItem } from './VideoGallery/components/VideoItem';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { GenerationRow } from '@/types/shots';
 import { formatDistanceToNow } from 'date-fns';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
+import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

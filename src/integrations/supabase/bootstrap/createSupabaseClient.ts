@@ -2,27 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { Database } from '@/integrations/supabase/types';
 import {
-  SUPABASE_PUBLISHABLE_KEY,
-  SUPABASE_URL,
+  getSupabasePublishableKey,
+  getSupabaseUrl,
 } from '@/integrations/supabase/config/env';
 import { fetchWithTimeout } from './fetchWithTimeout';
+import { readAccessTokenFromStorage } from '@/shared/lib/supabaseSession';
 
 const REALTIME_HEARTBEAT_INTERVAL_MS = 30_000;
 const REALTIME_MAX_RECONNECT_DELAY_MS = 10_000;
-
-function readTokenFromStorage(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    // Key format matches GoTrueClient: sb-${hostname[0]}-auth-token
-    const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
-    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { access_token?: string };
-    return parsed?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export function createSupabaseClient() {
   try {
@@ -37,9 +24,12 @@ export function createSupabaseClient() {
     // every from()/rpc() call) with a version that injects the cached token
     // directly, bypassing getSession/navigator.locks entirely for data requests.
     // Auth operations (supabase.auth.*) are unaffected.
-    let cachedToken: string | null = readTokenFromStorage();
+    let cachedToken: string | null = readAccessTokenFromStorage();
 
-    const client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    const url = getSupabaseUrl();
+    const key = getSupabasePublishableKey();
+
+    const client = createClient<Database>(url, key, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
@@ -61,9 +51,9 @@ export function createSupabaseClient() {
     // replacement takes effect immediately without recreating any clients.
     const dataFetch = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
       const headers = new Headers(init.headers ?? {});
-      if (!headers.has('apikey')) headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
+      if (!headers.has('apikey')) headers.set('apikey', key);
       if (!headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${cachedToken ?? SUPABASE_PUBLISHABLE_KEY}`);
+        headers.set('Authorization', `Bearer ${cachedToken ?? key}`);
       }
       return fetchWithTimeout(input as Parameters<typeof fetchWithTimeout>[0], { ...init, headers });
     };

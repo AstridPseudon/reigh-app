@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { usePersistentToolState } from '@/shared/hooks/usePersistentToolState';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
-import { useIsMobile } from "@/shared/hooks/use-mobile";
+import { useIsMobile } from "@/shared/hooks/useMobile";
 import { useExtraLargeModal } from "@/shared/hooks/useModal";
 import { useScrollFade } from "@/shared/hooks/useScrollFade";
 import { useTouchDragDetection } from "@/shared/hooks/useTouchDragDetection";
@@ -34,7 +34,6 @@ interface PromptEditorModalProps {
   prompts: PromptEntry[];
   onSave: (updatedPrompts: PromptEntry[]) => void;
   generatePromptId: () => string;
-  apiKey?: string;
   openWithAIExpanded?: boolean;
   onGenerateAndQueue?: (prompts: PromptEntry[]) => void;
 }
@@ -44,7 +43,6 @@ type EditorMode = 'generate' | 'remix' | 'bulk-edit';
 const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
   isOpen, onClose, prompts: initialPrompts, onSave,
   generatePromptId,
-  apiKey,
   openWithAIExpanded = false,
   onGenerateAndQueue,
 }) => {
@@ -174,7 +172,6 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
     isEditing: isAIEditing,
     isLoading: isAILoading,
   } = useAIInteractionService({
-    apiKey,
     generatePromptId,
   });
 
@@ -354,7 +351,7 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
     setBulkEditControlValues(prev => {
       // Only update if values actually changed to prevent unnecessary re-renders (same as Generate view)
       if (JSON.stringify(prev) === JSON.stringify(values)) {
-        return prev; // 🎯 RETURNS SAME REFERENCE = NO RE-RENDER
+        return prev; // Same reference — skip re-render
       }
       markAsInteracted();
       return values;
@@ -580,7 +577,6 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
   // Custom comparison for React.memo to prevent unnecessary re-renders
   const propsEqual = (
     prevProps.isOpen === nextProps.isOpen &&
-    prevProps.apiKey === nextProps.apiKey &&
     prevProps.prompts.length === nextProps.prompts.length &&
     JSON.stringify(prevProps.prompts) === JSON.stringify(nextProps.prompts)
   );

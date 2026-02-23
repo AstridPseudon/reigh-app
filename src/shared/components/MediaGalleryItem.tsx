@@ -43,48 +43,70 @@ import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   image,
   index,
-  isDeleting,
-  onDelete,
-  onOpenLightbox,
-  onAddToLastShot,
-  onAddToLastShotWithoutPosition,
-  onToggleStar,
-  selectedShotIdLocal,
-  simplifiedShotOptions,
-  showTickForImageId,
-  onShowTick,
-  onShowSecondaryTick,
-  optimisticUnpositionedIds,
-  optimisticPositionedIds,
-  onOptimisticUnpositioned,
-  onOptimisticPositioned,
-  addingToShotImageId,
-  setAddingToShotImageId,
-  addingToShotWithoutPositionImageId,
-  setAddingToShotWithoutPositionImageId,
-  isMobile,
-  mobileActiveImageId,
-  mobilePopoverOpenImageId,
-  onMobileTap,
-  setSelectedShotIdLocal,
-  setLastAffectedShotId,
-  toggleStarMutation,
-  shouldLoad = true,
-  isPriority = false,
-  onCreateShot,
-  currentViewingShotId,
+  shotWorkflow,
+  mobileInteraction,
+  features,
+  actions,
+  loading,
   projectAspectRatio,
-  showShare = true,
-  showDelete = true,
-  showEdit = true,
-  showStar = true,
-  showAddToShot = true,
-  enableSingleClick = false,
-  onImageClick,
-  videosAsThumbnails = false,
   dataTour,
-  onImageLoaded,
 }) => {
+  // ── Destructure grouped props ──
+
+  const {
+    selectedShotIdLocal,
+    simplifiedShotOptions,
+    setSelectedShotIdLocal,
+    setLastAffectedShotId,
+    showTickForImageId,
+    onShowTick,
+    onShowSecondaryTick,
+    optimisticUnpositionedIds,
+    optimisticPositionedIds,
+    onOptimisticUnpositioned,
+    onOptimisticPositioned,
+    addingToShotImageId,
+    setAddingToShotImageId,
+    addingToShotWithoutPositionImageId,
+    setAddingToShotWithoutPositionImageId,
+    currentViewingShotId,
+    onCreateShot,
+    onAddToLastShot,
+    onAddToLastShotWithoutPosition,
+  } = shotWorkflow;
+
+  const {
+    isMobile,
+    mobileActiveImageId,
+    mobilePopoverOpenImageId,
+    onMobileTap,
+  } = mobileInteraction;
+
+  const {
+    showShare = true,
+    showDelete = true,
+    showEdit = true,
+    showStar = true,
+    showAddToShot = true,
+    enableSingleClick = false,
+    videosAsThumbnails = false,
+  } = features;
+
+  const {
+    onOpenLightbox,
+    onDelete,
+    onToggleStar,
+    onImageClick,
+    toggleStarMutation,
+    onImageLoaded,
+  } = actions;
+
+  const {
+    shouldLoad = true,
+    isPriority = false,
+    isDeleting,
+  } = loading;
+
   // Consolidated local UI state management
   const {
     localStarred,
@@ -125,15 +147,15 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       prefetchTaskData(actualGenerationId);
     }
   }, [isMobile, actualGenerationId, prefetchTaskData]);
-  
+
   // Derive input images for guidance tooltip
   const inputImages = useMemo(() => deriveInputImages(taskData), [taskData]);
-  
+
   // Only use the actual task type name (like 'wan_2_2_t2i'), not tool_type (like 'image-generation')
   // tool_type and task type name are different concepts - tool_type is a broader category
   const taskType = taskData?.taskType;
   const { data: taskTypeInfo } = useTaskType(taskType || '');
-  
+
   // Determine if this should show task details (GenerationDetails)
   // Use content_type from task_types table. Fallback to legacy tool_type for video travel.
   const isVideoTask = taskTypeInfo?.content_type === 'video' ||
@@ -156,7 +178,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
 
   const { navigateToShot } = useShotNavigation();
   const { setLastAffectedShotId: updateLastAffectedShotId } = useLastAffectedShot();
-  
+
   // Use consolidated hook for quick shot creation
   const {
     quickCreateSuccess,
@@ -229,9 +251,9 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   // Check if we should show metadata details (only when tooltip/popover is open for performance)
   const shouldShowMetadata = useMemo(() => {
     if (!image.metadata) return false;
-    
+
     // On mobile, only show when popover is open; on desktop, only when tooltip might be shown
-    return isMobile 
+    return isMobile
       ? (mobilePopoverOpenImageId === image.id)
       : isInfoOpen;
   }, [image.metadata, isMobile, mobilePopoverOpenImageId, image.id, isInfoOpen]);
@@ -274,7 +296,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
 
   // Track touch start position to detect scrolling vs tapping
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
-  
+
   // Shot position state (positioned, associated-without-position, viewing selected shot)
   const {
     isAlreadyPositionedInSelectedShot,
@@ -290,10 +312,10 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     showTickForImageId,
     addingToShotImageId,
   });
-  
+
   let aspectRatioPadding = '100%';
   const minHeight = '120px'; // Minimum height for very small images
-  
+
   // Always use project aspect ratio for consistent gallery display
   if (projectAspectRatio) {
     const ratio = parseRatio(projectAspectRatio);
@@ -308,7 +330,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     // Fallback: try to get dimensions from image metadata if no project aspect ratio
     let width = image.metadata?.width;
     let height = image.metadata?.height;
-    
+
     // If not found, try to extract from resolution string
     if (!width || !height) {
       const resolution = image.metadata?.originalParams?.orchestrator_details?.resolution;
@@ -320,7 +342,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
         }
       }
     }
-    
+
     if (width && height) {
       const calculatedPadding = (height / width) * 100;
       // Ensure reasonable aspect ratio bounds
@@ -333,7 +355,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   // If it's a placeholder, render simplified placeholder item
   if (isPlaceholder) {
     return (
-      <div 
+      <div
         key={imageKey}
         className="border rounded-lg overflow-hidden bg-muted animate-pulse"
       >
@@ -473,7 +495,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
           )}
       </div>
       </div>
-      
+
       {/* Action buttons and UI elements */}
       {image.id && ( // Ensure image has ID for actions
       <>
@@ -486,7 +508,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
                   {image.name}
                 </div>
               )}
-              
+
               {/* "X new" badge + Variant Count - show below variant name */}
               <VariantBadge
                 derivedCount={image.derivedCount}
@@ -521,28 +543,36 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
           {showAddToShot && simplifiedShotOptions.length > 0 && onAddToLastShot && (
             <ShotActions
               image={image}
-              isMobile={isMobile}
-              isVideoContent={isVideoContent}
-              selectedShotId={selectedShotIdLocal}
-              simplifiedShotOptions={simplifiedShotOptions}
-              isShotSelectorOpen={isShotSelectorOpen}
-              setIsShotSelectorOpen={setIsShotSelectorOpen}
-              setSelectedShotIdLocal={setSelectedShotIdLocal}
-              setLastAffectedShotId={setLastAffectedShotId}
-              addingToShotImageId={addingToShotImageId}
-              addingToShotWithoutPositionImageId={addingToShotWithoutPositionImageId ?? null}
-              showTickForImageId={showTickForImageId}
-              isAlreadyPositionedInSelectedShot={isAlreadyPositionedInSelectedShot}
-              isAlreadyAssociatedWithoutPosition={isAlreadyAssociatedWithoutPosition}
-              shouldShowAddWithoutPositionButton={shouldShowAddWithoutPositionButton}
-              currentTargetShotName={currentTargetShotName}
-              quickCreateSuccess={quickCreateSuccess}
-              onCreateShot={onCreateShot}
-              handleQuickCreateAndAdd={handleQuickCreateAndAdd}
-              handleQuickCreateSuccess={handleQuickCreateSuccess}
-              onNavigateToShot={(shot) => navigateToShot(shot, { scrollToTop: true })}
-              onAddToShot={addToShot}
-              onAddToShotWithoutPosition={addToShotWithoutPosition}
+              selector={{
+                selectedShotId: selectedShotIdLocal,
+                simplifiedShotOptions,
+                isShotSelectorOpen,
+                setIsShotSelectorOpen,
+                setSelectedShotIdLocal,
+                setLastAffectedShotId,
+              }}
+              status={{
+                isMobile,
+                isVideoContent,
+                addingToShotImageId,
+                addingToShotWithoutPositionImageId: addingToShotWithoutPositionImageId ?? null,
+                showTickForImageId,
+                isAlreadyPositionedInSelectedShot,
+                isAlreadyAssociatedWithoutPosition,
+                shouldShowAddWithoutPositionButton,
+                currentTargetShotName,
+              }}
+              quickCreate={{
+                quickCreateSuccess,
+                handleQuickCreateAndAdd,
+                handleQuickCreateSuccess,
+              }}
+              actions={{
+                onCreateShot,
+                onNavigateToShot: (shot) => navigateToShot(shot, { scrollToTop: true }),
+                onAddToShot: addToShot,
+                onAddToShotWithoutPosition: addToShotWithoutPosition,
+              }}
             />
           )}
 
@@ -670,4 +700,4 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       )}
     </DraggableImage>
   );
-}; 
+};

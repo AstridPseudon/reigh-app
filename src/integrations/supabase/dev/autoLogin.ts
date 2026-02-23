@@ -1,4 +1,4 @@
-import { __IS_DEV_ENV__, SUPABASE_URL } from '@/integrations/supabase/config/env';
+import { __IS_DEV_ENV__, getSupabaseUrl } from '@/integrations/supabase/config/env';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { SupabaseClient, AuthError } from '@supabase/supabase-js';
 
@@ -9,7 +9,7 @@ import type { SupabaseClient, AuthError } from '@supabase/supabase-js';
 // genuinely no session at all (empty localStorage).
 function hasStoredSession(): boolean {
   try {
-    const projectRef = new URL(SUPABASE_URL).hostname.split('.')[0];
+    const projectRef = new URL(getSupabaseUrl()).hostname.split('.')[0];
     const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (!raw) return false;
     const parsed = JSON.parse(raw) as { access_token?: string };

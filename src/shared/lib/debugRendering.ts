@@ -25,7 +25,7 @@ export function useRenderLogger(label: string, data?: Record<string, unknown>): 
   const countRef = useRef(0);
   const windowTimestampsRef = useRef<number[]>([]);
 
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     countRef.current++;
     const now = Date.now();
     windowTimestampsRef.current.push(now);
@@ -47,7 +47,6 @@ export function useRenderLogger(label: string, data?: Record<string, unknown>): 
         `[RenderLoop] ${label} — ${recentCount} renders in ${LOOP_DETECT_WINDOW_MS}ms (total: ${total})`,
         data ?? ''
       );
-    } else if (debugConfig.isEnabled('renderLogging') && (total <= 3 || total % 25 === 0)) {
     }
   }
 }
@@ -73,13 +72,16 @@ export function useChangedDepsLogger(
 ): void {
   const prevRef = useRef<Record<string, unknown>>({});
 
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     if (force || debugConfig.isEnabled('renderLogging')) {
       const changed: Record<string, { from: unknown; to: unknown }> = {};
       for (const key of Object.keys(deps)) {
         if (!Object.is(deps[key], prevRef.current[key])) {
           changed[key] = { from: prevRef.current[key], to: deps[key] };
         }
+      }
+      if (Object.keys(changed).length > 0) {
+        console.log(`[DepsChanged] ${label}`, changed);
       }
     }
     // Always update ref so tracking stays accurate when logging is toggled at runtime

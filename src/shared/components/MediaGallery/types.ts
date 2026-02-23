@@ -8,7 +8,6 @@ import type { AddToShotHandler } from '@/shared/types/imageHandlers';
  */
 type ColumnsPerRow = 'auto' | number;
 
-// Define types here to avoid circular imports
 export interface MetadataLora {
   id: string;
   name: string;
@@ -168,8 +167,8 @@ export interface GalleryConfig {
   enableSingleClick: boolean;
   /** When true, videos render as static thumbnails instead of hover-scrub */
   videosAsThumbnails: boolean;
-  /** White text mode for dark backgrounds */
-  whiteText: boolean;
+  /** Dark surface mode - use when component is on a permanently dark surface (e.g., GenerationsPane) */
+  darkSurface: boolean;
   /** Reduced spacing between gallery elements */
   reducedSpacing: boolean;
   /** Show shot filter dropdown in header */
@@ -194,7 +193,7 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
   showAddToShot: true,
   enableSingleClick: false,
   videosAsThumbnails: false,
-  whiteText: false,
+  darkSurface: false,
   reducedSpacing: false,
   showShotFilter: false,
   showSearch: false,
@@ -241,8 +240,6 @@ export interface MediaGalleryProps {
   onSwitchToAssociatedShot?: (shotId: string) => void;
   /** Additional className to apply to the gallery wrapper (can override default spacing) */
   className?: string;
-  /** @deprecated Use generationFilters instead - callbacks no longer needed */
-  onPrefetchAdjacentPages?: (prevPage: number | null, nextPage: number | null) => void;
   enableAdjacentPagePreloading?: boolean;
   /** Filters for generation queries - enables automatic preloading */
   generationFilters?: Record<string, unknown>;

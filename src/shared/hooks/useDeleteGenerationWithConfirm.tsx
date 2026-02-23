@@ -45,7 +45,6 @@ export function useDeleteGenerationWithConfirm() {
     }
   }, []);
 
-  /** Render this in your component tree to show the confirmation dialog */
   const DeleteConfirmDialog = useCallback(() => (
     <ConfirmDialog
       open={pendingDeleteId !== null}
@@ -59,13 +58,9 @@ export function useDeleteGenerationWithConfirm() {
   ), [pendingDeleteId, handleOpenChange, handleConfirm]);
 
   return {
-    /** Opens the confirmation dialog for the given generation ID */
     requestDelete,
-    /** Render this component in your JSX tree: `<DeleteConfirmDialog />` */
     DeleteConfirmDialog,
-    /** Whether a delete is currently in progress */
     isPending: deleteGenerationMutation.isPending,
-    /** The ID currently being deleted (or null) */
     deletingId: deleteGenerationMutation.isPending ? (deleteGenerationMutation.variables as string) : null,
   };
 }

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAppEventListener } from '@/shared/lib/typedEvents';
 
 export function useSettingsModal() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -23,20 +24,12 @@ export function useSettingsModal() {
   }, [location.state, handleOpenSettings]);
 
   // Listen for settings open event from welcome modal
-  useEffect(() => {
-    const handler = (event: CustomEvent) => {
-      const { tab } = event.detail;
-      setIsSettingsModalOpen(true);
-      if (tab) {
-        setSettingsInitialTab(tab);
-      }
-    };
-
-    window.addEventListener('openSettings', handler as EventListener);
-    return () => {
-      window.removeEventListener('openSettings', handler as EventListener);
-    };
-  }, []);
+  useAppEventListener('openSettings', useCallback(({ tab }) => {
+    setIsSettingsModalOpen(true);
+    if (tab) {
+      setSettingsInitialTab(tab);
+    }
+  }, []));
 
   return {
     isSettingsModalOpen,

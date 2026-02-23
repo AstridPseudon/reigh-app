@@ -187,48 +187,58 @@ describe('MediaGalleryItem', () => {
   const baseProps = {
     image: baseImage,
     index: 0,
-    isDeleting: false,
-    onDelete: vi.fn(),
-    onOpenLightbox: mocks.onOpenLightbox,
-    onAddToLastShot: vi.fn().mockResolvedValue(true),
-    onAddToLastShotWithoutPosition: vi.fn().mockResolvedValue(true),
-    onToggleStar: vi.fn(),
-    selectedShotIdLocal: 'shot-1',
-    simplifiedShotOptions: [{ id: 'shot-1', name: 'Shot 1', created_at: '2025-01-01', settings: {} }],
-    showTickForImageId: null,
-    onShowTick: vi.fn(),
-    onShowSecondaryTick: vi.fn(),
-    optimisticUnpositionedIds: new Set<string>(),
-    optimisticPositionedIds: new Set<string>(),
-    onOptimisticUnpositioned: vi.fn(),
-    onOptimisticPositioned: vi.fn(),
-    addingToShotImageId: null,
-    setAddingToShotImageId: vi.fn(),
-    addingToShotWithoutPositionImageId: null,
-    setAddingToShotWithoutPositionImageId: vi.fn(),
-    onDownloadImage: vi.fn(),
-    downloadingImageId: null,
-    isMobile: false,
-    mobileActiveImageId: null,
-    mobilePopoverOpenImageId: null,
-    onMobileTap: mocks.onMobileTap,
-    setMobilePopoverOpenImageId: vi.fn(),
-    setSelectedShotIdLocal: vi.fn(),
-    setLastAffectedShotId: vi.fn(),
-    toggleStarMutation: { mutate: vi.fn() },
-    onCreateShot: vi.fn(),
-    currentViewingShotId: 'shot-1',
+    shotWorkflow: {
+      selectedShotIdLocal: 'shot-1',
+      simplifiedShotOptions: [{ id: 'shot-1', name: 'Shot 1' }],
+      setSelectedShotIdLocal: vi.fn(),
+      setLastAffectedShotId: vi.fn(),
+      showTickForImageId: null as string | null,
+      onShowTick: vi.fn(),
+      onShowSecondaryTick: vi.fn(),
+      optimisticUnpositionedIds: new Set<string>(),
+      optimisticPositionedIds: new Set<string>(),
+      onOptimisticUnpositioned: vi.fn(),
+      onOptimisticPositioned: vi.fn(),
+      addingToShotImageId: null as string | null,
+      setAddingToShotImageId: vi.fn(),
+      addingToShotWithoutPositionImageId: null as string | null,
+      setAddingToShotWithoutPositionImageId: vi.fn(),
+      currentViewingShotId: 'shot-1',
+      onCreateShot: vi.fn(),
+      onAddToLastShot: vi.fn().mockResolvedValue(true),
+      onAddToLastShotWithoutPosition: vi.fn().mockResolvedValue(true),
+    },
+    mobileInteraction: {
+      isMobile: false,
+      mobileActiveImageId: null as string | null,
+      mobilePopoverOpenImageId: null as string | null,
+      onMobileTap: mocks.onMobileTap,
+      setMobilePopoverOpenImageId: vi.fn(),
+    },
+    features: {
+      showShare: true,
+      showDelete: true,
+      showEdit: true,
+      showStar: true,
+      showAddToShot: true,
+      enableSingleClick: false,
+      videosAsThumbnails: false,
+    },
+    actions: {
+      onOpenLightbox: mocks.onOpenLightbox,
+      onDelete: vi.fn(),
+      onDownloadImage: vi.fn(),
+      onToggleStar: vi.fn(),
+      onImageClick: vi.fn(),
+      toggleStarMutation: { mutate: vi.fn() },
+      onImageLoaded: vi.fn(),
+    },
+    loading: {
+      isDeleting: false as string | boolean | null | undefined,
+      downloadingImageId: null as string | null,
+    },
     projectAspectRatio: '16:9',
-    showShare: true,
-    showDelete: true,
-    showEdit: true,
-    showStar: true,
-    showAddToShot: true,
-    enableSingleClick: false,
-    onImageClick: vi.fn(),
-    videosAsThumbnails: false,
     dataTour: 'media-gallery-item',
-    onImageLoaded: vi.fn(),
   };
 
   beforeEach(() => {
@@ -301,7 +311,11 @@ describe('MediaGalleryItem', () => {
   });
 
   it('wraps non-mobile content in DraggableImage and opens lightbox on double click', () => {
-    const { getByTestId } = render(<MediaGalleryItem {...baseProps} onOpenLightbox={mocks.onOpenLightbox} />);
+    const propsWithLightbox = {
+      ...baseProps,
+      actions: { ...baseProps.actions, onOpenLightbox: mocks.onOpenLightbox },
+    };
+    const { getByTestId } = render(<MediaGalleryItem {...propsWithLightbox} />);
 
     const draggable = getByTestId('draggable-image');
     fireEvent.doubleClick(draggable);
@@ -312,9 +326,15 @@ describe('MediaGalleryItem', () => {
   it('handles mobile tap interaction for image content', () => {
     const mobileProps = {
       ...baseProps,
-      isMobile: true,
-      enableSingleClick: false,
-      onMobileTap: mocks.onMobileTap,
+      mobileInteraction: {
+        ...baseProps.mobileInteraction,
+        isMobile: true,
+        onMobileTap: mocks.onMobileTap,
+      },
+      features: {
+        ...baseProps.features,
+        enableSingleClick: false,
+      },
     };
 
     const { container } = render(<MediaGalleryItem {...mobileProps} />);

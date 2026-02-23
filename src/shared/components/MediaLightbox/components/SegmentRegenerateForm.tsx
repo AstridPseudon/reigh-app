@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/shared/hooks/use-toast';
+import { toast } from '@/shared/components/ui/toast';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
 import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
 import { extractSettingsFromParams } from '@/shared/components/segmentSettingsMigration';
@@ -146,7 +146,6 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
   onUpdateSegmentStructureVideo,
   onRemoveSegmentStructureVideo,
 }) => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const orchestratorDetails = asRecord(initialParams.orchestrator_details);
   const initialNumFrames = asNumber(initialParams.num_frames);

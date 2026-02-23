@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
-import { useInvalidateGenerations } from '@/shared/hooks/useGenerationInvalidation';
+import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 interface ShotGenerationMetadata {
