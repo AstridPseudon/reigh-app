@@ -234,9 +234,23 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   }, [imagePositions]);
 
   const hasLiveTrailingVideo = useMemo(() => {
-    if (!videoOutputs || !liveLastImageShotGenId) return false;
-    return findTrailingVideoInfo(videoOutputs, liveLastImageShotGenId).hasTrailing;
-  }, [videoOutputs, liveLastImageShotGenId]);
+    if (!liveLastImageShotGenId) return false;
+    // In editing mode, videoOutputs is undefined — use parentSegmentSlots instead.
+    // Segment slots know which image each video is anchored to (pairShotGenerationId).
+    if (parentSegmentSlots?.length) {
+      return parentSegmentSlots.some(slot =>
+        slot.type === 'child' &&
+        slot.pairShotGenerationId === liveLastImageShotGenId &&
+        slot.child.type?.includes('video') &&
+        slot.child.location
+      );
+    }
+    // Fallback for readOnly mode where videoOutputs is available
+    if (videoOutputs) {
+      return findTrailingVideoInfo(videoOutputs, liveLastImageShotGenId).hasTrailing;
+    }
+    return false;
+  }, [liveLastImageShotGenId, parentSegmentSlots, videoOutputs]);
 
   // Extend fullMax/fullRange when live trailing detection fires.
   // The orchestrator can't know about hasLiveTrailingVideo (it's computed from
