@@ -514,10 +514,12 @@ export function useSegmentOutputsForShot(
         }
 
         // Verify end image still matches — catches insertion between pair images.
-        // If image X was inserted between A and B, the A→B segment resolves to A's
-        // slot but the END image at that slot is now X, not B. Show a placeholder
-        // instead of a wrong video.
-        if (derivedSlot !== undefined && endGenId && effectiveTimelineData) {
+        // ONLY run against LIVE positions (not during local drag). During drag,
+        // derivedSlot comes from localShotGenPositions but effectiveTimelineData
+        // still has LIVE (pre-drag) order — the mixed coordinate systems cause
+        // false demotions on swap/reorder. After commit, LIVE data refreshes and
+        // this check runs against consistent positions.
+        if (!useLocalPositions && derivedSlot !== undefined && endGenId && effectiveTimelineData) {
           const endImageInTimeline = effectiveTimelineData[derivedSlot + 1];
           if (endImageInTimeline && endImageInTimeline.generation_id !== endGenId) {
             // Only demote if the end image is still AFTER this slot (X inserted between A and B)
