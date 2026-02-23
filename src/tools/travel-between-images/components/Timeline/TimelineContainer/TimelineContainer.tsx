@@ -133,8 +133,8 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     timelineRef,
     containerRef,
     fullMin,
-    fullMax,
-    fullRange,
+    fullMax: orchestratorFullMax,
+    fullRange: orchestratorFullRange,
     containerWidth,
     dragState,
     dragOffset,
@@ -227,15 +227,25 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
 
   // Live trailing detection: check if any completed video is anchored to the current
   // live last image. Auto-reveals trailing slot during drag without waiting for DB.
-  const liveLastImageShotGenId = useMemo(() => {
+  const { liveLastImageShotGenId, liveLastImageFrame } = useMemo(() => {
     const sorted = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
-    return sorted[sorted.length - 1]?.[0] ?? null;
+    const last = sorted[sorted.length - 1];
+    return { liveLastImageShotGenId: last?.[0] ?? null, liveLastImageFrame: last?.[1] ?? null };
   }, [imagePositions]);
 
   const hasLiveTrailingVideo = useMemo(() => {
     if (!videoOutputs || !liveLastImageShotGenId) return false;
     return findTrailingVideoInfo(videoOutputs, liveLastImageShotGenId).hasTrailing;
   }, [videoOutputs, liveLastImageShotGenId]);
+
+  // Extend fullMax/fullRange when live trailing detection fires.
+  // The orchestrator can't know about hasLiveTrailingVideo (it's computed from
+  // post-orchestrator data), so we extend the dimensions here for rendering.
+  const isMultiImageTimeline = images.length > 1;
+  const fullMax = hasLiveTrailingVideo && liveLastImageFrame !== null
+    ? Math.max(orchestratorFullMax, liveLastImageFrame + (isMultiImageTimeline ? 19 : 51))
+    : orchestratorFullMax;
+  const fullRange = fullMax - fullMin;
 
   // --- Derived pair data (augmented with pending items) ---
   const imagePositionsWithPending = useMemo(() => {
@@ -620,7 +630,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
               const isMultiImage = images.length > 1;
               const hasTrailingSegment = trailingEndFrame !== undefined;
 
-              if (isMultiImage && !hasTrailingSegment && !hasAnyTrailingVideo) {
+              if (isMultiImage && !hasTrailingSegment && !hasAnyTrailingVideo && !hasLiveTrailingVideo) {
                 return null;
               }
 
