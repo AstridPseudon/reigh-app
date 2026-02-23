@@ -13,7 +13,6 @@ import type { TimelineMediaContextValue } from '../../Timeline/TimelineMediaCont
 function useShotData(
   props: ShotImagesEditorResolvedProps,
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair',
-  localShotGenPositions?: Map<string, number>,
 ) {
   const {
     selectedShotId,
@@ -61,7 +60,7 @@ function useShotData(
   const segmentOutputData = useSegmentOutputsForShot(
     selectedShotId,
     projectId || '',
-    localShotGenPositions,
+    undefined,
     selectedOutputId,
     onSelectedOutputChange,
     readOnly ? preloadedImages : undefined,
@@ -317,9 +316,8 @@ export function useShotImagesEditorModel(
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair',
   resolvedProjectResolution: string | undefined,
   trailingFrameUpdateRef: MutableRefObject<((endFrame: number) => void) | null>,
-  localShotGenPositions?: Map<string, number>,
 ) {
-  const data = useShotData(props, effectiveGenerationMode, localShotGenPositions);
+  const data = useShotData(props, effectiveGenerationMode);
 
   usePruneOffscreenStructureVideos(
     props,

@@ -160,7 +160,6 @@ function TimelineModeContent(props: {
   callbacks: ShotImagesEditorCallbacks;
   timelineMediaValue: TimelineMediaContextValue;
   registerTrailingUpdater: (fn: (endFrame: number) => void) => void;
-  onLocalPositionsChange?: (positions: Map<string, number>) => void;
 }) {
   const {
     componentProps,
@@ -169,7 +168,6 @@ function TimelineModeContent(props: {
     callbacks,
     timelineMediaValue,
     registerTrailingUpdater,
-    onLocalPositionsChange,
   } = props;
 
   const {
@@ -252,7 +250,6 @@ function TimelineModeContent(props: {
           navigateWithTransition={mode.navigateWithTransition}
           onNewShotFromSelection={onNewShotFromSelection}
           onRegisterTrailingUpdater={registerTrailingUpdater}
-          onLocalPositionsChange={onLocalPositionsChange}
         />
       </TimelineMediaProvider>
 
@@ -386,9 +383,8 @@ export function EditorContent(props: {
   callbacks: ShotImagesEditorCallbacks;
   timelineMediaValue: TimelineMediaContextValue;
   registerTrailingUpdater: (fn: (endFrame: number) => void) => void;
-  onLocalPositionsChange?: (positions: Map<string, number>) => void;
 }) {
-  const { componentProps, data, mode, callbacks, timelineMediaValue, registerTrailingUpdater, onLocalPositionsChange } = props;
+  const { componentProps, data, mode, callbacks, timelineMediaValue, registerTrailingUpdater } = props;
 
   const {
     isModeReady,
@@ -432,7 +428,6 @@ export function EditorContent(props: {
             callbacks={callbacks}
             timelineMediaValue={timelineMediaValue}
             registerTrailingUpdater={registerTrailingUpdater}
-            onLocalPositionsChange={onLocalPositionsChange}
           />
         ) : (
           <BatchModeEditorContent

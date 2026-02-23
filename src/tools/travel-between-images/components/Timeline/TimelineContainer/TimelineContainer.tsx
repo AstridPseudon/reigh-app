@@ -225,6 +225,18 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     onFileDrop,
   });
 
+  // Live trailing detection: check if any completed video is anchored to the current
+  // live last image. Auto-reveals trailing slot during drag without waiting for DB.
+  const liveLastImageShotGenId = useMemo(() => {
+    const sorted = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
+    return sorted[sorted.length - 1]?.[0] ?? null;
+  }, [imagePositions]);
+
+  const hasLiveTrailingVideo = useMemo(() => {
+    if (!videoOutputs || !liveLastImageShotGenId) return false;
+    return findTrailingVideoInfo(videoOutputs, liveLastImageShotGenId).hasTrailing;
+  }, [videoOutputs, liveLastImageShotGenId]);
+
   // --- Derived pair data (augmented with pending items) ---
   const imagePositionsWithPending = useMemo(() => {
     if (activePendingFrame === null) return imagePositions;
@@ -376,7 +388,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                 onOpenPairSettings={onPairClick ? handleOpenPairSettings : undefined}
                 selectedParentId={selectedOutputId}
                 onSegmentFrameCountChange={onSegmentFrameCountChange}
-                trailingSegmentMode={lastEntry && (trailingEndFrame !== undefined || hasAnyTrailingVideo) ? (() => {
+                trailingSegmentMode={lastEntry && (trailingEndFrame !== undefined || hasAnyTrailingVideo || hasLiveTrailingVideo) ? (() => {
                   const [imageId, imageFrame] = lastEntry;
                   const resolvedEndFrame = trailingEndFrame ?? (imageFrame + (isMultiImage ? 17 : 49));
                   const trailingDuration = resolvedEndFrame - imageFrame;

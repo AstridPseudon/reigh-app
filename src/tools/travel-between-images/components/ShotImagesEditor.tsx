@@ -7,7 +7,7 @@
  * - Dedicated render sections for header, content, and overlays
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import {
@@ -46,18 +46,11 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     trailingFrameUpdateRef.current = fn;
   }, []);
 
-  // Track local image order from Timeline so segment slots update immediately on reorder.
-  const [localShotGenPositions, setLocalShotGenPositions] = useState<Map<string, number> | undefined>(undefined);
-  const handleLocalPositionsChange = useCallback((positions: Map<string, number>) => {
-    setLocalShotGenPositions(positions);
-  }, []);
-
   const { data, mode, timelineMediaValue } = useShotImagesEditorModel(
     resolvedProps,
     effectiveGenerationMode,
     resolvedProjectResolution,
     trailingFrameUpdateRef,
-    localShotGenPositions,
   );
 
   const callbacks = useShotImagesEditorCallbacks({
@@ -93,7 +86,6 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
         callbacks={callbacks}
         timelineMediaValue={timelineMediaValue}
         registerTrailingUpdater={registerTrailingUpdater}
-        onLocalPositionsChange={handleLocalPositionsChange}
       />
 
       <EditorOverlays

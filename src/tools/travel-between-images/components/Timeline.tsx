@@ -26,7 +26,6 @@ import { useLightbox } from "./Timeline/hooks/useLightbox";
 import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
 import { useTimelinePositionUtils } from "../hooks/useTimelinePositionUtils";
 import { quantizeGap } from "./Timeline/utils/time-utils";
-import { TRAILING_ENDPOINT_KEY } from "./Timeline/utils/timeline-utils";
 import { useExternalGenerations } from "@/shared/components/ShotImageManager/hooks/useExternalGenerations";
 import { useDerivedNavigation } from "../hooks/useDerivedNavigation";
 import { usePendingImageOpen } from "@/shared/hooks/usePendingImageOpen";
@@ -100,8 +99,6 @@ interface TimelineProps {
   navigateWithTransition?: (doNavigation: () => void) => void;
   // Position system: register trailing end frame updater from TimelineContainer
   onRegisterTrailingUpdater?: (fn: (endFrame: number) => void) => void;
-  // Report local image order to parent so segment slots can use optimistic positions
-  onLocalPositionsChange?: (positions: Map<string, number>) => void;
 }
 
 const Timeline: React.FC<TimelineProps> = ({
@@ -157,8 +154,6 @@ const Timeline: React.FC<TimelineProps> = ({
   navigateWithTransition,
   // Position system: trailing end frame updater registration
   onRegisterTrailingUpdater,
-  // Report local image order to parent so segment slots can use optimistic positions
-  onLocalPositionsChange,
 }) => {
   // Local state for shot selector dropdown (separate from the shot being viewed)
   const [lightboxSelectedShotId, setLightboxSelectedShotId] = useState<string | undefined>(selectedShotId || shotId);
@@ -235,35 +230,6 @@ const Timeline: React.FC<TimelineProps> = ({
     isDragInProgress,
     onFramePositionsChange,
   });
-
-  // Compute local shot_generation_id → position-index map from optimistic positions.
-  // Used by the parent to pass into useSegmentOutputsForShot so segment strips
-  // track image reorders immediately (before the DB write completes).
-  const localShotGenPositions = useMemo(() => {
-    const map = new Map<string, number>();
-    [...displayPositions.entries()]
-      .filter(([id]) => id !== TRAILING_ENDPOINT_KEY)
-      .sort((a, b) => a[1] - b[1])
-      .forEach(([id], index) => map.set(id, index));
-    return map;
-  }, [displayPositions]);
-
-  // Stable string key: only changes when the IMAGE ORDER changes (not just frame values).
-  // This prevents flooding the parent with state updates on every frame-drag tick.
-  const imageOrderKey = useMemo(
-    () => [...localShotGenPositions.keys()].join(','),
-    [localShotGenPositions],
-  );
-
-  // Keep a ref so the effect always reads the latest map without it being a dep.
-  const localShotGenPositionsRef = useRef(localShotGenPositions);
-  localShotGenPositionsRef.current = localShotGenPositions;
-
-  useEffect(() => {
-    onLocalPositionsChange?.(localShotGenPositionsRef.current);
-  // imageOrderKey triggers only on actual reorders; onLocalPositionsChange is stable (useCallback).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageOrderKey, onLocalPositionsChange]);
 
   // Ref for lightbox index setter (needed for external generations)
   const setLightboxIndexRef = useRef<(index: number) => void>(() => {});
