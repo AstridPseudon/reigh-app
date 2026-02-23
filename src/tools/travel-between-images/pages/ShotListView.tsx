@@ -5,7 +5,7 @@ import CreateShotModal from '@/shared/components/CreateShotModal';
 import ShotListDisplay from '../components/ShotListDisplay';
 import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
-import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
+import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/shots';
 import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';
 import type { GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';

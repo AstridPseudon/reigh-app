@@ -22,7 +22,7 @@ import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shar
 import { useDeleteVariant } from '@/shared/hooks/useGenerationMutations';
 import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery';
 import MediaGallery from '@/shared/components/MediaGallery';
-import { useListShots } from '@/shared/hooks/useShots';
+import { useListShots } from '@/shared/hooks/shots';
 import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/useMobile';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';

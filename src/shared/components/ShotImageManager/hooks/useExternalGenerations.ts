@@ -3,7 +3,7 @@ import { GenerationRow } from '@/types/shots';
 import { DerivedNavContext } from '../types';
 import { transformExternalGeneration } from '../utils/external-generation-utils';
 import { supabase } from '@/integrations/supabase/client';
-import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
+import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/shots';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { useAppEventListener } from '@/shared/lib/typedEvents';

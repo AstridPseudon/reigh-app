@@ -1,5 +1,6 @@
 import React from 'react';
-import { cn, formatTime } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { formatTime } from '@/shared/lib/timeFormatting';
 import type { PortionSelection, HandleDragState, DragOffset } from '../types';
 import { SELECTION_COLORS } from '../types';
 import { FrameThumbnail } from './FrameThumbnail';

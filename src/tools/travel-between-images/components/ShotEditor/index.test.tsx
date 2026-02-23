@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ShotSettingsEditor } from './index';
 
-vi.mock('@/shared/hooks/useShots', () => ({
+vi.mock('@/shared/hooks/shots', () => ({
   useUpdateShotImageOrder: () => ({ mutateAsync: vi.fn() }),
   useAddImageToShotWithoutPosition: () => ({ mutateAsync: vi.fn() }),
   useAddImageToShot: () => ({ mutateAsync: vi.fn() }),

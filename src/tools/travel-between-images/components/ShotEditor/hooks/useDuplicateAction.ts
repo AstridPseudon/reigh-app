@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { toast } from "@/shared/components/ui/sonner";
 import { handleError } from "@/shared/lib/errorHandling/handleError";
 import { GenerationRow, Shot } from "@/types/shots";
-import { useDuplicateAsNewGeneration } from "@/shared/hooks/useShots";
+import { useDuplicateAsNewGeneration } from "@/shared/hooks/shots";
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import { ShotEditorState } from '../state/types';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';

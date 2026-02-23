@@ -24,7 +24,7 @@ import {
   useCreateShot,
   useCreateShotWithImage,
   useHandleExternalImageDrop
-} from '@/shared/hooks/useShots';
+} from '@/shared/hooks/shots';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { inheritSettingsForNewShot } from '@/shared/lib/shotSettingsInheritance';
 import { GenerationRow, Shot } from '@/types/shots';

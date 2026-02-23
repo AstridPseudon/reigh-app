@@ -1,28 +1,19 @@
-/**
- * Shared utilities for resolving tool settings across different scopes.
- * 
- * IMPORTANT: This is the single source of truth for settings priority.
- * If you need to change the priority order, update it here and all consumers
- * will automatically get the update.
- * 
- * Priority order (highest to lowest): shot → project → user → defaults
- */
-
 type GenerationModeRaw = 'batch' | 'timeline' | 'by-pair' | undefined;
 export type GenerationModeNormalized = 'batch' | 'timeline' | 'by-pair';
 
-/**
- * Normalize generation mode: preserves all three values, defaults undefined to 'timeline'.
- */
 function normalizeGenerationMode(mode: GenerationModeRaw): GenerationModeNormalized {
   if (mode === 'batch' || mode === 'by-pair' || mode === 'timeline') return mode;
   return 'timeline';
 }
 
-/**
- * Settings sources for resolution.
- * Each source should contain tool-specific settings (already extracted from the parent object).
- */
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 interface SettingsSources {
   defaults?: Record<string, unknown>;
   user?: Record<string, unknown>;
@@ -30,20 +21,10 @@ interface SettingsSources {
   shot?: Record<string, unknown>;
 }
 
-/**
- * Resolve a single settings field using standard priority.
- * Priority: shot → project → user → defaults
- * 
- * @param field - The field name to resolve
- * @param sources - Settings from each scope (should be tool-specific settings)
- * @returns The resolved value, or undefined if not found in any source
- */
 function resolveSettingField<T>(
   field: string,
   sources: SettingsSources
 ): T | undefined {
-  // Priority order: shot → project → user → defaults
-  // Use explicit undefined checks because null/false/0 are valid values
   if (sources.shot?.[field] !== undefined) return sources.shot[field] as T;
   if (sources.project?.[field] !== undefined) return sources.project[field] as T;
   if (sources.user?.[field] !== undefined) return sources.user[field] as T;
@@ -51,29 +32,19 @@ function resolveSettingField<T>(
   return undefined;
 }
 
-/**
- * Resolve generation mode using standard priority and normalization.
- * This is a convenience wrapper for the common case of resolving generationMode.
- * 
- * @param sources - Settings from each scope (should be tool-specific settings)
- * @returns Normalized generation mode ('batch', 'timeline', or 'by-pair')
- */
 export function resolveGenerationMode(sources: SettingsSources): GenerationModeNormalized {
   const raw = resolveSettingField<GenerationModeRaw>('generationMode', sources);
   return normalizeGenerationMode(raw);
 }
 
-/**
- * Extract tool-specific settings from a full settings object.
- * Handles the common pattern of settings being nested under tool ID.
- * 
- * @param settings - Full settings object (e.g., from DB)
- * @param toolId - Tool identifier
- * @returns Tool-specific settings or empty object
- */
 export function extractToolSettings(
   settings: Record<string, unknown> | null | undefined,
   toolId: string
 ): Record<string, unknown> {
-  return (settings?.[toolId] as Record<string, unknown>) ?? {};
+  const root = asRecord(settings);
+  if (!root) {
+    return {};
+  }
+
+  return asRecord(root[toolId]) ?? {};
 }

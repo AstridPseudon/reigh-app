@@ -20,7 +20,7 @@ import { TasksPaneProcessingWarning } from '../ProcessingWarnings';
 import { useBottomOffset } from '@/shared/hooks/useBottomOffset';
 import { getTaskDisplayName } from '@/shared/lib/taskConfig';
 import MediaLightbox from '@/shared/components/MediaLightbox';
-import { useListShots } from '@/shared/hooks/useShots';
+import { useListShots } from '@/shared/hooks/shots';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from '@/shared/components/ui/select';

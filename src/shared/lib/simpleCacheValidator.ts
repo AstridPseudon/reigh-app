@@ -1,141 +1,168 @@
-/**
- * Simple Cache Validator - Console Testing Tool
- *
- * Run this in browser console to test cache cleanup:
- * ```
- * // Test current cache state
- * validateImageCache()
- *
- * // Start real-time monitoring
- * startCacheWatch()
- * ```
- */
-
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import {
+  debugChannelEnabled,
+  debugLog,
+  disableDebugChannel,
+  enableDebugChannel,
+} from '@/shared/lib/debug/debugConsole';
+
+type CacheDebugApi = {
+  enable: () => void;
+  disable: () => void;
+  validate: () => Promise<void>;
+  startWatch: () => void;
+  stopWatch: () => void;
+  stats: () => void;
+  help: () => void;
+};
 
 type CacheDebugWindow = Window & {
-  validateImageCache?: () => void;
+  cacheDebug?: CacheDebugApi;
+  validateImageCache?: () => Promise<void>;
   startCacheWatch?: () => void;
   stopCacheWatch?: () => void;
   showCacheStats?: () => void;
   showCacheHelp?: () => void;
 };
 
-// Make available globally in development
-if (typeof window !== 'undefined' && Boolean((import.meta as ImportMeta & { env?: Record<string, unknown> }).env?.DEV)) {
+const isDev = Boolean(
+  (import.meta as ImportMeta & { env?: Record<string, unknown> }).env?.DEV,
+);
+
+const CACHE_CHANNEL = 'cache' as const;
+
+const getMediaStats = () => {
+  const images = document.querySelectorAll('img[src*="supabase.co/storage"]');
+  const videos = document.querySelectorAll('video[src*="supabase.co/storage"]');
+  return {
+    visibleImages: images.length,
+    visibleVideos: videos.length,
+    totalVisibleMedia: images.length + videos.length,
+    timestamp: new Date().toISOString(),
+  };
+};
+
+const getPageInfo = () => {
+  const paginationText = document
+    .querySelector('[class*="text-sm"][class*="muted-foreground"]')
+    ?.textContent;
+  const pageMatch = paginationText?.match(/(\d+)-(\d+) of (\d+)/);
+
+  if (!pageMatch) {
+    return null;
+  }
+
+  const [, start, end, total] = pageMatch;
+  return {
+    currentPage: Math.ceil(parseInt(start, 10) / 25),
+    itemRange: `${start}-${end}`,
+    totalItems: total,
+    estimatedTotalPages: Math.ceil(parseInt(total, 10) / 25),
+  };
+};
+
+const getStorageInfo = async () => {
+  if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
+    return null;
+  }
+
+  const estimate = await navigator.storage.estimate();
+  return {
+    usageInMB: Math.round((estimate.usage || 0) / 1024 / 1024),
+    quotaInMB: Math.round((estimate.quota || 0) / 1024 / 1024),
+    usagePercent: Math.round(((estimate.usage || 0) / (estimate.quota || 1)) * 100),
+  };
+};
+
+if (typeof window !== 'undefined' && isDev) {
   const debugWindow = window as CacheDebugWindow;
+  let watchIntervalId: number | null = null;
 
-  debugWindow.validateImageCache = () => {
-    console.group('🗂️ Image Cache Validation');
-    
-    try {
-      // Simple approach: look at what's actually in the browser
-      const generationImages = document.querySelectorAll('img[src*="supabase.co/storage"]');
-      const generationVideos = document.querySelectorAll('video[src*="supabase.co/storage"]');
-      
-      console.log('📊 Current Media State:', {
-        visibleImages: generationImages.length,
-        visibleVideos: generationVideos.length,
-        totalVisibleMedia: generationImages.length + generationVideos.length,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Look for pagination indicators
-      const paginationText = document.querySelector('[class*="text-sm"][class*="muted-foreground"]')?.textContent;
-      const pageMatch = paginationText?.match(/(\d+)-(\d+) of (\d+)/);
-      
-      if (pageMatch) {
-        const [, start, end, total] = pageMatch;
-        const currentPage = Math.ceil(parseInt(start) / 25); // Assuming 25 items per page
-        console.log('📄 Current Page Info:', {
-          currentPage,
-          itemRange: `${start}-${end}`,
-          totalItems: total,
-          estimatedTotalPages: Math.ceil(parseInt(total) / 25)
-        });
-      } else {
-        console.log('📄 Could not detect current page from UI');
-      }
-      
-      // Check for browser cache information
-      if ('storage' in navigator && 'estimate' in navigator.storage) {
-        navigator.storage.estimate().then(estimate => {
-          console.log('💾 Browser Storage Info:', {
-            usageInMB: Math.round((estimate.usage || 0) / 1024 / 1024),
-            quotaInMB: Math.round((estimate.quota || 0) / 1024 / 1024),
-            usagePercent: Math.round(((estimate.usage || 0) / (estimate.quota || 1)) * 100)
-          });
-        });
-      }
-      
-      console.log('To see detailed cache logs:');
-      console.log('   1. Navigate between pages (1 -> 2 -> 5 -> 3)');
-      console.log('   2. Watch console for [CacheValidator] messages');
-      console.log('   3. Look for "Current cache: pages [X, Y, Z]" logs');
-
-    } catch (error) {
-      handleError(error, { context: 'SimpleCacheValidator', showToast: false });
+  const stopWatch = () => {
+    if (watchIntervalId === null) {
+      return;
     }
-    
-    console.groupEnd();
+
+    clearInterval(watchIntervalId);
+    watchIntervalId = null;
+    disableDebugChannel(CACHE_CHANNEL);
+    debugLog(CACHE_CHANNEL, 'Cache watch stopped.', undefined, true);
   };
-  
-  debugWindow.startCacheWatch = () => {
-    let lastMediaCount = 0;
-    
-    const monitor = () => {
+
+  const cacheDebug: CacheDebugApi = {
+    enable: () => {
+      enableDebugChannel(CACHE_CHANNEL);
+      debugLog(CACHE_CHANNEL, 'Cache debug channel enabled.', undefined, true);
+    },
+    disable: () => {
+      stopWatch();
+      disableDebugChannel(CACHE_CHANNEL);
+      debugLog(CACHE_CHANNEL, 'Cache debug channel disabled.', undefined, true);
+    },
+    validate: async () => {
       try {
-        const images = document.querySelectorAll('img[src*="supabase.co/storage"]');
-        const videos = document.querySelectorAll('video[src*="supabase.co/storage"]');
-        const currentMediaCount = images.length + videos.length;
-        
-        if (currentMediaCount !== lastMediaCount) {
-          lastMediaCount = currentMediaCount;
-        }
-      } catch {
-        // Silent fail
+        const [storage, media] = await Promise.all([
+          getStorageInfo(),
+          Promise.resolve(getMediaStats()),
+        ]);
+
+        debugLog(
+          CACHE_CHANNEL,
+          'Validation snapshot',
+          {
+            media,
+            page: getPageInfo(),
+            storage,
+          },
+          true,
+        );
+      } catch (error) {
+        handleError(error, { context: 'SimpleCacheValidator.validate', showToast: false });
       }
-    };
-    
-    const intervalId = setInterval(monitor, 1000);
-    console.log('🔍 Cache monitoring started (every 1s)');
-    console.log('📱 Navigate between pages to see cache behavior');
-    console.log('⏹️ Run stopCacheWatch() to stop monitoring');
-    
-    debugWindow.stopCacheWatch = () => {
-      clearInterval(intervalId);
-      console.log('⏹️ Cache monitoring stopped');
-    };
+    },
+    startWatch: () => {
+      if (watchIntervalId !== null) {
+        return;
+      }
+
+      enableDebugChannel(CACHE_CHANNEL);
+      let lastMediaCount = -1;
+      watchIntervalId = window.setInterval(() => {
+        try {
+          const stats = getMediaStats();
+          if (stats.totalVisibleMedia !== lastMediaCount) {
+            lastMediaCount = stats.totalVisibleMedia;
+            debugLog(CACHE_CHANNEL, 'Media changed', stats);
+          }
+        } catch {
+          // Ignore transient DOM read errors while polling.
+        }
+      }, 1000);
+
+      debugLog(CACHE_CHANNEL, 'Cache watch started (1s).');
+    },
+    stopWatch: () => {
+      stopWatch();
+    },
+    stats: () => {
+      debugLog(CACHE_CHANNEL, 'Cache stats', getMediaStats(), true);
+    },
+    help: () => {
+      debugLog(
+        CACHE_CHANNEL,
+        'cacheDebug.{enable,disable,validate,startWatch,stopWatch,stats}',
+        { channelEnabled: debugChannelEnabled(CACHE_CHANNEL) },
+        true,
+      );
+    },
   };
-  
-  debugWindow.showCacheStats = () => {
-    const images = document.querySelectorAll('img[src*="supabase.co/storage"]');
-    const videos = document.querySelectorAll('video[src*="supabase.co/storage"]');
-    
-    console.log('📊 Quick Cache Stats:', {
-      visibleImages: images.length,
-      visibleVideos: videos.length,
-      totalVisibleMedia: images.length + videos.length,
-      timestamp: new Date().toISOString()
-    });
-  };
-  
-  // Also add a helpful function to show what to look for
-  debugWindow.showCacheHelp = () => {
-    console.group('🔍 Cache Validation Help');
-    console.log('The cache cleanup happens automatically. To validate it:');
-    console.log('');
-    console.log('1️⃣ Navigate between pages (especially jumping far like 1→5→2)');
-    console.log('2️⃣ Watch for these console messages:');
-    console.log('   🗂️ [CacheValidator] Current cache: pages [4, 5, 6] around page 5');
-    console.log('   🧹 [CacheValidator] Cleaned up distant pages: [1, 2]');
-    console.log('');
-    console.log('3️⃣ Expected behavior:');
-    console.log('   • Conservative: max 3 pages cached (current ± 1)');
-    console.log('   • Moderate: max 5 pages cached (current ± 2)');
-    console.log('   • Aggressive: max 7 pages cached (current ± 3)');
-    console.log('');
-    console.log('4️⃣ Run validateImageCache() to check current state');
-    console.groupEnd();
-  };
+
+  debugWindow.cacheDebug = cacheDebug;
+
+  // Backward-compatible aliases for existing console workflows.
+  debugWindow.validateImageCache = cacheDebug.validate;
+  debugWindow.startCacheWatch = cacheDebug.startWatch;
+  debugWindow.stopCacheWatch = cacheDebug.stopWatch;
+  debugWindow.showCacheStats = cacheDebug.stats;
+  debugWindow.showCacheHelp = cacheDebug.help;
 }

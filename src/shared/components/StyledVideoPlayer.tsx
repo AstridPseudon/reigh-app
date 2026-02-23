@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
-import { cn, formatTime } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { formatTime } from '@/shared/lib/timeFormatting';
 import { getDisplayUrl } from '@/shared/lib/mediaUrl';
 import { useIsMobile } from '@/shared/hooks/useMobile';
 import { handleError } from '@/shared/lib/errorHandling/handleError';

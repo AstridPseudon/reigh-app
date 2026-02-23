@@ -14,7 +14,7 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useIsMobile } from '@/shared/hooks/useMobile';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import { useUpdateShotName } from '@/shared/hooks/useShots';
+import { useUpdateShotName } from '@/shared/hooks/shots';
 import { usePrimeShotImagesCache } from '@/shared/hooks/useShotImages';
 import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { useProjectVideoCountsCache } from '@/shared/hooks/useProjectVideoCountsCache';

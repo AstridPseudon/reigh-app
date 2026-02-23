@@ -1,4 +1,4 @@
-export { handleError } from '@/shared/lib/errorHandling/handleError';
+export { handleError, handleAndRethrow } from '@/shared/lib/errorHandling/handleError';
 export {
   AppError,
   NetworkError,

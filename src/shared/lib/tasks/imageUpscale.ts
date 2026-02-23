@@ -1,6 +1,5 @@
 import { createTask, validateRequiredFields, TaskValidationError } from '../taskCreation';
 import type { TaskCreationResult } from '../taskCreation';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 /**
  * Parameters for creating an image upscale task
@@ -81,26 +80,16 @@ function buildImageUpscaleTaskParams(
  * @returns Promise resolving to the created task
  */
 export async function createImageUpscaleTask(params: ImageUpscaleTaskParams): Promise<TaskCreationResult> {
+  // 1. Validate parameters
+  validateImageUpscaleParams(params);
 
-  try {
-    // 1. Validate parameters
-    validateImageUpscaleParams(params);
+  // 2. Build task params in the image-upscale format
+  const taskParams = buildImageUpscaleTaskParams(params);
 
-    // 2. Build task params in the image-upscale format
-    const taskParams = buildImageUpscaleTaskParams(params);
-
-    // 3. Create task using unified create-task function
-    const result = await createTask({
-      project_id: params.project_id,
-      task_type: "image-upscale",
-      params: taskParams,
-    });
-
-    return result;
-
-  } catch (error) {
-    handleError(error, { context: 'ImageUpscale', showToast: false });
-    throw error;
-  }
+  // 3. Create task using unified create-task function
+  return createTask({
+    project_id: params.project_id,
+    task_type: "image-upscale",
+    params: taskParams,
+  });
 }
-

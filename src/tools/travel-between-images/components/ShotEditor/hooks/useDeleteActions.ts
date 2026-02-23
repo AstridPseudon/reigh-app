@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { toast } from "@/shared/components/ui/sonner";
 import { handleError } from "@/shared/lib/errorHandling/handleError";
 import { GenerationRow, Shot } from "@/types/shots";
-import { useRemoveImageFromShot } from "@/shared/hooks/useShots";
+import { useRemoveImageFromShot } from "@/shared/hooks/shots";
 import { useQueryClient } from '@tanstack/react-query';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';

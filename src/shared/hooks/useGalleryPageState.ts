@@ -35,7 +35,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import { useToggleGenerationStar } from '@/shared/hooks/useGenerationMutations';
 import { useDeleteGenerationWithConfirm } from '@/shared/hooks/useDeleteGenerationWithConfirm';
-import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/useShots';
+import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/shots';
 import { LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShots } from '@/shared/contexts/ShotsContext';

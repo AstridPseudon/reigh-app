@@ -12,7 +12,7 @@ import { ReighLoading } from '@/shared/components/ReighLoading';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import MediaGallery, { DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
-import { useListShots } from '@/shared/hooks/useShots';
+import { useListShots } from '@/shared/hooks/shots';
 
 interface MediaSelectionPanelProps {
   /** Called when the user selects a media item */

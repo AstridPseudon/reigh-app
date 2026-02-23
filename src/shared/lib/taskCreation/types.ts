@@ -23,16 +23,12 @@ export interface BaseTaskParams {
 }
 
 /**
- * Result from creating a task via the edge function.
- * This is the standard response shape for all task creation operations.
+ * Successful task-creation response shape.
+ * Errors are surfaced via thrown AppError instances, not inline response fields.
  */
 export interface TaskCreationResult {
-  /** The created task's unique ID */
   task_id: string;
-  /** Task status (typically 'pending' for newly created tasks) */
   status: string;
-  /** Error message if task creation failed */
-  error?: string;
 }
 
 /**

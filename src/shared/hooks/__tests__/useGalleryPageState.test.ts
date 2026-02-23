@@ -33,7 +33,7 @@ vi.mock('@/shared/hooks/useDeleteGenerationWithConfirm', () => ({
   }),
 }));
 
-vi.mock('@/shared/hooks/useShots', () => ({
+vi.mock('@/shared/hooks/shots', () => ({
   useAddImageToShot: () => ({
     mutateAsync: vi.fn().mockResolvedValue(undefined),
   }),

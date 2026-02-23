@@ -18,7 +18,7 @@ vi.mock('@/shared/contexts/ProjectContext', () => ({
   }),
 }));
 
-vi.mock('@/shared/hooks/useShots', () => ({
+vi.mock('@/shared/hooks/shots', () => ({
   useListShots: vi.fn().mockReturnValue({
     data: [
       { id: 'shot-1', name: 'Shot 1' },

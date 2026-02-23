@@ -2,7 +2,7 @@ import React from 'react';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import {
   useListShots,
-} from '@/shared/hooks/useShots';
+} from '@/shared/hooks/shots';
 import ShotListDisplay from '@/tools/travel-between-images/components/ShotListDisplay';
 import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager/ShotImageManagerContainer';
 import { Button } from '@/shared/components/ui/button';

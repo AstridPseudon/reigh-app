@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/useShots';
+import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/shots';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { toast as sonnerToast } from '@/shared/components/ui/sonner';
 

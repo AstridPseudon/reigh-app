@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
-import { useListShots } from '@/shared/hooks/useShots';
+import { useListShots } from '@/shared/hooks/shots';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useQueryClient } from '@tanstack/react-query';

@@ -19,7 +19,7 @@ import {
 import { Shot } from '@/types/shots';
 import SortableShotItem, { type DropOptions } from './SortableShotItem';
 import { Button } from '@/shared/components/ui/button';
-import { useReorderShots } from '@/shared/hooks/useShots';
+import { useReorderShots } from '@/shared/hooks/shots';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useQueryClient } from '@tanstack/react-query';

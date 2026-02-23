@@ -12,7 +12,7 @@ interface UseImageManagementControllerParams {
   projectIdRef: MutableRefObject<string | null>;
   allShotImagesRef: MutableRefObject<GenerationRow[]>;
   batchVideoFramesRef: MutableRefObject<number>;
-  updateShotImageOrderMutation: ReturnType<typeof import('@/shared/hooks/useShots').useUpdateShotImageOrder>;
+  updateShotImageOrderMutation: ReturnType<typeof import('@/shared/hooks/shots').useUpdateShotImageOrder>;
   demoteOrphanedVariants: (shotId: string, reason: string) => void;
   actionsRef: MutableRefObject<{
     setPendingFramePositions: (value: Map<string, number>) => void;

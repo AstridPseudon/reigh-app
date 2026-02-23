@@ -11,7 +11,7 @@ import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import React from 'react';
 
-import { mapShotGenerationToRow } from '@/shared/hooks/useShots';
+import { mapShotGenerationToRow } from '@/shared/hooks/shots';
 
 /** Loads all shot_generations (positioned + unpositioned) for a shot. */
 const useAllShotGenerations = (

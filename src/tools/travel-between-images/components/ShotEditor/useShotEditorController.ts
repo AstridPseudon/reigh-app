@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from "react";
-import { useUpdateShotImageOrder, useAddImageToShotWithoutPosition } from "@/shared/hooks/useShots";
+import { useUpdateShotImageOrder, useAddImageToShotWithoutPosition } from "@/shared/hooks/shots";
 import { useShotCreation } from "@/shared/hooks/useShotCreation";
 import { useIsMobile } from "@/shared/hooks/useMobile";
 import { Shot } from '@/types/shots';
@@ -35,7 +35,7 @@ import {
   useLoraSettings,
   useVideoTravelSettings,
 } from '@/tools/travel-between-images/providers';
-import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/useShots';
+import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/shots';
 import { ShotEditorLayoutProps } from './ShotEditorLayout';
 import { useOutputController } from './controllers/useOutputController';
 import { useEditingController } from './controllers/useEditingController';

@@ -6,7 +6,8 @@
  */
 
 import React, { useRef, useCallback, useState } from 'react';
-import { cn, formatTime } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { formatTime } from '@/shared/lib/timeFormatting';
 import type { TrimTimelineBarProps } from '../types';
 
 export const TrimTimelineBar: React.FC<TrimTimelineBarProps> = ({

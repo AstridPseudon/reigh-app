@@ -4,7 +4,6 @@ import {
   TaskValidationError,
 } from "../taskCreation";
 import type { TaskCreationResult } from "../taskCreation";
-import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 // ============================================================================
 // Video Enhancement API Param Interfaces (Single Source of Truth)
@@ -218,30 +217,23 @@ interface VideoEnhanceTaskResult {
 export async function createVideoEnhanceTask(
   params: VideoEnhanceTaskParams
 ): Promise<VideoEnhanceTaskResult> {
+  // 1. Validate parameters
+  validateVideoEnhanceParams(params);
 
-  try {
-    // 1. Validate parameters
-    validateVideoEnhanceParams(params);
+  // 2. Build task payload
+  const payload = buildVideoEnhancePayload(params);
 
-    // 2. Build task payload
-    const payload = buildVideoEnhancePayload(params);
+  // 3. Create task using unified create-task function
+  const result = await createTask({
+    project_id: params.project_id,
+    task_type: 'video_enhance',
+    params: {
+      tool_type: 'video-enhance',
+      ...payload,
+    },
+  });
 
-    // 3. Create task using unified create-task function
-    const result = await createTask({
-      project_id: params.project_id,
-      task_type: 'video_enhance',
-      params: {
-        tool_type: 'video-enhance',
-        ...payload,
-      },
-    });
-
-    return { task: result };
-
-  } catch (error) {
-    handleError(error, { context: 'VideoEnhance', showToast: false });
-    throw error;
-  }
+  return { task: result };
 }
 
 // TaskValidationError is used internally - import from taskCreation.ts if needed externally

@@ -25,7 +25,7 @@ vi.mock('@/shared/hooks/useLastAffectedShot', () => ({
 
 const mockMutateAsync = vi.fn();
 
-vi.mock('@/shared/hooks/useShots', () => ({
+vi.mock('@/shared/hooks/shots', () => ({
   useCreateShot: vi.fn(() => ({
     mutateAsync: mockMutateAsync.mockResolvedValue({
       shot: { id: 'new-shot', name: 'Shot 3' },

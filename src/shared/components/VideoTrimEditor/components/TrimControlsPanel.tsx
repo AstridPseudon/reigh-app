@@ -14,7 +14,8 @@ import {
   RotateCcw,
   AlertCircle
 } from 'lucide-react';
-import { cn, formatTime } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { formatTime } from '@/shared/lib/timeFormatting';
 import { TrimTimelineBar } from './TrimTimelineBar';
 import type { TrimControlsPanelProps } from '../types';
 

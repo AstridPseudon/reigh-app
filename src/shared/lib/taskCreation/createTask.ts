@@ -1,9 +1,10 @@
 import { getSupabasePublishableKey, getSupabaseUrl } from '@/integrations/supabase/config/env';
 import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { handleAndRethrow } from '@/shared/lib/errorHandling/handleError';
 import { AuthError, NetworkError, ServerError } from '@/shared/lib/errorHandling/errors';
 import { readAccessTokenFromStorage } from '@/shared/lib/supabaseSession';
 import { generateUUID } from './ids';
+import { parseTaskCreationResponse } from './parseTaskCreationResponse';
 import type { BaseTaskParams, TaskCreationResult } from './types';
 
 /**
@@ -20,6 +21,11 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
 
   const startTime = Date.now();
   const requestId = `${startTime}-${Math.random().toString(36).slice(2, 8)}`;
+  const requestContext = {
+    requestId,
+    taskType: taskParams.task_type,
+    projectId: taskParams.project_id,
+  };
   const timeoutMs = 20000; // 20s safety timeout to avoid indefinite UI stall
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -52,12 +58,12 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
       throw new ServerError(errorText || 'Failed to create task', {
-        context: { requestId, taskType: taskParams.task_type, projectId: taskParams.project_id },
+        context: requestContext,
       });
     }
 
-    const data = await response.json() as TaskCreationResult;
-    return data;
+    const data = await response.json() as unknown;
+    return parseTaskCreationResponse(data, requestContext);
   } catch (err: unknown) {
     const context = {
       requestId,
@@ -79,8 +85,11 @@ export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreati
       });
     }
 
-    const normalizedError = handleError(err, { context: 'TaskCreation', showToast: false });
-    throw normalizedError;
+    handleAndRethrow(err, {
+      context: 'TaskCreation',
+      showToast: false,
+      logData: context,
+    });
   } finally {
     clearTimeout(timeout);
   }

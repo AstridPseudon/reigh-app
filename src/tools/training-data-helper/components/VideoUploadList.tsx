@@ -6,7 +6,7 @@ import { Video, Trash2, Clock, FileText, Scissors } from 'lucide-react';
 import { TrainingDataVideo, TrainingDataSegment } from '../hooks/useTrainingData';
 import { useTrainingData } from '../hooks/useTrainingData';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/shared/components/ui/alert-dialog';
-import { cropFilename } from '@/shared/lib/utils';
+import { cropFilename } from '@/shared/lib/stringFormatting';
 import { useUpdatingTimestamp } from '@/shared/hooks/useUpdatingTimestamp';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 

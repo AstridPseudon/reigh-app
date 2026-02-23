@@ -8,7 +8,7 @@
 import React from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { StatusBadge } from '@/shared/components/StatusBadge';
-import { truncateText } from '@/shared/lib/utils';
+import { truncateText } from '@/shared/lib/stringFormatting';
 
 interface EnhancedPromptBadgeProps {
   onClear: () => void;

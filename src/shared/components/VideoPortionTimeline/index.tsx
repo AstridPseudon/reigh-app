@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { formatTime } from '@/shared/lib/utils';
+import { formatTime } from '@/shared/lib/timeFormatting';
 import { usePlayhead } from './hooks/usePlayhead';
 import { useHandleDrag } from './hooks/useHandleDrag';
 import { SelectionOverlay } from './components/SelectionOverlay';
@@ -7,9 +7,6 @@ import type { MultiPortionTimelineProps } from './types';
 
 // Re-export public types and interfaces for external consumers
 export type { PortionSelection, MultiPortionTimelineProps } from './types';
-
-// Re-export formatTime for backwards compatibility (with milliseconds enabled by default for this component)
-export { formatTime } from '@/shared/lib/utils';
 
 // Helper to format time with milliseconds (1 digit) for this component's use
 const formatTimeWithMs = (seconds: number): string => {

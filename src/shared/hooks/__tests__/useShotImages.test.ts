@@ -40,7 +40,7 @@ vi.mock('@/shared/lib/queryKeys', () => ({
   },
 }));
 
-vi.mock('@/shared/hooks/useShots', () => ({
+vi.mock('@/shared/hooks/shots', () => ({
   mapShotGenerationToRow: vi.fn((sg: Record<string, unknown>) => ({
     id: sg.id,
     generation_id: sg.generation_id,

@@ -17,6 +17,34 @@ function pluralize(n: number, singular: string, plural: string): string {
   return `${n} ${n === 1 ? singular : plural}`;
 }
 
+export interface FormatClockTimeOptions {
+  showMilliseconds?: boolean;
+  millisecondsDigits?: 1 | 2 | 3;
+}
+
+export function formatTime(
+  seconds: number,
+  options: FormatClockTimeOptions = {},
+): string {
+  const { showMilliseconds = false, millisecondsDigits = 1 } = options;
+
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return showMilliseconds ? '0:00.0' : '0:00';
+  }
+
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const base = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  if (!showMilliseconds) {
+    return base;
+  }
+
+  const divisor = Math.pow(10, 3 - millisecondsDigits);
+  const ms = Math.floor((seconds % 1) * 1000 / divisor);
+  return `${base}.${ms.toString().padStart(millisecondsDigits, '0')}`;
+}
+
 // ── precise duration from a Date ─────────────────────────────────────────
 
 export interface FormatRelativeDurationOptions {

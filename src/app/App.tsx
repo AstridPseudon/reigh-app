@@ -11,7 +11,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { useHandleExternalImageDrop, useAddImageToShot } from '@/shared/hooks/useShots';
+import { useHandleExternalImageDrop, useAddImageToShot } from '@/shared/hooks/shots';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';

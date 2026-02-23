@@ -9,7 +9,7 @@ import {
   useAddImageToShotWithoutPosition,
   useRemoveImageFromShot,
   useUpdateShotImageOrder
-} from '@/shared/hooks/useShots';
+} from '@/shared/hooks/shots';
 import type { GenerationRow, Shot } from '@/types/shots';
 
 interface UseShotImageMutationsInput {

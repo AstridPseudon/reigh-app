@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
-import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/useShots';
+import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/shots';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';

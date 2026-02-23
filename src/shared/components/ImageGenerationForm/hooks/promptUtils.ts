@@ -1,4 +1,4 @@
-import { truncateText } from '@/shared/lib/utils';
+import { truncateText } from '@/shared/lib/stringFormatting';
 
 /** Truncate a full prompt to a short display label (30 chars). */
 export function toShortPrompt(fullPrompt: string): string {

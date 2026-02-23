@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/shared/components/ui/command';
 import { Star, ChevronsUpDown, PlusCircle } from 'lucide-react';
-import { cn, truncateText } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { truncateText } from '@/shared/lib/stringFormatting';
 import type { Project } from '@/types/project';
 
 interface ProjectSelectorPopoverProps {

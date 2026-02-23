@@ -6,7 +6,7 @@ import { Scissors } from 'lucide-react';
 import { toast } from '@/shared/components/ui/sonner';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { formatTime } from '@/shared/lib/utils';
+import { formatTime } from '@/shared/lib/timeFormatting';
 import { SegmentListItem } from './components/SegmentListItem';
 import { SegmentFormDialog } from './components/SegmentFormDialog';
 import { VideoPlayerControls } from './components/VideoPlayerControls';

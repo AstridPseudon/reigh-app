@@ -38,3 +38,7 @@ export function handleError(error: unknown, options: HandleErrorOptions): AppErr
   onError?.(appError);
   return appError;
 }
+
+export function handleAndRethrow(error: unknown, options: HandleErrorOptions): never {
+  throw handleError(error, options);
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { dispatchAppEvent, useAppEventListener } from '@/shared/lib/typedEvents';
 import { Shot, GenerationRow } from '../../../types/shots';
-import { useUpdateShotName, useDeleteShot, useDuplicateShot } from '../../../shared/hooks/useShots';
+import { useUpdateShotName, useDeleteShot, useDuplicateShot } from '@/shared/hooks/shots';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
 import { Pencil, Trash2, Check, X, Copy, GripVertical, Loader2, Video, ChevronDown, ChevronUp, Images } from 'lucide-react';
