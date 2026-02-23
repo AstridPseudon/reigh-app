@@ -7,11 +7,11 @@ import { usePreviewSegments } from './usePreviewSegments';
 import { useSegmentSlotMode } from './useSegmentSlotMode';
 import { useShotGenerationsData } from './useShotGenerationsData';
 import { useSmoothContinuations } from './useSmoothContinuations';
-import type { ShotImagesEditorProps } from '../types';
+import type { ShotImagesEditorResolvedProps } from '../types';
 import type { TimelineMediaContextValue } from '../../Timeline/TimelineMediaContext';
 
 function useShotData(
-  props: ShotImagesEditorProps,
+  props: ShotImagesEditorResolvedProps,
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair',
   localShotGenPositions?: Map<string, number>,
 ) {
@@ -93,7 +93,7 @@ function useShotData(
 }
 
 function usePruneOffscreenStructureVideos(
-  props: ShotImagesEditorProps,
+  props: ShotImagesEditorResolvedProps,
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair',
   shotGenerations: Array<{ timeline_frame?: number | null }>,
   positionsLoading: boolean,
@@ -139,7 +139,7 @@ function usePruneOffscreenStructureVideos(
 }
 
 function useModeOrchestration(
-  props: ShotImagesEditorProps,
+  props: ShotImagesEditorResolvedProps,
   data: ReturnType<typeof useShotData>,
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair',
   resolvedProjectResolution: string | undefined,
@@ -255,7 +255,7 @@ function useModeOrchestration(
   };
 }
 
-function useTimelineMediaValue(props: ShotImagesEditorProps) {
+function useTimelineMediaValue(props: ShotImagesEditorResolvedProps) {
   const {
     primaryStructureVideoPath,
     primaryStructureVideoMetadata,
@@ -313,7 +313,7 @@ export type ShotImagesEditorDataModel = ReturnType<typeof useShotData>;
 export type ShotImagesEditorModeModel = ReturnType<typeof useModeOrchestration>;
 
 export function useShotImagesEditorModel(
-  props: ShotImagesEditorProps,
+  props: ShotImagesEditorResolvedProps,
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair',
   resolvedProjectResolution: string | undefined,
   trailingFrameUpdateRef: MutableRefObject<((endFrame: number) => void) | null>,

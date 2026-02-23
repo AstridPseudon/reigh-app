@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import type { GenVariantInfo, SourceSlotData, StartGenToNextInfo } from './helpers';
+import type { GenVariantInfo, SourceSlotData, StartGenToNextInfo } from './sourceMismatchAnalysis';
 
 function buildStartGenToNextMap(
   startSlots: Array<{ generation_id: string }>,

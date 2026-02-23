@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +36,7 @@ interface GuidanceVideoControlsProps {
 }
 
 /** Controls for uploading/browsing guidance videos */
-export const GuidanceVideoControls: React.FC<GuidanceVideoControlsProps> = ({
+export const GuidanceVideoControls = React.memo<GuidanceVideoControlsProps>(function GuidanceVideoControls({
   shotId,
   projectId,
   readOnly = false,
@@ -52,9 +52,12 @@ export const GuidanceVideoControls: React.FC<GuidanceVideoControlsProps> = ({
   onShowVideoBrowser,
   isUploadingStructureVideo,
   setIsUploadingStructureVideo,
-}) => {
+}) {
   const createResource = useCreateResource();
   const { value: privacyDefaults } = useUserUIState('privacyDefaults', { resourcesPublic: true, generationsPublic: false });
+  // Read from ref in the upload callback — avoids re-renders from privacy state changes
+  const privacyDefaultsRef = useRef(privacyDefaults);
+  privacyDefaultsRef.current = privacyDefaults;
 
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,7 +76,7 @@ export const GuidanceVideoControls: React.FC<GuidanceVideoControlsProps> = ({
         thumbnailUrl: null,
         videoMetadata: metadata,
         created_by: { is_you: true, username: user?.email || 'user' },
-        is_public: privacyDefaults.resourcesPublic,
+        is_public: privacyDefaultsRef.current.resourcesPublic,
         createdAt: now,
       };
       await createResource.mutateAsync({ type: 'structure-video', metadata: resourceMetadata });
@@ -151,4 +154,4 @@ export const GuidanceVideoControls: React.FC<GuidanceVideoControlsProps> = ({
       </Button>
     </div>
   );
-};
+});

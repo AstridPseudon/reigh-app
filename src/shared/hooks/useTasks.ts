@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Task, TaskStatus, TASK_STATUS } from '@/types/tasks';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
@@ -320,8 +320,7 @@ export const useGetTask = (taskId: string) => {
 export const usePaginatedTasks = (params: PaginatedTasksParams) => {
   const { projectId, status, limit = 50, offset = 0, taskType, allProjects, allProjectIds } = params;
   const page = Math.floor(offset / limit) + 1;
-  const effectiveProjectId: string | null = projectId
-    ?? (typeof window !== 'undefined' ? window.__PROJECT_CONTEXT__?.selectedProjectId ?? null : null);
+  const effectiveProjectId: string | null = projectId ?? null;
   const cacheProjectKey = allProjects ? 'all' : effectiveProjectId;
   const safeCacheProjectKey = cacheProjectKey ?? '__no-project__';
   const visibleTaskTypes = getVisibleTaskTypes();
@@ -340,8 +339,8 @@ export const usePaginatedTasks = (params: PaginatedTasksParams) => {
       offset,
       page,
     }),
-    enabled: !!effectiveProjectId,
-    placeholderData: (previousData: PaginatedTasksResponse | undefined) => previousData,
+    enabled: allProjects ? !!allProjectIds?.length : !!effectiveProjectId,
+    placeholderData: keepPreviousData,
     ...QUERY_PRESETS.realtimeBacked,
     ...smartPollingConfig,
     refetchIntervalInBackground: true,

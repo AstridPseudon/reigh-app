@@ -1,388 +1,50 @@
-import { supabase } from "@/integrations/supabase/client";
-import { ASPECT_RATIO_TO_RESOLUTION } from "./aspectRatios";
-import { nanoid } from "nanoid";
-import { AppError, AuthError, NetworkError, ServerError, ValidationError } from "./errorHandling/errors";
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
-import { getSupabaseUrl, getSupabasePublishableKey } from '@/integrations/supabase/config/env';
-import { readAccessTokenFromStorage } from '@/shared/lib/supabaseSession';
-
 /**
- * Default aspect ratio to use when project aspect ratio is not found
- */
-const DEFAULT_ASPECT_RATIO = "1:1";
-
-/**
- * Interface for project resolution lookup result
- */
-interface ProjectResolutionResult {
-  resolution: string;
-  aspectRatio: string;
-}
-
-async function resolveProjectResolutionStrict(projectId: string): Promise<ProjectResolutionResult> {
-  const { data: project, error } = await supabase
-    .from('projects')
-    .select('aspect_ratio')
-    .eq('id', projectId)
-    .single();
-
-  if (error) {
-    throw new ServerError('Failed to load project aspect ratio', {
-      context: { projectId },
-      cause: error,
-    });
-  }
-
-  const aspectRatioKey = project?.aspect_ratio ?? DEFAULT_ASPECT_RATIO;
-  const resolution = ASPECT_RATIO_TO_RESOLUTION[aspectRatioKey] ?? ASPECT_RATIO_TO_RESOLUTION[DEFAULT_ASPECT_RATIO];
-
-  return {
-    resolution,
-    aspectRatio: aspectRatioKey,
-  };
-}
-
-/**
- * Resolves the resolution for a project, either using provided custom resolution
- * or looking up the project's aspect ratio and mapping it to a standard resolution.
- * 
- * @param projectId - The project ID to look up
- * @param customResolution - Optional custom resolution (e.g., "1024x768")
- * @returns Promise resolving to the final resolution string
- */
-export async function resolveProjectResolution(
-  projectId: string, 
-  customResolution?: string
-): Promise<ProjectResolutionResult> {
-  // If custom resolution is provided and valid, use it
-  if (customResolution?.trim()) {
-    return {
-      resolution: customResolution.trim(),
-      aspectRatio: "custom"
-    };
-  }
-
-  try {
-    return await resolveProjectResolutionStrict(projectId);
-  } catch (error) {
-    handleError(error, { context: 'TaskCreation', showToast: false });
-    // Fallback to default resolution
-    return {
-      resolution: ASPECT_RATIO_TO_RESOLUTION[DEFAULT_ASPECT_RATIO],
-      aspectRatio: DEFAULT_ASPECT_RATIO
-    };
-  }
-}
-
-/**
- * Generates a UUID with fallback for mobile browsers
- * Uses crypto.randomUUID() when available, falls back to nanoid
- * 
- * @returns UUID string
- */
-export function generateUUID(): string {
-  // Check if crypto.randomUUID is available (requires secure context and modern browser)
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    try {
-      return crypto.randomUUID();
-    } catch { /* intentionally ignored */ }
-  }
-  
-  // Fallback to nanoid for mobile browsers or when crypto.randomUUID is not available
-  return nanoid();
-}
-
-/**
- * Generates a unique task ID with a prefix and timestamp
- * 
- * @param taskTypePrefix - Prefix for the task ID (e.g., "sm_travel_orchestrator")
- * @returns Unique task ID string
- */
-export function generateTaskId(taskTypePrefix: string): string {
-  const runId = new Date().toISOString().replace(/[-:.TZ]/g, "");
-  const shortUuid = generateUUID().slice(0, 6);
-  return `${taskTypePrefix}_${runId.substring(2, 10)}_${shortUuid}`;
-}
-
-/**
- * Generates a run ID for tasks that need it
- * 
- * @returns Run ID string based on current timestamp
- */
-export function generateRunId(): string {
-  return new Date().toISOString().replace(/[-:.TZ]/g, "");
-}
-
-/**
- * Validation error type for task parameter validation
- * Extends ValidationError for consistent error handling
- */
-export class TaskValidationError extends ValidationError {
-  constructor(message: string, field?: string) {
-    super(message, { field });
-    this.name = 'TaskValidationError';
-  }
-}
-
-/**
- * Common task creation parameters that all tasks should have
- */
-interface BaseTaskParams {
-  project_id: string;
-  task_type: string;
-  params: Record<string, unknown>;
-}
-
-/**
- * Result from creating a task via the edge function.
- * This is the standard response shape for all task creation operations.
- */
-export interface TaskCreationResult {
-  /** The created task's unique ID */
-  task_id: string;
-  /** Task status (typically 'pending' for newly created tasks) */
-  status: string;
-  /** Error message if task creation failed */
-  error?: string;
-}
-
-/**
- * Creates a task using the unified create-task edge function
- * 
- * @param taskParams - The task parameters to create
- * @returns Promise resolving to the created task data
- */
-export async function createTask(taskParams: BaseTaskParams): Promise<TaskCreationResult> {
-  // Read access token from localStorage — avoids navigator.locks contention.
-  // getSession() acquires a shared navigator.lock blocked during token refresh.
-  const accessToken = readAccessTokenFromStorage();
-
-  if (!accessToken) {
-    throw new AuthError('Please log in to create tasks', { needsLogin: true });
-  }
-
-  const startTime = Date.now();
-  const requestId = `${startTime}-${Math.random().toString(36).slice(2, 8)}`;
-  const timeoutMs = 20000; // 20s safety timeout to avoid indefinite UI stall
-  const controller = new AbortController();
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    // Generate an idempotency key to prevent duplicate task creation from
-    // network retries or double-clicks. The server will return the existing
-    // task if this key was already used.
-    const idempotency_key = generateUUID();
-
-    const response = await fetch(`${getSupabaseUrl()}/functions/v1/create-task`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        apikey: getSupabasePublishableKey(),
-      },
-      body: JSON.stringify({
-        params: taskParams.params,
-        task_type: taskParams.task_type,
-        project_id: taskParams.project_id,
-        dependant_on: null,
-        idempotency_key,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new ServerError(errorText || 'Failed to create task', {
-        context: { requestId, taskType: taskParams.task_type, projectId: taskParams.project_id },
-      });
-    }
-
-    const data = await response.json() as TaskCreationResult;
-
-    // Task creation events are now handled by DataFreshnessManager via realtime events
-    // No manual invalidation needed - the smart polling system handles cache updates automatically
-
-    return data;
-  } catch (err: unknown) {
-    const context = {
-      requestId,
-      taskType: taskParams.task_type,
-      projectId: taskParams.project_id,
-      durationMs: Date.now() - startTime,
-    };
-
-    if (import.meta.env.DEV) {
-      console.error('[createTask] invoke FAILED', context, err);
-    }
-
-    // Normalize abort errors for better UX
-    if (isAbortError(err)) {
-      throw new NetworkError('Task creation timed out. Please try again.', {
-        isTimeout: true,
-        context,
-        cause: err instanceof Error ? err : undefined,
-      });
-    }
-
-    const normalizedError = handleError(err, { context: 'TaskCreation', showToast: false });
-    throw normalizedError;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-/**
- * Utility function to expand single-element arrays to match a target count
- * This is commonly needed for steerable motion tasks where user provides
- * one value that should be applied to all segments.
- * 
- * @param arr - Array to potentially expand
- * @param targetCount - Target count for the array
- * @returns Expanded array or original array if no expansion needed
- */
-export function expandArrayToCount<T>(arr: T[] | undefined, targetCount: number): T[] {
-  if (!arr || arr.length === 0) {
-    return [];
-  }
-
-  if (arr.length === 1 && targetCount > 1) {
-    return Array(targetCount).fill(arr[0]);
-  }
-
-  // Truncate arrays that are longer than the target count
-  // This handles the case where images were deleted and arrays are stale
-  if (arr.length > targetCount) {
-    return arr.slice(0, targetCount);
-  }
-
-  return arr;
-}
-
-/**
- * Validates that required fields are present and non-empty
- * 
- * @param params - Object to validate
- * @param requiredFields - Array of required field names
- * @throws TaskValidationError if validation fails
- */
-export function validateRequiredFields(params: object, requiredFields: readonly string[]): void {
-  const values = params as Record<string, unknown>;
-  for (const field of requiredFields) {
-    const value = values[field];
-    
-    if (value === undefined || value === null) {
-      throw new TaskValidationError(`${field} is required`, field);
-    }
-    
-    // Check for empty arrays
-    if (Array.isArray(value) && value.length === 0) {
-      throw new TaskValidationError(`${field} cannot be empty`, field);
-    }
-    
-    // Check for empty strings
-    if (typeof value === 'string' && value.trim() === '') {
-      throw new TaskValidationError(`${field} cannot be empty`, field);
-    }
-  }
-}
-
-/**
- * Safely parses JSON string with fallback
- * 
- * @param jsonStr - JSON string to parse
- * @param fallback - Fallback value if parsing fails
- * @returns Parsed object or fallback
- */
-export function safeParseJson<T>(jsonStr: string | undefined, fallback: T): T {
-  if (!jsonStr) return fallback;
-
-  try {
-    return JSON.parse(jsonStr) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-/**
- * Hires fix API parameters for image generation/edit tasks.
- * Uses snake_case to match API directly.
- */
-export interface HiresFixApiParams {
-  /** Number of inference steps (used for single-pass or base pass in two-pass mode) */
-  num_inference_steps?: number;
-  hires_scale?: number;
-  hires_steps?: number;
-  hires_denoise?: number;
-  /** Lightning LoRA strength for phase 1 (initial generation) */
-  lightning_lora_strength_phase_1?: number;
-  /** Lightning LoRA strength for phase 2 (hires/refinement pass) */
-  lightning_lora_strength_phase_2?: number;
-  additional_loras?: Record<string, string>;
-}
-
-/**
- * Builds a flat params record from HiresFixApiParams.
- * Only includes fields that are defined, so the result can be spread into task params.
+ * Backward-compatible barrel for task-creation utilities.
  *
- * @param hiresFix - The hires fix config (may be undefined)
- * @returns Flat record of hires-fix params (empty object if input is undefined)
+ * The implementation has been decomposed into focused modules under
+ * `shared/lib/taskCreation/` to improve cohesion while preserving the
+ * existing import path (`@/shared/lib/taskCreation`).
  */
-export function buildHiresFixParams(hiresFix: HiresFixApiParams | undefined): Record<string, unknown> {
-  if (!hiresFix) return {};
 
-  const params: Record<string, unknown> = {};
+export type {
+  BaseTaskParams,
+  HiresFixApiParams,
+  ProjectResolutionResult,
+  TaskCreationResult,
+} from './taskCreation/types';
 
-  if (hiresFix.num_inference_steps !== undefined) params.num_inference_steps = hiresFix.num_inference_steps;
-  if (hiresFix.hires_scale !== undefined) params.hires_scale = hiresFix.hires_scale;
-  if (hiresFix.hires_steps !== undefined) params.hires_steps = hiresFix.hires_steps;
-  if (hiresFix.hires_denoise !== undefined) params.hires_denoise = hiresFix.hires_denoise;
-  if (hiresFix.lightning_lora_strength_phase_1 !== undefined) params.lightning_lora_strength_phase_1 = hiresFix.lightning_lora_strength_phase_1;
-  if (hiresFix.lightning_lora_strength_phase_2 !== undefined) params.lightning_lora_strength_phase_2 = hiresFix.lightning_lora_strength_phase_2;
-  if (hiresFix.additional_loras && Object.keys(hiresFix.additional_loras).length > 0) params.additional_loras = hiresFix.additional_loras;
+export {
+  DEFAULT_ASPECT_RATIO,
+  TaskValidationError,
+} from './taskCreation/types';
 
-  return params;
-}
+export {
+  resolveProjectResolution,
+} from './taskCreation/resolution';
 
-/**
- * Processes batch Promise.allSettled results with standard error handling.
- *
- * - Throws if every task failed (surfaces the first error).
- * - Logs individual failures when some succeed.
- * - Returns the fulfilled TaskCreationResult values.
- *
- * @param results - The settled promise array from Promise.allSettled
- * @param context - Label used in error/log messages (e.g. "BatchImageGeneration")
- */
-export function processBatchResults(
-  results: PromiseSettledResult<TaskCreationResult>[],
-  context: string,
-): TaskCreationResult[] {
-  const successful = results.filter(r => r.status === 'fulfilled').length;
-  const failed = results.filter(r => r.status === 'rejected').length;
+export {
+  generateUUID,
+  generateTaskId,
+  generateRunId,
+} from './taskCreation/ids';
 
-  if (successful === 0) {
-    const firstError = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
-    const reasonError = firstError.reason instanceof Error
-      ? firstError.reason
-      : new Error(String(firstError.reason));
-    throw new AppError(`All batch tasks failed: ${reasonError.message}`, {
-      cause: reasonError,
-      context: { context },
-    });
-  }
+export {
+  createTask,
+} from './taskCreation/createTask';
 
-  if (failed > 0) {
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        handleError(result.reason, { context: `${context}:task${index + 1}`, showToast: false });
-      }
-    });
-  }
+export {
+  expandArrayToCount,
+} from './taskCreation/arrayUtils';
 
-  return results
-    .filter((r): r is PromiseFulfilledResult<TaskCreationResult> => r.status === 'fulfilled')
-    .map(r => r.value);
-}
+export {
+  validateRequiredFields,
+  safeParseJson,
+} from './taskCreation/validation';
+
+export {
+  buildHiresFixParams,
+} from './taskCreation/hiresFix';
+
+export {
+  processBatchResults,
+} from './taskCreation/batchResults';

@@ -3,7 +3,7 @@ import type { MutableRefObject } from 'react';
 import { toast } from '@/shared/components/ui/sonner';
 import type { FormStateSnapshot, GetTaskParams, UseFormSubmissionProps } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
-import { sanitizePrompts, toPromptEntries, truncateLabel } from './utils';
+import { sanitizePrompts, toPromptEntries, truncateLabel } from './promptSubmissionTransforms';
 
 interface UsePromptQueueHandlersInput {
   prompts: UseFormSubmissionProps['prompts'];
@@ -40,7 +40,6 @@ export function usePromptQueueHandlers(input: UsePromptQueueHandlersInput): Prom
     onGenerate,
     setPrompts,
     getTaskParams,
-    formStateRef,
     runIncomingTask,
   } = input;
 
@@ -69,17 +68,16 @@ export function usePromptQueueHandlers(input: UsePromptQueueHandlersInput): Prom
     runIncomingTask({
       label: truncateLabel(firstPrompt),
       expectedCount: actionablePromptsCount * promptMultiplier,
-      projectIdForCounts: formStateRef.current?.selectedProjectId,
       context: 'useFormSubmission.handleUseExistingPrompts',
       toastTitle: 'Failed to create tasks. Please try again.',
       execute: async () => {
-        await onGenerate(taskParams);
+        const result = await onGenerate(taskParams);
+        return result || undefined;
       },
     });
   }, [
     actionablePromptsCount,
     automatedSubmitButton,
-    formStateRef,
     getTaskParams,
     onGenerate,
     promptMultiplier,
@@ -104,7 +102,6 @@ export function usePromptQueueHandlers(input: UsePromptQueueHandlersInput): Prom
     runIncomingTask({
       label: 'More like existing...',
       expectedCount: imagesPerPrompt * promptMultiplier,
-      projectIdForCounts: formStateRef.current?.selectedProjectId,
       context: 'useFormSubmission.handleNewPromptsLikeExisting',
       toastTitle: 'Failed to generate prompts. Please try again.',
       execute: async () => {
@@ -131,13 +128,13 @@ export function usePromptQueueHandlers(input: UsePromptQueueHandlersInput): Prom
           return;
         }
 
-        await onGenerate(taskParams);
+        const result = await onGenerate(taskParams);
+        return result || undefined;
       },
     });
   }, [
     aiGeneratePrompts,
     automatedSubmitButton,
-    formStateRef,
     generationSourceRef,
     getTaskParams,
     imagesPerPrompt,

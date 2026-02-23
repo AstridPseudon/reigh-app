@@ -6,7 +6,7 @@ import {
   calculateNextAvailableFrame,
   extractExistingFrames,
   DEFAULT_FRAME_SPACING,
-} from '../timelinePositionCalculator';
+} from '../../lib/timelinePositionCalculator';
 
 describe('calculateAverageSpacing', () => {
   it('returns default spacing for less than 2 items', () => {

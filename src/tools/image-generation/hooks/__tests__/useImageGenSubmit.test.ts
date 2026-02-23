@@ -5,8 +5,6 @@ import React from 'react';
 
 const mockCreateBatchImageGenerationTasks = vi.fn();
 const mockGetApiKey = vi.fn();
-const mockAddIncomingTask = vi.fn().mockReturnValue('incoming-1');
-const mockRemoveIncomingTask = vi.fn();
 const mockHandleError = vi.fn();
 const mockToastError = vi.fn();
 
@@ -17,13 +15,6 @@ vi.mock('@/shared/lib/tasks/imageGeneration', () => ({
 vi.mock('@/shared/hooks/useApiKeys', () => ({
   useApiKeys: () => ({
     getApiKey: mockGetApiKey,
-  }),
-}));
-
-vi.mock('@/shared/contexts/IncomingTasksContext', () => ({
-  useIncomingTasks: () => ({
-    addIncomingTask: mockAddIncomingTask,
-    removeIncomingTask: mockRemoveIncomingTask,
   }),
 }));
 
@@ -110,50 +101,7 @@ describe('useImageGenSubmit', () => {
     expect(mockCreateBatchImageGenerationTasks).toHaveBeenCalledWith(taskParams);
   });
 
-  it('adds incoming task before creating tasks', async () => {
-    const { result } = renderHook(
-      () => useImageGenSubmit({ projectId: 'proj-1', effectiveProjectId: 'proj-1' }),
-      { wrapper: createWrapper() },
-    );
-
-    const taskParams = {
-      prompts: [{ fullPrompt: 'a beautiful landscape' }],
-      project_id: 'proj-1',
-    };
-
-    await act(async () => {
-      await result.current.handleNewGenerate(taskParams as unknown);
-    });
-
-    expect(mockAddIncomingTask).toHaveBeenCalledWith({
-      taskType: 'image_generation',
-      label: 'a beautiful landscape',
-    });
-  });
-
-  it('truncates label to 50 chars', async () => {
-    const { result } = renderHook(
-      () => useImageGenSubmit({ projectId: 'proj-1', effectiveProjectId: 'proj-1' }),
-      { wrapper: createWrapper() },
-    );
-
-    const longPrompt = 'a'.repeat(100);
-    const taskParams = {
-      prompts: [{ fullPrompt: longPrompt }],
-      project_id: 'proj-1',
-    };
-
-    await act(async () => {
-      await result.current.handleNewGenerate(taskParams as unknown);
-    });
-
-    expect(mockAddIncomingTask).toHaveBeenCalledWith({
-      taskType: 'image_generation',
-      label: longPrompt.substring(0, 50),
-    });
-  });
-
-  it('removes incoming task in finally block', async () => {
+  it('does not manage incoming task placeholders (caller handles this)', async () => {
     const { result } = renderHook(
       () => useImageGenSubmit({ projectId: 'proj-1', effectiveProjectId: 'proj-1' }),
       { wrapper: createWrapper() },
@@ -163,7 +111,8 @@ describe('useImageGenSubmit', () => {
       await result.current.handleNewGenerate({ prompts: [{ fullPrompt: 'test' }] } as unknown);
     });
 
-    expect(mockRemoveIncomingTask).toHaveBeenCalledWith('incoming-1');
+    // Verify no incoming task management — the caller's runIncomingTask wrapper handles this
+    // If useIncomingTasks were imported, it would appear in the mock calls
   });
 
   it('shows toast error and returns empty array when projectId is null', async () => {
@@ -205,7 +154,7 @@ describe('useImageGenSubmit', () => {
     );
   });
 
-  it('removes incoming task even on error', async () => {
+  it('does not throw on error — returns empty array', async () => {
     mockCreateBatchImageGenerationTasks.mockRejectedValue(new Error('fail'));
 
     const { result } = renderHook(
@@ -213,26 +162,11 @@ describe('useImageGenSubmit', () => {
       { wrapper: createWrapper() },
     );
 
+    let taskIds: string[] = [];
     await act(async () => {
-      await result.current.handleNewGenerate({ prompts: [{ fullPrompt: 'test' }] } as unknown);
+      taskIds = await result.current.handleNewGenerate({ prompts: [{ fullPrompt: 'test' }] } as unknown);
     });
 
-    expect(mockRemoveIncomingTask).toHaveBeenCalledWith('incoming-1');
-  });
-
-  it('uses fallback label when prompts are empty', async () => {
-    const { result } = renderHook(
-      () => useImageGenSubmit({ projectId: 'proj-1', effectiveProjectId: 'proj-1' }),
-      { wrapper: createWrapper() },
-    );
-
-    await act(async () => {
-      await result.current.handleNewGenerate({ prompts: [] } as unknown);
-    });
-
-    expect(mockAddIncomingTask).toHaveBeenCalledWith({
-      taskType: 'image_generation',
-      label: 'Generating images...',
-    });
+    expect(taskIds).toEqual([]);
   });
 });

@@ -21,7 +21,7 @@ import * as module18 from './hooks/formSubmission/usePromptQueueHandlers';
 import * as module19 from './hooks/formSubmission/useSubmissionHandlers';
 import * as module20 from './hooks/formSubmission/useSubmitHandler';
 import * as module21 from './hooks/formSubmission/useTaskParamsBuilder';
-import * as module22 from './hooks/formSubmission/utils';
+import * as module22 from './hooks/formSubmission/promptSubmissionTransforms';
 import * as module23 from './hooks/legacyMigrations/useBase64Migration';
 import * as module24 from './hooks/legacyMigrations/useInvalidPointerCleanup';
 import * as module25 from './hooks/legacyMigrations/useReferenceStructureMigration';

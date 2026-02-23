@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { GenerationRow } from '@/types/shots';
 import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShotGenerationMetadata } from '@/shared/hooks/useShotGenerationMetadata';
 import { createBatchMagicEditTasks } from '@/shared/lib/tasks/magicEdit';
@@ -11,7 +9,7 @@ import type { EditAdvancedSettings, QwenEditModel } from './useGenerationEditSet
 import { convertToHiresFixApiParams } from './useGenerationEditSettings';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
 import type { BrushStroke } from './inpainting/types';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 interface UseMagicEditModeParams {
   media: GenerationRow;
@@ -103,8 +101,7 @@ export const useMagicEditMode = ({
   const [inpaintPanelPosition, setInpaintPanelPosition] = useState<'left' | 'right'>('right');
 
   const { currentShotId } = useCurrentShot();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const queryClient = useQueryClient();
+  const run = useTaskPlaceholder();
 
   // Prompt persistence for magic edit mode
   const {
@@ -204,64 +201,62 @@ export const useMagicEditMode = ({
       await handleGenerateInpaint();
     } else {
       // No brush strokes -> magic edit
-      const incomingTaskId = addIncomingTask({
-        taskType: 'qwen_image_edit',
-        label: prompt || 'Magic edit...',
-      });
       setIsCreatingMagicEditTasks(true);
       setMagicEditTasksCreated(false);
-      
+
       try {
-        // Use active variant's location if viewing a non-primary variant
-        const effectiveImageUrl = activeVariantLocation || sourceUrlForTasks;
-        
-        // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
-        // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
-        const actualGenerationId = getGenerationId(media);
-        
-        const batchParams = {
-          project_id: selectedProjectId,
-          prompt,
-          image_url: effectiveImageUrl,
-          numImages: inpaintNumGenerations,
-          negative_prompt: "",
-          resolution: imageDimensions ? `${imageDimensions.width}x${imageDimensions.height}` : undefined,
-          seed: 11111,
-          shot_id: currentShotId || undefined,
-          tool_type: toolTypeOverride,
-          loras: editModeLoRAs,
-          based_on: actualGenerationId ?? undefined, // Track source generation for lineage (must be generations.id, not shot_generations.id)
-          source_variant_id: activeVariantId || undefined, // Track source variant if editing from a variant
-          create_as_generation: createAsGeneration, // If true, create a new generation instead of a variant
-          hires_fix: convertToHiresFixApiParams(advancedSettings), // Pass hires fix settings if enabled
-          qwen_edit_model: qwenEditModel, // Pass model selection for cloud mode
-        };
-        
-        await createBatchMagicEditTasks(batchParams);
-        
-        // Save the prompt to shot generation metadata
-        if (currentShotId && media.id) {
-          try {
-            await addMagicEditPrompt(
+        await run({
+          taskType: 'qwen_image_edit',
+          label: prompt || 'Magic edit...',
+          context: 'useMagicEditMode',
+          toastTitle: 'Failed to create magic edit tasks',
+          create: () => {
+            // Use active variant's location if viewing a non-primary variant
+            const effectiveImageUrl = activeVariantLocation || sourceUrlForTasks;
+
+            // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
+            // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
+            const actualGenerationId = getGenerationId(media);
+
+            return createBatchMagicEditTasks({
+              project_id: selectedProjectId,
               prompt,
-              inpaintNumGenerations,
-              false, // Legacy parameter
-              isInSceneBoostEnabled
-            );
-          } catch (error) {
-            handleError(error, { context: 'useMagicEditMode', showToast: false });
-            // Don't fail the entire operation if metadata save fails
-          }
-        }
-        
-        setMagicEditTasksCreated(true);
-        setTimeout(() => setMagicEditTasksCreated(false), 1500);
-      } catch (error) {
-        handleError(error, { context: 'useMagicEditMode', toastTitle: 'Failed to create magic edit tasks' });
+              image_url: effectiveImageUrl,
+              numImages: inpaintNumGenerations,
+              negative_prompt: "",
+              resolution: imageDimensions ? `${imageDimensions.width}x${imageDimensions.height}` : undefined,
+              seed: 11111,
+              shot_id: currentShotId || undefined,
+              tool_type: toolTypeOverride,
+              loras: editModeLoRAs,
+              based_on: actualGenerationId ?? undefined,
+              source_variant_id: activeVariantId || undefined,
+              create_as_generation: createAsGeneration,
+              hires_fix: convertToHiresFixApiParams(advancedSettings),
+              qwen_edit_model: qwenEditModel,
+            });
+          },
+          onSuccess: async () => {
+            // Save the prompt to shot generation metadata
+            if (currentShotId && media.id) {
+              try {
+                await addMagicEditPrompt(
+                  prompt,
+                  inpaintNumGenerations,
+                  false, // Legacy parameter
+                  isInSceneBoostEnabled
+                );
+              } catch (error) {
+                handleError(error, { context: 'useMagicEditMode', showToast: false });
+                // Don't fail the entire operation if metadata save fails
+              }
+            }
+
+            setMagicEditTasksCreated(true);
+            setTimeout(() => setMagicEditTasksCreated(false), 1500);
+          },
+        });
       } finally {
-        await queryClient.refetchQueries({ queryKey: taskQueryKeys.paginatedAll });
-        await queryClient.refetchQueries({ queryKey: taskQueryKeys.statusCountsAll });
-        removeIncomingTask(incomingTaskId);
         setIsCreatingMagicEditTasks(false);
       }
     }
@@ -284,9 +279,7 @@ export const useMagicEditMode = ({
     activeVariantId,
     activeVariantLocation,
     editModeLoRAs,
-    addIncomingTask,
-    removeIncomingTask,
-    queryClient,
+    run,
   ]);
 
   return {

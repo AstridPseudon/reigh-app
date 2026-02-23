@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useMemo, useRef } from 'react';
+import { useReducer, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { GeneratedImageWithMetadata } from '../types';
 import { GalleryFilterState, DEFAULT_GALLERY_FILTERS } from '../types';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
@@ -153,10 +153,13 @@ export const useMediaGalleryFiltersOptimized = ({
   const toggleSearch = useCallback(() => {
     const opening = !internalState.isSearchOpen;
     dispatch({ type: 'SET_IS_SEARCH_OPEN', payload: opening });
-    if (opening) {
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
   }, [internalState.isSearchOpen]);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [isSearchOpen]);
 
   const clearSearch = useCallback(() => {
     if (isControlled) {

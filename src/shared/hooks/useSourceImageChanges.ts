@@ -10,7 +10,7 @@ import {
   collectStartGenerationIds,
   type SegmentSourceInfo,
   type SourceMismatchInfo,
-} from './sourceImageChanges/helpers';
+} from './sourceImageChanges/sourceMismatchAnalysis';
 import { fetchSourceSlotData } from './sourceImageChanges/dataAccess';
 
 export function useSourceImageChanges(

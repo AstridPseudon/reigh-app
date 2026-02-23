@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import type { ShotGeneration } from '@/shared/hooks/useTimelineCore';
 import { GenerationRow } from '@/types/shots';
-import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/lib/settingsMigration';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { queryKeys } from '@/shared/lib/queryKeys';
 

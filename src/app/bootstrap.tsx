@@ -16,7 +16,6 @@ let environmentInitialized = false;
 
 interface RuntimeEnvironment {
   MODE?: string;
-  NODE_ENV?: string;
   DEV?: boolean;
   VITEST?: unknown;
 }
@@ -26,7 +25,7 @@ function isTestRuntimeEnvironment(env: RuntimeEnvironment): boolean {
 }
 
 export function shouldLoadAutoplayMonitor(env: RuntimeEnvironment): boolean {
-  return !isTestRuntimeEnvironment(env) && env.NODE_ENV === 'development';
+  return !isTestRuntimeEnvironment(env) && Boolean(env.DEV);
 }
 
 export function shouldLoadDevDebugTools(env: RuntimeEnvironment): boolean {
@@ -42,13 +41,13 @@ export function initializeAppEnvironment(): void {
 
   // Initialize autoplay monitoring in development (after console suppression check)
   if (shouldLoadAutoplayMonitor(env)) {
-    import('@/shared/utils/autoplayMonitor');
+    import('@/shared/lib/autoplayMonitor');
   }
 
   // Debug tooling is intentionally loaded only for local dev runtime, never test/prod.
   if (shouldLoadDevDebugTools(env)) {
     import('@/shared/lib/simpleCacheValidator');
-    import('@/shared/lib/debugPolling');
+    import('@/shared/lib/debug/debugPolling');
     import('@/shared/lib/mobileProjectDebug');
   }
 

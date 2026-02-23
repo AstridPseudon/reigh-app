@@ -153,7 +153,7 @@ vi.mock('./MediaGallery/utils', () => ({
   deriveInputImages: () => [],
 }));
 
-vi.mock('@/shared/utils/taskParamsUtils', () => ({
+vi.mock('@/shared/lib/taskParamsUtils', () => ({
   isImageEditTaskType: () => false,
 }));
 

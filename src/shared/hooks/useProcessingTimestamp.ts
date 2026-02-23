@@ -15,25 +15,12 @@ interface UseProcessingTimestampOptions {
   disabled?: boolean;
 }
 
-interface UseCompletedTimestampOptions {
-  /** Date when generation was processed/completed */
-  generationProcessedAt?: string | Date | null;
-  /** Disable automatic updates */
-  disabled?: boolean;
-}
-
 /**
  * Format processing duration: "Processing for 5 mins", "Processing for 1 hr, 30 mins"
  * Processing durations don't need day-level granularity — hours keep accumulating.
  */
 const formatProcessingDuration = (startDate: Date): string =>
   `Processing for ${formatRelativeDuration(startDate, { includeDays: false })}`;
-
-/**
- * Format completed time: "Completed 5 mins ago", "Completed 2 days ago"
- */
-const formatCompletedTime = (completedDate: Date): string =>
-  `Completed ${formatRelativeDuration(completedDate)} ago`;
 
 /**
  * Shared hook for live-updating timestamp formatting.
@@ -78,20 +65,4 @@ export function useProcessingTimestamp({
   disabled = false
 }: UseProcessingTimestampOptions = {}) {
   return useLiveTimestamp(generationStartedAt, disabled, formatProcessingDuration);
-}
-
-/**
- * Hook that returns a formatted completed task timestamp string showing how long ago it was completed
- *
- * @example
- * const completedTime = useCompletedTimestamp({
- *   generationProcessedAt: task.generationProcessedAt
- * });
- * return <span>{completedTime}</span>;
- */
-export function useCompletedTimestamp({
-  generationProcessedAt,
-  disabled = false
-}: UseCompletedTimestampOptions = {}) {
-  return useLiveTimestamp(generationProcessedAt, disabled, formatCompletedTime);
 }

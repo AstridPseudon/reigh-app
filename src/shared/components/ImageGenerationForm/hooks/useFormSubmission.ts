@@ -3,8 +3,6 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { useSubmissionHandlers } from './formSubmission/useSubmissionHandlers';
 import { useTaskParamsBuilder } from './formSubmission/useTaskParamsBuilder';
 import type {
@@ -48,9 +46,6 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     setPrompts,
     automatedSubmitButton,
   } = props;
-
-  const queryClient = useQueryClient();
-  const { addIncomingTask, completeIncomingTask } = useIncomingTasks();
 
   const formStateRef = useRef<FormStateSnapshot>();
   useEffect(() => {
@@ -108,9 +103,6 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     aiGeneratePrompts,
     onGenerate,
     setPrompts,
-    addIncomingTask,
-    completeIncomingTask,
-    queryClient,
     getTaskParams,
     formStateRef,
   });

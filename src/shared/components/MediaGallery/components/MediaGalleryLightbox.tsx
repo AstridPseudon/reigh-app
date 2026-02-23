@@ -11,6 +11,7 @@ import { toast } from '@/shared/components/ui/sonner';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
+import { expandShotData } from '@/shared/lib/shotData';
 
 interface MediaGalleryLightboxStateProps {
   activeLightboxMedia: GeneratedImageWithMetadata | null;
@@ -360,10 +361,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     try {
       const { data, error } = await supabase
         .from('generations')
-        .select(`
-          *,
-          shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-        `)
+        .select('*')
         .eq('id', generationId)
         .single();
 
@@ -377,7 +375,9 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
         const row = data as Record<string, unknown>;
         const params = (row.params as Record<string, unknown>) || {};
         const basedOnValue = (row.based_on as string | null) || (params?.based_on as string | null) || null;
-        const shotGenerations = (row.shot_generations as Array<{ shot_id: string; timeline_frame: number | null }>) || [];
+        const shotGenerations = expandShotData(
+          row.shot_data as Record<string, unknown> | null | undefined,
+        );
 
         // Database fields: location (full image), thumbnail_url (thumb)
         const imageUrl = (row.location as string) || (row.thumbnail_url as string);

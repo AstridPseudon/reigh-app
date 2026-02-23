@@ -260,35 +260,21 @@ const TaskListComponent: React.FC<TaskListProps> = ({
     return visible;
   }, [tasks]);
 
-  // Filter incoming tasks to hide those whose real task has arrived
-  // This ensures the placeholder disappears in the SAME render cycle as the real task appears,
-  // preventing the brief coexistence flicker
+  // Filter incoming tasks to hide those whose real task has appeared in the list.
+  // Uses exact task-ID matching when available (deterministic), falls back to always-show
+  // for placeholders still being created (no taskIds yet).
   const visibleIncomingTasks = useMemo(() => {
     if (activeFilter !== 'Processing' || incomingTasks.length === 0) return [];
 
-    const now = Date.now();
-    const REPLACEMENT_WINDOW_MS = 60000; // 60 seconds - match the stale task timeout
+    const realTaskIds = new Set(filteredTasks.map(t => t.id));
 
     return incomingTasks.filter(incoming => {
-      // Check if any real task could be the "replacement" for this incoming task
-      const hasMatchingRealTask = filteredTasks.some(task => {
-        // Must be same task type
-        if (task.taskType !== incoming.taskType) return false;
-
-        // Get task creation time
-        const taskCreatedAt = new Date(task.createdAt).getTime();
-
-        // Must be created after the incoming task started (or within 2 seconds before, for clock skew)
-        if (taskCreatedAt < incoming.startedAt.getTime() - 2000) return false;
-
-        // Must be recent (within window)
-        if (now - taskCreatedAt > REPLACEMENT_WINDOW_MS) return false;
-
-        return true;
-      });
-
-      // Show incoming task only if no matching real task exists yet
-      return !hasMatchingRealTask;
+      // If we know the real task IDs, hide when ANY appear in the task list
+      if (incoming.taskIds?.length) {
+        return !incoming.taskIds.some(id => realTaskIds.has(id));
+      }
+      // No task IDs yet → still creating, always show
+      return true;
     });
   }, [activeFilter, incomingTasks, filteredTasks]);
 

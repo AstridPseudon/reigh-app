@@ -6,7 +6,7 @@ import { isNotFoundError } from '@/shared/constants/supabaseErrors';
 import {
   calculateNextAvailableFrame,
   ensureUniqueFrame,
-} from '@/shared/utils/timelinePositionCalculator';
+} from '@/shared/lib/timelinePositionCalculator';
 import { updateAllShotsCaches } from './cacheUtils';
 import { isQuotaOrServerError } from './shotMutationHelpers';
 

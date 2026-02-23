@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/components/ui/button';
 import { Copy, Check } from 'lucide-react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
-import { parseTaskParams, deriveInputImages, derivePrompt } from '@/shared/utils/taskParamsUtils';
+import { parseTaskParams, deriveInputImages, derivePrompt } from '@/shared/lib/taskParamsUtils';
 import { getDisplayNameFromUrl } from '@/shared/lib/loraUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { presetQueryKeys } from '@/shared/lib/queryKeys/presets';
@@ -14,6 +14,42 @@ const BUILTIN_PRESET_NAMES: Record<string, string> = {
   '__builtin_default_i2v__': 'Basic',
   '__builtin_default_vace__': 'Basic',
 };
+
+type UnknownRecord = Record<string, unknown>;
+
+function asRecordOrUndefined(value: unknown): UnknownRecord | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : undefined;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
+function asNumberArray(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
+}
+
+function pickString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const parsed = asString(value);
+    if (parsed !== undefined) return parsed;
+  }
+  return undefined;
+}
 
 /**
  * Task details for video travel/generation tasks
@@ -54,17 +90,17 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
     ? derivedImages
     : (inputImages.length > 0 ? inputImages : derivedImages);
 
-  const orchestratorDetails = parsedParams?.orchestrator_details as Record<string, unknown> | undefined;
-  const orchestratorPayload = parsedParams?.full_orchestrator_payload as Record<string, unknown> | undefined;
-  const individualSegmentParams = parsedParams?.individual_segment_params as Record<string, unknown> | undefined;
+  const orchestratorDetails = asRecordOrUndefined(parsedParams?.orchestrator_details);
+  const orchestratorPayload = asRecordOrUndefined(parsedParams?.full_orchestrator_payload);
+  const individualSegmentParams = asRecordOrUndefined(parsedParams?.individual_segment_params);
 
   // Phase config
   const phaseConfig = useMemo(() => (
-    individualSegmentParams?.phase_config ||
-    orchestratorPayload?.phase_config ||
-    orchestratorDetails?.phase_config ||
-    parsedParams?.phase_config
-  ) as Record<string, unknown> | undefined, [individualSegmentParams, orchestratorPayload, orchestratorDetails, parsedParams]);
+    asRecordOrUndefined(individualSegmentParams?.phase_config) ||
+    asRecordOrUndefined(orchestratorPayload?.phase_config) ||
+    asRecordOrUndefined(orchestratorDetails?.phase_config) ||
+    asRecordOrUndefined(parsedParams?.phase_config)
+  ), [individualSegmentParams, orchestratorPayload, orchestratorDetails, parsedParams]);
 
   // Check if in advanced mode - if not, we show additional_loras instead of phase config
   const isAdvancedMode = useMemo(() => {
@@ -77,14 +113,16 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
       orchestratorPayload?.motion_mode ??
       parsedParams?.motion_mode;
 
+    const hasPhaseConfig = !!phaseConfig?.phases?.length;
+
     // advanced_mode explicitly false means basic mode
     // motion_mode === 'basic' means basic mode
     // Otherwise, if we have phase config with phases, assume advanced mode for backward compatibility
     if (advancedMode === false || motionMode === 'basic') {
       return false;
     }
-    return advancedMode === true || motionMode === 'advanced' || motionMode === 'presets';
-  }, [individualSegmentParams, orchestratorDetails, orchestratorPayload, parsedParams]);
+    return advancedMode === true || motionMode === 'advanced' || motionMode === 'presets' || hasPhaseConfig;
+  }, [individualSegmentParams, orchestratorDetails, orchestratorPayload, parsedParams, phaseConfig]);
 
   const phaseStepsDisplay = useMemo(() => {
     if (!phaseConfig?.steps_per_phase || !Array.isArray(phaseConfig.steps_per_phase)) return null;
@@ -94,11 +132,11 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
   }, [phaseConfig?.steps_per_phase]);
 
   const additionalLoras = (
-    individualSegmentParams?.additional_loras ||
-    orchestratorPayload?.additional_loras ||
-    orchestratorDetails?.additional_loras ||
-    parsedParams?.additional_loras
-  ) as Record<string, unknown> | undefined;
+    asRecordOrUndefined(individualSegmentParams?.additional_loras) ||
+    asRecordOrUndefined(orchestratorPayload?.additional_loras) ||
+    asRecordOrUndefined(orchestratorDetails?.additional_loras) ||
+    asRecordOrUndefined(parsedParams?.additional_loras)
+  );
 
   // Segment info
   const isSegmentTask = parsedParams?.segment_index !== undefined;
@@ -110,46 +148,70 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
   // Get prompt using shared utility
   const prompt = useMemo(() => derivePrompt(parsedParams), [parsedParams]);
 
-  const negativePrompt = individualSegmentParams?.negative_prompt ||
+  const orchestratorNegativePrompts = asStringArray(orchestratorDetails?.negative_prompts_expanded);
+  const payloadNegativePrompts = asStringArray(orchestratorPayload?.negative_prompts_expanded);
+  const negativePrompt = asString(individualSegmentParams?.negative_prompt) ||
     (isSegmentTask
-      ? parsedParams?.negative_prompt
-      : (orchestratorDetails?.negative_prompts_expanded?.[0] || orchestratorPayload?.negative_prompts_expanded?.[0] || parsedParams?.negative_prompt));
+      ? asString(parsedParams?.negative_prompt)
+      : (orchestratorNegativePrompts?.[0] || payloadNegativePrompts?.[0] || asString(parsedParams?.negative_prompt)));
 
-  const enhancePrompt = orchestratorDetails?.enhance_prompt || orchestratorPayload?.enhance_prompt || parsedParams?.enhance_prompt;
+  const enhancePrompt = pickString(
+    orchestratorDetails?.enhance_prompt,
+    orchestratorPayload?.enhance_prompt,
+    parsedParams?.enhance_prompt
+  );
 
   // Structure guidance (new format with videos array, target, strength, step_window)
-  const structureGuidance = orchestratorDetails?.structure_guidance || orchestratorPayload?.structure_guidance || parsedParams?.structure_guidance;
+  const structureGuidance = (
+    asRecordOrUndefined(orchestratorDetails?.structure_guidance) ||
+    asRecordOrUndefined(orchestratorPayload?.structure_guidance) ||
+    asRecordOrUndefined(parsedParams?.structure_guidance)
+  );
 
   // Video/style reference - prefer new structure_guidance.videos format, fall back to legacy fields
-  const structureVideo = structureGuidance?.videos?.[0];
-  const videoPath = structureVideo?.path || orchestratorDetails?.structure_video_path || orchestratorPayload?.structure_video_path || parsedParams?.structure_video_path;
-  const videoTreatment = structureVideo?.treatment || orchestratorDetails?.structure_video_treatment || orchestratorPayload?.structure_video_treatment || parsedParams?.structure_video_treatment;
-  const motionStrength = orchestratorDetails?.structure_video_motion_strength ?? orchestratorPayload?.structure_video_motion_strength ?? parsedParams?.structure_video_motion_strength;
+  const structureVideos = structureGuidance?.videos;
+  const structureVideo = Array.isArray(structureVideos) ? asRecordOrUndefined(structureVideos[0]) : undefined;
+  const videoPath = pickString(
+    structureVideo?.path,
+    orchestratorDetails?.structure_video_path,
+    orchestratorPayload?.structure_video_path,
+    parsedParams?.structure_video_path
+  );
+  const videoTreatment = pickString(
+    structureVideo?.treatment,
+    orchestratorDetails?.structure_video_treatment,
+    orchestratorPayload?.structure_video_treatment,
+    parsedParams?.structure_video_treatment
+  );
+  const motionStrength = asNumber(orchestratorDetails?.structure_video_motion_strength)
+    ?? asNumber(orchestratorPayload?.structure_video_motion_strength)
+    ?? asNumber(parsedParams?.structure_video_motion_strength);
 
-  const styleImage = parsedParams?.style_reference_image || orchestratorDetails?.style_reference_image;
-  const styleStrength = parsedParams?.style_reference_strength ?? orchestratorDetails?.style_reference_strength;
+  const styleImage = pickString(parsedParams?.style_reference_image, orchestratorDetails?.style_reference_image);
+  const styleStrength = asNumber(parsedParams?.style_reference_strength) ?? asNumber(orchestratorDetails?.style_reference_strength);
 
   // Preset
-  const presetId = (
-    individualSegmentParams?.selected_phase_preset_id ||
-    orchestratorDetails?.selected_phase_preset_id ||
-    orchestratorPayload?.selected_phase_preset_id ||
+  const presetId = pickString(
+    individualSegmentParams?.selected_phase_preset_id,
+    orchestratorDetails?.selected_phase_preset_id,
+    orchestratorPayload?.selected_phase_preset_id,
     parsedParams?.selected_phase_preset_id
-  ) as string | null | undefined;
+  );
 
   const isDbPreset = presetId && !presetId.startsWith('__builtin_');
 
   const { data: dbPresetName } = useQuery({
-    queryKey: presetQueryKeys.name(presetId!),
+    queryKey: presetQueryKeys.name(presetId ?? ''),
     queryFn: async () => {
+      if (!presetId) return null;
       const { data } = await supabase
         .from('resources')
         .select('metadata')
-        .eq('id', presetId!)
+        .eq('id', presetId)
         .single();
-      return (data?.metadata as { name?: string })?.name || null;
+      return asString(asRecordOrUndefined(data?.metadata)?.name) || null;
     },
-    enabled: !!isDbPreset,
+    enabled: !!isDbPreset && !!presetId,
     staleTime: Infinity,
   });
 
@@ -158,11 +220,14 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
     : null;
 
   // Technical settings
-  const modelName = (orchestratorDetails?.model_name || orchestratorPayload?.model_name || parsedParams?.model_name) as string | undefined;
-  const resolution = (orchestratorDetails?.parsed_resolution_wh || parsedParams?.parsed_resolution_wh) as string | undefined;
+  const modelName = pickString(orchestratorDetails?.model_name, orchestratorPayload?.model_name, parsedParams?.model_name);
+  const resolution = pickString(orchestratorDetails?.parsed_resolution_wh, parsedParams?.parsed_resolution_wh);
+  const orchestratorSegmentFrames = asNumberArray(orchestratorDetails?.segment_frames_expanded);
+  const payloadSegmentFrames = asNumberArray(orchestratorPayload?.segment_frames_expanded);
+  const parsedSegmentFrames = asNumberArray(parsedParams?.segment_frames_expanded);
   const frames = isSegmentTask
-    ? (individualSegmentParams?.num_frames || parsedParams?.num_frames || parsedParams?.segment_frames_target)
-    : (orchestratorDetails?.segment_frames_expanded?.[0] || orchestratorPayload?.segment_frames_expanded?.[0] || parsedParams?.segment_frames_expanded);
+    ? (asNumber(individualSegmentParams?.num_frames) || asNumber(parsedParams?.num_frames) || asNumber(parsedParams?.segment_frames_target))
+    : (orchestratorSegmentFrames?.[0] || payloadSegmentFrames?.[0] || parsedSegmentFrames?.[0]);
 
   const formatModelName = (name: string) => {
     return name

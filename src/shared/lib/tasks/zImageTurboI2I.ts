@@ -4,17 +4,17 @@ import { handleError } from '@/shared/lib/errorHandling/handleError';
 import type { FalLoraConfig } from '@/shared/types/lora';
 
 /**
- * Parameters for creating a Z Image Turbo I2I task
+ * Parameters for creating a Z Image Turbo image-to-image task
  * Maps to fal-ai/z-image/turbo/image-to-image endpoint
  */
-interface ZImageTurboI2ITaskParams {
+interface ZImageTurboImageToImageTaskParams {
   project_id: string;
   image_url: string;           // Source image URL (required)
   prompt?: string;             // Text prompt (default "")
   strength?: number;           // Transform strength 0-1 (default 0.6)
   enable_prompt_expansion?: boolean; // Enable AI prompt expansion (default false)
   seed?: number;               // Random seed (optional)
-  num_images?: number;         // Number of outputs (default 1, max 4)
+  numImages?: number;          // Number of outputs (default 1, max 4)
   loras?: FalLoraConfig[];  // LoRAs (triggers /lora endpoint if provided)
   shot_id?: string;            // Associate with shot
   based_on?: string;           // Source generation ID for lineage
@@ -24,9 +24,9 @@ interface ZImageTurboI2ITaskParams {
 }
 
 /**
- * Parameters for batch Z Image Turbo I2I task creation
+ * Parameters for batch Z Image Turbo image-to-image task creation
  */
-interface BatchZImageTurboI2ITaskParams {
+interface BatchZImageTurboImageToImageTaskParams {
   project_id: string;
   image_url: string;
   prompt?: string;
@@ -43,9 +43,9 @@ interface BatchZImageTurboI2ITaskParams {
 }
 
 /**
- * Validates Z Image Turbo I2I task parameters
+ * Validates Z Image Turbo image-to-image task parameters
  */
-function validateZImageTurboI2IParams(params: ZImageTurboI2ITaskParams): void {
+function validateZImageTurboImageToImageParams(params: ZImageTurboImageToImageTaskParams): void {
   validateRequiredFields(params, ['project_id', 'image_url']);
 
   if (!params.image_url || params.image_url.trim() === '') {
@@ -63,8 +63,8 @@ function validateZImageTurboI2IParams(params: ZImageTurboI2ITaskParams): void {
     throw new TaskValidationError('Strength must be between 0 and 1', 'strength');
   }
 
-  if (params.num_images !== undefined && (params.num_images < 1 || params.num_images > 4)) {
-    throw new TaskValidationError('Number of images must be between 1 and 4', 'num_images');
+  if (params.numImages !== undefined && (params.numImages < 1 || params.numImages > 4)) {
+    throw new TaskValidationError('Number of images must be between 1 and 4', 'numImages');
   }
 
   if (params.seed !== undefined && (params.seed < 0 || params.seed > 0x7fffffff)) {
@@ -86,7 +86,7 @@ function validateZImageTurboI2IParams(params: ZImageTurboI2ITaskParams): void {
 /**
  * Validates batch parameters
  */
-function validateBatchParams(params: BatchZImageTurboI2ITaskParams): void {
+function validateBatchParams(params: BatchZImageTurboImageToImageTaskParams): void {
   validateRequiredFields(params, ['project_id', 'image_url', 'numImages']);
 
   if (params.numImages < 1 || params.numImages > 16) {
@@ -94,7 +94,7 @@ function validateBatchParams(params: BatchZImageTurboI2ITaskParams): void {
   }
 
   // Validate the rest using single task validation
-  validateZImageTurboI2IParams({
+  validateZImageTurboImageToImageParams({
     project_id: params.project_id,
     image_url: params.image_url,
     prompt: params.prompt,
@@ -106,13 +106,13 @@ function validateBatchParams(params: BatchZImageTurboI2ITaskParams): void {
 /**
  * Builds task params in the format expected by the worker
  */
-function buildTaskParams(params: ZImageTurboI2ITaskParams): Record<string, unknown> {
+function buildTaskParams(params: ZImageTurboImageToImageTaskParams): Record<string, unknown> {
   const taskParams: Record<string, unknown> = {
     image_url: params.image_url,
     prompt: params.prompt ?? '',
     strength: params.strength ?? 0.6,
     enable_prompt_expansion: params.enable_prompt_expansion ?? false,
-    num_images: params.num_images ?? 1,
+    num_images: params.numImages ?? 1,
     // API-specific params
     image_size: 'auto',
     num_inference_steps: 8,
@@ -168,14 +168,14 @@ function buildTaskParams(params: ZImageTurboI2ITaskParams): Record<string, unkno
 }
 
 /**
- * Creates a single Z Image Turbo I2I task
- * (internal use only - used by createBatchZImageTurboI2ITasks)
+ * Creates a single Z Image Turbo image-to-image task
+ * (internal use only - used by createBatchZImageTurboImageToImageTasks)
  */
-async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams): Promise<TaskCreationResult> {
+async function createZImageTurboImageToImageTask(params: ZImageTurboImageToImageTaskParams): Promise<TaskCreationResult> {
 
   try {
     // 1. Validate parameters
-    validateZImageTurboI2IParams(params);
+    validateZImageTurboImageToImageParams(params);
 
     // 2. Build task params
     const taskParams = buildTaskParams(params);
@@ -190,15 +190,17 @@ async function createZImageTurboI2ITask(params: ZImageTurboI2ITaskParams): Promi
     return result;
 
   } catch (error) {
-    handleError(error, { context: 'ZImageTurboI2I', showToast: false });
+    handleError(error, { context: 'ZImageTurboImageToImage', showToast: false });
     throw error;
   }
 }
 
 /**
- * Creates multiple Z Image Turbo I2I tasks in parallel (batch generation)
+ * Creates multiple Z Image Turbo image-to-image tasks in parallel (batch generation)
  */
-export async function createBatchZImageTurboI2ITasks(params: BatchZImageTurboI2ITaskParams): Promise<TaskCreationResult[]> {
+export async function createBatchZImageTurboImageToImageTasks(
+  params: BatchZImageTurboImageToImageTaskParams
+): Promise<TaskCreationResult[]> {
 
   try {
     // 1. Validate parameters
@@ -216,25 +218,25 @@ export async function createBatchZImageTurboI2ITasks(params: BatchZImageTurboI2I
         strength: params.strength,
         enable_prompt_expansion: params.enable_prompt_expansion,
         seed: seed + index, // Increment seed for variation
-        num_images: 1, // Each task creates one image
+        numImages: 1, // Each task creates one image
         loras: params.loras,
         shot_id: params.shot_id,
         based_on: params.based_on,
         source_variant_id: params.source_variant_id,
         create_as_generation: params.create_as_generation,
         tool_type: params.tool_type,
-      } as ZImageTurboI2ITaskParams;
+      } as ZImageTurboImageToImageTaskParams;
     });
 
     // 3. Create all tasks in parallel
     const results = await Promise.allSettled(
-      taskParams.map(taskParam => createZImageTurboI2ITask(taskParam))
+      taskParams.map(taskParam => createZImageTurboImageToImageTask(taskParam))
     );
 
-    return processBatchResults(results, 'createBatchZImageTurboI2ITasks');
+    return processBatchResults(results, 'createBatchZImageTurboImageToImageTasks');
 
   } catch (error) {
-    handleError(error, { context: 'BatchZImageTurboI2I', showToast: false });
+    handleError(error, { context: 'BatchZImageTurboImageToImage', showToast: false });
     throw error;
   }
 }

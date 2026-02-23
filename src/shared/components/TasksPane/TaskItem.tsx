@@ -9,7 +9,8 @@ import { cn } from '@/shared/lib/utils';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { useNavigate } from 'react-router-dom';
 import { useTaskTimestamp } from '@/shared/hooks/useUpdatingTimestamp';
-import { useProcessingTimestamp, useCompletedTimestamp } from '@/shared/hooks/useProcessingTimestamp';
+import { useProcessingTimestamp } from '@/shared/hooks/useProcessingTimestamp';
+import { useCompletedTimestamp } from '@/shared/hooks/useCompletedTimestamp';
 import { GenerationRow } from '@/types/shots';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/shared/hooks/useMobile';
@@ -329,7 +330,7 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
             processingTime :
             task.status === 'Complete' && completedTime ?
             completedTime :
-            `Created ${createdTimeAgo}`
+            `Created ${createdTimeAgo ?? 'Unknown'}`
           }
         </span>
 

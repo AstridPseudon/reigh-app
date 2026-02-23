@@ -1,9 +1,8 @@
-import { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { createCharacterAnimateTask } from '../lib/characterAnimate';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 import type { CharacterAnimateTaskParams } from '../lib/characterAnimate';
 
 interface UseCharacterAnimateGenerateParams {
@@ -24,64 +23,58 @@ export function useCharacterAnimateGenerate({
   defaultPrompt,
 }: UseCharacterAnimateGenerateParams) {
   const queryClient = useQueryClient();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const incomingTaskIdRef = useRef<string | null>(null);
+  const run = useTaskPlaceholder();
 
+  const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccessState, setShowSuccessState] = useState(false);
   const [videosViewJustEnabled, setVideosViewJustEnabled] = useState<boolean>(false);
 
-  const generateAnimationMutation = useMutation({
-    onMutate: () => {
-      incomingTaskIdRef.current = addIncomingTask({
+  const handleGenerate = async () => {
+    if (!characterImage) throw new Error('No character image');
+    if (!motionVideo) throw new Error('No motion video');
+    if (!selectedProjectId) throw new Error('No project selected');
+
+    setIsGenerating(true);
+    try {
+      await run({
         taskType: 'character_animate',
         label: prompt?.substring(0, 50) || 'Character animation...',
+        context: 'CharacterAnimate',
+        toastTitle: 'Failed to create task',
+        create: () => {
+          const taskParams: CharacterAnimateTaskParams = {
+            project_id: selectedProjectId,
+            character_image_url: characterImage.url,
+            motion_video_url: motionVideo.url,
+            prompt: prompt || defaultPrompt || 'natural expression; preserve outfit details',
+            mode: localMode,
+            resolution: '480p',
+            seed: Math.floor(Math.random() * 1000000),
+            random_seed: true,
+          };
+
+          return createCharacterAnimateTask(taskParams);
+        },
+        onSuccess: () => {
+          setShowSuccessState(true);
+          setTimeout(() => setShowSuccessState(false), 1500);
+
+          setVideosViewJustEnabled(true);
+
+          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+          if (selectedProjectId) {
+            queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
+          }
+        },
       });
-    },
-    mutationFn: async () => {
-      if (!characterImage) throw new Error('No character image');
-      if (!motionVideo) throw new Error('No motion video');
-      if (!selectedProjectId) throw new Error('No project selected');
-
-      const taskParams: CharacterAnimateTaskParams = {
-        project_id: selectedProjectId,
-        character_image_url: characterImage.url,
-        motion_video_url: motionVideo.url,
-        prompt: prompt || defaultPrompt || 'natural expression; preserve outfit details',
-        mode: localMode,
-        resolution: '480p',
-        seed: Math.floor(Math.random() * 1000000),
-        random_seed: true,
-      };
-
-      const result = await createCharacterAnimateTask(taskParams);
-      return result;
-    },
-    onSuccess: () => {
-      setShowSuccessState(true);
-      setTimeout(() => setShowSuccessState(false), 1500);
-
-      setVideosViewJustEnabled(true);
-
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      if (selectedProjectId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
-      }
-    },
-    onError: (error) => {
-      handleError(error, { context: 'CharacterAnimate', toastTitle: 'Failed to create task' });
-    },
-    onSettled: async () => {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-      if (incomingTaskIdRef.current) {
-        removeIncomingTask(incomingTaskIdRef.current);
-        incomingTaskIdRef.current = null;
-      }
-    },
-  });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return {
-    generateAnimationMutation,
+    handleGenerate,
+    isGenerating,
     showSuccessState,
     videosViewJustEnabled,
     setVideosViewJustEnabled,

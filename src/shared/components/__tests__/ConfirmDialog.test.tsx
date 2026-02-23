@@ -64,10 +64,10 @@ describe('ConfirmDialog', () => {
     expect(defaultProps.onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it('closes dialog when confirm clicked (not loading)', () => {
+  it('does not auto-close dialog when confirm clicked', () => {
     render(<ConfirmDialog {...defaultProps} />);
     fireEvent.click(screen.getByText('Confirm'));
-    expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
+    expect(defaultProps.onOpenChange).not.toHaveBeenCalled();
   });
 
   it('shows Loading text and disables confirm button when isLoading', () => {

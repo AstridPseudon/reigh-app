@@ -223,18 +223,8 @@ class DataFreshnessManager {
     const existing = this.state.fetchFailures.get(key);
 
     if (existing && existing.count > 0) {
-      const wasCircuitBreakerActive = existing.count >= this.CIRCUIT_BREAKER_THRESHOLD;
-
       // Reset failure count on success
       this.state.fetchFailures.delete(key);
-
-      // Show recovery toast if circuit breaker was active
-      if (wasCircuitBreakerActive) {
-        toast.success('Connection restored', {
-          duration: 3000,
-          id: 'network-recovery-toast',
-        });
-      }
     }
   }
 

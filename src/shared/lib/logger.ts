@@ -1,4 +1,4 @@
-import { debugConfig } from './debugConfig';
+import { debugConfig } from './debug/debugConfig';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 
 // Lightweight logging helper that can be enabled/disabled via Vite env

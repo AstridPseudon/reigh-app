@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
-import { parseTaskParams } from '@/shared/utils/taskParamsUtils';
+import { parseTaskParams } from '@/shared/lib/taskParamsUtils';
 import { ArrowUp, Sparkles } from 'lucide-react';
 
 /**

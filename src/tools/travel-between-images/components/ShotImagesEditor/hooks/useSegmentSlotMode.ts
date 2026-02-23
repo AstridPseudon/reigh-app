@@ -14,7 +14,7 @@ import type { PairData } from '../../Timeline/TimelineContainer';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { GenerationRow } from '@/types/shots';
 import type { SegmentSlot } from '@/shared/hooks/segments';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 import { getDisplayUrl } from '@/shared/lib/mediaUrl';
 import { isVideoAny } from '@/shared/lib/typeGuards';
 import { usePairData } from './usePairData';
@@ -69,6 +69,27 @@ interface SegmentSlotState {
   setPendingImageToOpen: (id: string | null) => void;
   pendingImageVariantId: string | null;
   setPendingImageVariantId: (id: string | null) => void;
+}
+
+interface SegmentSlotLocationState {
+  openImageGenerationId?: string;
+  openImageVariantId?: string;
+  openSegmentSlot?: string;
+  fromShotClick?: boolean;
+}
+
+function parseSegmentSlotLocationState(state: unknown): SegmentSlotLocationState {
+  if (!state || typeof state !== 'object') return {};
+  const record = state as Record<string, unknown>;
+  return {
+    openImageGenerationId:
+      typeof record.openImageGenerationId === 'string' ? record.openImageGenerationId : undefined,
+    openImageVariantId:
+      typeof record.openImageVariantId === 'string' ? record.openImageVariantId : undefined,
+    openSegmentSlot:
+      typeof record.openSegmentSlot === 'string' ? record.openSegmentSlot : undefined,
+    fromShotClick: record.fromShotClick === true,
+  };
 }
 
 function findCoveringStructureVideo(
@@ -182,7 +203,7 @@ function useSegmentSlotDeepLinking(
     const wasFirstMount = isFirstMountRef.current;
     isFirstMountRef.current = false;
 
-    const currentState = location.state as { openImageGenerationId?: string; openImageVariantId?: string; fromShotClick?: boolean } | null;
+    const currentState = parseSegmentSlotLocationState(location.state);
     if (!currentState?.openImageGenerationId) return;
 
     if (wasFirstMount) {
@@ -199,7 +220,7 @@ function useSegmentSlotDeepLinking(
     }
 
     navigateWithTransition(() => {
-      setPendingImageToOpen(currentState.openImageGenerationId!);
+      setPendingImageToOpen(currentState.openImageGenerationId);
       if (currentState.openImageVariantId) {
         setPendingImageVariantId(currentState.openImageVariantId);
       }
@@ -223,7 +244,7 @@ function useSegmentSlotDeepLinking(
   ]);
 
   useEffect(() => {
-    const currentState = location.state as { openSegmentSlot?: string; fromShotClick?: boolean } | null;
+    const currentState = parseSegmentSlotLocationState(location.state);
     if (!currentState?.openSegmentSlot || pairDataByIndex.size === 0) return;
 
     for (const [pairIndex, pairData] of pairDataByIndex.entries()) {
@@ -406,7 +427,7 @@ function useSegmentSlotModeData(
 export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSlotModeReturn {
   const location = useLocation();
 
-  const initialState = location.state as { openImageGenerationId?: string; openImageVariantId?: string } | null;
+  const initialState = parseSegmentSlotLocationState(location.state);
   const [segmentSlotLightboxIndex, setSegmentSlotLightboxIndex] = useState<number | null>(null);
   const [activePairData, setActivePairData] = useState<PairData | null>(null);
   const [pendingImageToOpen, setPendingImageToOpen] = useState<string | null>(

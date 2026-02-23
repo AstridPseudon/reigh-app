@@ -87,7 +87,7 @@ vi.mock('@/shared/lib/typeGuards', () => ({
   isVideoGeneration: (g: { type?: string }) => g.type === 'video' || g.type?.includes('video'),
 }));
 
-vi.mock('@/shared/utils/settingsMigration', () => ({
+vi.mock('@/shared/lib/settingsMigration', () => ({
   readSegmentOverrides: vi.fn().mockReturnValue({}),
   writeSegmentOverrides: vi.fn().mockImplementation((current, overrides) => ({
     ...current,
@@ -95,14 +95,14 @@ vi.mock('@/shared/utils/settingsMigration', () => ({
   })),
 }));
 
-vi.mock('@/shared/utils/timelinePositionCalculator', () => ({
+vi.mock('@/shared/lib/timelinePositionCalculator', () => ({
   calculateNextAvailableFrame: vi.fn().mockReturnValue(100),
   extractExistingFrames: vi.fn().mockReturnValue([0, 50]),
   DEFAULT_FRAME_SPACING: 50,
 }));
 
 import { useTimelineCore } from '../useTimelineCore';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 
 const mockReadSegmentOverrides = readSegmentOverrides as ReturnType<typeof vi.fn>;
 

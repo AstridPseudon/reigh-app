@@ -94,6 +94,10 @@ export interface ProjectImageSettings extends Record<string, unknown> {
   selectedTextModel?: TextToImageModel;
   /** Per-category LoRA selections: 'qwen' (shared by all Qwen models + by-reference) and 'z-image' */
   selectedLorasByCategory?: Record<LoraCategory, ActiveLora[]>;
+  /**
+   * Legacy fields retained intentionally for backward-compatible settings migration.
+   * Migration hooks read these from older persisted payloads and write modern fields.
+   */
   /** @deprecated migrated to selectedLorasByCategory — used by useLoraCategoryMigration */
   selectedLorasByTextModel?: Record<TextToImageModel, ActiveLora[]>;
   selectedReferenceIdByShot?: Record<string, string | null>;

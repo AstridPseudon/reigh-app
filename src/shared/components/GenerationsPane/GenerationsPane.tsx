@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { useRenderLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { cn } from '@/shared/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';

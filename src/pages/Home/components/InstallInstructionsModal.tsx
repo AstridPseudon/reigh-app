@@ -16,6 +16,11 @@ interface InstallInstructionsModalProps {
   onFallbackToDiscord: () => void;
 }
 
+/*
+ * Browser chrome mockups intentionally use literal colors to mirror OS/browser UI.
+ * These colors are not app theme tokens and should not be converted to semantic vars.
+ */
+
 // Shared primitives for browser mockups
 const TrafficLights = () => (
   <div className="flex gap-1">
@@ -434,4 +439,3 @@ export const InstallInstructionsModal: React.FC<InstallInstructionsModalProps> =
     </Dialog>
   );
 };
-

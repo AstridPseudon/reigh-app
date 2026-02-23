@@ -5,6 +5,7 @@ import { Task } from '@/types/tasks';
 import { deriveInputImages } from '../utils/task-utils';
 import { usePrefetchTaskData } from '@/shared/hooks/useTaskPrefetch';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { expandShotData } from '@/shared/lib/shotData';
 
 interface LightboxData {
   type: 'image' | 'video';
@@ -75,10 +76,7 @@ export function useTasksLightbox({
       // Fetch the generation from the database with its shot associations
       const { data, error } = await supabase
         .from('generations')
-        .select(`
-          *,
-          shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-        `)
+        .select('*')
         .eq('id', generationId)
         .single();
       
@@ -93,7 +91,9 @@ export function useTasksLightbox({
         const basedOnValue = (dbRow.based_on as string | null) || (metadata?.based_on as string | null) || null;
 
         // Transform the data to match GenerationRow format
-        const shotGenerations = (dbRow.shot_generations || []) as Array<{ shot_id: string; timeline_frame: number | null }>;
+        const shotGenerations = expandShotData(
+          dbRow.shot_data as Record<string, unknown> | null | undefined,
+        );
 
         // Database fields: location (full image), thumbnail_url (thumb)
         const location = dbRow.location as string | undefined;
@@ -225,6 +225,5 @@ export function useTasksLightbox({
     handleOpenExternalGeneration,
   };
 }
-
 
 

@@ -7,7 +7,7 @@
 
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { GenerationRow } from '@/types/shots';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 import { downloadMedia } from './download';
 
 interface LightboxDownloadOptions {

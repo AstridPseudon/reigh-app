@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { PromptMode } from '../../types';
 import type { ShotPromptSettingsContract } from './types';
-import { getStoredPromptCount } from './utils';
+import { getStoredPromptCount } from './storedPromptCount';
 
 interface PromptPersistenceInput {
   ready: boolean;

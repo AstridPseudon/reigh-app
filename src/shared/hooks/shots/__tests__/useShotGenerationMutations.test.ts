@@ -25,7 +25,7 @@ vi.mock('@/shared/constants/supabaseErrors', () => ({
   isNotFoundError: () => false,
 }));
 
-vi.mock('@/shared/utils/timelinePositionCalculator', () => ({
+vi.mock('@/shared/lib/timelinePositionCalculator', () => ({
   calculateNextAvailableFrame: vi.fn().mockReturnValue(150),
   ensureUniqueFrame: vi.fn().mockImplementation((frame: number) => frame),
 }));

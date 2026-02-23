@@ -10,6 +10,22 @@ import {
   DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES,
 } from './defaults';
 
+function toRecordOrEmpty(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : {};
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
 /**
  * Validates travel between images task parameters
  *
@@ -17,7 +33,7 @@ import {
  * @throws TaskValidationError if validation fails
  */
 export function validateTravelBetweenImagesParams(params: TravelBetweenImagesTaskParams): void {
-  validateRequiredFields(params as unknown as Record<string, unknown>, [
+  validateRequiredFields({ ...params }, [
     'project_id',
     'image_urls',
     'base_prompts',
@@ -82,9 +98,9 @@ export function buildTravelBetweenImagesPayload(
   let stepsValue = params.steps;
   if (!params.advanced_mode) {
     if (stepsValue === undefined && params.params_json_str) {
-      const parsedParams = safeParseJson(params.params_json_str, {} as Record<string, unknown>);
-      const parsedSteps = (parsedParams as Record<string, unknown>)?.steps;
-      if (typeof parsedSteps === 'number') {
+      const parsedParams = toRecordOrEmpty(safeParseJson(params.params_json_str, {}));
+      const parsedSteps = asNumber(parsedParams.steps);
+      if (parsedSteps !== undefined) {
         stepsValue = parsedSteps;
       }
     }
@@ -194,7 +210,7 @@ export function buildTravelBetweenImagesPayload(
 
     // Build unified structure_guidance from the first video's settings
     const firstVideo = params.structure_videos[0];
-    const firstVideoRecord = firstVideo as unknown as Record<string, unknown>;
+    const firstVideoRecord = toRecordOrEmpty(firstVideo);
     const isUni3cTarget = firstVideoRecord.structure_type === 'uni3c';
 
     const unifiedGuidance: Record<string, unknown> = {
@@ -214,7 +230,7 @@ export function buildTravelBetweenImagesPayload(
       const preprocessingMap: Record<string, string> = {
         'flow': 'flow', 'canny': 'canny', 'depth': 'depth', 'raw': 'none',
       };
-      unifiedGuidance.preprocessing = preprocessingMap[(firstVideoRecord.structure_type as string) ?? 'flow'] ?? 'flow';
+      unifiedGuidance.preprocessing = preprocessingMap[asString(firstVideoRecord.structure_type) ?? 'flow'] ?? 'flow';
     }
 
     orchestratorPayload.structure_guidance = unifiedGuidance;
@@ -292,7 +308,7 @@ export function buildTravelBetweenImagesPayload(
     'uni3c_guidance_frame_offset',
   ];
   for (const param of legacyStructureParams) {
-    delete (orchestratorPayload as Record<string, unknown>)[param];
+    delete orchestratorPayload[param];
   }
 
   return orchestratorPayload;

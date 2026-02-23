@@ -21,7 +21,7 @@ import { isVideoShotGenerations, type ShotGenerationsLike } from '@/shared/lib/t
 import {
   readSegmentOverrides,
   type SegmentOverrides,
-} from '@/shared/utils/settingsMigration';
+} from '@/shared/lib/settingsMigration';
 import type { Shot } from '@/types/shots';
 
 // Re-export types used by consumers (VideoGenerationModal, etc.)
@@ -434,28 +434,56 @@ function validatePhaseConfigConsistency(config: PhaseConfig): void {
   }
 }
 
+interface MotionParams {
+  amountOfMotion: number;
+  motionMode: string;
+  useAdvancedMode: boolean;
+  effectivePhaseConfig: PhaseConfig;
+  selectedPhasePresetId: string | null | undefined;
+}
+
+interface GenerationParams {
+  generationMode: GenerateVideoParams['generationMode'];
+  batchVideoPrompt: string;
+  enhancePrompt: boolean;
+  variantNameParam: string;
+  textBeforePrompts: string | undefined;
+  textAfterPrompts: string | undefined;
+}
+
+interface SeedParams {
+  seed: number;
+  randomSeed: boolean | undefined;
+  turboMode: boolean | undefined;
+  debug: boolean | undefined;
+}
+
 function buildTravelRequestBody(params: {
   projectId: string;
   selectedShot: Shot;
   imagePayload: ImagePayload;
   pairConfig: PairConfigPayload;
   parentGenerationId?: string;
-  batchVideoPrompt: string;
   actualModelName: string;
-  seed: number;
-  debug: boolean | undefined;
-  enhancePrompt: boolean;
-  generationMode: GenerateVideoParams['generationMode'];
-  randomSeed: boolean | undefined;
-  turboMode: boolean | undefined;
-  amountOfMotion: number;
-  useAdvancedMode: boolean;
-  motionMode: string;
-  effectivePhaseConfig: PhaseConfig;
-  selectedPhasePresetId: string | null | undefined;
-  variantNameParam: string;
-  textBeforePrompts: string | undefined;
-  textAfterPrompts: string | undefined;
+  motionParams?: MotionParams;
+  generationParams?: GenerationParams;
+  seedParams?: SeedParams;
+  // Backward-compat input fields (used by tests and older call sites).
+  batchVideoPrompt?: string;
+  enhancePrompt?: boolean;
+  generationMode?: GenerateVideoParams['generationMode'];
+  variantNameParam?: string;
+  textBeforePrompts?: string | undefined;
+  textAfterPrompts?: string | undefined;
+  seed?: number;
+  randomSeed?: boolean | undefined;
+  turboMode?: boolean | undefined;
+  debug?: boolean | undefined;
+  amountOfMotion?: number;
+  useAdvancedMode?: boolean;
+  motionMode?: string;
+  effectivePhaseConfig?: PhaseConfig;
+  selectedPhasePresetId?: string | null | undefined;
 }): Record<string, unknown> {
   const {
     projectId,
@@ -463,23 +491,53 @@ function buildTravelRequestBody(params: {
     imagePayload,
     pairConfig,
     parentGenerationId,
-    batchVideoPrompt,
     actualModelName,
-    seed,
-    debug,
-    enhancePrompt,
-    generationMode,
-    randomSeed,
-    turboMode,
+    motionParams,
+    generationParams,
+    seedParams,
+  } = params;
+  const resolvedMotionParams: MotionParams = motionParams ?? {
+    amountOfMotion: params.amountOfMotion ?? 50,
+    motionMode: params.motionMode ?? 'basic',
+    useAdvancedMode: params.useAdvancedMode ?? false,
+    effectivePhaseConfig: params.effectivePhaseConfig ?? buildBasicModePhaseConfig(50, []).phaseConfig,
+    selectedPhasePresetId: params.selectedPhasePresetId,
+  };
+  const resolvedGenerationParams: GenerationParams = generationParams ?? {
+    generationMode: params.generationMode ?? 'timeline',
+    batchVideoPrompt: params.batchVideoPrompt ?? '',
+    enhancePrompt: params.enhancePrompt ?? false,
+    variantNameParam: params.variantNameParam ?? '',
+    textBeforePrompts: params.textBeforePrompts,
+    textAfterPrompts: params.textAfterPrompts,
+  };
+  const resolvedSeedParams: SeedParams = seedParams ?? {
+    seed: params.seed ?? 0,
+    randomSeed: params.randomSeed,
+    turboMode: params.turboMode,
+    debug: params.debug,
+  };
+  const {
     amountOfMotion,
-    useAdvancedMode,
     motionMode,
+    useAdvancedMode,
     effectivePhaseConfig,
     selectedPhasePresetId,
+  } = resolvedMotionParams;
+  const {
+    generationMode,
+    batchVideoPrompt,
+    enhancePrompt,
     variantNameParam,
     textBeforePrompts,
     textAfterPrompts,
-  } = params;
+  } = resolvedGenerationParams;
+  const {
+    seed,
+    randomSeed,
+    turboMode,
+    debug,
+  } = resolvedSeedParams;
 
   const hasValidEnhancedPrompts = pairConfig.enhancedPromptsArray.some(prompt => prompt && prompt.trim().length > 0);
 
@@ -624,22 +682,28 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     imagePayload,
     pairConfig,
     parentGenerationId,
-    batchVideoPrompt: promptConfig.base_prompt,
     actualModelName: modelPhaseSelection.actualModelName,
-    seed: modelConfig.seed,
-    debug: modelConfig.debug,
-    enhancePrompt: promptConfig.enhance_prompt,
-    generationMode,
-    randomSeed: modelConfig.random_seed,
-    turboMode: modelConfig.turbo_mode,
-    amountOfMotion,
-    useAdvancedMode: modelPhaseSelection.useAdvancedMode,
-    motionMode: motionConfig.motion_mode,
-    effectivePhaseConfig: modelPhaseSelection.effectivePhaseConfig,
-    selectedPhasePresetId: motionConfig.selected_phase_preset_id,
-    variantNameParam,
-    textBeforePrompts: promptConfig.text_before_prompts,
-    textAfterPrompts: promptConfig.text_after_prompts,
+    motionParams: {
+      amountOfMotion,
+      motionMode: motionConfig.motion_mode,
+      useAdvancedMode: modelPhaseSelection.useAdvancedMode,
+      effectivePhaseConfig: modelPhaseSelection.effectivePhaseConfig,
+      selectedPhasePresetId: motionConfig.selected_phase_preset_id,
+    },
+    generationParams: {
+      generationMode,
+      batchVideoPrompt: promptConfig.base_prompt,
+      enhancePrompt: promptConfig.enhance_prompt,
+      variantNameParam,
+      textBeforePrompts: promptConfig.text_before_prompts,
+      textAfterPrompts: promptConfig.text_after_prompts,
+    },
+    seedParams: {
+      seed: modelConfig.seed,
+      randomSeed: modelConfig.random_seed,
+      turboMode: modelConfig.turbo_mode,
+      debug: modelConfig.debug,
+    },
   });
 
   if (selectedLoras && selectedLoras.length > 0) {

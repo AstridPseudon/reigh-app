@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHookWithProviders } from '@/test/test-utils';
 
-vi.mock('@/shared/utils/videoThumbnailGenerator', () => ({
+vi.mock('@/shared/lib/videoThumbnailGenerator', () => ({
   generateAndUploadThumbnail: vi.fn(),
 }));
 

@@ -4,7 +4,6 @@ import { useShotCreation } from "@/shared/hooks/useShotCreation";
 import { useIsMobile } from "@/shared/hooks/useMobile";
 import { Shot } from '@/types/shots';
 import { usePanes } from '@/shared/contexts/PanesContext';
-import { useTimelineCore } from "@/shared/hooks/useTimelineCore";
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
@@ -17,24 +16,13 @@ import {
   useGenerationActions,
   useLoraSync,
   useApplySettingsHandler,
-  useStructureVideo,
-  useAudio,
-  useOutputSelection,
-  useNameEditing,
   useModeReadiness,
-  useJoinSegmentsHandler,
   useShotActions,
-  useGenerateBatch,
   useShotEditorSetup,
   useShotSettingsValue,
-  useImageManagement,
-  useSteerableMotionHandlers,
-  useStructureVideoHandlers,
-  useJoinSegmentsSetup,
   useShotEditorBridge,
   useLastVideoGeneration,
   useAspectAdjustedColumns,
-  useEnsureSelectedOutput,
 } from './hooks';
 // Direct context hooks (no more props fallback - context is always available)
 import {
@@ -48,11 +36,11 @@ import {
   useVideoTravelSettings,
 } from '@/tools/travel-between-images/providers';
 import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/useShots';
-import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
-import { useDemoteOrphanedVariants } from '../../hooks/useDemoteOrphanedVariants';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { ShotEditorLayoutProps } from './ShotEditorLayout';
-import type React from 'react';
+import { useOutputController } from './controllers/useOutputController';
+import { useEditingController } from './controllers/useEditingController';
+import { useGenerationController } from './controllers/useGenerationController';
+import { useImageManagementController } from './controllers/useImageManagementController';
 
 interface ShotEditorControllerResult {
   hasSelectedShot: boolean;
@@ -158,9 +146,6 @@ export function useShotEditorController({
   const { mutateAsync: addToShotMutation } = useAddImageToShot();
   const { mutateAsync: addToShotWithoutPositionMutation } = useAddImageToShotWithoutPosition();
 
-  // Orphaned variant detection - demotes videos when source images change
-  const { demoteOrphanedVariants } = useDemoteOrphanedVariants();
-
   // Refs for mutation functions — React Query mutations change reference on
   // state transitions (idle -> pending -> success), which would recreate callbacks.
   const createShotRef = useRef(createShot);
@@ -176,54 +161,6 @@ export function useShotEditorController({
   }, [onDragStateChange]);
 
   // Note: effectiveAspectRatio is provided by useShotEditorSetup
-
-  // Structure video management (extracted to hook)
-  const {
-    structureVideoPath,
-    structureVideoMetadata,
-    structureVideoTreatment,
-    structureVideoMotionStrength,
-    structureVideoType,
-    structureVideoResourceId,
-    structureVideoUni3cEndPercent,
-    isLoading: isStructureVideoSettingsLoading,
-    structureVideos,
-    addStructureVideo,
-    updateStructureVideo,
-    removeStructureVideo,
-    clearAllStructureVideos,
-    setStructureVideos,
-  } = useStructureVideo({
-    projectId,
-    shotId: selectedShot?.id,
-  });
-
-  // Structure video handlers (extracted hook) - includes auto mode switching
-  const {
-    handleUni3cEndPercentChange,
-    handleStructureVideoMotionStrengthChange,
-    handleStructureTypeChangeFromMotionControl,
-    handleStructureVideoInputChange,
-  } = useStructureVideoHandlers({
-    structureVideos,
-    setStructureVideos,
-    updateStructureVideo,
-    structureVideoPath,
-    structureVideoType,
-    generationTypeMode: phaseConfigSettings.generationTypeMode,
-    setGenerationTypeMode: phaseConfigSettings.setGenerationTypeMode,
-  });
-
-  // Audio management (extracted to hook)
-  const {
-    audioUrl,
-    audioMetadata,
-    handleAudioChange,
-    isLoading: isAudioSettingsLoading,
-  } = useAudio({
-    projectId,
-    shotId: selectedShot?.id,
-  });
 
   // Note: Image queries (useShotImages, useTimelineImages, etc.) are now
   // handled by useShotEditorSetup. Values available: allShotImages, timelineImages,
@@ -248,24 +185,6 @@ export function useShotEditorController({
     shotId: selectedShot?.id,
     enabled: !!selectedShot?.id 
   });
-
-  // Get pair prompts data for checking if all pairs have prompts
-  // Uses useTimelineCore for centralized position management
-  const { clearAllEnhancedPrompts, updatePairPromptsByIndex, refetch: loadPositions } = useTimelineCore(selectedShotId);
-  
-  // Wrap prompt change to also clear all enhanced prompts when base prompt changes
-  const handleBatchVideoPromptChangeWithClear = useCallback(async (newPrompt: string) => {
-
-    // First update the base prompt (now via context)
-    promptSettings.setPrompt(newPrompt);
-
-    // Then clear all enhanced prompts for the shot
-    try {
-      await clearAllEnhancedPrompts();
-    } catch (error) {
-      handleError(error, { context: 'PromptClearLog', showToast: false });
-    }
-  }, [promptSettings.setPrompt, clearAllEnhancedPrompts]);
 
   const isMobile = useIsMobile();
   const { isPhone, aspectAdjustedColumns } = useAspectAdjustedColumns(effectiveAspectRatio);
@@ -322,9 +241,56 @@ export function useShotEditorController({
   const isShotLoraSettingsLoading = false;
 
   // ============================================================================
-  // JOIN SEGMENTS SETUP (extracted hook)
+  // OUTPUT + EDITING CONTROLLERS
   // ============================================================================
   const {
+    selectedOutputId,
+    setSelectedOutputId,
+    parentGenerations,
+    segmentProgress,
+    isSegmentOutputsLoading,
+    joinSegmentSlots,
+    joinSelectedParent,
+    demoteOrphanedVariants,
+  } = useOutputController({
+    selectedProjectId,
+    selectedShotId,
+    selectedShot: selectedShot ?? null,
+    projectId,
+    timelineImages,
+  });
+
+  const {
+    // Structure video + handlers
+    structureVideoPath,
+    structureVideoMetadata,
+    structureVideoTreatment,
+    structureVideoMotionStrength,
+    structureVideoType,
+    structureVideoResourceId,
+    structureVideoUni3cEndPercent,
+    isStructureVideoSettingsLoading,
+    structureVideos,
+    addStructureVideo,
+    updateStructureVideo,
+    removeStructureVideo,
+    clearAllStructureVideos,
+    setStructureVideos,
+    handleUni3cEndPercentChange,
+    handleStructureVideoMotionStrengthChange,
+    handleStructureTypeChangeFromMotionControl,
+    handleStructureVideoInputChange,
+    // Audio
+    audioUrl,
+    audioMetadata,
+    handleAudioChange,
+    isAudioSettingsLoading,
+    // Name editing
+    handleNameClick,
+    handleNameSave,
+    handleNameCancel,
+    handleNameKeyDown,
+    // Join configuration + actions
     joinSettings,
     joinPrompt,
     joinNegativePrompt,
@@ -351,76 +317,26 @@ export function useShotEditorController({
     stitchAfterGenerate,
     setGenerateMode,
     toggleGenerateModePreserveScroll,
-    joinSettingsForHook,
     joinLoraManager,
-  } = useJoinSegmentsSetup({
-    selectedShotId,
-    projectId,
-    swapButtonRef,
-  });
-
-  // Note: useJoinSegmentsHandler is called AFTER useSegmentOutputsForShot (below)
-  // since it needs joinSegmentSlots and joinSelectedParent from that hook
-
-  // ============================================================================
-  // SHARED OUTPUT SELECTION STATE (PERSISTED PER SHOT)
-  // ============================================================================
-  const {
-    selectedOutputId,
-    setSelectedOutputId,
-    isReady: outputSelectionReady,
-  } = useOutputSelection({
-    projectId: selectedProjectId,
-    shotId: selectedShot?.id,
-  });
-
-  // Get properly ordered segment outputs from useSegmentOutputsForShot
-  // This hook correctly orders videos by their pair_shot_generation_id → timeline position
-  // Unlike videoOutputs which requires position field (never set for videos)
-  // Uses controlled selectedOutputId so selection is shared with FinalVideoSection and SegmentOutputStrip
-  // IMPORTANT: Only pass controlled state AFTER persistence has loaded to avoid race conditions
-  // outputSelectionReady comes from useOutputSelection hook
-  const {
-    segmentSlots: joinSegmentSlots,
-    selectedParent: joinSelectedParent,
-    parentGenerations,
-    segmentProgress,
-    isLoading: isSegmentOutputsLoading,
-  } = useSegmentOutputsForShot(
-    selectedShotId,
-    projectId,
-    undefined, // localShotGenPositions not needed here
-    outputSelectionReady ? selectedOutputId : undefined,
-    outputSelectionReady ? setSelectedOutputId : undefined,
-    undefined, // preloadedGenerations
-    timelineImages.at(-1)?.id // trailingShotGenId: allow trailing segment videos to show
-  );
-
-  useEnsureSelectedOutput({
-    outputSelectionReady,
-    parentGenerations,
-    selectedOutputId,
-    setSelectedOutputId,
-  });
-
-  // Join segments handler (extracted hook)
-  // Provides: isJoiningClips, joinClipsSuccess, joinValidationData, handleJoinSegments, handleRestoreJoinDefaults
-  const {
     isJoiningClips,
     joinClipsSuccess,
     joinValidationData,
     handleJoinSegments,
     handleRestoreJoinDefaults,
-  } = useJoinSegmentsHandler({
+  } = useEditingController({
+    selectedShotId,
     projectId,
     selectedProjectId,
-    selectedShotId,
+    selectedShot: selectedShot ?? null,
     effectiveAspectRatio,
-    audioUrl,
+    swapButtonRef,
+    onUpdateShotName,
+    state: { isEditingName: state.isEditingName, editingName: state.editingName },
+    actions,
+    generationTypeMode: phaseConfigSettings.generationTypeMode,
+    setGenerationTypeMode: phaseConfigSettings.setGenerationTypeMode,
     joinSegmentSlots,
     joinSelectedParent,
-    joinLoraManager,
-    joinSettings: joinSettingsForHook,
   });
 
   // Use generation actions hook
@@ -492,52 +408,93 @@ export function useShotEditorController({
   const accelerated = shotUISettings?.acceleratedMode ?? false;
   const randomSeed = shotUISettings?.randomSeed ?? false;
 
-  // Steerable motion handlers (extracted hook)
+  // Alias for backwards compatibility with existing code
+  const simpleFilteredImages = timelineImages;
+  const turboMode = motionSettings.turboMode;
+  const setTurboMode = motionSettings.setTurboMode;
+
+  // Auto-disable turbo mode when there are more than 2 images
+  useEffect(() => {
+    if (simpleFilteredImages.length > 2 && turboMode) {
+      setTurboMode(false);
+    }
+  }, [simpleFilteredImages.length, setTurboMode, turboMode]);
+
+  // All modes are always available - no restrictions based on image count
+  // Note: Model selection is handled by useGenerateBatch hook
+
+  // Generation controller
   const {
+    clearAllEnhancedPrompts,
+    updatePairPromptsByIndex,
+    loadPositions,
+    handleBatchVideoPromptChangeWithClear,
     handleRandomSeedChange,
     handleAcceleratedChange,
     handleStepsChange,
-  } = useSteerableMotionHandlers({
-    accelerated,
+    handleGenerateBatch,
+    isSteerableMotionEnqueuing,
+    steerableMotionJustQueued,
+    isGenerationDisabled,
+  } = useGenerationController({
+    projectId,
+    selectedProjectId,
+    selectedShotId,
+    selectedShot: selectedShot ?? null,
+    queryClient,
+    onShotImagesUpdate,
+    effectiveAspectRatio,
+    generationMode: generationModeSettings.generationMode,
+    prompt: promptSettings.prompt,
+    onPromptChange: promptSettings.setPrompt,
+    enhancePrompt: promptSettings.enhancePrompt,
+    textBeforePrompts: promptSettings.textBeforePrompts,
+    textAfterPrompts: promptSettings.textAfterPrompts,
+    negativePrompt: promptSettings.negativePrompt,
+    amountOfMotion: motionSettings.amountOfMotion,
+    motionMode: motionSettings.motionMode || 'basic',
+    advancedMode,
+    phaseConfig: phaseConfigSettings.phaseConfig,
+    selectedPhasePresetId: phaseConfigSettings.selectedPhasePresetId,
+    steerableMotionSettings: steerableMotionSettingsFromContext.steerableMotionSettings,
     randomSeed,
     turboMode: motionSettings.turboMode,
-    steerableMotionSettings: steerableMotionSettingsFromContext.steerableMotionSettings,
+    generationTypeMode: phaseConfigSettings.generationTypeMode,
+    smoothContinuations: motionSettings.smoothContinuations,
+    batchVideoFrames: frameSettings.batchVideoFrames,
+    selectedLoras: loraManager.selectedLoras,
+    structureVideos,
+    selectedOutputId,
+    stitchAfterGenerate,
+    joinContextFrames,
+    joinGapFrames,
+    joinReplaceMode,
+    joinKeepBridgingImages,
+    joinPrompt,
+    joinNegativePrompt,
+    joinEnhancePrompt,
+    joinModel,
+    joinNumInferenceSteps,
+    joinGuidanceScale,
+    joinSeed,
+    joinRandomSeed,
+    joinMotionMode,
+    joinPhaseConfig,
+    joinSelectedPhasePresetId,
+    joinSelectedLoras,
+    joinPriority,
+    joinUseInputVideoResolution,
+    joinUseInputVideoFps,
+    joinNoisedInputVideo,
+    joinLoopFirstClip,
+    accelerated,
     isShotUISettingsLoading,
     settingsLoadingFromContext,
     updateShotUISettings,
     setSteerableMotionSettings: steerableMotionSettingsFromContext.setSteerableMotionSettings,
     setSteps: frameSettings.setSteps,
     setShowStepsNotification: actions.setShowStepsNotification,
-    selectedShotId: selectedShot?.id,
   });
-
-  // ============================================================================
-  // NAME EDITING (extracted to useNameEditing hook)
-  // ============================================================================
-  const {
-    handleNameClick,
-    handleNameSave,
-    handleNameCancel,
-    handleNameKeyDown,
-  } = useNameEditing({
-    selectedShot,
-    state: { isEditingName: state.isEditingName, editingName: state.editingName },
-    actions,
-    onUpdateShotName,
-  });
-
-  // Alias for backwards compatibility with existing code
-  const simpleFilteredImages = timelineImages;
-
-  // Auto-disable turbo mode when there are more than 2 images
-  useEffect(() => {
-    if (simpleFilteredImages.length > 2 && motionSettings.turboMode) {
-      motionSettings.setTurboMode(false);
-    }
-  }, [simpleFilteredImages.length, motionSettings.turboMode, motionSettings.setTurboMode]);
-
-  // All modes are always available - no restrictions based on image count
-  // Note: Model selection is handled by useGenerateBatch hook
 
   // Mutations for applying settings/images from a task
   const addImageToShotMutation = useAddImageToShot();
@@ -592,13 +549,14 @@ export function useShotEditorController({
     loadPositions,
   });
 
-  // Image management (extracted hook) - handles delete, reorder, pending positions
+  // Image management controller
   const {
     isClearingFinalVideo,
     handleDeleteFinalVideo,
     handleReorderImagesInShot,
     handlePendingPositionApplied,
-  } = useImageManagement({
+    handleImageUpload,
+  } = useImageManagementController({
     queryClient,
     selectedShotRef,
     projectIdRef,
@@ -608,82 +566,7 @@ export function useShotEditorController({
     demoteOrphanedVariants,
     actionsRef,
     pendingFramePositions: state.pendingFramePositions,
-  });
-
-  // Image upload handler (accepts File[] from ImageUploadActions)
-  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length > 0) {
-      await generationActions.handleBatchImageDrop(files);
-    }
-  }, [generationActions]);
-
-  // Video generation (extracted hook)
-  const {
-    handleGenerateBatch,
-    isSteerableMotionEnqueuing,
-    steerableMotionJustQueued,
-    isGenerationDisabled,
-  } = useGenerateBatch({
-    projectId,
-    selectedProjectId,
-    selectedShotId,
-    selectedShot: selectedShot ?? null,
-    queryClient,
-    onShotImagesUpdate,
-    effectiveAspectRatio,
-    generationMode: generationModeSettings.generationMode,
-    // Prompt config
-    prompt: promptSettings.prompt,
-    enhancePrompt: promptSettings.enhancePrompt,
-    textBeforePrompts: promptSettings.textBeforePrompts,
-    textAfterPrompts: promptSettings.textAfterPrompts,
-    negativePrompt: promptSettings.negativePrompt,
-    // Motion config
-    amountOfMotion: motionSettings.amountOfMotion,
-    motionMode: motionSettings.motionMode || 'basic',
-    advancedMode,
-    phaseConfig: phaseConfigSettings.phaseConfig,
-    selectedPhasePresetId: phaseConfigSettings.selectedPhasePresetId,
-    // Model config
-    steerableMotionSettings: steerableMotionSettingsFromContext.steerableMotionSettings,
-    randomSeed,
-    turboMode: motionSettings.turboMode,
-    generationTypeMode: phaseConfigSettings.generationTypeMode,
-    smoothContinuations: motionSettings.smoothContinuations,
-    // Frame settings
-    batchVideoFrames: frameSettings.batchVideoFrames,
-    // LoRAs
-    selectedLoras: loraManager.selectedLoras,
-    // Structure video
-    structureVideos,
-    // Clear prompts callback
-    clearAllEnhancedPrompts,
-    // Output selection
-    selectedOutputId,
-    // Stitch config
-    stitchAfterGenerate,
-    joinContextFrames,
-    joinGapFrames,
-    joinReplaceMode,
-    joinKeepBridgingImages,
-    joinPrompt,
-    joinNegativePrompt,
-    joinEnhancePrompt,
-    joinModel,
-    joinNumInferenceSteps,
-    joinGuidanceScale,
-    joinSeed,
-    joinRandomSeed,
-    joinMotionMode,
-    joinPhaseConfig,
-    joinSelectedPhasePresetId,
-    joinSelectedLoras,
-    joinPriority,
-    joinUseInputVideoResolution,
-    joinUseInputVideoFps,
-    joinNoisedInputVideo,
-    joinLoopFirstClip,
+    generationActions,
   });
 
   const { handleSelectionChangeLocal, currentMotionSettings } = useShotEditorBridge({
@@ -784,8 +667,14 @@ export function useShotEditorController({
     clearAllEnhancedPrompts,
   }), [handleGenerateBatch, handleBatchVideoPromptChangeWithClear, handleStepsChange, clearAllEnhancedPrompts]);
 
+  const joinSettingsForContext = useMemo(() => ({
+    settings: joinSettings.settings,
+    updateField: joinSettings.updateField,
+    updateFields: joinSettings.updateFields,
+  }), [joinSettings.settings, joinSettings.updateField, joinSettings.updateFields]);
+
   const joinStateMemo = useMemo(() => ({
-    joinSettings,
+    joinSettings: joinSettingsForContext,
     joinLoraManager,
     joinValidationData,
     handleJoinSegments,
@@ -793,7 +682,7 @@ export function useShotEditorController({
     joinClipsSuccess,
     handleRestoreJoinDefaults,
   }), [
-    joinSettings, joinLoraManager, joinValidationData,
+    joinSettingsForContext, joinLoraManager, joinValidationData,
     handleJoinSegments, isJoiningClips, joinClipsSuccess, handleRestoreJoinDefaults,
   ]);
 

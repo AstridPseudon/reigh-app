@@ -1,12 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { GenerationRow } from '@/types/shots';
 import { createImageUpscaleTask } from '@/shared/lib/tasks/imageUpscale';
 import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
 import type { ImageUpscaleSettings } from '../components/ImageUpscaleForm';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 interface UseUpscaleProps {
   media: GenerationRow | undefined;
@@ -44,8 +41,7 @@ export const useUpscale = ({
 }: UseUpscaleProps): UseUpscaleReturn => {
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaleSuccess, setUpscaleSuccess] = useState(false);
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const queryClient = useQueryClient();
+  const run = useTaskPlaceholder();
 
   // Get media URL
   const mediaUrl = media ? (getMediaUrl(media) || media.imageUrl || '') : '';
@@ -72,42 +68,41 @@ export const useUpscale = ({
     const effectiveImageUrl = activeVariantLocation || mediaUrl;
 
     setIsUpscaling(true);
-    const incomingTaskId = addIncomingTask({
-      taskType: 'image-upscale',
-      label: `Upscale ${settings.scaleFactor}x`,
-    });
     try {
-      if (!effectiveImageUrl) {
-        throw new Error('No image URL available');
-      }
+      await run({
+        taskType: 'image-upscale',
+        label: `Upscale ${settings.scaleFactor}x`,
+        context: 'useUpscale',
+        toastTitle: 'Failed to create enhance task',
+        create: async () => {
+          if (!effectiveImageUrl) {
+            throw new Error('No image URL available');
+          }
 
-      const actualGenerationId = getGenerationId(media);
+          const actualGenerationId = getGenerationId(media);
 
-      await createImageUpscaleTask({
-        project_id: selectedProjectId,
-        image_url: effectiveImageUrl,
-        generation_id: actualGenerationId,
-        source_variant_id: activeVariantId || undefined,
-        scale_factor: settings.scaleFactor,
-        noise_scale: settings.noiseScale,
-        shot_id: shotId,
+          return createImageUpscaleTask({
+            project_id: selectedProjectId,
+            image_url: effectiveImageUrl,
+            generation_id: actualGenerationId,
+            source_variant_id: activeVariantId || undefined,
+            scale_factor: settings.scaleFactor,
+            noise_scale: settings.noiseScale,
+            shot_id: shotId,
+          });
+        },
+        onSuccess: () => {
+          // Show success state briefly
+          setUpscaleSuccess(true);
+          setTimeout(() => {
+            setUpscaleSuccess(false);
+          }, 2000);
+        },
       });
-
-      // Show success state briefly
-      setUpscaleSuccess(true);
-      setTimeout(() => {
-        setUpscaleSuccess(false);
-      }, 2000);
-
-    } catch (error) {
-      handleError(error, { context: 'useUpscale', toastTitle: 'Failed to create enhance task' });
     } finally {
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
       setIsUpscaling(false);
     }
-  }, [media, selectedProjectId, isVideo, mediaUrl, shotId, addIncomingTask, removeIncomingTask, queryClient]);
+  }, [media, selectedProjectId, isVideo, mediaUrl, shotId, run]);
 
   return {
     isUpscaling,

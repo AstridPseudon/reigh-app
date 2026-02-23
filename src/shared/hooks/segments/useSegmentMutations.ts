@@ -18,7 +18,7 @@ import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import type { SegmentSettings } from '@/shared/components/segmentSettingsUtils';
 import { buildMetadataUpdate } from '@/shared/components/segmentSettingsMigration';
-import type { ShotVideoSettings } from '@/shared/utils/settingsMigration';
+import type { ShotVideoSettings } from '@/shared/lib/settingsMigration';
 
 interface UseSegmentMutationsOptions {
   pairShotGenerationId: string | null | undefined;

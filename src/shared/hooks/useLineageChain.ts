@@ -29,45 +29,83 @@ interface LineageChainResult {
   error: Error | null;
 }
 
+interface VariantRecord {
+  id: string;
+  generation_id: string;
+  params: Record<string, unknown> | null;
+  location: string;
+  thumbnail_url: string | null;
+  created_at: string;
+  variant_type: string | null;
+}
+
+function readSourceVariantId(params: Record<string, unknown> | null): string | null {
+  return typeof params?.source_variant_id === 'string' ? params.source_variant_id : null;
+}
+
 /**
  * Recursively fetch the lineage chain for a variant.
  * Follows the `params.source_variant_id` field to find ancestors.
  */
 async function fetchLineageChain(variantId: string): Promise<LineageItem[]> {
+  // Load the current variant once to discover generation_id.
+  const { data: currentVariant, error: currentVariantError } = await supabase
+    .from('generation_variants')
+    .select('id, generation_id, params, location, thumbnail_url, created_at, variant_type')
+    .eq('id', variantId)
+    .single();
+
+  if (currentVariantError || !currentVariant) {
+    handleError(currentVariantError || new Error('Variant not found'), {
+      context: 'useLineageChain',
+      showToast: false,
+    });
+    return [];
+  }
+
+  // Fetch all variants in the same generation in one query, then resolve lineage in-memory.
+  const { data: generationVariants, error: generationVariantsError } = await supabase
+    .from('generation_variants')
+    .select('id, generation_id, params, location, thumbnail_url, created_at, variant_type')
+    .eq('generation_id', currentVariant.generation_id);
+
+  if (generationVariantsError || !generationVariants) {
+    handleError(generationVariantsError || new Error('Failed to fetch lineage variants'), {
+      context: 'useLineageChain',
+      showToast: false,
+    });
+    return [];
+  }
+
+  const variants = generationVariants as VariantRecord[];
+  const byId = new Map(variants.map((variant) => [variant.id, variant]));
+  // Keep the selected variant available even if it was omitted from batch response.
+  if (!byId.has(currentVariant.id)) {
+    byId.set(currentVariant.id, currentVariant as VariantRecord);
+  }
+
+  const parentById = new Map(
+    Array.from(byId.values()).map((variant) => [variant.id, readSourceVariantId(variant.params)])
+  );
+
   const chain: LineageItem[] = [];
   const visited = new Set<string>();
   let currentId: string | null = variantId;
 
-  // Follow the source_variant_id chain upward to find all ancestors
   while (currentId && !visited.has(currentId)) {
     visited.add(currentId);
+    const variant = byId.get(currentId);
+    if (!variant) break;
 
-    const { data, error } = await supabase
-      .from('generation_variants')
-      .select('id, location, thumbnail_url, created_at, params, variant_type')
-      .eq('id', currentId)
-      .single();
-
-    if (error || !data) {
-      handleError(error || new Error('Variant not found'), { context: 'useLineageChain', showToast: false });
-      break;
-    }
-
-    // Add to beginning of chain (we're going backwards in time)
     chain.unshift({
-      id: data.id,
-      imageUrl: data.location,
-      thumbnailUrl: data.thumbnail_url,
-      createdAt: data.created_at,
+      id: variant.id,
+      imageUrl: variant.location,
+      thumbnailUrl: variant.thumbnail_url,
+      createdAt: variant.created_at,
       type: 'variant',
-      variantType: data.variant_type,
+      variantType: variant.variant_type,
     });
-
-    // Move to the parent variant via source_variant_id in params
-    const params = data.params as Record<string, unknown> | null;
-    currentId = typeof params?.source_variant_id === 'string'
-      ? params.source_variant_id
-      : null;
+    currentId = parentById.get(currentId) ?? null;
   }
 
   return chain;

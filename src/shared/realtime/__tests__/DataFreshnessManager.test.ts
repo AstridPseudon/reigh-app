@@ -234,7 +234,7 @@ describe('DataFreshnessManager', () => {
       expect(interval).not.toBe(60_000);
     });
 
-    it('shows recovery toast when circuit breaker resets', async () => {
+    it('does not show success toast when circuit breaker resets', async () => {
       const { toast } = await import('@/shared/components/ui/sonner');
       const queryKey = ['tasks', 'proj-1'];
 
@@ -244,7 +244,7 @@ describe('DataFreshnessManager', () => {
 
       dataFreshnessManager.onFetchSuccess(queryKey);
 
-      expect(toast.success).toHaveBeenCalledWith('Connection restored', expect.any(Object));
+      expect(toast.success).not.toHaveBeenCalled();
     });
   });
 

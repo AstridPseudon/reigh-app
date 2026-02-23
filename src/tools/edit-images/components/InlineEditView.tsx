@@ -1,4 +1,4 @@
-import { GenerationRow } from '@/types/shots';
+import { GenerationRow } from '@/types/generationAndShots';
 
 import {
   MediaDisplayWithCanvas,
@@ -99,34 +99,34 @@ interface InlineEditCanvasProps {
   onClose: () => void;
 }
 
-function InlineEditCanvas({ variant, state, media, onClose }: InlineEditCanvasProps) {
+function InlineEditCanvas({ variant, state, media, onClose: _onClose }: InlineEditCanvasProps) {
   const isMobileVariant = variant === 'mobile';
 
   return (
     <ImageEditProvider value={state.imageEditValue}>
       <MediaDisplayWithCanvas
-        effectiveImageUrl={state.effectiveImageUrl}
+        effectiveImageUrl={state.canvasEnvironment.effectiveImageUrl}
         thumbUrl={media.thumbnail_url || media.thumbUrl}
-        isVideo={state.isVideo}
-        onImageLoad={state.setImageDimensions}
+        isVideo={state.canvasEnvironment.isVideo}
+        onImageLoad={state.canvasEnvironment.setImageDimensions}
         variant={isMobileVariant ? "mobile-stacked" : "desktop-side-panel"}
         containerClassName={isMobileVariant ? "w-full h-full" : "max-w-full max-h-full"}
         debugContext={isMobileVariant ? "Mobile Inline" : "InlineEdit"}
-        imageDimensions={state.imageDimensions}
+        imageDimensions={state.canvasEnvironment.imageDimensions}
       />
 
       {!isMobileVariant && (
         <AnnotationButtons
-          selectedShapeId={state.selectedShapeId}
-          isAnnotateMode={state.isAnnotateMode}
-          brushStrokes={state.brushStrokes}
-          getDeleteButtonPosition={state.getDeleteButtonPosition}
-          handleToggleFreeForm={state.handleToggleFreeForm}
-          handleDeleteSelected={state.handleDeleteSelected}
+          selectedShapeId={state.inpaintingState.selectedShapeId}
+          isAnnotateMode={state.inpaintingState.isAnnotateMode}
+          brushStrokes={state.inpaintingState.brushStrokes}
+          getDeleteButtonPosition={state.inpaintingState.getDeleteButtonPosition}
+          handleToggleFreeForm={state.inpaintingState.handleToggleFreeForm}
+          handleDeleteSelected={state.inpaintingState.handleDeleteSelected}
         />
       )}
 
-      {state.isSpecialEditMode && (
+      {state.inpaintingState.isSpecialEditMode && (
         <FloatingToolControls
           variant={isMobileVariant ? "mobile" : "tablet"}
         />
@@ -134,19 +134,20 @@ function InlineEditCanvas({ variant, state, media, onClose }: InlineEditCanvasPr
 
       <TopRightControls
         showDownload={true}
-        handleDownload={state.handleDownload}
+        handleDownload={state.generationState.handleDownload}
       />
 
       <BottomLeftControls
-        localStarred={state.localStarred}
-        handleToggleStar={state.handleToggleStar}
-        toggleStarPending={state.toggleStarMutation.isPending}
+        localStarred={state.generationState.localStarred}
+        handleToggleStar={state.generationState.handleToggleStar}
+        toggleStarPending={state.generationState.toggleStarMutation.isPending}
       />
 
       <BottomRightControls
-        localStarred={state.localStarred}
-        handleToggleStar={state.handleToggleStar}
-        toggleStarPending={state.toggleStarMutation.isPending}
+        localStarred={state.generationState.localStarred}
+        handleToggleStar={state.generationState.handleToggleStar}
+        toggleStarPending={state.generationState.toggleStarMutation.isPending}
+        showAddToReferences={false}
         isAddingToReferences={false}
         addToReferencesSuccess={false}
         handleAddToReferences={async () => {}}
@@ -168,7 +169,7 @@ interface InlineEditSidebarProps {
 }
 
 function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGeneration }: InlineEditSidebarProps) {
-  if (state.isSpecialEditMode) {
+  if (state.inpaintingState.isSpecialEditMode) {
     return (
       <EditModePanel
         variant={variant === 'mobile' ? 'mobile' : 'desktop'}
@@ -179,12 +180,12 @@ function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGenerat
           async (id) => onNavigateToGeneration(id) : undefined
         }
         currentMediaId={media.id}
-        handleUnifiedGenerate={state.handleUnifiedGenerate}
-        handleGenerateAnnotatedEdit={state.handleGenerateAnnotatedEdit}
-        handleGenerateReposition={state.handleGenerateReposition}
-        handleSaveAsVariant={state.handleSaveAsVariant}
-        handleGenerateImg2Img={state.handleGenerateImg2Img}
-        img2imgLoraManager={state.img2imgLoraManager}
+        handleUnifiedGenerate={state.generationState.handleUnifiedGenerate}
+        handleGenerateAnnotatedEdit={state.generationState.handleGenerateAnnotatedEdit}
+        handleGenerateReposition={state.generationState.handleGenerateReposition}
+        handleSaveAsVariant={state.generationState.handleSaveAsVariant}
+        handleGenerateImg2Img={state.generationState.handleGenerateImg2Img}
+        img2imgLoraManager={state.generationState.img2imgLoraManager}
         availableLoras={state.availableLoras}
         coreState={{ onClose }}
         imageEditState={state.imageEditValue}
@@ -199,13 +200,13 @@ function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGenerat
 
       <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
         <Button onClick={() => {
-          state.setIsInpaintMode(true);
-          state.setEditMode('inpaint');
+          state.inpaintingState.setIsInpaintMode(true);
+          state.inpaintingState.setEditMode('inpaint');
         }} className="w-full">
           Inpaint / Erase
         </Button>
 
-        <Button onClick={state.handleEnterMagicEditMode} variant="secondary" className="w-full">
+        <Button onClick={state.inpaintingState.handleEnterMagicEditMode} variant="secondary" className="w-full">
           Magic Edit
         </Button>
       </div>
@@ -220,7 +221,7 @@ function InlineEditSidebar({ variant, state, media, onClose, onNavigateToGenerat
 export function InlineEditView({ media, onClose, onNavigateToGeneration }: InlineEditViewProps) {
   const state = useInlineEditState(media, onNavigateToGeneration);
 
-  if (state.isMobile) {
+  if (state.canvasEnvironment.isMobile) {
     return (
       <TooltipProvider delayDuration={500}>
         <div className="w-full flex flex-col bg-transparent">

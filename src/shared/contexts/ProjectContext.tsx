@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode, useEffect, useMemo } from 'react';
 import { Project } from '@/types/project';
-import { useRenderLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { useAuth } from './AuthContext';
 import { useUserSettings } from './UserSettingsContext';
 import { useProjectSelection } from '@/shared/hooks/useProjectSelection';

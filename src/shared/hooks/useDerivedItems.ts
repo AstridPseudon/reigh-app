@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { calculateDerivedCountsSafe } from '@/shared/lib/generationTransformers';
+import { expandShotData } from '@/shared/lib/shotData';
 import { useSmartPollingConfig } from './useSmartPolling';
 import { EDIT_VARIANT_TYPES } from '@/shared/constants/variantTypes';
 
@@ -75,7 +76,7 @@ async function fetchDerivedItems(
         starred,
         tasks,
         based_on,
-        shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
+        shot_data
       `)
       .eq('based_on', sourceGenerationId)
       .order('starred', { ascending: false, nullsFirst: false })
@@ -112,7 +113,9 @@ async function fetchDerivedItems(
   };
 
   const generationItems: DerivedItem[] = childGenerations.map((item) => {
-    const shotGenerations = (item.shot_generations || []) as Array<{ shot_id: string; timeline_frame: number | null }>;
+    const shotGenerations = expandShotData(
+      (item as { shot_data?: Record<string, unknown> | null }).shot_data,
+    );
     const allAssociations = shotGenerations.length > 1
       ? shotGenerations.map((sg) => ({
           shot_id: sg.shot_id,

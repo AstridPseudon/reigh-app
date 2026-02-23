@@ -24,8 +24,8 @@ import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { useShotImages } from '@/shared/hooks/useShotImages';
 import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
-import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/utils/settingsMigration';
-import { calculateNextAvailableFrame, extractExistingFrames, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
+import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/lib/settingsMigration';
+import { calculateNextAvailableFrame, extractExistingFrames, DEFAULT_FRAME_SPACING } from '@/shared/lib/timelinePositionCalculator';
 import type { SegmentOverrides } from '@/shared/types/segmentSettings';
 import {
   runSerializedTimelineWrite,

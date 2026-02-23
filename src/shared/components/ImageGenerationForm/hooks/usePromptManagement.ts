@@ -12,7 +12,7 @@ import type {
   PromptManagementInput,
   PromptManagementOutput,
 } from './promptManagement/types';
-import { getStoredPromptCount } from './promptManagement/utils';
+import { getStoredPromptCount } from './promptManagement/storedPromptCount';
 
 export type {
   PromptManagementInput,

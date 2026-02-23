@@ -1,5 +1,4 @@
 import {
-  useRef,
   useState,
   useEffect,
   useCallback,
@@ -12,11 +11,10 @@ import { useEditVideoSettings } from './useEditVideoSettings';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
+import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { generateUUID, generateRunId, createTask } from '@/shared/lib/taskCreation';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { DEFAULT_VACE_PHASE_CONFIG, buildPhaseConfigWithLoras, VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import { toast } from '@/shared/components/ui/sonner';
@@ -80,8 +78,7 @@ export function useReplaceMode({
 }: UseReplaceModeProps) {
   const { selectedProjectId, projects } = useProject();
   const queryClient = useQueryClient();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const incomingTaskIdRef = useRef<string | null>(null);
+  const run = useTaskPlaceholder();
 
   // Multiple portion selections
   // Initialize from saved segments if provided, otherwise default to empty selection
@@ -377,154 +374,137 @@ export function useReplaceMode({
     return Math.max(4, minKeeperFrames - 1);
   }, [videoFps, videoDuration, frameRanges]);
 
-  // Generate mutation using join clips task
-  const generateMutation = useMutation({
-    onMutate: () => {
-      incomingTaskIdRef.current = addIncomingTask({
-        taskType: 'edit_video_orchestrator',
-        label: prompt?.substring(0, 50) || 'Video edit...',
-      });
-    },
-    mutationFn: async () => {
-      if (!selectedProjectId) throw new Error('No project selected');
-      if (!videoUrl) throw new Error('No video URL');
-      if (!isValidPortion) throw new Error('Invalid portion selected');
-      if (!videoFps) throw new Error('Video FPS not detected');
+  // Loading state for generation
+  const [isGenerating, setIsGenerating] = useState(false);
 
-      const portionFrameRanges = selectionsToFrameRanges(selections, videoFps, videoDuration, gapFrameCount, prompt);
-
-      const lorasForTask = loraManager.selectedLoras.map(lora => ({
-        path: lora.path,
-        strength: lora.strength,
-      }));
-
-      let resolutionTuple: [number, number] | undefined;
-      if (projectAspectRatio) {
-        const resolutionStr = ASPECT_RATIO_TO_RESOLUTION[projectAspectRatio];
-        if (resolutionStr) {
-          const [width, height] = resolutionStr.split('x').map(Number);
-          if (width && height) {
-            resolutionTuple = [width, height];
-          }
-        }
-      }
-
-      const baseConfig = savedPhaseConfig || DEFAULT_VACE_PHASE_CONFIG;
-      const phaseConfig = motionMode === 'advanced'
-        ? baseConfig
-        : buildPhaseConfigWithLoras(lorasForTask, baseConfig);
-
-      const totalFrames = Math.round(videoDuration * videoFps);
-      const sortedPortions = [...portionFrameRanges].sort((a, b) => a.start_frame - b.start_frame);
-      let minKeeperFrames = totalFrames;
-
-      if (sortedPortions.length > 0) {
-        const firstKeeperLength = sortedPortions[0].start_frame;
-        if (firstKeeperLength > 0) {
-          minKeeperFrames = Math.min(minKeeperFrames, firstKeeperLength);
-        }
-      }
-
-      for (let i = 0; i < sortedPortions.length - 1; i++) {
-        const keeperLength = sortedPortions[i + 1].start_frame - sortedPortions[i].end_frame;
-        if (keeperLength > 0) {
-          minKeeperFrames = Math.min(minKeeperFrames, keeperLength);
-        }
-      }
-
-      if (sortedPortions.length > 0) {
-        const lastKeeperLength = totalFrames - sortedPortions[sortedPortions.length - 1].end_frame;
-        if (lastKeeperLength > 0) {
-          minKeeperFrames = Math.min(minKeeperFrames, lastKeeperLength);
-        }
-      }
-
-      const safeMaxContextFrames = Math.max(1, minKeeperFrames - 1);
-      const cappedContextFrameCount = Math.min(contextFrameCount, safeMaxContextFrames);
-
-      const orchestratorDetails: Record<string, unknown> = {
-        run_id: generateRunId(),
-        priority: editSettings.settings.priority || 0,
-        tool_type: TOOL_IDS.EDIT_VIDEO,
-
-        source_video_url: videoUrl,
-        source_video_fps: videoFps,
-        source_video_total_frames: totalFrames,
-
-        portions_to_regenerate: portionFrameRanges,
-
-        model: (editSettings.settings.model?.startsWith('wan_2_2_')
-          ? editSettings.settings.model
-          : VACE_GENERATION_DEFAULTS.model),
-        resolution: resolutionTuple || [902, 508],
-        seed: editSettings.settings.seed ?? -1,
-
-        context_frame_count: cappedContextFrameCount,
-        gap_frame_count: gapFrameCount,
-        replace_mode: replaceMode,
-        keep_bridging_images: keepBridgingImages,
-
-        prompt: prompt,
-        negative_prompt: negativePrompt,
-        enhance_prompt: enhancePrompt,
-
-        num_inference_steps: editSettings.settings.numInferenceSteps || 6,
-        guidance_scale: editSettings.settings.guidanceScale || 3,
-        phase_config: phaseConfig,
-
-        motion_mode: motionMode,
-        selected_phase_preset_id: selectedPhasePresetId,
-
-        parent_generation_id: getGenerationId(media),
-      };
-
-      if (lorasForTask.length > 0) {
-        orchestratorDetails.loras = lorasForTask;
-      }
-
-      if (!selectedProjectId) {
-        throw new Error('No project selected');
-      }
-
-      const result = await createTask({
-        project_id: selectedProjectId,
-        task_type: 'edit_video_orchestrator',
-        params: {
-          orchestrator_details: orchestratorDetails,
-          tool_type: TOOL_IDS.EDIT_VIDEO,
-          parent_generation_id: getGenerationId(media),
-        },
-      });
-
-      return result;
-    },
-    onSuccess: () => {
-      setShowSuccessState(true);
-      setTimeout(() => setShowSuccessState(false), 1500);
-
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
-    },
-    onError: (error) => {
-      handleError(error, { context: 'VideoReplaceMode', toastTitle: 'Failed to create regeneration task' });
-    },
-    onSettled: async () => {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-      if (incomingTaskIdRef.current) {
-        removeIncomingTask(incomingTaskIdRef.current);
-        incomingTaskIdRef.current = null;
-      }
-    },
-  });
-
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (!isValidPortion) {
       toast.error('Please select a valid portion of the video');
       return;
     }
-    generateMutation.mutate();
-  }, [isValidPortion, generateMutation]);
+    if (!selectedProjectId || !videoUrl || !videoFps) return;
+
+    setIsGenerating(true);
+    try {
+      await run({
+        taskType: 'edit_video_orchestrator',
+        label: prompt?.substring(0, 50) || 'Video edit...',
+        context: 'VideoReplaceMode',
+        toastTitle: 'Failed to create regeneration task',
+        create: () => {
+          const portionFrameRanges = selectionsToFrameRanges(selections, videoFps, videoDuration, gapFrameCount, prompt);
+
+          const lorasForTask = loraManager.selectedLoras.map(lora => ({
+            path: lora.path,
+            strength: lora.strength,
+          }));
+
+          let resolutionTuple: [number, number] | undefined;
+          if (projectAspectRatio) {
+            const resolutionStr = ASPECT_RATIO_TO_RESOLUTION[projectAspectRatio];
+            if (resolutionStr) {
+              const [width, height] = resolutionStr.split('x').map(Number);
+              if (width && height) {
+                resolutionTuple = [width, height];
+              }
+            }
+          }
+
+          const baseConfig = savedPhaseConfig || DEFAULT_VACE_PHASE_CONFIG;
+          const phaseConfig = motionMode === 'advanced'
+            ? baseConfig
+            : buildPhaseConfigWithLoras(lorasForTask, baseConfig);
+
+          const totalFrames = Math.round(videoDuration * videoFps);
+          const sortedPortions = [...portionFrameRanges].sort((a, b) => a.start_frame - b.start_frame);
+          let minKeeperFrames = totalFrames;
+
+          if (sortedPortions.length > 0) {
+            const firstKeeperLength = sortedPortions[0].start_frame;
+            if (firstKeeperLength > 0) {
+              minKeeperFrames = Math.min(minKeeperFrames, firstKeeperLength);
+            }
+          }
+
+          for (let i = 0; i < sortedPortions.length - 1; i++) {
+            const keeperLength = sortedPortions[i + 1].start_frame - sortedPortions[i].end_frame;
+            if (keeperLength > 0) {
+              minKeeperFrames = Math.min(minKeeperFrames, keeperLength);
+            }
+          }
+
+          if (sortedPortions.length > 0) {
+            const lastKeeperLength = totalFrames - sortedPortions[sortedPortions.length - 1].end_frame;
+            if (lastKeeperLength > 0) {
+              minKeeperFrames = Math.min(minKeeperFrames, lastKeeperLength);
+            }
+          }
+
+          const safeMaxContextFrames = Math.max(1, minKeeperFrames - 1);
+          const cappedContextFrameCount = Math.min(contextFrameCount, safeMaxContextFrames);
+
+          const orchestratorDetails: Record<string, unknown> = {
+            run_id: generateRunId(),
+            priority: editSettings.settings.priority || 0,
+            tool_type: TOOL_IDS.EDIT_VIDEO,
+
+            source_video_url: videoUrl,
+            source_video_fps: videoFps,
+            source_video_total_frames: totalFrames,
+
+            portions_to_regenerate: portionFrameRanges,
+
+            model: (editSettings.settings.model?.startsWith('wan_2_2_')
+              ? editSettings.settings.model
+              : VACE_GENERATION_DEFAULTS.model),
+            resolution: resolutionTuple || [902, 508],
+            seed: editSettings.settings.seed ?? -1,
+
+            context_frame_count: cappedContextFrameCount,
+            gap_frame_count: gapFrameCount,
+            replace_mode: replaceMode,
+            keep_bridging_images: keepBridgingImages,
+
+            prompt: prompt,
+            negative_prompt: negativePrompt,
+            enhance_prompt: enhancePrompt,
+
+            num_inference_steps: editSettings.settings.numInferenceSteps || 6,
+            guidance_scale: editSettings.settings.guidanceScale || 3,
+            phase_config: phaseConfig,
+
+            motion_mode: motionMode,
+            selected_phase_preset_id: selectedPhasePresetId,
+
+            parent_generation_id: getGenerationId(media),
+          };
+
+          if (lorasForTask.length > 0) {
+            orchestratorDetails.loras = lorasForTask;
+          }
+
+          return createTask({
+            project_id: selectedProjectId!,
+            task_type: 'edit_video_orchestrator',
+            params: {
+              orchestrator_details: orchestratorDetails,
+              tool_type: TOOL_IDS.EDIT_VIDEO,
+              parent_generation_id: getGenerationId(media),
+            },
+          });
+        },
+        onSuccess: () => {
+          setShowSuccessState(true);
+          setTimeout(() => setShowSuccessState(false), 1500);
+
+          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
+        },
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [isValidPortion, selectedProjectId, videoUrl, videoFps, prompt, selections, videoDuration, gapFrameCount, loraManager.selectedLoras, projectAspectRatio, savedPhaseConfig, motionMode, contextFrameCount, replaceMode, keepBridgingImages, negativePrompt, enhancePrompt, editSettings.settings, selectedPhasePresetId, media, queryClient, run]);
 
   return {
     selections,
@@ -541,7 +521,7 @@ export function useReplaceMode({
     loraManager,
     availableLoras,
     handleGenerate,
-    generateMutation,
+    isGenerating,
     showSuccessState,
     contextFrameCount,
     gapFrameCount,

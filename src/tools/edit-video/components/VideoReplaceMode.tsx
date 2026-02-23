@@ -109,7 +109,7 @@ export function ReplacePanelContent({
     loraManager,
     availableLoras,
     handleGenerate,
-    generateMutation,
+    isGenerating,
     showSuccessState,
     isValidPortion,
     portionValidation,
@@ -169,7 +169,7 @@ export function ReplacePanelContent({
       }}
       // Actions
       onGenerate={handleGenerate}
-      isGenerating={generateMutation.isPending}
+      isGenerating={isGenerating}
       generateSuccess={showSuccessState}
       isGenerateDisabled={!isValidPortion}
       validationErrors={portionValidation.errors}

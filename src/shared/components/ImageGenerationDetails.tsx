@@ -42,6 +42,11 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
   showCopyButtons = false,
 }) => {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const formatLoraStrengthPercent = (value: unknown): string => {
+    const numeric = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(numeric)) return '100%';
+    return `${(numeric * 100).toFixed(0)}%`;
+  };
 
   const handleCopyPrompt = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -117,7 +122,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
     : additionalLoras && Object.keys(additionalLoras).length > 0
     ? Object.entries(additionalLoras).map(([url, strength]) => ({
         name: getDisplayNameFromUrl(url) || 'Unknown',
-        strength: `${((strength as number) * 100).toFixed(0)}%`
+        strength: formatLoraStrengthPercent(strength)
       }))
     : [];
 
@@ -258,7 +263,7 @@ export const ImageGenerationDetails: React.FC<ImageGenerationDetailsProps> = ({
       })()}
       
       {/* Prompts and Generation Settings */}
-      <div className={`grid gap-3 ${variant === 'hover' ? 'grid-cols-1' : 'grid-cols-1'}`}>
+      <div className="grid gap-3 grid-cols-1">
         {/* Prompts Section */}
         <div className="space-y-3">
           {/* Prompt */}

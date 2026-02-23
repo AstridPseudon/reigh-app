@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
-import { parseTaskParams } from '@/shared/utils/taskParamsUtils';
+import { parseTaskParams } from '@/shared/lib/taskParamsUtils';
 import { Film, Maximize2 } from 'lucide-react';
 
 /**

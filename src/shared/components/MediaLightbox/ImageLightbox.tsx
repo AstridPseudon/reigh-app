@@ -197,14 +197,12 @@ function useImageLightboxSharedState(props: ImageLightboxProps, env: ImageLightb
     onOpenExternalGeneration,
     shotId,
     initialVariantId,
-    showTickForImageId,
-    showTickForSecondaryImageId,
   } = props;
 
-  const nav = props.navigation;
-  const sw = props.shotWorkflow;
-  const feat = props.features;
-  const act = props.actions;
+  const navigation = props.navigation;
+  const shotWorkflow = props.shotWorkflow;
+  const features = props.features;
+  const actions = props.actions;
 
   const {
     selectedProjectId,
@@ -219,12 +217,12 @@ function useImageLightboxSharedState(props: ImageLightboxProps, env: ImageLightb
   } = env;
 
   const handleSlotNavNext = useCallback(() => {
-    nav?.onNext?.();
-  }, [nav?.onNext]);
+    navigation?.onNext?.();
+  }, [navigation]);
 
   const handleSlotNavPrev = useCallback(() => {
-    nav?.onPrevious?.();
-  }, [nav?.onPrevious]);
+    navigation?.onPrevious?.();
+  }, [navigation]);
 
   const isInpaintModeRef = useRef(false);
   const isMagicEditModeRef = useRef(false);
@@ -239,39 +237,39 @@ function useImageLightboxSharedState(props: ImageLightboxProps, env: ImageLightb
     readOnly,
     variantFetchGenerationId,
     initialVariantId,
-    starred: act?.starred,
+    starred: actions?.starred,
     onOpenExternalGeneration,
-    showNavigation: nav?.showNavigation,
-    hasNext: nav?.hasNext ?? false,
-    hasPrevious: nav?.hasPrevious ?? false,
+    showNavigation: navigation?.showNavigation,
+    hasNext: navigation?.hasNext ?? false,
+    hasPrevious: navigation?.hasPrevious ?? false,
     handleSlotNavNext,
     handleSlotNavPrev,
     swipeDisabled: isMagicEditModeRef.current || readOnly,
     shotId,
-    selectedShotId: sw?.selectedShotId,
-    allShots: sw?.allShots,
-    onShotChange: sw?.onShotChange,
-    onAddToShot: sw?.onAddToShot,
-    onAddToShotWithoutPosition: sw?.onAddToShotWithoutPosition,
-    onNavigateToShot: sw?.onNavigateToShot,
-    onShowTick: sw?.onShowTick,
-    onShowSecondaryTick: sw?.onShowSecondaryTick,
-    onOptimisticPositioned: sw?.onOptimisticPositioned,
-    onOptimisticUnpositioned: sw?.onOptimisticUnpositioned,
-    optimisticPositionedIds: sw?.optimisticPositionedIds,
-    optimisticUnpositionedIds: sw?.optimisticUnpositionedIds,
-    positionedInSelectedShot: sw?.positionedInSelectedShot,
-    associatedWithoutPositionInSelectedShot: sw?.associatedWithoutPositionInSelectedShot,
-    showTaskDetails: feat?.showTaskDetails,
+    selectedShotId: shotWorkflow?.selectedShotId,
+    allShots: shotWorkflow?.allShots,
+    onShotChange: shotWorkflow?.onShotChange,
+    onAddToShot: shotWorkflow?.onAddToShot,
+    onAddToShotWithoutPosition: shotWorkflow?.onAddToShotWithoutPosition,
+    onNavigateToShot: shotWorkflow?.onNavigateToShot,
+    onShowTick: shotWorkflow?.onShowTick,
+    onShowSecondaryTick: shotWorkflow?.onShowSecondaryTick,
+    onOptimisticPositioned: shotWorkflow?.onOptimisticPositioned,
+    onOptimisticUnpositioned: shotWorkflow?.onOptimisticUnpositioned,
+    optimisticPositionedIds: shotWorkflow?.optimisticPositionedIds,
+    optimisticUnpositionedIds: shotWorkflow?.optimisticUnpositionedIds,
+    positionedInSelectedShot: shotWorkflow?.positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot: shotWorkflow?.associatedWithoutPositionInSelectedShot,
+    showTaskDetails: features?.showTaskDetails,
     isSpecialEditMode: isMagicEditModeRef.current,
     isInpaintMode: isInpaintModeRef.current,
     isMagicEditMode: isMagicEditModeRef.current,
     isCloudMode,
-    showDownload: feat?.showDownload,
+    showDownload: features?.showDownload,
     isDownloading,
     setIsDownloading,
-    onDelete: act?.onDelete,
-    isDeleting: act?.isDeleting,
+    onDelete: actions?.onDelete,
+    isDeleting: actions?.isDeleting,
     isUpscaling: upscaleHook.isUpscaling,
     handleUpscale: () => {
       void upscaleHook.handleUpscale({ scaleFactor: 2, noiseScale: 0.1 });
@@ -498,9 +496,7 @@ function useImageLightboxControlsPanel(
     editOrchestrator.handleSaveAsVariant,
     editOrchestrator.handleGenerateImg2Img,
     env.isCloudMode,
-    env.upscaleHook.handleUpscale,
-    env.upscaleHook.isUpscaling,
-    env.upscaleHook.upscaleSuccess,
+    env.upscaleHook,
     editOrchestrator.img2imgLoraManager,
     env.editLoraManager,
     env.availableLoras,
@@ -537,10 +533,10 @@ function useImageLightboxRenderModel(
     adjacentSegments,
   } = props;
 
-  const nav = props.navigation;
-  const sw = props.shotWorkflow;
-  const feat = props.features;
-  const act = props.actions;
+  const navigation = props.navigation;
+  const shotWorkflow = props.shotWorkflow;
+  const features = props.features;
+  const actions = props.actions;
 
   const { sharedState, handleSlotNavNext, handleSlotNavPrev } = sharedModel;
   const { editOrchestrator, adjustedTaskDetailsData, variantBadges } = editModel;
@@ -577,9 +573,9 @@ function useImageLightboxRenderModel(
     unviewedVariantCount: variantBadges.unviewedVariantCount,
     onMarkAllViewed: variantBadges.handleMarkAllViewed,
     variantsSectionRef: env.variantsSectionRef,
-    showNavigation: nav?.showNavigation ?? true,
-    hasNext: nav?.hasNext ?? false,
-    hasPrevious: nav?.hasPrevious ?? false,
+    showNavigation: navigation?.showNavigation ?? true,
+    hasNext: navigation?.hasNext ?? false,
+    hasPrevious: navigation?.hasPrevious ?? false,
     handleSlotNavNext,
     handleSlotNavPrev,
     swipeNavigation: sharedState.navigation.swipeNavigation,
@@ -595,14 +591,14 @@ function useImageLightboxRenderModel(
   });
 
   const handleDelete = () => {
-    act?.onDelete?.(media.id);
+    actions?.onDelete?.(media.id);
   };
 
   const handleApplySettings = () => {
-    act?.onApplySettings?.(media.metadata);
+    actions?.onApplySettings?.(media.metadata);
   };
 
-  const onNavigateToShot = sw?.onNavigateToShot;
+  const onNavigateToShot = shotWorkflow?.onNavigateToShot;
   const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
     if (!onNavigateToShot) return;
     const minimalShot = { id: shot.id, name: shot.name, images: [], position: 0 };
@@ -610,7 +606,7 @@ function useImageLightboxRenderModel(
     onNavigateToShot(minimalShot);
   }, [onClose, onNavigateToShot]);
 
-  const showTaskDetails = feat?.showTaskDetails ?? false;
+  const showTaskDetails = features?.showTaskDetails ?? false;
 
   const needsFullscreenLayout = true;
   const needsTasksPaneOffset = needsFullscreenLayout
@@ -647,27 +643,27 @@ function useImageLightboxRenderModel(
       effectiveTasksPaneWidth: env.effectiveTasksPaneWidth,
     },
     shotWorkflow: {
-      allShots: sw?.allShots || [],
-      selectedShotId: sw?.selectedShotId,
-      onShotChange: sw?.onShotChange,
-      onCreateShot: sw?.onCreateShot,
-      onAddToShot: sw?.onAddToShot,
-      onAddToShotWithoutPosition: sw?.onAddToShotWithoutPosition,
+      allShots: shotWorkflow?.allShots || [],
+      selectedShotId: shotWorkflow?.selectedShotId,
+      onShotChange: shotWorkflow?.onShotChange,
+      onCreateShot: shotWorkflow?.onCreateShot,
+      onAddToShot: shotWorkflow?.onAddToShot,
+      onAddToShotWithoutPosition: shotWorkflow?.onAddToShotWithoutPosition,
       isAlreadyPositionedInSelectedShot: sharedState.shots.isAlreadyPositionedInSelectedShot,
       isAlreadyAssociatedWithoutPosition: sharedState.shots.isAlreadyAssociatedWithoutPosition,
       showTickForImageId,
       showTickForSecondaryImageId,
-      onShowTick: sw?.onShowTick,
-      onShowSecondaryTick: sw?.onShowSecondaryTick,
-      onOptimisticPositioned: sw?.onOptimisticPositioned,
-      onOptimisticUnpositioned: sw?.onOptimisticUnpositioned,
+      onShowTick: shotWorkflow?.onShowTick,
+      onShowSecondaryTick: shotWorkflow?.onShowSecondaryTick,
+      onOptimisticPositioned: shotWorkflow?.onOptimisticPositioned,
+      onOptimisticUnpositioned: shotWorkflow?.onOptimisticUnpositioned,
     },
     actions: {
-      onDelete: act?.onDelete,
-      onApplySettings: act?.onApplySettings,
+      onDelete: actions?.onDelete,
+      onApplySettings: actions?.onApplySettings,
       handleApplySettings,
       handleDelete,
-      isDeleting: act?.isDeleting,
+      isDeleting: actions?.isDeleting,
       handleNavigateToShotFromSelector,
       handleAddVariantAsNewGenerationToShot: sharedState.variants.handleAddVariantAsNewGenerationToShot,
     },

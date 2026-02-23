@@ -49,46 +49,52 @@ export const JoinModeContent: React.FC<JoinModeContentProps> = ({
   return (
     <div ref={joinSegmentsSectionRef}>
       <JoinClipsSettingsForm
-        gapFrames={joinGapFrames}
-        setGapFrames={(val) => joinState.joinSettings.updateField('gapFrameCount', val)}
-        contextFrames={joinContextFrames}
-        setContextFrames={(val) => joinState.joinSettings.updateField('contextFrameCount', val)}
-        replaceMode={joinReplaceMode}
-        setReplaceMode={(val) => joinState.joinSettings.updateField('replaceMode', val)}
-        keepBridgingImages={joinKeepBridgingImages}
-        setKeepBridgingImages={(val) => joinState.joinSettings.updateField('keepBridgingImages', val)}
-        prompt={joinPrompt}
-        setPrompt={(val) => joinState.joinSettings.updateField('prompt', val)}
-        negativePrompt={joinNegativePrompt}
-        setNegativePrompt={(val) => joinState.joinSettings.updateField('negativePrompt', val)}
-        enhancePrompt={joinEnhancePrompt}
-        setEnhancePrompt={(val) => joinState.joinSettings.updateField('enhancePrompt', val)}
-        availableLoras={availableLoras}
-        projectId={projectId}
-        loraPersistenceKey="join-clips-shot-editor"
-        loraManager={joinState.joinLoraManager}
-        onGenerate={joinState.handleJoinSegments}
-        isGenerating={joinState.isJoiningClips}
-        generateSuccess={joinState.joinClipsSuccess}
-        generateButtonText="Join Segments"
-        isGenerateDisabled={joinState.joinValidationData.videoCount < 2}
-        onRestoreDefaults={joinState.handleRestoreJoinDefaults}
-        shortestClipFrames={joinState.joinValidationData.shortestClipFrames}
-        motionMode={joinMotionMode}
-        onMotionModeChange={(mode) => joinState.joinSettings.updateField('motionMode', mode)}
-        phaseConfig={joinPhaseConfig ?? DEFAULT_JOIN_CLIPS_PHASE_CONFIG}
-        onPhaseConfigChange={(config) => joinState.joinSettings.updateField('phaseConfig', config)}
-        randomSeed={joinRandomSeed}
-        onRandomSeedChange={(val) => joinState.joinSettings.updateField('randomSeed', val)}
-        selectedPhasePresetId={joinSelectedPhasePresetId ?? BUILTIN_JOIN_CLIPS_DEFAULT_ID}
-        onPhasePresetSelect={(presetId, config) => {
-          joinState.joinSettings.updateFields({
-            selectedPhasePresetId: presetId,
-            phaseConfig: config,
-          });
+        clipSettings={{
+          gapFrames: joinGapFrames,
+          setGapFrames: (val) => joinState.joinSettings.updateField('gapFrameCount', val),
+          contextFrames: joinContextFrames,
+          setContextFrames: (val) => joinState.joinSettings.updateField('contextFrameCount', val),
+          replaceMode: joinReplaceMode,
+          setReplaceMode: (val) => joinState.joinSettings.updateField('replaceMode', val),
+          keepBridgingImages: joinKeepBridgingImages,
+          setKeepBridgingImages: (val) => joinState.joinSettings.updateField('keepBridgingImages', val),
+          prompt: joinPrompt,
+          setPrompt: (val) => joinState.joinSettings.updateField('prompt', val),
+          negativePrompt: joinNegativePrompt,
+          setNegativePrompt: (val) => joinState.joinSettings.updateField('negativePrompt', val),
+          enhancePrompt: joinEnhancePrompt,
+          setEnhancePrompt: (val) => joinState.joinSettings.updateField('enhancePrompt', val),
+          shortestClipFrames: joinState.joinValidationData.shortestClipFrames,
         }}
-        onPhasePresetRemove={() => {
-          joinState.joinSettings.updateField('selectedPhasePresetId', null);
+        motionConfig={{
+          availableLoras,
+          projectId,
+          loraPersistenceKey: 'join-clips-shot-editor',
+          loraManager: joinState.joinLoraManager,
+          motionMode: joinMotionMode,
+          onMotionModeChange: (mode) => joinState.joinSettings.updateField('motionMode', mode),
+          phaseConfig: joinPhaseConfig ?? DEFAULT_JOIN_CLIPS_PHASE_CONFIG,
+          onPhaseConfigChange: (config) => joinState.joinSettings.updateField('phaseConfig', config),
+          randomSeed: joinRandomSeed,
+          onRandomSeedChange: (val) => joinState.joinSettings.updateField('randomSeed', val),
+          selectedPhasePresetId: joinSelectedPhasePresetId ?? BUILTIN_JOIN_CLIPS_DEFAULT_ID,
+          onPhasePresetSelect: (presetId, config) => {
+            joinState.joinSettings.updateFields({
+              selectedPhasePresetId: presetId,
+              phaseConfig: config,
+            });
+          },
+          onPhasePresetRemove: () => {
+            joinState.joinSettings.updateField('selectedPhasePresetId', null);
+          },
+        }}
+        uiState={{
+          onGenerate: joinState.handleJoinSegments,
+          isGenerating: joinState.isJoiningClips,
+          generateSuccess: joinState.joinClipsSuccess,
+          generateButtonText: 'Join Segments',
+          isGenerateDisabled: joinState.joinValidationData.videoCount < 2,
+          onRestoreDefaults: joinState.handleRestoreJoinDefaults,
         }}
       />
 

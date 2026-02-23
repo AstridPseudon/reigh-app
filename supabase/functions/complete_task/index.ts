@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { authenticateRequest, verifyTaskOwnership, getTaskUserId } from "../_shared/auth.ts";
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { jsonResponse } from "../_shared/http.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
 import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 
@@ -27,6 +28,24 @@ interface TaskContext {
   category: string;
   content_type: 'image' | 'video';
   variant_type: string | null;
+}
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+} as const;
+
+function withCorsHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+    headers.set(key, value);
+  });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 /**
@@ -110,14 +129,20 @@ export interface CompleteTaskDeps {
 }
 
 export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps = {}): Promise<Response> {
+  const finalize = (response: Response): Response => withCorsHeaders(response);
+
+  if (req.method === "OPTIONS") {
+    return finalize(new Response("ok", { status: 200 }));
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return finalize(jsonResponse({ error: "Method not allowed" }, 405));
   }
 
   // 1) Parse and validate request
   const parseResult = await parseCompleteTaskRequest(req);
   if (!parseResult.success) {
-    return parseResult.response;
+    return finalize(parseResult.response);
   }
   const parsedRequest = parseResult.data;
   const taskIdString = parsedRequest.taskId;
@@ -128,7 +153,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
   const supabaseUrl = env.get("SUPABASE_URL");
   if (!serviceKey || !supabaseUrl) {
     console.error("Missing required environment variables");
-    return new Response("Server configuration error", { status: 500 });
+    return finalize(jsonResponse({ error: "Server configuration error" }, 500));
   }
   const createClientFn = deps.createClient ?? createClient;
   const supabaseAdmin = deps.supabaseAdmin ?? createClientFn(supabaseUrl, serviceKey);
@@ -153,17 +178,17 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     if (!securityResult.allowed) {
       logger.error("Storage path security check failed", { error: securityResult.error });
       await logger.flush();
-      return new Response(securityResult.error || "Access denied", { status: 403 });
+      return finalize(jsonResponse({ error: securityResult.error || "Access denied" }, 403));
     }
   }
 
   // 4) Authenticate request
   const authenticateFn = deps.authenticateRequest ?? authenticateRequest;
-  const auth = await authenticateFn(req, supabaseAdmin, "[COMPLETE-TASK]");
+  const auth = await authenticateFn(req, supabaseAdmin, "[COMPLETE-TASK]", { allowJwtUserAuth: true });
   if (!auth.success) {
     logger.error("Authentication failed", { error: auth.error });
     await logger.flush();
-    return new Response(auth.error || "Authentication failed", { status: auth.statusCode || 403 });
+    return finalize(jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 403));
   }
 
   const isServiceRole = auth.isServiceRole;
@@ -181,7 +206,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     if (!rateLimitResult.allowed) {
       logger.warn("Rate limit exceeded", { user_id: callerId });
       await logger.flush();
-      return rateLimitResponse(rateLimitResult, RATE_LIMITS.userAction);
+      return finalize(rateLimitResponse(rateLimitResult, RATE_LIMITS.userAction));
     }
   }
 
@@ -191,7 +216,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       const verifyOwnershipFn = deps.verifyTaskOwnership ?? verifyTaskOwnership;
       const ownershipResult = await verifyOwnershipFn(supabaseAdmin, taskIdString, callerId, "[COMPLETE-TASK]");
       if (!ownershipResult.success) {
-        return new Response(ownershipResult.error || "Forbidden", { status: ownershipResult.statusCode || 403 });
+        return finalize(jsonResponse({ error: ownershipResult.error || "Forbidden" }, ownershipResult.statusCode || 403));
       }
     }
 
@@ -203,7 +228,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       if (!isMode3Format) {
         const fileCheck = getStoragePublicUrl(supabaseAdmin, parsedRequest.storagePath);
         if (!fileCheck.exists) {
-          return new Response("Referenced file does not exist or is not accessible in storage", { status: 404 });
+          return finalize(jsonResponse({ error: "Referenced file does not exist or is not accessible in storage" }, 404));
         }
       }
     }
@@ -214,7 +239,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
       const getTaskUserIdFn = deps.getTaskUserId ?? getTaskUserId;
       const taskUserResult = await getTaskUserIdFn(supabaseAdmin, taskIdString, "[COMPLETE-TASK]");
       if (taskUserResult.error) {
-        return new Response(taskUserResult.error, { status: taskUserResult.statusCode || 404 });
+        return finalize(jsonResponse({ error: taskUserResult.error }, taskUserResult.statusCode || 404));
       }
       userId = taskUserResult.userId!;
     } else {
@@ -226,7 +251,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     if (!taskContext) {
       logger.error("Failed to fetch task context", { task_id: taskIdString });
       await logger.flush();
-      return new Response("Task not found", { status: 404 });
+      return finalize(jsonResponse({ error: "Task not found" }, 404));
     }
 
     // 9) Handle storage operations
@@ -289,7 +314,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
         console.error("[COMPLETE-TASK] Generation creation failed:", genErr);
         await logger.flush();
         // Preserve atomic semantics: do NOT mark the task Complete if generation creation failed.
-        return new Response('Internal server error', { status: 500 });
+        return finalize(jsonResponse({ error: "Internal server error" }, 500));
       }
     }
 
@@ -303,7 +328,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     if (dbError) {
       console.error("[COMPLETE-TASK] Database update failed:", dbError);
       await cleanupFile(supabaseAdmin, objectPath);
-      return new Response('Internal server error', { status: 500 });
+      return finalize(jsonResponse({ error: "Internal server error" }, 500));
     }
 
     // 13) Check orchestrator completion (for segment tasks) - uses task context
@@ -340,10 +365,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     });
     await logger.flush();
 
-    return new Response(JSON.stringify(responseData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
-    });
+    return finalize(jsonResponse(responseData, 200));
 
   } catch (error: unknown) {
     logger.critical("Unexpected error", {
@@ -353,7 +375,7 @@ export async function completeTaskHandler(req: Request, deps: CompleteTaskDeps =
     });
     console.error("[COMPLETE-TASK] Internal error:", error);
     await logger.flush();
-    return new Response('Internal server error', { status: 500 });
+    return finalize(jsonResponse({ error: "Internal server error" }, 500));
   }
 }
 

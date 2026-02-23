@@ -20,7 +20,7 @@ export const UpdatingTimeCell: React.FC<UpdatingTimeCellProps> = ({
   
   return (
     <span className={className}>
-      {timeAgo}
+      {timeAgo ?? 'Unknown'}
     </span>
   );
 };

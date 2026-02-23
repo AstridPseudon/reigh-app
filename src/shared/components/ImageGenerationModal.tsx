@@ -15,8 +15,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { toast } from '@/shared/components/ui/sonner';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { ExternalLink } from 'lucide-react';
@@ -41,7 +40,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
   const queryClient = useQueryClient();
   const { getApiKey } = useApiKeys();
   const navigate = useNavigate();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const run = useTaskPlaceholder();
 
   const openaiApiKey = getApiKey('openai_api_key');
 
@@ -52,25 +51,18 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
       return [];
     }
 
-    const incomingTaskId = addIncomingTask({
+    await run({
       taskType: 'image_generation',
       label: taskParams.prompts?.[0]?.fullPrompt?.substring(0, 50) || 'Generating images...',
+      context: 'ImageGenerationModal',
+      toastTitle: 'Failed to create tasks',
+      create: () => createBatchImageGenerationTasks(taskParams),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
+      },
     });
-    try {
-      await createBatchImageGenerationTasks(taskParams);
-
-      // Invalidate generations to ensure they refresh when tasks complete
-      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
-
-    } catch (error) {
-      handleError(error, { context: 'ImageGenerationModal', toastTitle: 'Failed to create tasks' });
-    } finally {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
-    }
     return [];
-  }, [selectedProjectId, queryClient, addIncomingTask, removeIncomingTask]);
+  }, [selectedProjectId, queryClient, run]);
 
   const handleNavigateToTool = useCallback(() => {
     onClose();

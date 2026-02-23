@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/shared/utils/settingsMigration', () => ({
+vi.mock('@/shared/lib/settingsMigration', () => ({
   readSegmentOverrides: vi.fn(() => ({})),
 }));
 
@@ -10,7 +10,7 @@ vi.mock('../download', () => ({
 
 import { handleLightboxDownload } from '../lightboxDownload';
 import { downloadMedia } from '../download';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { GenerationRow } from '@/types/shots';
 

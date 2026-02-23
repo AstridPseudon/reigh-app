@@ -10,7 +10,7 @@
  */
 
 import type { ShotGeneration } from '@/shared/hooks/useTimelineCore';
-import { calculateAverageSpacing, DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
+import { calculateAverageSpacing, DEFAULT_FRAME_SPACING } from '@/shared/lib/timelinePositionCalculator';
 import { MAX_FRAME_GAP } from '@/shared/lib/timelineNormalization';
 
 // ============================================================================

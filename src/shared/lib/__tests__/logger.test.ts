@@ -29,7 +29,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock debugConfig used by reactProfilerOnRender
-vi.mock('./debugConfig', () => ({
+vi.mock('../debug/debugConfig', () => ({
   debugConfig: {
     isEnabled: vi.fn().mockReturnValue(false),
   },

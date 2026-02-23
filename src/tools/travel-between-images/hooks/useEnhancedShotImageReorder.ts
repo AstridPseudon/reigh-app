@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/sonner';
-import { handleError } from '@/shared/lib/errorHandler';
+import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { log } from '@/shared/lib/logger';
 import type { GenerationRow } from '@/types/shots';
 

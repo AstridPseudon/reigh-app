@@ -410,6 +410,100 @@ const ThumbnailMosaic: React.FC<ThumbnailMosaicProps> = ({
   );
 };
 
+interface ShotMetadataProps {
+  shotName: string;
+  isEditingName: boolean;
+  editableName: string;
+  onEditableNameChange: (value: string) => void;
+  onSaveName: () => void;
+  onCancelEdit: () => void;
+}
+
+const ShotMetadata: React.FC<ShotMetadataProps> = ({
+  shotName,
+  isEditingName,
+  editableName,
+  onEditableNameChange,
+  onSaveName,
+  onCancelEdit,
+}) => {
+  if (!isEditingName) {
+    return (
+      <h3 className="text-xl font-light group-hover:text-primary/80 transition-colors duration-300 flex-grow mr-2 truncate preserve-case">
+        {shotName}
+      </h3>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-grow" onClick={(e) => e.stopPropagation()}>
+      <Input
+        value={editableName}
+        onChange={(e) => onEditableNameChange(e.target.value)}
+        onBlur={onSaveName}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSaveName();
+          if (e.key === 'Escape') onCancelEdit();
+        }}
+        className="!text-xl font-light h-auto py-0 px-2 border-0 bg-transparent shadow-none focus:ring-0 focus:border-0"
+        autoFocus
+        maxLength={30}
+      />
+      <Button variant="ghost" size="icon" onClick={(e) => {
+        e.stopPropagation();
+        onSaveName();
+      }} className="h-9 w-9">
+        <Check className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={(e) => {
+        e.stopPropagation();
+        onCancelEdit();
+      }} className="h-9 w-9">
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+interface ShotControlsProps {
+  isTempShot: boolean;
+  displayImagesCount: number;
+  isEditingName: boolean;
+  dragHandleProps?: {
+    disabled?: boolean;
+    [key: string]: unknown;
+  };
+  dragDisabledReason?: string;
+  duplicateIsPending: boolean;
+  onVideoClick: () => void;
+  onEditName: (e?: React.MouseEvent) => void;
+  onDuplicate: (e?: React.MouseEvent) => void;
+  onDelete: (e?: React.MouseEvent) => void;
+}
+
+const ShotControls: React.FC<ShotControlsProps> = (props) => (
+  <ActionButtonsRow {...props} />
+);
+
+interface ShotPreviewProps {
+  displayImages: GenerationRow[];
+  pendingUploads: number;
+  imagesOverlay?: React.ReactNode;
+  finalVideo?: ShotFinalVideo;
+  showVideo: boolean;
+  onShowVideoChange: (show: boolean) => void;
+  projectAspectRatio?: string;
+  dropLoadingState: 'idle' | 'loading' | 'success';
+  onFinalVideoLightboxOpen: () => void;
+  showMobileSelect: boolean;
+  isSelectedForAddition: boolean;
+  onSelectShotForAddition: (e: React.MouseEvent) => void;
+}
+
+const ShotPreview: React.FC<ShotPreviewProps> = (props) => (
+  <ThumbnailMosaic {...props} />
+);
+
 // ---------------------------------------------------------------------------
 // VideoShotDisplay - main orchestrator component
 // ---------------------------------------------------------------------------
@@ -562,11 +656,6 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
     }
   };
 
-  const handleSaveNameClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    handleSaveName();
-  };
-
   const handleDeleteShot = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!currentProjectId) {
@@ -660,39 +749,19 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
         onClick={handleClick}
         data-tour={dataTour}
       >
-          <div className="flex justify-between items-start mb-3">
-          {isEditingName ? (
-            <div className="flex items-center gap-2 flex-grow" onClick={(e) => e.stopPropagation()}>
-              <Input
-                value={editableName}
-                onChange={(e) => setEditableName(e.target.value)}
-                onBlur={handleSaveName} // Save on blur
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveName();
-                  if (e.key === 'Escape') {
-                    setEditableName(shot.name);
-                    setIsEditingName(false);
-                  }
-                }}
-                className="!text-xl font-light h-auto py-0 px-2 border-0 bg-transparent shadow-none focus:ring-0 focus:border-0"
-                autoFocus
-                maxLength={30}
-              />
-              <Button variant="ghost" size="icon" onClick={handleSaveNameClick} className="h-9 w-9">
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleNameEditToggle} className="h-9 w-9">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <h3
-              className="text-xl font-light group-hover:text-primary/80 transition-colors duration-300 flex-grow mr-2 truncate preserve-case"
-            >
-              {shot.name}
-            </h3>
-          )}
-          <ActionButtonsRow
+        <div className="flex justify-between items-start mb-3">
+          <ShotMetadata
+            shotName={shot.name}
+            isEditingName={isEditingName}
+            editableName={editableName}
+            onEditableNameChange={setEditableName}
+            onSaveName={handleSaveName}
+            onCancelEdit={() => {
+              setEditableName(shot.name);
+              setIsEditingName(false);
+            }}
+          />
+          <ShotControls
             isTempShot={isTempShot}
             displayImagesCount={displayImages.length}
             isEditingName={isEditingName}
@@ -707,7 +776,7 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
         </div>
 
         {/* Thumbnail mosaic area - matches ShotGroup style */}
-        <ThumbnailMosaic
+        <ShotPreview
           displayImages={displayImages}
           pendingUploads={pendingUploads}
           imagesOverlay={imagesOverlay}

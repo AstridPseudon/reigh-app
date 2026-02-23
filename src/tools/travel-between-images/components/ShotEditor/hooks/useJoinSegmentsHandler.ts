@@ -12,12 +12,11 @@ import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { createJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
-import { getErrorMessage } from '@/shared/lib/errorHandling/errorUtils';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { GenerationRow } from '@/types/shots';
 import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
 import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID } from '@/shared/lib/vaceDefaults';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 import type { SegmentSlot } from '@/shared/hooks/segments/useSegmentOutputsForShot';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 
@@ -89,7 +88,7 @@ export function useJoinSegmentsHandler({
   joinSettings,
 }: UseJoinSegmentsHandlerProps): UseJoinSegmentsHandlerReturn {
   const queryClient = useQueryClient();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const runPlaceholder = useTaskPlaceholder();
 
   // Local state
   const [isJoiningClips, setIsJoiningClips] = useState(false);
@@ -141,96 +140,95 @@ export function useJoinSegmentsHandler({
       selectedPhasePresetId: joinSelectedPhasePresetId,
     } = joinSettings;
 
-    // Add incoming task immediately for instant TasksPane feedback
     const taskLabel = joinPrompt
       ? (joinPrompt.length > 50 ? joinPrompt.substring(0, 50) + '...' : joinPrompt)
       : `Join ${joinValidationData.videoCount} segments`;
-    const incomingTaskId = addIncomingTask({
-      taskType: 'join_clips_orchestrator',
-      label: taskLabel,
-    });
 
     setIsJoiningClips(true);
 
     try {
-      // Get ordered segments from segmentSlots (already sorted by pair position)
-      const orderedSegments = joinSegmentSlots
-        .filter((slot): slot is { type: 'child'; child: GenerationRow; index: number } =>
-          slot.type === 'child' && Boolean(slot.child?.location)
-        )
-        .map(slot => slot.child);
+      await runPlaceholder({
+        taskType: 'join_clips_orchestrator',
+        label: taskLabel,
+        context: 'JoinSegments',
+        toastTitle: 'Failed to create join task',
+        create: async () => {
+          // Get ordered segments from segmentSlots (already sorted by pair position)
+          const orderedSegments = joinSegmentSlots
+            .filter((slot): slot is { type: 'child'; child: GenerationRow; index: number } =>
+              slot.type === 'child' && Boolean(slot.child?.location)
+            )
+            .map(slot => slot.child);
 
-      // Fetch fresh URLs from database
-      const videoIds = orderedSegments.map(v => v.id).filter(Boolean);
-      const { data: freshVideos, error: fetchError } = await supabase
-        .from('generations')
-        .select('id, location')
-        .in('id', videoIds);
+          // Fetch fresh URLs from database
+          const videoIds = orderedSegments.map(v => v.id).filter(Boolean);
+          const { data: freshVideos, error: fetchError } = await supabase
+            .from('generations')
+            .select('id, location')
+            .in('id', videoIds);
 
-      if (fetchError) {
-        handleError(fetchError, { context: 'JoinSegments', showToast: false });
-        throw new Error('Failed to fetch video URLs');
-      }
+          if (fetchError) {
+            handleError(fetchError, { context: 'JoinSegments', showToast: false });
+            throw new Error('Failed to fetch video URLs');
+          }
 
-      const freshUrlMap = new Map(freshVideos?.map(v => [v.id, v.location]) || []);
+          const freshUrlMap = new Map(freshVideos?.map(v => [v.id, v.location]) || []);
 
-      const clips = orderedSegments.map((video, index) => ({
-        url: freshUrlMap.get(video.id) || video.location || '',
-        name: `Segment ${index + 1}`,
-      })).filter(c => c.url);
+          const clips = orderedSegments.map((video, index) => ({
+            url: freshUrlMap.get(video.id) || video.location || '',
+            name: `Segment ${index + 1}`,
+          })).filter(c => c.url);
 
-      // Convert selected LoRAs
-      const lorasForTask = joinLoraManager.selectedLoras.map(lora => ({
-        path: lora.path,
-        strength: lora.strength,
-      }));
+          // Convert selected LoRAs
+          const lorasForTask = joinLoraManager.selectedLoras.map(lora => ({
+            path: lora.path,
+            strength: lora.strength,
+          }));
 
-      // Parse resolution from aspect ratio
-      let resolutionTuple: [number, number] | undefined;
-      if (effectiveAspectRatio && ASPECT_RATIO_TO_RESOLUTION[effectiveAspectRatio]) {
-        const res = ASPECT_RATIO_TO_RESOLUTION[effectiveAspectRatio];
-        const [w, h] = res.split('x').map(Number);
-        if (w && h) {
-          resolutionTuple = [w, h];
-        }
-      }
+          // Parse resolution from aspect ratio
+          let resolutionTuple: [number, number] | undefined;
+          if (effectiveAspectRatio && ASPECT_RATIO_TO_RESOLUTION[effectiveAspectRatio]) {
+            const res = ASPECT_RATIO_TO_RESOLUTION[effectiveAspectRatio];
+            const [w, h] = res.split('x').map(Number);
+            if (w && h) {
+              resolutionTuple = [w, h];
+            }
+          }
 
-      await createJoinClipsTask({
-        project_id: projectId,
-        shot_id: selectedShotId,
-        clips,
-        prompt: joinPrompt,
-        negative_prompt: joinNegativePrompt,
-        context_frame_count: joinContextFrames,
-        gap_frame_count: joinGapFrames,
-        replace_mode: joinReplaceMode,
-        keep_bridging_images: joinKeepBridgingImages,
-        enhance_prompt: joinEnhancePrompt,
-        model: joinSettings.model,
-        num_inference_steps: joinSettings.numInferenceSteps,
-        guidance_scale: joinSettings.guidanceScale,
-        seed: joinSettings.seed,
-        parent_generation_id: joinSelectedParent?.id,
-        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
-        use_input_video_resolution: false,
-        use_input_video_fps: false,
-        motion_mode: joinMotionMode,
-        selected_phase_preset_id: joinSelectedPhasePresetId ?? null,
-        ...(lorasForTask.length > 0 && { loras: lorasForTask }),
-        ...(resolutionTuple && { resolution: resolutionTuple }),
-        ...(audioUrl && { audio_url: audioUrl }),
-        ...(joinPhaseConfig && { phase_config: joinPhaseConfig }),
+          return createJoinClipsTask({
+            project_id: projectId,
+            shot_id: selectedShotId,
+            clips,
+            prompt: joinPrompt,
+            negative_prompt: joinNegativePrompt,
+            context_frame_count: joinContextFrames,
+            gap_frame_count: joinGapFrames,
+            replace_mode: joinReplaceMode,
+            keep_bridging_images: joinKeepBridgingImages,
+            enhance_prompt: joinEnhancePrompt,
+            model: joinSettings.model,
+            num_inference_steps: joinSettings.numInferenceSteps,
+            guidance_scale: joinSettings.guidanceScale,
+            seed: joinSettings.seed,
+            parent_generation_id: joinSelectedParent?.id,
+            tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
+            use_input_video_resolution: false,
+            use_input_video_fps: false,
+            motion_mode: joinMotionMode,
+            selected_phase_preset_id: joinSelectedPhasePresetId ?? null,
+            ...(lorasForTask.length > 0 && { loras: lorasForTask }),
+            ...(resolutionTuple && { resolution: resolutionTuple }),
+            ...(audioUrl && { audio_url: audioUrl }),
+            ...(joinPhaseConfig && { phase_config: joinPhaseConfig }),
+          });
+        },
+        onSuccess: () => {
+          setJoinClipsSuccess(true);
+          setTimeout(() => setJoinClipsSuccess(false), 1500);
+          queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
+        },
       });
-
-      setJoinClipsSuccess(true);
-      setTimeout(() => setJoinClipsSuccess(false), 1500);
-      queryClient.invalidateQueries({ queryKey: taskQueryKeys.all });
-    } catch (error: unknown) {
-      handleError(error, { context: 'JoinSegments', toastTitle: getErrorMessage(error) || 'Failed to create join task' });
     } finally {
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
       setIsJoiningClips(false);
     }
   }, [
@@ -244,8 +242,7 @@ export function useJoinSegmentsHandler({
     audioUrl,
     joinSelectedParent,
     queryClient,
-    addIncomingTask,
-    removeIncomingTask,
+    runPlaceholder,
   ]);
 
   // Handler to restore join clips defaults

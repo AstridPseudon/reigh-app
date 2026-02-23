@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { useRenderLogger, useChangedDepsLogger } from '../debugRendering';
+import { useRenderLogger, useChangedDepsLogger } from '../debug/debugRendering';
 
 describe('debugRendering', () => {
   it('exports expected members', () => {

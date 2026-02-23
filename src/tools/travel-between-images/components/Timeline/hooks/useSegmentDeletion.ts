@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
-import { handleError } from '@/shared/lib/errorHandler';
+import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { log } from '@/shared/lib/logger';
 
 const SEGMENT_DELETE_LOG_PREFIX = '[SegmentDeletePersist]';

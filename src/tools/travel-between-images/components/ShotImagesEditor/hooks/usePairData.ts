@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import type { PairData } from '../../Timeline/TimelineContainer';
 import type { GenerationRow } from '@/types/shots';
 import { isVideoAny } from '@/shared/lib/typeGuards';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 
 interface UsePairDataProps {
   /** Shot generations (images) */

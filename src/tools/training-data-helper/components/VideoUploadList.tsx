@@ -35,7 +35,7 @@ const VideoUploadTimestamp: React.FC<{ createdAt: string }> = ({ createdAt }) =>
     abbreviate: abbreviateDistance
   });
   
-  return <span>Uploaded: {timeAgo}</span>;
+  return <span>Uploaded: {timeAgo ?? 'Unknown'}</span>;
 };
 
 interface VideoUploadListProps {

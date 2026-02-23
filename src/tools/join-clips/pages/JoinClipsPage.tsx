@@ -390,58 +390,64 @@ function JoinClipsPageLayout({
 
         <Card className="p-6 sm:p-8 shadow-sm border">
           <JoinClipsSettingsForm
-            gapFrames={settings.gapFrameCount}
-            setGapFrames={(value) => joinSettings.updateField('gapFrameCount', value)}
-            contextFrames={settings.contextFrameCount}
-            setContextFrames={(value) => joinSettings.updateField('contextFrameCount', value)}
-            replaceMode={settings.replaceMode}
-            setReplaceMode={(value) => joinSettings.updateField('replaceMode', value)}
-            keepBridgingImages={settings.keepBridgingImages}
-            setKeepBridgingImages={(value) => joinSettings.updateField('keepBridgingImages', value)}
-            prompt={settings.prompt}
-            setPrompt={(value) => joinSettings.updateField('prompt', value)}
-            negativePrompt={settings.negativePrompt}
-            setNegativePrompt={(value) => joinSettings.updateField('negativePrompt', value)}
-            useIndividualPrompts={settings.useIndividualPrompts}
-            setUseIndividualPrompts={(value) => joinSettings.updateField('useIndividualPrompts', value)}
-            clipCount={clipManager.clips.filter(clip => clip.url).length}
-            enhancePrompt={settings.enhancePrompt}
-            setEnhancePrompt={(value) => joinSettings.updateField('enhancePrompt', value)}
-            useInputVideoResolution={settings.useInputVideoResolution}
-            setUseInputVideoResolution={(value) => joinSettings.updateField('useInputVideoResolution', value)}
-            showResolutionToggle={true}
-            useInputVideoFps={settings.useInputVideoFps}
-            setUseInputVideoFps={(value) => joinSettings.updateField('useInputVideoFps', value)}
-            showFpsToggle={true}
-            noisedInputVideo={settings.noisedInputVideo}
-            setNoisedInputVideo={(value) => joinSettings.updateField('noisedInputVideo', value)}
-            availableLoras={availableLoras}
-            projectId={selectedProjectId}
-            loraPersistenceKey={TOOL_IDS.JOIN_CLIPS}
-            loraManager={loraManager}
-            onGenerate={generateState.handleGenerate}
-            isGenerating={generateState.generateJoinClipsMutation.isPending}
-            generateSuccess={generateState.showSuccessState}
-            generateButtonText={generateState.generateButtonText}
-            isGenerateDisabled={generateState.isGenerateDisabled}
-            onRestoreDefaults={generateState.handleRestoreDefaults}
-            shortestClipFrames={validationResult?.shortestClipFrames}
-            clipPairs={clipPairs}
-            motionMode={settings.motionMode as 'basic' | 'advanced'}
-            onMotionModeChange={(mode) => joinSettings.updateField('motionMode', mode)}
-            phaseConfig={settings.phaseConfig ?? DEFAULT_JOIN_CLIPS_PHASE_CONFIG}
-            onPhaseConfigChange={(config) => joinSettings.updateField('phaseConfig', config)}
-            randomSeed={settings.randomSeed}
-            onRandomSeedChange={(value) => joinSettings.updateField('randomSeed', value)}
-            selectedPhasePresetId={settings.selectedPhasePresetId}
-            onPhasePresetSelect={(presetId, config) => {
-              joinSettings.updateFields({
-                selectedPhasePresetId: presetId,
-                phaseConfig: config,
-              });
+            clipSettings={{
+              gapFrames: settings.gapFrameCount,
+              setGapFrames: (value) => joinSettings.updateField('gapFrameCount', value),
+              contextFrames: settings.contextFrameCount,
+              setContextFrames: (value) => joinSettings.updateField('contextFrameCount', value),
+              replaceMode: settings.replaceMode,
+              setReplaceMode: (value) => joinSettings.updateField('replaceMode', value),
+              keepBridgingImages: settings.keepBridgingImages,
+              setKeepBridgingImages: (value) => joinSettings.updateField('keepBridgingImages', value),
+              prompt: settings.prompt,
+              setPrompt: (value) => joinSettings.updateField('prompt', value),
+              negativePrompt: settings.negativePrompt,
+              setNegativePrompt: (value) => joinSettings.updateField('negativePrompt', value),
+              useIndividualPrompts: settings.useIndividualPrompts,
+              setUseIndividualPrompts: (value) => joinSettings.updateField('useIndividualPrompts', value),
+              clipCount: clipManager.clips.filter(clip => clip.url).length,
+              enhancePrompt: settings.enhancePrompt,
+              setEnhancePrompt: (value) => joinSettings.updateField('enhancePrompt', value),
+              useInputVideoResolution: settings.useInputVideoResolution,
+              setUseInputVideoResolution: (value) => joinSettings.updateField('useInputVideoResolution', value),
+              showResolutionToggle: true,
+              useInputVideoFps: settings.useInputVideoFps,
+              setUseInputVideoFps: (value) => joinSettings.updateField('useInputVideoFps', value),
+              showFpsToggle: true,
+              noisedInputVideo: settings.noisedInputVideo,
+              setNoisedInputVideo: (value) => joinSettings.updateField('noisedInputVideo', value),
+              shortestClipFrames: validationResult?.shortestClipFrames,
+              clipPairs,
             }}
-            onPhasePresetRemove={() => {
-              joinSettings.updateField('selectedPhasePresetId', null);
+            motionConfig={{
+              availableLoras,
+              projectId: selectedProjectId,
+              loraPersistenceKey: TOOL_IDS.JOIN_CLIPS,
+              loraManager,
+              motionMode: settings.motionMode as 'basic' | 'advanced',
+              onMotionModeChange: (mode) => joinSettings.updateField('motionMode', mode),
+              phaseConfig: settings.phaseConfig ?? DEFAULT_JOIN_CLIPS_PHASE_CONFIG,
+              onPhaseConfigChange: (config) => joinSettings.updateField('phaseConfig', config),
+              randomSeed: settings.randomSeed,
+              onRandomSeedChange: (value) => joinSettings.updateField('randomSeed', value),
+              selectedPhasePresetId: settings.selectedPhasePresetId,
+              onPhasePresetSelect: (presetId, config) => {
+                joinSettings.updateFields({
+                  selectedPhasePresetId: presetId,
+                  phaseConfig: config,
+                });
+              },
+              onPhasePresetRemove: () => {
+                joinSettings.updateField('selectedPhasePresetId', null);
+              },
+            }}
+            uiState={{
+              onGenerate: generateState.handleGenerate,
+              isGenerating: generateState.isGenerating,
+              generateSuccess: generateState.showSuccessState,
+              generateButtonText: generateState.generateButtonText,
+              isGenerateDisabled: generateState.isGenerateDisabled,
+              onRestoreDefaults: generateState.handleRestoreDefaults,
             }}
           />
         </Card>

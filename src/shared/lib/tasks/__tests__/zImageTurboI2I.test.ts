@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createBatchZImageTurboI2ITasks } from '../zImageTurboI2I';
+import { createBatchZImageTurboImageToImageTasks } from '../zImageTurboI2I';
 
 const mockCreateTask = vi.fn();
 const mockProcessBatchResults = vi.fn();
@@ -38,7 +38,7 @@ vi.mock('@/shared/lib/errorHandler', () => ({
   handleError: vi.fn(),
 }));
 
-describe('createBatchZImageTurboI2ITasks', () => {
+describe('createBatchZImageTurboImageToImageTasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreateTask.mockResolvedValue({ task_id: 'task-1', status: 'pending' });
@@ -50,7 +50,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
   });
 
   it('creates a single task with defaults', async () => {
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 1,
@@ -79,7 +79,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
       .mockResolvedValueOnce({ task_id: 'task-2', status: 'pending' })
       .mockResolvedValueOnce({ task_id: 'task-3', status: 'pending' });
 
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 3,
@@ -93,7 +93,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
   });
 
   it('passes custom params through', async () => {
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 1,
@@ -109,7 +109,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
   });
 
   it('includes lineage tracking fields', async () => {
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 1,
@@ -129,7 +129,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
   });
 
   it('sets acceleration to "none" when loras provided', async () => {
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 1,
@@ -144,7 +144,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
   });
 
   it('uses "high" acceleration without loras', async () => {
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 1,
@@ -156,7 +156,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
   });
 
   it('defaults lora scale to 1.0', async () => {
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 1,
@@ -169,7 +169,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('includes seed when provided and increments per task', async () => {
     // Mock Math.random to not be called (seed is explicitly provided)
-    await createBatchZImageTurboI2ITasks({
+    await createBatchZImageTurboImageToImageTasks({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
       numImages: 3,
@@ -183,7 +183,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('throws on empty image URL', async () => {
     await expect(
-      createBatchZImageTurboI2ITasks({
+      createBatchZImageTurboImageToImageTasks({
         project_id: 'proj-1',
         image_url: '   ',
         numImages: 1,
@@ -193,7 +193,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('throws on invalid URL format', async () => {
     await expect(
-      createBatchZImageTurboI2ITasks({
+      createBatchZImageTurboImageToImageTasks({
         project_id: 'proj-1',
         image_url: 'not-a-url',
         numImages: 1,
@@ -203,7 +203,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('throws on strength out of range', async () => {
     await expect(
-      createBatchZImageTurboI2ITasks({
+      createBatchZImageTurboImageToImageTasks({
         project_id: 'proj-1',
         image_url: 'https://example.com/image.jpg',
         numImages: 1,
@@ -214,7 +214,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('throws on numImages out of range', async () => {
     await expect(
-      createBatchZImageTurboI2ITasks({
+      createBatchZImageTurboImageToImageTasks({
         project_id: 'proj-1',
         image_url: 'https://example.com/image.jpg',
         numImages: 20,
@@ -224,7 +224,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('throws on invalid lora path', async () => {
     await expect(
-      createBatchZImageTurboI2ITasks({
+      createBatchZImageTurboImageToImageTasks({
         project_id: 'proj-1',
         image_url: 'https://example.com/image.jpg',
         numImages: 1,
@@ -235,7 +235,7 @@ describe('createBatchZImageTurboI2ITasks', () => {
 
   it('throws on lora scale out of range', async () => {
     await expect(
-      createBatchZImageTurboI2ITasks({
+      createBatchZImageTurboImageToImageTasks({
         project_id: 'proj-1',
         image_url: 'https://example.com/image.jpg',
         numImages: 1,

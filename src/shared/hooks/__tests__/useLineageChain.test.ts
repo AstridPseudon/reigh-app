@@ -4,29 +4,26 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 const mockSingle = vi.fn();
+const mockEq = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: (...args: unknown[]) => mockSingle(...args),
-        }),
-      }),
+      select: vi.fn().mockImplementation(() => ({
+        eq: (...args: unknown[]) => mockEq(...args),
+      })),
     }),
   },
 }));
 
-vi.mock('@/shared/lib/errorHandler', () => ({
+vi.mock('@/shared/lib/errorHandling/handleError', () => ({
   handleError: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/queryKeys', () => ({
-  queryKeys: {
-    generations: {
-      lineageChain: (id: string) => ['generations', 'lineage', id],
-      derived: (id: string) => ['generations', 'derived', id],
-    },
+vi.mock('@/shared/lib/queryKeys/generations', () => ({
+  generationQueryKeys: {
+    lineageChain: (id: string) => ['generations', 'lineage', id],
+    derived: (id: string) => ['generations', 'derived', id],
   },
 }));
 
@@ -57,13 +54,31 @@ describe('useLineageChain', () => {
   });
 
   it('fetches single variant (no lineage) correctly', async () => {
+    mockEq
+      .mockReturnValueOnce({
+        single: (...args: unknown[]) => mockSingle(...args),
+      })
+      .mockResolvedValueOnce({
+        data: [{
+          id: 'variant-1',
+          generation_id: 'gen-1',
+          params: {},
+          location: 'https://example.com/v1.jpg',
+          thumbnail_url: 'https://example.com/v1-thumb.jpg',
+          created_at: '2024-01-01T00:00:00Z',
+          variant_type: 'inpaint',
+        }],
+        error: null,
+      });
+
     mockSingle.mockResolvedValueOnce({
       data: {
         id: 'variant-1',
+        generation_id: 'gen-1',
+        params: {},
         location: 'https://example.com/v1.jpg',
         thumbnail_url: 'https://example.com/v1-thumb.jpg',
         created_at: '2024-01-01T00:00:00Z',
-        params: {},
         variant_type: 'inpaint',
       },
       error: null,
@@ -80,35 +95,50 @@ describe('useLineageChain', () => {
 
     expect(result.current.chain).toHaveLength(1);
     expect(result.current.chain[0].id).toBe('variant-1');
-    expect(result.current.hasLineage).toBe(false); // Single item = no lineage
+    expect(result.current.hasLineage).toBe(false);
   });
 
   it('follows source_variant_id chain for lineage', async () => {
-    // First call returns the current variant with a source_variant_id
-    mockSingle
-      .mockResolvedValueOnce({
-        data: {
-          id: 'variant-2',
-          location: 'https://example.com/v2.jpg',
-          thumbnail_url: null,
-          created_at: '2024-01-02T00:00:00Z',
-          params: { source_variant_id: 'variant-1' },
-          variant_type: 'outpaint',
-        },
-        error: null,
+    mockEq
+      .mockReturnValueOnce({
+        single: (...args: unknown[]) => mockSingle(...args),
       })
-      // Second call returns the ancestor
       .mockResolvedValueOnce({
-        data: {
-          id: 'variant-1',
-          location: 'https://example.com/v1.jpg',
-          thumbnail_url: 'https://example.com/v1-thumb.jpg',
-          created_at: '2024-01-01T00:00:00Z',
-          params: {}, // No further ancestor
-          variant_type: 'inpaint',
-        },
+        data: [
+          {
+            id: 'variant-2',
+            generation_id: 'gen-1',
+            params: { source_variant_id: 'variant-1' },
+            location: 'https://example.com/v2.jpg',
+            thumbnail_url: null,
+            created_at: '2024-01-02T00:00:00Z',
+            variant_type: 'outpaint',
+          },
+          {
+            id: 'variant-1',
+            generation_id: 'gen-1',
+            params: {},
+            location: 'https://example.com/v1.jpg',
+            thumbnail_url: 'https://example.com/v1-thumb.jpg',
+            created_at: '2024-01-01T00:00:00Z',
+            variant_type: 'inpaint',
+          },
+        ],
         error: null,
       });
+
+    mockSingle.mockResolvedValueOnce({
+      data: {
+        id: 'variant-2',
+        generation_id: 'gen-1',
+        params: { source_variant_id: 'variant-1' },
+        location: 'https://example.com/v2.jpg',
+        thumbnail_url: null,
+        created_at: '2024-01-02T00:00:00Z',
+        variant_type: 'outpaint',
+      },
+      error: null,
+    });
 
     const { result } = renderHook(
       () => useLineageChain('variant-2'),
@@ -120,13 +150,16 @@ describe('useLineageChain', () => {
     });
 
     expect(result.current.chain).toHaveLength(2);
-    // Chain is oldest to newest
     expect(result.current.chain[0].id).toBe('variant-1');
     expect(result.current.chain[1].id).toBe('variant-2');
     expect(result.current.hasLineage).toBe(true);
   });
 
   it('handles errors during fetch', async () => {
+    mockEq.mockReturnValueOnce({
+      single: (...args: unknown[]) => mockSingle(...args),
+    });
+
     mockSingle.mockResolvedValueOnce({
       data: null,
       error: { message: 'Not found' },
@@ -141,13 +174,14 @@ describe('useLineageChain', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Chain should be empty since the fetch failed
     expect(result.current.chain).toEqual([]);
     expect(result.current.hasLineage).toBe(false);
   });
 
   it('provides loading state while fetching', () => {
-    mockSingle.mockImplementation(() => new Promise(() => {})); // Never resolves
+    mockEq.mockReturnValueOnce({
+      single: () => new Promise(() => {}),
+    });
 
     const { result } = renderHook(
       () => useLineageChain('variant-1'),

@@ -21,6 +21,7 @@ import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individual
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type { StructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages';
+import type { RunTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 // ============================================================================
 // Structure Video Config Builder (shared between SegmentRegenerateForm & SegmentSlotFormView)
@@ -117,10 +118,9 @@ interface SubmitSegmentTaskInput {
   images: SegmentTaskImageContext;
   /** Task context */
   task: SegmentTaskContext;
-  /** Incoming tasks API */
-  addIncomingTask: (opts: { taskType: string; label: string }) => string;
-  removeIncomingTask: (id: string) => void;
-  /** React Query client for invalidation */
+  /** Task placeholder runner (from useTaskPlaceholder) */
+  run: RunTaskPlaceholder;
+  /** React Query client for invalidation (for metadata save) */
   queryClient: QueryClient;
   /** Optional callback when generation starts (for optimistic UI) */
   onGenerateStarted?: () => void;
@@ -175,21 +175,12 @@ function applyPromptAffixes(settings: EffectiveSettings, prompt: string): string
   return [beforeText, prompt.trim(), afterText].filter(Boolean).join(' ');
 }
 
-async function createTaskOrThrow(taskParams: ReturnType<BuildTaskParams>): Promise<void> {
+async function createTaskOrThrow(taskParams: ReturnType<BuildTaskParams>): Promise<string> {
   const result = await createIndividualTravelSegmentTask(taskParams);
   if (!result.task_id) {
     throw new Error(result.error || 'Failed to create task');
   }
-}
-
-async function cleanupSubmission(
-  queryClient: QueryClient,
-  removeIncomingTask: (id: string) => void,
-  incomingTaskId: string,
-): Promise<void> {
-  await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-  await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-  removeIncomingTask(incomingTaskId);
+  return result.task_id;
 }
 
 async function saveEnhancedPromptMetadata(
@@ -241,11 +232,11 @@ async function maybeSaveSettings(runtime: SubmitSegmentRuntime): Promise<void> {
   }
 }
 
-async function submitStandardSegmentTask(runtime: SubmitSegmentRuntime): Promise<void> {
+async function submitStandardSegmentTask(runtime: SubmitSegmentRuntime): Promise<string> {
   await maybeSaveSettings(runtime);
   const finalPrompt = applyPromptAffixes(runtime.effectiveSettings, runtime.effectiveSettings.prompt?.trim() || '');
   const taskParams = runtime.buildParams(finalPrompt);
-  await createTaskOrThrow(taskParams);
+  return createTaskOrThrow(taskParams);
 }
 
 async function enhanceSegmentPrompt(
@@ -273,7 +264,7 @@ async function submitEnhancedSegmentTask(
   runtime: SubmitSegmentRuntime,
   promptToEnhance: string,
   defaultNumFrames: number,
-): Promise<void> {
+): Promise<string> {
   await maybeSaveSettings(runtime);
 
   const enhancedPromptResult = await enhanceSegmentPrompt(runtime, promptToEnhance, defaultNumFrames);
@@ -290,13 +281,13 @@ async function submitEnhancedSegmentTask(
   );
 
   const taskParams = runtime.buildParams(originalPromptWithAffixes, enhancedPromptWithAffixes);
-  await createTaskOrThrow(taskParams);
+  return createTaskOrThrow(taskParams);
 }
 
 /**
  * Submit a segment task, handling both enhanced and standard prompt paths.
- * Returns immediately after adding the incoming task placeholder.
- * The actual task creation runs in the background (fire-and-forget).
+ * Uses the task placeholder runner for lifecycle management.
+ * Returns immediately — task creation runs in the background (fire-and-forget).
  */
 export function submitSegmentTask(input: SubmitSegmentTaskInput): void {
   const {
@@ -310,8 +301,7 @@ export function submitSegmentTask(input: SubmitSegmentTaskInput): void {
     defaultNumFrames,
     images,
     task,
-    addIncomingTask,
-    removeIncomingTask,
+    run,
     queryClient,
     onGenerateStarted,
   } = input;
@@ -319,12 +309,6 @@ export function submitSegmentTask(input: SubmitSegmentTaskInput): void {
   const effectiveSettings = getSettings();
   const promptToEnhance = enhancedPrompt?.trim() || effectiveSettings.prompt?.trim() || '';
   const buildParams = buildSubmitParamsBuilder(effectiveSettings, task, images);
-
-  // Add placeholder for immediate feedback
-  const incomingTaskId = addIncomingTask({
-    taskType: 'individual_travel_segment',
-    label: taskLabel,
-  });
 
   // Notify parent for optimistic UI
   onGenerateStarted?.();
@@ -339,18 +323,17 @@ export function submitSegmentTask(input: SubmitSegmentTaskInput): void {
     buildParams,
   };
 
-  // Fire and forget - run in background
-  void (async () => {
-    try {
+  // Fire and forget — run() handles add/resolve/refetch/remove/error lifecycle
+  void run({
+    taskType: 'individual_travel_segment',
+    label: taskLabel,
+    context: errorContext,
+    toastTitle: 'Failed to create task',
+    create: async () => {
       if (shouldEnhance && promptToEnhance) {
-        await submitEnhancedSegmentTask(runtime, promptToEnhance, defaultNumFrames);
-      } else {
-        await submitStandardSegmentTask(runtime);
+        return submitEnhancedSegmentTask(runtime, promptToEnhance, defaultNumFrames);
       }
-    } catch (error) {
-      handleError(error, { context: errorContext, toastTitle: 'Failed to create task' });
-    } finally {
-      await cleanupSubmission(queryClient, removeIncomingTask, incomingTaskId);
-    }
-  })();
+      return submitStandardSegmentTask(runtime);
+    },
+  });
 }

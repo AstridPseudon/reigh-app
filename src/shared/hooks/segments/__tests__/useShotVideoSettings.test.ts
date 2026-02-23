@@ -15,7 +15,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('@/shared/utils/settingsMigration', () => ({
+vi.mock('@/shared/lib/settingsMigration', () => ({
   readShotSettings: vi.fn((raw: unknown) => raw),
 }));
 

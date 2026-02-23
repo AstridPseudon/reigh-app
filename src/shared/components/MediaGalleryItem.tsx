@@ -35,7 +35,7 @@ import { useTaskType } from "@/shared/hooks/useTaskType";
 import { useGetTask } from "@/shared/hooks/useTasks";
 import { useShareGeneration } from "@/shared/hooks/useShareGeneration";
 import { deriveInputImages } from "./MediaGallery/utils";
-import { isImageEditTaskType } from "@/shared/utils/taskParamsUtils";
+import { isImageEditTaskType } from "@/shared/lib/taskParamsUtils";
 import { VariantBadge } from "@/shared/components/VariantBadge";
 import { useMarkVariantViewed } from "@/shared/hooks/useMarkVariantViewed";
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';

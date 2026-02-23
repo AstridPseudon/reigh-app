@@ -5,7 +5,7 @@ import { buildBatchTaskParams } from '../buildBatchTaskParams';
 import { buildReferenceParams } from './referenceParams';
 import type { FormStateSnapshot, GetTaskParams, UseFormSubmissionProps } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
-import { toPromptEntries, truncateLabel } from './utils';
+import { toPromptEntries, truncateLabel } from './promptSubmissionTransforms';
 
 interface UseSubmitHandlerInput {
   effectivePromptMode: UseFormSubmissionProps['effectivePromptMode'];
@@ -73,7 +73,6 @@ export function useSubmitHandler(input: UseSubmitHandlerInput): (event: FormEven
       runIncomingTask({
         label: truncateLabel(state.masterPromptText),
         expectedCount: state.imagesPerPrompt * state.promptMultiplier,
-        projectIdForCounts: state.selectedProjectId,
         context: 'useFormSubmission.handleSubmit.automatedMode',
         toastTitle: 'Failed to generate prompts. Please try again.',
         execute: async () => {
@@ -107,7 +106,8 @@ export function useSubmitHandler(input: UseSubmitHandlerInput): (event: FormEven
             referenceParams,
           });
 
-          await onGenerate(taskParams);
+          const result = await onGenerate(taskParams);
+          return result || undefined;
         },
       });
 
@@ -126,11 +126,11 @@ export function useSubmitHandler(input: UseSubmitHandlerInput): (event: FormEven
     runIncomingTask({
       label: truncateLabel(firstPrompt),
       expectedCount: actionablePromptsCount * state.imagesPerPrompt,
-      projectIdForCounts: state.selectedProjectId,
       context: 'useFormSubmission.handleSubmit.managedMode',
       toastTitle: 'Failed to create tasks. Please try again.',
       execute: async () => {
-        await onGenerate(taskParams);
+        const result = await onGenerate(taskParams);
+        return result || undefined;
       },
     });
   }, [

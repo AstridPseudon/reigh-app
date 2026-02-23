@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useToolSettings } from './useToolSettings';
-import { useRenderLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { useDebouncedSettingsSave } from './useDebouncedSettingsSave';
 import { deepEqual } from '@/shared/lib/deepEqual';
 import { handleError } from '@/shared/lib/errorHandling/handleError';

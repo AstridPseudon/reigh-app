@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useGetTask } from '@/shared/hooks/useTasks';
-import { deriveInputImages } from '@/shared/utils/taskParamsUtils';
+import { deriveInputImages } from '@/shared/lib/taskParamsUtils';
 import { Task } from '@/types/tasks';
 
 interface UseGenerationDetailsOptions {

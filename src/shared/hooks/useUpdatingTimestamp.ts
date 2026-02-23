@@ -28,7 +28,7 @@ export function useUpdatingTimestamp({
   date, 
   abbreviate = abbreviateRelativeTime,
   disabled = false 
-}: UseUpdatingTimestampOptions = {}) {
+}: UseUpdatingTimestampOptions = {}): string | null {
   
   const parsedDate = useMemo(() => {
     if (!date) return null;
@@ -45,7 +45,7 @@ export function useUpdatingTimestamp({
   
   // Format timestamp with live updates
   const formattedTime = useMemo(() => {
-    if (!parsedDate) return 'Unknown';
+    if (!parsedDate) return null;
     void updateTrigger;
     
     const formatted = formatDistanceToNow(parsedDate, { addSuffix: true });

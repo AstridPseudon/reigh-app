@@ -13,7 +13,7 @@ function ToastList() {
 
   return (
     <Toast.Viewport
-      className="fixed bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col gap-2 p-4 md:max-w-[420px]"
+      className="fixed bottom-0 right-0 z-[100002] flex max-h-screen w-full flex-col gap-2 p-4 md:max-w-[420px]"
     >
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} />

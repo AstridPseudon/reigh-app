@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef, type MouseEvent } from 'react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -38,7 +38,7 @@ interface ConfirmDialogProps extends ConfirmOptions {
   /** Callback when the open state changes */
   onOpenChange: (open: boolean) => void;
   /** Callback when confirmed */
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   /** Callback when cancelled (optional - default just closes) */
   onCancel?: () => void;
   /** Whether the confirm action is loading */
@@ -75,22 +75,29 @@ export function ConfirmDialog({
   onCancel,
   isLoading = false,
 }: ConfirmDialogProps) {
+  const suppressNextCloseRef = useRef(false);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && suppressNextCloseRef.current) {
+      suppressNextCloseRef.current = false;
+      return;
+    }
+    onOpenChange(nextOpen);
+  };
+
   const handleCancel = () => {
     onCancel?.();
     onOpenChange(false);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    suppressNextCloseRef.current = true;
     onConfirm();
-    // Don't close automatically - let the parent handle it after async action completes
-    // This allows showing loading state
-    if (!isLoading) {
-      onOpenChange(false);
-    }
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -117,4 +124,3 @@ export function ConfirmDialog({
     </AlertDialog>
   );
 }
-

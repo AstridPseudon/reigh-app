@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTaskFromUnifiedCache } from '@/shared/hooks/useTaskPrefetch';
 import { useGetTask } from '@/shared/hooks/useTasks';
-import { deriveInputImages } from '@/shared/utils/taskParamsUtils';
+import { deriveInputImages } from '@/shared/lib/taskParamsUtils';
 import { Task } from '@/types/tasks';
 import type { TaskDetailsData as LightboxTaskDetailsData } from '@/shared/components/MediaLightbox/types';
 

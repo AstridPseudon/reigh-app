@@ -11,16 +11,12 @@ function registerSupabaseGlobals(client: ReturnType<typeof createClient<Database
 }
 
 // ---------------------------------------------------------------------------
-// Lazy singleton — no side-effects at import time.
+// Singleton client factory.
 //
-// Previously this module called installWindowOnlyInstrumentation() and
-// createSupabaseClient() at module scope, which meant importing this file
-// immediately patched window.WebSocket, triggered auth, set window globals,
-// and threw if env vars were missing.
-//
-// Now everything is deferred to the first call to getOrCreateSupabaseClient(),
-// which happens when `supabase` is first accessed (still module scope of the
-// *importer*, but only that importer — not every transitive import).
+// `supabase` is still created eagerly at this module's import boundary.
+// The factory keeps behavior centralized and HMR-safe (single instrumentation
+// install, shared window client reuse), but importing this module does perform
+// client initialization side effects.
 // ---------------------------------------------------------------------------
 
 let _instrumentationInstalled = false;
@@ -48,8 +44,6 @@ const getOrCreateSupabaseClient = (): ReturnType<typeof createClient<Database>> 
   return client;
 };
 
-// Export the client directly from the function call.
-// This avoids top-level variable declarations that cause HMR issues.
-// The side-effects (instrumentation, client creation, runtime init) are
-// deferred to this call rather than happening at bare import time.
+// Export an eager singleton from the factory.
+// This keeps one initialization path while preserving existing import contract.
 export const supabase = getOrCreateSupabaseClient();

@@ -159,15 +159,23 @@ export function useVideoLightboxRenderModel(
     segmentSlotMode,
   } = props;
 
-  const nav = props.navigation;
-  const sw = props.shotWorkflow;
-  const feat = props.features;
-  const act = props.actions;
+  const navigation = props.navigation;
+  const shotWorkflow = props.shotWorkflow;
+  const features = props.features;
+  const actions = props.actions;
 
-  const showNavigation = nav?.showNavigation ?? true;
-  const showTaskDetails = feat?.showTaskDetails ?? false;
+  const showNavigation = navigation?.showNavigation ?? true;
+  const showTaskDetails = features?.showTaskDetails ?? false;
 
-  const fallbackMedia = media || ({} as GenerationRow);
+  const mediaForState = useMemo<GenerationRow>(() => {
+    if (media) {
+      return media;
+    }
+
+    // Segment form-only mode can render without a video generation.
+    // Provide a minimal, explicit placeholder rather than asserting an empty object.
+    return { id: '__segment-form-only__' };
+  }, [media]);
 
   const lightboxStateValue = useLightboxStateValue({
     onClose,
@@ -176,7 +184,7 @@ export function useVideoLightboxRenderModel(
     isTabletOrLarger: sharedState.layout.isTabletOrLarger,
     selectedProjectId: env.selectedProjectId,
     actualGenerationId: env.actualGenerationId,
-    media: fallbackMedia,
+    media: mediaForState,
     isVideo: true,
     effectiveMediaUrl: sharedState.effectiveMedia.mediaUrl ?? '',
     effectiveVideoUrl: sharedState.effectiveMedia.videoUrl ?? '',
@@ -227,18 +235,18 @@ export function useVideoLightboxRenderModel(
   };
 
   const handleDelete = () => {
-    if (act?.onDelete && media) {
-      act.onDelete(media.id);
+    if (actions?.onDelete && media) {
+      actions.onDelete(media.id);
     }
   };
 
   const handleApplySettings = () => {
-    if (act?.onApplySettings && media) {
-      act.onApplySettings(media.metadata);
+    if (actions?.onApplySettings && media) {
+      actions.onApplySettings(media.metadata);
     }
   };
 
-  const onNavigateToShot = sw?.onNavigateToShot;
+  const onNavigateToShot = shotWorkflow?.onNavigateToShot;
   const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
     if (!onNavigateToShot) {
       return;
@@ -296,27 +304,27 @@ export function useVideoLightboxRenderModel(
       effectiveTasksPaneWidth: env.effectiveTasksPaneWidth,
     },
     shotWorkflow: {
-      allShots: sw?.allShots || [],
-      selectedShotId: sw?.selectedShotId,
-      onShotChange: sw?.onShotChange,
-      onCreateShot: sw?.onCreateShot,
-      onAddToShot: sw?.onAddToShot,
-      onAddToShotWithoutPosition: sw?.onAddToShotWithoutPosition,
+      allShots: shotWorkflow?.allShots || [],
+      selectedShotId: shotWorkflow?.selectedShotId,
+      onShotChange: shotWorkflow?.onShotChange,
+      onCreateShot: shotWorkflow?.onCreateShot,
+      onAddToShot: shotWorkflow?.onAddToShot,
+      onAddToShotWithoutPosition: shotWorkflow?.onAddToShotWithoutPosition,
       isAlreadyPositionedInSelectedShot: sharedState.shots.isAlreadyPositionedInSelectedShot,
       isAlreadyAssociatedWithoutPosition: sharedState.shots.isAlreadyAssociatedWithoutPosition,
       showTickForImageId,
       showTickForSecondaryImageId,
-      onShowTick: sw?.onShowTick,
-      onShowSecondaryTick: sw?.onShowSecondaryTick,
-      onOptimisticPositioned: sw?.onOptimisticPositioned,
-      onOptimisticUnpositioned: sw?.onOptimisticUnpositioned,
+      onShowTick: shotWorkflow?.onShowTick,
+      onShowSecondaryTick: shotWorkflow?.onShowSecondaryTick,
+      onOptimisticPositioned: shotWorkflow?.onOptimisticPositioned,
+      onOptimisticUnpositioned: shotWorkflow?.onOptimisticUnpositioned,
     },
     actions: {
-      onDelete: act?.onDelete,
-      onApplySettings: act?.onApplySettings,
+      onDelete: actions?.onDelete,
+      onApplySettings: actions?.onApplySettings,
       handleApplySettings,
       handleDelete,
-      isDeleting: act?.isDeleting,
+      isDeleting: actions?.isDeleting,
       handleNavigateToShotFromSelector,
       handleAddVariantAsNewGenerationToShot: sharedState.variants.handleAddVariantAsNewGenerationToShot,
     },

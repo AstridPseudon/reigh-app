@@ -17,7 +17,7 @@
 
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { ActiveLora } from '@/shared/hooks/useLoraManager';
-import { writeSegmentOverrides, type SegmentOverrides, type LoraConfig } from '@/shared/utils/settingsMigration';
+import { writeSegmentOverrides, type SegmentOverrides, type LoraConfig } from '@/shared/lib/settingsMigration';
 import type { SegmentSettings } from './segmentSettingsUtils';
 import { stripModeFromPhaseConfig } from './segmentSettingsUtils';
 import type { LegacyPairMetadataFields } from './segmentSettingsMigrationLegacy';

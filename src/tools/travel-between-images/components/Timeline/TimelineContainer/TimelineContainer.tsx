@@ -1,9 +1,8 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { TIMELINE_HORIZONTAL_PADDING, TIMELINE_PADDING_OFFSET } from '../constants';
+import { TIMELINE_PADDING_OFFSET } from '../constants';
 
 // Timeline sub-components (existing)
 import TimelineRuler from '../TimelineRuler';
-import DropIndicator from '../DropIndicator';
 import PairRegion from '../PairRegion';
 import TimelineItem from '../TimelineItem';
 import TrailingEndpoint from '../TrailingEndpoint';
@@ -17,12 +16,9 @@ import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
 import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
 
 // Extracted sub-components
-import { TimelineSkeletonItem } from './components/TimelineSkeletonItem';
-import { ZoomControls } from './components/ZoomControls';
-import { GuidanceVideoControls } from './components/GuidanceVideoControls';
-import { TimelineBottomControls } from './components/TimelineBottomControls';
-import { PendingFrameMarker } from './components/PendingFrameMarker';
-import { AddAudioButton } from './components/AddAudioButton';
+import { TimelineControls } from './components/TimelineControls';
+import { TimelineTrack } from './components/TimelineTrack';
+import { DragLayer } from './components/DragLayer';
 
 // Hooks
 import { useTimelineOrchestrator } from '../hooks/useTimelineOrchestrator';
@@ -284,59 +280,71 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   return (
     <div className="w-full overflow-x-hidden relative">
       <div className="relative">
-        {/* Top controls overlay */}
-        {shotId && (projectId || readOnly) && onPrimaryStructureVideoInputChange && (primaryStructureVideoPath || !readOnly) && (
-          <div
-            className="absolute left-0 z-30 flex items-end justify-between pointer-events-none px-8"
-            style={{ width: "100%", maxWidth: "100vw", top: zoomLevel > 1 ? '0.98875rem' : '1rem' }}
-          >
-            <ZoomControls
-              zoomLevel={zoomLevel}
-              onZoomIn={handleZoomInToCenter}
-              onZoomOut={handleZoomOutFromCenter}
-              onZoomReset={handleZoomReset}
-              onZoomToStart={handleZoomToStart}
-              hasNoImages={hasNoImages}
-            />
+        <TimelineControls
+          shotId={shotId}
+          projectId={projectId}
+          readOnly={readOnly}
+          hasNoImages={hasNoImages}
+          zoomLevel={zoomLevel}
+          fullMax={fullMax}
+          audioUrl={audioUrl}
+          onAudioChange={onAudioChange}
+          primaryStructureVideoPath={primaryStructureVideoPath}
+          primaryStructureVideoType={primaryStructureVideoType}
+          primaryStructureVideoTreatment={primaryStructureVideoTreatment}
+          primaryStructureVideoMotionStrength={primaryStructureVideoMotionStrength}
+          structureVideos={structureVideos}
+          onAddStructureVideo={onAddStructureVideo}
+          onUpdateStructureVideo={onUpdateStructureVideo}
+          onPrimaryStructureVideoInputChange={onPrimaryStructureVideoInputChange}
+          onShowVideoBrowser={() => setShowVideoBrowser(true)}
+          isUploadingStructureVideo={isUploadingStructureVideo}
+          setIsUploadingStructureVideo={setIsUploadingStructureVideo}
+          onZoomIn={handleZoomInToCenter}
+          onZoomOut={handleZoomOutFromCenter}
+          onZoomReset={handleZoomReset}
+          onZoomToStart={handleZoomToStart}
+          resetGap={resetGap}
+          setResetGap={setResetGap}
+          maxGap={maxGap}
+          onReset={handleReset}
+          onFileDrop={onFileDrop}
+          isUploadingImage={isUploadingImage}
+          uploadProgress={uploadProgress}
+          pushMode={pushMode}
+          showDragHint={!!(dragState.isDragging && dragState.activeId && !isMobile)}
+        />
 
-            {!audioUrl && onAudioChange && !readOnly && (
-              <AddAudioButton projectId={projectId} shotId={shotId} onAudioChange={onAudioChange} />
-            )}
-
-            {(structureVideos ? true : !primaryStructureVideoPath) && (
-              <GuidanceVideoControls
-                shotId={shotId}
-                projectId={projectId}
-                readOnly={readOnly}
-                hasNoImages={hasNoImages}
-                primaryStructureVideoType={primaryStructureVideoType}
-                primaryStructureVideoTreatment={primaryStructureVideoTreatment}
-                primaryStructureVideoMotionStrength={primaryStructureVideoMotionStrength}
-                structureVideos={structureVideos}
-                fullMax={fullMax}
-                onAddStructureVideo={onAddStructureVideo}
-                onUpdateStructureVideo={onUpdateStructureVideo}
-                onPrimaryStructureVideoInputChange={onPrimaryStructureVideoInputChange}
-                onShowVideoBrowser={() => setShowVideoBrowser(true)}
-                isUploadingStructureVideo={isUploadingStructureVideo}
-                setIsUploadingStructureVideo={setIsUploadingStructureVideo}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Timeline scrolling container */}
-        <div
-          ref={timelineRef}
-          className={`timeline-scroll relative bg-muted/20 border rounded-lg px-5 overflow-x-auto ${zoomLevel <= 1 ? 'no-scrollbar' : ''} ${isFileOver ? 'ring-2 ring-primary bg-primary/5' : ''}`}
-          style={{ minHeight: "240px", paddingTop: "2.5rem", paddingBottom: "7.5rem" }}
+        <TimelineTrack
+          timelineRef={timelineRef}
+          containerRef={containerRef}
+          zoomLevel={zoomLevel}
+          isFileOver={isFileOver}
+          hasNoImages={hasNoImages}
+          enableTapToMove={enableTapToMove}
+          selectedCount={selectedIds.length}
           onDragEnter={handleDragEnter}
-          onDragOver={(e) => handleDragOver(e, containerRef)}
+          onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, containerRef)}
-        >
-          {/* Segment output strip */}
-          {shotId && (projectId || (readOnly && videoOutputs)) && (() => {
+          onDrop={handleDrop}
+          onContainerDoubleClick={handleTimelineDoubleClick}
+          onContainerClick={(e) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('[data-item-id]') && !target.closest('button')) {
+              if (enableTapToMove && selectedIds.length > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleTimelineTapToMove(e.clientX);
+                return;
+              }
+              if (selectedIds.length > 0) clearSelection();
+            }
+          }}
+          containerWidth={containerWidth}
+          prelude={(
+            <>
+              {/* Segment output strip */}
+              {shotId && (projectId || (readOnly && videoOutputs)) && (() => {
             const sortedEntries = imagePositions.size > 0
               ? [...imagePositions.entries()].sort((a, b) => a[1] - b[1])
               : [];
@@ -368,7 +376,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                 onOpenPairSettings={onPairClick ? handleOpenPairSettings : undefined}
                 selectedParentId={selectedOutputId}
                 onSegmentFrameCountChange={onSegmentFrameCountChange}
-                lastImageId={lastEntry?.[0]}
                 trailingSegmentMode={lastEntry && (trailingEndFrame !== undefined || hasAnyTrailingVideo) ? (() => {
                   const [imageId, imageFrame] = lastEntry;
                   const resolvedEndFrame = trailingEndFrame ?? (imageFrame + (isMultiImage ? 17 : 49));
@@ -388,127 +395,105 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                 } : undefined}
                 onTrailingVideoInfo={setCallbackTrailingVideoUrl}
               />
-            );
-          })()}
+                );
+              })()}
 
-          {/* Structure video strip(s) */}
-          {shotId && (projectId || readOnly) && (
-            structureVideos && onUpdateStructureVideo && onRemoveStructureVideo ? (
-              <GuidanceVideosContainer
-                structureVideos={structureVideos}
-                isLoading={isStructureVideoLoading}
-                cachedHasStructureVideo={cachedHasStructureVideo}
-                shotId={shotId}
-                onUpdateVideo={onUpdateStructureVideo}
-                onRemoveVideo={onRemoveStructureVideo}
-                fullMin={fullMin}
-                fullMax={fullMax}
-                fullRange={fullRange}
-                containerWidth={containerWidth}
-                zoomLevel={zoomLevel}
-                timelineFrameCount={images.length}
-                readOnly={readOnly}
-              />
-            ) : onPrimaryStructureVideoInputChange && (
-              primaryStructureVideoPath ? (
-                <GuidanceVideoStrip
-                  videoUrl={primaryStructureVideoPath}
-                  videoMetadata={primaryStructureVideoMetadata || null}
-                  treatment={primaryStructureVideoTreatment}
-                  onTreatmentChange={(treatment) => onPrimaryStructureVideoInputChange(primaryStructureVideoPath, primaryStructureVideoMetadata ?? null, treatment, primaryStructureVideoMotionStrength, primaryStructureVideoType)}
-                  onRemove={() => onPrimaryStructureVideoInputChange(null, null, 'adjust', 1.0, 'flow')}
-                  onMetadataExtracted={(metadata) => onPrimaryStructureVideoInputChange(primaryStructureVideoPath, metadata, primaryStructureVideoTreatment, primaryStructureVideoMotionStrength, primaryStructureVideoType)}
-                  fullMin={fullMin}
-                  fullMax={fullMax}
-                  fullRange={fullRange}
-                  containerWidth={containerWidth}
-                  zoomLevel={zoomLevel}
-                  timelineFrameCount={images.length}
-                  readOnly={readOnly}
-                />
-              ) : isUploadingStructureVideo ? (
-                <div className="relative h-28 -mt-1 mb-3" style={{ width: zoomLevel > 1 ? `${zoomLevel * 100}%` : '100%', minWidth: '100%' }}>
-                  <div className="absolute left-4 right-4 top-6 bottom-2 flex items-center justify-center bg-muted/50 dark:bg-muted-foreground/15 border border-border/30 rounded-sm">
-                    <span className="text-xs text-muted-foreground font-medium">Uploading video...</span>
-                  </div>
+              {/* Structure video strip(s) */}
+              {shotId && (projectId || readOnly) && (
+                structureVideos && onUpdateStructureVideo && onRemoveStructureVideo ? (
+                  <GuidanceVideosContainer
+                    structureVideos={structureVideos}
+                    isLoading={isStructureVideoLoading}
+                    cachedHasStructureVideo={cachedHasStructureVideo}
+                    shotId={shotId}
+                    onUpdateVideo={onUpdateStructureVideo}
+                    onRemoveVideo={onRemoveStructureVideo}
+                    fullMin={fullMin}
+                    fullMax={fullMax}
+                    fullRange={fullRange}
+                    containerWidth={containerWidth}
+                    zoomLevel={zoomLevel}
+                    timelineFrameCount={images.length}
+                    readOnly={readOnly}
+                  />
+                ) : onPrimaryStructureVideoInputChange && (
+                  primaryStructureVideoPath ? (
+                    <GuidanceVideoStrip
+                      videoUrl={primaryStructureVideoPath}
+                      videoMetadata={primaryStructureVideoMetadata || null}
+                      treatment={primaryStructureVideoTreatment}
+                      onTreatmentChange={(treatment) => onPrimaryStructureVideoInputChange(primaryStructureVideoPath, primaryStructureVideoMetadata ?? null, treatment, primaryStructureVideoMotionStrength, primaryStructureVideoType)}
+                      onRemove={() => onPrimaryStructureVideoInputChange(null, null, 'adjust', 1.0, 'flow')}
+                      onMetadataExtracted={(metadata) => onPrimaryStructureVideoInputChange(primaryStructureVideoPath, metadata, primaryStructureVideoTreatment, primaryStructureVideoMotionStrength, primaryStructureVideoType)}
+                      fullMin={fullMin}
+                      fullMax={fullMax}
+                      fullRange={fullRange}
+                      containerWidth={containerWidth}
+                      zoomLevel={zoomLevel}
+                      timelineFrameCount={images.length}
+                      readOnly={readOnly}
+                    />
+                  ) : isUploadingStructureVideo ? (
+                    <div className="relative h-28 -mt-1 mb-3" style={{ width: zoomLevel > 1 ? `${zoomLevel * 100}%` : '100%', minWidth: '100%' }}>
+                      <div className="absolute left-4 right-4 top-6 bottom-2 flex items-center justify-center bg-muted/50 dark:bg-muted-foreground/15 border border-border/30 rounded-sm">
+                        <span className="text-xs text-muted-foreground font-medium">Uploading video...</span>
+                      </div>
+                    </div>
+                  ) : !readOnly ? (
+                    <GuidanceVideoUploader
+                      shotId={shotId}
+                      projectId={projectId ?? ''}
+                      onVideoUploaded={(videoUrl, metadata) => {
+                        if (videoUrl && metadata) onPrimaryStructureVideoInputChange(videoUrl, metadata, primaryStructureVideoTreatment, primaryStructureVideoMotionStrength, primaryStructureVideoType);
+                      }}
+                      currentVideoUrl={primaryStructureVideoPath ?? null}
+                      compact={false}
+                      zoomLevel={zoomLevel}
+                      onZoomIn={handleZoomInToCenter}
+                      onZoomOut={handleZoomOutFromCenter}
+                      onZoomReset={handleZoomReset}
+                      onZoomToStart={handleZoomToStart}
+                      hasNoImages={hasNoImages}
+                    />
+                  ) : null
+                )
+              )}
+
+              {/* Audio strip */}
+              {onAudioChange && audioUrl && (
+                <div className="mt-1 mb-2">
+                  <AudioStrip
+                    audioUrl={audioUrl}
+                    audioMetadata={audioMetadata || null}
+                    onRemove={() => onAudioChange(null, null)}
+                    fullMin={fullMin}
+                    fullMax={fullMax}
+                    fullRange={fullRange}
+                    containerWidth={containerWidth}
+                    zoomLevel={zoomLevel}
+                    readOnly={readOnly}
+                    compact={!!primaryStructureVideoPath}
+                  />
                 </div>
-              ) : !readOnly ? (
-                <GuidanceVideoUploader
-                  shotId={shotId}
-                  projectId={projectId ?? ''}
-                  onVideoUploaded={(videoUrl, metadata) => {
-                    if (videoUrl && metadata) onPrimaryStructureVideoInputChange(videoUrl, metadata, primaryStructureVideoTreatment, primaryStructureVideoMotionStrength, primaryStructureVideoType);
-                  }}
-                  currentVideoUrl={primaryStructureVideoPath ?? null}
-                  compact={false}
-                  zoomLevel={zoomLevel}
-                  onZoomIn={handleZoomInToCenter}
-                  onZoomOut={handleZoomOutFromCenter}
-                  onZoomReset={handleZoomReset}
-                  onZoomToStart={handleZoomToStart}
-                  hasNoImages={hasNoImages}
-                />
-              ) : null
-            )
+              )}
+            </>
           )}
-
-          {/* Audio strip */}
-          {onAudioChange && audioUrl && (
-            <div className="mt-1 mb-2">
-              <AudioStrip
-                audioUrl={audioUrl}
-                audioMetadata={audioMetadata || null}
-                onRemove={() => onAudioChange(null, null)}
-                fullMin={fullMin}
-                fullMax={fullMax}
-                fullRange={fullRange}
-                containerWidth={containerWidth}
-                zoomLevel={zoomLevel}
-                readOnly={readOnly}
-                compact={!!primaryStructureVideoPath}
-              />
-            </div>
-          )}
-
-          {/* Timeline container */}
-          <div
-            ref={containerRef}
-            id="timeline-container"
-            className="relative h-36 mt-3 mb-2"
-            onDoubleClick={(e) => {
-              const target = e.target as HTMLElement;
-              if (!target.closest('[data-item-id]') && !target.closest('button')) {
-                handleTimelineDoubleClick(e, containerRef);
-              }
-            }}
-            onClick={(e) => {
-              const target = e.target as HTMLElement;
-              if (!target.closest('[data-item-id]') && !target.closest('button')) {
-                if (enableTapToMove && selectedIds.length > 0) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleTimelineTapToMove(e.clientX);
-                  return;
-                }
-                if (selectedIds.length > 0) clearSelection();
-              }
-            }}
-            style={{
-              width: zoomLevel > 1 ? `${zoomLevel * 100}%` : '100%',
-              minWidth: "100%",
-              userSelect: 'none',
-              paddingLeft: `${TIMELINE_HORIZONTAL_PADDING}px`,
-              paddingRight: `${TIMELINE_HORIZONTAL_PADDING + 60}px`,
-              cursor: enableTapToMove && selectedIds.length > 0 ? 'crosshair' : 'default',
-            }}
-          >
-            <DropIndicator
-              isVisible={isFileOver}
+        >
+            <DragLayer
+              isFileOver={isFileOver}
               dropTargetFrame={dropTargetFrame}
               fullMin={fullMin}
               fullRange={fullRange}
               containerWidth={containerWidth}
               dragType={dragType}
+              activePendingFrame={activePendingFrame}
+              pendingDropFrame={pendingDropFrame}
+              pendingDuplicateFrame={pendingDuplicateFrame}
+              pendingExternalAddFrame={pendingExternalAddFrame}
+              isUploadingImage={isUploadingImage}
+              isInternalDropProcessing={isInternalDropProcessing}
+              projectAspectRatio={projectAspectRatio}
+              imagesLength={images.length}
             />
 
             <TimelineRuler
@@ -675,48 +660,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
               );
             })()}
 
-            {/* Pending frame marker */}
-            <PendingFrameMarker
-              pendingFrame={activePendingFrame}
-              fullMin={fullMin}
-              fullRange={fullRange}
-              containerWidth={containerWidth}
-              imagesLength={images.length}
-            />
-
-            {/* Skeleton for uploading item */}
-            {(isUploadingImage || isInternalDropProcessing) && pendingDropFrame !== null && (
-              <TimelineSkeletonItem
-                framePosition={pendingDropFrame}
-                fullMin={fullMin}
-                fullRange={fullRange}
-                containerWidth={containerWidth}
-                projectAspectRatio={projectAspectRatio}
-              />
-            )}
-
-            {/* Skeleton for duplicating item */}
-            {pendingDuplicateFrame !== null && (
-              <TimelineSkeletonItem
-                framePosition={pendingDuplicateFrame}
-                fullMin={fullMin}
-                fullRange={fullRange}
-                containerWidth={containerWidth}
-                projectAspectRatio={projectAspectRatio}
-              />
-            )}
-
-            {/* Skeleton for external add */}
-            {pendingExternalAddFrame !== null && (
-              <TimelineSkeletonItem
-                framePosition={pendingExternalAddFrame}
-                fullMin={fullMin}
-                fullRange={fullRange}
-                containerWidth={containerWidth}
-                projectAspectRatio={projectAspectRatio}
-              />
-            )}
-
             {/* Timeline items */}
             {images.map((image, idx) => {
               const imageKey = image.id;
@@ -759,24 +702,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
                 />
               );
             })}
-          </div>
-        </div>
-
-        {/* Bottom controls */}
-        <TimelineBottomControls
-          resetGap={resetGap}
-          setResetGap={setResetGap}
-          maxGap={maxGap}
-          onReset={handleReset}
-          onFileDrop={onFileDrop}
-          isUploadingImage={isUploadingImage}
-          uploadProgress={uploadProgress}
-          readOnly={readOnly}
-          hasNoImages={hasNoImages}
-          zoomLevel={zoomLevel}
-          pushMode={pushMode}
-          showDragHint={!!(dragState.isDragging && dragState.activeId && !isMobile)}
-        />
+        </TimelineTrack>
       </div>
 
       {/* Video Browser Modal */}

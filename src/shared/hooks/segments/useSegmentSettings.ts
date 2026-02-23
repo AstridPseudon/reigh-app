@@ -29,10 +29,10 @@ import { useServerForm } from '../useServerForm';
 import { usePairMetadata } from './usePairMetadata';
 import { useShotVideoSettings } from './useShotVideoSettings';
 import { useSegmentMutations } from './useSegmentMutations';
-import { readSegmentOverrides } from '@/shared/utils/settingsMigration';
+import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 import type { SegmentSettings, ShotBatchSettings } from '@/shared/components/segmentSettingsUtils';
 import type { PairMetadata } from '@/shared/components/segmentSettingsMigration';
-import type { ShotVideoSettings } from '@/shared/utils/settingsMigration';
+import type { ShotVideoSettings } from '@/shared/lib/settingsMigration';
 
 // =============================================================================
 // TYPES

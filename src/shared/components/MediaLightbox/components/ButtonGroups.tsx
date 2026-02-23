@@ -145,6 +145,7 @@ interface BottomRightControlsProps {
   isAddingToReferences: boolean;
   addToReferencesSuccess: boolean;
   handleAddToReferences: () => Promise<void>;
+  showAddToReferences?: boolean;
   // Add to Join Clips
   handleAddToJoin?: () => void;
   isAddingToJoin?: boolean;
@@ -156,6 +157,7 @@ export const BottomRightControls: React.FC<BottomRightControlsProps> = ({
   isAddingToReferences,
   addToReferencesSuccess,
   handleAddToReferences,
+  showAddToReferences = true,
   handleAddToJoin,
   isAddingToJoin,
   addToJoinSuccess,
@@ -169,7 +171,7 @@ export const BottomRightControls: React.FC<BottomRightControlsProps> = ({
   return (
     <div className="absolute bottom-4 right-4 flex items-center gap-x-2 z-10">
       {/* Add to References Button */}
-      {!readOnly && !isVideo && selectedProjectId && (
+      {showAddToReferences && !readOnly && !isVideo && selectedProjectId && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

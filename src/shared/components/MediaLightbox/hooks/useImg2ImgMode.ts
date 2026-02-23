@@ -1,14 +1,11 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
-import { GenerationRow } from '@/types/shots';
-import { createBatchZImageTurboI2ITasks } from '@/shared/lib/tasks/zImageTurboI2I';
+import { GenerationRow } from '@/types/generationAndShots';
+import { createBatchZImageTurboImageToImageTasks } from '@/shared/lib/tasks/zImageTurboI2I';
 import type { FalLoraConfig } from '@/shared/types/lora';
 import { useLoraManager, UseLoraManagerReturn, ActiveLora, LoraModel } from '@/shared/hooks/useLoraManager';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 interface UseImg2ImgModeProps {
   media: GenerationRow;
@@ -93,8 +90,7 @@ export const useImg2ImgMode = ({
   // Local state (not persisted)
   const [isGeneratingImg2Img, setIsGeneratingImg2Img] = useState(false);
   const [img2imgGenerateSuccess, setImg2imgGenerateSuccess] = useState(false);
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const queryClient = useQueryClient();
+  const run = useTaskPlaceholder();
 
   // Derive the base generation prompt from the generation params (best-effort)
   const baseGenerationPrompt = useMemo(() => {
@@ -149,55 +145,50 @@ export const useImg2ImgMode = ({
     }
 
     isSubmittingRef.current = true;
-    const incomingTaskId = addIncomingTask({
-      taskType: 'z_image_turbo_i2i',
-      label: img2imgPrompt.trim() || 'Img2Img...',
-    });
     setIsGeneratingImg2Img(true);
 
     try {
-      // Convert selected LoRAs to the format expected by the task
-      const loras: FalLoraConfig[] = loraManager.selectedLoras.map((lora: ActiveLora) => ({
-        path: lora.path,
-        scale: lora.strength,
-      }));
+      await run({
+        taskType: 'z_image_turbo_i2i',
+        label: img2imgPrompt.trim() || 'Img2Img...',
+        context: 'useImg2ImgMode',
+        toastTitle: 'Failed to create Img2Img tasks',
+        create: () => {
+          // Convert selected LoRAs to the format expected by the task
+          const loras: FalLoraConfig[] = loraManager.selectedLoras.map((lora: ActiveLora) => ({
+            path: lora.path,
+            scale: lora.strength,
+          }));
 
-      // Use active variant's location if editing a variant, otherwise use sourceUrlForTasks
-      const effectiveImageUrl = activeVariantLocation || sourceUrlForTasks;
+          // Use active variant's location if editing a variant, otherwise use sourceUrlForTasks
+          const effectiveImageUrl = activeVariantLocation || sourceUrlForTasks;
 
-      // Get actual generation ID (handle shot_generations case)
-      const actualGenerationId = getGenerationId(media);
+          // Get actual generation ID (handle shot_generations case)
+          const actualGenerationId = getGenerationId(media);
 
-      // Create tasks based on numGenerations
-      await createBatchZImageTurboI2ITasks({
-        project_id: selectedProjectId,
-        image_url: effectiveImageUrl,
-        prompt: img2imgPrompt.trim() || undefined,
-        strength: img2imgStrength,
-        enable_prompt_expansion: enablePromptExpansion,
-        numImages: numGenerations,
-        loras: loras.length > 0 ? loras : undefined,
-        based_on: actualGenerationId ?? undefined,
-        source_variant_id: activeVariantId || undefined, // Track source variant if editing from a variant
-        create_as_generation: createAsGeneration,
-        tool_type: toolTypeOverride,
-        shot_id: shotId,
+          return createBatchZImageTurboImageToImageTasks({
+            project_id: selectedProjectId,
+            image_url: effectiveImageUrl,
+            prompt: img2imgPrompt.trim() || undefined,
+            strength: img2imgStrength,
+            enable_prompt_expansion: enablePromptExpansion,
+            numImages: numGenerations,
+            loras: loras.length > 0 ? loras : undefined,
+            based_on: actualGenerationId ?? undefined,
+            source_variant_id: activeVariantId || undefined,
+            create_as_generation: createAsGeneration,
+            tool_type: toolTypeOverride,
+            shot_id: shotId,
+          });
+        },
+        onSuccess: () => {
+          setImg2imgGenerateSuccess(true);
+          setTimeout(() => {
+            setImg2imgGenerateSuccess(false);
+          }, 2000);
+        },
       });
-
-      // Show success state
-      setImg2imgGenerateSuccess(true);
-
-      // Reset success state after 2 seconds
-      setTimeout(() => {
-        setImg2imgGenerateSuccess(false);
-      }, 2000);
-
-    } catch (error) {
-      handleError(error, { context: 'useImg2ImgMode', toastTitle: 'Failed to create Img2Img tasks' });
     } finally {
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
       setIsGeneratingImg2Img(false);
       isSubmittingRef.current = false;
     }
@@ -216,9 +207,7 @@ export const useImg2ImgMode = ({
     createAsGeneration,
     toolTypeOverride,
     shotId,
-    addIncomingTask,
-    removeIncomingTask,
-    queryClient,
+    run,
   ]);
 
   return {

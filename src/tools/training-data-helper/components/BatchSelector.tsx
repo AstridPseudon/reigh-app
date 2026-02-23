@@ -48,7 +48,7 @@ const BatchCreatedTimestamp: React.FC<{ createdAt: string }> = ({ createdAt }) =
     abbreviate: abbreviateDistance
   });
 
-  return <>Created {timeAgo}</>;
+  return <>Created {timeAgo ?? 'Unknown'}</>;
 };
 
 // ============================================================================

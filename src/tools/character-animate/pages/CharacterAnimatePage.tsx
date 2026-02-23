@@ -102,14 +102,14 @@ const CharacterAnimatePage: React.FC = () => {
           disabled={
             !state.characterImage
             || !state.motionVideo
-            || state.generateModel.generateAnimationMutation.isPending
+            || state.generateModel.isGenerating
             || state.generateModel.showSuccessState
           }
           className="w-full"
           size="lg"
           variant="default"
         >
-          {state.generateModel.generateAnimationMutation.isPending
+          {state.generateModel.isGenerating
             ? 'Creating Task...'
             : state.generateModel.showSuccessState
             ? '✓ Task Created!'

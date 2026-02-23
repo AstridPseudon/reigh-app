@@ -8,7 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
-import { readShotSettings, type ShotVideoSettings } from '@/shared/utils/settingsMigration';
+import { readShotSettings, type ShotVideoSettings } from '@/shared/lib/settingsMigration';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 
 interface UseShotVideoSettingsReturn {

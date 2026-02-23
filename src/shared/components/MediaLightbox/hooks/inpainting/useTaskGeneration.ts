@@ -4,10 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import type { GenerationRow } from '@/types/shots';
 import { uploadImageToStorage } from '@/shared/lib/imageUploader';
 import { createImageInpaintTask } from '@/shared/lib/tasks/imageInpaint';
@@ -15,10 +12,9 @@ import { createAnnotatedImageEditTask } from '@/shared/lib/tasks/annotatedImageE
 import type { StrokeOverlayHandle } from '../../components/StrokeOverlay';
 import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
 
-// Import the converter function
 import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
 import { getGenerationId, getMediaUrl } from '@/shared/lib/mediaTypeHelpers';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 /**
  * Task type configuration - captures the differences between inpaint and annotate modes
@@ -101,8 +97,7 @@ export function useTaskGeneration({
 }: UseTaskGenerationProps) {
   // Get actual generation ID (may differ from media.id for shot_generations)
   const actualGenerationId = getGenerationId(media);
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
-  const queryClient = useQueryClient();
+  const run = useTaskPlaceholder();
 
   /**
    * Unified task generation function
@@ -134,68 +129,67 @@ export function useTaskGeneration({
     }
 
     const incomingTaskType = taskType === 'inpaint' ? 'image_inpaint' : 'annotated_image_edit';
-    const incomingTaskId = addIncomingTask({
-      taskType: incomingTaskType,
-      label: inpaintPrompt.trim() || 'Editing...',
-    });
 
     setIsGeneratingInpaint(true);
     try {
-      // Export mask directly from Konva
-      const maskImageData = strokeOverlayRef.current.exportMask({ pixelRatio: 1.5 });
+      await run({
+        taskType: incomingTaskType,
+        label: inpaintPrompt.trim() || 'Editing...',
+        context: 'useTaskGeneration',
+        toastTitle: config.taskCreationError,
+        create: async () => {
+          // Export mask directly from Konva
+          const maskImageData = strokeOverlayRef.current!.exportMask({ pixelRatio: 1.5 });
 
-      if (!maskImageData) {
-        throw new Error('Failed to export mask from overlay');
-      }
+          if (!maskImageData) {
+            throw new Error('Failed to export mask from overlay');
+          }
 
-      // Upload mask to storage
-      const maskFile = await fetch(maskImageData)
-        .then(res => res.blob())
-        .then(blob => new File([blob], `${config.fileNamePrefix}_${media.id}_${Date.now()}.png`, { type: 'image/png' }));
+          // Upload mask to storage
+          const maskFile = await fetch(maskImageData)
+            .then(res => res.blob())
+            .then(blob => new File([blob], `${config.fileNamePrefix}_${media.id}_${Date.now()}.png`, { type: 'image/png' }));
 
-      const maskUrl = await uploadImageToStorage(maskFile);
+          const maskUrl = await uploadImageToStorage(maskFile);
 
-      // Get source image URL
-      const mediaUrl = getMediaUrl(media) || media.imageUrl;
-      const sourceUrl = activeVariantLocation || mediaUrl;
-      if (!sourceUrl) {
-        throw new Error('Missing source media URL');
-      }
-      if (!actualGenerationId) {
-        throw new Error('Missing generation id');
-      }
+          // Get source image URL
+          const mediaUrl = getMediaUrl(media) || media.imageUrl;
+          const sourceUrl = activeVariantLocation || mediaUrl;
+          if (!sourceUrl) {
+            throw new Error('Missing source media URL');
+          }
+          if (!actualGenerationId) {
+            throw new Error('Missing generation id');
+          }
 
-      await config.createTask({
-        project_id: selectedProjectId,
-        image_url: sourceUrl,
-        mask_url: maskUrl,
-        prompt: inpaintPrompt,
-        num_generations: inpaintNumGenerations,
-        generation_id: actualGenerationId ?? undefined,
-        shot_id: shotId,
-        tool_type: toolTypeOverride,
-        loras: loras,
-        create_as_generation: createAsGeneration,
-        source_variant_id: activeVariantId || undefined,
-        hires_fix: convertToHiresFixApiParams(advancedSettings),
-        qwen_edit_model: qwenEditModel,
+          return config.createTask({
+            project_id: selectedProjectId,
+            image_url: sourceUrl,
+            mask_url: maskUrl,
+            prompt: inpaintPrompt,
+            num_generations: inpaintNumGenerations,
+            generation_id: actualGenerationId ?? undefined,
+            shot_id: shotId,
+            tool_type: toolTypeOverride,
+            loras: loras,
+            create_as_generation: createAsGeneration,
+            source_variant_id: activeVariantId || undefined,
+            hires_fix: convertToHiresFixApiParams(advancedSettings),
+            qwen_edit_model: qwenEditModel,
+          });
+        },
+        onSuccess: () => {
+          // Show success state
+          setInpaintGenerateSuccess(true);
+
+          // Wait 1 second to show success, then exit
+          setTimeout(() => {
+            setInpaintGenerateSuccess(false);
+            handleExitInpaintMode();
+          }, 1000);
+        },
       });
-
-      // Show success state
-      setInpaintGenerateSuccess(true);
-
-      // Wait 1 second to show success, then exit
-      setTimeout(() => {
-        setInpaintGenerateSuccess(false);
-        handleExitInpaintMode();
-      }, 1000);
-
-    } catch (error) {
-      handleError(error, { context: 'useTaskGeneration', toastTitle: config.taskCreationError });
     } finally {
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: taskQueryKeys.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
       setIsGeneratingInpaint(false);
     }
   }, [
@@ -203,8 +197,7 @@ export function useTaskGeneration({
     media, handleExitInpaintMode, shotId, toolTypeOverride, loras,
     activeVariantLocation, activeVariantId, createAsGeneration, advancedSettings,
     qwenEditModel, strokeOverlayRef, actualGenerationId,
-    setIsGeneratingInpaint, setInpaintGenerateSuccess,
-    addIncomingTask, removeIncomingTask, queryClient
+    setIsGeneratingInpaint, setInpaintGenerateSuccess, run
   ]);
 
   // Stable callbacks that preserve the original API

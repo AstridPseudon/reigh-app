@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useRenderLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import type { Json } from '@/integrations/supabase/types';
 import { updateToolSettingsSupabase } from '@/shared/hooks/useToolSettings';
 import { handleError } from '@/shared/lib/errorHandling/handleError';

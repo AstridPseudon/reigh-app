@@ -43,6 +43,10 @@ vi.mock('@/shared/contexts/IncomingTasksContext', () => ({
   useIncomingTasks: () => ({
     addIncomingTask: mockAddIncomingTask,
     removeIncomingTask: mockRemoveIncomingTask,
+    cancelIncoming: vi.fn(),
+    cancelAllIncoming: vi.fn(),
+    wasCancelled: vi.fn(() => false),
+    acknowledgeCancellation: vi.fn(),
   }),
 }));
 

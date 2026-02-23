@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ImageEditState } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
+import type { ImageEditState, ImageEditMode } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
 import { DEFAULT_ADVANCED_SETTINGS } from '@/shared/components/MediaLightbox/hooks/editSettingsTypes';
 import type { BrushStroke, AnnotationMode } from '@/shared/components/MediaLightbox/hooks/inpainting/types';
 import type { StrokeOverlayHandle } from '@/shared/components/MediaLightbox/components/StrokeOverlay';
@@ -15,7 +15,7 @@ interface UseImageEditValueParams {
   // Mode state
   isInpaintMode: boolean;
   isSpecialEditMode: boolean;
-  editMode: string | null;
+  editMode: ImageEditMode;
 
   // Mode setters
   setIsInpaintMode: (value: boolean) => void;
@@ -125,10 +125,10 @@ function buildModeState(params: UseImageEditValueParams): Partial<ImageEditState
     isInpaintMode: params.isInpaintMode,
     isMagicEditMode: params.isSpecialEditMode,
     isSpecialEditMode: params.isSpecialEditMode,
-    editMode: params.editMode as ImageEditState['editMode'],
+    editMode: params.editMode,
     setIsInpaintMode: params.setIsInpaintMode,
     setIsMagicEditMode: () => {},
-    setEditMode: params.setEditMode as ImageEditState['setEditMode'],
+    setEditMode: params.setEditMode,
     handleEnterInpaintMode: params.handleEnterInpaintMode,
     handleExitInpaintMode: params.handleExitMagicEditMode,
     handleEnterMagicEditMode: params.handleEnterMagicEditMode,
@@ -217,12 +217,14 @@ function buildFormAndGenerationState(params: UseImageEditValueParams): Partial<I
 }
 
 function buildImageEditState(params: UseImageEditValueParams): ImageEditState {
-  return {
+  const imageEditState = {
     ...buildModeState(params),
     ...buildCanvasAndAnnotationState(params),
     ...buildRepositionAndPanelState(params),
     ...buildFormAndGenerationState(params),
-  } as ImageEditState;
+  } satisfies ImageEditState;
+
+  return imageEditState;
 }
 
 export function useImageEditValue(params: UseImageEditValueParams): ImageEditState {

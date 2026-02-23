@@ -9,10 +9,9 @@
 
 import { useCallback, useRef, useEffect } from 'react';
 import { toast } from '@/shared/components/ui/sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ApplySettingsService from '../services/applySettingsService';
-import { GenerationRow, Shot } from '@/types/shots';
+import { GenerationRow, Shot } from '@/types/generationAndShots';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
@@ -20,9 +19,8 @@ import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenera
 import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import type { AddImageToShotVariables } from '@/shared/hooks/shots/addImageToShotHelpers';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
-import type { Json } from '@/integrations/supabase/types';
 
-interface ApplySettingsContext {
+interface ApplySettingsHandlerState {
   // IDs
   projectId: string;
   selectedShotId: string;
@@ -95,58 +93,40 @@ interface ApplySettingsContext {
   loadPositions: (opts?: { silent?: boolean; reason?: string }) => void | Promise<void>;
 }
 
-interface PairPromptSnapshotRow {
-  id: string;
-  timeline_frame: number | null;
-  metadata: Json;
-  generation?: {
-    id?: string | null;
-    type?: string | null;
-    location?: string | null;
-  } | null;
-}
-
-const SHOT_GENERATION_SNAPSHOT_SELECT = `
-  id,
-  timeline_frame,
-  metadata,
-  generation:generations!shot_generations_generation_id_generations_id_fk(id, type, location)
-`;
-
-function buildApplyContext(ctx: ApplySettingsContext): ApplySettingsService.ApplyContext {
+function buildServiceApplyContext(handlerState: ApplySettingsHandlerState): ApplySettingsService.ApplyContext {
   return {
-    currentGenerationMode: ctx.generationMode,
-    currentAdvancedMode: ctx.advancedMode,
-    onBatchVideoPromptChange: ctx.onBatchVideoPromptChange,
-    onSteerableMotionSettingsChange: ctx.onSteerableMotionSettingsChange,
-    onBatchVideoFramesChange: ctx.onBatchVideoFramesChange,
-    onBatchVideoStepsChange: ctx.onBatchVideoStepsChange,
-    onGenerationModeChange: ctx.onGenerationModeChange,
-    onAdvancedModeChange: ctx.onAdvancedModeChange,
-    onMotionModeChange: ctx.onMotionModeChange,
-    onGenerationTypeModeChange: ctx.onGenerationTypeModeChange,
-    onPhaseConfigChange: ctx.onPhaseConfigChange,
-    onPhasePresetSelect: ctx.onPhasePresetSelect,
-    onPhasePresetRemove: ctx.onPhasePresetRemove,
-    onTurboModeChange: ctx.onTurboModeChange,
-    onEnhancePromptChange: ctx.onEnhancePromptChange,
-    onTextBeforePromptsChange: ctx.onTextBeforePromptsChange,
-    onTextAfterPromptsChange: ctx.onTextAfterPromptsChange,
-    onAmountOfMotionChange: ctx.onAmountOfMotionChange,
-    onStructureVideoInputChange: ctx.onStructureVideoInputChange,
-    loraManager: ctx.loraManager as ApplySettingsService.ApplyContext['loraManager'],
-    availableLoras: ctx.availableLoras,
-    updatePairPromptsByIndex: ctx.updatePairPromptsByIndex,
-    steerableMotionSettings: ctx.steerableMotionSettings,
-    batchVideoFrames: ctx.batchVideoFrames,
-    batchVideoSteps: ctx.batchVideoSteps,
-    textBeforePrompts: ctx.textBeforePrompts,
-    textAfterPrompts: ctx.textAfterPrompts,
-    turboMode: ctx.turboMode,
-    enhancePrompt: ctx.enhancePrompt,
-    amountOfMotion: ctx.amountOfMotion,
-    motionMode: ctx.motionMode,
-    generationTypeMode: ctx.generationTypeMode,
+    currentGenerationMode: handlerState.generationMode,
+    currentAdvancedMode: handlerState.advancedMode,
+    onBatchVideoPromptChange: handlerState.onBatchVideoPromptChange,
+    onSteerableMotionSettingsChange: handlerState.onSteerableMotionSettingsChange,
+    onBatchVideoFramesChange: handlerState.onBatchVideoFramesChange,
+    onBatchVideoStepsChange: handlerState.onBatchVideoStepsChange,
+    onGenerationModeChange: handlerState.onGenerationModeChange,
+    onAdvancedModeChange: handlerState.onAdvancedModeChange,
+    onMotionModeChange: handlerState.onMotionModeChange,
+    onGenerationTypeModeChange: handlerState.onGenerationTypeModeChange,
+    onPhaseConfigChange: handlerState.onPhaseConfigChange,
+    onPhasePresetSelect: handlerState.onPhasePresetSelect,
+    onPhasePresetRemove: handlerState.onPhasePresetRemove,
+    onTurboModeChange: handlerState.onTurboModeChange,
+    onEnhancePromptChange: handlerState.onEnhancePromptChange,
+    onTextBeforePromptsChange: handlerState.onTextBeforePromptsChange,
+    onTextAfterPromptsChange: handlerState.onTextAfterPromptsChange,
+    onAmountOfMotionChange: handlerState.onAmountOfMotionChange,
+    onStructureVideoInputChange: handlerState.onStructureVideoInputChange,
+    loraManager: handlerState.loraManager as ApplySettingsService.ApplyContext['loraManager'],
+    availableLoras: handlerState.availableLoras,
+    updatePairPromptsByIndex: handlerState.updatePairPromptsByIndex,
+    steerableMotionSettings: handlerState.steerableMotionSettings,
+    batchVideoFrames: handlerState.batchVideoFrames,
+    batchVideoSteps: handlerState.batchVideoSteps,
+    textBeforePrompts: handlerState.textBeforePrompts,
+    textAfterPrompts: handlerState.textAfterPrompts,
+    turboMode: handlerState.turboMode,
+    enhancePrompt: handlerState.enhancePrompt,
+    amountOfMotion: handlerState.amountOfMotion,
+    motionMode: handlerState.motionMode,
+    generationTypeMode: handlerState.generationTypeMode,
   };
 }
 
@@ -159,60 +139,11 @@ async function fetchTaskData(taskId: string) {
   }
 }
 
-async function fetchPairPromptSnapshot(shotId: string): Promise<PairPromptSnapshotRow[]> {
-  const { data, error } = await supabase
-    .from('shot_generations')
-    .select(SHOT_GENERATION_SNAPSHOT_SELECT)
-    .eq('shot_id', shotId)
-    .not('timeline_frame', 'is', null)
-    .order('timeline_frame', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('[ApplySettings] Error fetching pair prompt snapshot:', error);
-    return [];
-  }
-
-  return data || [];
-}
-
-async function loadPairPromptSnapshot(
-  ctx: ApplySettingsContext,
-  replaceImages: boolean,
-  inputImages: string[],
-  queryClient: ReturnType<typeof useQueryClient>,
-): Promise<PairPromptSnapshotRow[]> {
-  if (!ctx.selectedShot?.id) return [];
-
-  if (replaceImages && inputImages.length > 0) {
-    invalidateGenerationsSync(queryClient, ctx.selectedShot.id, {
-      reason: 'apply-settings-from-task',
-      scope: 'all',
-    });
-    await new Promise(resolve => setTimeout(resolve, 50));
-    await Promise.resolve(ctx.loadPositions({ silent: true }));
-  }
-
-  return fetchPairPromptSnapshot(ctx.selectedShot.id);
-}
-
-function preparePairPromptTargets(snapshot: PairPromptSnapshotRow[]) {
-  return snapshot
-    .filter(row => {
-      const generation = row.generation;
-      const isVideo = generation?.type === 'video' ||
-        generation?.type === 'video_travel_output' ||
-        generation?.location?.endsWith?.('.mp4');
-      return !isVideo;
-    })
-    .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-}
-
 async function applySettingsFromTask(
   taskId: string,
   replaceImages: boolean,
   inputImages: string[],
-  ctx: ApplySettingsContext,
+  handlerState: ApplySettingsHandlerState,
   queryClient: ReturnType<typeof useQueryClient>,
 ) {
   const taskData = await fetchTaskData(taskId);
@@ -222,39 +153,36 @@ async function applySettingsFromTask(
   }
 
   const settings = ApplySettingsService.extractSettings(taskData);
-  const applyContext = buildApplyContext(ctx);
+  const serviceApplyContext = buildServiceApplyContext(handlerState);
 
   await ApplySettingsService.replaceImagesIfRequested(
     settings,
     replaceImages,
     inputImages,
-    ctx.selectedShot ?? null,
-    ctx.projectId,
-    ctx.simpleFilteredImages,
-    ctx.addImageToShotMutation,
-    ctx.removeImageFromShotMutation,
+    handlerState.selectedShot ?? null,
+    handlerState.projectId,
+    handlerState.simpleFilteredImages,
+    handlerState.addImageToShotMutation,
+    handlerState.removeImageFromShotMutation,
   );
 
-  const pairPromptSnapshot = await loadPairPromptSnapshot(ctx, replaceImages, inputImages, queryClient);
-  const pairPromptTargets = preparePairPromptTargets(pairPromptSnapshot);
-
-  await ApplySettingsService.applyModelSettings(settings, applyContext);
-  await ApplySettingsService.applyPromptSettings(settings, applyContext);
-  await ApplySettingsService.applyGenerationSettings(settings, applyContext);
-  await ApplySettingsService.applyModeSettings(settings, applyContext);
-  await ApplySettingsService.applyAdvancedModeSettings(settings, applyContext);
-  await ApplySettingsService.applyTextPromptAddons(settings, applyContext);
-  await ApplySettingsService.applyMotionSettings(settings, applyContext);
-  await ApplySettingsService.applyLoRAs(settings, applyContext);
-  await ApplySettingsService.applyStructureVideo(settings, applyContext, taskData);
+  await ApplySettingsService.applyModelSettings(settings, serviceApplyContext);
+  await ApplySettingsService.applyPromptSettings(settings, serviceApplyContext);
+  await ApplySettingsService.applyGenerationSettings(settings, serviceApplyContext);
+  await ApplySettingsService.applyModeSettings(settings, serviceApplyContext);
+  await ApplySettingsService.applyAdvancedModeSettings(settings, serviceApplyContext);
+  await ApplySettingsService.applyTextPromptAddons(settings, serviceApplyContext);
+  await ApplySettingsService.applyMotionSettings(settings, serviceApplyContext);
+  await ApplySettingsService.applyLoRAs(settings, serviceApplyContext);
+  await ApplySettingsService.applyStructureVideo(settings, serviceApplyContext, taskData);
   await ApplySettingsService.applyFramePositionsToExistingImages(
     settings,
-    ctx.selectedShot ?? null,
-    ctx.simpleFilteredImages,
+    handlerState.selectedShot ?? null,
+    handlerState.simpleFilteredImages,
   );
 
-  if (ctx.selectedShot?.id) {
-    invalidateGenerationsSync(queryClient, ctx.selectedShot.id, {
+  if (handlerState.selectedShot?.id) {
+    invalidateGenerationsSync(queryClient, handlerState.selectedShot.id, {
       reason: 'apply-settings-force-reload',
       scope: 'all',
       delayMs: 200,
@@ -262,31 +190,31 @@ async function applySettingsFromTask(
   }
 
   await new Promise(resolve => setTimeout(resolve, 200));
-  await Promise.resolve(ctx.loadPositions({ silent: true }));
+  await Promise.resolve(handlerState.loadPositions({ silent: true }));
 }
 
-export function useApplySettingsHandler(context: ApplySettingsContext) {
+export function useApplySettingsHandler(handlerState: ApplySettingsHandlerState) {
   const queryClient = useQueryClient();
 
-  // Store all context values in a ref that updates silently
-  const contextRef = useRef(context);
+  // Store all handler state values in a ref that updates silently
+  const handlerStateRef = useRef(handlerState);
   
   // Update ref on every render (cheap, doesn't cause re-renders)
   useEffect(() => {
-    contextRef.current = context;
-  });
+    handlerStateRef.current = handlerState;
+  }, [handlerState]);
   
   // Return stable callback that reads from ref
   return useCallback(async (taskId: string, replaceImages: boolean, inputImages: string[]) => {
-    const ctx = contextRef.current;
-    const hasMissingIds = ctx.simpleFilteredImages.some(img => !img.id);
+    const latestHandlerState = handlerStateRef.current;
+    const hasMissingIds = latestHandlerState.simpleFilteredImages.some(img => !img.id);
     if (hasMissingIds && replaceImages) {
       toast.error('Loading shot data... please try again in a moment.');
       return;
     }
 
     try {
-      await applySettingsFromTask(taskId, replaceImages, inputImages, ctx, queryClient);
+      await applySettingsFromTask(taskId, replaceImages, inputImages, latestHandlerState, queryClient);
     } catch (error) {
       console.error('[ApplySettings] Failed to apply settings:', error);
       toast.error('Failed to apply settings from task');

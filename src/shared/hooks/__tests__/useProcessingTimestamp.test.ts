@@ -10,7 +10,8 @@ vi.mock('../useTimestampUpdater', () => ({
   })),
 }));
 
-import { useProcessingTimestamp, useCompletedTimestamp } from '../useProcessingTimestamp';
+import { useProcessingTimestamp } from '../useProcessingTimestamp';
+import { useCompletedTimestamp } from '../useCompletedTimestamp';
 
 describe('useProcessingTimestamp', () => {
   beforeEach(() => {

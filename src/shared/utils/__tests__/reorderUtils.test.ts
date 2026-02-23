@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { analyzeReorderOperation, validateReorderAnalysis } from '../reorderUtils';
+import { analyzeReorderOperation, validateReorderAnalysis } from '../../lib/reorderUtils';
 
 describe('reorderUtils', () => {
   describe('analyzeReorderOperation', () => {

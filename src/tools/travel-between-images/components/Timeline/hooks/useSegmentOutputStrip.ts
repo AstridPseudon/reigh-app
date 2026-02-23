@@ -27,24 +27,10 @@ interface PairInfo {
   frames: number;
 }
 
-/** Timeline layout dimensions for pixel position calculations */
-interface SegmentLayoutProps {
-  containerWidth: number;
-  fullMin: number;
-  fullRange: number;
-}
-
-/** Segment data inputs for display slot computation */
-interface SegmentDataProps {
-  pairInfo: PairInfo[];
-  rawSegmentSlots: SegmentSlot[];
-  pairDataByIndex?: Map<number, PairData>;
-  lastImageId?: string;
-  trailingSegmentMode?: {
-    imageId: string;
-    imageFrame: number;
-    endFrame: number;
-  };
+interface TrailingSegmentMode {
+  imageId: string;
+  imageFrame: number;
+  endFrame: number;
 }
 
 /** A display slot merged with its pixel position — ready for rendering */
@@ -58,8 +44,13 @@ interface PositionedSlot {
 interface UseSegmentOutputStripProps {
   shotId: string;
   projectAspectRatio?: string;
-  layout: SegmentLayoutProps;
-  segmentData: SegmentDataProps;
+  containerWidth: number;
+  fullMin: number;
+  fullRange: number;
+  pairInfo: PairInfo[];
+  rawSegmentSlots: SegmentSlot[];
+  trailingSegmentMode?: TrailingSegmentMode;
+  pairDataByIndex?: Map<number, PairData>;
   hasPendingTaskProp?: (pairShotGenerationId: string | null | undefined) => boolean;
   readOnly: boolean;
   onTrailingVideoInfo?: (videoUrl: string | null) => void;
@@ -74,105 +65,49 @@ interface UseSegmentOutputStripProps {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the ordered list of display slots (child videos + placeholders)
- * from raw segment data and pair information.
+ * Build the ordered list of display slots from raw segment slots and pair info.
+ *
+ * Key design: we TRUST the indices that Layer 1 (useSegmentOutputsForShot)
+ * assigned to raw slots. Layer 1 already handles stale pair_shot_generation_id
+ * FKs via child_order fallback, so the raw slot's .index is correct. We just
+ * index by slot.index, walk the expected indices, and take what's there.
  */
 function buildDisplaySlots(
   pairInfo: PairInfo[],
   rawSegmentSlots: SegmentSlot[],
-  pairDataByIndex?: Map<number, PairData>,
-  lastImageId?: string,
-  trailingSegmentMode?: SegmentDataProps['trailingSegmentMode'],
+  trailingSegmentMode?: TrailingSegmentMode,
 ): SegmentSlot[] {
-  // Build lookup: pairShotGenerationId → best slot (prefer child over placeholder)
-  const byPsgId = new Map<string, SegmentSlot>();
+  // Single pass: index raw slots by their assigned index.
+  // Prefer child over placeholder when both exist at the same index.
+  const slotByIndex = new Map<number, SegmentSlot>();
   for (const slot of rawSegmentSlots) {
-    if (!slot.pairShotGenerationId) continue;
-    const existing = byPsgId.get(slot.pairShotGenerationId);
+    const existing = slotByIndex.get(slot.index);
     if (!existing || (slot.type === 'child' && existing.type !== 'child')) {
-      byPsgId.set(slot.pairShotGenerationId, slot);
+      slotByIndex.set(slot.index, slot);
     }
   }
 
-  // Collect child (video) slots for each pair
-  const children: SegmentSlot[] = [];
-  for (const pair of pairInfo) {
-    const startImageId = pairDataByIndex?.get(pair.index)?.startImage?.id;
-    const segment = startImageId ? byPsgId.get(startImageId) : undefined;
-    if (segment?.type === 'child') {
-      children.push({ ...segment, index: pair.index });
-    }
-  }
-
-  // Trailing video (after last pair)
+  // Walk pair indices and take the raw slot or build a placeholder
   const trailingIndex = pairInfo.length;
-  if (lastImageId) {
-    const trailingSegment = byPsgId.get(lastImageId);
-    const isTrailingVideo = trailingSegment?.type === 'child'
-      && (!pairDataByIndex || ![...pairDataByIndex.values()].some(pd => pd.startImage?.id === lastImageId));
-    if (isTrailingVideo && trailingSegment) {
-      children.push({ ...trailingSegment, index: trailingIndex, isTrailingSegment: true } as SegmentSlot);
-    }
+  const slots: SegmentSlot[] = [];
+
+  for (const pair of pairInfo) {
+    const raw = slotByIndex.get(pair.index);
+    slots.push(raw ?? { type: 'placeholder', index: pair.index });
   }
 
-  // Special case: trailing-only with no pairs
-  if (pairInfo.length === 0 && trailingSegmentMode) {
-    const trailingChild = children.find(c => 'isTrailingSegment' in c);
-    if (trailingChild) return [trailingChild];
-    return [{
-      type: 'placeholder' as const,
-      index: 0,
+  // Trailing segment (index after all pairs)
+  if (trailingSegmentMode) {
+    const raw = slotByIndex.get(trailingIndex);
+    slots.push(raw ?? {
+      type: 'placeholder',
+      index: trailingIndex,
       pairShotGenerationId: trailingSegmentMode.imageId,
       expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
-      expectedPrompt: undefined,
-      startImage: undefined,
-      endImage: undefined,
-    }];
+    });
   }
 
-  // Build slots: use child if available, placeholder otherwise
-  const childByIndex = new Map(children.map(c => [c.index, c]));
-  const allSlots: SegmentSlot[] = [];
-
-  for (const pair of pairInfo) {
-    const existing = childByIndex.get(pair.index);
-    if (existing) {
-      allSlots.push(existing);
-    } else {
-      const startImageId = pairDataByIndex?.get(pair.index)?.startImage?.id;
-      const hookSlot = startImageId ? byPsgId.get(startImageId) : undefined;
-      allSlots.push({
-        type: 'placeholder' as const,
-        index: pair.index,
-        pairShotGenerationId: startImageId,
-        expectedFrames: hookSlot?.type === 'placeholder' ? hookSlot.expectedFrames : undefined,
-        expectedPrompt: hookSlot?.type === 'placeholder' ? hookSlot.expectedPrompt : undefined,
-        startImage: hookSlot?.type === 'placeholder' ? hookSlot.startImage : undefined,
-        endImage: hookSlot?.type === 'placeholder' ? hookSlot.endImage : undefined,
-      });
-    }
-  }
-
-  // Trailing segment (after the last pair)
-  if (trailingSegmentMode) {
-    const trailingChild = children.find(c => 'isTrailingSegment' in c);
-    if (trailingChild) {
-      allSlots.push(trailingChild);
-    } else {
-      allSlots.push({
-        type: 'placeholder' as const,
-        index: trailingIndex,
-        pairShotGenerationId: trailingSegmentMode.imageId,
-        expectedFrames: trailingSegmentMode.endFrame - trailingSegmentMode.imageFrame,
-        expectedPrompt: undefined,
-        startImage: undefined,
-        endImage: undefined,
-        isTrailingSegment: true,
-      } as SegmentSlot);
-    }
-  }
-
-  return allSlots;
+  return slots;
 }
 
 /**
@@ -181,9 +116,8 @@ function buildDisplaySlots(
  */
 function buildSegmentSourceInfo(rawSegmentSlots: SegmentSlot[]) {
   return rawSegmentSlots
-    .filter(slot => slot.type === 'child')
+    .filter((slot): slot is SegmentSlot & { type: 'child' } => slot.type === 'child')
     .map(slot => {
-      if (slot.type !== 'child') return null;
       const child = slot.child;
       const params = child.params as Record<string, unknown> | null;
       const individualParams = (params?.individual_segment_params || {}) as Record<string, unknown>;
@@ -198,15 +132,8 @@ function buildSegmentSourceInfo(rawSegmentSlots: SegmentSlot[]) {
         || (params?.end_image_generation_id as string)
         || orchGenIds[childOrder + 1]
         || null;
-      return {
-        segmentId: child.id,
-        childOrder,
-        params: params || {},
-        startGenId,
-        endGenId,
-      };
-    })
-    .filter((info): info is NonNullable<typeof info> => info !== null);
+      return { segmentId: child.id, childOrder, params: params || {}, startGenId, endGenId };
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -216,8 +143,13 @@ function buildSegmentSourceInfo(rawSegmentSlots: SegmentSlot[]) {
 export function useSegmentOutputStrip({
   shotId,
   projectAspectRatio,
-  layout: { containerWidth, fullMin, fullRange },
-  segmentData: { pairInfo, rawSegmentSlots, pairDataByIndex, lastImageId, trailingSegmentMode },
+  containerWidth,
+  fullMin,
+  fullRange,
+  pairInfo,
+  rawSegmentSlots,
+  trailingSegmentMode,
+  pairDataByIndex,
   hasPendingTaskProp,
   readOnly,
   onTrailingVideoInfo,
@@ -228,8 +160,8 @@ export function useSegmentOutputStrip({
 }: UseSegmentOutputStripProps) {
   // ===== DISPLAY SLOTS =====
   const displaySlots = useMemo(
-    () => buildDisplaySlots(pairInfo, rawSegmentSlots, pairDataByIndex, lastImageId, trailingSegmentMode),
-    [pairInfo, rawSegmentSlots, pairDataByIndex, lastImageId, trailingSegmentMode],
+    () => buildDisplaySlots(pairInfo, rawSegmentSlots, trailingSegmentMode),
+    [pairInfo, rawSegmentSlots, trailingSegmentMode],
   );
 
   // ===== SUB-HOOKS =====
@@ -254,7 +186,7 @@ export function useSegmentOutputStrip({
     onOpenPairSettings?: (pairIndex: number, pairFrameData?: { frames: number; startFrame: number; endFrame: number }) => void,
   ) => {
     clearScrubbing();
-    if (slot?.type === 'child') {
+    if (slot.type === 'child') {
       markAllViewed(slot.child.id);
     }
 
@@ -272,24 +204,25 @@ export function useSegmentOutputStrip({
       // No pair settings handler — fall back to inline SegmentOutputStrip lightbox
       setLightboxIndex(slotIndex);
     }
-  }, [markAllViewed, pairInfo, clearScrubbing, setLightboxIndex, shotId]);
+  }, [markAllViewed, pairInfo, clearScrubbing, setLightboxIndex]);
+
+  // ===== TRAILING INDEX (shared by multiple sections) =====
+  const trailingIndex = pairInfo.length;
 
   // ===== TRAILING VIDEO INFO REPORTING =====
+  // Find trailing video by index (consistent with buildDisplaySlots — no FK matching)
   useEffect(() => {
-    if (!onTrailingVideoInfo || !lastImageId) {
-      if (onTrailingVideoInfo) onTrailingVideoInfo(null);
+    if (!onTrailingVideoInfo || !trailingSegmentMode) {
+      onTrailingVideoInfo?.(null);
       return;
     }
-    const trailingVideoSlot = rawSegmentSlots.find((slot) => {
-      if (slot.type !== 'child') return false;
-      return slot.pairShotGenerationId === lastImageId;
-    });
-    if (trailingVideoSlot && trailingVideoSlot.type === 'child' && trailingVideoSlot.child.location) {
-      onTrailingVideoInfo(trailingVideoSlot.child.location);
+    const trailingSlot = displaySlots.find(s => s.index === trailingIndex);
+    if (trailingSlot?.type === 'child' && trailingSlot.child.location) {
+      onTrailingVideoInfo(trailingSlot.child.location);
     } else {
       onTrailingVideoInfo(null);
     }
-  }, [rawSegmentSlots, lastImageId, onTrailingVideoInfo]);
+  }, [displaySlots, trailingIndex, trailingSegmentMode, onTrailingVideoInfo]);
 
   // ===== POSITIONED SLOTS (slot + pixel position in single computation) =====
   const positionedSlots = useMemo((): PositionedSlot[] => {
@@ -298,16 +231,16 @@ export function useSegmentOutputStrip({
     const pairByIndex = new Map(pairInfo.map(p => [p.index, p]));
 
     return displaySlots.map(slot => {
-      const isTrailing = 'isTrailingSegment' in slot && (slot as Record<string, unknown>).isTrailingSegment === true;
+      const isTrailing = slot.index === trailingIndex && !!trailingSegmentMode;
 
       let startFrame: number;
       let endFrame: number;
-      if (isTrailing && trailingSegmentMode) {
-        startFrame = trailingSegmentMode.imageFrame;
-        endFrame = trailingSegmentMode.endFrame;
+      if (isTrailing) {
+        startFrame = trailingSegmentMode!.imageFrame;
+        endFrame = trailingSegmentMode!.endFrame;
       } else {
         const pair = pairByIndex.get(slot.index);
-        if (!pair) return { slot, leftPercent: 0, widthPercent: 0, isTrailing };
+        if (!pair) return { slot, leftPercent: 0, widthPercent: 0, isTrailing: false };
         startFrame = pair.startFrame;
         endFrame = pair.endFrame;
       }
@@ -323,17 +256,16 @@ export function useSegmentOutputStrip({
         isTrailing,
       };
     });
-  }, [displaySlots, pairInfo, fullMin, fullRange, containerWidth, trailingSegmentMode]);
+  }, [displaySlots, pairInfo, trailingIndex, fullMin, fullRange, containerWidth, trailingSegmentMode]);
 
   // ===== ADD TRAILING BUTTON POSITION =====
   const addTrailingButtonLeftPercent = useMemo((): number | null => {
     if (!isMultiImage || lastImageFrame === undefined || fullRange <= 0 || containerWidth <= 0) return null;
-    const trailingIndex = pairInfo.length;
     if (displaySlots.some(slot => slot.index === trailingIndex)) return null;
     const effectiveWidth = containerWidth - (TIMELINE_PADDING_OFFSET * 2);
     const lastImagePixel = TIMELINE_PADDING_OFFSET + ((lastImageFrame - fullMin) / fullRange) * effectiveWidth;
     return (lastImagePixel / containerWidth) * 100;
-  }, [isMultiImage, lastImageFrame, pairInfo.length, displaySlots, fullRange, containerWidth, fullMin]);
+  }, [isMultiImage, lastImageFrame, trailingIndex, displaySlots, fullRange, containerWidth, fullMin]);
 
   return {
     // Refs

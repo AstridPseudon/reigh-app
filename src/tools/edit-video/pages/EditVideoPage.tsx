@@ -22,7 +22,7 @@ import MediaGallery from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/useShots';
 import { cn } from '@/shared/lib/utils';
 import { useIsMobile } from '@/shared/hooks/useMobile';
-import { extractVideoPosterFrame } from '@/shared/utils/videoPosterExtractor';
+import { extractVideoPosterFrame } from '@/shared/lib/videoPosterExtractor';
 import MediaLightbox from '@/shared/components/MediaLightbox';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';

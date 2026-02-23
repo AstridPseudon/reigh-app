@@ -10,7 +10,7 @@
 import React from 'react';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useGenerationDetails } from './useGenerationDetails';
-import { isImageEditTaskType, isVideoEnhanceTaskType, isImageEnhanceTaskType, parseTaskParams, derivePrompt } from '@/shared/utils/taskParamsUtils';
+import { isImageEditTaskType, isVideoEnhanceTaskType, isImageEnhanceTaskType, parseTaskParams, derivePrompt } from '@/shared/lib/taskParamsUtils';
 import { type TaskDetailsProps } from '@/shared/types/taskDetailsTypes';
 import { ImageEditTaskDetails } from '@/shared/components/TaskDetails/ImageEditTaskDetails';
 import { ImageEnhanceDetails } from '@/shared/components/TaskDetails/ImageEnhanceDetails';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readShotSettings, readSegmentOverrides, writeSegmentOverrides } from '../settingsMigration';
+import { readShotSettings, readSegmentOverrides, writeSegmentOverrides } from '../../lib/settingsMigration';
 import { DEFAULT_SHOT_VIDEO_SETTINGS } from '@/shared/types/segmentSettings';
 
 describe('readShotSettings', () => {

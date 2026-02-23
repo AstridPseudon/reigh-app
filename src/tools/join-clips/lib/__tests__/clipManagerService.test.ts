@@ -25,7 +25,7 @@ vi.mock('@/shared/lib/imageUploader', () => ({
   uploadBlobToStorage: vi.fn(),
 }));
 
-vi.mock('@/shared/utils/videoPosterExtractor', () => ({
+vi.mock('@/shared/lib/videoPosterExtractor', () => ({
   extractVideoPosterFrame: vi.fn(),
   extractVideoFinalFrame: vi.fn(),
 }));

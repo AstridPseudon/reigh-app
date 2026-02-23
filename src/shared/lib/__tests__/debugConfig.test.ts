@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { debugConfig } from '../debugConfig';
+import { debugConfig } from '../debug/debugConfig';
 
 describe('debugConfig', () => {
   beforeEach(() => {

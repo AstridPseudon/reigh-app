@@ -8,7 +8,7 @@ import {
   getVariantLabel,
   hasLoadableSettings,
   isNewVariant,
-} from '../utils';
+} from '../variantPresentation';
 import { hasDifferentSourceImages } from '../variantSourceImages';
 
 const baseVariant: GenerationVariant = {

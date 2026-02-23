@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { GenerationRow } from '@/types/shots';
 import { supabase } from '@/integrations/supabase/client';
+import { expandShotData } from '@/shared/lib/shotData';
 
 interface UseSourceGenerationParams {
   media: GenerationRow;
@@ -58,10 +59,6 @@ export const useSourceGeneration = ({
           .from('generations')
           .select(`
             *,
-            shot_generations!shot_generations_generation_id_generations_id_fk(
-              shot_id,
-              timeline_frame
-            ),
             generation_variants!generation_variants_generation_id_fkey(
               id,
               location,
@@ -78,7 +75,9 @@ export const useSourceGeneration = ({
         if (data) {
           // Extract shot associations from joined data
           const joinedData = data as unknown as Record<string, unknown>;
-          const shotAssociations = (joinedData.shot_generations || []) as Array<{ shot_id: string; timeline_frame: number | null }>;
+          const shotAssociations = expandShotData(
+            joinedData.shot_data as Record<string, unknown> | null | undefined,
+          );
           const variants = (joinedData.generation_variants || []) as SourceVariantData[];
           
           // Find primary variant

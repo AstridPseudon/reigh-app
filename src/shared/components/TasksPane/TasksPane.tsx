@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
-import { useRenderLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import TaskList from './TaskList';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
@@ -105,8 +105,8 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
   const { currentShotId } = useCurrentShot();
   const { lastAffectedShotId } = useLastAffectedShot();
 
-  // Get incoming/placeholder tasks for count calculation
-  const { incomingTasks } = useIncomingTasks();
+  // Get incoming/placeholder tasks for count calculation + cancellation
+  const { incomingTasks, cancelAllIncoming } = useIncomingTasks();
   
   // Simplified shot options for MediaLightbox
   const simplifiedShotOptions = useMemo(() => shots?.map(s => ({ id: s.id, name: s.name })) || [], [shots]);
@@ -197,18 +197,16 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
     ? (paginatedData?.total || 0)
     : (displayStatusCounts?.processing || 0);
 
+  // Only count placeholders whose tasks haven't been created yet (no taskIds resolved).
+  // Once resolved, the real tasks are in the DB count — no double-counting.
   const cancellableTaskCount = useMemo(() => {
     if (incomingTasks.length === 0) return dbCount;
 
-    // While placeholders exist, show a fixed expected count (ignore dbCount fluctuations)
-    // Use the oldest placeholder's baseline (last in array since we prepend new ones)
-    const oldestTask = incomingTasks[incomingTasks.length - 1];
-    const baseline = oldestTask.baselineCount ?? dbCount;
-    const totalExpected = incomingTasks.reduce((sum, t) => sum + (t.expectedCount ?? 1), 0);
+    const unresolvedCount = incomingTasks
+      .filter(t => !t.taskIds?.length)
+      .reduce((sum, t) => sum + (t.expectedCount ?? 1), 0);
 
-    // Show expected final count, but never less than actual dbCount
-    // (handles case where other unrelated tasks complete)
-    return Math.max(dbCount, baseline + totalExpected);
+    return dbCount + unresolvedCount;
   }, [dbCount, incomingTasks]);
 
   const cancelAllPendingMutation = useCancelAllPendingTasks();
@@ -236,24 +234,6 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
   const handleStatusIndicatorClick = (type: FilterGroup, count: number) => {
     setSelectedFilter(type);
     setCurrentPage(1);
-    
-    if ((type === 'Succeeded' || type === 'Failed') && count > 0) {
-      return;
-    }
-    
-    if (type === 'Succeeded') {
-      toast({
-        title: 'Recent Successes',
-        description: `${count} generation${count === 1 ? '' : 's'} in past hour`,
-        variant: 'default',
-      });
-    } else if (type === 'Failed') {
-      toast({
-        title: 'Recent Failures',
-        description: `${count} generation${count === 1 ? '' : 's'} in past hour`,
-        variant: 'destructive',
-      });
-    }
   };
 
   const handleCancelAllPending = () => {
@@ -262,14 +242,22 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
       return;
     }
 
+    // Cancel in-flight placeholder tasks first.
+    // Any create() calls still in flight will detect this via wasCancelled()
+    // and cancel their newly created DB tasks when they return.
+    cancelAllIncoming();
+
     const queryKey = [...taskQueryKeys.paginated(selectedProjectId!), STATUS_GROUPS[selectedFilter], ITEMS_PER_PAGE, (currentPage - 1) * ITEMS_PER_PAGE];
     const previousData = queryClient.getQueryData(queryKey);
-    
+
+    // Optimistic update: mark queued tasks as cancelled and adjust total
     queryClient.setQueryData<PaginatedTasksResponse | undefined>(queryKey, (oldData) => {
       if (!oldData?.tasks) return oldData;
 
+      const cancelledCount = oldData.tasks.filter(t => t.status === 'Queued').length;
       return {
         ...oldData,
+        total: Math.max(0, oldData.total - cancelledCount),
         tasks: oldData.tasks.map((task) => {
           if (task.status === 'Queued') {
             return { ...task, status: 'Cancelled' as const };
@@ -283,10 +271,10 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
       onSuccess: (data) => {
         toast({
           title: 'Tasks Cancellation Initiated',
-          description: `Cancelled ${Array.isArray(data) ? data.length : 0} pending tasks.`,
+          description: `Cancelled ${data?.cancelledCount ?? 0} pending tasks.`,
           variant: 'default',
         });
-        
+
         queryClient.invalidateQueries({ queryKey: taskQueryKeys.paginated(selectedProjectId) });
         queryClient.refetchQueries({ queryKey: taskQueryKeys.paginated(selectedProjectId) });
       },
@@ -468,8 +456,8 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
                         className={cn(
                           "flex-1 text-xs flex items-center justify-center",
                           selectedFilter === filter
-                            ? "bg-accent text-accent-foreground md:hover:bg-accent/80"
-                            : "text-muted-foreground md:hover:text-foreground md:hover:bg-accent"
+                            ? "bg-zinc-600 text-zinc-100 md:hover:bg-zinc-500"
+                            : "text-zinc-400 md:hover:text-zinc-200 md:hover:bg-zinc-700"
                         )}
                       >
                         <span>{filter}</span>

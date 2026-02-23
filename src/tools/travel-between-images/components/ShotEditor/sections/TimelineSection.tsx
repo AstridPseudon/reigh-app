@@ -104,94 +104,97 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
   return (
     <div ref={timelineSectionRef} className="flex flex-col w-full gap-4">
       <ShotImagesEditor
-        isModeReady={isModeReady}
-        settingsError={settingsError}
-        isMobile={isMobile}
-        generationMode={generationMode ?? 'timeline'}
-        onGenerationModeChange={onGenerationModeChange ?? (() => {})}
-        selectedShotId={selectedShot.id}
-        projectId={projectId}
-        shotName={selectedShot.name}
-        batchVideoFrames={batchVideoFrames}
-        preloadedImages={allShotImages}
-        // Image handlers from context
-        onImageReorder={imageHandlers.onReorder}
-        onFramePositionsChange={() => {}}
-        onFileDrop={imageHandlers.onFileDrop}
-        onGenerationDrop={imageHandlers.onGenerationDrop}
-        onBatchFileDrop={imageHandlers.onBatchFileDrop}
-        onBatchGenerationDrop={imageHandlers.onBatchGenerationDrop}
-        pendingPositions={pendingPositions}
-        onPendingPositionApplied={onPendingPositionApplied}
-        onImageDelete={imageHandlers.onDelete}
-        onBatchImageDelete={imageHandlers.onBatchDelete}
-        onImageDuplicate={imageHandlers.onDuplicate}
-        columns={columns}
-        skeleton={
-          <ImageManagerSkeleton
-            isMobile={isMobile}
-            columns={columns}
-            shotImages={contextImages}
-            projectAspectRatio={effectiveAspectRatio}
-          />
-        }
-        // Unpositioned images from context
-        unpositionedGenerationsCount={isGenerationsPaneLocked ? 0 : unpositionedImages.length}
-        onOpenUnpositionedPane={shotManagement.openUnpositionedGenerationsPane}
-        // UI state from context
-        fileInputKey={state.fileInputKey}
-        onImageUpload={async (files) => {
-          if (imageHandlers.onBatchFileDrop) {
-            await imageHandlers.onBatchFileDrop(files);
-          }
+        displayOptions={{
+          isModeReady,
+          settingsError,
+          isMobile,
+          generationMode: generationMode ?? 'timeline',
+          onGenerationModeChange: onGenerationModeChange ?? (() => {}),
+          columns,
+          skeleton: (
+            <ImageManagerSkeleton
+              isMobile={isMobile}
+              columns={columns}
+              shotImages={contextImages}
+              projectAspectRatio={effectiveAspectRatio}
+            />
+          ),
+          readOnly: false,
+          projectAspectRatio: effectiveAspectRatio,
+          cachedHasStructureVideo,
+          maxFrameLimit,
+          smoothContinuations,
+          selectedOutputId,
+          onSelectedOutputChange,
         }}
-        isUploadingImage={state.isUploadingImage}
-        uploadProgress={state.uploadProgress}
-        duplicatingImageId={state.duplicatingImageId}
-        duplicateSuccessImageId={state.duplicateSuccessImageId}
-        projectAspectRatio={effectiveAspectRatio}
-        onSelectionChange={onSelectionChange}
-        defaultPrompt={defaultPrompt}
-        onDefaultPromptChange={onDefaultPromptChange}
-        defaultNegativePrompt={defaultNegativePrompt}
-        onDefaultNegativePromptChange={onDefaultNegativePromptChange}
-        // Structure video from context
-        primaryStructureVideoPath={structureVideo.structureVideoPath}
-        primaryStructureVideoMetadata={structureVideo.structureVideoMetadata}
-        primaryStructureVideoTreatment={structureVideo.structureVideoTreatment}
-        primaryStructureVideoMotionStrength={structureVideo.structureVideoMotionStrength}
-        primaryStructureVideoType={structureVideo.structureVideoType}
-        onPrimaryStructureVideoInputChange={structureVideoHandlers.handleStructureVideoInputChange}
-        primaryStructureVideoUni3cEndPercent={structureVideo.structureVideoUni3cEndPercent}
-        onUni3cEndPercentChange={structureVideoHandlers.handleUni3cEndPercentChange}
-        structureVideos={structureVideo.structureVideos}
-        isStructureVideoLoading={structureVideo.isLoading}
-        cachedHasStructureVideo={cachedHasStructureVideo}
-        onAddStructureVideo={structureVideo.addStructureVideo}
-        onUpdateStructureVideo={structureVideo.updateStructureVideo}
-        onRemoveStructureVideo={structureVideo.removeStructureVideo}
-        onSetStructureVideos={structureVideo.setStructureVideos}
-        // Audio from context
-        audioUrl={audio.audioUrl}
-        audioMetadata={audio.audioMetadata}
-        onAudioChange={audio.handleAudioChange}
-        // Shot management from context
-        allShots={shotManagement.allShots}
-        onShotChange={shotManagement.onShotChange}
-        onAddToShot={shotManagement.onAddToShot}
-        onAddToShotWithoutPosition={shotManagement.onAddToShotWithoutPosition}
-        onCreateShot={shotManagement.onCreateShot}
-        onNewShotFromSelection={shotManagement.onNewShotFromSelection}
-        onDragStateChange={onDragStateChange}
-        onTrailingDurationChange={(durationFrames) => {
-          if (typeof durationFrames === 'number') {
-            onBatchVideoFramesChange(durationFrames);
-          }
+        imageState={{
+          selectedShotId: selectedShot.id,
+          preloadedImages: allShotImages,
+          projectId,
+          shotName: selectedShot.name,
+          batchVideoFrames,
+          pendingPositions,
+          unpositionedGenerationsCount: isGenerationsPaneLocked ? 0 : unpositionedImages.length,
+          fileInputKey: state.fileInputKey,
+          isUploadingImage: state.isUploadingImage,
+          uploadProgress: state.uploadProgress,
+          duplicatingImageId: state.duplicatingImageId,
+          duplicateSuccessImageId: state.duplicateSuccessImageId,
+          defaultPrompt,
+          onDefaultPromptChange,
+          defaultNegativePrompt,
+          onDefaultNegativePromptChange,
+          primaryStructureVideoPath: structureVideo.structureVideoPath,
+          primaryStructureVideoMetadata: structureVideo.structureVideoMetadata,
+          primaryStructureVideoTreatment: structureVideo.structureVideoTreatment,
+          primaryStructureVideoMotionStrength: structureVideo.structureVideoMotionStrength,
+          primaryStructureVideoType: structureVideo.structureVideoType,
+          primaryStructureVideoUni3cEndPercent: structureVideo.structureVideoUni3cEndPercent,
+          structureVideos: structureVideo.structureVideos,
+          isStructureVideoLoading: structureVideo.isLoading,
+          audioUrl: audio.audioUrl,
+          audioMetadata: audio.audioMetadata,
         }}
-        maxFrameLimit={maxFrameLimit}
-        smoothContinuations={smoothContinuations}
-        selectedOutputId={selectedOutputId}
-        onSelectedOutputChange={onSelectedOutputChange}
+        editActions={{
+          onImageReorder: imageHandlers.onReorder,
+          onFramePositionsChange: () => {},
+          onFileDrop: imageHandlers.onFileDrop,
+          onGenerationDrop: imageHandlers.onGenerationDrop,
+          onBatchFileDrop: imageHandlers.onBatchFileDrop,
+          onBatchGenerationDrop: imageHandlers.onBatchGenerationDrop,
+          onPendingPositionApplied,
+          onImageDelete: imageHandlers.onDelete,
+          onBatchImageDelete: imageHandlers.onBatchDelete,
+          onImageDuplicate: imageHandlers.onDuplicate,
+          onOpenUnpositionedPane: shotManagement.openUnpositionedGenerationsPane,
+          onImageUpload: async (files) => {
+            if (imageHandlers.onBatchFileDrop) {
+              await imageHandlers.onBatchFileDrop(files);
+            }
+          },
+          onPrimaryStructureVideoInputChange: structureVideoHandlers.handleStructureVideoInputChange,
+          onUni3cEndPercentChange: structureVideoHandlers.handleUni3cEndPercentChange,
+          onAddStructureVideo: structureVideo.addStructureVideo,
+          onUpdateStructureVideo: structureVideo.updateStructureVideo,
+          onRemoveStructureVideo: structureVideo.removeStructureVideo,
+          onSetStructureVideos: structureVideo.setStructureVideos,
+          onAudioChange: audio.handleAudioChange,
+          onSelectionChange,
+          onDragStateChange,
+          onTrailingDurationChange: (durationFrames) => {
+            if (typeof durationFrames === 'number') {
+              onBatchVideoFramesChange(durationFrames);
+            }
+          },
+        }}
+        shotWorkflow={{
+          allShots: shotManagement.allShots,
+          onShotChange: shotManagement.onShotChange,
+          onAddToShot: shotManagement.onAddToShot,
+          onAddToShotWithoutPosition: shotManagement.onAddToShotWithoutPosition,
+          onCreateShot: shotManagement.onCreateShot,
+          onNewShotFromSelection: shotManagement.onNewShotFromSelection,
+        }}
       />
     </div>
   );

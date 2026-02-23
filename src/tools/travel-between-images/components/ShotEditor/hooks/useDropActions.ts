@@ -15,7 +15,7 @@ import {
   calculateNextAvailableFrame,
   persistTimelinePositions
 } from './timelineDropHelpers';
-import { DEFAULT_FRAME_SPACING } from '@/shared/utils/timelinePositionCalculator';
+import { DEFAULT_FRAME_SPACING } from '@/shared/lib/timelinePositionCalculator';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 
 interface UseDropActionsProps {

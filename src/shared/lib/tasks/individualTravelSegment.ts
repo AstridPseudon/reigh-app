@@ -7,7 +7,6 @@ import type { TaskCreationResult } from "../taskCreation";
 import { supabase } from '@/integrations/supabase/client';
 import { PhaseConfig, buildBasicModePhaseConfig } from '@/shared/types/phaseConfig';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import type { PathLoraConfig } from '@/shared/types/lora';
 import { ensureShotParentGenerationId } from './shotParentGeneration';
 
@@ -65,6 +64,7 @@ interface IndividualTravelSegmentParams {
   motion_mode?: 'basic' | 'presets' | 'advanced';
   selected_phase_preset_id?: string | null;
   loras?: PathLoraConfig[];
+  structure_videos?: UnknownRecord[];
 
   // Optional generation name for the variant
   generation_name?: string;
@@ -190,8 +190,64 @@ interface SegmentBuildState {
   structureGuidance?: UnknownRecord;
 }
 
-function asRecord(value: unknown): UnknownRecord {
-  return value && typeof value === 'object' ? (value as UnknownRecord) : {};
+function toRecordOrEmpty(value: unknown): UnknownRecord {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : {};
+}
+
+function asRecordArray(value: unknown): UnknownRecord[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value
+    .filter((item): item is UnknownRecord => !!item && typeof item === 'object' && !Array.isArray(item));
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function asMotionMode(value: unknown): SegmentBuildState['motionMode'] | undefined {
+  return value === 'basic' || value === 'presets' || value === 'advanced'
+    ? value
+    : undefined;
+}
+
+function asPhaseConfig(value: unknown): PhaseConfig | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const candidate = value as {
+    num_phases?: unknown;
+    steps_per_phase?: unknown;
+    flow_shift?: unknown;
+    sample_solver?: unknown;
+    model_switch_phase?: unknown;
+    phases?: unknown;
+  };
+  if (
+    typeof candidate.num_phases !== 'number'
+    || !Array.isArray(candidate.steps_per_phase)
+    || !candidate.steps_per_phase.every((step) => typeof step === 'number')
+    || typeof candidate.flow_shift !== 'number'
+    || typeof candidate.sample_solver !== 'string'
+    || typeof candidate.model_switch_phase !== 'number'
+    || !Array.isArray(candidate.phases)
+  ) {
+    return undefined;
+  }
+  return value as PhaseConfig;
 }
 
 function buildInputImages(params: IndividualTravelSegmentParams): string[] {
@@ -205,9 +261,9 @@ function resolveFinalSeed(
   orig: UnknownRecord,
   orchDetails: UnknownRecord
 ): number {
-  const baseSeed = (orig.seed_to_use as number | undefined)
-    ?? (orig.seed as number | undefined)
-    ?? (orchDetails.seed_base as number | undefined)
+  const baseSeed = asNumber(orig.seed_to_use)
+    ?? asNumber(orig.seed)
+    ?? asNumber(orchDetails.seed_base)
     ?? 789;
 
   return params.random_seed
@@ -219,9 +275,8 @@ function mergeAdditionalLoraMap(
   target: Record<string, number>,
   source: unknown
 ): void {
-  if (!source || typeof source !== 'object') return;
-
-  for (const [path, strength] of Object.entries(source as UnknownRecord)) {
+  const sourceRecord = toRecordOrEmpty(source);
+  for (const [path, strength] of Object.entries(sourceRecord)) {
     if (typeof strength === 'number') {
       target[path] = strength;
     }
@@ -254,7 +309,7 @@ function buildStructureGuidanceFromVideos(
   defaultUni3cEndPercent: number
 ): UnknownRecord {
   const firstVideo = videos[0];
-  const structureType = (firstVideo.structure_type as string | undefined) ?? 'flow';
+  const structureType = asString(firstVideo.structure_type) ?? 'flow';
   const isUni3c = structureType === 'uni3c';
 
   const cleanedVideos = videos.map((video) => ({
@@ -290,18 +345,18 @@ function resolveStructureGuidance(
   orchDetails: UnknownRecord
 ): UnknownRecord | undefined {
   const existingGuidance = orig.structure_guidance ?? orchDetails.structure_guidance;
-  if (existingGuidance && typeof existingGuidance === 'object') {
-    return existingGuidance as UnknownRecord;
+  if (existingGuidance && typeof existingGuidance === 'object' && !Array.isArray(existingGuidance)) {
+    return existingGuidance;
   }
 
-  const directStructureVideos = (params as unknown as UnknownRecord).structure_videos as UnknownRecord[] | undefined;
+  const directStructureVideos = asRecordArray(params.structure_videos);
   if (directStructureVideos?.length) {
     return buildStructureGuidanceFromVideos(directStructureVideos, 0.1);
   }
 
   const legacyStructureVideos = (
-    (orchDetails.structure_videos as UnknownRecord[] | undefined)
-    ?? (orig.structure_videos as UnknownRecord[] | undefined)
+    asRecordArray(orchDetails.structure_videos)
+    ?? asRecordArray(orig.structure_videos)
   );
 
   if (legacyStructureVideos?.length) {
@@ -323,26 +378,26 @@ function stripOrchestratorReferences(orchDetails: UnknownRecord): UnknownRecord 
 }
 
 function buildSegmentState(params: IndividualTravelSegmentParams): SegmentBuildState {
-  const orig = asRecord(params.originalParams);
-  const orchDetails = asRecord(orig.orchestrator_details);
+  const orig = toRecordOrEmpty(params.originalParams);
+  const orchDetails = toRecordOrEmpty(orig.orchestrator_details);
   const inputImages = buildInputImages(params);
   const allInputImages = orchDetails.input_image_paths_resolved ?? inputImages;
   const finalSeed = resolveFinalSeed(params, orig, orchDetails);
   const additionalLoras = buildAdditionalLoras(params, orig, orchDetails);
   const motionMode = (
     params.motion_mode
-    ?? (orig.motion_mode as SegmentBuildState['motionMode'] | undefined)
-    ?? (orchDetails.motion_mode as SegmentBuildState['motionMode'] | undefined)
+    ?? asMotionMode(orig.motion_mode)
+    ?? asMotionMode(orchDetails.motion_mode)
     ?? 'basic'
   );
-  const amountOfMotion = (params.amount_of_motion as number | undefined)
-    ?? (orig.amount_of_motion as number | undefined)
-    ?? (orchDetails.amount_of_motion as number | undefined)
+  const amountOfMotion = params.amount_of_motion
+    ?? asNumber(orig.amount_of_motion)
+    ?? asNumber(orchDetails.amount_of_motion)
     ?? 0.5;
   const explicitPhaseConfig = (
     params.phase_config
-    ?? (orig.phase_config as PhaseConfig | undefined)
-    ?? (orchDetails.phase_config as PhaseConfig | undefined)
+    ?? asPhaseConfig(orig.phase_config)
+    ?? asPhaseConfig(orchDetails.phase_config)
   );
   const phaseConfig = explicitPhaseConfig
     ?? buildBasicModePhaseConfig(false, amountOfMotion, params.loras ?? []);
@@ -350,8 +405,8 @@ function buildSegmentState(params: IndividualTravelSegmentParams): SegmentBuildS
     ? false
     : (
       params.advanced_mode
-      ?? (orig.advanced_mode as boolean | undefined)
-      ?? (orchDetails.advanced_mode as boolean | undefined)
+      ?? asBoolean(orig.advanced_mode)
+      ?? asBoolean(orchDetails.advanced_mode)
       ?? !!explicitPhaseConfig
     );
   const loraMultipliers = phaseConfig.phases.flatMap((phase) =>
@@ -360,56 +415,56 @@ function buildSegmentState(params: IndividualTravelSegmentParams): SegmentBuildS
       multiplier: typeof lora.multiplier === 'number' ? lora.multiplier : Number(lora.multiplier) || 0,
     }))
   );
-  const modelName = (orig.model_name as string | undefined)
-    ?? (orchDetails.model_name as string | undefined)
+  const modelName = asString(orig.model_name)
+    ?? asString(orchDetails.model_name)
     ?? DEFAULT_I2V_MODEL;
-  const flowShift = (phaseConfig.flow_shift as number | undefined)
-    ?? (orig.flow_shift as number | undefined)
-    ?? (orchDetails.flow_shift as number | undefined)
+  const flowShift = phaseConfig.flow_shift
+    ?? asNumber(orig.flow_shift)
+    ?? asNumber(orchDetails.flow_shift)
     ?? 5;
-  const sampleSolver = (phaseConfig.sample_solver as string | undefined)
-    ?? (orig.sample_solver as string | undefined)
-    ?? (orchDetails.sample_solver as string | undefined)
+  const sampleSolver = phaseConfig.sample_solver
+    ?? asString(orig.sample_solver)
+    ?? asString(orchDetails.sample_solver)
     ?? 'euler';
-  const guidanceScale = (phaseConfig.phases?.[0]?.guidance_scale as number | undefined)
-    ?? (orig.guidance_scale as number | undefined)
-    ?? (orchDetails.guidance_scale as number | undefined)
+  const guidanceScale = phaseConfig.phases?.[0]?.guidance_scale
+    ?? asNumber(orig.guidance_scale)
+    ?? asNumber(orchDetails.guidance_scale)
     ?? 1;
-  const guidance2Scale = (phaseConfig.phases?.[1]?.guidance_scale as number | undefined)
-    ?? (orig.guidance2_scale as number | undefined)
-    ?? (orchDetails.guidance2_scale as number | undefined)
+  const guidance2Scale = phaseConfig.phases?.[1]?.guidance_scale
+    ?? asNumber(orig.guidance2_scale)
+    ?? asNumber(orchDetails.guidance2_scale)
     ?? 1;
-  const guidancePhases = (phaseConfig.num_phases as number | undefined)
-    ?? (orig.guidance_phases as number | undefined)
-    ?? (orchDetails.guidance_phases as number | undefined)
+  const guidancePhases = phaseConfig.num_phases
+    ?? asNumber(orig.guidance_phases)
+    ?? asNumber(orchDetails.guidance_phases)
     ?? 2;
   const numInferenceSteps = phaseConfig.steps_per_phase
     ? phaseConfig.steps_per_phase.reduce((sum: number, steps: number) => sum + steps, 0)
     : (
-      (orig.num_inference_steps as number | undefined)
-      ?? (orchDetails.num_inference_steps as number | undefined)
+      asNumber(orig.num_inference_steps)
+      ?? asNumber(orchDetails.num_inference_steps)
       ?? 6
     );
-  const modelSwitchPhase = (phaseConfig.model_switch_phase as number | undefined)
-    ?? (orig.model_switch_phase as number | undefined)
-    ?? (orchDetails.model_switch_phase as number | undefined)
+  const modelSwitchPhase = phaseConfig.model_switch_phase
+    ?? asNumber(orig.model_switch_phase)
+    ?? asNumber(orchDetails.model_switch_phase)
     ?? 1;
   const switchThreshold = orig.switch_threshold ?? orchDetails.switch_threshold;
-  const rawNumFrames = (params.num_frames as number | undefined)
-    ?? (orig.num_frames as number | undefined)
+  const rawNumFrames = params.num_frames
+    ?? asNumber(orig.num_frames)
     ?? 49;
   const numFrames = Math.min(rawNumFrames, MAX_SEGMENT_FRAMES);
   const basePrompt = params.base_prompt
-    ?? (orig.base_prompt as string | undefined)
-    ?? (orig.prompt as string | undefined)
+    ?? asString(orig.base_prompt)
+    ?? asString(orig.prompt)
     ?? "";
   const negativePrompt = params.negative_prompt
-    ?? (orig.negative_prompt as string | undefined)
+    ?? asString(orig.negative_prompt)
     ?? "";
   const enhancedPrompt = params.enhanced_prompt
-    ?? (orig.enhanced_prompt as string | undefined);
-  const fpsHelpers = (orig.fps_helpers as number | undefined)
-    ?? (orchDetails.fps_helpers as number | undefined)
+    ?? asString(orig.enhanced_prompt);
+  const fpsHelpers = asNumber(orig.fps_helpers)
+    ?? asNumber(orchDetails.fps_helpers)
     ?? 16;
   const segmentFramesExpanded = orchDetails.segment_frames_expanded;
   const frameOverlapExpanded = orchDetails.frame_overlap_expanded;
@@ -678,8 +733,8 @@ export async function createIndividualTravelSegmentTask(params: IndividualTravel
     };
 
     // 4. Resolve project resolution (use original if available)
-    const originalParams = asRecord(params.originalParams);
-    const originalOrchestratorDetails = asRecord(originalParams.orchestrator_details);
+    const originalParams = toRecordOrEmpty(params.originalParams);
+    const originalOrchestratorDetails = toRecordOrEmpty(originalParams.orchestrator_details);
     const origResolutionValue =
       originalParams.parsed_resolution_wh ?? originalOrchestratorDetails.parsed_resolution_wh;
     const origResolution = typeof origResolutionValue === 'string' ? origResolutionValue : undefined;

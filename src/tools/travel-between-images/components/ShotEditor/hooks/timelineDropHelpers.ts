@@ -12,7 +12,7 @@ import { isVideoShotGenerations, type ShotGenerationsLike } from '@/shared/lib/t
 import { 
   ensureUniqueFrame, 
   calculateNextAvailableFrame as calculateNextAvailableFrameSync 
-} from '@/shared/utils/timelinePositionCalculator';
+} from '@/shared/lib/timelinePositionCalculator';
 
 // ============================================================================
 // Types
@@ -99,7 +99,7 @@ export const cropImagesToShotAspectRatio = async (
 // Position Calculation
 // ============================================================================
 
-// Note: ensureUniqueFrame is now imported from @/shared/utils/timelinePositionCalculator
+// Note: ensureUniqueFrame is now imported from @/shared/lib/timelinePositionCalculator
 
 export const calculateNextAvailableFrame = async (
   shotId: string,

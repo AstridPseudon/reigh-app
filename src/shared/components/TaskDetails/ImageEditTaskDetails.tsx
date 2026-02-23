@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
-import { parseTaskParams, deriveInputImages, extractLoras } from '@/shared/utils/taskParamsUtils';
+import { parseTaskParams, deriveInputImages, extractLoras } from '@/shared/lib/taskParamsUtils';
 
 /**
  * Task details for image editing tasks (img2img, inpaint, magic edit, etc.)

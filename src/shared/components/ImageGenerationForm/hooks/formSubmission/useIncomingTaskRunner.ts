@@ -1,63 +1,28 @@
 import { useCallback } from 'react';
-import type { QueryClient } from '@tanstack/react-query';
-import type { IncomingTask } from '@/shared/contexts/IncomingTasksContext';
-import { handleError } from '@/shared/lib/errorHandling/handleError';
-import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
-
-interface UseIncomingTaskRunnerInput {
-  addIncomingTask: (task: Omit<IncomingTask, 'id' | 'startedAt'>) => string;
-  completeIncomingTask: (id: string, newBaseline: number) => void;
-  queryClient: QueryClient;
-}
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
+import type { RunTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 interface RunIncomingTaskOptions {
   label: string;
   expectedCount: number;
-  projectIdForCounts?: string;
   context: string;
   toastTitle: string;
-  execute: () => Promise<void>;
+  execute: () => Promise<string[] | void>;
 }
 
 export type RunIncomingTask = (options: RunIncomingTaskOptions) => void;
 
-async function refetchTaskQueries(queryClient: QueryClient): Promise<void> {
-  await queryClient.refetchQueries({ queryKey: taskQueryKeys.paginatedAll });
-  await queryClient.refetchQueries({ queryKey: taskQueryKeys.statusCountsAll });
-}
-
-function getProcessingCount(queryClient: QueryClient, projectIdForCounts?: string): number {
-  if (!projectIdForCounts) {
-    return 0;
-  }
-
-  return queryClient.getQueryData<{ processing: number }>(taskQueryKeys.statusCounts(projectIdForCounts))?.processing ?? 0;
-}
-
-export function useIncomingTaskRunner(input: UseIncomingTaskRunnerInput): RunIncomingTask {
-  const { addIncomingTask, completeIncomingTask, queryClient } = input;
+export function useIncomingTaskRunner(): RunIncomingTask {
+  const run: RunTaskPlaceholder = useTaskPlaceholder();
 
   return useCallback((options: RunIncomingTaskOptions) => {
-    const incomingTaskId = addIncomingTask({
+    void run({
       taskType: 'image_generation',
       label: options.label,
       expectedCount: options.expectedCount,
-      baselineCount: 0,
+      context: options.context,
+      toastTitle: options.toastTitle,
+      create: options.execute,
     });
-
-    void (async () => {
-      try {
-        await options.execute();
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('[IncomingTaskRunner] execute FAILED', options.context, error);
-        }
-        handleError(error, { context: options.context, toastTitle: options.toastTitle });
-      } finally {
-        await refetchTaskQueries(queryClient);
-        const processingCount = getProcessingCount(queryClient, options.projectIdForCounts);
-        completeIncomingTask(incomingTaskId, processingCount);
-      }
-    })();
-  }, [addIncomingTask, completeIncomingTask, queryClient]);
+  }, [run]);
 }

@@ -35,6 +35,14 @@ import {
 } from '@/shared/lib/timelineWriteQueue';
 import { persistTimelineFrameBatch } from '@/shared/lib/timelineFrameBatchPersist';
 import {
+  buildServerPositions,
+  createPositionsSyncKey,
+  detectPositionChanges,
+  hasDuplicatePositionValues,
+  mergePendingUpdates,
+  type PendingUpdate,
+} from './timelinePositionCalc';
+import {
   clearTrailingEndpointFrame,
   setTrailingEndpointFrame,
 } from './timelineTrailingEndpointPersistence';
@@ -42,17 +50,6 @@ import {
 // ============================================================================
 // TYPES
 // ============================================================================
-
-/**
- * Tracks a pending position update for rollback support
- */
-interface PendingUpdate {
-  id: string;
-  oldPosition: number | null;  // null = new item being added
-  newPosition: number;
-  operation: 'add' | 'move' | 'remove';
-  timestamp: number;
-}
 
 /**
  * State machine for position management
@@ -226,87 +223,14 @@ export function useTimelinePositions({
       return;
     }
 
-    // Calculate positions from shotGenerations (single source of truth)
-    // Optimistic items should use addItemsAtPositions() which adds to pendingUpdatesRef
-    const newPositions = new Map<string, number>();
-
-    // Add positions from shotGenerations (database source)
-    // shotGenerations uses sg.id as the key (shot_generations.id)
-    // CRITICAL: Exclude negative values (-1 is used as sentinel for unpositioned)
-    shotGenerations.forEach(shotGen => {
-      if (shotGen.timeline_frame !== null && shotGen.timeline_frame !== undefined && shotGen.timeline_frame >= 0) {
-        newPositions.set(shotGen.id, shotGen.timeline_frame);
-      }
-    });
-
-    // Add trailing endpoint from last positioned image's metadata.end_frame
-    const sortedShotGens = [...shotGenerations]
-      .filter(sg => sg.timeline_frame !== null && sg.timeline_frame !== undefined && sg.timeline_frame >= 0)
-      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-    if (sortedShotGens.length > 0) {
-      const lastShotGen = sortedShotGens[sortedShotGens.length - 1];
-      const metadata = lastShotGen.metadata as Record<string, unknown> | null;
-      const endFrame = metadata?.end_frame;
-      if (typeof endFrame === 'number' && endFrame > (lastShotGen.timeline_frame ?? 0)) {
-        newPositions.set(TRAILING_ENDPOINT_KEY, endFrame);
-      }
+    const serverPositions = buildServerPositions(shotGenerations);
+    const { merged: mergedPositions, idsToClear } = mergePendingUpdates(serverPositions, pendingUpdatesRef.current);
+    if (idsToClear.length > 0) {
+      idsToClear.forEach(id => pendingUpdatesRef.current.delete(id));
     }
 
-    // MERGE LOGIC: Combine server data with local pending updates
-    // Instead of skipping the entire sync, we merge:
-    // 1. Server data (truth for non-pending items and verified items)
-    // 2. Local pending data (truth for unverified pending items)
-    if (pendingUpdatesRef.current.size > 0) {
-       const now = Date.now();
-       const toDelete = new Set<string>();
-       let verifiedCount = 0;
-       let timedOutCount = 0;
-       let overriddenCount = 0;
-
-       for (const [id, pending] of pendingUpdatesRef.current.entries()) {
-           const serverPos = newPositions.get(id);
-
-           // 1. Success case: Server matches our pending update
-           // Use relaxed comparison for safety (sometimes floats vs ints)
-           if (serverPos !== undefined && Math.abs(serverPos - pending.newPosition) < 0.01) {
-               toDelete.add(id);
-               verifiedCount++;
-               // Server is correct, keep newPositions as-is for this item
-               continue;
-           }
-
-           // 2. Timeout case: Pending update is too old (> 35s, exceeds 30s RPC timeout)
-           if (now - pending.timestamp > 35000) {
-               toDelete.add(id);
-               timedOutCount++;
-               // Accept server data (already in newPositions)
-               continue;
-           }
-
-           // 3. Stale case: Server still has old position (or null)
-           // OVERRIDE the server data with our local optimistic state
-           // This protects the dragged item(s) from jumping back
-           overriddenCount++;
-           if (pending.operation === 'remove') {
-               newPositions.delete(id);
-           } else {
-               newPositions.set(id, pending.newPosition);
-           }
-       }
-
-       // Clear verified/timed-out updates
-       if (toDelete.size > 0) {
-         toDelete.forEach(id => pendingUpdatesRef.current.delete(id));
-       }
-
-
-
-       // NOTE: We no longer skip the sync entirely!
-       // We merged local pending data into newPositions, so we can safely continue
-    }
-    
     // Check if positions actually changed
-    const syncKey = JSON.stringify([...newPositions.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+    const syncKey = createPositionsSyncKey(mergedPositions);
     if (syncKey === lastSyncRef.current) {
       return; // No change
     }
@@ -314,11 +238,11 @@ export function useTimelinePositions({
 
     // Sync positions immediately (not in transition) to prevent flicker
     // when new items are added - the position must be available before render
-    setPositions(newPositions);
+    setPositions(mergedPositions);
 
     // Notify parent if callback provided
     if (onPositionsChange) {
-      onPositionsChange(newPositions);
+      onPositionsChange(mergedPositions);
     }
 
 
@@ -436,14 +360,7 @@ export function useTimelinePositions({
     // and the DB write is skipped entirely.
     const basePositions =
       skipOptimistic && snapshotRef.current ? snapshotRef.current : positionsRef.current;
-    const changes: Array<{ id: string; oldPos: number | null; newPos: number }> = [];
-
-    for (const [id, newPos] of quantizedPositions) {
-      const oldPos = basePositions.get(id);
-      if (oldPos !== newPos) {
-        changes.push({ id, oldPos: oldPos ?? null, newPos });
-      }
-    }
+    const changes = detectPositionChanges(basePositions, quantizedPositions);
 
     // Detect trailing endpoint removal (was in old positions, not in new)
     const trailingRemoved = positionsRef.current.has(TRAILING_ENDPOINT_KEY) && !quantizedPositions.has(TRAILING_ENDPOINT_KEY);
@@ -453,9 +370,7 @@ export function useTimelinePositions({
     }
 
     // Validate: no duplicate positions
-    const positionValues = [...quantizedPositions.values()];
-    const uniquePositions = new Set(positionValues);
-    if (uniquePositions.size !== positionValues.length) {
+    if (hasDuplicatePositionValues(quantizedPositions)) {
       toast.error('Position conflict detected - operation cancelled');
       return;
     }
@@ -596,7 +511,7 @@ export function useTimelinePositions({
       // Invalidate cache after a short delay to allow UI to settle
       invalidateGenerations(shotId, {
         reason: 'timeline-position-batch-persist',
-        scope: 'all',
+        scope: 'images',
         delayMs: 100
       });
       

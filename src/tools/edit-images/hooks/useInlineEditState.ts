@@ -2,6 +2,9 @@ import {
   useRef,
   useState,
   useEffect,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction,
 } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { isVideoAny } from '@/shared/lib/typeGuards';
@@ -43,6 +46,15 @@ type StarToggleHookResult = ReturnType<typeof useStarToggle>;
 type SourceGenerationData = ReturnType<typeof useSourceGeneration>['sourceGenerationData'];
 type PublicLorasData = ReturnType<typeof usePublicLoras>['data'];
 type ImageEditValue = ReturnType<typeof useImageEditValue>;
+
+function toInpaintingEditMode(
+  mode: SettingsEditMode | ImageEditMode
+): InpaintingEditMode {
+  if (mode === 'text' || mode === 'inpaint' || mode === 'annotate') {
+    return mode;
+  }
+  return 'text';
+}
 
 function resolveActualGenerationId(media: GenerationRow): string | null {
   const isShotGenerationRecord = media.shotImageEntryId === media.id ||
@@ -216,7 +228,7 @@ function useInlineEditSettingsSync(
     editMode: inpainting.editMode,
     inpaintNumGenerations: inpainting.inpaintNumGenerations,
     inpaintPrompt: inpainting.inpaintPrompt,
-    setEditMode: (mode: SettingsEditMode) => inpainting.setEditMode(mode as InpaintingEditMode),
+    setEditMode: (mode: SettingsEditMode) => inpainting.setEditMode(toInpaintingEditMode(mode)),
     setInpaintNumGenerations: inpainting.setInpaintNumGenerations,
     setInpaintPrompt: inpainting.setInpaintPrompt,
     setPersistedEditMode: editSettings.setEditMode,
@@ -237,7 +249,7 @@ function buildImageEditValueParams(
     isSpecialEditMode: magic.isSpecialEditMode,
     editMode: inpainting.editMode,
     setIsInpaintMode: inpainting.setIsInpaintMode,
-    setEditMode: (mode: ImageEditMode) => inpainting.setEditMode(mode as InpaintingEditMode),
+    setEditMode: (mode: ImageEditMode) => inpainting.setEditMode(toInpaintingEditMode(mode)),
     handleEnterInpaintMode: inpainting.handleEnterInpaintMode,
     handleExitMagicEditMode: magic.handleExitMagicEditMode,
     handleEnterMagicEditMode: magic.handleEnterMagicEditMode,
@@ -304,6 +316,7 @@ function buildImageEditValueParams(
 }
 
 interface BuildInlineEditStateResultParams {
+  media: GenerationRow;
   env: InlineEditEnvironment;
   inpainting: InpaintingHookResult;
   magic: MagicEditHookResult;
@@ -316,8 +329,86 @@ interface BuildInlineEditStateResultParams {
   handleDownload: () => Promise<void>;
 }
 
+interface CanvasEnvironmentState {
+  isMobile: boolean;
+  selectedProjectId: string | null | undefined;
+  isCloudMode: boolean;
+  isVideo: boolean;
+  imageContainerRef: RefObject<HTMLDivElement>;
+  effectiveImageUrl: string;
+  imageDimensions: { width: number; height: number } | null;
+  setImageDimensions: Dispatch<SetStateAction<{ width: number; height: number } | null>>;
+  isUpscaling: boolean;
+  handleUpscale: () => Promise<void>;
+}
+
+interface InpaintingState {
+  isInpaintMode: boolean;
+  editMode: InpaintingEditMode | null;
+  brushStrokes: InpaintingHookResult['brushStrokes'];
+  currentStroke: InpaintingHookResult['currentStroke'];
+  isDrawing: boolean;
+  isEraseMode: boolean;
+  brushSize: number;
+  annotationMode: InpaintingHookResult['annotationMode'];
+  selectedShapeId: string | null;
+  isAnnotateMode: boolean;
+  handleKonvaPointerDown: InpaintingHookResult['handleKonvaPointerDown'];
+  handleKonvaPointerMove: InpaintingHookResult['handleKonvaPointerMove'];
+  handleKonvaPointerUp: InpaintingHookResult['handleKonvaPointerUp'];
+  handleShapeClick: InpaintingHookResult['handleShapeClick'];
+  strokeOverlayRef: InpaintingHookResult['strokeOverlayRef'];
+  getDeleteButtonPosition: InpaintingHookResult['getDeleteButtonPosition'];
+  handleToggleFreeForm: InpaintingHookResult['handleToggleFreeForm'];
+  handleDeleteSelected: InpaintingHookResult['handleDeleteSelected'];
+  handleUndo: InpaintingHookResult['handleUndo'];
+  handleClearMask: InpaintingHookResult['handleClearMask'];
+  setIsInpaintMode: InpaintingHookResult['setIsInpaintMode'];
+  setEditMode: InpaintingHookResult['setEditMode'];
+  setBrushSize: InpaintingHookResult['setBrushSize'];
+  setIsEraseMode: InpaintingHookResult['setIsEraseMode'];
+  setAnnotationMode: InpaintingHookResult['setAnnotationMode'];
+  isSpecialEditMode: boolean;
+  handleEnterMagicEditMode: MagicEditHookResult['handleEnterMagicEditMode'];
+}
+
+interface TransformState {
+  repositionTransform: RepositionHookResult['transform'];
+  setScale: RepositionHookResult['setScale'];
+  setRotation: RepositionHookResult['setRotation'];
+  toggleFlipH: RepositionHookResult['toggleFlipH'];
+  toggleFlipV: RepositionHookResult['toggleFlipV'];
+  resetTransform: RepositionHookResult['resetTransform'];
+  getTransformStyle: RepositionHookResult['getTransformStyle'];
+}
+
+interface GenerationState {
+  localStarred: StarToggleHookResult['localStarred'];
+  toggleStarMutation: StarToggleHookResult['toggleStarMutation'];
+  handleToggleStar: StarToggleHookResult['handleToggleStar'];
+  handleDownload: () => Promise<void>;
+  handleUnifiedGenerate: MagicEditHookResult['handleUnifiedGenerate'];
+  handleGenerateAnnotatedEdit: InpaintingHookResult['handleGenerateAnnotatedEdit'];
+  handleGenerateReposition: RepositionHookResult['handleGenerateReposition'];
+  handleSaveAsVariant: RepositionHookResult['handleSaveAsVariant'];
+  handleGenerateImg2Img: Img2ImgHookResult['handleGenerateImg2Img'];
+  img2imgLoraManager: Img2ImgHookResult['loraManager'];
+}
+
+export interface InlineEditStateResult {
+  media: GenerationRow;
+  canvasEnvironment: CanvasEnvironmentState;
+  inpaintingState: InpaintingState;
+  transformState: TransformState;
+  generationState: GenerationState;
+  sourceGenerationData: SourceGenerationData;
+  availableLoras: PublicLorasData;
+  imageEditValue: ImageEditValue;
+}
+
 function buildInlineEditStateResult(params: BuildInlineEditStateResultParams) {
   const {
+    media,
     env,
     inpainting,
     magic,
@@ -331,72 +422,79 @@ function buildInlineEditStateResult(params: BuildInlineEditStateResultParams) {
   } = params;
 
   return {
-    isMobile: env.isMobile,
-    selectedProjectId: env.selectedProjectId,
-    isCloudMode: env.isCloudMode,
-    isVideo: env.isVideo,
-    imageContainerRef: env.imageContainerRef,
-    effectiveImageUrl: env.effectiveImageUrl,
-    imageDimensions: env.imageDimensions,
-    setImageDimensions: env.setImageDimensions,
-    isUpscaling: env.isUpscaling,
-    handleUpscale: env.handleUpscale,
-    isInpaintMode: inpainting.isInpaintMode,
-    editMode: inpainting.editMode,
-    brushStrokes: inpainting.brushStrokes,
-    currentStroke: inpainting.currentStroke,
-    isDrawing: inpainting.isDrawing,
-    isEraseMode: inpainting.isEraseMode,
-    brushSize: inpainting.brushSize,
-    annotationMode: inpainting.annotationMode,
-    selectedShapeId: inpainting.selectedShapeId,
-    isAnnotateMode: inpainting.isAnnotateMode,
-    handleKonvaPointerDown: inpainting.handleKonvaPointerDown,
-    handleKonvaPointerMove: inpainting.handleKonvaPointerMove,
-    handleKonvaPointerUp: inpainting.handleKonvaPointerUp,
-    handleShapeClick: inpainting.handleShapeClick,
-    strokeOverlayRef: inpainting.strokeOverlayRef,
-    getDeleteButtonPosition: inpainting.getDeleteButtonPosition,
-    handleToggleFreeForm: inpainting.handleToggleFreeForm,
-    handleDeleteSelected: inpainting.handleDeleteSelected,
-    setIsInpaintMode: inpainting.setIsInpaintMode,
-    setEditMode: inpainting.setEditMode,
-    setBrushSize: inpainting.setBrushSize,
-    setIsEraseMode: inpainting.setIsEraseMode,
-    setAnnotationMode: inpainting.setAnnotationMode,
-    isSpecialEditMode: magic.isSpecialEditMode,
-    handleEnterMagicEditMode: magic.handleEnterMagicEditMode,
-    repositionTransform: reposition.transform,
-    setScale: reposition.setScale,
-    setRotation: reposition.setRotation,
-    toggleFlipH: reposition.toggleFlipH,
-    toggleFlipV: reposition.toggleFlipV,
-    resetTransform: reposition.resetTransform,
-    handleUndo: inpainting.handleUndo,
-    handleClearMask: inpainting.handleClearMask,
-    inpaintPanelPosition: magic.inpaintPanelPosition,
-    setInpaintPanelPosition: magic.setInpaintPanelPosition,
-    getTransformStyle: reposition.getTransformStyle,
-    localStarred: starToggle.localStarred,
-    toggleStarMutation: starToggle.toggleStarMutation,
-    handleToggleStar: starToggle.handleToggleStar,
-    handleDownload,
+    media,
+    canvasEnvironment: {
+      isMobile: env.isMobile,
+      selectedProjectId: env.selectedProjectId,
+      isCloudMode: env.isCloudMode,
+      isVideo: env.isVideo,
+      imageContainerRef: env.imageContainerRef,
+      effectiveImageUrl: env.effectiveImageUrl,
+      imageDimensions: env.imageDimensions,
+      setImageDimensions: env.setImageDimensions,
+      isUpscaling: env.isUpscaling,
+      handleUpscale: env.handleUpscale,
+    },
+    inpaintingState: {
+      isInpaintMode: inpainting.isInpaintMode,
+      editMode: inpainting.editMode,
+      brushStrokes: inpainting.brushStrokes,
+      currentStroke: inpainting.currentStroke,
+      isDrawing: inpainting.isDrawing,
+      isEraseMode: inpainting.isEraseMode,
+      brushSize: inpainting.brushSize,
+      annotationMode: inpainting.annotationMode,
+      selectedShapeId: inpainting.selectedShapeId,
+      isAnnotateMode: inpainting.isAnnotateMode,
+      handleKonvaPointerDown: inpainting.handleKonvaPointerDown,
+      handleKonvaPointerMove: inpainting.handleKonvaPointerMove,
+      handleKonvaPointerUp: inpainting.handleKonvaPointerUp,
+      handleShapeClick: inpainting.handleShapeClick,
+      strokeOverlayRef: inpainting.strokeOverlayRef,
+      getDeleteButtonPosition: inpainting.getDeleteButtonPosition,
+      handleToggleFreeForm: inpainting.handleToggleFreeForm,
+      handleDeleteSelected: inpainting.handleDeleteSelected,
+      handleUndo: inpainting.handleUndo,
+      handleClearMask: inpainting.handleClearMask,
+      setIsInpaintMode: inpainting.setIsInpaintMode,
+      setEditMode: inpainting.setEditMode,
+      setBrushSize: inpainting.setBrushSize,
+      setIsEraseMode: inpainting.setIsEraseMode,
+      setAnnotationMode: inpainting.setAnnotationMode,
+      isSpecialEditMode: magic.isSpecialEditMode,
+      handleEnterMagicEditMode: magic.handleEnterMagicEditMode,
+    },
+    transformState: {
+      repositionTransform: reposition.transform,
+      setScale: reposition.setScale,
+      setRotation: reposition.setRotation,
+      toggleFlipH: reposition.toggleFlipH,
+      toggleFlipV: reposition.toggleFlipV,
+      resetTransform: reposition.resetTransform,
+      getTransformStyle: reposition.getTransformStyle,
+    },
+    generationState: {
+      localStarred: starToggle.localStarred,
+      toggleStarMutation: starToggle.toggleStarMutation,
+      handleToggleStar: starToggle.handleToggleStar,
+      handleDownload,
+      handleUnifiedGenerate: magic.handleUnifiedGenerate,
+      handleGenerateAnnotatedEdit: inpainting.handleGenerateAnnotatedEdit,
+      handleGenerateReposition: reposition.handleGenerateReposition,
+      handleSaveAsVariant: reposition.handleSaveAsVariant,
+      handleGenerateImg2Img: img2img.handleGenerateImg2Img,
+      img2imgLoraManager: img2img.loraManager,
+    },
     sourceGenerationData,
-    handleUnifiedGenerate: magic.handleUnifiedGenerate,
-    handleGenerateAnnotatedEdit: inpainting.handleGenerateAnnotatedEdit,
-    handleGenerateReposition: reposition.handleGenerateReposition,
-    handleSaveAsVariant: reposition.handleSaveAsVariant,
-    handleGenerateImg2Img: img2img.handleGenerateImg2Img,
-    img2imgLoraManager: img2img.loraManager,
     availableLoras,
     imageEditValue,
-  };
+  } satisfies InlineEditStateResult;
 }
 
 export function useInlineEditState(
   media: GenerationRow,
   onNavigateToGeneration?: (generationId: string) => Promise<void>,
-) {
+): InlineEditStateResult {
   const env = useInlineEditEnvironment(media);
   const persistence = useInlineEditPersistence(env.actualGenerationId, env.selectedProjectId);
   const { data: availableLoras } = usePublicLoras();
@@ -431,6 +529,7 @@ export function useInlineEditState(
   );
 
   return buildInlineEditStateResult({
+    media,
     env,
     inpainting,
     magic,

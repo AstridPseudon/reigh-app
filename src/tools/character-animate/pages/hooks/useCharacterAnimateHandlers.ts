@@ -95,7 +95,7 @@ export function useCharacterAnimateHandlers(state: CharacterAnimateBaseState) {
       toast({ title: 'Missing motion video', description: 'Please select a motion video', variant: 'destructive' });
       return;
     }
-    generateModel.generateAnimationMutation.mutate();
+    generateModel.handleGenerate();
   }, [characterImage, motionVideo, toast, generateModel]);
 
   const clearCharacterImage = useCallback(() => {

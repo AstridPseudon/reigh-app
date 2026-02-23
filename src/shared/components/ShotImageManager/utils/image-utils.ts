@@ -2,7 +2,7 @@ import { GenerationRow } from '@/types/shots';
 import { 
   calculateFrameForIndex, 
   extractExistingFrames 
-} from '@/shared/utils/timelinePositionCalculator';
+} from '@/shared/lib/timelinePositionCalculator';
 
 /**
  * Calculate frame position for inserting at a given index

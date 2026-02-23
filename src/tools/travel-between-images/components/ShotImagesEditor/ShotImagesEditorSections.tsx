@@ -19,7 +19,7 @@ import type {
   ShotImagesEditorModeModel,
 } from './hooks';
 import type { ShotImagesEditorCallbacks } from './hooks/useShotImagesEditorCallbacks';
-import type { ShotImagesEditorProps } from './types';
+import type { ShotImagesEditorResolvedProps } from './types';
 
 export function EditorHeader(props: {
   settingsError?: string;
@@ -28,8 +28,8 @@ export function EditorHeader(props: {
   isDownloadingImages: boolean;
   hasImages: boolean;
   isMobile: boolean;
-  generationMode: ShotImagesEditorProps['generationMode'];
-  onGenerationModeChange: ShotImagesEditorProps['onGenerationModeChange'];
+  generationMode: ShotImagesEditorResolvedProps['generationMode'];
+  onGenerationModeChange: ShotImagesEditorResolvedProps['onGenerationModeChange'];
   onOpenPreview: () => void;
   onDownloadAll: () => void;
 }) {
@@ -118,7 +118,7 @@ function SkeletonContent(props: {
   effectiveGenerationMode: 'batch' | 'timeline' | 'by-pair';
   selectedShotId?: string;
   projectId?: string;
-  onPrimaryStructureVideoInputChange?: ShotImagesEditorProps['onPrimaryStructureVideoInputChange'];
+  onPrimaryStructureVideoInputChange?: ShotImagesEditorResolvedProps['onPrimaryStructureVideoInputChange'];
   skeleton: React.ReactNode;
 }) {
   const {
@@ -154,7 +154,7 @@ function SkeletonContent(props: {
 }
 
 function TimelineModeContent(props: {
-  componentProps: ShotImagesEditorProps;
+  componentProps: ShotImagesEditorResolvedProps;
   data: ShotImagesEditorDataModel;
   mode: ShotImagesEditorModeModel;
   callbacks: ShotImagesEditorCallbacks;
@@ -273,7 +273,7 @@ function TimelineModeContent(props: {
 }
 
 function BatchModeEditorContent(props: {
-  componentProps: ShotImagesEditorProps;
+  componentProps: ShotImagesEditorResolvedProps;
   data: ShotImagesEditorDataModel;
   mode: ShotImagesEditorModeModel;
   callbacks: ShotImagesEditorCallbacks;
@@ -320,61 +320,67 @@ function BatchModeEditorContent(props: {
 
   return (
     <BatchModeContent
-      selectedShotId={selectedShotId}
-      projectId={projectId}
-      readOnly={readOnly}
-      isMobile={isMobile}
-      generationMode={generationMode}
-      images={data.imagesWithBadges}
-      pairPrompts={data.pairPrompts}
-      columns={columns}
-      batchVideoFrames={batchVideoFrames}
-      onImageReorder={callbacks.handleReorder}
-      onImageDelete={callbacks.handleDelete}
-      onBatchImageDelete={onBatchImageDelete}
-      onImageDuplicate={onImageDuplicate}
-      duplicatingImageId={duplicatingImageId}
-      duplicateSuccessImageId={duplicateSuccessImageId}
-      onFileDrop={onBatchFileDrop}
-      onGenerationDrop={onBatchGenerationDrop}
-      defaultPrompt={defaultPrompt}
-      defaultNegativePrompt={defaultNegativePrompt}
-      onClearEnhancedPrompt={callbacks.handleClearEnhancedPromptByIndex}
-      onDragStateChange={callbacks.handleDragStateChange}
-      onPairClick={mode.segmentSlot.handlePairClick}
-      onSelectionChange={onSelectionChange}
-      onImageUpload={onImageUpload}
-      isUploadingImage={isUploadingImage}
-      allShots={allShots}
-      onShotChange={onShotChange}
-      onAddToShot={onAddToShot ? callbacks.handleAddToShotAdapter : undefined}
-      onAddToShotWithoutPosition={onAddToShotWithoutPosition ? callbacks.handleAddToShotWithoutPositionAdapter : undefined}
-      onCreateShot={onCreateShot ? callbacks.handleCreateShotAdapter : undefined}
-      onNewShotFromSelection={onNewShotFromSelection}
-      segmentSlots={data.segmentSlots}
-      onSegmentDelete={callbacks.handleDeleteSegment}
-      deletingSegmentId={callbacks.deletingSegmentId}
-      pendingImageToOpen={mode.segmentSlot.pendingImageToOpen}
-      pendingImageVariantId={mode.segmentSlot.pendingImageVariantId}
-      onClearPendingImageToOpen={mode.handleClearPendingImageToOpen}
-      navigateWithTransition={mode.navigateWithTransition}
-      projectAspectRatio={projectAspectRatio}
-      primaryStructureVideoPath={primaryStructureVideoPath}
-      primaryStructureVideoMetadata={primaryStructureVideoMetadata}
-      primaryStructureVideoTreatment={primaryStructureVideoTreatment}
-      primaryStructureVideoMotionStrength={primaryStructureVideoMotionStrength}
-      primaryStructureVideoType={primaryStructureVideoType}
-      primaryStructureVideoUni3cEndPercent={primaryStructureVideoUni3cEndPercent}
-      onPrimaryStructureVideoInputChange={onPrimaryStructureVideoInputChange}
-      onUni3cEndPercentChange={onUni3cEndPercentChange}
-      unpositionedGenerationsCount={unpositionedGenerationsCount}
-      onOpenUnpositionedPane={onOpenUnpositionedPane}
+      batchConfig={{
+        selectedShotId,
+        projectId,
+        readOnly,
+        isMobile,
+        generationMode,
+        columns,
+        batchVideoFrames,
+        projectAspectRatio,
+      }}
+      generationState={{
+        images: data.imagesWithBadges,
+        pairPrompts: data.pairPrompts,
+        defaultPrompt,
+        defaultNegativePrompt,
+        segmentSlots: data.segmentSlots,
+        deletingSegmentId: callbacks.deletingSegmentId,
+        pendingImageToOpen: mode.segmentSlot.pendingImageToOpen,
+        pendingImageVariantId: mode.segmentSlot.pendingImageVariantId,
+        primaryStructureVideoPath,
+        primaryStructureVideoMetadata,
+        primaryStructureVideoTreatment,
+        primaryStructureVideoMotionStrength,
+        primaryStructureVideoType,
+        primaryStructureVideoUni3cEndPercent,
+        unpositionedGenerationsCount,
+      }}
+      uiOptions={{
+        onImageReorder: callbacks.handleReorder,
+        onImageDelete: callbacks.handleDelete,
+        onBatchImageDelete,
+        onImageDuplicate,
+        duplicatingImageId,
+        duplicateSuccessImageId,
+        onFileDrop: onBatchFileDrop,
+        onGenerationDrop: onBatchGenerationDrop,
+        onClearEnhancedPrompt: callbacks.handleClearEnhancedPromptByIndex,
+        onDragStateChange: callbacks.handleDragStateChange,
+        onPairClick: mode.segmentSlot.handlePairClick,
+        onSelectionChange,
+        onImageUpload,
+        isUploadingImage,
+        allShots,
+        onShotChange,
+        onAddToShot: onAddToShot ? callbacks.handleAddToShotAdapter : undefined,
+        onAddToShotWithoutPosition: onAddToShotWithoutPosition ? callbacks.handleAddToShotWithoutPositionAdapter : undefined,
+        onCreateShot: onCreateShot ? callbacks.handleCreateShotAdapter : undefined,
+        onNewShotFromSelection,
+        onSegmentDelete: callbacks.handleDeleteSegment,
+        onClearPendingImageToOpen: mode.handleClearPendingImageToOpen,
+        navigateWithTransition: mode.navigateWithTransition,
+        onPrimaryStructureVideoInputChange,
+        onUni3cEndPercentChange,
+        onOpenUnpositionedPane,
+      }}
     />
   );
 }
 
 export function EditorContent(props: {
-  componentProps: ShotImagesEditorProps;
+  componentProps: ShotImagesEditorResolvedProps;
   data: ShotImagesEditorDataModel;
   mode: ShotImagesEditorModeModel;
   callbacks: ShotImagesEditorCallbacks;
@@ -442,7 +448,7 @@ export function EditorContent(props: {
 }
 
 export function EditorOverlays(props: {
-  componentProps: ShotImagesEditorProps;
+  componentProps: ShotImagesEditorResolvedProps;
   mode: ShotImagesEditorModeModel;
 }) {
   const { componentProps, mode } = props;

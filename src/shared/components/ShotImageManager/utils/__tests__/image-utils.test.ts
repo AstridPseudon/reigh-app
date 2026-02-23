@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@/shared/utils/timelinePositionCalculator', () => ({
+vi.mock('@/shared/lib/timelinePositionCalculator', () => ({
   calculateFrameForIndex: vi.fn((index: number, frames: number[], spacing?: number) => {
     if (frames.length === 0) return 0;
     if (index >= frames.length) return frames[frames.length - 1] + (spacing ?? 50);

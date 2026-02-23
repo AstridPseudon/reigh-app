@@ -17,21 +17,21 @@ vi.mock('@/shared/hooks/useTimestampUpdater', () => ({
 import { useUpdatingTimestamp, useTaskTimestamp } from '../useUpdatingTimestamp';
 
 describe('useUpdatingTimestamp', () => {
-  it('returns "Unknown" when no date provided', () => {
+  it('returns null when no date provided', () => {
     const { result } = renderHook(() => useUpdatingTimestamp({}));
-    expect(result.current).toBe('Unknown');
+    expect(result.current).toBeNull();
   });
 
-  it('returns "Unknown" when date is null', () => {
+  it('returns null when date is null', () => {
     const { result } = renderHook(() => useUpdatingTimestamp({ date: null }));
-    expect(result.current).toBe('Unknown');
+    expect(result.current).toBeNull();
   });
 
   it('returns formatted string for valid date', () => {
     const date = new Date(Date.now() - 30 * 1000).toISOString(); // 30 seconds ago
     const { result } = renderHook(() => useUpdatingTimestamp({ date }));
     expect(result.current).toBeTruthy();
-    expect(result.current).not.toBe('Unknown');
+    expect(result.current).not.toBeNull();
   });
 
   it('abbreviates "less than a minute" to "<1 min ago"', () => {
@@ -57,8 +57,8 @@ describe('useTaskTimestamp', () => {
     expect(result.current).toBeTruthy();
   });
 
-  it('returns "Unknown" for null date', () => {
+  it('returns null for null date', () => {
     const { result } = renderHook(() => useTaskTimestamp(null));
-    expect(result.current).toBe('Unknown');
+    expect(result.current).toBeNull();
   });
 });

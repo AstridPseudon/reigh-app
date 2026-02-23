@@ -11,7 +11,7 @@ import { toast } from '@/shared/components/ui/toast';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
 import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
 import { extractSettingsFromParams } from '@/shared/components/segmentSettingsMigration';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 import { submitSegmentTask, buildStructureVideoForTask } from './submitSegmentTask';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
@@ -152,8 +152,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
   const initialModelName = asString(initialParams.model_name) ?? asString(orchestratorDetails.model_name);
   const initialResolution = asString(initialParams.parsed_resolution_wh);
 
-  // For background task submission with placeholder
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const run = useTaskPlaceholder();
 
   // Use the combined hook for form props
   const {
@@ -300,8 +299,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
         projectResolution,
         structureVideo: structureVideoForTask,
       },
-      addIncomingTask,
-      removeIncomingTask,
+      run,
       queryClient,
     });
   }, [
@@ -322,8 +320,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     projectResolution,
     toast,
     enhancePromptRef,
-    addIncomingTask,
-    removeIncomingTask,
+    run,
     queryClient,
     structureVideoForTask,
     currentFrameCount,

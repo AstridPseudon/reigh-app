@@ -45,7 +45,6 @@ interface SegmentOutputStripProps {
   selectedParentId?: string | null;
   pairDataByIndex?: Map<number, PairData>;
   onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
-  lastImageId?: string;
   trailingSegmentMode?: {
     imageId: string;
     imageFrame: number;
@@ -74,7 +73,6 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   selectedParentId,
   pairDataByIndex,
   onSegmentFrameCountChange,
-  lastImageId,
   trailingSegmentMode,
   readOnly = false,
   onAddTrailingSegment,
@@ -119,8 +117,13 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
   } = useSegmentOutputStrip({
     shotId,
     projectAspectRatio,
-    layout: { containerWidth, fullMin, fullRange },
-    segmentData: { pairInfo, rawSegmentSlots, pairDataByIndex, lastImageId, trailingSegmentMode },
+    containerWidth,
+    fullMin,
+    fullRange,
+    pairInfo,
+    rawSegmentSlots,
+    trailingSegmentMode,
+    pairDataByIndex,
     hasPendingTaskProp,
     readOnly,
     onTrailingVideoInfo,

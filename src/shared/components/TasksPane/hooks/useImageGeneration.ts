@@ -5,6 +5,7 @@ import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/types/shots';
 import { extractSourceGenerationId } from '../utils/task-utils';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
+import { expandShotData } from '@/shared/lib/shotData';
 
 interface UseImageGenerationOptions {
   task: Task;
@@ -35,10 +36,7 @@ export function useImageGeneration({
       // First try: Look up by location in generations table
       const { data: genByLocation, error: genError } = await supabase
         .from('generations')
-        .select(`
-          *,
-          shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-        `)
+        .select('*')
         .eq('location', task.outputLocation)
         .eq('project_id', task.projectId)
         .maybeSingle();
@@ -60,10 +58,7 @@ export function useImageGeneration({
         // Fetch the parent generation
         const { data: parentGen, error: parentError } = await supabase
           .from('generations')
-          .select(`
-            *,
-            shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-          `)
+          .select('*')
           .eq('id', variant.generation_id)
           .single();
 
@@ -84,10 +79,7 @@ export function useImageGeneration({
       // Fallback: Search by task ID in the tasks JSONB array
       const { data: byTaskId, error: taskIdError } = await supabase
         .from('generations')
-        .select(`
-          *,
-          shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-        `)
+        .select('*')
         .filter('tasks', 'cs', JSON.stringify([task.id]))
         .eq('project_id', task.projectId)
         .maybeSingle();
@@ -135,7 +127,9 @@ export function useImageGeneration({
       null;
 
     // Transform shot associations
-    const shotGenerations = (gen.shot_generations as Array<{ shot_id: string; timeline_frame: number | null }>) || [];
+    const shotGenerations = expandShotData(
+      gen.shot_data as Record<string, unknown> | null | undefined,
+    );
     const shotIds = shotGenerations.map((sg) => sg.shot_id);
     const timelineFrames = shotGenerations.reduce<Record<string, number | null>>((acc, sg) => {
       acc[sg.shot_id] = sg.timeline_frame;

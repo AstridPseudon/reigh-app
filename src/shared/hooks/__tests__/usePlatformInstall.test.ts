@@ -181,6 +181,19 @@ describe('usePlatformInstall', () => {
     expect(result.current.showInstallCTA).toBe(true);
   });
 
+  it('does not use safari-dock when Safari version is not parseable', () => {
+    setUA('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Safari/605.1.15');
+
+    const { result } = renderHook(() => usePlatformInstall());
+
+    act(() => {
+      vi.advanceTimersByTime(3500);
+    });
+
+    expect(result.current.installMethod).toBe('none');
+    expect(result.current.showInstallCTA).toBe(false);
+  });
+
   it('returns safari-home-screen for Safari on iOS', () => {
     setUA('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
 

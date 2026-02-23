@@ -6,7 +6,14 @@
   "holistic_max_age_days": 30,
   "generate_scorecard": true,
   "badge_path": "scorecard.png",
-  "exclude": [],
+  "exclude": [
+    ".desloppify/**",
+    ".venv/**",
+    ".venv-debug/**",
+    "node_modules/**",
+    "dist/**",
+    "supabase/migrations/**"
+  ],
   "zone_overrides": {
     "vitest.edge.config.ts": "config",
     "vitest.config.ts": "config",

@@ -7,7 +7,7 @@ import {
   isImageEditTaskType,
   isVideoEnhanceTaskType,
   isImageEnhanceTaskType,
-} from '../taskParamsUtils';
+} from '../../lib/taskParamsUtils';
 
 describe('parseTaskParams', () => {
   it('returns empty object for null/undefined', () => {

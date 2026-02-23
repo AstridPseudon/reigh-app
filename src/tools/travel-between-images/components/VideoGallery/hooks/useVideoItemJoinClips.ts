@@ -9,7 +9,7 @@ import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/aspectRatios';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { TOOL_IDS } from '@/shared/lib/toolConstants';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder, type RunTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 
 export interface JoinSettings {
   joinPrompt: string;
@@ -56,8 +56,7 @@ interface UseConfirmJoinHandlerParams {
   setIsJoiningClips: (value: boolean) => void;
   setShowJoinModal: (value: boolean) => void;
   setJoinClipsSuccess: (value: boolean) => void;
-  addIncomingTask: ReturnType<typeof useIncomingTasks>['addIncomingTask'];
-  removeIncomingTask: ReturnType<typeof useIncomingTasks>['removeIncomingTask'];
+  run: RunTaskPlaceholder;
   queryClient: ReturnType<typeof useQueryClient>;
   toast: typeof toast;
 }
@@ -209,8 +208,7 @@ function useConfirmJoinHandler(params: UseConfirmJoinHandlerParams) {
     setIsJoiningClips,
     setShowJoinModal,
     setJoinClipsSuccess,
-    addIncomingTask,
-    removeIncomingTask,
+    run,
     queryClient,
     toast,
   } = params;
@@ -221,57 +219,56 @@ function useConfirmJoinHandler(params: UseConfirmJoinHandlerParams) {
     setIsJoiningClips(true);
     setShowJoinModal(false);
 
-    const incomingTaskId = addIncomingTask({
-      taskType: 'join_clips',
-      label: `Join ${childGenerations.length} segments`,
-    });
-
     try {
-      const clips = childGenerations
-        .map((child, idx) => ({
-          url: child.location,
-          name: `Segment ${idx + 1}`,
-        }))
-        .filter((clip): clip is { url: string; name: string } => typeof clip.url === 'string' && clip.url.length > 0);
+      await run({
+        taskType: 'join_clips',
+        label: `Join ${childGenerations.length} segments`,
+        context: 'JoinClips',
+        toastTitle: 'Failed to create join task',
+        create: () => {
+          const clips = childGenerations
+            .map((child, idx) => ({
+              url: child.location,
+              name: `Segment ${idx + 1}`,
+            }))
+            .filter((clip): clip is { url: string; name: string } => typeof clip.url === 'string' && clip.url.length > 0);
 
-      const resolutionTuple = resolveResolutionTuple(projectAspectRatio);
-      const videoShotId = getVideoShotId(video);
+          const resolutionTuple = resolveResolutionTuple(projectAspectRatio);
+          const videoShotId = getVideoShotId(video);
 
-      await createJoinClipsTask({
-        project_id: projectId,
-        ...(videoShotId && { shot_id: videoShotId }),
-        clips,
-        prompt: joinPrompt,
-        negative_prompt: joinNegativePrompt,
-        context_frame_count: joinContextFrames,
-        gap_frame_count: joinGapFrames,
-        replace_mode: joinReplaceMode,
-        keep_bridging_images: keepBridgingImages,
-        model: VACE_GENERATION_DEFAULTS.model,
-        num_inference_steps: VACE_GENERATION_DEFAULTS.numInferenceSteps,
-        guidance_scale: VACE_GENERATION_DEFAULTS.guidanceScale,
-        seed: VACE_GENERATION_DEFAULTS.seed,
-        parent_generation_id: video.id,
-        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
-        ...(resolutionTuple && { resolution: resolutionTuple }),
+          return createJoinClipsTask({
+            project_id: projectId,
+            ...(videoShotId && { shot_id: videoShotId }),
+            clips,
+            prompt: joinPrompt,
+            negative_prompt: joinNegativePrompt,
+            context_frame_count: joinContextFrames,
+            gap_frame_count: joinGapFrames,
+            replace_mode: joinReplaceMode,
+            keep_bridging_images: keepBridgingImages,
+            model: VACE_GENERATION_DEFAULTS.model,
+            num_inference_steps: VACE_GENERATION_DEFAULTS.numInferenceSteps,
+            guidance_scale: VACE_GENERATION_DEFAULTS.guidanceScale,
+            seed: VACE_GENERATION_DEFAULTS.seed,
+            parent_generation_id: video.id,
+            tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
+            ...(resolutionTuple && { resolution: resolutionTuple }),
+          });
+        },
+        onSuccess: () => {
+          toast({
+            title: 'Join task created',
+            description: `Joining ${childGenerations.length} segments into one video`,
+          });
+
+          setJoinClipsSuccess(true);
+          setTimeout(() => setJoinClipsSuccess(false), 1500);
+
+          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(projectId) });
+        },
       });
-
-      toast({
-        title: 'Join task created',
-        description: `Joining ${clips.length} segments into one video`,
-      });
-
-      setJoinClipsSuccess(true);
-      setTimeout(() => setJoinClipsSuccess(false), 1500);
-
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(projectId) });
-    } catch (error) {
-      handleError(error, { context: 'JoinClips', toastTitle: 'Failed to create join task' });
     } finally {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
       setIsJoiningClips(false);
     }
   }, [
@@ -289,8 +286,7 @@ function useConfirmJoinHandler(params: UseConfirmJoinHandlerParams) {
     setIsJoiningClips,
     setShowJoinModal,
     setJoinClipsSuccess,
-    addIncomingTask,
-    removeIncomingTask,
+    run,
     queryClient,
     toast,
   ]);
@@ -302,7 +298,7 @@ export function useVideoItemJoinClips(
   projectAspectRatio: string | undefined,
 ): UseVideoItemJoinClipsResult {
   const queryClient = useQueryClient();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const run = useTaskPlaceholder();
   const { childGenerations, isLoadingChildren } = useParentChildGenerations(video);
 
   const [isJoiningClips, setIsJoiningClips] = useState(false);
@@ -347,8 +343,7 @@ export function useVideoItemJoinClips(
     setIsJoiningClips,
     setShowJoinModal,
     setJoinClipsSuccess,
-    addIncomingTask,
-    removeIncomingTask,
+    run,
     queryClient,
     toast,
   });

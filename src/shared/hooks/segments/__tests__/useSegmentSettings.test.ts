@@ -55,7 +55,7 @@ vi.mock('../../useServerForm', () => ({
   })),
 }));
 
-vi.mock('@/shared/utils/settingsMigration', () => ({
+vi.mock('@/shared/lib/settingsMigration', () => ({
   readSegmentOverrides: vi.fn().mockReturnValue({}),
   writeSegmentOverrides: vi.fn().mockReturnValue({}),
 }));

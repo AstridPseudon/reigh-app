@@ -1,14 +1,6 @@
 /**
- * Backward-compatible barrel for shot/generation-related types.
+ * Backward-compatible barrel for generation + shot types.
  *
- * Keep existing imports stable (`@/types/shots`) while the underlying
- * type modules are split by responsibility.
+ * @deprecated Prefer `@/types/generationAndShots` for new imports.
  */
-export type { GenerationParams } from '@/types/generationParams';
-export type {
-  GenerationMetadata,
-  PairLoraConfig,
-  PairMotionSettings,
-} from '@/types/generationMetadata';
-export type { GenerationRow } from '@/types/generationRow';
-export type { Shot, ShotOption } from '@/types/shot';
+export * from '@/types/generationAndShots';

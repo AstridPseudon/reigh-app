@@ -1,7 +1,5 @@
 import type { FormStateSnapshot, GetTaskParams, UseFormSubmissionProps, UseFormSubmissionReturn } from './types';
-import type { IncomingTask } from '@/shared/contexts/IncomingTasksContext';
 import type { MutableRefObject } from 'react';
-import type { QueryClient } from '@tanstack/react-query';
 import { useIncomingTaskRunner } from './useIncomingTaskRunner';
 import { usePromptQueueHandlers } from './usePromptQueueHandlers';
 import { useSubmitHandler } from './useSubmitHandler';
@@ -19,9 +17,6 @@ interface UseSubmissionHandlersProps {
   aiGeneratePrompts: UseFormSubmissionProps['aiGeneratePrompts'];
   onGenerate: UseFormSubmissionProps['onGenerate'];
   setPrompts: UseFormSubmissionProps['setPrompts'];
-  addIncomingTask: (task: Omit<IncomingTask, 'id' | 'startedAt'>) => string;
-  completeIncomingTask: (id: string, newBaseline: number) => void;
-  queryClient: QueryClient;
   getTaskParams: GetTaskParams;
   formStateRef: MutableRefObject<FormStateSnapshot | undefined>;
 }
@@ -40,18 +35,11 @@ export function useSubmissionHandlers(props: UseSubmissionHandlersProps): UseFor
     aiGeneratePrompts,
     onGenerate,
     setPrompts,
-    addIncomingTask,
-    completeIncomingTask,
-    queryClient,
     getTaskParams,
     formStateRef,
   } = props;
 
-  const runIncomingTask = useIncomingTaskRunner({
-    addIncomingTask,
-    completeIncomingTask,
-    queryClient,
-  });
+  const runIncomingTask = useIncomingTaskRunner();
 
   const handleSubmit = useSubmitHandler({
     effectivePromptMode,

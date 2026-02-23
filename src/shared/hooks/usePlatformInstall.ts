@@ -10,7 +10,7 @@ import {
   getCtaText,
   getCtaIcon,
   isDesktopPlatform,
-} from './platformInstall/helpers';
+} from './platformInstall/platformDetection';
 import {
   useStandaloneStatus,
   useInstallPromptSignals,

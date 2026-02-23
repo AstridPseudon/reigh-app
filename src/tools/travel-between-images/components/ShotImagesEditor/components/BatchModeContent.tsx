@@ -14,69 +14,26 @@ import type { VideoMetadata } from '@/shared/lib/videoUploader';
 import type { GenerationRow, Shot } from '@/types/shots';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 
-export interface BatchModeContentProps {
-  // Core
+export interface BatchModeBatchConfig {
   selectedShotId: string;
   projectId?: string;
   readOnly: boolean;
   isMobile: boolean;
   generationMode: 'batch' | 'timeline' | 'by-pair';
-
-  // Images
-  images: GenerationRow[];
-  pairPrompts: Record<string, { prompt: string; negativePrompt: string }>;
-
-  // Grid
   columns: 2 | 3 | 4 | 6;
   batchVideoFrames: number;
+  projectAspectRatio?: string;
+}
 
-  // Image actions
-  onImageReorder: (orderedIds: string[]) => void;
-  onImageDelete: (id: string) => void;
-  onBatchImageDelete?: (ids: string[]) => void;
-  onImageDuplicate?: (id: string, timeline_frame: number) => void;
-  duplicatingImageId?: string | null;
-  duplicateSuccessImageId?: string | null;
-
-  // Drop handlers
-  onFileDrop?: (files: File[], targetPosition?: number) => Promise<void>;
-  onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetPosition?: number) => Promise<void>;
-
-  // Prompts
+export interface BatchModeGenerationState {
+  images: GenerationRow[];
+  pairPrompts: Record<string, { prompt: string; negativePrompt: string }>;
   defaultPrompt: string;
   defaultNegativePrompt: string;
-  onClearEnhancedPrompt: (pairIndex: number) => Promise<void>;
-
-  // Callbacks
-  onDragStateChange: (isDragging: boolean) => void;
-  onPairClick: (pairIndex: number, pairData?: PairData) => void;
-  onSelectionChange?: (hasSelection: boolean) => void;
-
-  // Image upload
-  onImageUpload: (files: File[]) => Promise<void>;
-  isUploadingImage: boolean;
-
-  // Shot management
-  allShots?: Shot[];
-  onShotChange?: (shotId: string) => void;
-  onAddToShot?: (targetShotId: string, generationId: string) => Promise<boolean>;
-  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string) => Promise<boolean>;
-  onCreateShot?: (shotName: string) => Promise<{ shotId: string; shotName: string }>;
-  onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
-
-  // Segment slots
   segmentSlots: SegmentSlot[];
-  onSegmentDelete: (generationId: string) => Promise<void>;
   deletingSegmentId: string | null;
-
-  // Lightbox transitions
   pendingImageToOpen: string | null;
   pendingImageVariantId?: string | null;
-  onClearPendingImageToOpen: () => void;
-  navigateWithTransition: (doNavigation: () => void) => void;
-
-  // Display
-  projectAspectRatio?: string;
 
   // Structure video (batch mode)
   primaryStructureVideoPath?: string | null;
@@ -85,72 +42,123 @@ export interface BatchModeContentProps {
   primaryStructureVideoMotionStrength: number;
   primaryStructureVideoType: 'uni3c' | 'flow' | 'canny' | 'depth';
   primaryStructureVideoUni3cEndPercent: number;
+
+  // Unpositioned
+  unpositionedGenerationsCount: number;
+}
+
+export interface BatchModeUIOptions {
+  onImageReorder: (orderedIds: string[]) => void;
+  onImageDelete: (id: string) => void;
+  onBatchImageDelete?: (ids: string[]) => void;
+  onImageDuplicate?: (id: string, timeline_frame: number) => void;
+  duplicatingImageId?: string | null;
+  duplicateSuccessImageId?: string | null;
+
+  onFileDrop?: (files: File[], targetPosition?: number) => Promise<void>;
+  onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetPosition?: number) => Promise<void>;
+
+  onClearEnhancedPrompt: (pairIndex: number) => Promise<void>;
+  onDragStateChange: (isDragging: boolean) => void;
+  onPairClick: (pairIndex: number, pairData?: PairData) => void;
+  onSelectionChange?: (hasSelection: boolean) => void;
+
+  onImageUpload: (files: File[]) => Promise<void>;
+  isUploadingImage: boolean;
+
+  allShots?: Shot[];
+  onShotChange?: (shotId: string) => void;
+  onAddToShot?: (targetShotId: string, generationId: string) => Promise<boolean>;
+  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string) => Promise<boolean>;
+  onCreateShot?: (shotName: string) => Promise<{ shotId: string; shotName: string }>;
+  onNewShotFromSelection?: (selectedIds: string[]) => Promise<string | void>;
+
+  onSegmentDelete: (generationId: string) => Promise<void>;
+  onClearPendingImageToOpen: () => void;
+  navigateWithTransition: (doNavigation: () => void) => void;
+
   onPrimaryStructureVideoInputChange?: (
     videoPath: string | null,
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
     structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string
+    resourceId?: string,
   ) => void;
   onUni3cEndPercentChange?: (value: number) => void;
 
-  // Unpositioned
-  unpositionedGenerationsCount: number;
   onOpenUnpositionedPane: () => void;
 }
 
+export interface BatchModeContentProps {
+  batchConfig: BatchModeBatchConfig;
+  generationState: BatchModeGenerationState;
+  uiOptions: BatchModeUIOptions;
+}
+
 export const BatchModeContent: React.FC<BatchModeContentProps> = ({
-  selectedShotId,
-  projectId,
-  readOnly,
-  isMobile,
-  generationMode,
-  images,
-  pairPrompts,
-  columns,
-  batchVideoFrames,
-  onImageReorder,
-  onImageDelete,
-  onBatchImageDelete,
-  onImageDuplicate,
-  duplicatingImageId,
-  duplicateSuccessImageId,
-  onFileDrop,
-  onGenerationDrop,
-  defaultPrompt,
-  defaultNegativePrompt,
-  onClearEnhancedPrompt,
-  onDragStateChange,
-  onPairClick,
-  onSelectionChange,
-  onImageUpload,
-  isUploadingImage,
-  allShots,
-  onShotChange,
-  onAddToShot,
-  onAddToShotWithoutPosition,
-  onCreateShot,
-  onNewShotFromSelection,
-  segmentSlots,
-  onSegmentDelete,
-  deletingSegmentId,
-  pendingImageToOpen,
-  pendingImageVariantId,
-  onClearPendingImageToOpen,
-  navigateWithTransition,
-  projectAspectRatio,
-  primaryStructureVideoPath,
-  primaryStructureVideoMetadata,
-  primaryStructureVideoTreatment,
-  primaryStructureVideoMotionStrength,
-  primaryStructureVideoType,
-  primaryStructureVideoUni3cEndPercent,
-  onPrimaryStructureVideoInputChange,
-  onUni3cEndPercentChange,
-  unpositionedGenerationsCount,
-  onOpenUnpositionedPane,
+  batchConfig,
+  generationState,
+  uiOptions,
 }) => {
+  const {
+    selectedShotId,
+    projectId,
+    readOnly,
+    isMobile,
+    generationMode,
+    columns,
+    batchVideoFrames,
+    projectAspectRatio,
+  } = batchConfig;
+
+  const {
+    images,
+    pairPrompts,
+    defaultPrompt,
+    defaultNegativePrompt,
+    segmentSlots,
+    deletingSegmentId,
+    pendingImageToOpen,
+    pendingImageVariantId,
+    primaryStructureVideoPath,
+    primaryStructureVideoMetadata,
+    primaryStructureVideoTreatment,
+    primaryStructureVideoMotionStrength,
+    primaryStructureVideoType,
+    primaryStructureVideoUni3cEndPercent,
+    unpositionedGenerationsCount,
+  } = generationState;
+
+  const {
+    onImageReorder,
+    onImageDelete,
+    onBatchImageDelete,
+    onImageDuplicate,
+    duplicatingImageId,
+    duplicateSuccessImageId,
+    onFileDrop,
+    onGenerationDrop,
+    onClearEnhancedPrompt,
+    onDragStateChange,
+    onPairClick,
+    onSelectionChange,
+    onImageUpload,
+    isUploadingImage,
+    allShots,
+    onShotChange,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onCreateShot,
+    onNewShotFromSelection,
+    onSegmentDelete,
+    onClearPendingImageToOpen,
+    navigateWithTransition,
+    onPrimaryStructureVideoInputChange,
+    onUni3cEndPercentChange,
+    onOpenUnpositionedPane,
+  } = uiOptions;
+
   // Build enhanced prompts from image metadata
   const enhancedPrompts = React.useMemo(() => {
     const result: Record<number, string> = {};
@@ -251,7 +259,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                 primaryStructureVideoTreatment,
                 primaryStructureVideoMotionStrength,
                 primaryStructureVideoType,
-                resourceId
+                resourceId,
               );
             }}
             onTreatmentChange={(treatment) => {
@@ -261,7 +269,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                   primaryStructureVideoMetadata,
                   treatment,
                   primaryStructureVideoMotionStrength,
-                  primaryStructureVideoType
+                  primaryStructureVideoType,
                 );
               }
             }}
@@ -272,7 +280,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                   primaryStructureVideoMetadata,
                   primaryStructureVideoTreatment,
                   strength,
-                  primaryStructureVideoType
+                  primaryStructureVideoType,
                 );
               }
             }}
@@ -282,7 +290,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                 primaryStructureVideoMetadata ?? null,
                 primaryStructureVideoTreatment,
                 primaryStructureVideoMotionStrength,
-                type
+                type,
               );
             }}
             uni3cEndPercent={primaryStructureVideoUni3cEndPercent}

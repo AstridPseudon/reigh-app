@@ -227,42 +227,42 @@ describe('useInlineEditState', () => {
     );
 
     // Layout/env
-    expect(result.current.isMobile).toBe(false);
-    expect(result.current.selectedProjectId).toBe('proj-1');
-    expect(result.current.isCloudMode).toBe(true);
-    expect(result.current.isVideo).toBe(false);
+    expect(result.current.canvasEnvironment.isMobile).toBe(false);
+    expect(result.current.canvasEnvironment.selectedProjectId).toBe('proj-1');
+    expect(result.current.canvasEnvironment.isCloudMode).toBe(true);
+    expect(result.current.canvasEnvironment.isVideo).toBe(false);
 
     // Refs
-    expect(result.current.imageContainerRef).toBeDefined();
+    expect(result.current.canvasEnvironment.imageContainerRef).toBeDefined();
 
     // Display state
-    expect(result.current.effectiveImageUrl).toBe('https://example.com/image.png');
-    expect(result.current.imageDimensions).toBeNull();
+    expect(result.current.canvasEnvironment.effectiveImageUrl).toBe('https://example.com/image.png');
+    expect(result.current.canvasEnvironment.imageDimensions).toBeNull();
 
     // Upscale
-    expect(result.current.isUpscaling).toBe(false);
-    expect(typeof result.current.handleUpscale).toBe('function');
+    expect(result.current.canvasEnvironment.isUpscaling).toBe(false);
+    expect(typeof result.current.canvasEnvironment.handleUpscale).toBe('function');
 
     // Inpainting canvas state
-    expect(result.current.isInpaintMode).toBe(false);
-    expect(result.current.brushStrokes).toEqual([]);
-    expect(result.current.isEraseMode).toBe(false);
-    expect(result.current.brushSize).toBe(20);
+    expect(result.current.inpaintingState.isInpaintMode).toBe(false);
+    expect(result.current.inpaintingState.brushStrokes).toEqual([]);
+    expect(result.current.inpaintingState.isEraseMode).toBe(false);
+    expect(result.current.inpaintingState.brushSize).toBe(20);
 
     // Mode controls
-    expect(typeof result.current.setIsInpaintMode).toBe('function');
-    expect(typeof result.current.setEditMode).toBe('function');
+    expect(typeof result.current.inpaintingState.setIsInpaintMode).toBe('function');
+    expect(typeof result.current.inpaintingState.setEditMode).toBe('function');
 
     // Star toggle
-    expect(result.current.localStarred).toBe(false);
+    expect(result.current.generationState.localStarred).toBe(false);
 
     // Download
-    expect(typeof result.current.handleDownload).toBe('function');
+    expect(typeof result.current.generationState.handleDownload).toBe('function');
 
     // EditModePanel props
-    expect(typeof result.current.handleUnifiedGenerate).toBe('function');
-    expect(typeof result.current.handleGenerateReposition).toBe('function');
-    expect(typeof result.current.handleGenerateImg2Img).toBe('function');
+    expect(typeof result.current.generationState.handleUnifiedGenerate).toBe('function');
+    expect(typeof result.current.generationState.handleGenerateReposition).toBe('function');
+    expect(typeof result.current.generationState.handleGenerateImg2Img).toBe('function');
 
     // imageEditValue
     expect(result.current.imageEditValue).toBeDefined();
@@ -300,13 +300,13 @@ describe('useInlineEditState', () => {
       { wrapper: createWrapper() },
     );
 
-    expect(result.current.imageDimensions).toBeNull();
+    expect(result.current.canvasEnvironment.imageDimensions).toBeNull();
 
     act(() => {
-      result.current.setImageDimensions({ width: 1024, height: 768 });
+      result.current.canvasEnvironment.setImageDimensions({ width: 1024, height: 768 });
     });
 
-    expect(result.current.imageDimensions).toEqual({ width: 1024, height: 768 });
+    expect(result.current.canvasEnvironment.imageDimensions).toEqual({ width: 1024, height: 768 });
   });
 
   it('auto-enters magic edit mode when not in special edit mode', () => {

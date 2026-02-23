@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 import { SystemLogger } from "../_shared/systemLogger.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 /** Stripe event shape (minimal — covers what this webhook uses) */
 interface StripeEvent {
@@ -80,19 +81,6 @@ serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
-  // Accept either service-role authorization (internal calls) or Stripe signature auth.
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const authHeader = req.headers.get('Authorization');
-  const hasServiceRoleAuth = Boolean(
-    serviceRoleKey &&
-    authHeader?.startsWith('Bearer ') &&
-    authHeader.slice(7) === serviceRoleKey
-  );
-  const hasStripeSignatureAuth = Boolean(req.headers.get('stripe-signature'));
-  if (!hasServiceRoleAuth && !hasStripeSignatureAuth) {
-    return jsonResponse({ error: 'Unauthorized' }, 401);
-  }
-
   // Create Supabase admin client and logger early
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -105,6 +93,14 @@ serve(async (req) => {
     }
   );
   const logger = new SystemLogger(supabaseAdmin, 'stripe-webhook');
+  const authResult = await authenticateRequest(req, supabaseAdmin, '[stripe-webhook]');
+  const hasServiceRoleAuth = authResult.success && authResult.isServiceRole;
+  const hasStripeSignatureAuth = Boolean(req.headers.get('stripe-signature'));
+
+  // Accept either service-role authorization (internal calls) or Stripe signature auth.
+  if (!hasServiceRoleAuth && !hasStripeSignatureAuth) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
 
   try {
     const body = await req.text();

@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { unifiedGenerationQueryKeys } from '@/shared/lib/queryKeys/unified';
-import { generateAndUploadThumbnail } from '@/shared/utils/videoThumbnailGenerator';
+import { generateAndUploadThumbnail } from '@/shared/lib/videoThumbnailGenerator';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
 interface UseBackgroundThumbnailGeneratorOptions {

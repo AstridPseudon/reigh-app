@@ -41,7 +41,6 @@ function IncomingTasksConsumer() {
             taskType: 'travel_video',
             label: 'Travel video',
             expectedCount: 2,
-            baselineCount: 5,
           })
         }
       >
@@ -178,28 +177,27 @@ describe('IncomingTasksContext', () => {
       expect(screen.getByTestId('taskCount')).toHaveTextContent('0');
     });
 
-    it('completeIncomingTask removes the task and updates baselines', () => {
-      let firstTaskId: string | null = null;
+    it('resolveTaskIds sets real task IDs on a placeholder', () => {
+      let taskId: string | null = null;
 
-      function CompleteConsumer() {
-        const { incomingTasks, addIncomingTask, completeIncomingTask } = useIncomingTasks();
+      function ResolveConsumer() {
+        const { incomingTasks, addIncomingTask, resolveTaskIds } = useIncomingTasks();
         return (
           <div>
             <span data-testid="taskCount">{incomingTasks.length}</span>
-            <span data-testid="baselines">
-              {JSON.stringify(incomingTasks.map(t => t.baselineCount))}
+            <span data-testid="taskIds">
+              {JSON.stringify(incomingTasks.map(t => t.taskIds ?? null))}
             </span>
             <button
-              data-testid="addFirst"
+              data-testid="add"
               onClick={() => {
-                firstTaskId = addIncomingTask({
+                taskId = addIncomingTask({
                   taskType: 'test',
                   label: 'First',
-                  baselineCount: 5,
                 });
               }}
             >
-              Add First
+              Add
             </button>
             <button
               data-testid="addSecond"
@@ -207,19 +205,18 @@ describe('IncomingTasksContext', () => {
                 addIncomingTask({
                   taskType: 'test',
                   label: 'Second',
-                  baselineCount: 5,
                 });
               }}
             >
               Add Second
             </button>
             <button
-              data-testid="complete"
+              data-testid="resolve"
               onClick={() => {
-                if (firstTaskId) completeIncomingTask(firstTaskId, 10);
+                if (taskId) resolveTaskIds(taskId, ['real-task-1', 'real-task-2']);
               }}
             >
-              Complete
+              Resolve
             </button>
           </div>
         );
@@ -227,12 +224,12 @@ describe('IncomingTasksContext', () => {
 
       render(
         <IncomingTasksProvider>
-          <CompleteConsumer />
+          <ResolveConsumer />
         </IncomingTasksProvider>
       );
 
       act(() => {
-        screen.getByTestId('addFirst').click();
+        screen.getByTestId('add').click();
       });
       act(() => {
         screen.getByTestId('addSecond').click();
@@ -240,12 +237,12 @@ describe('IncomingTasksContext', () => {
       expect(screen.getByTestId('taskCount')).toHaveTextContent('2');
 
       act(() => {
-        screen.getByTestId('complete').click();
+        screen.getByTestId('resolve').click();
       });
 
-      // First task removed, second task baseline updated
-      expect(screen.getByTestId('taskCount')).toHaveTextContent('1');
-      expect(screen.getByTestId('baselines')).toHaveTextContent('[10]');
+      // Both tasks still present, but first has taskIds set
+      expect(screen.getByTestId('taskCount')).toHaveTextContent('2');
+      expect(screen.getByTestId('taskIds')).toHaveTextContent('[null,["real-task-1","real-task-2"]]');
     });
 
     it('addIncomingTask returns a unique ID', () => {

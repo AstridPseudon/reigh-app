@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRenderLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { updateToolSettingsSupabase } from './useToolSettings';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
@@ -180,7 +180,7 @@ export function useDebouncedSettingsSave<T extends object>(
    * Fire-and-forget flush of pending settings to DB.
    * Used by both entity-change cleanup and beforeunload handlers.
    */
-  function flushPendingSettings(
+  const flushPendingSettings = useCallback((
     pending: T,
     pendingForEntity: string,
     flushScope: 'shot' | 'project',
@@ -189,7 +189,7 @@ export function useDebouncedSettingsSave<T extends object>(
     customSave: ((entityId: string, data: T) => Promise<void>) | undefined,
     onFlush: ((entityId: string, data: T) => void) | undefined,
     context: string,
-  ) {
+  ) => {
     if (flushIsCustomMode) {
       if (customSave) {
         customSave(pendingForEntity, pending)
@@ -214,7 +214,7 @@ export function useDebouncedSettingsSave<T extends object>(
         })
         .catch(err => { handleError(err, { context, showToast: false }); });
     }
-  }
+  }, [projectId, queryClient]);
 
   // Flush pending settings on entity change/unmount
   useEffect(() => {
@@ -247,7 +247,7 @@ export function useDebouncedSettingsSave<T extends object>(
         pendingEntityIdRef.current = null;
       }
     };
-  }, [entityId, scope, toolId, isCustomMode, projectId, queryClient, customSaveRef, onFlushRef]);
+  }, [entityId, scope, toolId, isCustomMode, projectId, queryClient, customSaveRef, onFlushRef, flushPendingSettings]);
 
   // Flush on page close/navigation (best-effort, ~50-100ms budget)
   useEffect(() => {
@@ -267,7 +267,7 @@ export function useDebouncedSettingsSave<T extends object>(
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [toolId, scope, isCustomMode, customSaveRef]);
+  }, [toolId, scope, isCustomMode, customSaveRef, flushPendingSettings]);
 
   // Memoize return to prevent object recreation on every render.
   // Without this, every effect/callback depending on `debouncedSave` would re-run

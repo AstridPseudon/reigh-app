@@ -47,7 +47,7 @@ vi.mock('@/shared/constants/supabaseErrors', () => ({
   isNotFoundError: () => false,
 }));
 
-vi.mock('@/shared/utils/timelinePositionCalculator', () => ({
+vi.mock('@/shared/lib/timelinePositionCalculator', () => ({
   calculateNextAvailableFrame: vi.fn().mockReturnValue(100),
   ensureUniqueFrame: vi.fn().mockImplementation((frame: number) => frame),
 }));
@@ -72,7 +72,7 @@ import {
   type AddImageToShotVariables,
 } from '../addImageToShotHelpers';
 import { isQuotaOrServerError } from '../shotMutationHelpers';
-import { calculateNextAvailableFrame, ensureUniqueFrame } from '@/shared/utils/timelinePositionCalculator';
+import { calculateNextAvailableFrame, ensureUniqueFrame } from '@/shared/lib/timelinePositionCalculator';
 
 // ---------------------------------------------------------------------------
 // Helpers

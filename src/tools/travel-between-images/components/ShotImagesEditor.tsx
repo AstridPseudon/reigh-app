@@ -19,9 +19,14 @@ import {
   EditorContent,
   EditorOverlays,
 } from './ShotImagesEditor/ShotImagesEditorSections';
-import type { ShotImagesEditorProps } from './ShotImagesEditor/types';
+import {
+  resolveShotImagesEditorProps,
+  type ShotImagesEditorProps,
+  type ShotImagesEditorResolvedProps,
+} from './ShotImagesEditor/types';
 
 const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
+  const resolvedProps: ShotImagesEditorResolvedProps = resolveShotImagesEditorProps(props);
   const {
     isMobile,
     generationMode,
@@ -29,7 +34,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
     settingsError,
     readOnly = false,
     onGenerationModeChange,
-  } = props;
+  } = resolvedProps;
 
   const effectiveGenerationMode = isMobile ? 'batch' : generationMode;
   const resolvedProjectResolution = projectAspectRatio
@@ -48,7 +53,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
   }, []);
 
   const { data, mode, timelineMediaValue } = useShotImagesEditorModel(
-    props,
+    resolvedProps,
     effectiveGenerationMode,
     resolvedProjectResolution,
     trailingFrameUpdateRef,
@@ -56,13 +61,13 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
   );
 
   const callbacks = useShotImagesEditorCallbacks({
-    selectedShotId: props.selectedShotId,
-    preloadedImages: props.preloadedImages,
-    onImageDelete: props.onImageDelete,
-    onAddToShot: props.onAddToShot,
-    onAddToShotWithoutPosition: props.onAddToShotWithoutPosition,
-    onCreateShot: props.onCreateShot,
-    onDragStateChange: props.onDragStateChange,
+    selectedShotId: resolvedProps.selectedShotId,
+    preloadedImages: resolvedProps.preloadedImages,
+    onImageDelete: resolvedProps.onImageDelete,
+    onAddToShot: resolvedProps.onAddToShot,
+    onAddToShotWithoutPosition: resolvedProps.onAddToShotWithoutPosition,
+    onCreateShot: resolvedProps.onCreateShot,
+    onDragStateChange: resolvedProps.onDragStateChange,
     data,
   });
 
@@ -82,7 +87,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
       />
 
       <EditorContent
-        componentProps={props}
+        componentProps={resolvedProps}
         data={data}
         mode={mode}
         callbacks={callbacks}
@@ -92,7 +97,7 @@ const ShotImagesEditor: React.FC<ShotImagesEditorProps> = (props) => {
       />
 
       <EditorOverlays
-        componentProps={props}
+        componentProps={resolvedProps}
         mode={mode}
       />
     </Card>

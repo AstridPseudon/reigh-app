@@ -1,1 +1,45 @@
-{"batch":"Authorization","assessments":{"authorization_consistency":56,"mid_level_elegance":62},"findings":[]}
+{
+  "batch": "Package Organization",
+  "assessments": {
+    "package_organization": 73.0,
+    "high_level_elegance": 78.0
+  },
+  "findings": [
+    {
+      "dimension": "high_level_elegance",
+      "identifier": "shared_hooks_hide_feature_ownership",
+      "summary": "Feature-specific behavior is stored in shared/hooks, which blurs ownership boundaries.",
+      "related_files": [
+        "src/shared/hooks/useAIInteractionService.ts",
+        "src/shared/hooks/useAdjacentPagePreloader.ts",
+        "src/shared/hooks/useApiKeys.ts"
+      ],
+      "evidence": [
+        "useAdjacentPagePreloader contains MediaGallery-specific orchestration (adjacent page prefetch, image preload queue control, distant-page cleanup) and its header comment says pages should not manage this directly.",
+        "useApiKeys directly manages Supabase auth/user-row persistence for api_keys, which is account/settings-specific behavior.",
+        "useAIInteractionService hardcodes ai-prompt task flows (generate_prompts, edit_prompt, generate_summary) for prompt-generation workflows."
+      ],
+      "suggestion": "Move these hooks to feature-owned packages and keep shared/hooks for truly cross-feature primitives. For example: place useAdjacentPagePreloader under a MediaGallery hooks package, useAIInteractionService under ImageGenerationForm/prompt hooks, and useApiKeys under an image-generation/settings or account-data hooks package; add temporary re-exports during migration.",
+      "reasoning": "Top-level elegance depends on predictable ownership. When domain-specific orchestration lives in a global shared bucket, new contributors cannot infer where behavior belongs, and routine feature changes require broader navigation than necessary.",
+      "confidence": "high"
+    },
+    {
+      "dimension": "package_organization",
+      "identifier": "shared_components_test_placement_is_split",
+      "summary": "Component tests are split between root and __tests__, reducing directory navigability.",
+      "related_files": [
+        "src/shared/components/ActiveLoRAsDisplay.test.tsx",
+        "src/shared/components/AppErrorBoundary.test.tsx",
+        "src/shared/components/ActiveLoRAsDisplay.tsx"
+      ],
+      "evidence": [
+        "ActiveLoRAsDisplay.test.tsx and AppErrorBoundary.test.tsx live directly in src/shared/components alongside production component files.",
+        "Holistic structure data shows src/shared/components already contains 80 mixed files while a dedicated src/shared/components/__tests__/ package also exists (34 files).",
+        "In the same batch, hooks use a centralized test package (src/shared/hooks/__tests__), so test-location conventions are not consistent across sibling shared packages."
+      ],
+      "suggestion": "Standardize one test placement policy for shared/components (prefer dedicated __tests__ or per-component subfolders), move root-level tests to that policy location, and document the rule to prevent further drift.",
+      "reasoning": "Package organization should minimize search cost. Mixed test placement inside a large shared directory makes file discovery less predictable and weakens clear directory boundaries.",
+      "confidence": "medium"
+    }
+  ]
+}

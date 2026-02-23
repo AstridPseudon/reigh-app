@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
-import { parseTaskParams } from '@/shared/utils/taskParamsUtils';
+import { parseTaskParams } from '@/shared/lib/taskParamsUtils';
 
 /**
  * Task details for character animation tasks

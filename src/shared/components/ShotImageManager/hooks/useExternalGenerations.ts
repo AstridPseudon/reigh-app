@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { GenerationRow } from '@/types/shots';
 import { DerivedNavContext } from '../types';
 import { transformExternalGeneration } from '../utils/external-generation-utils';
@@ -7,16 +7,11 @@ import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/ho
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 import { useAppEventListener } from '@/shared/lib/typedEvents';
+import { expandShotData } from '@/shared/lib/shotData';
 
-/** Shape of the joined shot_generations rows returned by the Supabase query */
-interface ShotGenerationJoin {
-  shot_id: string;
-  timeline_frame: number | null;
-}
-
-/** Generation row with the joined shot_generations relation */
-interface GenerationWithShotJoin {
-  shot_generations: ShotGenerationJoin[];
+/** Generation row with JSONB shot_data associations */
+interface GenerationWithShotData {
+  shot_data?: Record<string, unknown> | null;
   [key: string]: unknown;
 }
 
@@ -59,17 +54,16 @@ export function useExternalGenerations({
         try {
           const { data, error } = await supabase
             .from('generations')
-            .select(`
-              *,
-              shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-            `)
+            .select('*')
             .eq('id', generationId)
             .single();
 
           if (error) throw error;
 
           if (data) {
-            const shotGenerations = (data as unknown as GenerationWithShotJoin).shot_generations || [];
+            const shotGenerations = expandShotData(
+              (data as unknown as GenerationWithShotData).shot_data,
+            );
             const transformedData = transformExternalGeneration(data, shotGenerations);
 
             if (isInExternal) {
@@ -227,17 +221,16 @@ export function useExternalGenerations({
     try {
       const { data, error } = await supabase
         .from('generations')
-        .select(`
-          *,
-          shot_generations!shot_generations_generation_id_generations_id_fk(shot_id, timeline_frame)
-        `)
+        .select('*')
         .eq('id', generationId)
         .single();
       
       if (error) throw error;
       
       if (data) {
-        const shotGenerations = (data as unknown as GenerationWithShotJoin).shot_generations || [];
+        const shotGenerations = expandShotData(
+          (data as unknown as GenerationWithShotData).shot_data,
+        );
         const transformedData = transformExternalGeneration(data, shotGenerations);
         
         if (derivedContext && derivedContext.length > 0) {
@@ -289,4 +282,3 @@ export function useExternalGenerations({
     handleOpenExternalGeneration
   };
 }
-

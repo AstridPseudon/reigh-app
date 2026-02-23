@@ -25,7 +25,7 @@ import { useShotManagement } from './useShotManagement';
 import { useFormContextBuilder } from './useFormContextBuilder';
 
 import { useFormUIState } from '../state/useFormUIState';
-import { useRenderLogger, useChangedDepsLogger } from '@/shared/lib/debugRendering';
+import { useRenderLogger, useChangedDepsLogger } from '@/shared/lib/debug/debugRendering';
 
 import {
   type HiresFixConfig,

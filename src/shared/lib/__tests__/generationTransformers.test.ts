@@ -142,12 +142,10 @@ describe('transformGeneration', () => {
     expect(result.timeline_frame).toBe(100);
   });
 
-  it('falls back to shot_generations join', () => {
-    const result = transformGeneration(makeRaw({
-      shot_generations: [{ shot_id: 'shot-1', timeline_frame: 75 }],
-    }));
-    expect(result.shot_id).toBe('shot-1');
-    expect(result.timeline_frame).toBe(75);
+  it('returns no shot association when shot_data is absent', () => {
+    const result = transformGeneration(makeRaw());
+    expect(result.shot_id).toBeUndefined();
+    expect(result.timeline_frame).toBeNull();
   });
 
   it('strips query parameters for URL identity', () => {

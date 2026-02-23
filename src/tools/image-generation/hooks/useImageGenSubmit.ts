@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/sonner';
 import { createBatchImageGenerationTasks, BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
 import { useApiKeys } from '@/shared/hooks/useApiKeys';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
 
@@ -12,13 +11,20 @@ interface UseImageGenSubmitParams {
   effectiveProjectId: string | null;
 }
 
+/**
+ * Low-level hook for creating image generation tasks.
+ *
+ * NOTE: This hook does NOT manage incoming task placeholders. The caller
+ * (useFormSubmission → useSubmitHandler → runIncomingTask) already wraps
+ * the call in a placeholder lifecycle. Adding a second placeholder here
+ * would cause double-counting in the TasksPane.
+ */
 export function useImageGenSubmit({
   projectId,
   effectiveProjectId,
 }: UseImageGenSubmitParams) {
   const queryClient = useQueryClient();
   const { getApiKey } = useApiKeys();
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
 
   const handleNewGenerate = useCallback(async (taskParams: BatchImageGenerationTaskParams): Promise<string[]> => {
     if (!projectId) {
@@ -26,18 +32,15 @@ export function useImageGenSubmit({
       return [];
     }
 
-    const incomingTaskId = addIncomingTask({
-      taskType: 'image_generation',
-      label: taskParams.prompts?.[0]?.fullPrompt?.substring(0, 50) || 'Generating images...',
-    });
-    let createdTaskIds: string[] = [];
     try {
       const createdTasks = await createBatchImageGenerationTasks(taskParams);
-      createdTaskIds = createdTasks.map((t) => t.task_id);
+      const createdTaskIds = createdTasks.map((t) => t.task_id);
 
+      // Refresh the gallery/media view. Task pane invalidation is handled by the
+      // caller's runIncomingTask placeholder (awaited refetch + placeholder cleanup).
+      // Doing fire-and-forget task invalidation here would race with the placeholder
+      // and cause cancelled tasks to flash briefly in the UI.
       queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(effectiveProjectId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.statusCountsAll });
 
       return createdTaskIds;
     } catch (error) {
@@ -46,12 +49,8 @@ export function useImageGenSubmit({
       }
       handleError(error, { context: 'ImageGenerationToolPage.handleNewGenerate', toastTitle: error instanceof Error ? error.message : 'Failed to create tasks.' });
       return [];
-    } finally {
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
-      await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
-      removeIncomingTask(incomingTaskId);
     }
-  }, [projectId, effectiveProjectId, queryClient, addIncomingTask, removeIncomingTask]);
+  }, [projectId, effectiveProjectId, queryClient]);
 
   const openaiApiKey = getApiKey('openai_api_key');
 

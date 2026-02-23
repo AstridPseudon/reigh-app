@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { handleError } from '@/shared/lib/errorHandling/handleError';
-import type { ProjectImageSettings, LoraCategory } from '../../types';
+import type { LoraCategory } from '../../types';
 import { getLoraCategoryForModel } from '../../types';
 import type { ActiveLora } from '@/shared/components/ActiveLoRAsDisplay';
 import type { LegacyMigrationsInput } from './types';

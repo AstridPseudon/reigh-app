@@ -12,7 +12,7 @@ import { X } from 'lucide-react';
 import { toast } from '@/shared/components/ui/toast';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
 import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
-import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
+import { useTaskPlaceholder } from '@/shared/hooks/useTaskPlaceholder';
 import { submitSegmentTask, buildStructureVideoForTask } from './submitSegmentTask';
 import type { SegmentSlotModeData } from '../types';
 import { NavigationArrows } from './NavigationArrows';
@@ -38,9 +38,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
   readOnly = false,
 }) => {
   const queryClient = useQueryClient();
-
-  // For background task submission with placeholder
-  const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
+  const run = useTaskPlaceholder();
 
   const pairShotGenerationId = segmentSlotMode.pairData.startImage?.id;
   const startImageUrl = segmentSlotMode.pairData.startImage?.url ?? segmentSlotMode.pairData.startImage?.thumbUrl;
@@ -163,8 +161,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
         projectResolution: segmentSlotMode.projectResolution,
         structureVideo: structureVideoForTask,
       },
-      addIncomingTask,
-      removeIncomingTask,
+      run,
       queryClient,
       onGenerateStarted: () => segmentSlotMode.onGenerateStarted?.(pairShotGenerationId),
     });
@@ -177,8 +174,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     saveSettings,
     toast,
     enhancePromptRef,
-    addIncomingTask,
-    removeIncomingTask,
+    run,
     queryClient,
     structureVideoForTask,
     enhancedPrompt,

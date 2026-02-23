@@ -57,4 +57,4 @@ export const isCharacterAnimateTaskType = (taskType: string | null | undefined):
 
 
 // Re-export from canonical location (taskParamsUtils is the source of truth)
-export { parseTaskParams } from '@/shared/utils/taskParamsUtils';
+export { parseTaskParams } from '@/shared/lib/taskParamsUtils';

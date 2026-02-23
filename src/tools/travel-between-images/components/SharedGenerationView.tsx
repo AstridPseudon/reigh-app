@@ -197,50 +197,57 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
             <CardContent>
               <div className="select-none opacity-90">
                 <ShotImagesEditor
-                  isModeReady={true}
-                  settingsError={null}
-                  isMobile={isMobile}
-                  generationMode={generationMode as 'batch' | 'timeline' | 'by-pair'}
-                  onGenerationModeChange={() => {}}
-                  selectedShotId={shareData.shot_id}
-                  preloadedImages={images}
-                  readOnly={true}
-                  projectId={undefined}
-                  shotName={shareData.shot_name || "Shared Generation"}
-                  batchVideoFrames={batchVideoFrames}
-                  onImageReorder={() => {}}
-                  onFramePositionsChange={() => {}}
-                  onFileDrop={async () => {}}
-                  pendingPositions={new Map()}
-                  onPendingPositionApplied={() => {}}
-                  onImageDelete={() => {}}
-                  onBatchImageDelete={() => {}}
-                  onImageDuplicate={() => {}}
-                  columns={columns}
-                  skeleton={null}
-                  unpositionedGenerationsCount={0}
-                  onOpenUnpositionedPane={() => {}}
-                  fileInputKey={0}
-                  onImageUpload={async () => {}}
-                  isUploadingImage={false}
-                  duplicatingImageId={null}
-                  duplicateSuccessImageId={null}
-                  projectAspectRatio={undefined}
-                  defaultPrompt={prompt}
-                  onDefaultPromptChange={() => {}}
-                  defaultNegativePrompt={negativePrompt}
-                  onDefaultNegativePromptChange={() => {}}
-                  primaryStructureVideoPath={structureVideo?.path || null}
-                  primaryStructureVideoMetadata={structureVideo?.metadata || null}
-                  primaryStructureVideoTreatment={structureVideo?.treatment || "adjust"}
-                  primaryStructureVideoMotionStrength={structureVideo?.motionStrength ?? amountOfMotion}
-                  primaryStructureVideoType={structureVideo?.structureType || "uni3c"}
-                  onPrimaryStructureVideoInputChange={() => {}}
-                  structureVideos={structureVideos}
-                  onAddStructureVideo={() => {}}
-                  onUpdateStructureVideo={() => {}}
-                  onRemoveStructureVideo={() => {}}
-                  onSelectionChange={() => {}}
+                  displayOptions={{
+                    isModeReady: true,
+                    settingsError: null,
+                    isMobile,
+                    generationMode: generationMode as 'batch' | 'timeline' | 'by-pair',
+                    onGenerationModeChange: () => {},
+                    columns,
+                    skeleton: null,
+                    readOnly: true,
+                    projectAspectRatio: undefined,
+                  }}
+                  imageState={{
+                    selectedShotId: shareData.shot_id,
+                    preloadedImages: images,
+                    projectId: undefined,
+                    shotName: shareData.shot_name || 'Shared Generation',
+                    batchVideoFrames,
+                    pendingPositions: new Map(),
+                    unpositionedGenerationsCount: 0,
+                    fileInputKey: 0,
+                    isUploadingImage: false,
+                    duplicatingImageId: null,
+                    duplicateSuccessImageId: null,
+                    defaultPrompt: prompt,
+                    onDefaultPromptChange: () => {},
+                    defaultNegativePrompt: negativePrompt,
+                    onDefaultNegativePromptChange: () => {},
+                    primaryStructureVideoPath: structureVideo?.path || null,
+                    primaryStructureVideoMetadata: structureVideo?.metadata || null,
+                    primaryStructureVideoTreatment: structureVideo?.treatment || 'adjust',
+                    primaryStructureVideoMotionStrength: structureVideo?.motionStrength ?? amountOfMotion,
+                    primaryStructureVideoType: structureVideo?.structureType || 'uni3c',
+                    structureVideos,
+                  }}
+                  editActions={{
+                    onImageReorder: () => {},
+                    onFramePositionsChange: () => {},
+                    onFileDrop: async () => {},
+                    onPendingPositionApplied: () => {},
+                    onImageDelete: () => {},
+                    onBatchImageDelete: () => {},
+                    onImageDuplicate: () => {},
+                    onOpenUnpositionedPane: () => {},
+                    onImageUpload: async () => {},
+                    onPrimaryStructureVideoInputChange: () => {},
+                    onAddStructureVideo: () => {},
+                    onUpdateStructureVideo: () => {},
+                    onRemoveStructureVideo: () => {},
+                    onSelectionChange: () => {},
+                  }}
+                  shotWorkflow={{}}
                 />
               </div>
             </CardContent>

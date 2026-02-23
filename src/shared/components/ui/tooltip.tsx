@@ -11,7 +11,7 @@ const TooltipProvider: React.FC<{ delayDuration?: number; children: React.ReactN
 const Tooltip = TooltipPrimitive.Root
 
 const TooltipTrigger = React.forwardRef<
-  HTMLButtonElement,
+  React.ElementRef<typeof TooltipPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger> & { asChild?: boolean }
 >(({ asChild, children, ...props }, ref) => {
   if (asChild) {
@@ -52,7 +52,7 @@ TooltipContent.displayName = "TooltipContent"
  * Touch-aware tooltip that works on both desktop (hover) and touch devices (tap).
  */
 interface TouchableTooltipProps {
-  children: React.ReactNode;
+  children: React.ReactElement;
   content: React.ReactNode;
   side?: 'top' | 'right' | 'bottom' | 'left';
   className?: string;
@@ -92,7 +92,7 @@ const TouchableTooltip: React.FC<TouchableTooltipProps> = ({
     return () => document.removeEventListener('pointerdown', handler);
   }, [open]);
 
-  const child = React.Children.only(children) as React.ReactElement;
+  const child = React.Children.only(children);
   const triggerElement = React.cloneElement(child, {
     onTouchEnd: (e: React.TouchEvent) => {
       handleTouchEnd(e);
