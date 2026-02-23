@@ -11,7 +11,7 @@ import { usePendingFrames } from './usePendingFrames';
 import { useEndpointDrag } from './useEndpointDrag';
 import { useTapToMove } from './useTapToMove';
 import { useComputedTimelineData } from './useComputedTimelineData';
-import type { GenerationRow } from '@/types/shots';
+import type { GenerationRow } from '@/types/generationAndShots';
 import type { PairData } from '../TimelineContainer/types';
 import type { Resource, StructureVideoMetadata } from '@/shared/hooks/useResources';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
@@ -569,7 +569,6 @@ export function useTimelineOrchestrator({
   } = useComputedTimelineData({
     currentPositions,
     images,
-    shotId,
     containerWidth,
     fullRange,
     zoomLevel,

@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { getPairInfo, TRAILING_ENDPOINT_KEY } from '../utils/timeline-utils';
 import { TIMELINE_PADDING_OFFSET } from '../constants';
-import type { GenerationRow } from '@/types/shots';
+import type { GenerationRow } from '@/types/generationAndShots';
 import type { PairData } from '../TimelineContainer/types';
 
 interface UseComputedTimelineDataProps {
   currentPositions: Map<string, number>;
   images: GenerationRow[];
-  shotId: string;
+
   containerWidth: number;
   fullRange: number;
   zoomLevel: number;
@@ -23,13 +23,12 @@ interface UseComputedTimelineDataReturn {
 export function useComputedTimelineData({
   currentPositions,
   images,
-  shotId: _shotId,
+
   containerWidth,
   fullRange,
   zoomLevel,
 }: UseComputedTimelineDataProps): UseComputedTimelineDataReturn {
-  void _shotId;
-  const pairInfo = getPairInfo(currentPositions);
+  const pairInfo = useMemo(() => getPairInfo(currentPositions), [currentPositions]);
 
   // Image-only positions (excluding trailing endpoint key)
   const imageOnlyPositions = useMemo(() => {

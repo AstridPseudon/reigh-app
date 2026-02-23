@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { GenerationRow } from "@/types/shots";
+import { GenerationRow } from "@/types/generationAndShots";
 import { pixelToFrame, applyFluidTimeline, applyFluidTimelineMulti, TRAILING_ENDPOINT_KEY } from "../utils/timeline-utils";
 import { log } from "@/shared/lib/logger";
 import { handleError } from "@/shared/lib/errorHandling/handleError";
@@ -132,10 +132,6 @@ export const useTimelineDrag = ({
     return calculatedFrame;
   }, [dragState.originalFramePos, fullMin, fullRange]);
 
-  const calculateFinalPosition = useCallback((targetFrame: number): number => {
-    return targetFrame;
-  }, []);
-
   // ============================================================================
   // CONSOLIDATED: Single function for calculating drag positions
   // isPreview = true: during drag (skip quantization for smooth preview)
@@ -152,7 +148,7 @@ export const useTimelineDrag = ({
     }
 
     const targetFrame = calculateTargetFrame(clientX, containerRect);
-    const finalPosition = calculateFinalPosition(targetFrame);
+    const finalPosition = targetFrame;
     const isMultiSelectDrag = selectedIds.length > 1 && selectedIds.includes(dragState.activeId);
 
     // Push/pull: ⌘/Ctrl or ⌥/Alt shifts all items right of the dragged item
@@ -238,7 +234,6 @@ export const useTimelineDrag = ({
     framePositions,
     selectedIds,
     calculateTargetFrame,
-    calculateFinalPosition,
     containerRect,
     fullMin,
     fullMax,
@@ -432,7 +427,7 @@ export const useTimelineDrag = ({
     : null;
 
   const currentDragFrame = dragState.isDragging && dragState.activeId && dragState.hasMovedPastThreshold
-    ? calculateFinalPosition(calculateTargetFrame(dragState.currentX, containerRect))
+    ? calculateTargetFrame(dragState.currentX, containerRect)
     : null;
 
   const swapTargetId = currentDragFrame !== null && dragState.activeId
