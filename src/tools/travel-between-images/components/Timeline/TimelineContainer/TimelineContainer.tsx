@@ -124,17 +124,32 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     return findTrailingVideoInfo(videoOutputs, lastImageShotGenId);
   }, [videoOutputs, framePositions, images.length]);
 
-  // Async trailing video URL — lifted before orchestrator so fullMax can expand via hasAnyTrailingVideo
+  // Async trailing video URL — set by SegmentOutputStrip callback when it detects a trailing video
   const [callbackTrailingVideoUrl, setCallbackTrailingVideoUrl] = useState<string | null>(null);
   const hasAnyTrailingVideo = hasExistingTrailingVideo || !!callbackTrailingVideoUrl;
+
+  // Pre-orchestrator: does ANY image have a completed video segment?
+  // Tells orchestrator to reserve trailing space proactively so fullMax is wide enough
+  // if the user drags that image to last position. Small cost (17 frames of padding)
+  // even when the video isn't at last position, but eliminates the chicken-and-egg.
+  const anyImageHasVideo = useMemo(() => {
+    if (parentSegmentSlots?.length) {
+      return parentSegmentSlots.some(slot =>
+        slot.type === 'child' &&
+        slot.child.type?.includes('video') &&
+        slot.child.location
+      );
+    }
+    return false;
+  }, [parentSegmentSlots]);
 
   // --- Orchestrator hook (all state, effects, and handlers) ---
   const {
     timelineRef,
     containerRef,
     fullMin,
-    fullMax: orchestratorFullMax,
-    fullRange: orchestratorFullRange,
+    fullMax,
+    fullRange,
     containerWidth,
     dragState,
     dragOffset,
@@ -208,7 +223,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     onAddStructureVideo,
     onUpdateStructureVideo,
     onPrimaryStructureVideoInputChange,
-    hasExistingTrailingVideo: hasAnyTrailingVideo,
+    hasExistingTrailingVideo: hasAnyTrailingVideo || anyImageHasVideo,
   });
 
   // --- Post-orchestrator trailing endpoint (needs currentPositions) ---
@@ -227,10 +242,9 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
 
   // Live trailing detection: check if any completed video is anchored to the current
   // live last image. Auto-reveals trailing slot during drag without waiting for DB.
-  const { liveLastImageShotGenId, liveLastImageFrame } = useMemo(() => {
+  const liveLastImageShotGenId = useMemo(() => {
     const sorted = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
-    const last = sorted[sorted.length - 1];
-    return { liveLastImageShotGenId: last?.[0] ?? null, liveLastImageFrame: last?.[1] ?? null };
+    return sorted[sorted.length - 1]?.[0] ?? null;
   }, [imagePositions]);
 
   const hasLiveTrailingVideo = useMemo(() => {
@@ -251,15 +265,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     }
     return false;
   }, [liveLastImageShotGenId, parentSegmentSlots, videoOutputs]);
-
-  // Extend fullMax/fullRange when live trailing detection fires.
-  // The orchestrator can't know about hasLiveTrailingVideo (it's computed from
-  // post-orchestrator data), so we extend the dimensions here for rendering.
-  const isMultiImageTimeline = images.length > 1;
-  const fullMax = hasLiveTrailingVideo && liveLastImageFrame !== null
-    ? Math.max(orchestratorFullMax, liveLastImageFrame + (isMultiImageTimeline ? 19 : 51))
-    : orchestratorFullMax;
-  const fullRange = fullMax - fullMin;
 
   // --- Derived pair data (augmented with pending items) ---
   const imagePositionsWithPending = useMemo(() => {
