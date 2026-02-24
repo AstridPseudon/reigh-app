@@ -211,7 +211,7 @@ function buildMergedSettings(
     numFrames: defaults.numFrames ?? 25,
     randomSeed: pairOverrides.randomSeed ?? true,
     seed: pairOverrides.seed,
-    makePrimaryVariant: defaults.makePrimaryVariant ?? false,
+    makePrimaryVariant: defaults.makePrimaryVariant ?? true,
     structureMotionStrength: pairOverrides.structureMotionStrength,
     structureTreatment: pairOverrides.structureTreatment,
     structureUni3cEndPercent: pairOverrides.structureUni3cEndPercent,
@@ -327,7 +327,7 @@ export function useSegmentSettings({
   const resetSettings = useCallback(async () => {
     const cleared = createClearedSettings(
       defaults.numFrames ?? 25,
-      defaults.makePrimaryVariant ?? false
+      defaults.makePrimaryVariant ?? true
     );
 
     // Save cleared settings, then clear enhanced prompt.
