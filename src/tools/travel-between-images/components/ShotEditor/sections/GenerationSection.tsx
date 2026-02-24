@@ -51,7 +51,7 @@ export const GenerationSection: React.FC<GenerationSectionProps> = ({
   const stitchAfterGenerate = joinState.joinSettings.settings.stitchAfterGenerate ?? false;
 
   // Determine header display mode
-  const showSimpleHeader = stitchAfterGenerate || simpleFilteredImages.length <= 2;
+  const showSimpleHeader = simpleFilteredImages.length <= 2;
   const canSwitchToJoin = joinState.joinValidationData.videoCount >= 2;
 
   return (

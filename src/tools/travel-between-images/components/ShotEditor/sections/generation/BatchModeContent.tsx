@@ -367,7 +367,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             ) : undefined
           }
           bottomContent={
-            simpleFilteredImages.length > 2 && !stitchAfterGenerate ? (
+            simpleFilteredImages.length > 2 ? (
               <button
                 ref={swapButtonRef}
                 onClick={() => generationMode.toggleGenerateModePreserveScroll('join')}
