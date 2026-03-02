@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { processImageUrl } from '@/shared/lib/urlToFile';
 import {
@@ -61,6 +61,13 @@ export function useResourceBrowserData({
   const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
   const [showMyResourcesOnly, setShowMyResourcesOnly] = useState(false);
 
+  // Reset to page 1 synchronously when filter changes (avoids extra render from useEffect+setState)
+  const prevShowMyResourcesOnlyRef = React.useRef(showMyResourcesOnly);
+  if (prevShowMyResourcesOnlyRef.current !== showMyResourcesOnly) {
+    prevShowMyResourcesOnlyRef.current = showMyResourcesOnly;
+    setCurrentPage(1);
+  }
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -75,10 +82,6 @@ export function useResourceBrowserData({
 
     void getUser();
   }, [isOpen]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [showMyResourcesOnly]);
 
   useEffect(() => {
     if (!isOpen) {
