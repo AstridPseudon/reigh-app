@@ -6,6 +6,9 @@ import {
 } from '@/integrations/supabase/config/env';
 import { installRealtimeInstrumentation } from '@/integrations/supabase/instrumentation/realtime';
 import { installWindowOnlyInstrumentation } from '@/integrations/supabase/instrumentation/window';
+import { registerDebugGlobal } from '@/shared/runtime/debugRegistry';
+
+let cleanupSupabaseDebugGlobals: (() => void) | null = null;
 
 /**
  * Optional dev diagnostics registration.
@@ -26,6 +29,19 @@ export function initializeSupabaseDebugGlobals(): void {
     installRealtimeInstrumentation(client);
   }
 
-  window.__supabase_client__ = client;
-  window.supabase = client;
+  cleanupSupabaseDebugGlobals?.();
+  const disposeSupabaseClient = registerDebugGlobal(
+    '__supabase_client__',
+    client,
+    'initializeSupabaseDebugGlobals',
+  );
+  const disposeSupabaseAlias = registerDebugGlobal(
+    'supabase',
+    client,
+    'initializeSupabaseDebugGlobals',
+  );
+  cleanupSupabaseDebugGlobals = () => {
+    disposeSupabaseAlias();
+    disposeSupabaseClient();
+  };
 }

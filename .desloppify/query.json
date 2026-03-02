@@ -1,56 +1,32 @@
 {
-  "command": "show",
-  "query": "7309c41e",
-  "status_filter": "open",
-  "total": 1,
-  "summary": {
-    "by_tier": {
-      "T1": 1
-    },
-    "by_detector": {
-      "review": 1
-    },
-    "files": 1
-  },
-  "by_file": {
-    ".": [
-      {
-        "id": "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
-        "tier": 1,
-        "confidence": "high",
-        "summary": "Debug and runtime managers are exposed through mutable `window` globals, increasing cross-module hidden coupling.",
-        "detail": {
-          "holistic": true,
-          "dimension": "initialization_coupling",
-          "related_files": [
-            "src/integrations/supabase/debug/initializeSupabaseDebugGlobals.ts",
-            "src/integrations/supabase/reconnect/ReconnectScheduler.ts",
-            "src/shared/realtime/DataFreshnessManager.ts",
-            "src/app/bootstrap.tsx"
-          ],
-          "evidence": [
-            "Supabase debug init writes `window.__supabase_client__` and `window.supabase` (`initializeSupabaseDebugGlobals.ts:29-30`).",
-            "Reconnect scheduler uses a global singleton and also writes `window.__RECONNECT_SCHEDULER__` in dev (`ReconnectScheduler.ts:147-161`).",
-            "Data freshness manager exports a process singleton and writes `window.__DATA_FRESHNESS_MANAGER__` via bootstrap-loaded registration (`DataFreshnessManager.ts:360-369`, `bootstrap.tsx:99-102`)."
-          ],
-          "suggestion": "Consolidate debug exposure behind one typed `debugRegistry` module with explicit `register/get` APIs and teardown support; keep `window` writes in a single boundary file to avoid ad-hoc globals and reduce hidden startup dependencies.",
-          "reasoning": ""
-        }
-      }
-    ]
-  },
-  "total_matching": 1,
-  "noise_budget": 10,
-  "noise_global_budget": 0,
+  "command": "resolve",
+  "patterns": [
+    "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3"
+  ],
+  "status": "fixed",
+  "resolved": [
+    "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3"
+  ],
+  "count": 1,
+  "next_command": "desloppify next",
+  "overall_score": 74.9,
+  "objective_score": 95.3,
+  "strict_score": 74.9,
+  "verified_strict_score": 95.3,
+  "prev_overall_score": 74.9,
+  "prev_objective_score": 95.3,
+  "prev_strict_score": 74.9,
+  "prev_verified_strict_score": 95.3,
+  "attestation": "I have actually removed no-op lightbox adapter builders and consolidated state composition into direct ownership code, and I am not gaming the score by resolving without fixing.",
   "narrative": {
     "phase": "regression",
-    "headline": "\u26a0 13 security findings \u2014 review before other cleanup. Score shifted 1.7 pts \u2014 this is normal after structural changes. Rescan after your next fix to see the real trend. (14 review findings \u2014 run `desloppify show review --status open`)",
+    "headline": "\u26a0 13 security findings \u2014 review before other cleanup. Score shifted 1.7 pts \u2014 this is normal after structural changes. Rescan after your next fix to see the real trend. (12 review findings \u2014 run `desloppify show review --status open`)",
     "dimensions": {
       "lowest_dimensions": [
         {
           "name": "Design coherence",
           "strict": 42.8,
-          "issues": 3,
+          "issues": 2,
           "impact": 0.0,
           "subjective": true,
           "impact_description": "re-review to improve"
@@ -248,8 +224,8 @@
       {
         "type": "refactor",
         "detector": "review",
-        "count": 14,
-        "description": "14 review findings need investigation \u2014 run `desloppify show review --status open` to see them",
+        "count": 12,
+        "description": "12 review findings need investigation \u2014 run `desloppify show review --status open` to see them",
         "command": "desloppify show review --status open",
         "impact": 0.0,
         "dimension": "Unknown",
@@ -315,7 +291,7 @@
     "strategy": {
       "fixer_leverage": {
         "auto_fixable_count": 0,
-        "total_count": 1941,
+        "total_count": 1935,
         "coverage": 0.0,
         "impact_ratio": 0.0,
         "recommendation": "none"
@@ -382,7 +358,7 @@
         }
       },
       "can_parallelize": true,
-      "hint": "5 independent workstreams, safe to parallelize. Rescan after each phase to verify. Review: 14 finding(s) \u2014 `desloppify show review --status open`."
+      "hint": "5 independent workstreams, safe to parallelize. Rescan after each phase to verify. Review: 12 finding(s) \u2014 `desloppify show review --status open`."
     },
     "tools": {
       "fixers": [
@@ -428,7 +404,7 @@
       "command": "desloppify show orphaned --status open",
       "description": "6 orphaned findings \u2014 delete dead files or relocate with `desloppify move`"
     },
-    "why_now": "5 independent workstreams, safe to parallelize. Rescan after each phase to verify. Review: 14 finding(s) \u2014 `desloppify show review --status open`.",
+    "why_now": "5 independent workstreams, safe to parallelize. Rescan after each phase to verify. Review: 12 finding(s) \u2014 `desloppify show review --status open`.",
     "verification_step": {
       "command": "desloppify scan",
       "reason": "revalidate after changes"
@@ -441,7 +417,22 @@
       "state": "below",
       "warning": null
     },
-    "reminders": [],
+    "reminders": [
+      {
+        "type": "rereview_needed",
+        "message": "Subjective results may be stale after resolve. Re-run `desloppify review --prepare` to refresh, or reset with `desloppify scan --reset-subjective` before a clean rerun.",
+        "command": "desloppify review --prepare",
+        "priority": 1,
+        "severity": "high"
+      },
+      {
+        "type": "rescan_needed",
+        "message": "Rescan to verify \u2014 cascading effects may create new findings.",
+        "command": "desloppify scan",
+        "priority": 1,
+        "severity": "high"
+      }
+    ],
     "reminder_history": {
       "review_findings_pending": 3,
       "auto_fixers_available": 3,
@@ -450,7 +441,9 @@
       "report_scores": 70,
       "stagnant_nudge": 12,
       "dry_run_first": 3,
-      "fp_calibration_naming_production": 3
+      "fp_calibration_naming_production": 3,
+      "rereview_needed": 1,
+      "rescan_needed": 1
     }
   },
   "config": {

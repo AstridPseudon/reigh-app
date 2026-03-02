@@ -2,6 +2,7 @@
 
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
+import { registerDebugGlobal } from '@/shared/runtime/debugRegistry';
 
 /**
  * ReconnectScheduler - Centralized manager for realtime reconnection intents
@@ -145,7 +146,8 @@ export class ReconnectScheduler {
 }
 
 // Global instance
-let reconnectScheduler: ReconnectScheduler;
+let reconnectScheduler: ReconnectScheduler | null = null;
+let cleanupReconnectSchedulerDebugGlobal: (() => void) | null = null;
 
 export function getReconnectScheduler(): ReconnectScheduler {
   if (!reconnectScheduler) {
@@ -153,7 +155,12 @@ export function getReconnectScheduler(): ReconnectScheduler {
     
     // Make it globally accessible for debugging (dev only)
     if (import.meta.env.DEV && typeof window !== 'undefined') {
-      window.__RECONNECT_SCHEDULER__ = reconnectScheduler;
+      cleanupReconnectSchedulerDebugGlobal?.();
+      cleanupReconnectSchedulerDebugGlobal = registerDebugGlobal(
+        '__RECONNECT_SCHEDULER__',
+        reconnectScheduler,
+        'ReconnectScheduler',
+      );
     }
   }
   

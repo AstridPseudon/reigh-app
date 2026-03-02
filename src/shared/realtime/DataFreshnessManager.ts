@@ -8,6 +8,7 @@
  */
 
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { registerDebugGlobal } from '@/shared/runtime/debugRegistry';
 
 type RealtimeStatus = 'connected' | 'disconnected' | 'error';
 type PollingInterval = number | false; // false = no polling
@@ -359,11 +360,17 @@ class DataFreshnessManager {
 
 // Singleton instance - single source of truth for the entire app
 export const dataFreshnessManager = new DataFreshnessManager();
+let cleanupDataFreshnessDebugGlobal: (() => void) | null = null;
 
 /** Dev-only helper for wiring debug globals during app bootstrap. */
 export function registerDataFreshnessManagerDebugGlobal(): void {
   if (!import.meta.env.DEV || typeof window === 'undefined') {
     return;
   }
-  window.__DATA_FRESHNESS_MANAGER__ = dataFreshnessManager;
+  cleanupDataFreshnessDebugGlobal?.();
+  cleanupDataFreshnessDebugGlobal = registerDebugGlobal(
+    '__DATA_FRESHNESS_MANAGER__',
+    dataFreshnessManager,
+    'DataFreshnessManager',
+  );
 }

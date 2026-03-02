@@ -31,7 +31,7 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:32:50+00:00"
+      "stale_since": "2026-03-02T18:35:48+00:00"
     },
     "logic_clarity": {
       "score": 81.3,
@@ -126,7 +126,7 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:18:42+00:00"
+      "stale_since": "2026-03-02T18:38:18+00:00"
     },
     "error_consistency": {
       "score": 59.0,
@@ -218,22 +218,22 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 293,
-    "open": 1913,
+    "fixed": 295,
+    "open": 1911,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 93,
-        "open": 13,
+        "fixed": 94,
+        "open": 12,
         "wontfix": 0
       },
       "2": {
         "auto_resolved": 686,
         "false_positive": 0,
-        "fixed": 13,
-        "open": 170,
+        "fixed": 14,
+        "open": 169,
         "wontfix": 0
       },
       "3": {
@@ -156106,16 +156106,22 @@
         "suggestion": "Consolidate debug exposure behind one typed `debugRegistry` module with explicit `register/get` APIs and teardown support; keep `window` writes in a single boundary file to avoid ad-hoc globals and reduce hidden startup dependencies.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Consolidated debug/runtime window globals behind one typed debugRegistry boundary with register/get/dispose semantics, migrated Supabase debug globals, ReconnectScheduler global exposure, and DataFreshnessManager debug registration to that boundary, and kept bootstrap wiring via explicit registration helpers.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:35:48+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually centralized the flagged window global writes behind a typed debug registry boundary and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:35:48+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::design_coherence::join_clips_scroll_timer_leak::bb2567f6": {
       "id": "review::.::holistic::design_coherence::join_clips_scroll_timer_leak::bb2567f6",
@@ -156179,16 +156185,22 @@
         "suggestion": "Refactor around explicit domain controllers (navigation, variants, shot actions, edit mode) with narrow contracts and direct ownership boundaries; remove pass-through slice builders where no translation/validation occurs.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Removed pass-through shared-state slice builders from ImageLightbox and composed one explicit shared contract object directly inside useImageLightboxSharedState, preserving behavior while reducing adapter indirection and clarifying ownership boundaries.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:38:18+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually removed no-op lightbox adapter builders and consolidated state composition into direct ownership code, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:38:18+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::design_coherence::complete_task_partial_success_blind_spot::93099fb1": {
       "id": "review::.::holistic::design_coherence::complete_task_partial_success_blind_spot::93099fb1",
@@ -159940,13 +159952,13 @@
       "strict_score": 51.2,
       "verified_strict_score": 51.2,
       "checks": 10,
-      "issues": 3,
+      "issues": 2,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.512,
-          "issues": 3,
+          "issues": 2,
           "weighted_failures": 4.88,
           "assessment_score": 51.2,
           "placeholder": false,
@@ -160116,13 +160128,13 @@
       "strict_score": 42.8,
       "verified_strict_score": 42.8,
       "checks": 10,
-      "issues": 3,
+      "issues": 2,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.428,
-          "issues": 3,
+          "issues": 2,
           "weighted_failures": 5.72,
           "assessment_score": 42.8,
           "placeholder": false,

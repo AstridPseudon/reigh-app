@@ -28,7 +28,10 @@
     "initialization_coupling": {
       "score": 51.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:35:48+00:00"
     },
     "logic_clarity": {
       "score": 81.3,
@@ -215,15 +218,15 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 292,
-    "open": 1914,
+    "fixed": 294,
+    "open": 1912,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 92,
-        "open": 14,
+        "fixed": 94,
+        "open": 12,
         "wontfix": 0
       },
       "2": {
@@ -156062,16 +156065,22 @@
         "suggestion": "Replace throw-based global readiness with an explicit runtime provider/registry interface that is injected into repositories/hooks; for compatibility, keep `getSupabaseClientResult()` and migrate call sites to branch on readiness instead of relying on global bootstrap order.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Introduced an explicit Supabase runtime registry/result contract in integrations/supabase/client, switched app bootstrap to initialize via initializeSupabaseResult() with graceful error handling, and updated generationTaskRepository to consume injected registry readiness (query_failed fallback) instead of throw-on-access getSupabaseClient semantics.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:32:50+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually replaced throw-coupled Supabase readiness paths with explicit registry/result branching in the flagged runtime and repository surfaces, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:32:50+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e": {
       "id": "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
@@ -156097,16 +156106,22 @@
         "suggestion": "Consolidate debug exposure behind one typed `debugRegistry` module with explicit `register/get` APIs and teardown support; keep `window` writes in a single boundary file to avoid ad-hoc globals and reduce hidden startup dependencies.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Consolidated debug/runtime window globals behind one typed debugRegistry boundary with register/get/dispose semantics, migrated Supabase debug globals, ReconnectScheduler global exposure, and DataFreshnessManager debug registration to that boundary, and kept bootstrap wiring via explicit registration helpers.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:35:48+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually centralized the flagged window global writes behind a typed debug registry boundary and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:35:48+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::design_coherence::join_clips_scroll_timer_leak::bb2567f6": {
       "id": "review::.::holistic::design_coherence::join_clips_scroll_timer_leak::bb2567f6",
@@ -159931,13 +159946,13 @@
       "strict_score": 51.2,
       "verified_strict_score": 51.2,
       "checks": 10,
-      "issues": 4,
+      "issues": 2,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.512,
-          "issues": 4,
+          "issues": 2,
           "weighted_failures": 4.88,
           "assessment_score": 51.2,
           "placeholder": false,
