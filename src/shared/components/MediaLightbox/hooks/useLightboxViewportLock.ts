@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { getViewportLockRuntime } from '@/shared/runtime/viewportLockRuntime';
+import { acquireLightboxOpenState } from '@/features/lightbox/state/lightboxOpenState';
 
 interface UseLightboxViewportLockArgs {
   isActuallyModal: boolean;
@@ -8,6 +9,12 @@ interface UseLightboxViewportLockArgs {
 export function useLightboxViewportLock({ isActuallyModal }: UseLightboxViewportLockArgs): void {
   useEffect(() => {
     if (isActuallyModal) return;
-    return getViewportLockRuntime().lockLightboxViewport();
+    const releaseLightboxOpen = acquireLightboxOpenState();
+    const unlockViewport = getViewportLockRuntime().lockLightboxViewport();
+
+    return () => {
+      unlockViewport();
+      releaseLightboxOpen();
+    };
   }, [isActuallyModal]);
 }
