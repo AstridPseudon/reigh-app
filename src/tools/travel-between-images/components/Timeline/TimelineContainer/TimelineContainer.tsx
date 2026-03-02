@@ -12,7 +12,7 @@ import { GuidanceVideoUploader } from '../GuidanceVideoUploader';
 import { GuidanceVideosContainer } from '../GuidanceVideosContainer';
 import { AudioStrip } from '../AudioStrip';
 import { SegmentOutputStrip } from '../SegmentOutputStrip';
-import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
+import { DatasetBrowserModal } from '@/features/resources/components/DatasetBrowserModal';
 import { SelectionActionBar } from '@/shared/components/ShotImageManager/components/SelectionActionBar';
 
 // Extracted sub-components

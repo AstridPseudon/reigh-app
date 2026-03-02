@@ -1,10 +1,8 @@
 {
   "version": 4,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-02T18:11:10+00:00",
+  "updated": "2026-03-02T18:18:24+00:00",
   "queue_order": [
-    "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
-    "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
     "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
     "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
     "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
@@ -13136,8 +13134,8 @@
     "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4": {
       "finding_id": "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
       "created_at": "2026-03-02T17:48:08+00:00",
-      "cluster": "synth-contract-boundaries",
-      "updated_at": "2026-03-02T17:48:08+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-02T18:18:24+00:00"
     },
     "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f": {
       "finding_id": "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
@@ -13184,8 +13182,8 @@
     "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb": {
       "finding_id": "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
       "created_at": "2026-03-02T17:48:08+00:00",
-      "cluster": "synth-contract-boundaries",
-      "updated_at": "2026-03-02T17:48:08+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-02T18:13:25+00:00"
     }
   },
   "clusters": {
@@ -15452,14 +15450,12 @@
         "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
         "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
         "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
-        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
         "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
         "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
         "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
         "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
         "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
-        "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
-        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb"
+        "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06"
       ],
       "created_at": "2026-03-02T17:48:08+00:00",
       "updated_at": "2026-03-02T17:48:09+00:00",
@@ -20710,12 +20706,11 @@
   },
   "epic_synthesis_meta": {
     "synthesis_stages": {},
-    "finding_snapshot_hash": "0f13a8e71b8a2e74",
-    "strategy_summary": "Continue queue-first with cluster guidance: close contract-boundary correctness and tests first, then lightbox abstraction consolidation, then runtime initialization coupling hardening. Validate each queue item with targeted tests before plan done.",
+    "finding_snapshot_hash": "fb0d7e5af6f3300f",
+    "strategy_summary": "Continue queue-first with current dependency-safe order. First execute synth-contract-boundaries to finish package_organization and contract/test-surface corrections, including ownership moves and governance checks. Second execute synth-lightbox-contracts to remove pass-through indirection and clarify explicit state/data flow. Third execute synth-runtime-init-coupling to eliminate mutable bootstrap/global coupling around Supabase and runtime managers. After each item, run focused unit tests and  before  to verify no behavior regressions and preserve stable imports/contracts.",
     "trigger": "manual_synthesis",
-    "last_completed_at": "2026-03-02T18:10:46+00:00",
+    "last_completed_at": "2026-03-02T18:18:02+00:00",
     "synthesized_ids": [
-      "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
       "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
       "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
       "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
@@ -20733,43 +20728,42 @@
       "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
       "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
       "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
-      "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31",
       "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
       "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b"
     ],
     "last_synthesis": {
-      "completed_at": "2026-03-02T18:10:46+00:00",
+      "completed_at": "2026-03-02T18:18:02+00:00",
       "stages": {
         "observe": {
           "stage": "observe",
-          "report": "Reviewed newly introduced review deltas after generation lookup hardening; themes remain in existing clusters with no contradictory guidance to current queue ordering.",
+          "report": "Reviewed recent queue deltas after shared-boundary moves; new findings align with existing contract-boundary and runtime-coupling themes and do not introduce conflicting dependencies.",
           "cited_ids": [],
-          "timestamp": "2026-03-02T18:10:44+00:00",
-          "finding_count": 21,
-          "confirmed_at": "2026-03-02T18:10:44+00:00",
-          "confirmed_text": "I reviewed design_coherence and test_strategy findings in observe stage and confirmed no contradictions in the remediation direction."
+          "timestamp": "2026-03-02T18:17:46+00:00",
+          "finding_count": 19,
+          "confirmed_at": "2026-03-02T18:17:46+00:00",
+          "confirmed_text": "I reviewed the observe-stage findings directly, including package_organization and runtime coupling deltas, and confirmed no contradictory execution constraints."
         },
         "reflect": {
           "stage": "reflect",
-          "report": "Keep queue-first execution: complete concrete contract/test fixes first, then broader architecture reorg items, preserving current dependency order.",
+          "report": "Maintain queue-first order: finish contract-boundary and test-surface cleanup before broader runtime/bootstrap decoupling and lightbox abstraction consolidation.",
           "cited_ids": [],
-          "timestamp": "2026-03-02T18:10:45+00:00",
-          "finding_count": 21,
+          "timestamp": "2026-03-02T18:17:47+00:00",
+          "finding_count": 19,
           "recurring_dimensions": [],
-          "confirmed_at": "2026-03-02T18:10:45+00:00",
-          "confirmed_text": "I reviewed the reflect strategy across test_strategy and package_organization and confirmed the prioritization remains coherent."
+          "confirmed_at": "2026-03-02T18:17:56+00:00",
+          "confirmed_text": "I reviewed package_organization and initialization_coupling findings and confirmed synth-contract-boundaries should remain first in execution order."
         },
         "organize": {
           "stage": "organize",
-          "report": "Organization remains stable with synth-contract-boundaries first, synth-lightbox-contracts second, synth-runtime-init-coupling third; new deltas fit existing cluster responsibilities.",
+          "report": "Reused existing cluster organization with unchanged dependency flow: synth-contract-boundaries before synth-lightbox-contracts and synth-runtime-init-coupling.",
           "cited_ids": [],
-          "timestamp": "2026-03-02T18:10:46+00:00",
+          "timestamp": "2026-03-02T18:17:57+00:00",
           "finding_count": 3,
-          "confirmed_at": "2026-03-02T18:10:46+00:00",
-          "confirmed_text": "I verified synth-contract-boundaries and synth-lightbox-contracts cluster ordering and confirmed actionable dependency flow."
+          "confirmed_at": "2026-03-02T18:17:57+00:00",
+          "confirmed_text": "I verified synth-contract-boundaries and synth-lightbox-contracts sequencing and confirmed cluster coverage remains actionable."
         }
       },
-      "strategy": "Continue queue-first with cluster guidance: close contract-boundary correctness and tests first, then lightbox abstraction consolidation, then runtime initialization coupling hardening. Validate each queue item with targeted tests before plan done."
+      "strategy": "Continue queue-first with current dependency-safe order. First execute synth-contract-boundaries to finish package_organization and contract/test-surface corrections, including ownership moves and governance checks. Second execute synth-lightbox-contracts to remove pass-through indirection and clarify explicit state/data flow. Third execute synth-runtime-init-coupling to eliminate mutable bootstrap/global coupling around Supabase and runtime managers. After each item, run focused unit tests and  before  to verify no behavior regressions and preserve stable imports/contracts."
     }
   },
   "execution_log": [
@@ -23831,11 +23825,251 @@
         "status": "fixed",
         "attestation": "I have actually changed generation-core lookup behavior to stop swallowing lookup errors, added duplicate-match handling tests, and I am not gaming the score by resolving without fixing."
       }
+    },
+    {
+      "timestamp": "2026-03-02T18:12:51+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Pruned non-executable comment scaffolding in timeline/shot editor barrel files and travel-between-images task types; kept only contract-critical notes.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:13:07+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 20,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:07+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed ai_generated_debt and package_organization findings in observe stage and confirmed no contradictions."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:17+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 20,
+        "recurring_dims": [
+          "test_strategy"
+        ],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:18+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed test_strategy and package_organization in reflect stage and confirmed dependency-aware prioritization."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:18+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:19+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I verified synth-contract-boundaries and synth-lightbox-contracts order and confirmed it addresses recurring test_strategy safely.",
+        "coverage": "20/20"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:19+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 223,
+        "coverage": "20/20"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:13:25+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Pruned non-executable comment scaffolding in timeline/shot editor barrels and travel-between-images task type contracts; retained only critical contract notes.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:13:25+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Pruned non-executable comment scaffolding in timeline/shot editor barrels and travel-between-images task type contracts; retained only critical contract notes.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually removed redundant prose scaffolding from the flagged files and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:17:27+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Reorganized shared catch-all boundaries by moving DatasetBrowserModal/CreateShotModal/useLightboxOpen/generationTaskBridge into feature or task-hook locations, rewrote imports, and updated affected tests/mocks.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:17:46+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 19,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:17:46+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed the observe-stage findings directly, including package_organization and runtime coupling deltas, and confirmed no contradictory execution constraints."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:17:47+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 19,
+        "recurring_dims": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:17:56+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed package_organization and initialization_coupling findings and confirmed synth-contract-boundaries should remain first in execution order."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:17:57+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:17:57+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I verified synth-contract-boundaries and synth-lightbox-contracts sequencing and confirmed cluster coverage remains actionable.",
+        "coverage": "19/19"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:18:02+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 581,
+        "coverage": "19/19"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:18:17+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Reorganized shared catch-all boundaries by moving DatasetBrowserModal/CreateShotModal/useLightboxOpen/generationTaskBridge into feature or task-hook locations, rewrote imports, and updated affected tests/mocks.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:18:24+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Reorganized shared catch-all boundaries by moving DatasetBrowserModal/CreateShotModal/useLightboxOpen/generationTaskBridge into feature or task-hook locations, rewrote imports, and updated affected tests/mocks.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually moved the flagged modules, updated import consumers and tests, and I am not gaming the score by resolving without fixing."
+      }
     }
   ],
   "promoted_ids": [
-    "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
-    "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
     "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
     "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
     "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",

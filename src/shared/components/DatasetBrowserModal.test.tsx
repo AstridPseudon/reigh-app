@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DatasetBrowserModal } from './DatasetBrowserModal';
+import { DatasetBrowserModal } from '../../features/resources/components/DatasetBrowserModal';
 
 describe('DatasetBrowserModal module', () => {
   it('exports component', () => {

@@ -43,7 +43,10 @@
     "test_strategy": {
       "score": 52.4,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:11:10+00:00"
     },
     "type_safety": {
       "score": 80.2,
@@ -77,7 +80,10 @@
     "ai_generated_debt": {
       "score": 76.8,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:13:25+00:00"
     },
     "api_surface_coherence": {
       "score": 63.9,
@@ -206,8 +212,8 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 286,
-    "open": 1920,
+    "fixed": 288,
+    "open": 1918,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -220,8 +226,8 @@
       "2": {
         "auto_resolved": 686,
         "false_positive": 0,
-        "fixed": 10,
-        "open": 173,
+        "fixed": 12,
+        "open": 171,
         "wontfix": 0
       },
       "3": {
@@ -155689,16 +155695,22 @@
         "suggestion": "Change lookup to deterministic retrieval (`order + limit(1) + maybeSingle` or explicit list query), treat multi-match as a typed degraded error instead of `null`, and add tests for duplicate-hit scenarios to prevent silent duplicate creation paths.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reworked findExistingGeneration to deterministic order+limit(2) lookup, throw typed errors for DB/duplicate matches, and added duplicate-path tests.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:11:10+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually changed generation-core lookup behavior to stop swallowing lookup errors, added duplicate-match handling tests, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:11:10+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea": {
       "id": "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea",
@@ -155844,16 +155856,22 @@
         "suggestion": "Prune comment scaffolding to contract-critical notes only, move migration status to tracked ADR/deprecation policy docs, and prefer executable assertions/tests over prose for invariants.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Pruned non-executable comment scaffolding in timeline/shot editor barrels and travel-between-images task type contracts; retained only critical contract notes.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:13:25+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually removed redundant prose scaffolding from the flagged files and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:13:25+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4": {
       "id": "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
@@ -159776,13 +159794,13 @@
       "strict_score": 76.8,
       "verified_strict_score": 76.8,
       "checks": 10,
-      "issues": 1,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.768,
-          "issues": 1,
+          "issues": 0,
           "weighted_failures": 2.32,
           "assessment_score": 76.8,
           "placeholder": false,
@@ -159952,13 +159970,13 @@
       "strict_score": 52.4,
       "verified_strict_score": 52.4,
       "checks": 10,
-      "issues": 3,
+      "issues": 2,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.524,
-          "issues": 3,
+          "issues": 2,
           "weighted_failures": 4.76,
           "assessment_score": 52.4,
           "placeholder": false,

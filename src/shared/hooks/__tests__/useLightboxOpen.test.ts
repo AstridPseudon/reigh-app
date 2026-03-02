@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useLightboxOpen } from '../useLightboxOpen';
+import { useLightboxOpen } from '../../../features/lightbox/hooks/useLightboxOpen';
 
 describe('useLightboxOpen', () => {
   afterEach(() => {

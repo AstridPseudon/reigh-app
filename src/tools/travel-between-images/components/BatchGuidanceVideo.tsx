@@ -7,7 +7,7 @@ import { Video, X, Images } from 'lucide-react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { uploadVideoToStorage, extractVideoMetadata, VideoMetadata } from '@/shared/lib/videoUploader';
-import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
+import { DatasetBrowserModal } from '@/features/resources/components/DatasetBrowserModal';
 import { useCreateResource, Resource, StructureVideoMetadata } from '@/shared/hooks/useResources';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';

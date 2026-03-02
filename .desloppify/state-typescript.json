@@ -80,7 +80,10 @@
     "ai_generated_debt": {
       "score": 76.8,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:13:25+00:00"
     },
     "api_surface_coherence": {
       "score": 63.9,
@@ -165,7 +168,10 @@
     "package_organization": {
       "score": 52.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:18:22+00:00"
     }
   },
   "potentials": {
@@ -209,22 +215,22 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 287,
-    "open": 1919,
+    "fixed": 289,
+    "open": 1917,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 89,
-        "open": 17,
+        "fixed": 90,
+        "open": 16,
         "wontfix": 0
       },
       "2": {
         "auto_resolved": 686,
         "false_positive": 0,
-        "fixed": 11,
-        "open": 172,
+        "fixed": 12,
+        "open": 171,
         "wontfix": 0
       },
       "3": {
@@ -155853,16 +155859,22 @@
         "suggestion": "Prune comment scaffolding to contract-critical notes only, move migration status to tracked ADR/deprecation policy docs, and prefer executable assertions/tests over prose for invariants.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Pruned non-executable comment scaffolding in timeline/shot editor barrels and travel-between-images task type contracts; retained only critical contract notes.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:13:25+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually removed redundant prose scaffolding from the flagged files and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:13:25+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4": {
       "id": "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
@@ -155888,16 +155900,22 @@
         "suggestion": "Run a staged reorg: Stage 1 create target folders (`src/features/resources/components`, `src/features/shots/components`, `src/features/lightbox/hooks`, `src/shared/hooks/tasks`, `src/shared/services/resources`). Stage 2 move domain files first (`DatasetBrowserModal`, `CreateShotModal`, `useLightboxOpen`, `generationTaskBridge`) into those folders without behavior changes. Stage 3 update imports with `rg -l \"@/shared/components/DatasetBrowserModal|@/shared/components/CreateShotModal|@/shared/hooks/useLightboxOpen|@/shared/lib/generationTaskBridge\" src` then apply path rewrites. Stage 4 validate with `npm run typecheck && npm run test -- DatasetBrowserModal CreateShotModal useGenerationTaskDetails`.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reorganized shared catch-all boundaries by moving DatasetBrowserModal/CreateShotModal/useLightboxOpen/generationTaskBridge into feature or task-hook locations, rewrote imports, and updated affected tests/mocks.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:18:22+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually moved the flagged modules, updated import consumers and tests, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:18:22+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87": {
       "id": "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
@@ -159785,13 +159803,13 @@
       "strict_score": 76.8,
       "verified_strict_score": 76.8,
       "checks": 10,
-      "issues": 1,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.768,
-          "issues": 1,
+          "issues": 0,
           "weighted_failures": 2.32,
           "assessment_score": 76.8,
           "placeholder": false,
@@ -160049,13 +160067,13 @@
       "strict_score": 52.6,
       "verified_strict_score": 52.6,
       "checks": 10,
-      "issues": 4,
+      "issues": 3,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.526,
-          "issues": 4,
+          "issues": 3,
           "weighted_failures": 4.74,
           "assessment_score": 52.6,
           "placeholder": false,

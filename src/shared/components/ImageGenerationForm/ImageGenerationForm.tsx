@@ -1,6 +1,6 @@
 import React, { Suspense, useRef } from "react";
 import { createPortal } from "react-dom";
-import CreateShotModal from "@/shared/components/CreateShotModal";
+import CreateShotModal from "@/features/shots/components/CreateShotModal";
 import { BatchImageGenerationTaskParams } from "@/shared/lib/tasks/imageGeneration";
 
 import { PromptsSection } from "./components/PromptsSection";

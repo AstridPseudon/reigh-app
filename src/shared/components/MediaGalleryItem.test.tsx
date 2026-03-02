@@ -98,7 +98,7 @@ vi.mock('@/shared/lib/dnd/dragDrop', () => ({
   createDragPreview: vi.fn(() => undefined),
 }));
 
-vi.mock('@/shared/components/CreateShotModal', () => ({
+vi.mock('@/features/shots/components/CreateShotModal', () => ({
   default: () => <div data-testid="create-shot-modal" />,
 }));
 

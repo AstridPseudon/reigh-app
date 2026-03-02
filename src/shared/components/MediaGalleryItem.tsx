@@ -23,7 +23,7 @@ import { useStableMediaUrls } from "./MediaGalleryItem/hooks/useStableMediaUrls"
 import { useShotPositionChecks } from "./MediaGalleryItem/hooks/useShotPositionChecks";
 import { setGenerationDragData, createDragPreview } from '@/shared/lib/dnd/dragDrop';
 import { cn } from '@/shared/components/ui/contracts/cn';
-import CreateShotModal from "@/shared/components/CreateShotModal";
+import CreateShotModal from "@/features/shots/components/CreateShotModal";
 import { useProjectSelectionContext } from "@/shared/contexts/ProjectContext";
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { useShotNavigation } from "@/shared/hooks/useShotNavigation";

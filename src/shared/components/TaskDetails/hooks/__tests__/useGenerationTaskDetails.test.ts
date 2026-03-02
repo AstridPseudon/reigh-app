@@ -19,7 +19,7 @@ vi.mock('@/shared/hooks/useTasks', () => ({
   useGetTask: (...args: unknown[]) => mockUseGetTask(...args),
 }));
 
-vi.mock('@/shared/lib/generationTaskBridge', () => ({
+vi.mock('@/shared/hooks/tasks/usePrimaryTaskMapping', () => ({
   useGetPrimaryTaskIdForGeneration: () => mockPrimaryTaskLookup,
 }));
 

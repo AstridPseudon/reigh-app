@@ -1,5 +1,5 @@
 import { usePanes } from '@/shared/contexts/PanesContext';
-import { useLightboxOpen } from '@/shared/hooks/useLightboxOpen';
+import { useLightboxOpen } from '@/features/lightbox/hooks/useLightboxOpen';
 
 /**
  * Calculates side-pane handle offset from the generations pane state.

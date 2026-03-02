@@ -9,7 +9,7 @@ vi.mock('@/shared/contexts/PanesContext', () => ({
   usePanes: () => mockUsePanes(),
 }));
 
-vi.mock('@/shared/hooks/useLightboxOpen', () => ({
+vi.mock('@/features/lightbox/hooks/useLightboxOpen', () => ({
   useLightboxOpen: () => mockUseLightboxOpen(),
 }));
 

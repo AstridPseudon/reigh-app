@@ -24,7 +24,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => mockHandleError(...args),
 }));
 
-import { useGetPrimaryTaskIdForGeneration } from '../generationTaskBridge';
+import { useGetPrimaryTaskIdForGeneration } from '../../hooks/tasks/usePrimaryTaskMapping';
 
 describe('generationTaskBridge', () => {
   beforeEach(() => {

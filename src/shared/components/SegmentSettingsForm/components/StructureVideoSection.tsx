@@ -16,7 +16,7 @@ import { Label } from '@/shared/components/ui/primitives/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Loader2, Video, X, Images } from 'lucide-react';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
-import { DatasetBrowserModal } from '@/shared/components/DatasetBrowserModal';
+import { DatasetBrowserModal } from '@/features/resources/components/DatasetBrowserModal';
 import { FieldDefaultControls } from './FieldDefaultControls';
 import { StructureVideoPreview } from './StructureVideoPreview';
 import { VideoPreviewSkeleton } from './VideoPreviewSkeleton';
