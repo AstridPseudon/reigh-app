@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { processImageUrl } from '@/shared/lib/urlToFile';
 import {
@@ -28,10 +28,11 @@ export interface ResourceBrowserData {
   searchTerm: string;
   currentPage: number;
   processingResource: string | null;
-  loadedThumbnails: Set<string>;
-  setLoadedThumbnails: Dispatch<SetStateAction<Set<string>>>;
+  isThumbnailLoaded: (id: string) => boolean;
+  markThumbnailLoaded: (id: string) => void;
   showMyResourcesOnly: boolean;
-  setShowMyResourcesOnly: Dispatch<SetStateAction<boolean>>;
+  toggleMyResourcesFilter: () => void;
+  clearMyResourcesFilter: () => void;
   filteredResources: Resource[];
   paginatedResources: Resource[];
   totalPages: number;
@@ -224,16 +225,34 @@ export function useResourceBrowserData({
     setCurrentPage(1);
   }, []);
 
+  const isThumbnailLoaded = useCallback(
+    (id: string) => loadedThumbnails.has(id),
+    [loadedThumbnails]
+  );
+
+  const markThumbnailLoaded = useCallback((id: string) => {
+    setLoadedThumbnails((previous) => new Set(previous).add(id));
+  }, []);
+
+  const toggleMyResourcesFilter = useCallback(() => {
+    setShowMyResourcesOnly((previous) => !previous);
+  }, []);
+
+  const clearMyResourcesFilter = useCallback(() => {
+    setShowMyResourcesOnly(false);
+  }, []);
+
   return {
     isVideoMode,
     userId,
     searchTerm,
     currentPage,
     processingResource,
-    loadedThumbnails,
-    setLoadedThumbnails,
+    isThumbnailLoaded,
+    markThumbnailLoaded,
     showMyResourcesOnly,
-    setShowMyResourcesOnly,
+    toggleMyResourcesFilter,
+    clearMyResourcesFilter,
     filteredResources,
     paginatedResources,
     totalPages,

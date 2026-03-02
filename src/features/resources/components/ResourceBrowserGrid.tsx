@@ -2,14 +2,54 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
-import { Image as ImageIcon, Loader2, Lock, Globe, Video, X } from 'lucide-react';
+import { Image as ImageIcon, Loader2, Lock, Globe, Video } from 'lucide-react';
 import { Resource, StyleReferenceMetadata, StructureVideoMetadata } from '@/shared/hooks/useResources';
 import type { ResourceBrowserData } from '@/features/resources/hooks/useResourceBrowserData';
 
-interface ResourceBrowserGridProps {
-  browsing: ResourceBrowserData;
-  resourceLabelPlural: string;
-}
+// ---------------------------------------------------------------------------
+// Shared sub-components
+// ---------------------------------------------------------------------------
+
+const SkeletonShimmer: React.FC = () => (
+  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent animate-shimmer transform -skew-x-12" />
+);
+
+const VisibilityToggleButton: React.FC<{
+  resourceId: string;
+  isPublic: boolean;
+  onToggle: (resourceId: string, currentIsPublic: boolean) => void;
+}> = ({ resourceId, isPublic, onToggle }) => (
+  <TooltipProvider delayDuration={300}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            onToggle(resourceId, isPublic);
+          }}
+          className={`rounded-full p-1 transition-colors focus:outline-none ${
+            isPublic
+              ? 'bg-primary text-primary-foreground hover:bg-primary/80'
+              : 'bg-muted-foreground/60 text-background hover:bg-muted-foreground/80'
+          }`}
+        >
+          {isPublic ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        {isPublic
+          ? 'Public - visible to others. Click to make private.'
+          : 'Private - only you can see this. Click to make public.'}
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+// ---------------------------------------------------------------------------
+// Resource item components
+// ---------------------------------------------------------------------------
 
 interface ResourceItemProps {
   resource: Resource;
@@ -31,8 +71,6 @@ const VideoResourceItem: React.FC<ResourceItemProps> = ({
   onToggleVisibility,
 }) => {
   const metadata = resource.metadata as StructureVideoMetadata;
-  const videoUrl = metadata.videoUrl;
-  const thumbnailUrl = metadata.thumbnailUrl;
   const isPublic = metadata.is_public ?? false;
   const durationInfo = metadata.videoMetadata
     ? `${Math.round(metadata.videoMetadata.duration_seconds)}s • ${metadata.videoMetadata.total_frames}f`
@@ -48,13 +86,13 @@ const VideoResourceItem: React.FC<ResourceItemProps> = ({
       <div className="aspect-square relative">
         {!isLoaded && (
           <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/50 to-muted animate-pulse z-10">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent animate-shimmer transform -skew-x-12" />
+            <SkeletonShimmer />
           </div>
         )}
 
         <HoverScrubVideo
-          src={videoUrl}
-          poster={thumbnailUrl || undefined}
+          src={metadata.videoUrl}
+          poster={metadata.thumbnailUrl || undefined}
           className="w-full h-full"
           videoClassName="object-cover"
           preload="metadata"
@@ -70,34 +108,8 @@ const VideoResourceItem: React.FC<ResourceItemProps> = ({
 
         <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 py-1.5 bg-black/60 backdrop-blur-sm z-10">
           {durationInfo ? <span className="text-xs text-white/90">{durationInfo}</span> : <div />}
-
           {isOwner && onToggleVisibility ? (
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      event.preventDefault();
-                      onToggleVisibility(resource.id, isPublic);
-                    }}
-                    className={`rounded-full p-1 transition-colors focus:outline-none ${
-                      isPublic
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/80'
-                        : 'bg-muted-foreground/60 text-background hover:bg-muted-foreground/80'
-                    }`}
-                  >
-                    {isPublic ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {isPublic
-                    ? 'Public - visible to others. Click to make private.'
-                    : 'Private - only you can see this. Click to make public.'}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <VisibilityToggleButton resourceId={resource.id} isPublic={isPublic} onToggle={onToggleVisibility} />
           ) : (
             <div />
           )}
@@ -118,7 +130,6 @@ const ImageResourceItem: React.FC<ResourceItemProps> = ({
 }) => {
   const metadata = resource.metadata as StyleReferenceMetadata;
   const thumbnailUrl = metadata.thumbnailUrl || metadata.styleReferenceImageOriginal;
-  const resourceName = metadata.name;
   const isPublic = metadata.is_public ?? false;
 
   return (
@@ -131,13 +142,13 @@ const ImageResourceItem: React.FC<ResourceItemProps> = ({
       <div className="aspect-square relative">
         {!isLoaded && (
           <div className="absolute inset-0 bg-gradient-to-br from-muted via-muted/50 to-muted animate-pulse">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent animate-shimmer transform -skew-x-12" />
+            <SkeletonShimmer />
           </div>
         )}
 
         <img
           src={thumbnailUrl}
-          alt={resourceName}
+          alt={metadata.name}
           className="w-full h-full object-cover"
           loading="lazy"
           onLoad={onLoaded}
@@ -156,32 +167,7 @@ const ImageResourceItem: React.FC<ResourceItemProps> = ({
           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2 py-1.5 bg-black/60 backdrop-blur-sm z-10">
             <span className="text-xs text-white/90">Mine</span>
             {onToggleVisibility ? (
-              <TooltipProvider delayDuration={300}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        event.preventDefault();
-                        onToggleVisibility(resource.id, isPublic);
-                      }}
-                      className={`rounded-full p-1 transition-colors focus:outline-none ${
-                        isPublic
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/80'
-                          : 'bg-muted-foreground/60 text-background hover:bg-muted-foreground/80'
-                      }`}
-                    >
-                      {isPublic ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    {isPublic
-                      ? 'Public - visible to others. Click to make private.'
-                      : 'Private - only you can see this. Click to make public.'}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <VisibilityToggleButton resourceId={resource.id} isPublic={isPublic} onToggle={onToggleVisibility} />
             ) : (
               <div />
             )}
@@ -191,6 +177,15 @@ const ImageResourceItem: React.FC<ResourceItemProps> = ({
     </div>
   );
 };
+
+// ---------------------------------------------------------------------------
+// Grid component
+// ---------------------------------------------------------------------------
+
+interface ResourceBrowserGridProps {
+  browsing: ResourceBrowserData;
+  resourceLabelPlural: string;
+}
 
 export const ResourceBrowserGrid: React.FC<ResourceBrowserGridProps> = ({
   browsing,
@@ -205,7 +200,7 @@ export const ResourceBrowserGrid: React.FC<ResourceBrowserGridProps> = ({
             className="relative rounded-lg overflow-hidden border-2 border-transparent"
           >
             <div className="aspect-square bg-gradient-to-br from-muted via-muted/50 to-muted animate-pulse relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent animate-shimmer transform -skew-x-12" />
+              <SkeletonShimmer />
             </div>
           </div>
         ))}
@@ -237,7 +232,7 @@ export const ResourceBrowserGrid: React.FC<ResourceBrowserGridProps> = ({
         )}
         {browsing.showMyResourcesOnly && (
           <div>
-            <Button variant="ghost" onClick={() => browsing.setShowMyResourcesOnly(false)}>
+            <Button variant="ghost" onClick={browsing.clearMyResourcesFilter}>
               Show all {resourceLabelPlural}
             </Button>
           </div>
@@ -259,9 +254,8 @@ export const ResourceBrowserGrid: React.FC<ResourceBrowserGridProps> = ({
           resource,
           isOwner: !!isOwner,
           isProcessing: browsing.processingResource === resource.id,
-          isLoaded: browsing.loadedThumbnails.has(resource.id),
-          onLoaded: () =>
-            browsing.setLoadedThumbnails((previous) => new Set(previous).add(resource.id)),
+          isLoaded: browsing.isThumbnailLoaded(resource.id),
+          onLoaded: () => browsing.markThumbnailLoaded(resource.id),
           onClick: () => {
             void browsing.handleResourceClick(resource);
           },

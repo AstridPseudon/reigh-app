@@ -76,7 +76,7 @@ export const ResourceBrowserModalBase: React.FC<ResourceBrowserModalBaseProps> =
               <Button
                 variant={browsing.showMyResourcesOnly ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => browsing.setShowMyResourcesOnly(!browsing.showMyResourcesOnly)}
+                onClick={browsing.toggleMyResourcesFilter}
               >
                 {myResourcesLabel}
               </Button>
@@ -85,7 +85,7 @@ export const ResourceBrowserModalBase: React.FC<ResourceBrowserModalBaseProps> =
                   Showing your {resourceLabelPlural} only
                   <X
                     className="h-3 w-3 ml-1 cursor-pointer"
-                    onClick={() => browsing.setShowMyResourcesOnly(false)}
+                    onClick={browsing.clearMyResourcesFilter}
                   />
                 </Badge>
               )}
