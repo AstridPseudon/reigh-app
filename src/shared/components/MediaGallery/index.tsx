@@ -7,7 +7,6 @@ import {
 import { useShotAdditionSelectionOptional } from '@/shared/contexts/ShotAdditionSelectionContext';
 import { useIsMobile, useIsTablet } from "@/shared/hooks/mobile";
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import { useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
 import { useBackgroundThumbnailGenerator } from '@/shared/hooks/media/useBackgroundThumbnailGenerator';
 import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
@@ -29,7 +28,7 @@ import {
 import { MediaGalleryHeader } from './components/MediaGalleryHeader';
 import { ShotNotifier } from './components/ShotNotifier';
 import { MediaGalleryGrid } from './components/MediaGalleryGrid';
-import { MediaGalleryLightbox, type LightboxSessionModel } from './components/MediaGalleryLightbox';
+import { MediaGalleryLightbox, type MediaGalleryLightboxSession } from './components/MediaGalleryLightbox';
 import { MobileBottomBar } from './components/MobileBottomBar';
 import { useMediaGalleryDebugTools } from './hooks/useMediaGalleryDebugTools';
 
@@ -156,8 +155,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     isMobile,
   });
   
-  // Star functionality
-  const toggleStarMutation = useToggleGenerationStar();
   const { navigateToShot } = useShotNavigation();
 
   // Compute aspect-ratio-aware layout (columns, itemsPerPage, skeletonColumns)
@@ -486,7 +483,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     showDownload,
     showShare,
     showEdit,
-    showStar,
+    showStar: showStar && typeof onToggleStar === 'function',
     showAddToShot,
     enableSingleClick,
     videosAsThumbnails,
@@ -498,6 +495,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     showEdit,
     showShare,
     showStar,
+    onToggleStar,
     videosAsThumbnails,
   ]);
 
@@ -508,7 +506,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     onDownloadImage: actionsHook.handleDownloadImage,
     onToggleStar,
     onImageClick,
-    toggleStarMutation,
   }), [
     actionsHook.handleDownloadImage,
     actionsHook.handleOpenLightbox,
@@ -516,7 +513,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     onApplySettings,
     onImageClick,
     onToggleStar,
-    toggleStarMutation,
   ]);
 
   const itemLoading = useMemo<Omit<ItemLoading, 'shouldLoad' | 'isPriority' | 'isGalleryLoading'>>(() => ({
@@ -529,66 +525,47 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     [isDeleting, stateHook.state.activeLightboxMedia?.id],
   );
 
-  const lightboxSession = useMemo<LightboxSessionModel>(() => ({
-    core: {
-      activeLightboxMedia: stateHook.state.activeLightboxMedia,
-      autoEnterEditMode: stateHook.state.autoEnterEditMode,
-      onClose: actionsHook.handleCloseLightbox,
-    },
-    navigation: {
-      filteredImages: filtersHook.filteredImages,
-      isServerPagination: paginationHook.isServerPagination,
-      serverPage,
-      totalPages: paginationHook.totalPages,
-      onServerPageChange,
-      onNext: handleNextImage,
-      onPrevious: handlePreviousImage,
-    },
-    actions: {
-      onDelete: showDelete ? actionsHook.handleOptimisticDelete : undefined,
-      isDeleting: lightboxDeletingId,
-      onApplySettings,
-    },
-    shotWorkflow: {
-      simplifiedShotOptions,
-      selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
-      onShotChange: actionsHook.handleShotChange,
-      onAddToShot: onAddToLastShot,
-      onAddToShotWithoutPosition: onAddToLastShotWithoutPosition,
-    },
-    ui: {
-      showTickForImageId: stateHook.state.showTickForImageId,
-      setShowTickForImageId: stateHook.setShowTickForImageId,
-      showTickForSecondaryImageId: stateHook.state.showTickForSecondaryImageId,
-      setShowTickForSecondaryImageId: stateHook.setShowTickForSecondaryImageId,
-    },
-    optimistic: {
-      optimisticPositionedIds: stateHook.state.optimisticPositionedIds,
-      optimisticUnpositionedIds: stateHook.state.optimisticUnpositionedIds,
-      onOptimisticPositioned: stateHook.markOptimisticPositioned,
-      onOptimisticUnpositioned: stateHook.markOptimisticUnpositioned,
-    },
-    taskModal: {
-      isMobile,
-      showTaskDetailsModal: stateHook.state.showTaskDetailsModal,
-      setShowTaskDetailsModal: stateHook.setShowTaskDetailsModal,
-      selectedImageForDetails: stateHook.state.selectedImageForDetails,
-      setSelectedImageForDetails: stateHook.setSelectedImageForDetails,
-      onShowTaskDetails: handleShowTaskDetails,
-    },
-    taskData: {
-      task,
-      isLoadingTask: taskDetailsData?.isLoading ?? false,
-      taskError,
-      inputImages,
-      lightboxTaskMapping,
-    },
-    integration: {
-      onCreateShot,
-      onNavigateToShot: handleNavigateToShot,
-      toolTypeOverride: currentToolType,
-      setActiveLightboxIndex: handleSetActiveLightboxIndex,
-    },
+  const lightboxSession = useMemo<MediaGalleryLightboxSession>(() => ({
+    activeLightboxMedia: stateHook.state.activeLightboxMedia,
+    autoEnterEditMode: stateHook.state.autoEnterEditMode,
+    onClose: actionsHook.handleCloseLightbox,
+    filteredImages: filtersHook.filteredImages,
+    isServerPagination: paginationHook.isServerPagination,
+    serverPage,
+    totalPages: paginationHook.totalPages,
+    onNext: handleNextImage,
+    onPrevious: handlePreviousImage,
+    onDelete: showDelete ? actionsHook.handleOptimisticDelete : undefined,
+    isDeleting: lightboxDeletingId,
+    onApplySettings,
+    simplifiedShotOptions,
+    selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
+    onShotChange: actionsHook.handleShotChange,
+    onAddToShot: onAddToLastShot,
+    onAddToShotWithoutPosition: onAddToLastShotWithoutPosition,
+    showTickForImageId: stateHook.state.showTickForImageId,
+    setShowTickForImageId: stateHook.setShowTickForImageId,
+    showTickForSecondaryImageId: stateHook.state.showTickForSecondaryImageId,
+    setShowTickForSecondaryImageId: stateHook.setShowTickForSecondaryImageId,
+    optimisticPositionedIds: stateHook.state.optimisticPositionedIds,
+    optimisticUnpositionedIds: stateHook.state.optimisticUnpositionedIds,
+    onOptimisticPositioned: stateHook.markOptimisticPositioned,
+    onOptimisticUnpositioned: stateHook.markOptimisticUnpositioned,
+    isMobile,
+    showTaskDetailsModal: stateHook.state.showTaskDetailsModal,
+    setShowTaskDetailsModal: stateHook.setShowTaskDetailsModal,
+    selectedImageForDetails: stateHook.state.selectedImageForDetails,
+    setSelectedImageForDetails: stateHook.setSelectedImageForDetails,
+    onShowTaskDetails: handleShowTaskDetails,
+    task,
+    isLoadingTask: taskDetailsData?.isLoading ?? false,
+    taskError,
+    inputImages,
+    lightboxTaskMapping,
+    onCreateShot,
+    onNavigateToShot: handleNavigateToShot,
+    toolTypeOverride: currentToolType,
+    setActiveLightboxIndex: handleSetActiveLightboxIndex,
   }), [
     actionsHook.handleCloseLightbox,
     actionsHook.handleOptimisticDelete,
@@ -608,7 +585,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     onAddToLastShotWithoutPosition,
     onApplySettings,
     onCreateShot,
-    onServerPageChange,
     paginationHook.isServerPagination,
     paginationHook.totalPages,
     serverPage,

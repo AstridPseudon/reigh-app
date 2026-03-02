@@ -61,6 +61,7 @@ interface VideoTravelVideosGalleryProps {
   addToShot: AddToShotProps;
   deletion?: DeleteProps;
   preloading?: PreloadingProps;
+  onToggleStar?: (id: string, starred: boolean) => void;
   /** Flag to show skeleton during view transition */
   videosViewJustEnabled: boolean;
 }
@@ -75,6 +76,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
   addToShot,
   deletion,
   preloading,
+  onToggleStar,
   videosViewJustEnabled,
 }) => {
   const {
@@ -156,6 +158,7 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
           onFiltersChange={setVideoFilters}
           columnsPerRow={effectiveColumnsPerRow}
           onDelete={deletion?.onDelete}
+          onToggleStar={onToggleStar}
           isDeleting={deletion?.isDeleting}
           // Preloading props
           generationFilters={preloading?.generationFilters}

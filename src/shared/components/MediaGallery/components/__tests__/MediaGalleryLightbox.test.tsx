@@ -52,37 +52,24 @@ function renderLightbox({
   return render(
     <MediaGalleryLightbox
       session={{
-        core: {
-          activeLightboxMedia,
-          autoEnterEditMode: false,
-          onClose: vi.fn(),
-        },
-        navigation: {
-          filteredImages,
-          isServerPagination: false,
-          totalPages: 1,
-          onNext: vi.fn(),
-          onPrevious: vi.fn(),
-        },
-        actions: {},
-        shotWorkflow: {
-          simplifiedShotOptions: [],
-          selectedShotIdLocal: 'all',
-          onShotChange: vi.fn(),
-        },
-        ui: {
-          showTickForImageId: null,
-          setShowTickForImageId: vi.fn(),
-        },
-        taskModal: {
-          isMobile: false,
-          showTaskDetailsModal: false,
-          setShowTaskDetailsModal: vi.fn(),
-          selectedImageForDetails: null,
-          setSelectedImageForDetails: vi.fn(),
-        },
-        taskData: {},
-        integration: {},
+        activeLightboxMedia,
+        autoEnterEditMode: false,
+        onClose: vi.fn(),
+        filteredImages,
+        isServerPagination: false,
+        totalPages: 1,
+        onNext: vi.fn(),
+        onPrevious: vi.fn(),
+        simplifiedShotOptions: [],
+        selectedShotIdLocal: 'all',
+        onShotChange: vi.fn(),
+        showTickForImageId: null,
+        setShowTickForImageId: vi.fn(),
+        isMobile: false,
+        showTaskDetailsModal: false,
+        setShowTaskDetailsModal: vi.fn(),
+        selectedImageForDetails: null,
+        setSelectedImageForDetails: vi.fn(),
       }}
     />
   );

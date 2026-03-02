@@ -94,4 +94,35 @@ describe('timelineWriteQueue', () => {
     expect(order).toEqual(['first-start', 'first-end', 'second-start', 'second-end']);
     expect(onEvent).toHaveBeenCalled();
   });
+
+  it('releases the queue when a serialized write times out so subsequent writes can run', async () => {
+    vi.useFakeTimers();
+
+    const first = runSerializedTimelineWrite(
+      'shot-timeout',
+      'hung-write',
+      async () => await new Promise<never>(() => {}),
+      undefined,
+      { timeoutMs: 10 },
+    );
+
+    const second = runSerializedTimelineWrite(
+      'shot-timeout',
+      'follow-up-write',
+      async () => 'second-result',
+      undefined,
+      { timeoutMs: 1000 },
+    );
+
+    const firstAssertion = expect(first).rejects.toSatisfy((error: unknown) => (
+      isTimelineWriteTimeoutError(error)
+      && error instanceof Error
+      && error.message.includes('hung-write')
+    ));
+
+    await vi.advanceTimersByTimeAsync(11);
+
+    await firstAssertion;
+    await expect(second).resolves.toBe('second-result');
+  });
 });

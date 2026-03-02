@@ -4,7 +4,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
-import { useCreateGeneration } from '@/domains/generation/hooks/useGenerationMutations';
+import { useCreateGeneration, useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
 import { MediaGallery } from '@/shared/components/MediaGallery';
@@ -265,6 +265,7 @@ interface JoinClipsResultsProps {
   isMobile: boolean;
   deletingId: string | null;
   handleDeleteGeneration: (id: string) => void;
+  onToggleStar: (id: string, starred: boolean) => void;
 }
 
 function JoinClipsResults({
@@ -275,6 +276,7 @@ function JoinClipsResults({
   isMobile,
   deletingId,
   handleDeleteGeneration,
+  onToggleStar,
 }: JoinClipsResultsProps) {
   const hasValidData = videosData?.items && videosData.items.length > 0;
   const isLoadingOrFetching = videosLoading || videosFetching;
@@ -307,6 +309,7 @@ function JoinClipsResults({
           onAddToLastShot={async () => false}
           onAddToLastShotWithoutPosition={async () => false}
           onDelete={handleDeleteGeneration}
+          onToggleStar={onToggleStar}
           isDeleting={deletingId}
           currentToolType={TOOL_IDS.JOIN_CLIPS}
           defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
@@ -344,6 +347,7 @@ interface JoinClipsPageLayoutProps {
   videosFetching: boolean;
   deletingId: string | null;
   handleDeleteGeneration: (id: string) => void;
+  onToggleStar: (id: string, starred: boolean) => void;
   confirmDialogProps: ReturnType<typeof useDeleteGenerationWithConfirm>['confirmDialogProps'];
 }
 
@@ -450,6 +454,7 @@ function JoinClipsPageLayout({
   videosFetching,
   deletingId,
   handleDeleteGeneration,
+  onToggleStar,
   confirmDialogProps,
 }: JoinClipsPageLayoutProps) {
   const settings = joinSettings.settings;
@@ -500,6 +505,7 @@ function JoinClipsPageLayout({
           isMobile={isMobile}
           deletingId={deletingId}
           handleDeleteGeneration={handleDeleteGeneration}
+          onToggleStar={onToggleStar}
         />
       </div>
 
@@ -593,10 +599,17 @@ const JoinClipsPage: React.FC = () => {
   const videosLoading = generationsQuery.isLoading;
   const videosFetching = generationsQuery.isFetching;
 
-  const { requestDelete: requestDeleteGeneration, confirmDialogProps, deletingId } = useDeleteGenerationWithConfirm();
+  const { requestDelete: requestDeleteGeneration, confirmDialogProps, deletingId } = useDeleteGenerationWithConfirm({ projectId: selectedProjectId });
+  const toggleStarMutation = useToggleGenerationStar();
   const handleDeleteGeneration = useCallback((id: string) => {
     requestDeleteGeneration(id);
   }, [requestDeleteGeneration]);
+  const handleToggleStar = useCallback((id: string, starred: boolean) => {
+    if (!selectedProjectId) {
+      return;
+    }
+    toggleStarMutation.mutate({ id, starred, projectId: selectedProjectId });
+  }, [selectedProjectId, toggleStarMutation]);
 
   useEffect(() => {
     if (generateState.videosViewJustEnabled && videosData?.items) {
@@ -632,6 +645,7 @@ const JoinClipsPage: React.FC = () => {
       videosFetching={videosFetching}
       deletingId={deletingId}
       handleDeleteGeneration={handleDeleteGeneration}
+      onToggleStar={handleToggleStar}
       confirmDialogProps={confirmDialogProps}
     />
   );

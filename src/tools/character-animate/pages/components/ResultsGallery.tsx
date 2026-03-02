@@ -14,6 +14,7 @@ interface ResultsGalleryProps {
   deletingId: string | null;
   isMobile: boolean;
   onDelete: (id: string) => void;
+  onToggleStar: (id: string, starred: boolean) => void;
 }
 
 export function ResultsGallery(props: ResultsGalleryProps) {
@@ -26,6 +27,7 @@ export function ResultsGallery(props: ResultsGalleryProps) {
     deletingId,
     isMobile,
     onDelete,
+    onToggleStar,
   } = props;
 
   const hasValidData = !!(data?.items && data.items.length > 0);
@@ -56,6 +58,7 @@ export function ResultsGallery(props: ResultsGalleryProps) {
           onAddToLastShot={async () => false}
           onAddToLastShotWithoutPosition={async () => false}
           onDelete={onDelete}
+          onToggleStar={onToggleStar}
           isDeleting={deletingId}
           currentToolType={TOOL_IDS.CHARACTER_ANIMATE}
           defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}

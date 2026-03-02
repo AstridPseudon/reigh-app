@@ -60,16 +60,19 @@ export function useVariantSelection({
   // Track which variant has been marked as viewed for this media to avoid duplicate marks
   const markedViewedVariantRef = useRef<string | null>(null);
 
+  // Stable generation ID for mark-as-viewed (avoids re-creating callback on unrelated media field changes)
+  const mediaGenerationId = getGenerationId(media);
+
   // Wrap setActiveVariantId with logging and mark-as-viewed
   const setActiveVariantId = useCallback((variantId: string) => {
     // Mark variant as viewed when selected (fire-and-forget)
     // Pass generationId for optimistic badge update
     if (variantId) {
-      const generationId = viewedGenerationId ?? getGenerationId(media);
+      const generationId = viewedGenerationId ?? mediaGenerationId;
       markViewed({ variantId, generationId: generationId ?? undefined });
     }
     rawSetActiveVariantId(variantId);
-  }, [rawSetActiveVariantId, markViewed, media, viewedGenerationId]);
+  }, [rawSetActiveVariantId, markViewed, mediaGenerationId, viewedGenerationId]);
 
   // Set initial variant when variants load and initialVariantId is provided
   useEffect(() => {
@@ -93,13 +96,11 @@ export function useVariantSelection({
   // Mark the initial/active variant as viewed when the lightbox opens
   // This handles the case where the primary variant is auto-selected without explicit setActiveVariantId call
   useEffect(() => {
-    if (!media) return;
-    if (activeVariant && activeVariant.id && markedViewedVariantRef.current !== activeVariant.id) {
-      const generationId = viewedGenerationId ?? getGenerationId(media);
-      markViewed({ variantId: activeVariant.id, generationId: generationId ?? undefined });
-      markedViewedVariantRef.current = activeVariant.id;
-    }
-  }, [activeVariant, media?.generation_id, media?.id, markViewed, media, viewedGenerationId]);
+    if (!activeVariant?.id || markedViewedVariantRef.current === activeVariant.id) return;
+    const generationId = viewedGenerationId ?? mediaGenerationId;
+    markViewed({ variantId: activeVariant.id, generationId: generationId ?? undefined });
+    markedViewedVariantRef.current = activeVariant.id;
+  }, [activeVariant, mediaGenerationId, markViewed, viewedGenerationId]);
 
   // Reset marked-viewed ref when media changes (new item opened)
   useEffect(() => {

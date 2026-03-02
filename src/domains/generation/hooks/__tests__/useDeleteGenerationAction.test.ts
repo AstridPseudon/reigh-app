@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const { mockUseProjectSelectionContext, mockUseDeleteGeneration, mockMutateAsync } = vi.hoisted(() => ({
-  mockUseProjectSelectionContext: vi.fn(),
+const { mockUseDeleteGeneration, mockMutateAsync, mockNormalizeAndPresentError } = vi.hoisted(() => ({
   mockUseDeleteGeneration: vi.fn(),
   mockMutateAsync: vi.fn(),
-}));
-
-vi.mock('@/shared/contexts/ProjectContext', () => ({
-  useProjectSelectionContext: () => mockUseProjectSelectionContext(),
+  mockNormalizeAndPresentError: vi.fn(),
 }));
 
 vi.mock('@/domains/generation/hooks/useGenerationMutations', () => ({
   useDeleteGeneration: () => mockUseDeleteGeneration(),
+}));
+
+vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
+  normalizeAndPresentError: (...args: unknown[]) => mockNormalizeAndPresentError(...args),
 }));
 
 import { useDeleteGenerationAction } from '@/domains/generation/hooks/useDeleteGenerationAction';
@@ -20,7 +20,6 @@ import { useDeleteGenerationAction } from '@/domains/generation/hooks/useDeleteG
 describe('useDeleteGenerationAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseProjectSelectionContext.mockReturnValue({ selectedProjectId: 'project-1' });
     mockUseDeleteGeneration.mockReturnValue({
       mutateAsync: mockMutateAsync,
       isPending: false,
@@ -29,7 +28,7 @@ describe('useDeleteGenerationAction', () => {
   });
 
   it('sets pendingDeleteId when requestDelete is called', () => {
-    const { result } = renderHook(() => useDeleteGenerationAction());
+    const { result } = renderHook(() => useDeleteGenerationAction({ projectId: 'project-1' }));
 
     act(() => {
       result.current.requestDelete('gen-1');
@@ -39,7 +38,7 @@ describe('useDeleteGenerationAction', () => {
   });
 
   it('confirms delete and clears pending/deleting state on success', async () => {
-    const { result } = renderHook(() => useDeleteGenerationAction());
+    const { result } = renderHook(() => useDeleteGenerationAction({ projectId: 'project-1' }));
 
     act(() => {
       result.current.requestDelete('gen-1');
@@ -56,7 +55,7 @@ describe('useDeleteGenerationAction', () => {
 
   it('keeps dialog pending state on failed delete so users can retry/cancel', async () => {
     mockMutateAsync.mockRejectedValue(new Error('delete failed'));
-    const { result } = renderHook(() => useDeleteGenerationAction());
+    const { result } = renderHook(() => useDeleteGenerationAction({ projectId: 'project-1' }));
 
     act(() => {
       result.current.requestDelete('gen-1');
@@ -68,10 +67,11 @@ describe('useDeleteGenerationAction', () => {
 
     expect(result.current.pendingDeleteId).toBe('gen-1');
     expect(result.current.deletingId).toBeNull();
+    expect(mockNormalizeAndPresentError).toHaveBeenCalledTimes(1);
   });
 
   it('uses the latest requested id across repeated delete requests', async () => {
-    const { result } = renderHook(() => useDeleteGenerationAction());
+    const { result } = renderHook(() => useDeleteGenerationAction({ projectId: 'project-1' }));
 
     act(() => {
       result.current.requestDelete('gen-1');
@@ -87,5 +87,20 @@ describe('useDeleteGenerationAction', () => {
     expect(mockMutateAsync).toHaveBeenCalledWith({ id: 'gen-2', projectId: 'project-1' });
     expect(result.current.pendingDeleteId).toBeNull();
     expect(result.current.deletingId).toBeNull();
+  });
+
+  it('cancels pending delete when project scope is missing', async () => {
+    const { result } = renderHook(() => useDeleteGenerationAction({ projectId: null }));
+
+    act(() => {
+      result.current.requestDelete('gen-1');
+    });
+
+    await act(async () => {
+      await result.current.confirmDelete();
+    });
+
+    expect(mockMutateAsync).not.toHaveBeenCalled();
+    expect(result.current.pendingDeleteId).toBeNull();
   });
 });

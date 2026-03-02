@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { getAuthStateManager } from '@/integrations/supabase/auth/AuthStateManager';
 import type { Session } from '@supabase/supabase-js';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
+import {
+  fetchCurrentSession,
+  rpcCreateReferralFromSession,
+  setSessionFromTokens,
+  subscribeToAuthStateChanges,
+} from '@/integrations/supabase/repositories/homeAuthRepository';
 
 // Full home page auth flow: iPad OAuth hash parsing, PWA redirect,
 // delayed session restoration, auth manager subscription + referral linking
@@ -26,10 +31,7 @@ export function useHomeAuth() {
           if (accessToken && refreshToken) {
             try { localStorage.setItem('oauthInProgress', 'true'); } catch { /* intentionally ignored */ }
 
-            const { data, error } = await supabase().auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
+            const { data, error } = await setSessionFromTokens(accessToken, refreshToken);
 
             if (error) {
               normalizeAndPresentError(error, { context: 'HomePage', showToast: false });
@@ -38,7 +40,7 @@ export function useHomeAuth() {
               setSession(data.session);
             }
           } else {
-            const { data, error } = await supabase().auth.getSession();
+            const { data, error } = await fetchCurrentSession();
             if (error) {
               normalizeAndPresentError(error, { context: 'HomePage', showToast: false });
             } else if (data.session) {
@@ -61,7 +63,7 @@ export function useHomeAuth() {
                         window.matchMedia('(display-mode: fullscreen)').matches ||
                         nav.standalone === true;
 
-    supabase().auth.getSession().then(({ data: { session } }) => {
+    fetchCurrentSession().then(({ data: { session } }) => {
       setSession(session);
 
       if (session && isStandalone) {
@@ -73,7 +75,7 @@ export function useHomeAuth() {
     if (isStandalone) {
       const checkSessionAndRedirect = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
-        const { data: { session: delayedSession } } = await supabase().auth.getSession();
+        const { data: { session: delayedSession } } = await fetchCurrentSession();
         if (delayedSession) {
           navigate('/tools');
         }
@@ -108,10 +110,7 @@ export function useHomeAuth() {
             if (referralCode && referralSessionId && referralFingerprint) {
               (async () => {
                 try {
-                  await supabase().rpc('create_referral_from_session', {
-                    p_session_id: referralSessionId,
-                    p_fingerprint: referralFingerprint,
-                  });
+                  await rpcCreateReferralFromSession(referralSessionId, referralFingerprint);
                 } catch { /* intentionally ignored */ } finally {
                   try {
                     localStorage.removeItem('referralCode');
@@ -134,8 +133,7 @@ export function useHomeAuth() {
     if (authManager) {
       unsubscribe = authManager.subscribe('HomePage', handleAuthChange);
     } else {
-      const { data: listener } = supabase().auth.onAuthStateChange(handleAuthChange);
-      unsubscribe = () => listener.subscription.unsubscribe();
+      unsubscribe = subscribeToAuthStateChanges(handleAuthChange);
     }
 
     return () => {

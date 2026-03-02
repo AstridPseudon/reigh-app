@@ -5,6 +5,26 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
+type ExistingGenerationLookupErrorCode =
+  | 'existing_generation_lookup_failed'
+  | 'existing_generation_lookup_duplicate';
+
+export class ExistingGenerationLookupError extends Error {
+  readonly code: ExistingGenerationLookupErrorCode;
+  readonly details?: Record<string, unknown>;
+
+  constructor(
+    code: ExistingGenerationLookupErrorCode,
+    message: string,
+    details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'ExistingGenerationLookupError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
 // ===== HELPERS =====
 
 /**
@@ -28,17 +48,53 @@ export async function findExistingGeneration(supabase: SupabaseClient, taskId: s
       .from('generations')
       .select('*')
       .contains('tasks', JSON.stringify([taskId]))
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(2);
 
-    if (error && error.code !== 'PGRST116') {
-      console.error(`[GenMigration] Error finding existing generation:`, error);
+    if (error) {
+      throw new ExistingGenerationLookupError(
+        'existing_generation_lookup_failed',
+        `Failed to lookup existing generation for task ${taskId}: ${error.message}`,
+        {
+          taskId,
+          errorCode: error.code,
+          errorMessage: error.message,
+        },
+      );
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
       return null;
     }
 
-    return data;
+    if (data.length > 1) {
+      const generationIds = data
+        .map((row) => (typeof row === 'object' && row !== null && 'id' in row ? String((row as { id: unknown }).id) : null))
+        .filter((id): id is string => Boolean(id));
+
+      throw new ExistingGenerationLookupError(
+        'existing_generation_lookup_duplicate',
+        `Multiple existing generations found for task ${taskId}`,
+        {
+          taskId,
+          generationIds,
+        },
+      );
+    }
+
+    return data[0];
   } catch (error) {
-    console.error(`[GenMigration] Exception finding existing generation:`, error);
-    return null;
+    if (error instanceof ExistingGenerationLookupError) {
+      throw error;
+    }
+    throw new ExistingGenerationLookupError(
+      'existing_generation_lookup_failed',
+      `Exception while looking up existing generation for task ${taskId}`,
+      {
+        taskId,
+        cause: String(error),
+      },
+    );
   }
 }
 

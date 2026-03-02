@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { handleLightboxDownload } from '../utils';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { invokeLightboxDelete } from '../utils';
 import type {
   VideoLightboxSharedStateModel,
 } from './useVideoLightboxController';
@@ -43,15 +43,7 @@ export function useVideoLightboxActions({
     if (!props.actions?.onDelete || !props.media) {
       return;
     }
-
-    try {
-      await Promise.resolve(props.actions.onDelete(props.media.id));
-    } catch (error) {
-      normalizeAndPresentError(error, {
-        context: 'VideoLightbox.delete',
-        toastTitle: 'Delete Failed',
-      });
-    }
+    await invokeLightboxDelete(props.actions.onDelete, props.media.id, 'VideoLightbox.delete');
   }, [props.actions, props.media]);
 
   const handleApplySettings = useCallback(() => {

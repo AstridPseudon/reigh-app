@@ -130,6 +130,7 @@ const GenerationsPaneComponent: React.FC = () => {
     setSearchTerm,
     handleServerPageChange,
     handleDeleteGeneration,
+    handleToggleStar,
     handleAddToShot,
     handleAddToShotWithoutPosition,
     expectedItemCount, // Pre-computed count for instant skeleton display
@@ -568,6 +569,7 @@ const GenerationsPaneComponent: React.FC = () => {
                   <MediaGallery
                     images={paginatedData.items}
                     onDelete={handleDeleteGeneration}
+                    onToggleStar={handleToggleStar}
                     isDeleting={isDeleting}
                     allShots={shotsData || []}
                     lastShotId={lastAffectedShotId || undefined}

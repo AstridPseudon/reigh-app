@@ -1,5 +1,6 @@
 import { PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '@/shared/types/phaseConfig';
 import type { LegacyStructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages/legacyStructureVideo';
+import type { IndividualTravelSegmentParams } from '@/shared/lib/tasks/individualTravelSegment';
 import type { SegmentSettings, LoraConfig } from '@/shared/types/segmentSettings';
 
 export type { SegmentSettings };
@@ -141,7 +142,7 @@ export function buildTaskParams(
     // Structure video config for this segment (from shot timeline data)
     structureVideo?: LegacyStructureVideoConfig | null;
   }
-): Record<string, unknown> {
+): IndividualTravelSegmentParams {
   const motionFields = buildMotionTaskFields({
     amountOfMotion: settings.amountOfMotion,
     motionMode: settings.motionMode,

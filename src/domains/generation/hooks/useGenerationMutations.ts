@@ -29,15 +29,17 @@ import {
   normalizeAndPresentAndRethrow,
   normalizeAndPresentError,
 } from '@/shared/lib/errorHandling/runtimeError';
-import { queryKeys } from '@/shared/lib/queryKeys';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
+import {
+  applyOptimisticGenerationStarUpdate,
+  rollbackOptimisticGenerationStarUpdate,
+} from '@/shared/hooks/invalidation/generationStarCacheCoordinator';
 import {
   resolveGenerationProjectScope,
   resolveVariantProjectScope,
 } from '@/shared/lib/generationTaskRepository';
-import type { GenerationRow } from '@/types/shots';
-import type { Shot } from '@/types/shots';
+import type { GenerationRow } from '@/domains/generation/types';
 
 // ===== Helper Functions (internal) =====
 
@@ -386,79 +388,14 @@ export function useToggleGenerationStar() {
       return toggleGenerationStar({ id, starred, projectId });
     },
     onMutate: async ({ id, starred, shotId }) => {
-      // Cancel outgoing refetches so they don't overwrite our optimistic update
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: queryKeys.unified.all }),
-        queryClient.cancelQueries({ queryKey: queryKeys.shots.all }),
-        queryClient.cancelQueries({ queryKey: queryKeys.generations.byShotAll }),
-      ]);
-
-      // Snapshot previous values for rollback
-      const previousGenerationsQueries = new Map();
-      const previousShotsQueries = new Map();
-      const previousAllShotGenerationsQueries = new Map();
-
-      // 1) Optimistically update all generations-list caches
-      const generationsQueries = queryClient.getQueriesData({ queryKey: queryKeys.unified.all });
-      generationsQueries.forEach(([queryKey, data]) => {
-        if (data && typeof data === 'object' && 'items' in data) {
-          previousGenerationsQueries.set(queryKey, data);
-          const updated = {
-            ...data,
-            items: (data as { items: GenerationRow[] }).items.map((g) => (g.id === id ? { ...g, starred } : g)),
-          };
-          queryClient.setQueryData(queryKey, updated);
-        }
+      return applyOptimisticGenerationStarUpdate(queryClient, {
+        generationId: id,
+        starred,
+        shotId,
       });
-
-      // 2) Optimistically update all shots caches so star reflects in Shot views / timelines
-      const shotsQueries = queryClient.getQueriesData({ queryKey: queryKeys.shots.all });
-      shotsQueries.forEach(([queryKey, data]) => {
-        if (Array.isArray(data)) {
-          previousShotsQueries.set(queryKey, data);
-          const updatedShots = (data as Shot[]).map((shot) => {
-            if (!shot.images) return shot;
-            return {
-              ...shot,
-              images: shot.images.map((img) => (img.id === id ? { ...img, starred } : img)),
-            };
-          });
-          queryClient.setQueryData(queryKey, updatedShots);
-        }
-      });
-
-      // 3) Optimistically update the EXACT all-shot-generations cache for this shot (used by Timeline/ShotEditor)
-      if (shotId) {
-        const queryKey = queryKeys.generations.byShot(shotId);
-        const previousData = queryClient.getQueryData(queryKey);
-        if (previousData && Array.isArray(previousData)) {
-          previousAllShotGenerationsQueries.set(queryKey, previousData);
-          const updatedGenerations = (previousData as GenerationRow[]).map((gen) =>
-            gen.id === id ? { ...gen, starred } : gen
-          );
-          queryClient.setQueryData(queryKey, updatedGenerations);
-        }
-      }
-
-      return { previousGenerationsQueries, previousShotsQueries, previousAllShotGenerationsQueries };
     },
     onError: (error: Error, _variables, context) => {
-      // Rollback optimistic updates
-      if (context?.previousGenerationsQueries) {
-        context.previousGenerationsQueries.forEach((data, key) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-      if (context?.previousShotsQueries) {
-        context.previousShotsQueries.forEach((data, key) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-      if (context?.previousAllShotGenerationsQueries) {
-        context.previousAllShotGenerationsQueries.forEach((data, key) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
+      rollbackOptimisticGenerationStarUpdate(queryClient, context);
       normalizeAndPresentError(error, { context: 'useToggleGenerationStar', toastTitle: 'Failed to toggle star' });
     },
     onSuccess: (_data, variables) => {

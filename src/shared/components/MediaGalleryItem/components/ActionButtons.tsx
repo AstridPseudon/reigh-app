@@ -7,7 +7,6 @@ import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 
 interface ActionButtonsProps {
   image: GeneratedImageWithMetadata;
-  projectId?: string | null;
   localStarred: boolean;
   isTogglingStar: boolean;
   isDeleting: boolean;
@@ -15,7 +14,6 @@ interface ActionButtonsProps {
   showEdit: boolean;
   showDelete: boolean;
   onToggleStar?: (id: string, starred: boolean) => void;
-  toggleStarMutation: { mutate: (vars: { id: string; starred: boolean; projectId: string }, options?: { onSettled?: () => void }) => void };
   setIsTogglingStar: (toggling: boolean) => void;
   setLocalStarred: (starred: boolean) => void;
   onOpenLightbox: (image: GeneratedImageWithMetadata, autoEnterEditMode?: boolean) => void;
@@ -24,7 +22,6 @@ interface ActionButtonsProps {
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
   image,
-  projectId,
   localStarred,
   isTogglingStar,
   isDeleting,
@@ -32,7 +29,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   showEdit,
   showDelete,
   onToggleStar,
-  toggleStarMutation,
   setIsTogglingStar,
   setLocalStarred,
   onOpenLightbox,
@@ -51,24 +47,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       return;
     }
     try {
-      if (onToggleStar) {
-        onToggleStar(targetId, nextStarred);
+      if (!onToggleStar) {
         setIsTogglingStar(false);
-      } else {
-        if (!projectId) {
-          setIsTogglingStar(false);
-          setLocalStarred(!nextStarred);
-          return;
-        }
-        toggleStarMutation.mutate(
-          { id: targetId, starred: nextStarred, projectId },
-          {
-            onSettled: () => {
-              setIsTogglingStar(false);
-            },
-          }
-        );
+        setLocalStarred(!nextStarred);
+        return;
       }
+      onToggleStar(targetId, nextStarred);
+      setIsTogglingStar(false);
     } catch {
       setIsTogglingStar(false);
       setLocalStarred(!nextStarred);

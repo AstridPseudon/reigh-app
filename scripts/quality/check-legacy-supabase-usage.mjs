@@ -2,19 +2,17 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  LEGACY_SUPABASE_ALIAS_SPECIFIER,
+  LEGACY_SUPABASE_ALIAS_REMOVE_BY,
+  LEGACY_SUPABASE_IMPORT_BUDGET_PHASES,
+} from '../../src/integrations/supabase/legacy/legacySupabasePolicy.ts';
 
 const rootDir = process.cwd();
 const srcDir = path.join(rootDir, 'src');
 
 const args = process.argv.slice(2);
 const maxArgIndex = args.indexOf('--max');
-const LEGACY_SUPABASE_ALIAS_REMOVE_BY = '2026-06-30';
-const LEGACY_SUPABASE_IMPORT_BUDGET_PHASES = [
-  { through: '2026-03-31', max: 129 },
-  { through: '2026-04-30', max: 96 },
-  { through: '2026-05-31', max: 64 },
-  { through: LEGACY_SUPABASE_ALIAS_REMOVE_BY, max: 32 },
-];
 
 function getBudgetForDate(now = new Date()) {
   const date = now.toISOString().slice(0, 10);
@@ -40,7 +38,7 @@ if (!Number.isFinite(maxAllowed) || maxAllowed < 0) {
   process.exit(1);
 }
 
-const SPECIFIER = '@/integrations/supabase/legacy/legacySupabaseFacade';
+const SPECIFIER = LEGACY_SUPABASE_ALIAS_SPECIFIER;
 
 function walk(dir, files = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

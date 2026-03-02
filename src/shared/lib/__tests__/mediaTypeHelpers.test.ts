@@ -124,16 +124,15 @@ describe('variantToGenerationRow', () => {
       id: 'variant-1',
       generation_id: 'gen-1',
       location: 'https://example.com/img.png',
-      thumbnail_url: 'https://example.com/thumb.png',
+      thumbUrl: 'https://example.com/thumb.png',
       type: 'image',
-      created_at: '2024-01-01T00:00:00Z',
+      createdAt: '2024-01-01T00:00:00Z',
       params: {
         prompt: 'a cat',
         tool_type: 'image-gen',
         variant_type: 'upscale',
         variant_id: 'variant-1',
       },
-      project_id: 'proj-1',
       starred: true,
     });
   });
@@ -147,7 +146,7 @@ describe('variantToGenerationRow', () => {
     const result = variantToGenerationRow(variant, 'video', 'proj-2');
 
     expect(result.id).toBe('variant-2'); // Falls back to id
-    expect(result.thumbnail_url).toBeUndefined();
+    expect(result.thumbUrl).toBeUndefined();
     expect(result.starred).toBe(false);
     expect(result.params).toEqual({
       prompt: undefined,

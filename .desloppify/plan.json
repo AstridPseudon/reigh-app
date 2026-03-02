@@ -1,8 +1,28 @@
 {
   "version": 4,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-02T16:51:38+00:00",
+  "updated": "2026-03-02T18:11:10+00:00",
   "queue_order": [
+    "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
+    "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+    "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+    "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
+    "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+    "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+    "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
+    "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+    "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+    "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+    "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+    "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+    "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+    "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+    "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+    "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
+    "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+    "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+    "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+    "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
     "flat_dirs::src/shared/hooks",
     "flat_dirs::src/shared/hooks/__tests__",
     "flat_dirs::src/shared/components",
@@ -13028,6 +13048,144 @@
       "created_at": "2026-03-02T13:47:48+00:00",
       "cluster": "auto/review-type_safety",
       "updated_at": "2026-03-02T13:47:48+00:00"
+    },
+    "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c": {
+      "finding_id": "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c",
+      "created_at": "2026-03-02T17:48:06+00:00",
+      "cluster": null,
+      "updated_at": "2026-03-02T18:08:25+00:00"
+    },
+    "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3": {
+      "finding_id": "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+      "created_at": "2026-03-02T17:48:06+00:00",
+      "cluster": "synth-lightbox-contracts",
+      "updated_at": "2026-03-02T17:48:06+00:00"
+    },
+    "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25": {
+      "finding_id": "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+      "created_at": "2026-03-02T17:48:06+00:00",
+      "cluster": "synth-lightbox-contracts",
+      "updated_at": "2026-03-02T17:48:06+00:00"
+    },
+    "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec": {
+      "finding_id": "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+      "created_at": "2026-03-02T17:48:06+00:00",
+      "cluster": "synth-lightbox-contracts",
+      "updated_at": "2026-03-02T17:48:06+00:00"
+    },
+    "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f": {
+      "finding_id": "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+      "created_at": "2026-03-02T17:48:06+00:00",
+      "cluster": "synth-lightbox-contracts",
+      "updated_at": "2026-03-02T17:48:06+00:00"
+    },
+    "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4": {
+      "finding_id": "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
+      "created_at": "2026-03-02T17:48:06+00:00",
+      "cluster": "synth-lightbox-contracts",
+      "updated_at": "2026-03-02T17:48:06+00:00"
+    },
+    "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89": {
+      "finding_id": "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+      "created_at": "2026-03-02T17:48:07+00:00",
+      "cluster": "synth-runtime-init-coupling",
+      "updated_at": "2026-03-02T17:48:07+00:00"
+    },
+    "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2": {
+      "finding_id": "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+      "created_at": "2026-03-02T17:48:07+00:00",
+      "cluster": "synth-runtime-init-coupling",
+      "updated_at": "2026-03-02T17:48:07+00:00"
+    },
+    "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe": {
+      "finding_id": "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+      "created_at": "2026-03-02T17:48:07+00:00",
+      "cluster": "synth-runtime-init-coupling",
+      "updated_at": "2026-03-02T17:48:07+00:00"
+    },
+    "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e": {
+      "finding_id": "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
+      "created_at": "2026-03-02T17:48:07+00:00",
+      "cluster": "synth-runtime-init-coupling",
+      "updated_at": "2026-03-02T17:48:07+00:00"
+    },
+    "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec": {
+      "finding_id": "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": null,
+      "updated_at": "2026-03-02T17:48:34+00:00"
+    },
+    "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342": {
+      "finding_id": "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0": {
+      "finding_id": "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87": {
+      "finding_id": "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4": {
+      "finding_id": "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f": {
+      "finding_id": "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e": {
+      "finding_id": "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc": {
+      "finding_id": "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31": {
+      "finding_id": "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": null,
+      "updated_at": "2026-03-02T18:11:10+00:00"
+    },
+    "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5": {
+      "finding_id": "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b": {
+      "finding_id": "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06": {
+      "finding_id": "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
+    },
+    "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb": {
+      "finding_id": "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "cluster": "synth-contract-boundaries",
+      "updated_at": "2026-03-02T17:48:08+00:00"
     }
   },
   "clusters": {
@@ -15242,6 +15400,77 @@
         "Fix join-clips stale async/listener lifecycle issues with request guards and deterministic cleanup.",
         "Replace cache-subscription rerender side channel with query-driven selectors and focused state.",
         "Backfill seam tests for reconnect races, join-clips hydration cancellation, and lightbox render triggers."
+      ]
+    },
+    "synth-lightbox-contracts": {
+      "name": "synth-lightbox-contracts",
+      "description": "Reduce lightbox indirection and consolidate state/workflow contracts",
+      "finding_ids": [
+        "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+        "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+        "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+        "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+        "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4"
+      ],
+      "created_at": "2026-03-02T17:48:05+00:00",
+      "updated_at": "2026-03-02T17:48:06+00:00",
+      "auto": false,
+      "cluster_key": "",
+      "action": null,
+      "user_modified": true,
+      "action_steps": [
+        "Collapse pass-through lightbox adapters into one boundary mapper per media mode",
+        "Consolidate workflow controls into one behavior owner with layout wrappers",
+        "Replace global CSS open-state coupling with explicit state contract"
+      ]
+    },
+    "synth-runtime-init-coupling": {
+      "name": "synth-runtime-init-coupling",
+      "description": "Eliminate hidden runtime/bootstrap coupling around Supabase and globals",
+      "finding_ids": [
+        "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+        "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+        "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+        "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e"
+      ],
+      "created_at": "2026-03-02T17:48:07+00:00",
+      "updated_at": "2026-03-02T17:48:07+00:00",
+      "auto": false,
+      "cluster_key": "",
+      "action": null,
+      "user_modified": true,
+      "action_steps": [
+        "Unify Supabase readiness into one explicit runtime source",
+        "Replace throw-on-access singleton patterns with injected accessors",
+        "Consolidate debug globals behind typed registry with teardown"
+      ]
+    },
+    "synth-contract-boundaries": {
+      "name": "synth-contract-boundaries",
+      "description": "Tighten domain/transport boundaries, migration aliases, and contract tests",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+        "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+        "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+        "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
+        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+        "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+        "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
+        "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb"
+      ],
+      "created_at": "2026-03-02T17:48:08+00:00",
+      "updated_at": "2026-03-02T17:48:09+00:00",
+      "auto": false,
+      "cluster_key": "",
+      "action": null,
+      "user_modified": true,
+      "action_steps": [
+        "Normalize domain mappers to domain key contracts only",
+        "Constrain legacy aliases to DTO boundary and schedule deprecation",
+        "Backfill behavior-level tests for contract and error-path invariants"
       ]
     }
   },
@@ -20481,10 +20710,67 @@
   },
   "epic_synthesis_meta": {
     "synthesis_stages": {},
-    "finding_snapshot_hash": "3d1284e06cde5a14",
-    "strategy_summary": "Execute smart-runtime-contract-pass first: reconnect orchestration, Supabase boundary coupling, and lightbox/join-clips contract stabilization with seam tests before broader migration and packaging cleanup.",
+    "finding_snapshot_hash": "0f13a8e71b8a2e74",
+    "strategy_summary": "Continue queue-first with cluster guidance: close contract-boundary correctness and tests first, then lightbox abstraction consolidation, then runtime initialization coupling hardening. Validate each queue item with targeted tests before plan done.",
     "trigger": "manual_synthesis",
-    "last_completed_at": "2026-03-02T13:50:44+00:00"
+    "last_completed_at": "2026-03-02T18:10:46+00:00",
+    "synthesized_ids": [
+      "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
+      "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+      "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+      "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+      "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
+      "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+      "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+      "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+      "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+      "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+      "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+      "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
+      "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+      "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+      "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+      "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+      "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
+      "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+      "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31",
+      "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+      "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b"
+    ],
+    "last_synthesis": {
+      "completed_at": "2026-03-02T18:10:46+00:00",
+      "stages": {
+        "observe": {
+          "stage": "observe",
+          "report": "Reviewed newly introduced review deltas after generation lookup hardening; themes remain in existing clusters with no contradictory guidance to current queue ordering.",
+          "cited_ids": [],
+          "timestamp": "2026-03-02T18:10:44+00:00",
+          "finding_count": 21,
+          "confirmed_at": "2026-03-02T18:10:44+00:00",
+          "confirmed_text": "I reviewed design_coherence and test_strategy findings in observe stage and confirmed no contradictions in the remediation direction."
+        },
+        "reflect": {
+          "stage": "reflect",
+          "report": "Keep queue-first execution: complete concrete contract/test fixes first, then broader architecture reorg items, preserving current dependency order.",
+          "cited_ids": [],
+          "timestamp": "2026-03-02T18:10:45+00:00",
+          "finding_count": 21,
+          "recurring_dimensions": [],
+          "confirmed_at": "2026-03-02T18:10:45+00:00",
+          "confirmed_text": "I reviewed the reflect strategy across test_strategy and package_organization and confirmed the prioritization remains coherent."
+        },
+        "organize": {
+          "stage": "organize",
+          "report": "Organization remains stable with synth-contract-boundaries first, synth-lightbox-contracts second, synth-runtime-init-coupling third; new deltas fit existing cluster responsibilities.",
+          "cited_ids": [],
+          "timestamp": "2026-03-02T18:10:46+00:00",
+          "finding_count": 3,
+          "confirmed_at": "2026-03-02T18:10:46+00:00",
+          "confirmed_text": "I verified synth-contract-boundaries and synth-lightbox-contracts cluster ordering and confirmed actionable dependency flow."
+        }
+      },
+      "strategy": "Continue queue-first with cluster guidance: close contract-boundary correctness and tests first, then lightbox abstraction consolidation, then runtime initialization coupling hardening. Validate each queue item with targeted tests before plan done."
+    }
   },
   "execution_log": [
     {
@@ -22261,7 +22547,1312 @@
         "status": "fixed",
         "attestation": "I have actually Introduced shared prompt assembly utility with explicit policy modes and switched both batch and segment submission paths to it to prevent delimiter/normalization drift. and I am not gaming the score."
       }
+    },
+    {
+      "timestamp": "2026-03-02T17:17:20+00:00",
+      "action": "done",
+      "finding_ids": [
+        "4ad43674",
+        "d6085fff",
+        "93099fb1",
+        "a6dca45c",
+        "77a36023"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Implemented boundary decoupling, policy source-of-truth alignment, completion follow-up degradation reporting, and normalized error paths.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:17:45+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::design_coherence::complete_task_partial_success_blind_spot::93099fb1"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:17:55+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::delete_error_swallowed_without_report::77a36023"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:18:11+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::delete_error_swallowed_without_report::77a36023"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Hook now reports delete mutation failures via normalizeAndPresentError instead of swallowing errors silently.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:18:30+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::delete_error_swallowed_without_report::77a36023"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Hook now reports delete mutation failures via normalizeAndPresentError instead of swallowing errors silently.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:18:30+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::delete_error_swallowed_without_report::77a36023"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Hook now reports delete mutation failures via normalizeAndPresentError instead of swallowing errors silently.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Hook now reports delete mutation failures via normalizeAndPresentError instead of swallowing errors silently. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:18:42+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::design_coherence::complete_task_partial_success_blind_spot::93099fb1"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "complete_task now records follow-up failures in result_data.completion_follow_up and returns explicit degraded follow_up status in the success payload.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:18:42+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::design_coherence::complete_task_partial_success_blind_spot::93099fb1"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "complete_task now records follow-up failures in result_data.completion_follow_up and returns explicit degraded follow_up status in the success payload.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually complete_task now records follow-up failures in result_data.completion_follow_up and returns explicit degraded follow_up status in the success payload. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:18:53+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::domain_shared_bidirectional_dependency::4ad43674",
+        "review::.::holistic::cross_module_architecture::supabase_singleton_boot_order_coupling::aee39f24",
+        "review::.::holistic::high_level_elegance::lightbox_contract_overaggregation::d29c3c7b",
+        "review::.::holistic::error_consistency::mixed_fail_open_fail_fast_segment_submission::6028cf1d",
+        "review::.::holistic::mid_level_elegance::task_boundary_contract_is_cast_not_typed::284878db",
+        "review::.::holistic::mid_level_elegance::processing_refetch_guard_has_no_exit_gate::7501e24a",
+        "review::.::holistic::dependency_health::broken_legacy_type_import_surface::731df1f9",
+        "review::.::holistic::mid_level_elegance::duplicated_workflow_controls_contract_drift::4ea9cb6c",
+        "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c",
+        "review::.::holistic::mid_level_elegance::cache_coordination_split_across_mutation_and_invalidation_layers::149fcb74",
+        "review::.::holistic::low_level_elegance::orchestrator_switch_branch_duplication::82478a1d",
+        "review::.::holistic::mid_level_elegance::timeline_queue_starvation_guard_missing::14223826",
+        "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31",
+        "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea",
+        "review::.::holistic::incomplete_migration::legacy_fields_still_in_primary_ui_contract::28853c0c",
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec",
+        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
+        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+        "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+        "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
+        "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+        "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+        "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
+        "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+        "review::.::holistic::cross_module_architecture::supabase_policy_source_of_truth_split::d6085fff",
+        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+        "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+        "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+        "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+        "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+        "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+        "review::.::holistic::error_consistency::credits_hook_error_semantics_drift::a6dca45c",
+        "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
+        "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+        "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+        "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+        "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:19:05+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::domain_shared_bidirectional_dependency::4ad43674"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed shared-to-domain star mutation import from MediaGallery and pushed star/delete project scope wiring to feature/tool adapters, reducing direct bidirectional coupling.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:19:05+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::domain_shared_bidirectional_dependency::4ad43674"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed shared-to-domain star mutation import from MediaGallery and pushed star/delete project scope wiring to feature/tool adapters, reducing direct bidirectional coupling.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Removed shared-to-domain star mutation import from MediaGallery and pushed star/delete project scope wiring to feature/tool adapters, reducing direct bidirectional coupling. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:19:36+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::supabase_policy_source_of_truth_split::d6085fff"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:19:41+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::supabase_policy_source_of_truth_split::d6085fff"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Quality script now imports canonical legacy supabase policy constants, package script runs it through tsx, and allowlist baseline is aligned to the canonical specifier.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:19:41+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::supabase_policy_source_of_truth_split::d6085fff"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Quality script now imports canonical legacy supabase policy constants, package script runs it through tsx, and allowlist baseline is aligned to the canonical specifier.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Quality script now imports canonical legacy supabase policy constants, package script runs it through tsx, and allowlist baseline is aligned to the canonical specifier. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:19:45+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::credits_hook_error_semantics_drift::a6dca45c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:19:53+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::credits_hook_error_semantics_drift::a6dca45c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Replaced generic thrown string errors in credits balance/ledger fetchers with normalized error handling and rethrow semantics used by sibling hooks.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:19:53+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::credits_hook_error_semantics_drift::a6dca45c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Replaced generic thrown string errors in credits balance/ledger fetchers with normalized error handling and rethrow semantics used by sibling hooks.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Replaced generic thrown string errors in credits balance/ledger fetchers with normalized error handling and rethrow semantics used by sibling hooks. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:21:08+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::orchestrator_switch_branch_duplication::82478a1d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:21:15+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::orchestrator_switch_branch_duplication::82478a1d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Final-step status switch now handles each status explicitly (including unknown), removed ambiguous default behavior, and added a test for unclassified final-step statuses.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:21:16+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::orchestrator_switch_branch_duplication::82478a1d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Final-step status switch now handles each status explicitly (including unknown), removed ambiguous default behavior, and added a test for unclassified final-step statuses.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Final-step status switch now handles each status explicitly (including unknown), removed ambiguous default behavior, and added a test for unclassified final-step statuses. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:23:27+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::supabase_singleton_boot_order_coupling::aee39f24"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Moved home-auth and project-setup Supabase calls behind integration repository modules, removing direct getSupabaseClient usage from feature/shared modules and localizing boot-order dependency seams.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:23:27+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::cross_module_architecture::supabase_singleton_boot_order_coupling::aee39f24"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Moved home-auth and project-setup Supabase calls behind integration repository modules, removing direct getSupabaseClient usage from feature/shared modules and localizing boot-order dependency seams.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Moved home-auth and project-setup Supabase calls behind integration repository modules, removing direct getSupabaseClient usage from feature/shared modules and localizing boot-order dependency seams. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:25:12+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::task_boundary_contract_is_cast_not_typed::284878db"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:25:18+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::task_boundary_contract_is_cast_not_typed::284878db"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Exported IndividualTravelSegmentParams as a shared DTO, made buildTaskParams return that DTO directly, and removed the unknown-cast chain before createIndividualTravelSegmentTask.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:25:19+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::task_boundary_contract_is_cast_not_typed::284878db"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Exported IndividualTravelSegmentParams as a shared DTO, made buildTaskParams return that DTO directly, and removed the unknown-cast chain before createIndividualTravelSegmentTask.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Exported IndividualTravelSegmentParams as a shared DTO, made buildTaskParams return that DTO directly, and removed the unknown-cast chain before createIndividualTravelSegmentTask. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:26:02+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::mixed_fail_open_fail_fast_segment_submission::6028cf1d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:26:13+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::mixed_fail_open_fail_fast_segment_submission::6028cf1d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "submitSegmentTask now has an explicit non-fatal error contract via onNonFatalError; enhancement/metadata best-effort paths report through one hook and normalized non-toast contexts instead of ad-hoc silent swallowing.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:26:13+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::error_consistency::mixed_fail_open_fail_fast_segment_submission::6028cf1d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "submitSegmentTask now has an explicit non-fatal error contract via onNonFatalError; enhancement/metadata best-effort paths report through one hook and normalized non-toast contexts instead of ad-hoc silent swallowing.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually submitSegmentTask now has an explicit non-fatal error contract via onNonFatalError; enhancement/metadata best-effort paths report through one hook and normalized non-toast contexts instead of ad-hoc silent swallowing. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:30:07+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::processing_refetch_guard_has_no_exit_gate::7501e24a"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:30:07+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::processing_refetch_guard_has_no_exit_gate::7501e24a"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added bounded stale-empty refetch gate (max consecutive attempts), reset conditions on status/data transitions, and policy tests to prevent infinite processing refetch churn.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:30:08+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::processing_refetch_guard_has_no_exit_gate::7501e24a"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added bounded stale-empty refetch gate (max consecutive attempts), reset conditions on status/data transitions, and policy tests to prevent infinite processing refetch churn.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Added bounded stale-empty refetch gate (max consecutive attempts), reset conditions on status/data transitions, and policy tests to prevent infinite processing refetch churn. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:31:29+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::dependency_health::broken_legacy_type_import_surface::731df1f9"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:31:29+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::dependency_health::broken_legacy_type_import_surface::731df1f9"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Replaced non-existent legacy type-shim imports ( and ) with canonical  in generation mutations and VideoShotDisplay, then validated with focused tests.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:31:30+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::dependency_health::broken_legacy_type_import_surface::731df1f9"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Replaced non-existent legacy type-shim imports ( and ) with canonical  in generation mutations and VideoShotDisplay, then validated with focused tests.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Replaced non-existent legacy type-shim imports ( and ) with canonical  in generation mutations and VideoShotDisplay, then validated with focused tests. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:32:25+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::duplicated_workflow_controls_contract_drift::4ea9cb6c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:32:25+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::duplicated_workflow_controls_contract_drift::4ea9cb6c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Converted WorkflowControls into a compatibility adapter over WorkflowControlsBar so centered and panel layouts now share one implementation path and contract, eliminating behavioral drift between duplicate control components.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:32:26+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::duplicated_workflow_controls_contract_drift::4ea9cb6c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Converted WorkflowControls into a compatibility adapter over WorkflowControlsBar so centered and panel layouts now share one implementation path and contract, eliminating behavioral drift between duplicate control components.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Converted WorkflowControls into a compatibility adapter over WorkflowControlsBar so centered and panel layouts now share one implementation path and contract, eliminating behavioral drift between duplicate control components. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:34:19+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::cache_coordination_split_across_mutation_and_invalidation_layers::149fcb74"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:34:20+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::cache_coordination_split_across_mutation_and_invalidation_layers::149fcb74"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted generation-star optimistic cache coordination into a shared invalidation coordinator module, reused by useGenerationMutations for apply/rollback, and added focused tests to lock cross-cache behavior and rollback.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:34:20+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::cache_coordination_split_across_mutation_and_invalidation_layers::149fcb74"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted generation-star optimistic cache coordination into a shared invalidation coordinator module, reused by useGenerationMutations for apply/rollback, and added focused tests to lock cross-cache behavior and rollback.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Extracted generation-star optimistic cache coordination into a shared invalidation coordinator module, reused by useGenerationMutations for apply/rollback, and added focused tests to lock cross-cache behavior and rollback. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:36:39+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::timeline_queue_starvation_guard_missing::14223826"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:36:40+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::timeline_queue_starvation_guard_missing::14223826"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added a queue-level watchdog timeout to runSerializedTimelineWrite so a hung per-shot task cannot block the queue indefinitely, with tests proving timed-out writes release the queue and allow follow-up writes to run.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:36:40+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::mid_level_elegance::timeline_queue_starvation_guard_missing::14223826"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added a queue-level watchdog timeout to runSerializedTimelineWrite so a hung per-shot task cannot block the queue indefinitely, with tests proving timed-out writes release the queue and allow follow-up writes to run.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Added a queue-level watchdog timeout to runSerializedTimelineWrite so a hung per-shot task cannot block the queue indefinitely, with tests proving timed-out writes release the queue and allow follow-up writes to run. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:39:33+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::high_level_elegance::lightbox_contract_overaggregation::d29c3c7b"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:39:33+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::high_level_elegance::lightbox_contract_overaggregation::d29c3c7b"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Introduced explicit mode-specific containers (ImageLightboxContainer and VideoLightboxContainer) to own mode rendering contracts, moved MediaLightbox to shared+mode container composition instead of repeated pass-through orchestration, and flattened MediaGalleryLightbox session contract to a minimal single session shape.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:39:34+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::high_level_elegance::lightbox_contract_overaggregation::d29c3c7b"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Introduced explicit mode-specific containers (ImageLightboxContainer and VideoLightboxContainer) to own mode rendering contracts, moved MediaLightbox to shared+mode container composition instead of repeated pass-through orchestration, and flattened MediaGalleryLightbox session contract to a minimal single session shape.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Introduced explicit mode-specific containers (ImageLightboxContainer and VideoLightboxContainer) to own mode rendering contracts, moved MediaLightbox to shared+mode container composition instead of repeated pass-through orchestration, and flattened MediaGalleryLightbox session contract to a minimal single session shape. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:42:32+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:42:33+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Replaced hard-coded uni3c migration behavior with canonical legacy adapter logic that preserves explicit structure_video_type and per-entry structure_type values in both array and single-field legacy settings, with regression tests.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:42:33+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Replaced hard-coded uni3c migration behavior with canonical legacy adapter logic that preserves explicit structure_video_type and per-entry structure_type values in both array and single-field legacy settings, with regression tests.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Replaced hard-coded uni3c migration behavior with canonical legacy adapter logic that preserves explicit structure_video_type and per-entry structure_type values in both array and single-field legacy settings, with regression tests. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:42:38+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::legacy_fields_still_in_primary_ui_contract::28853c0c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:42:39+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::legacy_fields_still_in_primary_ui_contract::28853c0c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Moved legacy structure-video migration concerns into the dedicated legacy adapter, narrowed core hook settings shape to canonical structure_videos, and decoupled UI state contracts from legacy-type imports so deprecated fields are no longer embedded as the primary contract source.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:42:39+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::incomplete_migration::legacy_fields_still_in_primary_ui_contract::28853c0c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Moved legacy structure-video migration concerns into the dedicated legacy adapter, narrowed core hook settings shape to canonical structure_videos, and decoupled UI state contracts from legacy-type imports so deprecated fields are no longer embedded as the primary contract source.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Moved legacy structure-video migration concerns into the dedicated legacy adapter, narrowed core hook settings shape to canonical structure_videos, and decoupled UI state contracts from legacy-type imports so deprecated fields are no longer embedded as the primary contract source. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:45:45+00:00",
+      "action": "done",
+      "finding_ids": [
+        "d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:46:00+00:00",
+      "action": "move",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:46:00+00:00",
+      "action": "done",
+      "finding_ids": [
+        "d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:46:18+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:46:41+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:47:04+00:00",
+      "action": "synthesis_start",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "action": "start"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:47:04+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 23,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:47:22+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed initialization_coupling and package_organization findings in the observe stage, validated the grouping, and confirmed there are no contradictory directives."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:47:26+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 23,
+        "recurring_dims": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:47:33+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed the reflect strategy across test_strategy, design_coherence, and initialization_coupling, and confirmed the priority order is feasible with current queue dependencies."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:05+00:00",
+      "action": "cluster_create",
+      "finding_ids": [],
+      "cluster_name": "synth-lightbox-contracts",
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "description": "Reduce lightbox indirection and consolidate state/workflow contracts",
+        "action": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:06+00:00",
+      "action": "cluster_add",
+      "finding_ids": [
+        "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c",
+        "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+        "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+        "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+        "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+        "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4"
+      ],
+      "cluster_name": "synth-lightbox-contracts",
+      "actor": "user",
+      "note": null,
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:48:06+00:00",
+      "action": "cluster_update",
+      "finding_ids": [],
+      "cluster_name": "synth-lightbox-contracts",
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "description": null,
+        "steps": [
+          "Collapse pass-through lightbox adapters into one boundary mapper per media mode",
+          "Consolidate workflow controls into one behavior owner with layout wrappers",
+          "Replace global CSS open-state coupling with explicit state contract"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:07+00:00",
+      "action": "cluster_create",
+      "finding_ids": [],
+      "cluster_name": "synth-runtime-init-coupling",
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "description": "Eliminate hidden runtime/bootstrap coupling around Supabase and globals",
+        "action": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:07+00:00",
+      "action": "cluster_add",
+      "finding_ids": [
+        "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+        "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+        "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+        "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e"
+      ],
+      "cluster_name": "synth-runtime-init-coupling",
+      "actor": "user",
+      "note": null,
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:48:07+00:00",
+      "action": "cluster_update",
+      "finding_ids": [],
+      "cluster_name": "synth-runtime-init-coupling",
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "description": null,
+        "steps": [
+          "Unify Supabase readiness into one explicit runtime source",
+          "Replace throw-on-access singleton patterns with injected accessors",
+          "Consolidate debug globals behind typed registry with teardown"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:08+00:00",
+      "action": "cluster_create",
+      "finding_ids": [],
+      "cluster_name": "synth-contract-boundaries",
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "description": "Tighten domain/transport boundaries, migration aliases, and contract tests",
+        "action": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:08+00:00",
+      "action": "cluster_add",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec",
+        "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+        "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+        "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+        "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+        "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
+        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+        "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31",
+        "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+        "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
+        "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+        "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb"
+      ],
+      "cluster_name": "synth-contract-boundaries",
+      "actor": "user",
+      "note": null,
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:48:09+00:00",
+      "action": "cluster_update",
+      "finding_ids": [],
+      "cluster_name": "synth-contract-boundaries",
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "description": null,
+        "steps": [
+          "Normalize domain mappers to domain key contracts only",
+          "Constrain legacy aliases to DTO boundary and schedule deprecation",
+          "Backfill behavior-level tests for contract and error-path invariants"
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:16+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:22+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed synth-contract-boundaries and synth-lightbox-contracts ordering, validated dependencies, and confirmed this cluster sequence is actionable and coherent.",
+        "coverage": "23/23"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:28+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 582,
+        "coverage": "23/23"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:48:34+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:48:34+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually updated mediaTypeHelpers + tests to use domain GenerationRow keys and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:49:57+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Flattened image lightbox facade chain by inlining model construction in ImageLightbox, removing no-op presenter wrappers, and deleting the presenter module.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T17:50:21+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 22,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:50:21+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed initialization_coupling and design_coherence findings in the observe stage, validated the themes, and confirmed no contradiction in remediation direction."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:50:22+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 22,
+        "recurring_dims": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:50:22+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed the reflect strategy across test_strategy and package_organization dimensions and confirmed the prioritization is coherent and dependency-aware."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:50:23+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:50:23+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I verified synth-contract-boundaries and synth-runtime-init-coupling priority ordering, and confirmed the cluster execution order is actionable with explicit dependencies.",
+        "coverage": "22/22"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T17:50:23+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 620,
+        "coverage": "22/22"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:08:25+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Flattened image lightbox facade chain by inlining model construction in ImageLightbox and removing no-op presenter wrappers/module.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:08:25+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Flattened image lightbox facade chain by inlining model construction in ImageLightbox and removing no-op presenter wrappers/module.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually inlined the workflow/layout/variant model construction in ImageLightbox, removed identity presenter indirection, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:33+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Reworked findExistingGeneration to deterministic list lookup with order+limit(2), throw typed lookup errors for DB failures/duplicate matches, and added duplicate-path tests.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:10:44+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 21,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:44+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed design_coherence and test_strategy findings in observe stage and confirmed no contradictions in the remediation direction."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:45+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 21,
+        "recurring_dims": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:45+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed the reflect strategy across test_strategy and package_organization and confirmed the prioritization remains coherent."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:46+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:46+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I verified synth-contract-boundaries and synth-lightbox-contracts cluster ordering and confirmed actionable dependency flow.",
+        "coverage": "21/21"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:10:46+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 248,
+        "coverage": "21/21"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:11:10+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Reworked findExistingGeneration to deterministic order+limit(2) lookup, throw typed errors for DB/duplicate matches, and added duplicate-path tests.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:11:10+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Reworked findExistingGeneration to deterministic order+limit(2) lookup, throw typed errors for DB/duplicate matches, and added duplicate-path tests.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually changed generation-core lookup behavior to stop swallowing lookup errors, added duplicate-match handling tests, and I am not gaming the score by resolving without fixing."
+      }
     }
   ],
-  "promoted_ids": []
+  "promoted_ids": [
+    "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
+    "review::.::holistic::package_organization::shared_root_flattening_catchall::d6c966e4",
+    "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
+    "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
+    "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
+    "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
+    "review::.::holistic::initialization_coupling::window_global_singleton_escape_hatches::7309c41e",
+    "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
+    "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
+    "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
+    "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
+    "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
+    "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
+    "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
+    "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06",
+    "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
+    "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
+    "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
+    "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
+    "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f"
+  ]
 }

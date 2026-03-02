@@ -6,6 +6,7 @@ import {
   StructureVideoConfig,
   StructureVideoConfigWithMetadata,
 } from '@/shared/lib/tasks/travelBetweenImages';
+import { migrateLegacyStructureVideos } from '@/shared/lib/tasks/travelBetweenImages/legacyStructureVideo';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 
 interface UseStructureVideoParams {
@@ -50,66 +51,8 @@ export interface UseStructureVideoReturn {
  * Settings storage schema - supports both legacy single-video and new array format
  */
 interface StructureVideoSettings {
-  // NEW: Array format (preferred)
+  // Canonical array format (preferred)
   structure_videos?: StructureVideoConfigWithMetadata[];
-  
-  // Legacy single-video format (for migration)
-  structure_video_path?: string | null;
-  structure_video_treatment?: 'adjust' | 'clip';
-  structure_video_motion_strength?: number;
-  structure_video_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  uni3c_end_percent?: number;
-  resource_id?: string | null;
-  metadata?: VideoMetadata | null;
-  // Even older legacy camelCase format
-  path?: string;
-  treatment?: 'adjust' | 'clip';
-  motionStrength?: number;
-  structureType?: 'uni3c' | 'flow' | 'canny' | 'depth';
-  resourceId?: string;
-}
-
-/**
- * Migrate legacy single-video settings to array format
- */
-function migrateToArrayFormat(
-  settings: StructureVideoSettings | null,
-  defaultEndFrame: number
-): StructureVideoConfigWithMetadata[] {
-  if (!settings) return [];
-  
-  // Prefer array format whenever present (including explicit empty array)
-  if (Array.isArray(settings.structure_videos)) {
-    return settings.structure_videos.map(video => ({
-      ...video,
-      structure_type: 'uni3c',  // Always uni3c - migrate old flow/canny/depth settings
-    }));
-  }
-  
-  // Check for legacy single-video format (snake_case or camelCase)
-  const videoPath = settings.structure_video_path ?? settings.path;
-  if (!videoPath) return [];
-  
-  // Convert single video to array with one entry
-  // NOTE: structure_type is hardcoded to 'uni3c' - it's the only supported option now
-  // Old shots with 'flow'/'canny'/'depth' are migrated to 'uni3c'
-  const singleVideo: StructureVideoConfigWithMetadata = {
-    path: videoPath,
-    start_frame: 0,
-    end_frame: defaultEndFrame,
-    treatment: settings.structure_video_treatment
-      ?? settings.treatment
-      ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
-    motion_strength: settings.structure_video_motion_strength
-      ?? settings.motionStrength
-      ?? DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
-    structure_type: 'uni3c',  // Always uni3c - migrate old flow/canny/depth settings
-    uni3c_end_percent: settings.uni3c_end_percent ?? 0.1,
-    metadata: settings.metadata ?? null,
-    resource_id: settings.resource_id ?? settings.resourceId ?? null,
-  };
-  
-  return [singleVideo];
 }
 
 /**
@@ -151,9 +94,15 @@ export function useStructureVideo({
   // Load structure videos from settings when shot loads (with migration)
   useEffect(() => {
     if (!hasInitialized && !isStructureVideoSettingsLoading && shotId) {
-      const migratedVideos = migrateToArrayFormat(
+      const migratedVideos = migrateLegacyStructureVideos(
         structureVideoSettings ?? null,
-        timelineEndFrame
+        {
+          defaultEndFrame: timelineEndFrame,
+          defaultVideoTreatment: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
+          defaultMotionStrength: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
+          defaultStructureType: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_type,
+          defaultUni3cEndPercent: 0.1,
+        },
       );
 
       setStructureVideosState(migratedVideos);
@@ -184,7 +133,16 @@ export function useStructureVideo({
     const videosChanged = JSON.stringify(prevVideos) !== JSON.stringify(currentVideos);
 
     if (videosChanged && currentVideos !== undefined) {
-      const migratedVideos = migrateToArrayFormat(currentSettings, timelineEndFrame);
+      const migratedVideos = migrateLegacyStructureVideos(
+        currentSettings,
+        {
+          defaultEndFrame: timelineEndFrame,
+          defaultVideoTreatment: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_treatment,
+          defaultMotionStrength: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_motion_strength,
+          defaultStructureType: DEFAULT_VIDEO_STRUCTURE_PARAMS.structure_video_type,
+          defaultUni3cEndPercent: 0.1,
+        },
+      );
       setStructureVideosState(migratedVideos);
     }
 

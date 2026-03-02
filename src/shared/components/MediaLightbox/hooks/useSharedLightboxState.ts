@@ -45,7 +45,7 @@ import { useSourceGeneration } from './useSourceGeneration';
 import { useMakeMainVariant } from './useMakeMainVariant';
 import { useEffectiveMedia } from './useEffectiveMedia';
 import { useLayoutMode } from './useLayoutMode';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { invokeLightboxDelete } from '../utils';
 import type { LightboxDeleteHandler } from '../types';
 
 // ============================================================================
@@ -579,14 +579,7 @@ function useSharedButtonGroupState(params: {
   } = input.actions;
   const handleDelete = useCallback(async () => {
     if (!onDelete) return;
-    try {
-      await Promise.resolve(onDelete(media.id));
-    } catch (error) {
-      normalizeAndPresentError(error, {
-        context: 'MediaLightbox.delete',
-        toastTitle: 'Delete Failed',
-      });
-    }
+    await invokeLightboxDelete(onDelete, media.id, 'MediaLightbox.delete');
   }, [onDelete, media.id]);
 
   return useMemo<LightboxButtonGroupProps>(() => ({

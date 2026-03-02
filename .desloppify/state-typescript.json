@@ -20,7 +20,10 @@
     "dependency_health": {
       "score": 72.7,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:31:30+00:00"
     },
     "initialization_coupling": {
       "score": 51.2,
@@ -40,7 +43,10 @@
     "test_strategy": {
       "score": 52.4,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:11:10+00:00"
     },
     "type_safety": {
       "score": 80.2,
@@ -69,7 +75,7 @@
       },
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T14:49:32+00:00"
+      "stale_since": "2026-03-02T18:08:25+00:00"
     },
     "ai_generated_debt": {
       "score": 76.8,
@@ -103,7 +109,10 @@
     "cross_module_architecture": {
       "score": 47.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:23:27+00:00"
     },
     "design_coherence": {
       "score": 42.8,
@@ -111,32 +120,47 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T14:55:25+00:00"
+      "stale_since": "2026-03-02T17:18:42+00:00"
     },
     "error_consistency": {
       "score": 59.0,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:26:13+00:00"
     },
     "high_level_elegance": {
       "score": 50.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:39:34+00:00"
     },
     "incomplete_migration": {
       "score": 53.5,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:42:39+00:00"
     },
     "low_level_elegance": {
       "score": 68.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:48:34+00:00"
     },
     "mid_level_elegance": {
       "score": 50.0,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T17:36:40+00:00"
     },
     "package_organization": {
       "score": 52.6,
@@ -185,22 +209,22 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 267,
-    "open": 1939,
+    "fixed": 287,
+    "open": 1919,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 71,
-        "open": 35,
+        "fixed": 89,
+        "open": 17,
         "wontfix": 0
       },
       "2": {
         "auto_resolved": 686,
         "false_positive": 0,
-        "fixed": 9,
-        "open": 174,
+        "fixed": 11,
+        "open": 172,
         "wontfix": 0
       },
       "3": {
@@ -155063,16 +155087,22 @@
         "suggestion": "Introduce a one-way dependency rule: move cross-cutting generation contracts (IDs, row types, scope inputs) into a neutral `entities/generation` package, keep domain hooks depending only on domain/integration abstractions, and have shared UI call app-level adapters instead of domain hooks directly.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Removed shared-to-domain star mutation import from MediaGallery and pushed star/delete project scope wiring to feature/tool adapters, reducing direct bidirectional coupling.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:19:05+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Removed shared-to-domain star mutation import from MediaGallery and pushed star/delete project scope wiring to feature/tool adapters, reducing direct bidirectional coupling. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:19:05+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::cross_module_architecture::supabase_singleton_boot_order_coupling::aee39f24": {
       "id": "review::.::holistic::cross_module_architecture::supabase_singleton_boot_order_coupling::aee39f24",
@@ -155098,16 +155128,22 @@
         "suggestion": "Constrain `getSupabaseClient` usage to integration/repository modules and expose feature-facing repositories/services via dependency injection (context/provider or explicit factory) so runtime boot order is localized and testable.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Moved home-auth and project-setup Supabase calls behind integration repository modules, removing direct getSupabaseClient usage from feature/shared modules and localizing boot-order dependency seams.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:23:27+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Moved home-auth and project-setup Supabase calls behind integration repository modules, removing direct getSupabaseClient usage from feature/shared modules and localizing boot-order dependency seams. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:23:27+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::high_level_elegance::lightbox_contract_overaggregation::d29c3c7b": {
       "id": "review::.::holistic::high_level_elegance::lightbox_contract_overaggregation::d29c3c7b",
@@ -155132,16 +155168,22 @@
         "suggestion": "Split by responsibility: create mode-specific containers (`ImageLightboxContainer`, `VideoLightboxContainer`) with narrow inputs, move shared overlay mechanics into a reusable overlay boundary module, and reduce session model shape to minimal per-mode contracts.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Introduced explicit mode-specific containers (ImageLightboxContainer and VideoLightboxContainer) to own mode rendering contracts, moved MediaLightbox to shared+mode container composition instead of repeated pass-through orchestration, and flattened MediaGalleryLightbox session contract to a minimal single session shape.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:39:34+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Introduced explicit mode-specific containers (ImageLightboxContainer and VideoLightboxContainer) to own mode rendering contracts, moved MediaLightbox to shared+mode container composition instead of repeated pass-through orchestration, and flattened MediaGalleryLightbox session contract to a minimal single session shape. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:39:34+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::error_consistency::mixed_fail_open_fail_fast_segment_submission::6028cf1d": {
       "id": "review::.::holistic::error_consistency::mixed_fail_open_fail_fast_segment_submission::6028cf1d",
@@ -155166,16 +155208,22 @@
         "suggestion": "Define and enforce per-layer error contracts: repositories return `Result` or throw consistently, UI orchestration maps those to user-facing outcomes in one place. For `submitSegmentTask`, decide whether metadata persistence is required (throw) or optional (explicitly mark best-effort and surface non-blocking warning). Preserve original caught error details in token verification and similar boundary utilities.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "submitSegmentTask now has an explicit non-fatal error contract via onNonFatalError; enhancement/metadata best-effort paths report through one hook and normalized non-toast contexts instead of ad-hoc silent swallowing.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:26:13+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually submitSegmentTask now has an explicit non-fatal error contract via onNonFatalError; enhancement/metadata best-effort paths report through one hook and normalized non-toast contexts instead of ad-hoc silent swallowing. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:26:13+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::mid_level_elegance::task_boundary_contract_is_cast_not_typed::284878db": {
       "id": "review::.::holistic::mid_level_elegance::task_boundary_contract_is_cast_not_typed::284878db",
@@ -155200,16 +155248,22 @@
         "suggestion": "Introduce a shared exported DTO for segment task creation and make `buildTaskParams` return that DTO directly. Remove `unknown` cast chain and require compile-time satisfaction of required/optional fields before calling `createIndividualTravelSegmentTask`.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Exported IndividualTravelSegmentParams as a shared DTO, made buildTaskParams return that DTO directly, and removed the unknown-cast chain before createIndividualTravelSegmentTask.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:25:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Exported IndividualTravelSegmentParams as a shared DTO, made buildTaskParams return that DTO directly, and removed the unknown-cast chain before createIndividualTravelSegmentTask. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:25:19+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::mid_level_elegance::processing_refetch_guard_has_no_exit_gate::7501e24a": {
       "id": "review::.::holistic::mid_level_elegance::processing_refetch_guard_has_no_exit_gate::7501e24a",
@@ -155234,16 +155288,22 @@
         "suggestion": "Add workflow guardrails: bounded retry counter, exponential cooldown, and a terminal 'degraded polling' state after N attempts. Persist guard state per filter key so reopening panes does not reset churn immediately, and emit a visible diagnostic state for manual recovery.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added bounded stale-empty refetch gate (max consecutive attempts), reset conditions on status/data transitions, and policy tests to prevent infinite processing refetch churn.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:30:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added bounded stale-empty refetch gate (max consecutive attempts), reset conditions on status/data transitions, and policy tests to prevent infinite processing refetch churn. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:30:07+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::convention_outlier::duplicated_prompt_composition_protocols::7a86b2c8": {
       "id": "review::.::holistic::convention_outlier::duplicated_prompt_composition_protocols::7a86b2c8",
@@ -155310,16 +155370,22 @@
         "suggestion": "Create a single explicit compatibility shim (`src/types/shots.ts`) or remove legacy path usage entirely; then codemod all generation/shot imports to `@/domains/generation/types` and block old paths with a lint rule.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Replaced non-existent legacy type-shim imports ( and ) with canonical  in generation mutations and VideoShotDisplay, then validated with focused tests.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:31:30+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Replaced non-existent legacy type-shim imports ( and ) with canonical  in generation mutations and VideoShotDisplay, then validated with focused tests. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:31:30+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::mid_level_elegance::duplicated_workflow_controls_contract_drift::4ea9cb6c": {
       "id": "review::.::holistic::mid_level_elegance::duplicated_workflow_controls_contract_drift::4ea9cb6c",
@@ -155344,16 +155410,22 @@
         "suggestion": "Consolidate to one workflow-controls component (or one shared view-model hook + two thin renderers) with a single typed contract, then remove the duplicate prop surfaces.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Converted WorkflowControls into a compatibility adapter over WorkflowControlsBar so centered and panel layouts now share one implementation path and contract, eliminating behavioral drift between duplicate control components.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:32:25+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Converted WorkflowControls into a compatibility adapter over WorkflowControlsBar so centered and panel layouts now share one implementation path and contract, eliminating behavioral drift between duplicate control components. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:32:25+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c": {
       "id": "review::.::holistic::abstraction_fitness::lightbox_facade_chain_indirection_cost::b5f3c07c",
@@ -155380,16 +155452,22 @@
         "suggestion": "Flatten the seam to one lightbox state contract per media type (image/video), move mapping to one boundary adapter, and pass only minimal render-ready models into layout/components.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Flattened image lightbox facade chain by inlining model construction in ImageLightbox and removing no-op presenter wrappers/module.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:08:25+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually inlined the workflow/layout/variant model construction in ImageLightbox, removed identity presenter indirection, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:08:25+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::mid_level_elegance::cache_coordination_split_across_mutation_and_invalidation_layers::149fcb74": {
       "id": "review::.::holistic::mid_level_elegance::cache_coordination_split_across_mutation_and_invalidation_layers::149fcb74",
@@ -155414,16 +155492,22 @@
         "suggestion": "Introduce a single generation-cache policy module (shared by mutation hooks and invalidation hooks) that owns optimistic patch targets and invalidation/refetch strategy per operation.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Extracted generation-star optimistic cache coordination into a shared invalidation coordinator module, reused by useGenerationMutations for apply/rollback, and added focused tests to lock cross-cache behavior and rollback.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:34:20+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Extracted generation-star optimistic cache coordination into a shared invalidation coordinator module, reused by useGenerationMutations for apply/rollback, and added focused tests to lock cross-cache behavior and rollback. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:34:20+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::orchestrator_switch_branch_duplication::82478a1d": {
       "id": "review::.::holistic::low_level_elegance::orchestrator_switch_branch_duplication::82478a1d",
@@ -155446,16 +155530,22 @@
         "suggestion": "Remove the duplicate case and add an explicit exhaustive status assertion helper tied to shared status semantics so future enum/value drift is caught immediately.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Final-step status switch now handles each status explicitly (including unknown), removed ambiguous default behavior, and added a test for unclassified final-step statuses.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:21:16+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Final-step status switch now handles each status explicitly (including unknown), removed ambiguous default behavior, and added a test for unclassified final-step statuses. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:21:16+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::mid_level_elegance::timeline_queue_starvation_guard_missing::14223826": {
       "id": "review::.::holistic::mid_level_elegance::timeline_queue_starvation_guard_missing::14223826",
@@ -155481,16 +155571,22 @@
         "suggestion": "Make timeout/abort enforcement part of the queue contract: add a required per-task timeout (or wrapper overload) in `runSerializedTimelineWrite`, emit a terminal queue event on timeout, and add tests for blocked-first-write + second-write recovery behavior.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added a queue-level watchdog timeout to runSerializedTimelineWrite so a hung per-shot task cannot block the queue indefinitely, with tests proving timed-out writes release the queue and allow follow-up writes to run.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:36:40+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added a queue-level watchdog timeout to runSerializedTimelineWrite so a hung per-shot task cannot block the queue indefinitely, with tests proving timed-out writes release the queue and allow follow-up writes to run. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:36:40+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::api_surface_coherence::complete_task_parser_contract_drift::4f8f9959": {
       "id": "review::.::holistic::api_surface_coherence::complete_task_parser_contract_drift::4f8f9959",
@@ -155596,16 +155692,22 @@
         "suggestion": "Change lookup to deterministic retrieval (`order + limit(1) + maybeSingle` or explicit list query), treat multi-match as a typed degraded error instead of `null`, and add tests for duplicate-hit scenarios to prevent silent duplicate creation paths.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reworked findExistingGeneration to deterministic order+limit(2) lookup, throw typed errors for DB/duplicate matches, and added duplicate-path tests.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:11:10+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually changed generation-core lookup behavior to stop swallowing lookup errors, added duplicate-match handling tests, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:11:10+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea": {
       "id": "review::.::holistic::incomplete_migration::forced_uni3c_overwrites_structure_mode::8fe0e4ea",
@@ -155630,16 +155732,22 @@
         "suggestion": "Restrict migration coercion to true legacy single-field payloads only. Preserve existing `structure_videos[].structure_type` when present, and run an explicit one-time migration script if uni3c-only behavior is truly intended.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Replaced hard-coded uni3c migration behavior with canonical legacy adapter logic that preserves explicit structure_video_type and per-entry structure_type values in both array and single-field legacy settings, with regression tests.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:42:33+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Replaced hard-coded uni3c migration behavior with canonical legacy adapter logic that preserves explicit structure_video_type and per-entry structure_type values in both array and single-field legacy settings, with regression tests. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:42:33+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::incomplete_migration::legacy_fields_still_in_primary_ui_contract::28853c0c": {
       "id": "review::.::holistic::incomplete_migration::legacy_fields_still_in_primary_ui_contract::28853c0c",
@@ -155664,16 +155772,22 @@
         "suggestion": "Split contracts into `CanonicalStructureVideo` (UI/runtime) and `LegacyStructureVideoAdapterInput` (boundary-only). Remove legacy field inheritance from UI types and centralize compatibility mapping inside dedicated adapters.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Moved legacy structure-video migration concerns into the dedicated legacy adapter, narrowed core hook settings shape to canonical structure_videos, and decoupled UI state contracts from legacy-type imports so deprecated fields are no longer embedded as the primary contract source.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:42:39+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Moved legacy structure-video migration concerns into the dedicated legacy adapter, narrowed core hook settings shape to canonical structure_videos, and decoupled UI state contracts from legacy-type imports so deprecated fields are no longer embedded as the primary contract source. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:42:39+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec": {
       "id": "review::.::holistic::low_level_elegance::generation_row_key_shape_drift::d089afec",
@@ -155698,16 +155812,22 @@
         "suggestion": "Return domain-consistent keys (`createdAt`) from `variantToGenerationRow` and keep `created_at` handling strictly in explicit DTO mappers at API/DB boundaries.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Mapped variantToGenerationRow to domain keys (createdAt/thumbUrl) and removed transport-only project_id from domain shape.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:48:34+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually updated mediaTypeHelpers + tests to use domain GenerationRow keys and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T17:48:34+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb": {
       "id": "review::.::holistic::ai_generated_debt::comment_scaffolding_outweighs_enforced_contracts::a777e4fb",
@@ -156047,16 +156167,22 @@
         "suggestion": "Introduce explicit follow-up state fields (e.g., `post_completion_status`) and guarded retry queueing for orchestrator/billing actions; return success with degraded status only when retries are scheduled, not when failures are dropped.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "complete_task now records follow-up failures in result_data.completion_follow_up and returns explicit degraded follow_up status in the success payload.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:18:42+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually complete_task now records follow-up failures in result_data.completion_follow_up and returns explicit degraded follow_up status in the success payload. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:18:42+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::cross_module_architecture::supabase_policy_source_of_truth_split::d6085fff": {
       "id": "review::.::holistic::cross_module_architecture::supabase_policy_source_of_truth_split::d6085fff",
@@ -156080,16 +156206,22 @@
         "suggestion": "Converge to one canonical migration contract. Stage 1: choose canonical alias/specifier in `legacySupabasePolicy.ts` and update `check-legacy-supabase-usage.mjs` to consume policy constants instead of hardcoded values. Stage 2: align `legacySupabaseFacade.contract.test.ts` with the same specifier and budget source. Stage 3: run `npm run check:legacy-supabase-usage && npm run test:contracts && npm run test:arch` and fail PRs on divergence.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Quality script now imports canonical legacy supabase policy constants, package script runs it through tsx, and allowlist baseline is aligned to the canonical specifier.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:19:41+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Quality script now imports canonical legacy supabase policy constants, package script runs it through tsx, and allowlist baseline is aligned to the canonical specifier. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:19:41+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e": {
       "id": "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
@@ -156436,16 +156568,22 @@
         "suggestion": "Return an explicit result from `confirmDelete` (e.g., `{ ok: false, error }`) and report via `normalizeAndPresentError` with `showToast: false`; let callers decide UX while preserving telemetry.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Hook now reports delete mutation failures via normalizeAndPresentError instead of swallowing errors silently.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:18:30+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Hook now reports delete mutation failures via normalizeAndPresentError instead of swallowing errors silently. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:18:30+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::error_consistency::credits_hook_error_semantics_drift::a6dca45c": {
       "id": "review::.::holistic::error_consistency::credits_hook_error_semantics_drift::a6dca45c",
@@ -156468,16 +156606,22 @@
         "suggestion": "Standardize all Supabase-facing hooks on one error contract (prefer normalized AppError with preserved cause) and remove generic re-stringification in billing fetchers.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Replaced generic thrown string errors in credits balance/ledger fetchers with normalized error handling and rethrow semantics used by sibling hooks.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T17:19:53+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Replaced generic thrown string errors in credits balance/ledger fetchers with normalized error handling and rethrow semantics used by sibling hooks. and I am not gaming the score.",
+        "attested_at": "2026-03-02T17:19:53+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b": {
       "id": "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
@@ -159582,13 +159726,13 @@
       "strict_score": 59.0,
       "verified_strict_score": 59.0,
       "checks": 10,
-      "issues": 3,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.59,
-          "issues": 3,
+          "issues": 0,
           "weighted_failures": 4.1,
           "assessment_score": 59.0,
           "placeholder": false,
@@ -159604,13 +159748,13 @@
       "strict_score": 60.1,
       "verified_strict_score": 60.1,
       "checks": 10,
-      "issues": 1,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.601,
-          "issues": 1,
+          "issues": 0,
           "weighted_failures": 3.99,
           "assessment_score": 60.1,
           "placeholder": false,
@@ -159663,13 +159807,13 @@
       "strict_score": 50.9,
       "verified_strict_score": 50.9,
       "checks": 10,
-      "issues": 4,
+      "issues": 3,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.509,
-          "issues": 4,
+          "issues": 3,
           "weighted_failures": 4.91,
           "assessment_score": 50.9,
           "placeholder": false,
@@ -159685,13 +159829,13 @@
       "strict_score": 50.0,
       "verified_strict_score": 50.0,
       "checks": 10,
-      "issues": 5,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.5,
-          "issues": 5,
+          "issues": 0,
           "weighted_failures": 5.0,
           "assessment_score": 50.0,
           "placeholder": false,
@@ -159707,13 +159851,13 @@
       "strict_score": 68.9,
       "verified_strict_score": 68.9,
       "checks": 10,
-      "issues": 2,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.689,
-          "issues": 2,
+          "issues": 0,
           "weighted_failures": 3.11,
           "assessment_score": 68.9,
           "placeholder": false,
@@ -159729,13 +159873,13 @@
       "strict_score": 47.6,
       "verified_strict_score": 47.6,
       "checks": 10,
-      "issues": 3,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.476,
-          "issues": 3,
+          "issues": 0,
           "weighted_failures": 5.24,
           "assessment_score": 47.6,
           "placeholder": false,
@@ -159795,13 +159939,13 @@
       "strict_score": 72.7,
       "verified_strict_score": 72.7,
       "checks": 10,
-      "issues": 1,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.727,
-          "issues": 1,
+          "issues": 0,
           "weighted_failures": 2.73,
           "assessment_score": 72.7,
           "placeholder": false,
@@ -159817,13 +159961,13 @@
       "strict_score": 52.4,
       "verified_strict_score": 52.4,
       "checks": 10,
-      "issues": 3,
+      "issues": 2,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.524,
-          "issues": 3,
+          "issues": 2,
           "weighted_failures": 4.76,
           "assessment_score": 52.4,
           "placeholder": false,
@@ -159883,13 +160027,13 @@
       "strict_score": 53.5,
       "verified_strict_score": 53.5,
       "checks": 10,
-      "issues": 3,
+      "issues": 1,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.535,
-          "issues": 3,
+          "issues": 1,
           "weighted_failures": 4.65,
           "assessment_score": 53.5,
           "placeholder": false,
@@ -159927,13 +160071,13 @@
       "strict_score": 42.8,
       "verified_strict_score": 42.8,
       "checks": 10,
-      "issues": 4,
+      "issues": 3,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.428,
-          "issues": 4,
+          "issues": 3,
           "weighted_failures": 5.72,
           "assessment_score": 42.8,
           "placeholder": false,

@@ -1,15 +1,7 @@
 import React from 'react';
-import { Button } from '@/shared/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import {
-  CheckCircle,
-  PlusCircle,
-  Settings,
-} from 'lucide-react';
-import { ShotSelectorWithAdd } from '@/shared/components/ShotSelectorWithAdd';
 import type { ShotOption } from '@/domains/generation/types';
-import { useShotAssociationControls } from './hooks/useShotAssociationControls';
 import type { LightboxDeleteHandler } from '../types';
+import { WorkflowControlsBar } from './WorkflowControlsBar';
 
 export interface WorkflowControlsProps {
   // Media info
@@ -65,8 +57,8 @@ export interface WorkflowControlsProps {
 
 /**
  * WorkflowControls Component
- * Renders the bottom control bar with shot selection, add to shot buttons,
- * apply settings, and delete
+ * Compatibility adapter for centered-layout controls.
+ * Delegates to WorkflowControlsBar so all layouts share one implementation path.
  */
 export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
   mediaId,
@@ -95,105 +87,35 @@ export const WorkflowControls: React.FC<WorkflowControlsProps> = ({
   handleApplySettings,
   onDelete,
   onClose,
-}) => {
-  const { isAddedWithoutPosition, handleAddWithoutPosition } = useShotAssociationControls({
-    mediaId,
-    imageUrl,
-    thumbUrl,
-    allShots,
-    selectedShotId,
-    isAlreadyAssociatedWithoutPosition,
-    showTickForSecondaryImageId,
-    onAddToShotWithoutPosition,
-    onShowSecondaryTick,
-    onOptimisticUnpositioned,
-    onNavigateToShot,
-    errorContext: 'WorkflowControls',
-  });
-
-  // Don't render if no workflow actions available, in inpaint mode, or video
-  if ((!onAddToShot && !onDelete && !onApplySettings) || isVideo || isInpaintMode) {
-    return null;
-  }
-
-  return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-x-2 z-[60]">
-      <div className="bg-black/80 backdrop-blur-sm rounded-lg p-2 flex items-center gap-x-2">
-        {/* Shot Selection and Add to Shot */}
-        {onAddToShot && allShots.length > 0 && !isVideo && (
-          <>
-            <ShotSelectorWithAdd
-              imageId={mediaId}
-              imageUrl={imageUrl}
-              thumbUrl={thumbUrl}
-              shots={allShots}
-              selectedShotId={selectedShotId || ''}
-              onShotChange={onShotChange || (() => {})}
-              onAddToShot={onAddToShot}
-              showCreateShot={!!onCreateShot}
-              isAlreadyPositionedInSelectedShot={isAlreadyPositionedInSelectedShot}
-              showTick={showTickForImageId === mediaId}
-              isAdding={isAdding}
-              onShowTick={onShowTick}
-              onOptimisticPositioned={onOptimisticPositioned}
-              onClose={onClose}
-              layout="horizontal"
-              container={contentRef.current}
-              selectorClassName="w-32 h-8 bg-black/50 border-white/20 text-white text-xs"
-              buttonClassName="h-8 w-8"
-            />
-
-            {onAddToShotWithoutPosition && !isAlreadyPositionedInSelectedShot && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleAddWithoutPosition}
-                    disabled={!selectedShotId || isAddingWithoutPosition}
-                    className={`h-8 px-3 text-white ${
-                      isAddedWithoutPosition
-                        ? 'bg-green-600/80 hover:bg-green-600'
-                        : 'bg-purple-600/80 hover:bg-purple-600'
-                    }`}
-                  >
-                    {isAddingWithoutPosition ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                    ) : isAddedWithoutPosition ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      <PlusCircle className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="z-[100001]">
-                  {isAddedWithoutPosition
-                    ? 'Added without position. Jump to shot.'
-                    : 'Add to shot without position'}
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </>
-        )}
-
-        {/* Apply Settings */}
-        {onApplySettings && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleApplySettings}
-                className="bg-purple-600/80 hover:bg-purple-600 text-white h-8 px-3"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="z-[100001]">Apply settings</TooltipContent>
-          </Tooltip>
-        )}
-
-      </div>
-    </div>
-  );
-};
+  onNavigateToShot,
+}) => (
+  <WorkflowControlsBar
+    onAddToShot={onAddToShot}
+    onDelete={onDelete}
+    onApplySettings={onApplySettings}
+    isSpecialEditMode={Boolean(isInpaintMode)}
+    isVideo={isVideo}
+    mediaId={mediaId}
+    imageUrl={imageUrl}
+    thumbUrl={thumbUrl}
+    allShots={allShots}
+    selectedShotId={selectedShotId}
+    onShotChange={onShotChange}
+    onCreateShot={onCreateShot}
+    isAlreadyPositionedInSelectedShot={isAlreadyPositionedInSelectedShot}
+    isAlreadyAssociatedWithoutPosition={isAlreadyAssociatedWithoutPosition}
+    showTickForImageId={showTickForImageId}
+    showTickForSecondaryImageId={showTickForSecondaryImageId}
+    onAddToShotWithoutPosition={onAddToShotWithoutPosition}
+    onShowTick={onShowTick}
+    onOptimisticPositioned={onOptimisticPositioned}
+    onShowSecondaryTick={onShowSecondaryTick}
+    onOptimisticUnpositioned={onOptimisticUnpositioned}
+    isAdding={isAdding}
+    isAddingWithoutPosition={isAddingWithoutPosition}
+    contentRef={contentRef}
+    handleApplySettings={handleApplySettings}
+    onNavigateToShot={onNavigateToShot}
+    onClose={onClose}
+  />
+);

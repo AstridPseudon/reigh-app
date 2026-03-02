@@ -126,6 +126,7 @@ const CharacterAnimatePage: React.FC = () => {
           deletingId={state.deletingId}
           isMobile={state.isMobile}
           onDelete={state.handleDeleteGeneration}
+          onToggleStar={state.handleToggleStar}
         />
       </div>
       <DeleteGenerationConfirmDialog {...state.confirmDialogProps} />

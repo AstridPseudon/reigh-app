@@ -48,17 +48,13 @@ import { LightboxLayout } from './components/layouts/LightboxLayout';
 import { EditModePanel } from './components/EditModePanel';
 import { InfoPanel } from './components/InfoPanel';
 import { ImageEditProvider } from './contexts/ImageEditContext';
+import type { WorkflowControlsBarProps } from './components/WorkflowControlsBar';
+import type { WorkflowControlsProps } from './components/WorkflowControls';
+import type { LightboxLayoutProps } from './components/layouts/types';
 
 import { extractDimensionsFromMedia, handleLightboxDownload } from './utils';
 import { getGenerationId } from '@/shared/lib/mediaTypeHelpers';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import {
-  buildLayoutModel,
-  buildVariantsModel,
-  buildWorkflowBarModel,
-  buildWorkflowControlsModel,
-  normalizeShotOptions,
-} from './presenters/imageLightboxModels';
+import { invokeLightboxDelete } from './utils';
 
 // Re-export grouped sub-interfaces for consumers that import from ImageLightbox
 export type {
@@ -633,7 +629,7 @@ function useImageLightboxRenderModel(
   const { sharedState, handleSlotNavNext, handleSlotNavPrev } = sharedModel;
   const { editOrchestrator, adjustedTaskDetailsData, variantBadges } = editModel;
 
-  const lightboxVariants = useMemo(() => buildVariantsModel({
+  const lightboxVariants = useMemo(() => ({
     variants: sharedState.variants.list,
     activeVariant: sharedState.variants.activeVariant,
     primaryVariant: sharedState.variants.primaryVariant,
@@ -733,15 +729,7 @@ function useImageLightboxRenderModel(
     if (!actions?.onDelete) {
       return;
     }
-
-    try {
-      await Promise.resolve(actions.onDelete(media.id));
-    } catch (error) {
-      normalizeAndPresentError(error, {
-        context: 'ImageLightbox.delete',
-        toastTitle: 'Delete Failed',
-      });
-    }
+    await invokeLightboxDelete(actions.onDelete, media.id, 'ImageLightbox.delete');
   }, [actions?.onDelete, media.id]);
 
   const handleApplySettings = () => {
@@ -784,9 +772,9 @@ function useImageLightboxRenderModel(
     panelVariant,
     panelTaskId,
   );
-  const allShots = normalizeShotOptions(shotWorkflow?.allShots);
+  const allShots = shotWorkflow?.allShots ?? [];
   const selectedShotId = shotWorkflow?.selectedShotId;
-  const workflowBar = useMemo(() => buildWorkflowBarModel({
+  const workflowBar = useMemo(() => ({
     onAddToShot: shotWorkflow?.onAddToShot,
     onDelete: actions?.onDelete,
     onApplySettings: actions?.onApplySettings,
@@ -815,7 +803,7 @@ function useImageLightboxRenderModel(
     onAddVariantAsNewGeneration: sharedState.variants.handleAddVariantAsNewGenerationToShot,
     activeVariantId: sharedState.variants.activeVariant?.id || sharedState.variants.primaryVariant?.id,
     currentTimelineFrame: media.timeline_frame ?? undefined,
-  }), [
+  } satisfies WorkflowControlsBarProps), [
     shotWorkflow?.onAddToShot,
     actions?.onDelete,
     actions?.onApplySettings,
@@ -847,7 +835,7 @@ function useImageLightboxRenderModel(
     sharedState.variants.primaryVariant?.id,
   ]);
 
-  const workflowControls = useMemo(() => buildWorkflowControlsModel({
+  const workflowControls = useMemo(() => ({
     mediaId: env.actualGenerationId ?? media.id,
     imageUrl: sharedState.effectiveMedia.mediaUrl ?? '',
     thumbUrl: media.thumbUrl,
@@ -875,7 +863,7 @@ function useImageLightboxRenderModel(
     isDeleting: actions?.isDeleting,
     onNavigateToShot: handleNavigateToShotFromSelector,
     onClose,
-  }), [
+  } satisfies WorkflowControlsProps), [
     env.actualGenerationId,
     media.id,
     media.thumbUrl,
@@ -905,7 +893,7 @@ function useImageLightboxRenderModel(
     onClose,
   ]);
 
-  const layoutProps = useMemo(() => buildLayoutModel({
+  const layoutProps = useMemo(() => ({
     showPanel,
     shouldShowSidePanel: sharedState.layout.shouldShowSidePanel,
     effectiveTasksPaneOpen: env.effectiveTasksPaneOpen,
@@ -920,7 +908,8 @@ function useImageLightboxRenderModel(
       handleDelete,
     },
     adjacentSegments,
-  }), [
+    segmentSlotMode: undefined,
+  } satisfies LightboxLayoutProps), [
     showPanel,
     sharedState.layout.shouldShowSidePanel,
     env.effectiveTasksPaneOpen,

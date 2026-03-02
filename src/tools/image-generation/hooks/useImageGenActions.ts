@@ -6,6 +6,7 @@ import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
+import { useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
@@ -33,7 +34,8 @@ export function useImageGenActions({
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const positionExistingGenerationMutation = usePositionExistingGenerationInShot();
-  const { requestDelete, confirmDialogProps } = useDeleteGenerationWithConfirm();
+  const { requestDelete, confirmDialogProps } = useDeleteGenerationWithConfirm({ projectId });
+  const toggleStarMutation = useToggleGenerationStar();
   const { createShot } = useShotCreation();
   const { shots } = useShots();
 
@@ -51,6 +53,13 @@ export function useImageGenActions({
   const handleDeleteImage = useCallback(async (id: string) => {
     requestDelete(id);
   }, [requestDelete]);
+
+  const handleToggleStar = useCallback((id: string, starred: boolean) => {
+    if (!projectId) {
+      return;
+    }
+    toggleStarMutation.mutate({ id, starred, projectId });
+  }, [projectId, toggleStarMutation]);
 
   const handleAddImageToTargetShot = useCallback(async (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string): Promise<boolean> => {
     const resolvedTargetShotId = targetShotId || targetShotInfo.targetShotIdForButton;
@@ -169,6 +178,7 @@ export function useImageGenActions({
     targetShotInfo,
     validShots,
     handleDeleteImage,
+    handleToggleStar,
     handleAddImageToTargetShot,
     handleAddImageToTargetShotWithoutPosition,
     handleBackfillRequest,

@@ -182,6 +182,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
               <MediaGallery
                 images={gallery.imagesToShow}
                 onDelete={actions.handleDeleteImage}
+                onToggleStar={actions.handleToggleStar}
                 onAddToLastShot={actions.handleAddImageToTargetShot}
                 onAddToLastShotWithoutPosition={actions.handleAddImageToTargetShotWithoutPosition}
                 allShots={actions.validShots}

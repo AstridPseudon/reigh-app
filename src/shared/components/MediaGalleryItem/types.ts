@@ -80,7 +80,6 @@ export interface ItemActions {
   onDownloadImage: (rawUrl: string, filename: string, imageId?: string, isVideo?: boolean, originalContentType?: string) => void;
   onToggleStar?: (id: string, starred: boolean) => void;
   onImageClick?: (image: GeneratedImageWithMetadata) => void;
-  toggleStarMutation: { mutate: (vars: { id: string; starred: boolean; projectId: string }, options?: { onSettled?: () => void }) => void };
   /** Callback when the image has fully loaded and is visible */
   onImageLoaded?: (imageId: string) => void;
 }

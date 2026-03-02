@@ -93,21 +93,21 @@ export function variantToGenerationRow(
   projectId: string,
 ): GenerationRow {
   const generationId = getGenerationId(media) ?? media.id;
+  void projectId;
 
   return {
     id: media.id,
     generation_id: generationId,
     location: media.url,
-    thumbnail_url: media.thumbUrl,
+    thumbUrl: media.thumbUrl,
     type: mediaType,
-    created_at: media.createdAt,
+    createdAt: media.createdAt,
     params: {
       prompt: media.metadata?.prompt,
       tool_type: media.metadata?.tool_type,
       variant_type: media.metadata?.variant_type,
       variant_id: media.id,
     },
-    project_id: projectId,
-    starred: media.starred || false,
+    starred: media.starred ?? false,
   };
 }

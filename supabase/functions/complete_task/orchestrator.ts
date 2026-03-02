@@ -280,7 +280,15 @@ export async function checkOrchestratorCompletion(
         case 'failed':
           await markOrchestratorFailed(supabase, orchestratorTaskId, 1, 1, undefined, logger);
           return;
-        default:
+        case 'unknown':
+          logger?.warn('Final-step status could not be classified; waiting before orchestrator completion', {
+            orchestrator_task_id: orchestratorTaskId,
+            final_step_type: config.waitForFinalStepType,
+            orchestrator_run_id: orchestratorRunId,
+          });
+          return;
+        case 'complete':
+        case 'not_found':
           break;
       }
 
@@ -361,7 +369,7 @@ async function checkFinalStitchStatus(
   projectId: string,
   orchestratorTaskId: string,
   orchestratorRunId: string | null,
-): Promise<'not_found' | 'pending' | 'complete' | 'failed'> {
+): Promise<'not_found' | 'pending' | 'complete' | 'failed' | 'unknown'> {
   let finalStepTasks: Array<{ id: string; status: string }> = [];
   if (orchestratorRunId) {
     finalStepTasks = await lookupTasksByRunIdWithFallback<{ id: string; status: string }>({
@@ -401,7 +409,7 @@ async function checkFinalStitchStatus(
     return 'pending';
   }
 
-  return 'pending';
+  return 'unknown';
 }
 
 /**

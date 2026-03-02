@@ -4,9 +4,9 @@ import { isVideoAny } from '@/shared/lib/typeGuards';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from './types';
 import type { ShotOption, TaskDetailsData } from './types';
 import type { LightboxNavigationProps, LightboxShotWorkflowProps, LightboxFeatureFlags, LightboxActionHandlers } from './types';
+import type { VideoLightboxVideoProps } from './videoLightboxContracts';
 import { ImageLightbox } from './ImageLightbox';
 import { VideoLightbox } from './VideoLightbox';
-import type { VideoLightboxVideoProps } from './VideoLightbox';
 
 export interface MediaLightboxProps {
   media?: GenerationRow;
@@ -149,33 +149,55 @@ function useBundledLightboxProps(props: MediaLightboxProps) {
 const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
   const { media, segmentSlotMode } = props;
 
-  // Bundle flat props into grouped sub-interfaces (hook must be called unconditionally)
+  // Bundle flat props into grouped sub-interfaces (hook must be called unconditionally).
+  // Mode-specific containers consume this shared contract and own rendering details.
   const bundled = useBundledLightboxProps(props);
+  const sharedContainerProps = useMemo(() => ({
+    onClose: props.onClose,
+    readOnly: props.readOnly,
+    shotId: props.shotId,
+    initialVariantId: props.initialVariantId,
+    taskDetailsData: props.taskDetailsData,
+    onOpenExternalGeneration: props.onOpenExternalGeneration,
+    showTickForImageId: props.showTickForImageId,
+    showTickForSecondaryImageId: props.showTickForSecondaryImageId,
+    tasksPaneOpen: props.tasksPaneOpen,
+    tasksPaneWidth: props.tasksPaneWidth,
+    adjacentSegments: props.adjacentSegments,
+    navigation: bundled.navigation,
+    shotWorkflow: bundled.shotWorkflow,
+    features: bundled.features,
+    actions: bundled.actions,
+  }), [
+    props.onClose,
+    props.readOnly,
+    props.shotId,
+    props.initialVariantId,
+    props.taskDetailsData,
+    props.onOpenExternalGeneration,
+    props.showTickForImageId,
+    props.showTickForSecondaryImageId,
+    props.tasksPaneOpen,
+    props.tasksPaneWidth,
+    props.adjacentSegments,
+    bundled.navigation,
+    bundled.shotWorkflow,
+    bundled.features,
+    bundled.actions,
+  ]);
+
+  const renderVideoLightbox = (videoMedia: GenerationRow | undefined) => (
+    <VideoLightbox
+      {...sharedContainerProps}
+      media={videoMedia}
+      segmentSlotMode={segmentSlotMode}
+      parentGenerationIdOverride={props.parentGenerationIdOverride}
+      videoProps={bundled.videoProps}
+    />
+  );
 
   if (segmentSlotMode) {
-    return (
-      <VideoLightbox
-        media={media}
-        onClose={props.onClose}
-        segmentSlotMode={segmentSlotMode}
-        readOnly={props.readOnly}
-        shotId={props.shotId}
-        initialVariantId={props.initialVariantId}
-        taskDetailsData={props.taskDetailsData}
-        onOpenExternalGeneration={props.onOpenExternalGeneration}
-        showTickForImageId={props.showTickForImageId}
-        showTickForSecondaryImageId={props.showTickForSecondaryImageId}
-        tasksPaneOpen={props.tasksPaneOpen}
-        tasksPaneWidth={props.tasksPaneWidth}
-        adjacentSegments={props.adjacentSegments}
-        navigation={bundled.navigation}
-        shotWorkflow={bundled.shotWorkflow}
-        features={bundled.features}
-        actions={bundled.actions}
-        videoProps={bundled.videoProps}
-        parentGenerationIdOverride={props.parentGenerationIdOverride}
-      />
-    );
+    return renderVideoLightbox(media);
   }
 
   if (!media) {
@@ -183,50 +205,15 @@ const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
   }
 
   if (isVideoAny(media)) {
-    return (
-      <VideoLightbox
-        media={media}
-        onClose={props.onClose}
-        readOnly={props.readOnly}
-        shotId={props.shotId}
-        initialVariantId={props.initialVariantId}
-        taskDetailsData={props.taskDetailsData}
-        onOpenExternalGeneration={props.onOpenExternalGeneration}
-        showTickForImageId={props.showTickForImageId}
-        showTickForSecondaryImageId={props.showTickForSecondaryImageId}
-        tasksPaneOpen={props.tasksPaneOpen}
-        tasksPaneWidth={props.tasksPaneWidth}
-        adjacentSegments={props.adjacentSegments}
-        navigation={bundled.navigation}
-        shotWorkflow={bundled.shotWorkflow}
-        features={bundled.features}
-        actions={bundled.actions}
-        videoProps={bundled.videoProps}
-        parentGenerationIdOverride={props.parentGenerationIdOverride}
-      />
-    );
+    return renderVideoLightbox(media);
   }
 
   return (
     <ImageLightbox
+      {...sharedContainerProps}
       media={media}
-      onClose={props.onClose}
-      readOnly={props.readOnly}
-      shotId={props.shotId}
-      initialVariantId={props.initialVariantId}
       toolTypeOverride={props.toolTypeOverride}
-      taskDetailsData={props.taskDetailsData}
-      onOpenExternalGeneration={props.onOpenExternalGeneration}
       onNavigateToGeneration={props.onNavigateToGeneration}
-      showTickForImageId={props.showTickForImageId}
-      showTickForSecondaryImageId={props.showTickForSecondaryImageId}
-      tasksPaneOpen={props.tasksPaneOpen}
-      tasksPaneWidth={props.tasksPaneWidth}
-      adjacentSegments={props.adjacentSegments}
-      navigation={bundled.navigation}
-      shotWorkflow={bundled.shotWorkflow}
-      features={bundled.features}
-      actions={bundled.actions}
     />
   );
 };

@@ -6,7 +6,7 @@ const { mockUseDeleteGenerationAction } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/domains/generation/hooks/useDeleteGenerationAction', () => ({
-  useDeleteGenerationAction: () => mockUseDeleteGenerationAction(),
+  useDeleteGenerationAction: (options: { projectId: string | null | undefined }) => mockUseDeleteGenerationAction(options),
 }));
 
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
@@ -35,7 +35,7 @@ describe('useDeleteGenerationWithConfirm', () => {
       confirmDelete: vi.fn().mockResolvedValue(undefined),
     });
 
-    const { result } = renderHook(() => useDeleteGenerationWithConfirm());
+    const { result } = renderHook(() => useDeleteGenerationWithConfirm({ projectId: 'project-1' }));
 
     expect(result.current.confirmDialogProps.open).toBe(true);
     expect(result.current.confirmDialogProps.isConfirming).toBe(true);
@@ -55,9 +55,15 @@ describe('useDeleteGenerationWithConfirm', () => {
       confirmDelete,
     });
 
-    const { result } = renderHook(() => useDeleteGenerationWithConfirm());
+    const { result } = renderHook(() => useDeleteGenerationWithConfirm({ projectId: 'project-1' }));
 
     await expect(result.current.confirmDialogProps.onConfirm()).resolves.toBeUndefined();
     expect(confirmDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes project scope into action hook', () => {
+    renderHook(() => useDeleteGenerationWithConfirm({ projectId: 'project-99' }));
+
+    expect(mockUseDeleteGenerationAction).toHaveBeenCalledWith({ projectId: 'project-99' });
   });
 });

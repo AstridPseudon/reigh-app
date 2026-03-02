@@ -347,6 +347,45 @@ describe('complete_task/orchestrator', () => {
     });
   });
 
+  it('waits when final-stitch task status is unclassified', async () => {
+    const { supabase, updateCalls } = createSupabaseHarness({
+      orchestratorResult: {
+        data: {
+          id: 'orch-1',
+          status: 'In Progress',
+          params: {
+            orchestrator_details: {
+              clip_list: ['a', 'b'],
+            },
+          },
+          result_data: {},
+        },
+        error: null,
+      },
+    });
+    lookupTasksByOrchestratorIdWithFallbackMock.mockImplementation(async (input: {
+      taskType: string;
+    }) => {
+      if (input.taskType === 'join_final_stitch') {
+        return [{ id: 'final-1', status: 'Paused' }];
+      }
+      return [{ id: 'seg-1', status: 'Complete', generation_started_at: null }];
+    });
+
+    await checkOrchestratorCompletion({
+      supabase: supabase as never,
+      taskIdString: 'task-final-unknown',
+      completedTask: buildCompletedTask({ task_type: 'join_clips_segment' }),
+      publicUrl: 'https://public.example/media.mp4',
+      supabaseUrl: 'https://example.supabase.co',
+      serviceKey: 'service-key',
+      authContext: { isServiceRole: true, taskOwnerVerified: false, actorId: 'worker' },
+    });
+
+    expect(updateCalls).toHaveLength(0);
+    expect(triggerCostCalculationMock).not.toHaveBeenCalled();
+  });
+
   it('writes reconciliation metadata for recoverable billing failures', async () => {
     const { supabase, updateCalls } = createSupabaseHarness();
     triggerCostCalculationMock.mockResolvedValue({

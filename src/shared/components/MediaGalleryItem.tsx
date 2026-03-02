@@ -97,7 +97,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     onDelete,
     onToggleStar,
     onImageClick,
-    toggleStarMutation,
     onImageLoaded,
   } = actions;
 
@@ -654,7 +653,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
           {/* Bottom Buttons - Star (left), Edit (center), Delete (right) */}
           <ActionButtons
             image={image}
-            projectId={selectedProjectId}
             localStarred={localStarred}
             isTogglingStar={isTogglingStar}
             isDeleting={isCurrentDeleting}
@@ -662,7 +660,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             showEdit={showEdit}
             showDelete={showDelete}
             onToggleStar={onToggleStar}
-            toggleStarMutation={toggleStarMutation}
             setIsTogglingStar={setIsTogglingStar}
             setLocalStarred={setLocalStarred}
             onOpenLightbox={onOpenLightbox}

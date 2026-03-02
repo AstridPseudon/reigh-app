@@ -121,6 +121,62 @@ const shotWriteTail = new Map<string, Promise<void>>();
 const shotWriteDepth = new Map<string, number>();
 const shotWriteActive = new Map<string, { requestId: number; operation: string; startedAt: number }>();
 let writeRequestCounter = 0;
+const DEFAULT_SERIALIZED_TIMELINE_TASK_TIMEOUT_MS = 30_000;
+
+interface TimelineSerializedWriteOptions {
+  timeoutMs?: number;
+  onTimeout?: (meta: {
+    shotId: string;
+    operation: string;
+    timeoutMs: number;
+    pendingMs: number;
+    requestId: number;
+  }) => void;
+}
+
+function runSerializedTaskWithTimeout<T>(
+  operation: string,
+  task: () => Promise<T>,
+  timeoutMs: number,
+  onTimeout: () => void,
+): Promise<T> {
+  if (timeoutMs <= 0) {
+    return task();
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      onTimeout();
+      reject(new TimelineWriteTimeoutError(operation, timeoutMs));
+    }, timeoutMs);
+
+    Promise.resolve()
+      .then(task)
+      .then(
+        (result) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          clearTimeout(timeoutId);
+          resolve(result);
+        },
+        (error) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          clearTimeout(timeoutId);
+          reject(error);
+        },
+      );
+  });
+}
 
 /**
  * Returns true if any serialized timeline write is active or queued for the
@@ -144,6 +200,7 @@ export async function runSerializedTimelineWrite<T>(
   operation: string,
   task: () => Promise<T>,
   onEvent?: TimelineWriteEventHandler,
+  options?: TimelineSerializedWriteOptions,
 ): Promise<T> {
   const requestId = ++writeRequestCounter;
   const queuedAt = Date.now();
@@ -192,7 +249,21 @@ export async function runSerializedTimelineWrite<T>(
   });
 
   try {
-    return await task();
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_SERIALIZED_TIMELINE_TASK_TIMEOUT_MS;
+    return await runSerializedTaskWithTimeout(
+      operation,
+      task,
+      timeoutMs,
+      () => {
+        options?.onTimeout?.({
+          shotId,
+          operation,
+          timeoutMs,
+          pendingMs: Date.now() - startedAt,
+          requestId,
+        });
+      },
+    );
   } finally {
     releaseTail();
 

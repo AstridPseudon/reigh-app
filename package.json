@@ -32,7 +32,7 @@
     "check:edge-budget": "node scripts/edge/quality-budget.mjs --check",
     "check:no-smoke-tests": "node scripts/quality/check-no-smoke-tests.mjs",
     "check:core-shim-usage": "node scripts/quality/check-core-shim-usage.mjs",
-    "check:legacy-supabase-usage": "node scripts/quality/check-legacy-supabase-usage.mjs",
+    "check:legacy-supabase-usage": "tsx scripts/quality/check-legacy-supabase-usage.mjs",
     "check:error-runtime-alias-usage": "node scripts/quality/check-error-runtime-alias-usage.mjs",
     "check:shots-shim-usage": "node scripts/quality/check-shots-shim-usage.mjs --max 0",
     "check:contracts": "node scripts/quality/check-contract-governance.mjs",

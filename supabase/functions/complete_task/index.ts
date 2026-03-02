@@ -49,10 +49,23 @@ interface TaskContext {
   task_type: string;
   project_id: string;
   params: Record<string, unknown>;
+  result_data: unknown;
   tool_type: string;
   category: string;
   content_type: 'image' | 'video';
   variant_type: string | null;
+}
+
+type CompletionFollowUpStep =
+  | 'validation'
+  | 'orchestrator_completion'
+  | 'cost_calculation'
+  | 'follow_up_persistence';
+
+interface CompletionFollowUpIssue {
+  step: CompletionFollowUpStep;
+  code: string;
+  message: string;
 }
 
 function defaultErrorCode(status: number): string {
@@ -81,6 +94,47 @@ function completeTaskErrorResponse(
   );
 }
 
+function asObjectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+async function persistCompletionFollowUpIssues(
+  supabase: SupabaseClient,
+  taskId: string,
+  existingResultData: unknown,
+  issues: CompletionFollowUpIssue[],
+): Promise<{ ok: true } | { ok: false; error: unknown }> {
+  if (issues.length === 0) {
+    return { ok: true };
+  }
+
+  const baseResultData = asObjectRecord(existingResultData);
+  const completionFollowUp = {
+    status: 'degraded',
+    recorded_at: new Date().toISOString(),
+    issues,
+  };
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({
+      result_data: {
+        ...baseResultData,
+        completion_follow_up: completionFollowUp,
+      },
+    })
+    .eq('id', taskId);
+
+  if (error) {
+    return { ok: false, error };
+  }
+
+  return { ok: true };
+}
+
 /**
  * Fetch task context with all required fields for the completion flow.
  * Uses a single query with FK join (tasks.task_type -> task_types.name).
@@ -95,7 +149,7 @@ async function fetchTaskContext(
 ): Promise<TaskContext | null> {
   const { data: task, error } = await supabase
     .from("tasks")
-    .select(`id, task_type, project_id, params, task_types!tasks_task_type_fkey(tool_type, category, content_type, variant_type)`)
+    .select(`id, task_type, project_id, params, result_data, task_types!tasks_task_type_fkey(tool_type, category, content_type, variant_type)`)
     .eq("id", taskId)
     .single();
 
@@ -114,6 +168,7 @@ async function fetchTaskContext(
     task_type: task.task_type,
     project_id: task.project_id,
     params: task.params || {},
+    result_data: task.result_data,
     tool_type: taskTypeInfo.tool_type || 'unknown',
     category: taskTypeInfo.category || 'unknown',
     content_type: taskTypeInfo.content_type || 'image',
@@ -251,6 +306,8 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
   }
 
   try {
+    const completionFollowUpIssues: CompletionFollowUpIssue[] = [];
+
     // 5) Resolve actor policy once (ownership + task user resolution).
     const taskActor = await resolveTaskStorageActor({
       supabaseAdmin,
@@ -339,6 +396,11 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
         task_id: taskIdString,
         error: validationError instanceof Error ? validationError.message : String(validationError),
       });
+      completionFollowUpIssues.push({
+        step: 'validation',
+        code: 'validation_follow_up_failed',
+        message: validationError instanceof Error ? validationError.message : String(validationError),
+      });
       // Continue anyway - don't fail task completion due to validation errors
     }
 
@@ -418,6 +480,11 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
         task_id: taskIdString,
         error: orchErr instanceof Error ? orchErr.message : String(orchErr),
       });
+      completionFollowUpIssues.push({
+        step: 'orchestrator_completion',
+        code: 'orchestrator_follow_up_failed',
+        message: orchErr instanceof Error ? orchErr.message : String(orchErr),
+      });
     }
 
     // 14) Calculate cost (service role only)
@@ -433,6 +500,35 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
           task_id: taskIdString,
           billing_result: billingResult,
         });
+        completionFollowUpIssues.push({
+          step: 'cost_calculation',
+          code: billingResult.errorCode || 'cost_calculation_follow_up_failed',
+          message: billingResult.message || 'Cost calculation follow-up failed',
+        });
+      }
+    }
+
+    if (completionFollowUpIssues.length > 0) {
+      const persistenceResult = await persistCompletionFollowUpIssues(
+        supabaseAdmin,
+        taskIdString,
+        taskContext.result_data,
+        completionFollowUpIssues,
+      );
+      if (!persistenceResult.ok) {
+        logger.error("Failed to persist completion follow-up issues", {
+          task_id: taskIdString,
+          error: persistenceResult.error instanceof Error
+            ? persistenceResult.error.message
+            : String(persistenceResult.error),
+        });
+        completionFollowUpIssues.push({
+          step: 'follow_up_persistence',
+          code: 'completion_follow_up_persistence_failed',
+          message: persistenceResult.error instanceof Error
+            ? persistenceResult.error.message
+            : String(persistenceResult.error),
+        });
       }
     }
 
@@ -441,13 +537,19 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
       success: true,
       public_url: publicUrl,
       thumbnail_url: thumbnailUrl,
-      message: "Task completed and file uploaded successfully"
+      follow_up: completionFollowUpIssues.length === 0
+        ? { status: 'ok' as const, issues: [] as CompletionFollowUpIssue[] }
+        : { status: 'degraded' as const, issues: completionFollowUpIssues },
+      message: completionFollowUpIssues.length === 0
+        ? "Task completed and file uploaded successfully"
+        : "Task completed with follow-up warnings",
     };
 
     logger.info("Task completed successfully", { 
       task_id: taskIdString,
       output_location: publicUrl,
-      has_thumbnail: !!thumbnailUrl
+      has_thumbnail: !!thumbnailUrl,
+      follow_up_issue_count: completionFollowUpIssues.length,
     });
     await logger.flush();
 

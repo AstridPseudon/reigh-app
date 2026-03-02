@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useDeleteGeneration } from '@/domains/generation/hooks/useGenerationMutations';
+import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 interface UseDeleteGenerationActionResult {
   pendingDeleteId: string | null;
@@ -11,8 +11,13 @@ interface UseDeleteGenerationActionResult {
   confirmDelete: () => Promise<void>;
 }
 
-export function useDeleteGenerationAction(): UseDeleteGenerationActionResult {
-  const { selectedProjectId } = useProjectSelectionContext();
+interface UseDeleteGenerationActionOptions {
+  projectId: string | null | undefined;
+}
+
+export function useDeleteGenerationAction({
+  projectId,
+}: UseDeleteGenerationActionOptions): UseDeleteGenerationActionResult {
   const deleteGenerationMutation = useDeleteGeneration();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -26,7 +31,7 @@ export function useDeleteGenerationAction(): UseDeleteGenerationActionResult {
   }, []);
 
   const confirmDelete = useCallback(async () => {
-    if (!pendingDeleteId || !selectedProjectId) {
+    if (!pendingDeleteId || !projectId) {
       setPendingDeleteId(null);
       return;
     }
@@ -34,14 +39,18 @@ export function useDeleteGenerationAction(): UseDeleteGenerationActionResult {
     const targetId = pendingDeleteId;
     setDeletingId(targetId);
     try {
-      await deleteGenerationMutation.mutateAsync({ id: targetId, projectId: selectedProjectId });
+      await deleteGenerationMutation.mutateAsync({ id: targetId, projectId });
       setPendingDeleteId((current) => (current === targetId ? null : current));
-    } catch {
+    } catch (error) {
+      normalizeAndPresentError(error, {
+        context: 'useDeleteGenerationAction.confirmDelete',
+        toastTitle: 'Delete failed',
+      });
       // Keep the dialog open so users can retry or cancel after a failed delete.
     } finally {
       setDeletingId((current) => (current === targetId ? null : current));
     }
-  }, [deleteGenerationMutation, pendingDeleteId, selectedProjectId]);
+  }, [deleteGenerationMutation, pendingDeleteId, projectId]);
 
   return {
     pendingDeleteId,

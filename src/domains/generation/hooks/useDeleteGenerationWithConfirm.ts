@@ -2,8 +2,14 @@ import { useMemo } from 'react';
 import { useDeleteGenerationAction } from '@/domains/generation/hooks/useDeleteGenerationAction';
 import type { DeleteGenerationConfirmContract } from '@/domains/generation/contracts/deleteGenerationConfirm';
 
-export function useDeleteGenerationWithConfirm() {
-  const action = useDeleteGenerationAction();
+interface UseDeleteGenerationWithConfirmOptions {
+  projectId: string | null | undefined;
+}
+
+export function useDeleteGenerationWithConfirm({
+  projectId,
+}: UseDeleteGenerationWithConfirmOptions) {
+  const action = useDeleteGenerationAction({ projectId });
   const confirmDialogProps: DeleteGenerationConfirmContract = useMemo(() => ({
     open: action.pendingDeleteId !== null,
     onOpenChange: (open: boolean) => {

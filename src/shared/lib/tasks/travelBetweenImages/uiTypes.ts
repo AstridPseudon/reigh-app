@@ -4,19 +4,23 @@ import type {
   PromptConfig,
   StructureVideoConfig,
 } from './types';
-import type { LegacyStructureVideoFields } from './legacyStructureVideo';
 
 /**
- * UI compatibility fields retained for editor state while canonical payload
- * contracts stay legacy-free in `types.ts`.
+ * Editor-only guidance fields kept alongside each structure video while
+ * request payloads remain canonicalized through structure_guidance.
  */
-export type StructureVideoLegacyUiFields = LegacyStructureVideoFields;
+export interface StructureVideoGuidanceUiFields {
+  motion_strength?: number;
+  structure_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
+  uni3c_start_percent?: number;
+  uni3c_end_percent?: number;
+}
 
 /**
  * Editor-facing structure-video model with local metadata and legacy UI knobs.
  * This type is for UI state only and is not the canonical API payload contract.
  */
-export interface StructureVideoConfigWithMetadata extends StructureVideoConfig, StructureVideoLegacyUiFields {
+export interface StructureVideoConfigWithMetadata extends StructureVideoConfig, StructureVideoGuidanceUiFields {
   metadata?: import('@/shared/lib/videoUploader').VideoMetadata | null;
   resource_id?: string | null;
 }

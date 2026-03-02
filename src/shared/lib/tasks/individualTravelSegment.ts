@@ -39,7 +39,7 @@ import {
  * Interface for individual travel segment regeneration task parameters
  * This accepts the original segment params and rebuilds them for a standalone task
  */
-interface IndividualTravelSegmentParams {
+export interface IndividualTravelSegmentParams {
   project_id: string;
   
   // Parent generation to create variant for (optional - will be created if not provided)

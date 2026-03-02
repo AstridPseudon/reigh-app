@@ -9,6 +9,7 @@ import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithout
 import { useProjectGenerations } from '@/shared/hooks/useProjectGenerations';
 import type { GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
+import { useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
@@ -70,7 +71,8 @@ export function ShotListView({
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
-  const { requestDelete: requestDeleteGeneration, confirmDialogProps, isPending: isDeletePending } = useDeleteGenerationWithConfirm();
+  const { requestDelete: requestDeleteGeneration, confirmDialogProps, isPending: isDeletePending } = useDeleteGenerationWithConfirm({ projectId: selectedProjectId });
+  const toggleStarMutation = useToggleGenerationStar();
 
   // Navigation
   const { navigateToShot } = useShotNavigation();
@@ -203,6 +205,10 @@ export function ShotListView({
     requestDeleteGeneration(id);
   }, [requestDeleteGeneration]);
 
+  const handleToggleStar = useCallback((id: string, starred: boolean) => {
+    toggleStarMutation.mutate({ id, starred, projectId: selectedProjectId });
+  }, [selectedProjectId, toggleStarMutation]);
+
   // Drop handlers
   const {
     handleGenerationDropOnShot,
@@ -333,6 +339,7 @@ export function ShotListView({
             onDelete: handleDeleteGeneration,
             isDeleting: isDeletePending,
           }}
+          onToggleStar={handleToggleStar}
           videosViewJustEnabled={videosViewJustEnabled}
         />
       ) : (

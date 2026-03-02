@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Shot, GenerationRow } from '../../../types/shots';
+import type { Shot, GenerationRow } from '@/domains/generation/types';
 import { useUpdateShotName, useDeleteShot, useDuplicateShot } from '@/shared/hooks/shots';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';

@@ -93,7 +93,7 @@ function useGenerationsPageLogic({
   const addImageToShotMutation = useAddImageToShot();
   const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const positionExistingGenerationMutation = usePositionExistingGenerationInShot();
-  const { requestDelete, confirmDialogProps, deletingId } = useDeleteGenerationWithConfirm();
+  const { requestDelete, confirmDialogProps, deletingId } = useDeleteGenerationWithConfirm({ projectId: selectedProjectId });
   const toggleStarMutation = useToggleGenerationStar();
 
 

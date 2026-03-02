@@ -19,6 +19,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { joinPromptParts } from '@/shared/lib/promptAssembly';
 import { buildTaskParams, type SegmentSettings } from '@/shared/components/segmentSettingsUtils';
 import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individualTravelSegment';
+import type { IndividualTravelSegmentParams } from '@/shared/lib/tasks/individualTravelSegment';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type { LegacyStructureVideoConfig } from '@/shared/lib/tasks/travelBetweenImages/legacyStructureVideo';
@@ -125,10 +126,16 @@ interface SubmitSegmentTaskInput {
   queryClient: QueryClient;
   /** Optional callback when generation starts (for optimistic UI) */
   onGenerateStarted?: () => void;
+  /** Optional reporting hook for non-fatal side-effect failures. */
+  onNonFatalError?: (step: SegmentSubmissionNonFatalStep, error: unknown) => void;
 }
 
-type IndividualTravelSegmentTaskParams = Parameters<typeof createIndividualTravelSegmentTask>[0];
-type BuildTaskParams = (prompt: string, enhancedPromptParam?: string) => IndividualTravelSegmentTaskParams;
+type SegmentSubmissionNonFatalStep =
+  | 'enhance_prompt'
+  | 'metadata_fetch'
+  | 'metadata_update';
+
+type BuildTaskParams = (prompt: string, enhancedPromptParam?: string) => IndividualTravelSegmentParams;
 
 interface SubmitSegmentRuntime {
   errorContext: string;
@@ -138,6 +145,7 @@ interface SubmitSegmentRuntime {
   task: SegmentTaskContext;
   queryClient: QueryClient;
   buildParams: BuildTaskParams;
+  reportNonFatalError?: (step: SegmentSubmissionNonFatalStep, error: unknown) => void;
 }
 
 function buildSubmitParamsBuilder(
@@ -146,7 +154,7 @@ function buildSubmitParamsBuilder(
   images: SegmentTaskImageContext,
 ): BuildTaskParams {
   return (prompt: string, enhancedPromptParam?: string) => {
-    const params = buildTaskParams(
+    return buildTaskParams(
       { ...effectiveSettings, prompt },
       {
         projectId: task.projectId,
@@ -166,7 +174,6 @@ function buildSubmitParamsBuilder(
         structureVideo: task.structureVideo,
       },
     );
-    return params as unknown as IndividualTravelSegmentTaskParams;
   };
 }
 
@@ -186,6 +193,7 @@ async function createTaskOrThrow(taskParams: ReturnType<BuildTaskParams>): Promi
 }
 
 async function saveEnhancedPromptMetadata(
+  runtime: SubmitSegmentRuntime,
   task: SegmentTaskContext,
   queryClient: QueryClient,
   enhancedPromptResult: string,
@@ -203,7 +211,11 @@ async function saveEnhancedPromptMetadata(
     .single();
 
   if (fetchError) {
-    normalizeAndPresentError(fetchError, { context: 'submitSegmentTask.fetchMetadata' });
+    runtime.reportNonFatalError?.('metadata_fetch', fetchError);
+    normalizeAndPresentError(fetchError, {
+      context: `${runtime.errorContext}.fetchMetadata`,
+      showToast: false,
+    });
     return;
   }
 
@@ -219,7 +231,11 @@ async function saveEnhancedPromptMetadata(
     .eq('id', pairShotGenerationId);
 
   if (updateError) {
-    normalizeAndPresentError(updateError, { context: 'submitSegmentTask.saveEnhancedPrompt' });
+    runtime.reportNonFatalError?.('metadata_update', updateError);
+    normalizeAndPresentError(updateError, {
+      context: `${runtime.errorContext}.saveEnhancedPrompt`,
+      showToast: false,
+    });
     return;
   }
 
@@ -257,7 +273,11 @@ async function enhanceSegmentPrompt(
   });
 
   if (enhanceError) {
-    normalizeAndPresentError(enhanceError, { context: runtime.errorContext });
+    runtime.reportNonFatalError?.('enhance_prompt', enhanceError);
+    normalizeAndPresentError(enhanceError, {
+      context: `${runtime.errorContext}.enhancePrompt`,
+      showToast: false,
+    });
   }
 
   return enhanceResult?.enhanced_prompt?.trim() || promptToEnhance;
@@ -276,6 +296,7 @@ async function submitEnhancedSegmentTask(
   const enhancedPromptWithAffixes = applyPromptAffixes(runtime.effectiveSettings, enhancedPromptResult);
 
   await saveEnhancedPromptMetadata(
+    runtime,
     runtime.task,
     runtime.queryClient,
     enhancedPromptResult,
@@ -307,6 +328,7 @@ export function submitSegmentTask(input: SubmitSegmentTaskInput): void {
     run,
     queryClient,
     onGenerateStarted,
+    onNonFatalError,
   } = input;
 
   const effectiveSettings = getSettings();
@@ -324,6 +346,7 @@ export function submitSegmentTask(input: SubmitSegmentTaskInput): void {
     task,
     queryClient,
     buildParams,
+    reportNonFatalError: onNonFatalError,
   };
 
   // Fire and forget — run() handles add/resolve/refetch/remove/error lifecycle

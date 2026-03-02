@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
-import { normalizeAndPresentAndRethrow } from '@/shared/lib/errorHandling/runtimeError';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { normalizeAndPresentAndRethrow, normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { creditQueryKeys } from '@/shared/lib/queryKeys/credits';
 import {
   requireSession,
@@ -61,7 +60,10 @@ async function fetchCreditBalance(): Promise<CreditBalance> {
     .single();
 
   if (error) {
-    throw new Error(`Failed to fetch credit balance: ${error.message}`);
+    normalizeAndPresentAndRethrow(error, {
+      context: 'useCredits.fetchCreditBalance',
+      showToast: false,
+    });
   }
 
   return {
@@ -84,7 +86,10 @@ async function fetchCreditLedger(limit: number = 50, offset: number = 0): Promis
     .neq('type', 'spend');
 
   if (countError) {
-    throw new Error(`Failed to fetch ledger count: ${countError.message}`);
+    normalizeAndPresentAndRethrow(countError, {
+      context: 'useCredits.fetchCreditLedger.count',
+      showToast: false,
+    });
   }
 
   const { data, error } = await supabase
@@ -96,7 +101,10 @@ async function fetchCreditLedger(limit: number = 50, offset: number = 0): Promis
     .range(offset, offset + limit - 1);
 
   if (error) {
-    throw new Error(`Failed to fetch credit ledger: ${error.message}`);
+    normalizeAndPresentAndRethrow(error, {
+      context: 'useCredits.fetchCreditLedger.entries',
+      showToast: false,
+    });
   }
 
   const total = count || 0;

@@ -6,6 +6,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { toast } from '@/shared/components/ui/toast';
 import { useAsyncOperation } from '@/shared/hooks/async/useAsyncOperation';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
+import { useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/useProjectGenerations';
 import { useIsMobile } from '@/shared/hooks/mobile';
 
@@ -75,11 +76,19 @@ export function useCharacterAnimateBaseState() {
     requestDelete: requestDeleteGeneration,
     confirmDialogProps,
     deletingId,
-  } = useDeleteGenerationWithConfirm();
+  } = useDeleteGenerationWithConfirm({ projectId: selectedProjectId });
+  const toggleStarMutation = useToggleGenerationStar();
 
   const handleDeleteGeneration = useCallback((id: string) => {
     requestDeleteGeneration(id);
   }, [requestDeleteGeneration]);
+
+  const handleToggleStar = useCallback((id: string, starred: boolean) => {
+    if (!selectedProjectId) {
+      return;
+    }
+    toggleStarMutation.mutate({ id, starred, projectId: selectedProjectId });
+  }, [selectedProjectId, toggleStarMutation]);
 
   return {
     toast,
@@ -123,6 +132,7 @@ export function useCharacterAnimateBaseState() {
     confirmDialogProps,
     deletingId,
     handleDeleteGeneration,
+    handleToggleStar,
   };
 }
 

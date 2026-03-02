@@ -1,5 +1,13 @@
 import { type Task, type TaskStatus, TASK_STATUS } from '@/types/tasks';
 
+export const PROCESSING_REFETCH_POLICY = {
+  foregroundMinBackoffMs: 10000,
+  backgroundMinBackoffMs: 60000,
+  foregroundStaleThresholdMs: 30000,
+  backgroundStaleThresholdMs: 60000,
+  maxConsecutiveStaleEmptyRefetches: 3,
+} as const;
+
 export function isProcessingStatusFilter(status?: TaskStatus[]): boolean {
   return !!status?.some((value) => value === TASK_STATUS.QUEUED || value === TASK_STATUS.IN_PROGRESS);
 }
@@ -40,6 +48,7 @@ export function shouldForceProcessingRefetch(
     dataUpdatedAt: number;
   },
   timeSinceLastRefetch: number,
+  consecutiveStaleEmptyRefetches = 0,
 ): boolean {
   const processingFilterSelected = !!status
     && status.includes(TASK_STATUS.QUEUED)
@@ -47,13 +56,19 @@ export function shouldForceProcessingRefetch(
   const hasStaleEmptyData = !!query.data && query.data.tasks.length === 0 && !query.isFetching;
   const dataAge = query.dataUpdatedAt ? Date.now() - query.dataUpdatedAt : Infinity;
   const isHidden = typeof document !== 'undefined' ? document.hidden : false;
-  const minBackoffMs = isHidden ? 60000 : 10000;
-  const staleThresholdMs = isHidden ? 60000 : 30000;
+  const minBackoffMs = isHidden
+    ? PROCESSING_REFETCH_POLICY.backgroundMinBackoffMs
+    : PROCESSING_REFETCH_POLICY.foregroundMinBackoffMs;
+  const staleThresholdMs = isHidden
+    ? PROCESSING_REFETCH_POLICY.backgroundStaleThresholdMs
+    : PROCESSING_REFETCH_POLICY.foregroundStaleThresholdMs;
   const meetsStaleThreshold = dataAge > staleThresholdMs;
+  const hasRemainingAttempts = consecutiveStaleEmptyRefetches < PROCESSING_REFETCH_POLICY.maxConsecutiveStaleEmptyRefetches;
 
   return processingFilterSelected
     && hasStaleEmptyData
     && query.status === 'success'
     && meetsStaleThreshold
+    && hasRemainingAttempts
     && timeSinceLastRefetch > minBackoffMs;
 }
