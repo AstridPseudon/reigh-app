@@ -215,16 +215,16 @@
   "created": "2026-02-24T17:37:02+00:00",
   "last_scan": "2026-03-02T19:17:55+00:00",
   "scan_count": 143,
-  "overall_score": 75.6,
-  "objective_score": 97.2,
-  "strict_score": 75.6,
+  "overall_score": 75.7,
+  "objective_score": 97.3,
+  "strict_score": 75.7,
   "verified_strict_score": 96.5,
   "stats": {
     "total": 4909,
     "auto_resolved": 3091,
     "false_positive": 2,
-    "fixed": 387,
-    "open": 1429,
+    "fixed": 404,
+    "open": 1412,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -244,8 +244,8 @@
       "3": {
         "auto_resolved": 1499,
         "false_positive": 2,
-        "fixed": 268,
-        "open": 614,
+        "fixed": 285,
+        "open": 597,
         "wontfix": 0
       },
       "4": {
@@ -26032,17 +26032,23 @@
         "importer_count": 1,
         "loc_weight": 15.716233645501712
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct PreviewTogetherStage tests for video shell rendering, lightbox and navigation actions, image crossfade mode behavior, and playback/audio/seek control callbacks.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:24:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:24:32+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/lib/tasks/taskFamilyContracts.ts::untested_module": {
       "id": "test_coverage::src/shared/lib/tasks/taskFamilyContracts.ts::untested_module",
@@ -28283,17 +28289,23 @@
         "importer_count": 1,
         "loc_weight": 11.135528725660043
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct FrameThumbnail tests for successful frame capture, duration clamp behavior, and error-reporting paths for draw and media load failures.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:26:18+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:26:18+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotEditor/ShotSettingsContext.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotEditor/ShotSettingsContext.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -29163,17 +29175,23 @@
         "importer_count": 1,
         "loc_weight": 7.3484692283495345
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct PreviewTogetherThumbnails tests for active thumbnail styling, thumb/start-image fallback behavior, image-only badge rendering, ref attachment, and segment selection callbacks.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:27:02+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:27:02+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/SegmentSettingsForm/components/StructureVideoSection.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/SegmentSettingsForm/components/StructureVideoSection.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -29570,17 +29588,23 @@
         "importer_count": 1,
         "loc_weight": 7.745966692414834
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct AppProviders composition test that validates QueryClient and Tooltip provider wiring, initializer render, full provider-chain presence, and child rendering.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:28:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:28:19+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineRuler.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineRuler.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -30232,17 +30256,23 @@
         "importer_count": 1,
         "loc_weight": 12.609520212918492
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook coverage for overlay pointer-close behavior, reposition-mode suppression, background-capture close, content interaction propagation, and touch event/touch-cancel handling.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:30:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:30:07+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/VideoTravelFloatingOverlay.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/VideoTravelFloatingOverlay.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -31057,17 +31087,23 @@
         "importer_count": 1,
         "loc_weight": 9.16515138991168
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct migration-hook coverage for category conversion and dedupe, no-op when already migrated, and retry behavior after failed persistence with error normalization.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:31:24+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:31:24+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::supabase/functions/generate-upload-url/index.ts::untested_module": {
       "id": "test_coverage::supabase/functions/generate-upload-url/index.ts::untested_module",
@@ -82227,17 +82263,23 @@
         "importer_count": 1,
         "loc_weight": 10.488088481701515
       },
-      "status": "open",
-      "note": "Reopened (\u00d715) \u2014 reappeared in scan (was auto_resolved)",
+      "status": "fixed",
+      "note": "Added direct hook tests for local list navigation, server page boundary transitions with pending targets, index selection, and null-active no-op behavior.",
       "first_seen": "2026-02-24T17:50:39+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:36:59+00:00",
       "reopen_count": 15,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:36:59+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/lib/storage/storageContract.ts::transitive_only": {
       "id": "test_coverage::src/shared/lib/storage/storageContract.ts::transitive_only",
@@ -85138,17 +85180,23 @@
         "importer_count": 1,
         "loc_weight": 5.196152422706632
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct utility tests for exported legacy key list and in-place stripping of legacy structure fields while preserving non-legacy fields.",
       "first_seen": "2026-02-24T18:35:46+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:37:18+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:37:18+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/lib/tasks/taskViewContract.ts::transitive_only": {
       "id": "test_coverage::src/shared/lib/tasks/taskViewContract.ts::transitive_only",
@@ -86248,17 +86296,23 @@
         "importer_count": 5,
         "loc_weight": 4.898979485566356
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct component test asserting DeleteGenerationConfirmDialog maps its contract props to ConfirmDialog with destructive delete-specific metadata.",
       "first_seen": "2026-02-24T18:45:18+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:37:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:37:19+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/lib/tasks/taskParamParsers.ts::transitive_only": {
       "id": "test_coverage::src/shared/lib/tasks/taskParamParsers.ts::transitive_only",
@@ -86573,17 +86627,23 @@
         "importer_count": 2,
         "loc_weight": 6.244997998398398
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct payload mapping tests for defined-field mapping, rename/transform/include behavior, and assignment into existing target payloads.",
       "first_seen": "2026-02-24T19:05:17+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:37:20+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:37:20+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryInteractionController.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryInteractionController.ts::transitive_only",
@@ -86598,17 +86658,23 @@
         "importer_count": 1,
         "loc_weight": 4.47213595499958
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook composition test asserting handler and mobile hook invocation passthrough and combined return contract.",
       "first_seen": "2026-02-24T19:05:17+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:37:21+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:37:21+00:00",
+        "scan_verified": false
+      }
     },
     "smells::src/features/lora/components/ActiveLoRAsDisplay.test.tsx::hardcoded_url": {
       "id": "smells::src/features/lora/components/ActiveLoRAsDisplay.test.tsx::hardcoded_url",
@@ -89064,17 +89130,23 @@
         "importer_count": 1,
         "loc_weight": 6.164414002968976
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct service tests for lock/unlock behavior (class toggling, focusout viewport nudge, blur, scroll restore) and factory creation path.",
       "first_seen": "2026-02-24T19:51:00+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:38:35+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:38:35+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/app/hooks/useSettingsModalIntents.ts::transitive_only": {
       "id": "test_coverage::src/app/hooks/useSettingsModalIntents.ts::transitive_only",
@@ -89089,17 +89161,23 @@
         "importer_count": 1,
         "loc_weight": 7.483314773547883
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook tests for route intent parsing/handling and history clear, invalid-state behavior, and openSettings app event intent handling.",
       "first_seen": "2026-02-24T19:51:00+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:38:36+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:38:36+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/runtime/viewportLockRuntime.ts::transitive_only": {
       "id": "test_coverage::src/shared/runtime/viewportLockRuntime.ts::transitive_only",
@@ -89114,17 +89192,23 @@
         "importer_count": 2,
         "loc_weight": 4.358898943540674
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct runtime tests for singleton initialization semantics and lazy fallback initialization using createViewportLockService when runtime was not pre-bootstrapped.",
       "first_seen": "2026-02-24T19:51:00+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:38:38+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:38:38+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxPaneLayout.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxPaneLayout.ts::transitive_only",
@@ -89139,17 +89223,23 @@
         "importer_count": 1,
         "loc_weight": 7.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook tests for tasks-pane offset styling path and fullscreen/no-offset styling path in computed overlay and content layout styles.",
       "first_seen": "2026-02-24T19:51:00+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:40:02+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:40:02+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/hooks/mobile/deviceDetection.ts::transitive_only": {
       "id": "test_coverage::src/shared/hooks/mobile/deviceDetection.ts::transitive_only",
@@ -89164,17 +89254,23 @@
         "importer_count": 2,
         "loc_weight": 8.54400374531753
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct device detection tests covering tablet/mobile/touch calculations, matchMedia error fallback/reporting, and portrait/mobile user-agent detection.",
       "first_seen": "2026-02-24T19:51:00+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:40:03+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:40:03+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxViewportLock.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxViewportLock.ts::transitive_only",
@@ -89189,17 +89285,23 @@
         "importer_count": 1,
         "loc_weight": 4.47213595499958
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook tests validating viewport/open-state acquisition when non-modal and cleanup release semantics, plus modal-mode no-op behavior.",
       "first_seen": "2026-02-24T19:51:00+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:40:04+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:40:04+00:00",
+        "scan_verified": false
+      }
     },
     "smells::supabase/functions/complete_task/generation.ts::switch_no_default": {
       "id": "smells::supabase/functions/complete_task/generation.ts::switch_no_default",
@@ -165413,18 +165515,18 @@
       "strict": 100.0
     },
     "Test health": {
-      "score": 92.3,
-      "strict_score": 92.3,
+      "score": 93.2,
+      "strict_score": 93.2,
       "verified_strict_score": 88.4,
       "checks": 14837,
-      "issues": 861,
+      "issues": 844,
       "tier": 4,
       "detectors": {
         "test_coverage": {
           "potential": 13738,
-          "pass_rate": 0.9370731866203466,
-          "issues": 92,
-          "weighted_failures": 864.4885622096783
+          "pass_rate": 0.9467575651076449,
+          "issues": 75,
+          "weighted_failures": 731.444570551175
         },
         "subjective_review": {
           "potential": 1099,
@@ -165433,7 +165535,7 @@
           "weighted_failures": 272.3000000000007
         }
       },
-      "strict": 92.3
+      "strict": 93.2
     },
     "Security": {
       "score": 100.0,
