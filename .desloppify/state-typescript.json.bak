@@ -215,16 +215,16 @@
   "created": "2026-02-24T17:37:02+00:00",
   "last_scan": "2026-03-02T19:17:55+00:00",
   "scan_count": 143,
-  "overall_score": 75.4,
-  "objective_score": 96.6,
-  "strict_score": 75.4,
+  "overall_score": 75.6,
+  "objective_score": 97.2,
+  "strict_score": 75.6,
   "verified_strict_score": 96.5,
   "stats": {
     "total": 4909,
     "auto_resolved": 3091,
     "false_positive": 2,
-    "fixed": 338,
-    "open": 1478,
+    "fixed": 386,
+    "open": 1430,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -244,8 +244,8 @@
       "3": {
         "auto_resolved": 1499,
         "false_positive": 2,
-        "fixed": 219,
-        "open": 663,
+        "fixed": 267,
+        "open": 615,
         "wontfix": 0
       },
       "4": {
@@ -12259,17 +12259,23 @@
         "importer_count": 3,
         "loc_weight": 13.638181696985855
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct MediaLightbox routing tests that assert segment-slot, null-media, video, and image branches with mocked child components; validated with vitest and full tsc.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:12:11+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:12:11+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/components/SegmentSlotFormView.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -12628,17 +12634,23 @@
         "importer_count": 1,
         "loc_weight": 8.18535277187245
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useOutputController tests for ready/unready selection wiring and returned orchestration state.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:47:42+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/ShotEditor/controllers/useOutputController.test.ts src/tools/travel-between-images/components/ShotEditor/controllers/useImageManagementController.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:47:42+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/VariantSelector/components/VariantGrid.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/VariantSelector/components/VariantGrid.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -13776,17 +13788,23 @@
         "assertions": 8,
         "loc_weight": 12.96148139681572
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added an additional concrete assertion in simpleCacheValidator tests to address the over-mocked warning.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:44:49+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/interactions/elementPolicy.test.ts src/tools/travel-between-images/components/Timeline/hooks/__tests__/timeline-core/timelinePositionCalc.test.ts src/shared/lib/__tests__/simpleCacheValidator.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:44:49+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryFiltersOptimized.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryFiltersOptimized.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -14407,17 +14425,23 @@
         "importer_count": 1,
         "loc_weight": 10.816653826391969
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct platform install signals hook tests for status updates, prompt event handling, and timeout probing.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:37:13+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/displayMode.test.ts src/shared/lib/storage/localStorageSafe.test.ts src/shared/hooks/platformInstall/signals.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:37:13+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotEditor/sections/generation/BatchModeContent.tsx::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotEditor/sections/generation/BatchModeContent.tsx::transitive_only",
@@ -14432,17 +14456,23 @@
         "importer_count": 1,
         "loc_weight": 19.621416870348583
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct BatchModeContent tests for composed props, stitch and swap interactions, and structure-video camera guidance slider handlers; validated with vitest and tsc.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:14:12+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:14:12+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useTimelineSelection.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useTimelineSelection.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -14744,17 +14774,23 @@
         "importer_count": 3,
         "loc_weight": 6.855654600401044
       },
-      "status": "open",
-      "note": "Reopened (\u00d73) \u2014 reappeared in scan (was auto_resolved)",
+      "status": "fixed",
+      "note": "Added direct VideoPortionTimeline types tests for selection color palette stability.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:40:37+00:00",
       "reopen_count": 3,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/components/ProductTour/targets.test.ts src/shared/lib/taskCreation/parseTaskCreationResponse.test.ts src/shared/components/VideoPortionTimeline/types.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:40:37+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/modal/ModalFooterButtons.tsx::untested_module": {
       "id": "test_coverage::src/shared/components/modal/ModalFooterButtons.tsx::untested_module",
@@ -15078,17 +15114,23 @@
         "importer_count": 2,
         "loc_weight": 6.48074069840786
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct errorPresentation tests for mapped titles, network descriptions, logging payloads, and silent error suppression.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:34:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/hooks/sourceImageChanges/__tests__/dataAccess.test.ts src/shared/lib/errorHandling/errorPresentation.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:34:32+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotEditor/hooks/useImageManagement.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotEditor/hooks/useImageManagement.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -15295,17 +15337,23 @@
         "importer_count": 1,
         "loc_weight": 15.427248620541512
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useEditingController orchestration test covering child-hook wiring and returned media/join workflow fields.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:06:38+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/ShotEditor/controllers/useEditingController.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:06:38+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useUnifiedDrop.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useUnifiedDrop.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -15480,17 +15528,23 @@
         "importer_count": 1,
         "loc_weight": 17.05872210923198
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useHandleDrag hook tests for start drag pause/seek behavior, tap-to-move clamping, and window-listener drag updates including max-gap warning and playback resume.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:15:58+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:15:58+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -15914,17 +15968,23 @@
         "importer_count": 2,
         "loc_weight": 11.313708498984761
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct sourceMismatchAnalysis tests for ID collection, null slot behavior, URL normalization, and reorder mismatch timestamps.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:38:57+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/errorHandling/normalizeAndLogError.test.ts src/shared/hooks/mobile/mobileErrorReporter.test.ts src/shared/hooks/sourceImageChanges/__tests__/sourceMismatchAnalysis.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:38:57+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/VariantSelector/hooks/useVariantActions.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/VariantSelector/hooks/useVariantActions.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -16163,17 +16223,23 @@
         "importer_count": 1,
         "loc_weight": 10.44030650891055
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct timelinePositionCalc tests (moved to timeline-core) for server position mapping, optimistic merge semantics, and sync/change utilities.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:44:40+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/interactions/elementPolicy.test.ts src/tools/travel-between-images/components/Timeline/hooks/__tests__/timeline-core/timelinePositionCalc.test.ts src/shared/lib/__tests__/simpleCacheValidator.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:44:40+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/LoraSelectorModal/components/MyLorasTab/components/FileUploadSection.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/LoraSelectorModal/components/MyLorasTab/components/FileUploadSection.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -16277,17 +16343,23 @@
         "importer_count": 1,
         "loc_weight": 3.1622776601683795
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct displayMode tests for media query and navigator standalone combinations.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:37:01+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/displayMode.test.ts src/shared/lib/storage/localStorageSafe.test.ts src/shared/hooks/platformInstall/signals.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:37:01+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/lib/errorHandling/notifyError.ts::transitive_only": {
       "id": "test_coverage::src/shared/lib/errorHandling/notifyError.ts::transitive_only",
@@ -16749,17 +16821,23 @@
         "importer_count": 1,
         "loc_weight": 13.564659966250536
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct extractor tests for cancellation behavior plus invalid total_frames/frame_rate error guards.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:46:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/app/hooks/useAppDndOverlay.test.tsx src/shared/hooks/videoFrameExtraction/extractor.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:46:19+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/TaskDetails/VideoTravelDetails.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/TaskDetails/VideoTravelDetails.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -16990,17 +17068,23 @@
         "importer_count": 1,
         "loc_weight": 6.928203230275509
       },
-      "status": "open",
-      "note": "Reopened (\u00d717) \u2014 reappeared in scan (was auto_resolved)",
+      "status": "fixed",
+      "note": "Added direct localStorageSafe tests including fallback/error normalization behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:37:07+00:00",
       "reopen_count": 17,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/displayMode.test.ts src/shared/lib/storage/localStorageSafe.test.ts src/shared/hooks/platformInstall/signals.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:37:07+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineMediaContext.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineMediaContext.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -17367,17 +17451,23 @@
         "importer_count": 1,
         "loc_weight": 4.123105625617661
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct normalizeAndLogError test to verify normalization call, logging call, and returned AppError.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:38:41+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/errorHandling/normalizeAndLogError.test.ts src/shared/hooks/mobile/mobileErrorReporter.test.ts src/shared/hooks/sourceImageChanges/__tests__/sourceMismatchAnalysis.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:38:41+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/lib/utils/caseConversion.ts::untested_module": {
       "id": "test_coverage::src/shared/lib/utils/caseConversion.ts::untested_module",
@@ -17423,17 +17513,23 @@
         "importer_count": 2,
         "loc_weight": 3.3166247903554
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct mobileErrorReporter tests for dedupe-by-key and independent-key reporting.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:38:48+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/errorHandling/normalizeAndLogError.test.ts src/shared/hooks/mobile/mobileErrorReporter.test.ts src/shared/hooks/sourceImageChanges/__tests__/sourceMismatchAnalysis.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:38:48+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaGallery/hooks/useContainerWidth.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaGallery/hooks/useContainerWidth.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -17768,17 +17864,23 @@
         "importer_count": 1,
         "loc_weight": 8.12403840463596
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useImageManagementController tests for delegated handlers and non-empty upload behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:47:49+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/ShotEditor/controllers/useOutputController.test.ts src/tools/travel-between-images/components/ShotEditor/controllers/useImageManagementController.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:47:49+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/character-animate/hooks/useCharacterAnimateSettings.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/character-animate/hooks/useCharacterAnimateSettings.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -17825,17 +17927,23 @@
         "importer_count": 1,
         "loc_weight": 6.557438524302
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct parseTaskCreationResponse tests for trimming, pending defaults, and ServerError paths.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:40:28+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/components/ProductTour/targets.test.ts src/shared/lib/taskCreation/parseTaskCreationResponse.test.ts src/shared/components/VideoPortionTimeline/types.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:40:28+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ui/toggle-group.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/ui/toggle-group.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -18169,17 +18277,23 @@
         "importer_count": 0,
         "loc_weight": 5.830951894845301
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct targets tests for stable IDs and selector mapping.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:40:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/components/ProductTour/targets.test.ts src/shared/lib/taskCreation/parseTaskCreationResponse.test.ts src/shared/components/VideoPortionTimeline/types.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:40:19+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ui/toggle.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/ui/toggle.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -18762,17 +18876,23 @@
         "importer_count": 1,
         "loc_weight": 13.490737563232042
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct platformDetection tests for detection branches, install instructions, and CTA text/icon rules.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:42:08+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/useOAuthHashSessionRestore.test.tsx src/shared/hooks/platformInstall/platformDetection.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:42:08+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/JoinClipsSettingsForm/types.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/JoinClipsSettingsForm/types.ts::transitive_only",
@@ -18844,17 +18964,23 @@
         "importer_count": 1,
         "loc_weight": 14.66287829861518
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useSeekController tests for no-video safe path, canplay readiness updates, and canvas drawing when already at target frame.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:51:47+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/hooks/videoHoverPreview/useSeekController.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:51:47+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineContainer/TimelineContainer.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineContainer/TimelineContainer.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -18901,17 +19027,23 @@
         "importer_count": 0,
         "loc_weight": 8.660254037844387
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useOAuthHashSessionRestore tests for no-hash noop, successful restore, and error cleanup behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:41:59+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/useOAuthHashSessionRestore.test.tsx src/shared/hooks/platformInstall/platformDetection.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:41:59+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -19117,17 +19249,23 @@
         "importer_count": 1,
         "loc_weight": 5.0990195135927845
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct elementPolicy tests covering interactive tags, overlay detection, and touch-through rules.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:44:28+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/interactions/elementPolicy.test.ts src/tools/travel-between-images/components/Timeline/hooks/__tests__/timeline-core/timelinePositionCalc.test.ts src/shared/lib/__tests__/simpleCacheValidator.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:44:28+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxVideoMode.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxVideoMode.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -19264,17 +19402,23 @@
         "importer_count": 1,
         "loc_weight": 8.774964387392123
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct TimelineTrack tests for drag/drop forwarding, double-click gating, click forwarding, and cursor/state class behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:58:28+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/Timeline/TimelineContainer/components/TimelineTrack.test.tsx src/tools/travel-between-images/components/Timeline/TimelineContainer/components/DragLayer.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:58:28+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useUpscale.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useUpscale.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -19703,17 +19847,23 @@
         "importer_count": 1,
         "loc_weight": 8.888194417315589
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useAppDndOverlay tests for image/video previews and finalize-drop timer cleanup.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:46:09+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/app/hooks/useAppDndOverlay.test.tsx src/shared/hooks/videoFrameExtraction/extractor.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:46:09+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/components/controls/AnnotationModeToggle.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/components/controls/AnnotationModeToggle.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -19785,17 +19935,23 @@
         "importer_count": 1,
         "loc_weight": 16.911534525287763
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct visuals tests for exported keyset, component factory shape, and successful render for each visual.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:53:00+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/components/install/scenarios.test.ts src/pages/Home/components/install/visuals.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:53:00+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/reposition/useImageTransform.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/reposition/useImageTransform.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -20353,17 +20509,23 @@
         "importer_count": 1,
         "loc_weight": 14.2828568570857
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct SelectionOverlay tests validating thumbnail/time rendering, interaction callbacks for selection and handles, and drag-offset visual feedback/clamping behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:17:02+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:17:02+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/components/PairPromptIndicator.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/ShotImageManager/components/PairPromptIndicator.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -20410,17 +20572,23 @@
         "importer_count": 1,
         "loc_weight": 10.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useTimelineDomainService tests (now under timeline-core) for core-driven and prop-driven/read-only behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:50:46+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/Timeline/hooks/__tests__/timeline-core/useTimelineDomainService.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:50:46+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/character-animate/pages/hooks/useCharacterAnimateBaseState.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/character-animate/pages/hooks/useCharacterAnimateBaseState.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -20844,17 +21012,23 @@
         "importer_count": 1,
         "loc_weight": 9.433981132056603
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct DragLayer tests for baseline marker rendering and conditional skeleton markers for pending drop/duplicate/external frames.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:59:09+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/Timeline/TimelineContainer/components/TimelineTrack.test.tsx src/tools/travel-between-images/components/Timeline/TimelineContainer/components/DragLayer.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:59:09+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ProjectSelectorModal.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/ProjectSelectorModal.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -20958,17 +21132,23 @@
         "importer_count": 0,
         "loc_weight": 8.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useAuthReferralFinalize tests for runtime-uninitialized, incomplete referral state, successful RPC finalize, and RPC failure handling.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:49:03+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/useAuthReferralFinalize.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:49:03+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/components/controls/BrushSizeSlider.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/components/controls/BrushSizeSlider.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -21653,17 +21833,23 @@
         "importer_count": 2,
         "loc_weight": 27.892651361962706
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct coverage for migrated PhaseConfigVertical component at shared/components/PhaseConfigSelectorModal/PhaseConfigVertical.tsx, including phase transition, random-seed toggle, LoRA additions, and restore-default behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:19:57+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:19:57+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxNavigation.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxNavigation.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -22111,17 +22297,23 @@
         "importer_count": 1,
         "loc_weight": 11.269427669584644
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct scenarios tests for installed-mobile, safari-dock, chromium-prompt, and no-match fallback behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:53:08+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/components/install/scenarios.test.ts src/pages/Home/components/install/visuals.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:53:08+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useEditModePanelState.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useEditModePanelState.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -22471,17 +22663,23 @@
         "importer_count": 2,
         "loc_weight": 8.831760866327848
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct taskRowMapper tests for type-guard validation and Task mapping defaults/field projection.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:54:26+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/taskRowMapper.test.ts src/shared/services/externalApiKeys/repository.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:54:26+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/hooks/useHashDeepLink.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/hooks/useHashDeepLink.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -22943,17 +23141,23 @@
         "importer_count": 1,
         "loc_weight": 7.615773105863909
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct repository tests for auth guard, select filtering, rpc save+reload, and delete RPC call.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:54:33+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/taskRowMapper.test.ts src/shared/services/externalApiKeys/repository.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:54:33+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/hooks/useMobileGestures.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/ShotImageManager/hooks/useMobileGestures.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -23350,17 +23554,23 @@
         "importer_count": 1,
         "loc_weight": 4.795831523312719
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct taskFetchFreshness tests for success notifications and failure error normalization behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:55:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/realtime/dataFreshness/taskFetchFreshness.test.ts src/app/providers/queryClient.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:55:32+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::supabase/functions/process-auto-topup/index.ts::untested_module": {
       "id": "test_coverage::supabase/functions/process-auto-topup/index.ts::untested_module",
@@ -23807,17 +24017,23 @@
         "importer_count": 1,
         "loc_weight": 5.744562646538029
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct queryClient tests for auth-sensitive retry gates, retry ceilings, and stale-time/retry-delay defaults.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:55:41+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/realtime/dataFreshness/taskFetchFreshness.test.ts src/app/providers/queryClient.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:55:41+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/components/MediaDisplayWithCanvas.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/MediaLightbox/components/MediaDisplayWithCanvas.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -24585,17 +24801,23 @@
         "importer_count": 1,
         "loc_weight": 23.08679276123039
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook coverage for initialization by pair index, wrapped navigation, close-state reset with audio teardown, audio toggling, and video metadata/seek handler behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:22:20+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:22:20+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxStateAssembly.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/MediaLightbox/hooks/useLightboxStateAssembly.ts::transitive_only",
@@ -24832,17 +25054,23 @@
         "importer_count": 1,
         "loc_weight": 7.810249675906654
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct supabaseRuntime tests for singleton initialization, failure persistence, and pre-bootstrap error behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:56:30+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/integrations/supabase/runtime/supabaseRuntime.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:56:30+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/theme/retroButtonPolicy.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/theme/retroButtonPolicy.ts::transitive_only",
@@ -24857,17 +25085,23 @@
         "importer_count": 1,
         "loc_weight": 5.656854249492381
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct retroButtonPolicy tests for default classes and variant/size guard logic.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T20:57:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/components/theme/retroButtonPolicy.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T20:57:19+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/usePairData.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/usePairData.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -25355,17 +25589,23 @@
         "importer_count": 1,
         "loc_weight": 10.198039027185569
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct usePlayhead tests for timeupdate tracking, mouse/touch scrub interactions, and drag-start/drag-end playback behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:01:13+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/components/VideoPortionTimeline/hooks/usePlayhead.test.tsx and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:01:13+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/hooks/useExternalGenerations.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/ShotImageManager/hooks/useExternalGenerations.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -25634,17 +25874,23 @@
         "importer_count": 1,
         "loc_weight": 5.830951894845301
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct HuggingFace token verifier tests covering all response branches and fetch exception handling.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:00:14+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/services/externalApiKeys/huggingFaceTokenVerifier.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:00:14+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/PhaseConfigSelectorModal/components/MediaPreview.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/PhaseConfigSelectorModal/components/MediaPreview.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -25963,17 +26209,23 @@
         "importer_count": 0,
         "loc_weight": 6.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct networkStatusDebug tests for window helper wiring, manager calls, event dispatch, and onLine/effectiveType restoration.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:02:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/services/network/networkStatusDebug.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:02:07+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/PhaseConfigSelectorModal/components/BrowsePresetsTab.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/shared/components/PhaseConfigSelectorModal/components/BrowsePresetsTab.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -26523,17 +26775,23 @@
         "importer_count": 0,
         "loc_weight": 8.602325267042627
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct pollingPolicy tests for warm-up, recent events, stale/no-event polling, disconnected backoff, and circuit-breaker handling.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:03:15+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/realtime/dataFreshness/pollingPolicy.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:03:15+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useDownloadImages.ts::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useDownloadImages.ts::placeholder::moduleCoverageConsolidated.test.ts",
@@ -26899,17 +27157,23 @@
         "importer_count": 2,
         "loc_weight": 7.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct runAuthSupabaseOperation tests for default/custom success policies and normalized failure metadata.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:04:06+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/pages/Home/hooks/auth/runAuthSupabaseOperation.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:04:06+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/character-animate/pages/components/ModeSelector.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/character-animate/pages/components/ModeSelector.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -27230,17 +27494,23 @@
         "importer_count": 1,
         "loc_weight": 7.0710678118654755
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useProcessingRefetchGuard tests for force-refetch execution and max stale-empty guard stop condition.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:05:18+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/hooks/tasks/useProcessingRefetchGuard.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:05:18+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/DropIndicator.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/DropIndicator.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -27319,17 +27589,23 @@
         "importer_count": 1,
         "loc_weight": 15.165750888103101
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct useGenerationController tests for child-hook wiring, stitch request mapping, prompt-change/clear flow, and clear-error normalization.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:07:52+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/tools/travel-between-images/components/ShotEditor/controllers/useGenerationController.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:07:52+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/ShotImageManagerDesktop.tsx::over_mocked::ShotImageManagerDesktop.test.tsx": {
       "id": "test_coverage::src/shared/components/ShotImageManager/ShotImageManagerDesktop.tsx::over_mocked::ShotImageManagerDesktop.test.tsx",
@@ -27345,17 +27621,23 @@
         "assertions": 15,
         "loc_weight": 23.259406699226016
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added concrete assertions in ShotImageManagerDesktop tests to validate rendered metadata and selection behavior, then verified with vitest for this file and full TypeScript typecheck.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:10:34+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually completed and validated this task, and I am not gaming the score.",
+        "attested_at": "2026-03-02T21:10:34+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/training-data-helper/components/VideoSegmentEditor/components/SegmentListItem.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/training-data-helper/components/VideoSegmentEditor/components/SegmentListItem.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -27964,17 +28246,23 @@
         "importer_count": 2,
         "loc_weight": 9.486832980505138
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct debugConsole tests for debugConfig fallback, channel override lifecycle, tagged logging, and force logging behavior.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T19:17:55+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T21:08:49+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually run pnpm vitest run --config config/testing/vitest.config.ts src/shared/lib/debug/debugConsole.test.ts and pnpm exec tsc --noEmit and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T21:08:49+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/VideoPortionTimeline/components/FrameThumbnail.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/VideoPortionTimeline/components/FrameThumbnail.tsx::transitive_only",
@@ -165119,18 +165407,18 @@
       "strict": 100.0
     },
     "Test health": {
-      "score": 88.9,
-      "strict_score": 88.9,
+      "score": 92.3,
+      "strict_score": 92.3,
       "verified_strict_score": 88.4,
       "checks": 14837,
-      "issues": 910,
+      "issues": 862,
       "tier": 4,
       "detectors": {
         "test_coverage": {
           "potential": 13738,
-          "pass_rate": 0.8999641599102144,
-          "issues": 141,
-          "weighted_failures": 1374.2923711534745
+          "pass_rate": 0.9362088437693465,
+          "issues": 93,
+          "weighted_failures": 876.3629042967164
         },
         "subjective_review": {
           "potential": 1099,
@@ -165139,7 +165427,7 @@
           "weighted_failures": 272.3000000000007
         }
       },
-      "strict": 88.9
+      "strict": 92.3
     },
     "Security": {
       "score": 100.0,
