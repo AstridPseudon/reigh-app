@@ -174,7 +174,7 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:21:20+00:00"
+      "stale_since": "2026-03-02T18:44:06+00:00"
     }
   },
   "potentials": {
@@ -218,15 +218,15 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 297,
-    "open": 1909,
+    "fixed": 298,
+    "open": 1908,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 96,
-        "open": 10,
+        "fixed": 97,
+        "open": 9,
         "wontfix": 0
       },
       "2": {
@@ -156387,16 +156387,22 @@
         "suggestion": "Staged reorg plan: 1) move all generation/shot consumers to `@/domains/generation/types` (start with `useGenerationMutations.ts`, `VideoShotDisplay.tsx`); 2) keep `src/types/generationAndShots.ts|generationRow.ts|shot.ts` as temporary no-import deprecation stubs; 3) remove `@/types/shots` alias path entirely; 4) validate with `node scripts/quality/check-shots-shim-usage.mjs --max 0`, `npm run test:contracts`, and `npm run typecheck:strict-probe` before deleting residual shims.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Validated and enforced canonical generation/shot type ownership on current head: active consumers use @/domains/generation/types, @/types/shots shim usage remains zero (check-shots-shim-usage --max 0), and generation/shot contract tests pass.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:44:06+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually verified and enforced canonical generation and shot type surfaces with passing shim and contract checks, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:44:06+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec": {
       "id": "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
@@ -160118,13 +160124,13 @@
       "strict_score": 52.6,
       "verified_strict_score": 52.6,
       "checks": 10,
-      "issues": 2,
+      "issues": 1,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.526,
-          "issues": 2,
+          "issues": 1,
           "weighted_failures": 4.74,
           "assessment_score": 52.6,
           "placeholder": false,
