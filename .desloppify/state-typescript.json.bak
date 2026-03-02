@@ -139,7 +139,7 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:39:34+00:00"
+      "stale_since": "2026-03-02T18:29:23+00:00"
     },
     "incomplete_migration": {
       "score": 53.5,
@@ -168,7 +168,10 @@
     "package_organization": {
       "score": 52.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00",
+      "needs_review_refresh": true,
+      "refresh_reason": "review_finding_fixed",
+      "stale_since": "2026-03-02T18:21:20+00:00"
     }
   },
   "potentials": {
@@ -212,22 +215,22 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 288,
-    "open": 1918,
+    "fixed": 292,
+    "open": 1914,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 89,
-        "open": 17,
+        "fixed": 92,
+        "open": 14,
         "wontfix": 0
       },
       "2": {
         "auto_resolved": 686,
         "false_positive": 0,
-        "fixed": 12,
-        "open": 171,
+        "fixed": 13,
+        "open": 170,
         "wontfix": 0
       },
       "3": {
@@ -155897,16 +155900,22 @@
         "suggestion": "Run a staged reorg: Stage 1 create target folders (`src/features/resources/components`, `src/features/shots/components`, `src/features/lightbox/hooks`, `src/shared/hooks/tasks`, `src/shared/services/resources`). Stage 2 move domain files first (`DatasetBrowserModal`, `CreateShotModal`, `useLightboxOpen`, `generationTaskBridge`) into those folders without behavior changes. Stage 3 update imports with `rg -l \"@/shared/components/DatasetBrowserModal|@/shared/components/CreateShotModal|@/shared/hooks/useLightboxOpen|@/shared/lib/generationTaskBridge\" src` then apply path rewrites. Stage 4 validate with `npm run typecheck && npm run test -- DatasetBrowserModal CreateShotModal useGenerationTaskDetails`.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reorganized shared catch-all boundaries by moving DatasetBrowserModal/CreateShotModal/useLightboxOpen/generationTaskBridge into feature or task-hook locations, rewrote imports, and updated affected tests/mocks.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:18:22+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually moved the flagged modules, updated import consumers and tests, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:18:22+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87": {
       "id": "review::.::holistic::package_organization::react_hook_in_lib_layer::8a45db87",
@@ -155931,16 +155940,22 @@
         "suggestion": "Staged move: Stage 1 create `src/shared/hooks/tasks/usePrimaryTaskMapping.ts` and move the hook there; keep a temporary re-export shim in old path. Stage 2 keep repository lookup (`getPrimaryTaskIdForGeneration`) in `generationTaskRepository.ts` only. Stage 3 update imports via `rg -l \"@/shared/lib/generationTaskBridge\" src` and rewrite to new hook path. Stage 4 remove shim after green checks with `npm run typecheck && npm run test -- useGenerationTaskDetails generationTaskBridge`.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Moved the React Query generation-task hook from src/shared/lib/generationTaskBridge.ts into src/shared/hooks/tasks/usePrimaryTaskMapping.ts, updated import consumers/tests, and removed the lib-layer hook module.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:21:20+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually moved the hook out of shared/lib, updated references, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:21:20+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4": {
       "id": "review::.::holistic::high_level_elegance::dataset_browser_multi_responsibility_boundary::276834e4",
@@ -155966,16 +155981,22 @@
         "suggestion": "Staged split: Stage 1 extract `useResourceBrowserData` and `ResourceBrowserGrid` into `src/features/resources/`. Stage 2 add thin feature adapters (`StyleReferenceBrowserModal`, `StructureVideoBrowserModal`) in each feature folder with mode-specific contracts. Stage 3 keep `DatasetBrowserModal` as temporary compatibility wrapper delegating to adapters. Stage 4 migrate importers (`ReferenceSection`, `StructureVideoSection`, timeline/batch guidance) and validate with `npm run typecheck && npm run test -- DatasetBrowserModal StructureVideoSection ReferenceSection`.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split resource-browser responsibilities by extracting a shared feature hook (useResourceBrowserData) and grid renderer (ResourceBrowserGrid), added mode-specific adapters (StyleReferenceBrowserModal/StructureVideoBrowserModal), retained DatasetBrowserModal as compatibility wrapper, and migrated call sites to the domain adapters.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:26:22+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually separated data, presentation, and domain adapter responsibilities for the browser modal and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:26:22+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f": {
       "id": "review::.::holistic::high_level_elegance::lightbox_state_via_global_css_contract::3d96b62f",
@@ -156001,16 +156022,22 @@
         "suggestion": "Staged replacement: Stage 1 introduce `LightboxStateContext` in `src/features/lightbox/state/` and update lightbox open/close flows to publish explicit state. Stage 2 make `useBottomOffset` consume the typed context while keeping CSS class toggling as compatibility side-effect. Stage 3 remove DOM class observer hook and relocate residual style-only logic to lightbox feature. Stage 4 update imports with `rg -l \"useLightboxOpen|lightbox-open\" src` and validate via `npm run typecheck && npm run test -- useBottomOffset`.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Replaced lightbox-open DOM-class observation with explicit feature state publication: added lightboxOpenState store, made useLightboxOpen consume that state, and updated useLightboxViewportLock to publish open/close lifecycle while retaining CSS class lock as a compatibility side effect.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:29:23+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually replaced the CSS-class state contract with explicit lightbox open state publication and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:29:23+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe": {
       "id": "review::.::holistic::initialization_coupling::supabase_runtime_boot_order_contract::e5d981fe",
@@ -159816,13 +159843,13 @@
       "strict_score": 50.9,
       "verified_strict_score": 50.9,
       "checks": 10,
-      "issues": 3,
+      "issues": 1,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.509,
-          "issues": 3,
+          "issues": 1,
           "weighted_failures": 4.91,
           "assessment_score": 50.9,
           "placeholder": false,
@@ -160058,13 +160085,13 @@
       "strict_score": 52.6,
       "verified_strict_score": 52.6,
       "checks": 10,
-      "issues": 4,
+      "issues": 2,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.526,
-          "issues": 4,
+          "issues": 2,
           "weighted_failures": 4.74,
           "assessment_score": 52.6,
           "placeholder": false,
