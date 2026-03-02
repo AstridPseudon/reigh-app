@@ -59,7 +59,7 @@ Run these in CI and before merging facade/contract changes:
 
 | Gate | Required Surface Coverage | Expected Assertion |
 |---|---|---|
-| `npm run test:contracts` | `src/shared/components/ui/button.tsx`, `src/shared/components/ui/contracts/button.tsx`, `src/shared/components/ui/contracts/cn.ts`, `src/shared/lib/errorHandling/runtimeError.ts`, `src/domains/generation/types/public.ts` | Public contract API shape and behavior stays stable |
+| `npm run test:contracts` | `src/shared/components/ui/button.tsx`, `src/shared/components/ui/contracts/button.tsx`, `src/shared/components/ui/contracts/cn.ts`, `src/shared/lib/errorHandling/runtimeError.ts`, `src/domains/generation/types/index.ts` | Public contract API shape and behavior stays stable |
 | `npm run test:arch` | `src/shared/lib/errorHandling/runtimeError.ts`, `src/integrations/supabase/client.ts`, contract shim policy docs/scripts | Contract and shim usage rules are enforced |
 | `npm run quality:check` | `src/integrations/supabase/client.ts`, `src/shared/lib/errorHandling/runtimeError.ts`, `src/shared/components/ui/contracts/*` | Integrated lint/typecheck/governance checks pass for touched contract surfaces |
 

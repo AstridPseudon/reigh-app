@@ -1,3 +1,4 @@
+/** @uiContract Button primitive contract re-export. */
 export {
   Button,
   buttonVariants,

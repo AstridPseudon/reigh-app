@@ -9,7 +9,12 @@
       ],
       "expectedExports": [
         "initializeSupabase",
-        "getSupabaseClient"
+        "initializeSupabaseResult",
+        "getSupabaseClientResult",
+        "getSupabaseClient",
+        "supabaseClientRegistry",
+        "SupabaseClientAccessResult",
+        "SupabaseClientRegistry"
       ]
     },
     {

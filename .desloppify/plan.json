@@ -1,10 +1,8 @@
 {
   "version": 4,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-02T18:38:18+00:00",
+  "updated": "2026-03-02T18:42:31+00:00",
   "queue_order": [
-    "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
-    "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
     "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
     "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
     "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
@@ -13140,14 +13138,14 @@
     "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e": {
       "finding_id": "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
       "created_at": "2026-03-02T17:48:08+00:00",
-      "cluster": "synth-contract-boundaries",
-      "updated_at": "2026-03-02T17:48:08+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-02T18:42:05+00:00"
     },
     "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc": {
       "finding_id": "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
       "created_at": "2026-03-02T17:48:08+00:00",
-      "cluster": "synth-contract-boundaries",
-      "updated_at": "2026-03-02T17:48:08+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-02T18:42:31+00:00"
     },
     "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31": {
       "finding_id": "review::.::holistic::test_strategy::generation_lookup_duplicate_path_untested::741b8f31",
@@ -15439,8 +15437,6 @@
         "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
         "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
         "review::.::holistic::package_organization::thin_wrapper_dirs_fragment_image_edit_ownership::34bf2b5f",
-        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
-        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
         "review::.::holistic::test_strategy::instrumentation_tests_are_symbol_only::1648aee5",
         "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b",
         "review::.::holistic::logic_clarity::stored_prompt_count_nan_path::9a419c06"
@@ -20694,15 +20690,13 @@
   },
   "epic_synthesis_meta": {
     "synthesis_stages": {},
-    "finding_snapshot_hash": "249528ac1d00e766",
-    "strategy_summary": "Continue queue-first with dependency-aware cluster ordering. Execute synth-runtime-init-coupling first to finish explicit runtime readiness contracts and remove hidden global/bootstrap dependencies. Execute synth-contract-boundaries second to complete governance/test-surface fixes and remaining ownership boundary cleanup. Execute synth-lightbox-contracts third to finish residual abstraction/indirection simplification once runtime seams and contracts are stable. Validate each completed item with focused unit tests and no-emit TypeScript checks before marking done so behavior contracts and import stability remain intact.",
+    "finding_snapshot_hash": "3064f422d5132298",
+    "strategy_summary": "Continue queue-first with dependency-aware cluster ordering. Execute synth-runtime-init-coupling first to finish explicit runtime readiness contracts and remove hidden global/bootstrap dependencies. Execute synth-contract-boundaries second to complete governance/test-surface fixes and ownership boundary cleanup. Execute synth-lightbox-contracts third to finish remaining design-coherence and abstraction simplification once runtime seams and contracts are stable. Validate each completed item with focused unit tests and no-emit TypeScript checks before marking done so behavior contracts and import stability remain intact.",
     "trigger": "manual_synthesis",
-    "last_completed_at": "2026-03-02T18:38:11+00:00",
+    "last_completed_at": "2026-03-02T18:42:24+00:00",
     "synthesized_ids": [
-      "review::.::holistic::design_coherence::lightbox_adapter_overfragmentation::74d6e7d3",
       "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",
       "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
-      "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
       "review::.::holistic::incomplete_migration::legacy_generation_aliases_still_first_class::0afb1342",
       "review::.::holistic::initialization_coupling::supabase_dual_init_gates::097f9a89",
       "review::.::holistic::initialization_coupling::supabase_global_runtime_order_dependency::4f8699e2",
@@ -20714,40 +20708,38 @@
       "review::.::holistic::type_safety::mapper_unsafe_casts_hide_invalid_payloads::753c610b"
     ],
     "last_synthesis": {
-      "completed_at": "2026-03-02T18:38:11+00:00",
+      "completed_at": "2026-03-02T18:42:24+00:00",
       "stages": {
         "observe": {
           "stage": "observe",
-          "report": "Reviewed current review deltas after lightbox shared-state de-fragmentation; remaining findings continue to align with existing runtime-coupling and contract-boundary themes without contradictory remediation direction.",
+          "report": "Reviewed post-governance-doc updates; remaining findings align with existing runtime-coupling and contract-boundary themes without contradictory directions.",
           "cited_ids": [],
-          "timestamp": "2026-03-02T18:38:08+00:00",
-          "finding_count": 13,
-          "confirmed_at": "2026-03-02T18:38:09+00:00",
-          "confirmed_text": "I reviewed design_coherence and initialization_coupling findings in observe stage and confirmed no contradictory dependencies were introduced."
+          "timestamp": "2026-03-02T18:42:22+00:00",
+          "finding_count": 11,
+          "confirmed_at": "2026-03-02T18:42:22+00:00",
+          "confirmed_text": "I reviewed test_strategy and initialization_coupling findings in observe stage and confirmed no contradictory dependencies were introduced."
         },
         "reflect": {
           "stage": "reflect",
-          "report": "Recurring initialization_coupling still gates risk, so keep queue-first with synth-runtime-init-coupling and synth-contract-boundaries prioritized before remaining lightbox/high_level_elegance cleanup.",
+          "report": "Recurring design_coherence remains, but contract-boundary and runtime-init risks still gate priority; keep queue-first with synth-runtime-init-coupling and synth-contract-boundaries first.",
           "cited_ids": [],
-          "timestamp": "2026-03-02T18:38:09+00:00",
-          "finding_count": 13,
-          "recurring_dimensions": [
-            "initialization_coupling"
-          ],
-          "confirmed_at": "2026-03-02T18:38:10+00:00",
-          "confirmed_text": "I reviewed initialization_coupling and high_level_elegance and confirmed synth-runtime-init-coupling should remain first."
+          "timestamp": "2026-03-02T18:42:23+00:00",
+          "finding_count": 11,
+          "recurring_dimensions": [],
+          "confirmed_at": "2026-03-02T18:42:23+00:00",
+          "confirmed_text": "I reviewed design_coherence and initialization_coupling and confirmed synth-runtime-init-coupling should remain first."
         },
         "organize": {
           "stage": "organize",
           "report": "Retained dependency order: synth-runtime-init-coupling first, synth-contract-boundaries second, synth-lightbox-contracts third.",
           "cited_ids": [],
-          "timestamp": "2026-03-02T18:38:10+00:00",
+          "timestamp": "2026-03-02T18:42:24+00:00",
           "finding_count": 3,
-          "confirmed_at": "2026-03-02T18:38:10+00:00",
+          "confirmed_at": "2026-03-02T18:42:24+00:00",
           "confirmed_text": "I verified synth-runtime-init-coupling and synth-contract-boundaries sequencing and confirmed cluster coverage remains coherent."
         }
       },
-      "strategy": "Continue queue-first with dependency-aware cluster ordering. Execute synth-runtime-init-coupling first to finish explicit runtime readiness contracts and remove hidden global/bootstrap dependencies. Execute synth-contract-boundaries second to complete governance/test-surface fixes and remaining ownership boundary cleanup. Execute synth-lightbox-contracts third to finish residual abstraction/indirection simplification once runtime seams and contracts are stable. Validate each completed item with focused unit tests and no-emit TypeScript checks before marking done so behavior contracts and import stability remain intact."
+      "strategy": "Continue queue-first with dependency-aware cluster ordering. Execute synth-runtime-init-coupling first to finish explicit runtime readiness contracts and remove hidden global/bootstrap dependencies. Execute synth-contract-boundaries second to complete governance/test-surface fixes and ownership boundary cleanup. Execute synth-lightbox-contracts third to finish remaining design-coherence and abstraction simplification once runtime seams and contracts are stable. Validate each completed item with focused unit tests and no-emit TypeScript checks before marking done so behavior contracts and import stability remain intact."
     }
   },
   "execution_log": [
@@ -24783,11 +24775,251 @@
         "status": "fixed",
         "attestation": "I have actually removed no-op lightbox adapter builders and consolidated state composition into direct ownership code, and I am not gaming the score by resolving without fixing."
       }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:25+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Updated runtime governance artifacts to match actual contract surfaces: refreshed docs/governance/contracts/supabase-runtime.md with current bootstrap/runtime semantics, aligned contract surface map to src/domains/generation/types/index.ts, and updated README gate surface references.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:41:39+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 12,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:39+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed high_level_elegance and test_strategy findings in observe stage and confirmed no contradictory dependencies were introduced."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:55+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 12,
+        "recurring_dims": [
+          "design_coherence"
+        ],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:56+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed design_coherence and initialization_coupling and confirmed synth-runtime-init-coupling remains first."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:56+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:57+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I verified synth-runtime-init-coupling and synth-contract-boundaries sequencing and confirmed cluster coverage remains coherent.",
+        "coverage": "12/12"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:41:57+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 631,
+        "coverage": "12/12"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:05+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Updated governance docs and gate surface mapping to reflect current runtime contract surfaces (supabase runtime contract doc, README gate map, and contract-surface-map paths).",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:42:05+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Updated governance docs and gate surface mapping to reflect current runtime contract surfaces (supabase runtime contract doc, README gate map, and contract-surface-map paths).",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually updated governance documentation and gate surface mappings to match current runtime contracts, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:13+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Brought contract governance gates back to green by classifying current supabase client contract exports in registry.json, adding missing @uiContract tag for button contract re-export, and aligning contract-surface-map/README surfaces so check:contracts and check:contract-surface-map pass on head.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:42:22+00:00",
+      "action": "synthesis_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 11,
+        "cited_ids": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:22+00:00",
+      "action": "synthesis_confirm_observe",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed test_strategy and initialization_coupling findings in observe stage and confirmed no contradictory dependencies were introduced."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:23+00:00",
+      "action": "synthesis_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "finding_count": 11,
+        "recurring_dims": [],
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:23+00:00",
+      "action": "synthesis_confirm_reflect",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I reviewed design_coherence and initialization_coupling and confirmed synth-runtime-init-coupling should remain first."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:24+00:00",
+      "action": "synthesis_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "cluster_count": 3,
+        "reuse": false
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:24+00:00",
+      "action": "synthesis_confirm_organize",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "attestation": "I verified synth-runtime-init-coupling and synth-contract-boundaries sequencing and confirmed cluster coverage remains coherent.",
+        "coverage": "11/11"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:24+00:00",
+      "action": "synthesis_complete",
+      "finding_ids": [],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "strategy_len": 626,
+        "coverage": "11/11"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T18:42:31+00:00",
+      "action": "done",
+      "finding_ids": [
+        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Repaired contract-governance gates by classifying current Supabase client contract exports in registry.json, adding missing @uiContract metadata to UI contract button re-export, and aligning contract-surface map + README paths so check:contracts and check:contract-surface-map pass on head.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T18:42:31+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Repaired contract-governance gates by classifying current Supabase client contract exports in registry.json, adding missing @uiContract metadata to UI contract button re-export, and aligning contract-surface map + README paths so check:contracts and check:contract-surface-map pass on head.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually fixed the failing contract-governance gate checks on head and I am not gaming the score by resolving without fixing."
+      }
     }
   ],
   "promoted_ids": [
-    "review::.::holistic::high_level_elegance::governance_docs_runtime_drift::2a579b1e",
-    "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
     "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
     "review::.::holistic::design_coherence::lightbox_workflow_controls_duplication::ea885cec",
     "review::.::holistic::design_coherence::lightbox_passthrough_abstraction_debt::700b5d25",

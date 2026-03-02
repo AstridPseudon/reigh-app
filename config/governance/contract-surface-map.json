@@ -3,7 +3,7 @@
     "src/shared/components/ui/contracts/button.tsx",
     "src/shared/components/ui/contracts/cn.ts",
     "src/shared/lib/errorHandling/runtimeError.ts",
-    "src/domains/generation/types/public.ts"
+    "src/domains/generation/types/index.ts"
   ],
   "test:arch": [
     "src/shared/lib/errorHandling/runtimeError.ts",

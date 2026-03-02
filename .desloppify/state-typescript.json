@@ -49,7 +49,7 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:11:10+00:00"
+      "stale_since": "2026-03-02T18:42:31+00:00"
     },
     "type_safety": {
       "score": 80.2,
@@ -142,7 +142,7 @@
       "assessed_at": "2026-03-02T14:44:49+00:00",
       "needs_review_refresh": true,
       "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:29:23+00:00"
+      "stale_since": "2026-03-02T18:42:05+00:00"
     },
     "incomplete_migration": {
       "score": 53.5,
@@ -218,15 +218,15 @@
     "total": 5018,
     "auto_resolved": 2809,
     "false_positive": 3,
-    "fixed": 295,
-    "open": 1911,
+    "fixed": 297,
+    "open": 1909,
     "wontfix": 0,
     "by_tier": {
       "1": {
         "auto_resolved": 100,
         "false_positive": 0,
-        "fixed": 94,
-        "open": 12,
+        "fixed": 96,
+        "open": 10,
         "wontfix": 0
       },
       "2": {
@@ -156305,16 +156305,22 @@
         "suggestion": "Treat governance docs as executable contract artifacts: update docs to match current entrypoints and symbols, then add a doc-contract verifier that checks referenced file paths and exported symbols. Wire it into `npm run check:contracts` so docs drift fails the same gate as code-contract drift.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Updated governance docs and gate surface mapping to reflect current runtime contract surfaces (supabase runtime contract doc, README gate map, and contract-surface-map paths).",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:42:05+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually updated governance documentation and gate surface mappings to match current runtime contracts, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:42:05+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc": {
       "id": "review::.::holistic::test_strategy::contract_gate_not_green_on_head::593f7afc",
@@ -156339,16 +156345,22 @@
         "suggestion": "Restore gate integrity in three steps: 1) decide whether `getSupabaseClientResult` is public contract and either add it to `config/contracts/registry.json` or make it internal; 2) add required `@uiContract` tag to `src/shared/components/ui/contracts/button.tsx`; 3) enforce a CI pre-merge job running `npm run quality:check` with no allowed skips.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Repaired contract-governance gates by classifying current Supabase client contract exports in registry.json, adding missing @uiContract metadata to UI contract button re-export, and aligning contract-surface map + README paths so check:contracts and check:contract-surface-map pass on head.",
       "first_seen": "2026-03-02T14:44:49+00:00",
       "last_seen": "2026-03-02T14:44:49+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T18:42:31+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually fixed the failing contract-governance gate checks on head and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T18:42:31+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0": {
       "id": "review::.::holistic::package_organization::generation_type_surface_fragmentation::98cfadb0",
@@ -159864,13 +159876,13 @@
       "strict_score": 50.9,
       "verified_strict_score": 50.9,
       "checks": 10,
-      "issues": 1,
+      "issues": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.509,
-          "issues": 1,
+          "issues": 0,
           "weighted_failures": 4.91,
           "assessment_score": 50.9,
           "placeholder": false,
@@ -160018,13 +160030,13 @@
       "strict_score": 52.4,
       "verified_strict_score": 52.4,
       "checks": 10,
-      "issues": 2,
+      "issues": 1,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.524,
-          "issues": 2,
+          "issues": 1,
           "weighted_failures": 4.76,
           "assessment_score": 52.4,
           "placeholder": false,
