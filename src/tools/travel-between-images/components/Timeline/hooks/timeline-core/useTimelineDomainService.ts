@@ -78,8 +78,8 @@ export function useTimelineDomainService(input: UseTimelineDomainServiceInput): 
   const readOnlyGenerations = readOnly ? propAllGenerations : undefined;
 
   const {
-    displayPositions,
-    setFramePositions,
+    positions,
+    updatePositions,
   } = usePositionManagement({
     shotId,
     shotGenerations,
@@ -92,8 +92,8 @@ export function useTimelineDomainService(input: UseTimelineDomainServiceInput): 
     shotGenerations,
     images,
     readOnlyGenerations,
-    displayPositions,
-    setFramePositions,
+    positions,
+    updatePositions,
     actualPairPrompts,
     loadPositions,
   };

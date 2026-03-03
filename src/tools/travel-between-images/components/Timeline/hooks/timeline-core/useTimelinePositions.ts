@@ -98,10 +98,6 @@ interface UseTimelinePositionsReturn {
   hasPosition: (id: string) => boolean;
   hasPendingUpdate: (id: string) => boolean;
 
-  // For backwards compatibility during migration
-  displayPositions: Map<string, number>;
-  framePositions: Map<string, number>;
-  setFramePositions: (positions: Map<string, number>) => Promise<void>;
 }
 
 interface UpdateOptions {
@@ -669,11 +665,6 @@ export function useTimelinePositions({
   // BACKWARDS COMPATIBILITY
   // -------------------------------------------------------------------------
 
-  // For backwards compatibility, expose the same interface as the old hook
-  const setFramePositions = useCallback(async (newPositions: Map<string, number>) => {
-    await updatePositions(newPositions, { operation: 'drag' });
-  }, [updatePositions]);
-  
   // -------------------------------------------------------------------------
   // RETURN
   // -------------------------------------------------------------------------
@@ -703,10 +694,6 @@ export function useTimelinePositions({
     hasPosition,
     hasPendingUpdate,
 
-    // Backwards compatibility
-    displayPositions: positions,
-    framePositions: positions,
-    setFramePositions,
   };
 }
 

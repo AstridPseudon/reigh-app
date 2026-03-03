@@ -12,7 +12,7 @@ import {
   useVideoRegenerateMode,
 } from './index';
 import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './useVideoLightboxEnvironment';
-import type { VideoLightboxProps } from '../videoLightboxContracts';
+import type { VideoLightboxProps } from '../types';
 
 type SharedLightboxInput = Parameters<typeof useSharedLightboxState>[0];
 

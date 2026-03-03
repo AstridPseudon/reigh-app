@@ -3,8 +3,7 @@ import type { GenerationRow, Shot } from '@/domains/generation/types';
 import { isVideoAny } from '@/shared/lib/typeGuards';
 import type { AdjacentSegmentsData, SegmentSlotModeData } from './types';
 import type { ShotOption, TaskDetailsData } from './types';
-import type { LightboxNavigationProps, LightboxShotWorkflowProps, LightboxFeatureFlags, LightboxActionHandlers } from './types';
-import type { VideoLightboxVideoProps } from './videoLightboxContracts';
+import type { LightboxNavigationProps, LightboxShotWorkflowProps, LightboxFeatureFlags, LightboxActionHandlers, VideoLightboxVideoProps } from './types';
 import { ImageLightbox } from './ImageLightbox';
 import { VideoLightbox } from './VideoLightbox';
 

@@ -167,8 +167,8 @@ const Timeline: React.FC<TimelineProps> = ({
   const {
     images,
     readOnlyGenerations,
-    displayPositions,
-    setFramePositions,
+    positions,
+    updatePositions,
     actualPairPrompts,
     loadPositions,
   } = useTimelineDomainService({
@@ -226,8 +226,8 @@ const Timeline: React.FC<TimelineProps> = ({
       newPositions.set(image.id, index * quantizedGap);
     });
 
-    await setFramePositions(newPositions);
-  }, [images, setFramePositions]);
+    await updatePositions(newPositions);
+  }, [images, updatePositions]);
 
   // Check if timeline is empty
   const hasNoImages = images.length === 0;
@@ -381,9 +381,9 @@ const Timeline: React.FC<TimelineProps> = ({
         shotId={shotId}
         projectId={projectId}
         images={images}
-        framePositions={displayPositions}
+        framePositions={positions}
         onResetFrames={handleResetFrames}
-        setFramePositions={setFramePositions}
+        setFramePositions={updatePositions}
         onImageReorder={onImageReorder}
         onFileDrop={onFileDrop}
         onGenerationDrop={onGenerationDrop}

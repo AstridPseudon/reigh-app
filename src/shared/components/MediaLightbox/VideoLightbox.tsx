@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import type { VideoLightboxProps, VideoLightboxPropsWithMedia } from './videoLightboxContracts';
+import type { VideoLightboxProps, VideoLightboxPropsWithMedia } from './types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { OverlayViewportConstraints } from '@/features/layout/contracts/overlayViewportConstraints';
 

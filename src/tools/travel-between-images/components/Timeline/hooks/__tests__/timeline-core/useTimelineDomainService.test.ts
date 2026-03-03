@@ -42,8 +42,8 @@ describe('useTimelineDomainService', () => {
       pairPrompts: { 1: { prompt: 'utils', negativePrompt: '' } },
     });
     mocks.usePositionManagement.mockReturnValue({
-      displayPositions: new Map([['a', 10]]),
-      setFramePositions: vi.fn(),
+      positions: new Map([['a', 10]]),
+      updatePositions: vi.fn(),
     });
     mocks.filterTimelineEligiblePositionedImages.mockImplementation((items: unknown[]) => items);
   });

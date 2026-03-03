@@ -4,7 +4,7 @@ import { invokeLightboxDelete } from '../utils';
 import type {
   VideoLightboxSharedStateModel,
 } from './useVideoLightboxController';
-import type { VideoLightboxProps } from '../videoLightboxContracts';
+import type { VideoLightboxProps } from '../types';
 import type { VideoLightboxEnvironment } from './useVideoLightboxEnvironment';
 
 interface UseVideoLightboxActionsInput {

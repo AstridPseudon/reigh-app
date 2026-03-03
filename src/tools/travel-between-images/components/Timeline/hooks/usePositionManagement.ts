@@ -48,7 +48,7 @@ export function usePositionManagement({
     }
   }, [isDragInProgress, lockPositions, unlockPositions]);
 
-  const setFramePositions = async (newPositions: Map<string, number>) => {
+  const updatePositions = async (newPositions: Map<string, number>) => {
     // Apply optimistic visual update IMMEDIATELY — before entering the write queue.
     // Without this, the optimistic update was gated behind runSerializedTimelineWrite,
     // so if the queue was blocked by a concurrent batch-editor midpoint RPC (8-12s),
@@ -71,7 +71,7 @@ export function usePositionManagement({
   };
 
   return {
-    displayPositions: positionSystem.positions,
-    setFramePositions,
+    positions: positionSystem.positions,
+    updatePositions,
   };
 }

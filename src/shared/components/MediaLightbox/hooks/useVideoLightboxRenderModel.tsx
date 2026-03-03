@@ -3,7 +3,7 @@ import { VideoEditPanel } from '../components/VideoEditPanel';
 import { InfoPanel } from '../components/InfoPanel';
 import type {
   VideoLightboxPropsWithMedia,
-} from '../videoLightboxContracts';
+} from '../types';
 import type {
   VideoLightboxSharedStateModel,
   VideoLightboxEditModel,
