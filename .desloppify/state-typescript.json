@@ -169,7 +169,7 @@
       "provisional_until_scan": 153,
       "needs_review_refresh": true,
       "refresh_reason": "review_issue_fixed",
-      "stale_since": "2026-03-03T21:35:33+00:00"
+      "stale_since": "2026-03-03T21:44:19+00:00"
     },
     "mid_level_elegance": {
       "score": 62.4,
@@ -227,15 +227,15 @@
     "total": 5651,
     "auto_resolved": 4943,
     "false_positive": 2,
-    "fixed": 59,
-    "open": 407,
+    "fixed": 61,
+    "open": 405,
     "wontfix": 240,
     "by_tier": {
       "1": {
         "auto_resolved": 226,
         "false_positive": 0,
-        "fixed": 38,
-        "open": 49,
+        "fixed": 40,
+        "open": 47,
         "wontfix": 23
       },
       "2": {
@@ -3254,13 +3254,13 @@
       "strict_score": 62.4,
       "verified_strict_score": 62.4,
       "checks": 10,
-      "failing": 9,
+      "failing": 7,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.624,
-          "failing": 9,
+          "failing": 7,
           "weighted_failures": 3.76,
           "assessment_score": 62.4,
           "placeholder": false,
@@ -194215,16 +194215,22 @@
         "suggestion": "Use Promise.all() to parallelize the updates, or better yet, implement a single RPC that clears enhanced prompts for all shot_generations in one query. Also check per-item error responses.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Converted sequential await loop to Promise.all for parallel DB updates, added error checking on results",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:44:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually replaced the for..of loop with Promise.all and added error handling. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:44:07+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::clear_enhanced_prompt_ignores_update_error_field::7c2d46f7": {
       "id": "review::.::holistic::low_level_elegance::clear_enhanced_prompt_ignores_update_error_field::7c2d46f7",
@@ -194246,16 +194252,22 @@
         "suggestion": "Destructure and check the error from each update, or batch into a single operation that surfaces errors.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added error checking to clearAllEnhancedPrompts Promise.all results \u2014 surfaces first Supabase error to catch block",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:44:19+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added error field checking on the DB update results. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:44:19+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::inline_edit_state_manual_reshaping::5e03e30e": {
       "id": "review::.::holistic::low_level_elegance::inline_edit_state_manual_reshaping::5e03e30e",

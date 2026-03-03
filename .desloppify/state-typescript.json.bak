@@ -95,7 +95,10 @@
       "source": "manual_override",
       "assessed_at": "2026-03-03T17:26:14+00:00",
       "provisional_override": true,
-      "provisional_until_scan": 153
+      "provisional_until_scan": 153,
+      "needs_review_refresh": true,
+      "refresh_reason": "review_issue_fixed",
+      "stale_since": "2026-03-03T21:39:40+00:00"
     },
     "authorization_consistency": {
       "score": 68.5,
@@ -166,7 +169,7 @@
       "provisional_until_scan": 153,
       "needs_review_refresh": true,
       "refresh_reason": "review_issue_fixed",
-      "stale_since": "2026-03-03T21:35:33+00:00"
+      "stale_since": "2026-03-03T21:44:07+00:00"
     },
     "mid_level_elegance": {
       "score": 62.4,
@@ -224,15 +227,15 @@
     "total": 5651,
     "auto_resolved": 4943,
     "false_positive": 2,
-    "fixed": 58,
-    "open": 408,
+    "fixed": 60,
+    "open": 406,
     "wontfix": 240,
     "by_tier": {
       "1": {
         "auto_resolved": 226,
         "false_positive": 0,
-        "fixed": 37,
-        "open": 50,
+        "fixed": 39,
+        "open": 48,
         "wontfix": 23
       },
       "2": {
@@ -3251,13 +3254,13 @@
       "strict_score": 62.4,
       "verified_strict_score": 62.4,
       "checks": 10,
-      "failing": 9,
+      "failing": 8,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.624,
-          "failing": 9,
+          "failing": 8,
           "weighted_failures": 3.76,
           "assessment_score": 62.4,
           "placeholder": false,
@@ -3383,13 +3386,13 @@
       "strict_score": 72.5,
       "verified_strict_score": 72.5,
       "checks": 10,
-      "failing": 7,
+      "failing": 6,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.725,
-          "failing": 7,
+          "failing": 6,
           "weighted_failures": 2.75,
           "assessment_score": 72.5,
           "placeholder": false,
@@ -191977,16 +191980,22 @@
         "suggestion": "Reorder parameters to queryClient-first to match the established convention used by cacheUtils.ts, useGenerationInvalidation.ts, timelineMutationService.ts, and generationStarCacheCoordinator.ts.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Swapped params to (queryClient, generationIds, options) to match convention, updated all call sites and tests",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:39:40+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually swapped the parameter order and updated all callers. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:39:40+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::api_surface_coherence::scope_resolution_inconsistent_optional_param::98c80722": {
       "id": "review::.::holistic::api_surface_coherence::scope_resolution_inconsistent_optional_param::98c80722",
@@ -194206,16 +194215,22 @@
         "suggestion": "Use Promise.all() to parallelize the updates, or better yet, implement a single RPC that clears enhanced prompts for all shot_generations in one query. Also check per-item error responses.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Converted sequential await loop to Promise.all for parallel DB updates, added error checking on results",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:44:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually replaced the for..of loop with Promise.all and added error handling. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:44:07+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::clear_enhanced_prompt_ignores_update_error_field::7c2d46f7": {
       "id": "review::.::holistic::low_level_elegance::clear_enhanced_prompt_ignores_update_error_field::7c2d46f7",
