@@ -15,28 +15,20 @@ import { VariantCard } from './VariantCard';
 
 const ITEMS_PER_PAGE = 20;
 
-interface VariantGridDataProps {
+interface VariantGridProps {
   filteredVariants: GenerationVariant[];
   allVariants: GenerationVariant[];
-  relationshipMap: Record<string, { isParent: boolean; isChild: boolean }>;
-  variantLineageDepth: Record<string, number>;
-}
-
-interface VariantGridUiProps {
   activeVariantId: string | null;
   currentPage: number;
   onPageChange: (page: number) => void;
   isMobile: boolean;
   readOnly: boolean;
   availableLoras?: LoraModel[];
+  relationshipMap: Record<string, { isParent: boolean; isChild: boolean }>;
+  variantLineageDepth: Record<string, number>;
   copiedVariantId: string | null;
   loadedSettingsVariantId: string | null;
-  currentSegmentImages?: CurrentSegmentImagesData;
-  loadedImagesVariantId: string | null;
-  isDeleteLoading: (variantId: string) => boolean;
-}
-
-interface VariantGridActionProps {
+  // Callbacks
   onVariantSelect: (variantId: string) => void;
   onMakePrimary?: (variantId: string) => Promise<void>;
   onDeleteVariant?: (variantId: string) => void;
@@ -48,9 +40,10 @@ interface VariantGridActionProps {
   onCopyId: (variantId: string) => void;
   onLoadSettings: (variant: GenerationVariant) => void;
   onLoadImages?: (variant: GenerationVariant) => void;
+  currentSegmentImages?: CurrentSegmentImagesData;
+  loadedImagesVariantId: string | null;
+  isDeleteLoading: (variantId: string) => boolean;
 }
-
-interface VariantGridProps extends VariantGridDataProps, VariantGridUiProps, VariantGridActionProps {}
 
 export const VariantGrid: React.FC<VariantGridProps> = ({
   filteredVariants,

@@ -20,61 +20,51 @@ import {
 } from '../ShotSettingsContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
 
-interface TimelineSectionRefProps {
+interface TimelineSectionProps {
+  // Ref
   timelineSectionRef?: (node: HTMLDivElement | null) => void;
-}
 
-interface TimelineSectionModeProps {
+  // Mode state (controlled by parent)
   isModeReady: boolean;
   settingsError: string | null;
   isMobile: boolean;
   generationMode?: 'batch' | 'timeline' | 'by-pair';
   onGenerationModeChange?: (mode: 'batch' | 'timeline' | 'by-pair') => void;
-}
 
-interface TimelineSectionFrameProps {
+  // Frame settings (from VideoTravelSettingsProvider)
   batchVideoFrames: number;
   onBatchVideoFramesChange: (frames: number) => void;
-  maxFrameLimit?: number;
-  smoothContinuations?: boolean;
-}
 
-interface TimelineSectionLayoutProps {
+  // Layout
   columns: 2 | 3 | 4 | 6;
-  cachedHasStructureVideo?: boolean;
-}
 
-interface TimelineSectionPendingPositionProps {
+  // Pending positions (specialized state)
   pendingPositions: Map<string, number>;
   onPendingPositionApplied: (generationId: string) => void;
-}
 
-interface TimelineSectionSelectionProps {
+  // Selection callback
   onSelectionChange?: (hasSelection: boolean) => void;
-  onDragStateChange?: (isDragging: boolean) => void;
-}
 
-interface TimelineSectionPromptProps {
+  // Prompts (from VideoTravelSettingsProvider)
   defaultPrompt?: string;
   onDefaultPromptChange?: (prompt: string) => void;
   defaultNegativePrompt?: string;
   onDefaultNegativePromptChange?: (prompt: string) => void;
-}
 
-interface TimelineSectionOutputProps {
+  // Frame constraints (from settings)
+  maxFrameLimit?: number;
+  smoothContinuations?: boolean;
+
+  // Output selection (controlled by parent)
   selectedOutputId?: string | null;
   onSelectedOutputChange?: (id: string | null) => void;
-}
 
-interface TimelineSectionProps
-  extends TimelineSectionRefProps,
-    TimelineSectionModeProps,
-    TimelineSectionFrameProps,
-    TimelineSectionLayoutProps,
-    TimelineSectionPendingPositionProps,
-    TimelineSectionSelectionProps,
-    TimelineSectionPromptProps,
-    TimelineSectionOutputProps {}
+  // Drag state callback
+  onDragStateChange?: (isDragging: boolean) => void;
+
+  // Project-level cache: whether this shot has structure videos (for skeleton)
+  cachedHasStructureVideo?: boolean;
+}
 
 export const TimelineSection: React.FC<TimelineSectionProps> = ({
   timelineSectionRef,

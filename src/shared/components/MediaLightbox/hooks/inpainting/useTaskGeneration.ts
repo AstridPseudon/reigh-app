@@ -49,46 +49,30 @@ const TASK_CONFIGS: Record<TaskType, TaskTypeConfig> = {
   },
 };
 
-interface TaskGenerationContextProps {
+interface UseTaskGenerationProps {
   media: GenerationRow;
   selectedProjectId: string | null;
   shotId?: string;
   toolTypeOverride?: string;
   isVideo: boolean;
-}
-
-interface TaskGenerationVariantProps {
   loras?: Array<{ url: string; strength: number }>;
   activeVariantId?: string | null;
   activeVariantLocation?: string | null;
   createAsGeneration?: boolean;
   advancedSettings?: EditAdvancedSettings;
   qwenEditModel?: QwenEditModel;
-}
-
-interface TaskGenerationStateProps {
+  // State
   inpaintStrokes: BrushStroke[];
   annotationStrokes: BrushStroke[];
   inpaintPrompt: string;
   inpaintNumGenerations: number;
-}
-
-interface TaskGenerationRefProps {
+  // Refs
   strokeOverlayRef: React.RefObject<StrokeOverlayHandle>;
-}
-
-interface TaskGenerationCallbackProps {
+  // Callbacks
   handleExitInpaintMode: () => void;
   setIsGeneratingInpaint: (isGenerating: boolean) => void;
   setInpaintGenerateSuccess: (success: boolean) => void;
 }
-
-interface UseTaskGenerationProps
-  extends TaskGenerationContextProps,
-    TaskGenerationVariantProps,
-    TaskGenerationStateProps,
-    TaskGenerationRefProps,
-    TaskGenerationCallbackProps {}
 
 export function useTaskGeneration({
   media,

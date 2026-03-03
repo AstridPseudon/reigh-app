@@ -16,25 +16,17 @@ type PaneIconType = 'chevron' | 'tools' | 'gallery' | 'tasks';
 // Button types that can appear in the control
 type ButtonType = 'third' | 'fourth' | 'lock' | 'unlock' | 'open';
 
-interface PaneControlTabStateProps {
+interface PaneControlTabProps {
   side: PaneSide;
   isLocked: boolean;
   isOpen: boolean;
+  toggleLock: (force?: boolean) => void;
+  openPane: () => void;
   paneDimension: number;
   bottomOffset?: number;
   horizontalOffset?: number;
-  allowMobileLock?: boolean;
-}
-
-interface PaneControlTabActionProps {
-  toggleLock: (force?: boolean) => void;
-  openPane: () => void;
   handlePaneEnter: () => void;
   handlePaneLeave: () => void;
-  customOpenAction?: () => void;
-}
-
-interface PaneControlTabButtonProps {
   thirdButton?: {
     onClick: () => void;
     ariaLabel: string;
@@ -50,19 +42,12 @@ interface PaneControlTabButtonProps {
   paneIcon?: PaneIconType;
   customIcon?: React.ReactNode;
   paneTooltip?: string;
-}
-
-interface PaneControlTabTourProps {
+  allowMobileLock?: boolean;
+  customOpenAction?: () => void;
   dataTour?: string;
   dataTourLock?: string;
   dataTourFourthButton?: string;
 }
-
-interface PaneControlTabProps
-  extends PaneControlTabStateProps,
-    PaneControlTabActionProps,
-    PaneControlTabButtonProps,
-    PaneControlTabTourProps {}
 
 // Helper component to wrap buttons in tooltips (desktop only)
 const TooltipButton: React.FC<{

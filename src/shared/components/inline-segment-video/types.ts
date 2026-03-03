@@ -11,34 +11,21 @@ export interface LayoutProps {
   adjustedPositionStyle: React.CSSProperties | undefined;
 }
 
-export interface InlineSegmentVideoCoreProps {
+export interface InlineSegmentVideoProps {
   slot: SegmentSlot;
   pairIndex: number;
   onClick: () => void;
   projectAspectRatio?: string;
-}
-
-export interface InlineSegmentVideoLayoutProps {
   isMobile?: boolean;
   leftPercent?: number;
   widthPercent?: number;
   layout?: 'absolute' | 'flow';
   compact?: boolean;
-}
-
-export interface InlineSegmentVideoActionProps {
   onOpenPairSettings?: (pairIndex: number) => void;
   onDelete?: (generationId: string) => void;
-  readOnly?: boolean;
-}
-
-export interface InlineSegmentVideoStatusProps {
   isDeleting?: boolean;
   isPending?: boolean;
   hasSourceChanged?: boolean;
-}
-
-export interface InlineSegmentVideoScrubbingProps {
   isScrubbingActive?: boolean;
   onScrubbingStart?: (rect: DOMRect) => void;
   scrubbingContainerRef?: React.RefObject<HTMLDivElement>;
@@ -48,14 +35,8 @@ export interface InlineSegmentVideoScrubbingProps {
     onMouseLeave: () => void;
   };
   scrubbingProgress?: number;
+  readOnly?: boolean;
 }
-
-export interface InlineSegmentVideoProps
-  extends InlineSegmentVideoCoreProps,
-    InlineSegmentVideoLayoutProps,
-    InlineSegmentVideoActionProps,
-    InlineSegmentVideoStatusProps,
-    InlineSegmentVideoScrubbingProps {}
 
 export interface SegmentPlaceholderProps {
   layoutProps: LayoutProps;

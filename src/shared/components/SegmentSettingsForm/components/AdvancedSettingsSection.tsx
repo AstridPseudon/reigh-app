@@ -27,21 +27,20 @@ import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { useStructureVideoUpload } from '../hooks';
 import type { SegmentSettings, SegmentSettingsFormProps } from '../types';
 
-interface AdvancedSettingsCoreProps {
+interface AdvancedSettingsSectionProps {
+  // Settings
   settings: SegmentSettings;
   onChange: (updates: Partial<SegmentSettings>) => void;
   modelName?: string;
   queryKeyPrefix: string;
   edgeExtendAmount: 4 | 6;
-}
 
-interface AdvancedSettingsDefaultsProps {
+  // Defaults
   shotDefaults?: SegmentSettingsFormProps['shotDefaults'];
   hasOverride?: SegmentSettingsFormProps['hasOverride'];
   onSaveFieldAsDefault?: SegmentSettingsFormProps['onSaveFieldAsDefault'];
-}
 
-interface AdvancedSettingsStructureVideoProps {
+  // Structure video
   structureVideoType?: SegmentSettingsFormProps['structureVideoType'];
   structureVideoUrl?: SegmentSettingsFormProps['structureVideoUrl'];
   structureVideoFrameRange?: SegmentSettingsFormProps['structureVideoFrameRange'];
@@ -49,22 +48,17 @@ interface AdvancedSettingsStructureVideoProps {
   isTimelineMode?: boolean;
   onAddSegmentStructureVideo?: SegmentSettingsFormProps['onAddSegmentStructureVideo'];
   onRemoveSegmentStructureVideo?: SegmentSettingsFormProps['onRemoveSegmentStructureVideo'];
-}
 
-interface AdvancedSettingsUploadProps {
+  // Video upload hook return
   videoUpload: ReturnType<typeof useStructureVideoUpload>;
+
+  // Drag state for video
   isDraggingVideo: boolean;
   onDragOver: (e: React.DragEvent) => void;
   onDragEnter: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
 }
-
-interface AdvancedSettingsSectionProps
-  extends AdvancedSettingsCoreProps,
-    AdvancedSettingsDefaultsProps,
-    AdvancedSettingsStructureVideoProps,
-    AdvancedSettingsUploadProps {}
 
 export const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = ({
   settings,

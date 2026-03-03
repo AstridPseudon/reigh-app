@@ -8,72 +8,56 @@ import type { ShotOption } from '@/domains/generation/types';
 import { INTERACTION_TIMING } from '@/shared/lib/interactions/timing';
 import { useShotAssociationControls } from './hooks/useShotAssociationControls';
 
-export interface ShotSelectorMediaProps {
+interface ShotSelectorControlsProps {
+  // Media info
   mediaId: string;
   imageUrl?: string;
   thumbUrl?: string;
-}
 
-export interface ShotSelectorSelectionProps {
+  // Shot selection
   allShots: ShotOption[];
   selectedShotId: string | undefined;
   onShotChange?: (shotId: string) => void;
   onCreateShot?: (shotName: string, files: File[]) => Promise<{shotId?: string; shotName?: string} | void>;
-}
 
-export interface ShotSelectorPositioningProps {
+  // Shot positioning
   isAlreadyPositionedInSelectedShot: boolean;
   isAlreadyAssociatedWithoutPosition: boolean;
   showTickForImageId?: string | null;
   showTickForSecondaryImageId?: string | null;
-}
 
-export interface ShotSelectorActionsProps {
-  // CRITICAL: targetShotId is the shot selected in the DROPDOWN, not the shot being viewed.
+  // Shot actions
+  // CRITICAL: targetShotId is the shot selected in the DROPDOWN, not the shot being viewed
   onAddToShot: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-}
 
-export interface ShotSelectorVariantPromotionProps {
-  // Variant promotion - handler queries target shot directly to find positioning.
+  // Variant promotion - for adding a variant as a new generation to a shot
+  // Handler queries target shot directly to find positioning
   onAddVariantAsNewGeneration?: (shotId: string, variantId: string, currentTimelineFrame?: number) => Promise<boolean>;
   activeVariantId?: string | null;
-  // Current generation's timeline position in the selected shot (for positioning new items).
+  // Current generation's timeline position in the selected shot (for positioning new items)
   currentTimelineFrame?: number;
-}
 
-export interface ShotSelectorOptimisticUpdateProps {
+  // Optimistic updates
   onShowTick?: (imageId: string) => void;
   onOptimisticPositioned?: (imageId: string, shotId: string) => void;
   onShowSecondaryTick?: (imageId: string) => void;
   onOptimisticUnpositioned?: (imageId: string, shotId: string) => void;
-}
 
-export interface ShotSelectorUiStateProps {
+  // UI state
   setIsSelectOpen?: (isOpen: boolean) => void;
   contentRef: React.RefObject<HTMLDivElement>;
-}
 
-export interface ShotSelectorNavigationProps {
+  // Navigation
   onNavigateToShot?: (shot: ShotOption) => void;
-}
 
-export interface ShotSelectorLifecycleProps {
+  // Close lightbox
   onClose?: () => void;
+
+  // Loading states
   isAdding?: boolean;
   isAddingWithoutPosition?: boolean;
 }
-
-export interface ShotSelectorControlsProps
-  extends ShotSelectorMediaProps,
-    ShotSelectorSelectionProps,
-    ShotSelectorPositioningProps,
-    ShotSelectorActionsProps,
-    ShotSelectorVariantPromotionProps,
-    ShotSelectorOptimisticUpdateProps,
-    ShotSelectorUiStateProps,
-    ShotSelectorNavigationProps,
-    ShotSelectorLifecycleProps {}
 
 /**
  * ShotSelectorControls Component

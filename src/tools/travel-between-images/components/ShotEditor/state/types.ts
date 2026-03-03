@@ -19,28 +19,34 @@ export {
  *
  * @see providers/VideoTravelSettingsProvider.tsx for settings context
  */
-export interface ShotEditorCoreIdentifiersProps {
+export interface ShotEditorProps {
+  // ============================================================================
+  // CORE IDENTIFIERS
+  // ============================================================================
   selectedShotId: string;
   projectId: string;
   /** Optimistic shot data for newly created shots that aren't in the cache yet */
   optimisticShotData?: Partial<import('@/domains/generation/types').Shot>;
-}
 
-export interface ShotEditorCallbackProps {
+  // ============================================================================
+  // CALLBACKS
+  // ============================================================================
   onShotImagesUpdate: () => void;
   onBack: () => void;
-}
 
-export interface ShotEditorDimensionSettingsProps {
+  // ============================================================================
+  // DIMENSION SETTINGS (not in context yet)
+  // ============================================================================
   dimensionSource?: 'project' | 'firstImage' | 'custom';
   onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
   customWidth?: number;
   onCustomWidthChange?: (width?: number) => void;
   customHeight?: number;
   onCustomHeightChange?: (height?: number) => void;
-}
 
-export interface ShotEditorNavigationProps {
+  // ============================================================================
+  // NAVIGATION
+  // ============================================================================
   onPreviousShot?: () => void;
   onNextShot?: () => void;
   onPreviousShotNoScroll?: () => void;
@@ -48,16 +54,18 @@ export interface ShotEditorNavigationProps {
   hasPrevious?: boolean;
   hasNext?: boolean;
   onUpdateShotName?: (newName: string) => void;
-}
 
-export interface ShotEditorCacheProps {
+  // ============================================================================
+  // CACHE & VIDEO COUNTS
+  // ============================================================================
   getShotVideoCount?: (shotId: string | null) => number | null;
   getFinalVideoCount?: (shotId: string | null) => number | null;
   getHasStructureVideo?: (shotId: string | null) => boolean | null;
   invalidateVideoCountsCache?: () => void;
-}
 
-export interface ShotEditorRefProps {
+  // ============================================================================
+  // PARENT REFS (for floating UI coordination)
+  // ============================================================================
   headerContainerRef?: (node: HTMLDivElement | null) => void;
   timelineSectionRef?: (node: HTMLDivElement | null) => void;
   ctaContainerRef?: (node: HTMLDivElement | null) => void;
@@ -81,9 +89,10 @@ export interface ShotEditorRefProps {
 
   /** Mutable ref to expose name click handler to parent (for floating header) */
   nameClickRef?: React.MutableRefObject<(() => void) | null>;
-}
 
-export interface ShotEditorUiStateProps {
+  // ============================================================================
+  // UI STATE
+  // ============================================================================
   /** Whether the floating sticky header is visible (hide main header when true) */
   isSticky?: boolean;
 
@@ -96,15 +105,6 @@ export interface ShotEditorUiStateProps {
   /** Drag state callback - used to suppress query refetches during drag operations */
   onDragStateChange?: (isDragging: boolean) => void;
 }
-
-export interface ShotEditorProps
-  extends ShotEditorCoreIdentifiersProps,
-    ShotEditorCallbackProps,
-    ShotEditorDimensionSettingsProps,
-    ShotEditorNavigationProps,
-    ShotEditorCacheProps,
-    ShotEditorRefProps,
-    ShotEditorUiStateProps {}
 
 // Internal state interface for the shot editor
 export interface ShotEditorState {

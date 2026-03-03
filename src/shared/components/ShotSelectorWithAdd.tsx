@@ -15,45 +15,48 @@ import { cn } from '@/shared/components/ui/contracts/cn';
 import type { Shot } from "@/domains/generation/types";
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
-interface ShotSelectorWithAddImageProps {
+interface ShotSelectorWithAddProps {
+  // Image data
   imageId: string;
   imageUrl?: string;
   thumbUrl?: string;
-}
 
-interface ShotSelectorWithAddSelectionProps {
+  // Shot options
   shots: ShotOption[];
   selectedShotId: string;
   onShotChange: (shotId: string) => void;
-}
 
-interface ShotSelectorWithAddActionProps {
-  // Add to shot functionality.
+  // Add to shot functionality
   // CRITICAL: targetShotId is the shot selected in the DROPDOWN, not the shot being viewed
   onAddToShot: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+
+  // Whether to show the "create shot" option in the dropdown
   showCreateShot?: boolean;
+
+  // State tracking
   isAlreadyPositionedInSelectedShot?: boolean;
   showTick?: boolean;
   isAdding?: boolean;
+
+  // Callbacks
   onShowTick?: (imageId: string) => void;
   onOptimisticPositioned?: (imageId: string, shotId: string) => void;
   onClose?: () => void; // Close lightbox when navigating to shot
-}
 
-interface ShotSelectorWithAddLayoutProps {
+  // Layout
   layout?: 'vertical' | 'horizontal';
+
+  // Styling
   className?: string;
   selectorClassName?: string;
   buttonClassName?: string;
+
+  // Portal container for select dropdown
   container?: HTMLElement | null;
+
+  // Mobile mode
   isMobile?: boolean;
 }
-
-interface ShotSelectorWithAddProps
-  extends ShotSelectorWithAddImageProps,
-    ShotSelectorWithAddSelectionProps,
-    ShotSelectorWithAddActionProps,
-    ShotSelectorWithAddLayoutProps {}
 
 export const ShotSelectorWithAdd: React.FC<ShotSelectorWithAddProps> = ({
   imageId,

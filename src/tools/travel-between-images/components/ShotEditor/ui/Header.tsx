@@ -10,14 +10,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 
-interface HeaderCoreProps {
+interface HeaderProps {
   selectedShot: Shot;
   isEditingName: boolean;
   editingName: string;
   isTransitioningFromNameEdit?: boolean;
-}
-
-interface HeaderActionProps {
   onBack: () => void;
   onUpdateShotName?: (newName: string) => void;
   onPreviousShot?: () => void;
@@ -29,17 +26,12 @@ interface HeaderActionProps {
   onNameCancel: (e?: React.MouseEvent) => void;
   onNameKeyDown: (e: React.KeyboardEvent) => void;
   onEditingNameChange: (value: string) => void;
-}
-
-interface HeaderLayoutProps {
   projectAspectRatio?: string;
   projectId?: string;
   centerSectionRef?: React.RefObject<HTMLDivElement>;
   /** Hide header when floating sticky header is visible */
   isSticky?: boolean;
 }
-
-interface HeaderProps extends HeaderCoreProps, HeaderActionProps, HeaderLayoutProps {}
 
 // Internal component - not memoized to allow hooks
 const HeaderComponent: React.FC<HeaderProps> = ({

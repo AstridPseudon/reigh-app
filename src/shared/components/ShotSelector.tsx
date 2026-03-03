@@ -9,25 +9,26 @@ import type { ShotOption } from "@/domains/generation/types";
 
 export type { ShotOption };
 
-interface ShotSelectorCoreProps {
+interface ShotSelectorProps {
+  // Core selection props
   value: string;
   onValueChange: (value: string) => void;
   shots: ShotOption[];
   placeholder?: string;
-}
-
-interface ShotSelectorStyleProps {
+  
+  // Styling props
   className?: string;
   triggerClassName?: string;
   contentClassName?: string;
   /** Select variant - defaults to retro-dark for dark contexts */
   variant?: "default" | "retro" | "retro-dark";
-}
-
-interface ShotSelectorCreateProps {
+  
+  // Add Shot functionality
   showAddShot?: boolean;
   onCreateShot?: (shotName?: string) => void;
   isCreatingShot?: boolean;
+  
+  // Quick create success state
   quickCreateSuccess?: {
     isSuccessful: boolean;
     shotId: string | null;
@@ -35,27 +36,20 @@ interface ShotSelectorCreateProps {
     isLoading?: boolean; // True when shot is created but still syncing/loading
   };
   onQuickCreateSuccess?: () => void;
-}
-
-interface ShotSelectorPopoverProps {
+  
+  // Additional props for SelectContent
   side?: "top" | "bottom" | "left" | "right";
   align?: "start" | "center" | "end";
   sideOffset?: number;
+  
+  // Controlled open state
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   container?: HTMLElement | null;
-}
-
-interface ShotSelectorNavigationProps {
+  
+  // Navigation
   onNavigateToShot?: (shot: ShotOption) => void;
 }
-
-interface ShotSelectorProps
-  extends ShotSelectorCoreProps,
-    ShotSelectorStyleProps,
-    ShotSelectorCreateProps,
-    ShotSelectorPopoverProps,
-    ShotSelectorNavigationProps {}
 
 export const ShotSelector: React.FC<ShotSelectorProps> = ({
   value,

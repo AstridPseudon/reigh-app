@@ -222,75 +222,52 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
   hideShotNotifier: false,
 };
 
-export interface MediaGalleryCoreProps {
+export interface MediaGalleryProps {
   images: GeneratedImageWithMetadata[];
   onDelete?: LightboxDeleteHandler;
   isDeleting?: string | boolean | null;
   onApplySettings?: (metadata: DisplayableMetadata | undefined) => void;
   allShots: Shot[];
-  currentToolType?: string;
-  currentViewingShotId?: string;
-  onImageClick?: (image: GeneratedImageWithMetadata) => void;
-}
-
-export interface MediaGalleryShotActionProps {
   lastShotId?: string;
   lastShotNameForTooltip?: string;
   onAddToLastShot?: AddToShotHandler;
   onAddToLastShotWithoutPosition?: AddToShotHandler;
-}
-
-export interface MediaGalleryPaginationProps {
+  currentToolType?: string;
+  initialFilterState?: boolean;
+  currentViewingShotId?: string;
   offset?: number;
   totalCount?: number;
   /**
    * Number of columns per row.
    * - 'auto': Calculate dynamically based on project aspect ratio (default)
    * - number: Fixed number of columns
-  */
+   */
   columnsPerRow?: ColumnsPerRow;
   itemsPerPage?: number;
-  onServerPageChange?: (page: number, fromBottom?: boolean) => void;
-  serverPage?: number;
-  enableAdjacentPagePreloading?: boolean;
-  /** Called after delete to trigger data refetch. Should invalidate queries and refetch current page. */
-  onBackfillRequest?: () => Promise<void>;
-}
-
-export interface MediaGalleryFilterProps {
-  initialFilterState?: boolean;
   /** Controlled filter state — parent owns the values */
   filters?: GalleryFilterState;
   /** Callback when any filter changes (controlled mode) */
   onFiltersChange?: (filters: GalleryFilterState) => void;
   /** Default filter overrides for uncontrolled mode */
   defaultFilters?: Partial<GalleryFilterState>;
+  onServerPageChange?: (page: number, fromBottom?: boolean) => void;
+  serverPage?: number;
+  onToggleStar?: (id: string, starred: boolean) => void;
   currentToolTypeName?: string;
   formAssociatedShotId?: string | null;
   onSwitchToAssociatedShot?: (shotId: string) => void;
-}
-
-export interface MediaGalleryGenerationProps {
+  /** Additional className to apply to the gallery wrapper (can override default spacing) */
+  className?: string;
+  enableAdjacentPagePreloading?: boolean;
   /** Filters for generation queries - enables automatic preloading */
   generationFilters?: Record<string, unknown>;
   onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
-}
-
-export interface MediaGalleryPresentationProps {
-  onToggleStar?: (id: string, starred: boolean) => void;
-  /** Additional className to apply to the gallery wrapper (can override default spacing) */
-  className?: string;
+  /** Called after delete to trigger data refetch. Should invalidate queries and refetch current page. */
+  onBackfillRequest?: () => Promise<void>;
+  onImageClick?: (image: GeneratedImageWithMetadata) => void;
   /**
    * Boolean config flags controlling gallery appearance and behavior.
    * All fields optional — unset fields use defaults from DEFAULT_GALLERY_CONFIG.
    */
   config?: Partial<GalleryConfig>;
 }
-
-export interface MediaGalleryProps
-  extends MediaGalleryCoreProps,
-    MediaGalleryShotActionProps,
-    MediaGalleryPaginationProps,
-    MediaGalleryFilterProps,
-    MediaGalleryGenerationProps,
-    MediaGalleryPresentationProps {}

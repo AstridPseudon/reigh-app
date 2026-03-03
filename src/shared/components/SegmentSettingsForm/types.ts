@@ -45,36 +45,23 @@ interface StructureVideoFrameRange {
   videoOutputEnd?: number;
 }
 
-export interface SegmentSettingsFormCoreProps {
+export interface SegmentSettingsFormProps {
   settings: SegmentSettings;
   onChange: (updates: Partial<SegmentSettings>) => void;
   onSubmit: () => Promise<void>;
-  isSubmitting?: boolean;
-}
-
-export interface SegmentSettingsFormPresentationProps {
   segmentIndex?: number;
+  startImageUrl?: string;
+  endImageUrl?: string;
   modelName?: string;
   resolution?: string;
   isRegeneration?: boolean;
+  isSubmitting?: boolean;
   buttonLabel?: string;
   showHeader?: boolean;
   headerTitle?: string;
   maxFrames?: number;
   queryKeyPrefix?: string;
-  edgeExtendAmount?: 4 | 6;
-}
-
-export interface SegmentSettingsFormMediaProps {
-  startImageUrl?: string;
-  endImageUrl?: string;
   onFrameCountChange?: (frames: number) => void;
-  startImageShotGenerationId?: string;
-  endImageShotGenerationId?: string;
-  onNavigateToImage?: (shotGenerationId: string) => void;
-}
-
-export interface SegmentSettingsFormDefaultsProps {
   onRestoreDefaults?: () => void;
   onSaveAsShotDefaults?: () => Promise<boolean>;
   onSaveFieldAsDefault?: (
@@ -84,35 +71,25 @@ export interface SegmentSettingsFormDefaultsProps {
   hasOverride?: SegmentOverrideFlags;
   shotDefaults?: SegmentShotDefaults;
   isDirty?: boolean;
-}
-
-export interface SegmentSettingsFormStructureVideoProps {
   structureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth' | null;
   structureVideoDefaults?: StructureVideoDefaults;
   structureVideoUrl?: string;
   structureVideoFrameRange?: StructureVideoFrameRange;
+  enhancedPrompt?: string;
+  basePromptForEnhancement?: string;
+  onClearEnhancedPrompt?: () => Promise<boolean>;
+  enhancePromptEnabled?: boolean;
+  onEnhancePromptChange?: (enabled: boolean) => void;
+  edgeExtendAmount?: 4 | 6;
   isTimelineMode?: boolean;
   onAddSegmentStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
   onUpdateSegmentStructureVideo?: (
     updates: Partial<StructureVideoConfigWithMetadata>
   ) => void;
   onRemoveSegmentStructureVideo?: () => void;
+  startImageShotGenerationId?: string;
+  endImageShotGenerationId?: string;
+  onNavigateToImage?: (shotGenerationId: string) => void;
 }
-
-export interface SegmentSettingsFormEnhancementProps {
-  enhancedPrompt?: string;
-  basePromptForEnhancement?: string;
-  onClearEnhancedPrompt?: () => Promise<boolean>;
-  enhancePromptEnabled?: boolean;
-  onEnhancePromptChange?: (enabled: boolean) => void;
-}
-
-export interface SegmentSettingsFormProps
-  extends SegmentSettingsFormCoreProps,
-    SegmentSettingsFormPresentationProps,
-    SegmentSettingsFormMediaProps,
-    SegmentSettingsFormDefaultsProps,
-    SegmentSettingsFormStructureVideoProps,
-    SegmentSettingsFormEnhancementProps {}
 
 export type { SegmentSettings } from './segmentSettingsUtils';
