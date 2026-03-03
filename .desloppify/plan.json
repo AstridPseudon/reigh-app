@@ -1,31 +1,8 @@
 {
   "version": 5,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-03T21:44:19+00:00",
+  "updated": "2026-03-03T21:46:36+00:00",
   "queue_order": [
-    "review::.::holistic::package_organization::shared-hooks-flat-overload::f045f074",
-    "review::.::holistic::package_organization::shared-lib-flat-overload::ef61b68a",
-    "review::.::holistic::package_organization::medialightbox-hooks-flat-overload::6a1a9eee",
-    "review::.::holistic::package_organization::duplicate-shot-creation-hook::4f8eb4e9",
-    "review::.::holistic::package_organization::lib-tasks-vs-taskCreation-ambiguity::18130bd6",
-    "review::.::holistic::cross_module_architecture::useProject_compat_shim_dominates::4b9dac42",
-    "review::.::holistic::cross_module_architecture::resource_browser_bypasses_auth_context::0ad669f9",
-    "review::.::holistic::mid_level_elegance::hardcoded_query_key_strings_at_invalidation_seams::0fb37d8e",
-    "review::.::holistic::mid_level_elegance::inconsistent_invalidation_after_shot_mutations::97ec389d",
-    "review::.::holistic::high_level_elegance::generation_task_cache_inline_id_resolution::7f1265f6",
-    "review::.::holistic::authorization_consistency::jwt_no_signature_verification::29760536",
-    "review::.::holistic::authorization_consistency::get_task_status_missing_ownership::25362446",
-    "review::.::holistic::authorization_consistency::generation_variants_rls_pattern_mismatch::e82ea3b7",
-    "review::.::holistic::cross_module_architecture::supabase_client_alias_pattern::b8b1504f",
-    "review::.::holistic::abstraction_fitness::thin-repository-wrappers-forwarding-supabase::f129f317",
-    "review::.::holistic::abstraction_fitness::supabase-client-registry-interface::ee4da63e",
-    "review::.::holistic::mid_level_elegance::delete_mutation_factory_table_conditional::5fc3ec48",
-    "review::.::holistic::test_strategy::untested_timeline_mutation_service_persist_functions::5252fad9",
-    "review::.::holistic::test_strategy::untested_reference_domain_pure_functions::cdd0f6e0",
-    "review::.::holistic::test_strategy::untested_upload_happy_path::6238ec9d",
-    "review::.::holistic::test_strategy::untested_use_task_type_hook::e426ba61",
-    "review::.::holistic::test_strategy::untested_calculate_derived_counts_safe::e793093c",
-    "review::.::holistic::test_strategy::generation_invalidation_no_timer_cleanup::6f68d791",
     "workflow::score-checkpoint"
   ],
   "deferred": [],
@@ -2927,6 +2904,236 @@
       "note": null,
       "attestation": null,
       "created_at": "2026-03-03T21:43:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::package_organization::shared-hooks-flat-overload::f045f074": {
+      "issue_id": "review::.::holistic::package_organization::shared-hooks-flat-overload::f045f074",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:45+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::package_organization::shared-lib-flat-overload::ef61b68a": {
+      "issue_id": "review::.::holistic::package_organization::shared-lib-flat-overload::ef61b68a",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:45+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::package_organization::medialightbox-hooks-flat-overload::6a1a9eee": {
+      "issue_id": "review::.::holistic::package_organization::medialightbox-hooks-flat-overload::6a1a9eee",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:45+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::package_organization::duplicate-shot-creation-hook::4f8eb4e9": {
+      "issue_id": "review::.::holistic::package_organization::duplicate-shot-creation-hook::4f8eb4e9",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:45+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::package_organization::lib-tasks-vs-taskCreation-ambiguity::18130bd6": {
+      "issue_id": "review::.::holistic::package_organization::lib-tasks-vs-taskCreation-ambiguity::18130bd6",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:45+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::cross_module_architecture::useProject_compat_shim_dominates::4b9dac42": {
+      "issue_id": "review::.::holistic::cross_module_architecture::useProject_compat_shim_dominates::4b9dac42",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:45+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::cross_module_architecture::resource_browser_bypasses_auth_context::0ad669f9": {
+      "issue_id": "review::.::holistic::cross_module_architecture::resource_browser_bypasses_auth_context::0ad669f9",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::mid_level_elegance::hardcoded_query_key_strings_at_invalidation_seams::0fb37d8e": {
+      "issue_id": "review::.::holistic::mid_level_elegance::hardcoded_query_key_strings_at_invalidation_seams::0fb37d8e",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::mid_level_elegance::inconsistent_invalidation_after_shot_mutations::97ec389d": {
+      "issue_id": "review::.::holistic::mid_level_elegance::inconsistent_invalidation_after_shot_mutations::97ec389d",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::high_level_elegance::generation_task_cache_inline_id_resolution::7f1265f6": {
+      "issue_id": "review::.::holistic::high_level_elegance::generation_task_cache_inline_id_resolution::7f1265f6",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::authorization_consistency::jwt_no_signature_verification::29760536": {
+      "issue_id": "review::.::holistic::authorization_consistency::jwt_no_signature_verification::29760536",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::authorization_consistency::get_task_status_missing_ownership::25362446": {
+      "issue_id": "review::.::holistic::authorization_consistency::get_task_status_missing_ownership::25362446",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:45:56+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::authorization_consistency::generation_variants_rls_pattern_mismatch::e82ea3b7": {
+      "issue_id": "review::.::holistic::authorization_consistency::generation_variants_rls_pattern_mismatch::e82ea3b7",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:22+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::cross_module_architecture::supabase_client_alias_pattern::b8b1504f": {
+      "issue_id": "review::.::holistic::cross_module_architecture::supabase_client_alias_pattern::b8b1504f",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:22+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::thin-repository-wrappers-forwarding-supabase::f129f317": {
+      "issue_id": "review::.::holistic::abstraction_fitness::thin-repository-wrappers-forwarding-supabase::f129f317",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:22+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::supabase-client-registry-interface::ee4da63e": {
+      "issue_id": "review::.::holistic::abstraction_fitness::supabase-client-registry-interface::ee4da63e",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:22+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::mid_level_elegance::delete_mutation_factory_table_conditional::5fc3ec48": {
+      "issue_id": "review::.::holistic::mid_level_elegance::delete_mutation_factory_table_conditional::5fc3ec48",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:22+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::test_strategy::untested_timeline_mutation_service_persist_functions::5252fad9": {
+      "issue_id": "review::.::holistic::test_strategy::untested_timeline_mutation_service_persist_functions::5252fad9",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:22+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::test_strategy::untested_reference_domain_pure_functions::cdd0f6e0": {
+      "issue_id": "review::.::holistic::test_strategy::untested_reference_domain_pure_functions::cdd0f6e0",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:36+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::test_strategy::untested_upload_happy_path::6238ec9d": {
+      "issue_id": "review::.::holistic::test_strategy::untested_upload_happy_path::6238ec9d",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:36+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::test_strategy::untested_use_task_type_hook::e426ba61": {
+      "issue_id": "review::.::holistic::test_strategy::untested_use_task_type_hook::e426ba61",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:36+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::test_strategy::untested_calculate_derived_counts_safe::e793093c": {
+      "issue_id": "review::.::holistic::test_strategy::untested_calculate_derived_counts_safe::e793093c",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:36+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::test_strategy::generation_invalidation_no_timer_cleanup::6f68d791": {
+      "issue_id": "review::.::holistic::test_strategy::generation_invalidation_no_timer_cleanup::6f68d791",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:46:36+00:00",
       "review_after": null,
       "skipped_at_scan": 152
     }
@@ -38843,6 +39050,81 @@
       "detail": {
         "status": "fixed",
         "attestation": "I have actually added error field checking on the DB update results. I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:45:45+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::package_organization::shared-hooks-flat-overload::f045f074",
+        "review::.::holistic::package_organization::shared-lib-flat-overload::ef61b68a",
+        "review::.::holistic::package_organization::medialightbox-hooks-flat-overload::6a1a9eee",
+        "review::.::holistic::package_organization::duplicate-shot-creation-hook::4f8eb4e9",
+        "review::.::holistic::package_organization::lib-tasks-vs-taskCreation-ambiguity::18130bd6",
+        "review::.::holistic::cross_module_architecture::useProject_compat_shim_dominates::4b9dac42"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:45:56+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::cross_module_architecture::resource_browser_bypasses_auth_context::0ad669f9",
+        "review::.::holistic::mid_level_elegance::hardcoded_query_key_strings_at_invalidation_seams::0fb37d8e",
+        "review::.::holistic::mid_level_elegance::inconsistent_invalidation_after_shot_mutations::97ec389d",
+        "review::.::holistic::high_level_elegance::generation_task_cache_inline_id_resolution::7f1265f6",
+        "review::.::holistic::authorization_consistency::jwt_no_signature_verification::29760536",
+        "review::.::holistic::authorization_consistency::get_task_status_missing_ownership::25362446"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:46:22+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::authorization_consistency::generation_variants_rls_pattern_mismatch::e82ea3b7",
+        "review::.::holistic::cross_module_architecture::supabase_client_alias_pattern::b8b1504f",
+        "review::.::holistic::abstraction_fitness::thin-repository-wrappers-forwarding-supabase::f129f317",
+        "review::.::holistic::abstraction_fitness::supabase-client-registry-interface::ee4da63e",
+        "review::.::holistic::mid_level_elegance::delete_mutation_factory_table_conditional::5fc3ec48",
+        "review::.::holistic::test_strategy::untested_timeline_mutation_service_persist_functions::5252fad9"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:46:36+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::test_strategy::untested_reference_domain_pure_functions::cdd0f6e0",
+        "review::.::holistic::test_strategy::untested_upload_happy_path::6238ec9d",
+        "review::.::holistic::test_strategy::untested_use_task_type_hook::e426ba61",
+        "review::.::holistic::test_strategy::untested_calculate_derived_counts_safe::e793093c",
+        "review::.::holistic::test_strategy::generation_invalidation_no_timer_cleanup::6f68d791"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
       }
     }
   ],
