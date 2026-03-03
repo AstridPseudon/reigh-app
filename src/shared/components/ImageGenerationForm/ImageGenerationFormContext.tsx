@@ -10,7 +10,7 @@
  * - Handlers memoized → stable references
  */
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useMemo } from 'react';
 import { ImageGenerationFormUIState, FormUIActions } from './state/useFormUIState';
 import { PromptEntry, PromptMode, HydratedReferenceImage, ReferenceMode } from './types';
 import type { ActiveLora } from '@/shared/types/lora';
@@ -104,7 +104,7 @@ export interface FormLoraHandlers {
 }
 
 /** Full context value */
-interface ImageGenerationFormContextValue {
+export interface ImageGenerationFormContextValue {
   // UI state from reducer
   uiState: ImageGenerationFormUIState;
   uiActions: FormUIActions;
@@ -129,47 +129,16 @@ interface ImageGenerationFormContextValue {
 // Context
 // ============================================================================
 
-const ImageGenerationFormContext = createContext<ImageGenerationFormContextValue | null>(null);
+export const ImageGenerationFormContext = createContext<ImageGenerationFormContextValue | null>(null);
 
-// ============================================================================
-// Hook
-// ============================================================================
-
-function useImageGenerationFormContext(): ImageGenerationFormContextValue {
-  const context = useContext(ImageGenerationFormContext);
-  if (!context) {
-    throw new Error(
-      'useImageGenerationFormContext must be used within ImageGenerationFormProvider'
-    );
-  }
-  return context;
-}
-
-// Convenience hooks for specific domains
-export function useFormUIContext() {
-  const { uiState, uiActions } = useImageGenerationFormContext();
-  return { uiState, uiActions };
-}
-
-export function useFormCoreContext() {
-  const { core } = useImageGenerationFormContext();
-  return core;
-}
-
-export function useFormPromptsContext() {
-  const { prompts, promptHandlers } = useImageGenerationFormContext();
-  return { ...prompts, ...promptHandlers };
-}
-
-export function useFormReferencesContext() {
-  const { references, referenceHandlers } = useImageGenerationFormContext();
-  return { ...references, ...referenceHandlers };
-}
-
-export function useFormLorasContext() {
-  const { loras, loraHandlers } = useImageGenerationFormContext();
-  return { ...loras, ...loraHandlers };
-}
+export {
+  useFormCoreContext,
+  useFormLorasContext,
+  useFormPromptsContext,
+  useFormReferencesContext,
+  useFormUIContext,
+  useImageGenerationFormContext,
+} from './hooks/useImageGenerationFormContexts';
 
 // ============================================================================
 // Provider

@@ -1,20 +1,24 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Textarea } from "@/shared/components/ui/textarea";
-import { Button } from "@/shared/components/ui/button";
-import { Label } from "@/shared/components/ui/primitives/label";
-import { Trash2 } from "lucide-react";
+import React from 'react';
+import { Textarea } from '@/shared/components/ui/textarea';
+import { Button } from '@/shared/components/ui/button';
+import { Label } from '@/shared/components/ui/primitives/label';
+import { Trash2 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger
-} from "@/shared/components/ui/tooltip";
-import { useIsMobile } from "@/shared/hooks/mobile";
-import { useTouchDragDetection } from "@/shared/hooks/useTouchDragDetection";
-import { PromptInputRowProps } from "../types";
+  TooltipTrigger,
+} from '@/shared/components/ui/tooltip';
+import { PromptInputRowProps } from '../types';
+import { usePromptInputRowController } from './prompt-row/usePromptInputRowController';
 
 export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
-  promptEntry, onUpdate, onRemove, canRemove, isGenerating, index,
+  promptEntry,
+  onUpdate,
+  onRemove,
+  canRemove,
+  isGenerating,
+  index,
   totalPrompts,
   onEditWithAI,
   aiEditButtonIcon,
@@ -26,176 +30,27 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
   mobileInlineEditing = false,
   hideRemoveButton = false,
 }) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const promptContainerRef = useRef<HTMLDivElement>(null);
-  const [isEditingFullPrompt, setIsEditingFullPrompt] = useState(false);
-  const [localFullPrompt, setLocalFullPrompt] = useState(promptEntry.fullPrompt);
-  const isMobile = useIsMobile();
-  // When switching from another prompt, defer entering edit mode
-  // until this row is marked active to avoid immediate auto-close.
-  const [pendingEnterEdit, setPendingEnterEdit] = useState(false);
+  const controller = usePromptInputRowController({
+    autoEnterEditWhenActive,
+    forceExpanded,
+    index,
+    isActiveForFullView,
+    onSetActiveForFullView,
+    onUpdate,
+    promptEntry,
+  });
 
-  // Drag detection for prompt field clicks
-  const { isDragging, handleTouchStart } = useTouchDragDetection();
-
-  // Track if the change came from parent (like AI edit) to prevent feedback loops
-  const [lastParentUpdate, setLastParentUpdate] = useState(promptEntry.fullPrompt);
-  
-  useEffect(() => {
-    if (!isEditingFullPrompt) {
-      // If parent changed the prompt (like from AI edit), sync local state
-      if (promptEntry.fullPrompt !== lastParentUpdate) {
-        setLocalFullPrompt(promptEntry.fullPrompt);
-        setLastParentUpdate(promptEntry.fullPrompt);
-      }
-    }
-   
-  }, [promptEntry.fullPrompt, isEditingFullPrompt, lastParentUpdate]);
-
-  // Close edit mode when another prompt becomes active
-  useEffect(() => {
-    if (!isActiveForFullView && isEditingFullPrompt) {
-      setIsEditingFullPrompt(false);
-    }
-  }, [isActiveForFullView, isEditingFullPrompt]);
-
-  // If we requested to enter edit, do so once this row becomes active
-  useEffect(() => {
-    if (isMobile && pendingEnterEdit && isActiveForFullView) {
-      setIsEditingFullPrompt(true);
-      setPendingEnterEdit(false);
-    }
-  }, [isMobile, pendingEnterEdit, isActiveForFullView]);
-
-  // If parent marks this row active, optionally auto-enter edit on mobile
-  useEffect(() => {
-    if (isMobile && autoEnterEditWhenActive && isActiveForFullView && !isEditingFullPrompt) {
-      setIsEditingFullPrompt(true);
-    }
-  }, [isMobile, autoEnterEditWhenActive, isActiveForFullView, isEditingFullPrompt]);
-
-  // Always show full prompt by default (user wants to see full text, not summary)
-  const displayText = isEditingFullPrompt ? localFullPrompt : promptEntry.fullPrompt;
-  let currentPlaceholder = `Enter prompt #${index + 1}...`;
-
-  if (isEditingFullPrompt) {
-    currentPlaceholder = `Editing prompt #${index + 1}...`;
-  } else {
-    currentPlaceholder = `Enter prompt #${index + 1}...`;
-  }
-
-  // Debounced auto-resize function to prevent excessive reflows
-  const autoResizeTextarea = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const scrollHeight = textareaRef.current.scrollHeight;
-      
-      if (isActiveForFullView || isEditingFullPrompt || forceExpanded) {
-        // For expanded/edit view: allow natural height with reasonable minimums
-        const minHeight = isMobile ? 96 : 72;
-        const baseHeight = Math.max(minHeight, scrollHeight);
-        textareaRef.current.style.height = `${baseHeight}px`;
-      } else {
-        // For collapsed view: exactly 2 rows mobile, 1 row desktop
-        const fixedHeight = isMobile ? 56 : 32; // ~2 lines mobile, ~1 line desktop
-        textareaRef.current.style.height = `${fixedHeight}px`;
-      }
-    }
-  }, [isActiveForFullView, isEditingFullPrompt, forceExpanded, isMobile]);
-
-  useEffect(() => {
-    autoResizeTextarea();
-  }, [displayText, autoResizeTextarea]);
-
-  // Focus textarea when entering edit mode on mobile
-  useEffect(() => {
-    if (isMobile && isEditingFullPrompt && textareaRef.current) {
-      // Small delay to ensure the textarea has rendered
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 50);
-    }
-  }, [isMobile, isEditingFullPrompt]);
-
-  // Scroll to center when prompt becomes active on mobile
-  useEffect(() => {
-    if (isMobile && isActiveForFullView && promptContainerRef.current) {
-      // Small delay to ensure any height changes have completed
-      setTimeout(() => {
-        if (promptContainerRef.current) {
-          promptContainerRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'nearest'
-          });
-        }
-      }, 100);
-    }
-  }, [isMobile, isActiveForFullView]);
-
-  const handleFullPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newText = e.target.value;
-    console.count(`[PromptEditResetTrace] Row:${promptEntry.id}:onChange`);
-    setLocalFullPrompt(newText);
-    onUpdate(promptEntry.id, 'fullPrompt', newText);
-  };
-
-  const handleFocus = () => {
-    if (!isMobile) {
-      // Desktop: enter edit mode immediately as before
-      setIsEditingFullPrompt(true);
-      onSetActiveForFullView(promptEntry.id);
-    }
-    // Mobile: do nothing on focus to prevent keyboard opening
-  };
-
-  const handleClick = () => {
-    if (isMobile) {
-      // Only activate if it wasn't a drag
-      if (!isDragging.current) {
-        // Request activation first, then enter edit when active to ensure single-tap switch works
-        setPendingEnterEdit(true);
-        onSetActiveForFullView(promptEntry.id);
-      }
-    }
-  };
-
-  // Capture intent before blur dismisses keyboard on mobile Safari
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isMobile) {
-      // Prevent default to avoid unintended focus changes before we activate this row
-      // but allow scrolling (only prevent for touch/pen primary pointers)
-      if (e.isPrimary && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
-        e.preventDefault();
-      }
-      // Don't immediately activate - let the click handler with drag detection handle it
-    }
-  };
-
-  const handleBlur = () => {
-    setIsEditingFullPrompt(false);
-    // Save changes when leaving edit mode
-    if (localFullPrompt !== promptEntry.fullPrompt) {
-      onUpdate(promptEntry.id, 'fullPrompt', localFullPrompt);
-    }
-  };
-
-  // Save changes when edit mode is closed (e.g., when another prompt becomes active)
-  useEffect(() => {
-    if (!isEditingFullPrompt && localFullPrompt !== promptEntry.fullPrompt && localFullPrompt !== lastParentUpdate) {
-      // Only save if the local prompt is different from both parent and last parent update
-      // This prevents feedback loops when parent updates (like from AI edit)
-      onUpdate(promptEntry.id, 'fullPrompt', localFullPrompt);
-    }
-  }, [isEditingFullPrompt, localFullPrompt, promptEntry.fullPrompt, promptEntry.id, lastParentUpdate, onUpdate]);
+  const rowHeightClasses = isActiveForFullView || controller.isEditingFullPrompt || forceExpanded
+    ? `overflow-y-auto ${controller.isMobile ? 'min-h-[96px]' : 'min-h-[72px]'}`
+    : `overflow-hidden ${controller.isMobile ? 'h-[56px]' : 'h-[32px]'} cursor-pointer`;
 
   return (
-    <div 
-      ref={promptContainerRef}
+    <div
+      ref={controller.promptContainerRef}
       className={`group pt-2 px-4 pb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors ${forceExpanded ? 'mt-0' : ''}`}
     >
       <div className="flex justify-between items-center mb-2">
-        {!isMobile || !mobileInlineEditing ? (
+        {!controller.isMobile || !mobileInlineEditing ? (
           <div className="flex items-center gap-1.5">
             <Label htmlFor={`fullPrompt-${promptEntry.id}`} className="text-xs font-medium text-muted-foreground">
               {totalPrompts === 1 ? 'Prompt:' : `Prompt #${index + 1}:`}
@@ -225,9 +80,12 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
         ) : (
           <div className="h-5" />
         )}
-        <div className={`flex items-center gap-x-1 ${isMobile && mobileInlineEditing ? 'flex-1 justify-end' : ''}`}>
+
+        <div className={`flex items-center gap-x-1 ${controller.isMobile && mobileInlineEditing ? 'flex-1 justify-end' : ''}`}>
           {rightHeaderAddon ? (
-            <div className={`flex items-center gap-2 ${isMobile && mobileInlineEditing ? 'w-full' : ''}`}>{rightHeaderAddon}</div>
+            <div className={`flex items-center gap-2 ${controller.isMobile && mobileInlineEditing ? 'w-full' : ''}`}>
+              {rightHeaderAddon}
+            </div>
           ) : (
             onEditWithAI && aiEditButtonIcon && (
               <TooltipProvider>
@@ -253,57 +111,40 @@ export const PromptInputRow: React.FC<PromptInputRowProps> = React.memo(({
           )}
         </div>
       </div>
-      
+
       <div>
-        {(!isMobile || isEditingFullPrompt) ? (
-          // Desktop or mobile in edit mode: use actual textarea
+        {(!controller.isMobile || controller.isEditingFullPrompt) ? (
           <Textarea
-            ref={textareaRef}
+            ref={controller.textareaRef}
             id={`fullPrompt-${promptEntry.id}`}
-            value={displayText}
-            onChange={handleFullPromptChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={currentPlaceholder}
-            className={`mt-1 resize-none ${
-              isActiveForFullView || isEditingFullPrompt || forceExpanded
-                ? `overflow-y-auto ${isMobile ? 'min-h-[96px]' : 'min-h-[72px]'}`
-                : `overflow-hidden ${isMobile ? 'h-[56px]' : 'h-[32px]'} cursor-pointer`
-            }`}
+            value={controller.displayText}
+            onChange={controller.handleFullPromptChange}
+            onFocus={controller.handleFocus}
+            onBlur={controller.handleBlur}
+            placeholder={controller.currentPlaceholder}
+            className={`mt-1 resize-none ${rowHeightClasses}`}
             disabled={isGenerating}
-            rows={isMobile ? 2 : 1}
+            rows={controller.isMobile ? 2 : 1}
             clearable
-            onClear={() => {
-              setLocalFullPrompt('');
-              onUpdate(promptEntry.id, 'fullPrompt', '');
-            }}
+            onClear={controller.clearPrompt}
             voiceInput
             voiceContext="This is an individual image generation prompt. Describe a single image with visual details like subject, composition, lighting, colors, and atmosphere. Be specific and descriptive."
-            onVoiceResult={(result) => {
-              const text = result.prompt || result.transcription;
-              setLocalFullPrompt(text);
-              onUpdate(promptEntry.id, 'fullPrompt', text);
-            }}
+            onVoiceResult={controller.handleVoiceResult}
           />
         ) : (
-          // Mobile not in edit mode: use div that looks like textarea
           <div
-            onTouchStart={handleTouchStart}
-            onPointerDown={handlePointerDown}
-            onClick={handleClick}
-            className={`mt-1 resize-none border border-input bg-background px-3 py-2 text-base lg:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-              isActiveForFullView || forceExpanded
-                ? `overflow-y-auto ${isMobile ? 'min-h-[96px]' : 'min-h-[72px]'}`
-                : `overflow-hidden ${isMobile ? 'h-[56px]' : 'h-[32px]'} cursor-pointer`
-            } rounded-md`}
+            onTouchStart={controller.handleTouchStart}
+            onPointerDown={controller.handlePointerDown}
+            onClick={controller.handleClick}
+            className={`mt-1 resize-none border border-input bg-background px-3 py-2 text-base lg:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${rowHeightClasses} rounded-md`}
             style={{
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
               fontFamily: 'inherit',
             }}
           >
-            {displayText || (
-              <span className="text-muted-foreground">{currentPlaceholder}</span>
+            {controller.displayText || (
+              <span className="text-muted-foreground">{controller.currentPlaceholder}</span>
             )}
           </div>
         )}

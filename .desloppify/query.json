@@ -2,27 +2,113 @@
   "command": "next",
   "items": [
     {
-      "id": "structural::src/shared/components/FileInput.tsx",
+      "id": "structural::src/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm.tsx",
       "kind": "finding",
       "confidence": "medium",
       "detector": "structural",
-      "file": "src/shared/components/FileInput.tsx",
-      "summary": "Needs decomposition: mixed: jsx_rendering, data_transforms(4), handlers(7)",
+      "file": "src/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm.tsx",
+      "summary": "Needs decomposition: large (658 LOC)",
       "detail": {
-        "concerns": [
-          "jsx_rendering",
-          "data_transforms(4)",
-          "handlers(7)"
-        ],
-        "loc": 330
+        "loc": 658
       },
       "status": "open",
-      "primary_command": "desloppify plan done \"structural::src/shared/components/FileInput.tsx\" --note \"<what you did>\" --confirm",
+      "primary_command": "desloppify plan done \"structural::src/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm.tsx\" --note \"<what you did>\" --confirm",
       "queue_position": 1
+    },
+    {
+      "id": "structural::src/shared/components/JoinClipsSettingsForm/Visualization.tsx",
+      "kind": "finding",
+      "confidence": "medium",
+      "detector": "structural",
+      "file": "src/shared/components/JoinClipsSettingsForm/Visualization.tsx",
+      "summary": "Needs decomposition: large (502 LOC)",
+      "detail": {
+        "loc": 502
+      },
+      "status": "open",
+      "primary_command": "desloppify plan done \"structural::src/shared/components/JoinClipsSettingsForm/Visualization.tsx\" --note \"<what you did>\" --confirm",
+      "queue_position": 2
+    },
+    {
+      "id": "structural::src/shared/components/LoraSelectorModal/LoraSelectorModal.tsx",
+      "kind": "finding",
+      "confidence": "medium",
+      "detector": "structural",
+      "file": "src/shared/components/LoraSelectorModal/LoraSelectorModal.tsx",
+      "summary": "Needs decomposition: 12 hooks (10 useStates, 12 total hooks)",
+      "detail": {
+        "hook_total": 12,
+        "hook_reasons": [
+          "10 useStates",
+          "12 total hooks"
+        ],
+        "loc": 276
+      },
+      "status": "open",
+      "primary_command": "desloppify plan done \"structural::src/shared/components/LoraSelectorModal/LoraSelectorModal.tsx\" --note \"<what you did>\" --confirm",
+      "queue_position": 3
+    },
+    {
+      "id": "auto/structural-index.tsx",
+      "kind": "cluster",
+      "action_type": "refactor",
+      "summary": "Decompose index.tsx",
+      "member_count": 3,
+      "members": [
+        {
+          "id": "structural::src/shared/components/MediaGallery/index.tsx",
+          "confidence": "medium",
+          "detector": "structural",
+          "file": "src/shared/components/MediaGallery/index.tsx",
+          "summary": "Needs decomposition: large (768 LOC)",
+          "status": "open",
+          "primary_command": "desloppify plan done \"structural::src/shared/components/MediaGallery/index.tsx\" --note \"<what you did>\" --confirm"
+        },
+        {
+          "id": "structural::src/shared/components/ProductTour/index.tsx",
+          "confidence": "medium",
+          "detector": "structural",
+          "file": "src/shared/components/ProductTour/index.tsx",
+          "summary": "Needs decomposition: 8 hooks (4 useEffects, 20 custom hooks)",
+          "status": "open",
+          "primary_command": "desloppify plan done \"structural::src/shared/components/ProductTour/index.tsx\" --note \"<what you did>\" --confirm"
+        },
+        {
+          "id": "structural::src/shared/components/VideoPortionEditor/index.tsx",
+          "confidence": "medium",
+          "detector": "structural",
+          "file": "src/shared/components/VideoPortionEditor/index.tsx",
+          "summary": "Needs decomposition: large (583 LOC) / mixed: jsx_rendering, data_transforms(3), handlers(5)",
+          "status": "open",
+          "primary_command": "desloppify plan done \"structural::src/shared/components/VideoPortionEditor/index.tsx\" --note \"<what you did>\" --confirm"
+        }
+      ],
+      "cluster_name": "auto/structural-index.tsx",
+      "cluster_auto": true,
+      "detector": "structural",
+      "primary_command": "decompose large files"
+    },
+    {
+      "id": "structural::src/shared/components/MediaGalleryItem.tsx",
+      "kind": "finding",
+      "confidence": "medium",
+      "detector": "structural",
+      "file": "src/shared/components/MediaGalleryItem.tsx",
+      "summary": "Needs decomposition: large (701 LOC) / complexity score 21",
+      "detail": {
+        "loc": 701,
+        "complexity_score": 21,
+        "complexity_signals": [
+          "36 imports"
+        ]
+      },
+      "status": "open",
+      "primary_command": "desloppify plan done \"structural::src/shared/components/MediaGalleryItem.tsx\" --note \"<what you did>\" --confirm",
+      "queue_position": 5
     }
   ],
   "queue": {
-    "total": 340
+    "total": 335
   },
   "narrative": {
     "phase": "stagnation",
@@ -58,7 +144,7 @@
       "stagnant_dimensions": [
         {
           "name": "File health",
-          "strict": 96.7,
+          "strict": 96.9,
           "stuck_scans": 5
         },
         {
@@ -158,8 +244,8 @@
       {
         "type": "refactor",
         "detector": "structural",
-        "count": 77,
-        "description": "77 structural findings in 2 cluster(s) \u2014 run `desloppify next`",
+        "count": 72,
+        "description": "72 structural findings in 2 cluster(s) \u2014 run `desloppify next`",
         "command": "desloppify next",
         "impact": 0.0,
         "dimension": "File health",
@@ -360,7 +446,7 @@
     "strategy": {
       "fixer_leverage": {
         "auto_fixable_count": 1,
-        "total_count": 1767,
+        "total_count": 1762,
         "coverage": 0.001,
         "impact_ratio": 0.0,
         "recommendation": "none"
@@ -718,10 +804,10 @@
   "scorecard_dimensions": [
     {
       "name": "File health",
-      "score": 96.7,
-      "strict": 96.7,
+      "score": 96.9,
+      "strict": 96.9,
       "checks": 1393,
-      "issues": 66,
+      "issues": 61,
       "tier": 3,
       "subjective": false
     },

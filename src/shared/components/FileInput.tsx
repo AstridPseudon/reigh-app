@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Button } from "@/shared/components/ui/button";
-import { Label } from "@/shared/components/ui/primitives/label";
-import { X, UploadCloud, ImagePlus, VideoIcon, FileText, Loader2, Trash2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/shared/components/ui/tooltip";
-import { toast } from "@/shared/components/ui/toast";
-import { cropFilename } from "@/shared/lib/stringFormatting";
+import React from 'react';
+import { Loader2 } from 'lucide-react';
+import { Label } from '@/shared/components/ui/primitives/label';
+import { FileInputEmptyState } from '@/shared/components/file-input/FileInputEmptyState';
+import { FileInputSelectedFiles } from '@/shared/components/file-input/FileInputSelectedFiles';
+import { useFileInputController } from '@/shared/components/file-input/useFileInputController';
 
 interface FileInputProps {
   onFileChange: (files: File[]) => void;
@@ -34,10 +33,10 @@ const FileInput: React.FC<FileInputProps> = ({
   onFileChange,
   onFileRemove,
   acceptTypes = ['image'],
-  label = "Input File(s)",
+  label = 'Input File(s)',
   currentFilePreviewUrl,
   currentFileName,
-  className = "",
+  className = '',
   disabled = false,
   multiple = false,
   suppressSelectionSummary = false,
@@ -47,278 +46,68 @@ const FileInput: React.FC<FileInputProps> = ({
   forceLoading = false,
   suppressAcceptedTypes = false,
 }) => {
-  const [internalFiles, setInternalFiles] = useState<File[]>([]);
-  const [internalPreviewUrls, setInternalPreviewUrls] = useState<string[]>([]);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isSelectionLoading, setIsSelectionLoading] = useState(false);
-  const selectionLoadingTimerRef = useRef<number | null>(null);
-
-  const acceptedMimeTypes = acceptTypes
-    .map(type => (type === 'image' ? 'image/*' : 'video/*'))
-    .join(',');
-
-  useEffect(() => {
-    const newObjectUrls = internalFiles.map(file => URL.createObjectURL(file));
-    setInternalPreviewUrls(previousUrls => {
-      previousUrls.forEach(url => URL.revokeObjectURL(url));
-      return newObjectUrls;
-    });
-
-    return () => {
-      newObjectUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [internalFiles]);
-
-  const handleFilesSelect = useCallback((fileList: FileList | null) => {
-    if (fileList && fileList.length > 0) {
-      const filesArray = Array.from(fileList);
-      const validFiles: File[] = [];
-      const invalidFiles: string[] = [];
-
-      filesArray.forEach(file => {
-        const fileType = file.type.split('/')[0];
-        if (
-          (acceptTypes.includes('image') && fileType === 'image') ||
-          (acceptTypes.includes('video') && fileType === 'video')
-        ) {
-          validFiles.push(file);
-        } else {
-          invalidFiles.push(file.name);
-        }
-      });
-
-      if (invalidFiles.length > 0) {
-        toast.error(`Invalid file type for: ${invalidFiles.join(', ')}. Accepted: ${acceptTypes.join(' or ')}.`);
-      }
-      
-      if (!multiple && validFiles.length > 1) {
-        toast.info("Multiple files selected, but only the first one will be used as 'multiple' is not enabled.");
-        // Start loading state BEFORE updating files to avoid mid-state flash (opt-in)
-        if (showLoaderDuringSingleSelection) {
-          setIsSelectionLoading(true);
-        }
-        setInternalFiles([validFiles[0]]);
-        onFileChange([validFiles[0]]);
-      } else if (multiple) {
-        // For multiple mode, append new files to existing ones
-        setInternalFiles(prevFiles => {
-          const newFiles = [...prevFiles, ...validFiles];
-          onFileChange(newFiles);
-          return newFiles;
-        });
-      } else {
-        // Start loading state BEFORE updating files to avoid mid-state flash (opt-in)
-        if (showLoaderDuringSingleSelection) {
-          setIsSelectionLoading(true);
-        }
-        setInternalFiles(validFiles);
-        onFileChange(validFiles);
-      }
-
-      // Keep a brief loading state in single-file mode (opt-in)
-      if (showLoaderDuringSingleSelection && !multiple && validFiles.length > 0) {
-        if (selectionLoadingTimerRef.current) {
-          window.clearTimeout(selectionLoadingTimerRef.current);
-        }
-        selectionLoadingTimerRef.current = window.setTimeout(() => {
-          setIsSelectionLoading(false);
-          selectionLoadingTimerRef.current = null;
-        }, loaderDurationMs);
-      }
-
-    } else {
-      setInternalFiles([]);
-      onFileChange([]);
-    }
-    if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-    }
-  }, [acceptTypes, onFileChange, multiple, showLoaderDuringSingleSelection, loaderDurationMs]);
-
-  const handleRemoveAllFiles = useCallback(() => {
-    setInternalFiles([]);
-    onFileChange([]);
-    if (onFileRemove) {
-      onFileRemove();
-    }
-    setIsSelectionLoading(false);
-    if (selectionLoadingTimerRef.current) {
-      window.clearTimeout(selectionLoadingTimerRef.current);
-      selectionLoadingTimerRef.current = null;
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, [onFileChange, onFileRemove]);
-
-  const handleRemoveFile = useCallback((indexToRemove: number) => {
-    setInternalFiles(prevFiles => {
-      const newFiles = prevFiles.filter((_, index) => index !== indexToRemove);
-      onFileChange(newFiles);
-      // If we removed the last file, also invoke onFileRemove and clear input
-      if (newFiles.length === 0) {
-        if (onFileRemove) onFileRemove();
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      }
-      return newFiles;
-    });
-    setIsSelectionLoading(false);
-    if (selectionLoadingTimerRef.current) {
-      window.clearTimeout(selectionLoadingTimerRef.current);
-      selectionLoadingTimerRef.current = null;
-    }
-  }, [onFileChange, onFileRemove]);
-
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    handleFilesSelect(event.target.files);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!disabled) setIsDraggingOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-    if (!disabled && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFilesSelect(e.dataTransfer.files);
-      e.dataTransfer.clearData();
-    }
-  };
-
-  const displayFiles = internalFiles.length > 0 ? internalFiles : 
-                       (currentFileName && currentFilePreviewUrl && !multiple ? [{name: currentFileName, type: currentFilePreviewUrl.startsWith('data:video') ? 'video/mp4' : 'image/png' } as File] : []);
-  const displayPreviewUrls = internalFiles.length > 0 ? internalPreviewUrls : 
-                             (currentFilePreviewUrl && !multiple ? [currentFilePreviewUrl] : []);
+  const controller = useFileInputController({
+    onFileChange,
+    onFileRemove,
+    acceptTypes,
+    currentFilePreviewUrl: currentFilePreviewUrl ?? null,
+    currentFileName: currentFileName ?? null,
+    disabled,
+    multiple,
+    showLoaderDuringSingleSelection,
+    loaderDurationMs,
+    forceLoading,
+  });
 
   return (
     <div className={`space-y-2 ${className}`}>
       {label && <Label htmlFor="file-input-element">{label}</Label>}
       <div
         className={`border-2 border-dashed rounded-md p-6 text-center
-                    ${isDraggingOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/30'}
+                    ${controller.isDraggingOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/30'}
                     ${disabled ? 'cursor-not-allowed bg-muted/50' : 'cursor-pointer hover:border-muted-foreground/50'}`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => !disabled && fileInputRef.current?.click()}
+        onDragOver={controller.handleDragOver}
+        onDragLeave={controller.handleDragLeave}
+        onDrop={controller.handleDrop}
+        onClick={() => !disabled && controller.fileInputRef.current?.click()}
       >
         <input
           id="file-input-element"
-          ref={fileInputRef}
+          ref={controller.fileInputRef}
           type="file"
-          accept={acceptedMimeTypes}
-          onChange={handleInputChange}
+          accept={controller.acceptedMimeTypes}
+          onChange={controller.handleInputChange}
           className="hidden"
           disabled={disabled}
           multiple={multiple}
         />
-        {(forceLoading || (showLoaderDuringSingleSelection && !multiple && isSelectionLoading)) ? (
+
+        {controller.showLoader ? (
           <div className="flex flex-col items-center gap-y-2 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
             <p>Processing file...</p>
           </div>
         ) : (
           <>
-            {displayFiles.length === 0 && (
-              <div className="flex flex-col items-center gap-y-2 text-muted-foreground">
-                <UploadCloud className="h-10 w-10" />
-                <p>Drag & drop or click to upload {multiple ? 'files' : 'a file'}</p>
-                {!suppressAcceptedTypes && (
-                  <p className="text-xs">
-                    Accepted: {acceptTypes.join(', ')}
-                  </p>
-                )}
-              </div>
+            {controller.displayFiles.length === 0 && (
+              <FileInputEmptyState
+                multiple={multiple}
+                acceptTypes={acceptTypes}
+                suppressAcceptedTypes={suppressAcceptedTypes}
+              />
             )}
-            {displayFiles.length > 0 && (
-              <div className="space-y-2">
-                {!suppressSelectionSummary && (
-                  <div className="text-sm text-muted-foreground p-2 border rounded-md bg-background flex items-center justify-between">
-                      <div className="flex-1 text-center">
-                        {displayFiles.length} file{displayFiles.length === 1 ? '' : 's'} selected
-                        {multiple && !disabled && (
-                          <span className="block text-xs mt-1 text-primary">
-                            <ImagePlus className="inline h-3 w-3 mr-1" />
-                            Click or drag to add more
-                          </span>
-                        )}
-                      </div>
-                      {!suppressRemoveAll && !disabled && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveAllFiles();
-                                }}
-                                className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Remove all files</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                  </div>
-                )}
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-32 sm:max-h-24 overflow-y-auto">
-                    {displayFiles.map((file, index) => (
-                        <div key={index} className="relative group">
-                            {file.type.startsWith('image/') && displayPreviewUrls[index] ? (
-                                <img
-                                    src={displayPreviewUrls[index]}
-                                    alt={file.name || `Preview ${index + 1}`}
-                                    className="w-full h-16 object-cover rounded border"
-                                />
-                            ) : file.type.startsWith('video/') && displayPreviewUrls[index] ? (
-                                <div className="w-full h-16 bg-gray-200 rounded border flex items-center justify-center">
-                                    <VideoIcon className="h-6 w-6 text-gray-500" />
-                                </div>
-                            ) : (
-                                <div className="w-full h-16 bg-gray-200 rounded border flex items-center justify-center">
-                                    <FileText className="h-6 w-6 text-gray-500" />
-                                </div>
-                            )}
-                            {!disabled && (
-                                <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5"
-                                    onClick={(e) => {
-                                        e.stopPropagation(); 
-                                        handleRemoveFile(index);
-                                    }}
-                                    aria-label={`Remove ${file.name}`}
-                                >
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1 truncate text-center preserve-case" title={file.name}>
-                              {cropFilename(file.name)}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-              </div>
+
+            {controller.displayFiles.length > 0 && (
+              <FileInputSelectedFiles
+                displayFiles={controller.displayFiles}
+                displayPreviewUrls={controller.displayPreviewUrls}
+                multiple={multiple}
+                disabled={disabled}
+                suppressSelectionSummary={suppressSelectionSummary}
+                suppressRemoveAll={suppressRemoveAll}
+                onRemoveAll={controller.handleRemoveAllFiles}
+                onRemoveFile={controller.handleRemoveFile}
+              />
             )}
           </>
         )}
@@ -327,4 +116,4 @@ const FileInput: React.FC<FileInputProps> = ({
   );
 };
 
-export default FileInput; 
+export default FileInput;

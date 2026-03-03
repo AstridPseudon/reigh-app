@@ -1,7 +1,7 @@
 {
   "version": 5,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-03T11:39:39+00:00",
+  "updated": "2026-03-03T11:52:05+00:00",
   "queue_order": [],
   "deferred": [],
   "skipped": {
@@ -19560,6 +19560,131 @@
         "status": "fixed",
         "attestation": "I have actually Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export. and I am not gaming the score."
       }
+    },
+    {
+      "timestamp": "2026-03-03T11:47:31+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/shared/components/FileInput.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:47:32+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/shared/components/FileInput.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T11:48:59+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/shared/components/HoverScrubVideo.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:48:59+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/shared/components/HoverScrubVideo.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T11:49:44+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/shared/components/ImageGenerationForm/ImageGenerationFormContext.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:49:44+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/shared/components/ImageGenerationForm/ImageGenerationFormContext.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T11:50:52+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/shared/components/ImageGenerationForm/components/PromptInputRow.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:50:52+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/shared/components/ImageGenerationForm/components/PromptInputRow.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T11:52:04+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/shared/components/ImageGenerationForm/components/PromptsSection.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Moved PromptsSection context wiring and memoized handlers into prompts-section/usePromptsSectionController hook, leaving PromptsSection as a presentational view layer.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:52:05+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/shared/components/ImageGenerationForm/components/PromptsSection.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Moved PromptsSection context wiring and memoized handlers into prompts-section/usePromptsSectionController hook, leaving PromptsSection as a presentational view layer.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Moved PromptsSection context wiring and memoized handlers into prompts-section/usePromptsSectionController hook, leaving PromptsSection as a presentational view layer. and I am not gaming the score."
+      }
     }
   ],
   "epic_triage_meta": {
@@ -19607,7 +19732,12 @@
   "commit_log": [],
   "uncommitted_findings": [
     "structural::src/shared/components/GenerationsPane/GenerationsPane.tsx",
-    "structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx"
+    "structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx",
+    "structural::src/shared/components/FileInput.tsx",
+    "structural::src/shared/components/HoverScrubVideo.tsx",
+    "structural::src/shared/components/ImageGenerationForm/ImageGenerationFormContext.tsx",
+    "structural::src/shared/components/ImageGenerationForm/components/PromptInputRow.tsx",
+    "structural::src/shared/components/ImageGenerationForm/components/PromptsSection.tsx"
   ],
   "commit_tracking_branch": null
 }

@@ -159,15 +159,15 @@
   "last_scan": "2026-03-02T23:01:06+00:00",
   "scan_count": 144,
   "overall_score": 75.7,
-  "objective_score": 97.3,
+  "objective_score": 97.4,
   "strict_score": 75.7,
   "verified_strict_score": 95.9,
   "stats": {
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 191,
-    "open": 1768,
+    "fixed": 196,
+    "open": 1763,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -187,8 +187,8 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 182,
-        "open": 719,
+        "fixed": 187,
+        "open": 714,
         "wontfix": 0
       },
       "4": {
@@ -4662,17 +4662,23 @@
       "detail": {
         "loc": 506
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:48:59+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:48:59+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/ImageGenerationForm/ImageGenerationForm.moduleCoverage.test.ts": {
       "id": "structural::src/shared/components/ImageGenerationForm/ImageGenerationForm.moduleCoverage.test.ts",
@@ -4751,17 +4757,23 @@
         ],
         "loc": 315
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:50:52+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:50:52+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/hooks/useLoraManager.tsx": {
       "id": "structural::src/shared/hooks/useLoraManager.tsx",
@@ -5067,17 +5079,23 @@
         ],
         "loc": 248
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:49:44+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:49:44+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/contexts/PanesContext.tsx": {
       "id": "structural::src/shared/contexts/PanesContext.tsx",
@@ -5127,17 +5145,23 @@
         ],
         "loc": 330
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:47:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:47:32+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/SegmentSettingsForm/components/AdvancedSettingsSection.tsx": {
       "id": "structural::src/shared/components/SegmentSettingsForm/components/AdvancedSettingsSection.tsx",
@@ -160099,17 +160123,23 @@
       "detail": {
         "loc": 571
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export.",
       "first_seen": "2026-03-02T19:17:20+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:39:39+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:39:39+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/realtime/RealtimeConnection.ts": {
       "id": "structural::src/shared/realtime/RealtimeConnection.ts",
@@ -174357,21 +174387,21 @@
   },
   "dimension_scores": {
     "File health": {
-      "score": 96.6,
-      "strict_score": 96.6,
+      "score": 96.9,
+      "strict_score": 96.9,
       "verified_strict_score": 96.6,
       "checks": 1393,
-      "issues": 67,
+      "issues": 62,
       "tier": 3,
       "detectors": {
         "structural": {
           "potential": 1393,
-          "pass_rate": 0.9663316582914572,
-          "issues": 67,
-          "weighted_failures": 46.90000000000004
+          "pass_rate": 0.9688442211055276,
+          "issues": 62,
+          "weighted_failures": 43.40000000000003
         }
       },
-      "strict": 96.6
+      "strict": 96.9
     },
     "Code quality": {
       "score": 97.2,

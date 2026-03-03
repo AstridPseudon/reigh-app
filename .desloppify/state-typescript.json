@@ -166,8 +166,8 @@
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 192,
-    "open": 1767,
+    "fixed": 197,
+    "open": 1762,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -187,8 +187,8 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 183,
-        "open": 718,
+        "fixed": 188,
+        "open": 713,
         "wontfix": 0
       },
       "4": {
@@ -4662,17 +4662,23 @@
       "detail": {
         "loc": 506
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:48:59+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed HoverScrubVideo by extracting overlay rendering and prop contracts into hover-scrub-video modules, reducing the main file size and separating rendering concerns from controller logic. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:48:59+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/ImageGenerationForm/ImageGenerationForm.moduleCoverage.test.ts": {
       "id": "structural::src/shared/components/ImageGenerationForm/ImageGenerationForm.moduleCoverage.test.ts",
@@ -4751,17 +4757,23 @@
         ],
         "loc": 315
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:50:52+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Extracted PromptInputRow state/effect/interaction logic into prompt-row/usePromptInputRowController hook; left component as a lean render layer with the same UX behavior and handlers. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:50:52+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/hooks/useLoraManager.tsx": {
       "id": "structural::src/shared/hooks/useLoraManager.tsx",
@@ -4986,17 +4998,23 @@
         ],
         "loc": 317
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Moved PromptsSection context wiring and memoized handlers into prompts-section/usePromptsSectionController hook, leaving PromptsSection as a presentational view layer.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:52:05+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Moved PromptsSection context wiring and memoized handlers into prompts-section/usePromptsSectionController hook, leaving PromptsSection as a presentational view layer. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:52:05+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/PhaseConfigSelectorModal/PhaseConfigSelectorModal.tsx": {
       "id": "structural::src/shared/components/PhaseConfigSelectorModal/PhaseConfigSelectorModal.tsx",
@@ -5067,17 +5085,23 @@
         ],
         "loc": 248
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:49:44+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Separated context hook logic into hooks/useImageGenerationFormContexts.ts and kept ImageGenerationFormContext focused on context types, provider, and memoized value builder; re-exported hooks for API compatibility. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:49:44+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/contexts/PanesContext.tsx": {
       "id": "structural::src/shared/contexts/PanesContext.tsx",
@@ -5127,17 +5151,23 @@
         ],
         "loc": 330
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:47:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split FileInput into a thin render shell plus focused file-input modules (controller hook, empty-state view, selected-files view) to separate handlers/state from rendering and reduce file complexity. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:47:32+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/SegmentSettingsForm/components/AdvancedSettingsSection.tsx": {
       "id": "structural::src/shared/components/SegmentSettingsForm/components/AdvancedSettingsSection.tsx",
@@ -174363,21 +174393,21 @@
   },
   "dimension_scores": {
     "File health": {
-      "score": 96.7,
-      "strict_score": 96.7,
+      "score": 96.9,
+      "strict_score": 96.9,
       "verified_strict_score": 96.6,
       "checks": 1393,
-      "issues": 66,
+      "issues": 61,
       "tier": 3,
       "detectors": {
         "structural": {
           "potential": 1393,
-          "pass_rate": 0.9668341708542714,
-          "issues": 66,
-          "weighted_failures": 46.20000000000004
+          "pass_rate": 0.9693467336683417,
+          "issues": 61,
+          "weighted_failures": 42.700000000000024
         }
       },
-      "strict": 96.7
+      "strict": 96.9
     },
     "Code quality": {
       "score": 97.2,

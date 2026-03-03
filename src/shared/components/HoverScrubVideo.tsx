@@ -1,87 +1,12 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { getDisplayUrl, stripQueryParameters } from '@/shared/lib/media/mediaUrl';
-import { Button } from '@/shared/components/ui/button';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { safePlay } from '@/shared/lib/media/safePlay';
-
-interface HoverScrubVideoProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onTouchEnd' | 'onLoadStart' | 'onLoadedData'> {
-  /**
-   * Source URL for the video. Can be a full URL or relative path handled by getDisplayUrl.
-   */
-  src: string;
-  /**
-   * Optional poster (thumbnail) URL.
-   */
-  poster?: string;
-  /**
-   * Extra className applied to the root div.
-   */
-  className?: string;
-  /**
-   * Extra className applied to the underlying <video> element.
-   */
-  videoClassName?: string;
-  /**
-   * Loop the video (defaults to true).
-   */
-  loop?: boolean;
-  /**
-   * Mute the video (defaults to true).
-   */
-  muted?: boolean;
-  /**
-   * Handle double-click events (desktop only).
-   */
-  onDoubleClick?: () => void;
-  /**
-   * Handle touch end events (mobile only).
-   */
-  onTouchEnd?: (e: React.TouchEvent<HTMLVideoElement>) => void;
-  preload?: 'auto' | 'metadata' | 'none';
-  showSpeedControls?: boolean;
-  showNativeControls?: boolean;
-  speedControlsPosition?: 'top-left' | 'bottom-center';
-  /**
-   * Disable scrubbing behavior for lightbox/fullscreen usage (defaults to false).
-   */
-  disableScrubbing?: boolean;
-  /**
-   * Load video content on demand (first hover/interaction) for better performance
-   */
-  loadOnDemand?: boolean;
-  /**
-   * Lightweight thumbnail mode: disables scrubbing and heavy listeners/logging,
-   * uses preload="none" for minimal overhead. Ideal for small previews.
-   */
-  thumbnailMode?: boolean;
-  /**
-   * Autoplays video on hover, disabling scrubbing (defaults to false).
-   */
-  autoplayOnHover?: boolean;
-  /**
-   * If true, do not set video src until user interaction. Only the poster is shown.
-   */
-  posterOnlyUntilClick?: boolean;
-  /**
-   * When true, toggle play/pause on click (helpful on mobile where hover is absent)
-   */
-  playOnClick?: boolean;
-  /**
-   * Callback for video load error
-   */
-  onVideoError?: React.ReactEventHandler<HTMLVideoElement>;
-  /**
-   * Callback for video load start
-   */
-  onLoadStart?: React.ReactEventHandler<HTMLVideoElement>;
-  /**
-   * Callback for video loaded data
-   */
-  onLoadedData?: React.ReactEventHandler<HTMLVideoElement>;
-}
+import { HoverScrubVideoOverlays } from '@/shared/components/hover-scrub-video/HoverScrubVideoOverlays';
+import { type HoverScrubVideoProps } from '@/shared/components/hover-scrub-video/types';
 
 /**
  * Video component that scrubs based on mouse position and plays when mouse stops moving.
@@ -427,78 +352,22 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
         Your browser does not support the video tag.
       </video>
 
-      {/* Overlay play hint when deferring src */}
-      {posterOnlyUntilClick && !isActivated && (
-        <div
-          className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
-          onClick={() => setIsActivated(true)}
-        >
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-black/70 text-white text-sm">
-            ▶
-          </div>
-        </div>
-      )}
-
-      {/* Scrubber Line - Desktop only and when scrubbing is enabled */}
-      {!isMobile && !disableScrubbing && !thumbnailMode && isActivated && scrubberPosition !== null && (
-        <div
-          className={cn(
-            "absolute top-0 bottom-0 w-0.5 bg-white shadow-lg z-30 pointer-events-none transition-opacity duration-300",
-            scrubberVisible ? "opacity-100" : "opacity-0"
-          )}
-          style={{ left: `${scrubberPosition}%` }}
-        >
-          {/* Scrubber handle/dot */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg border-2 border-black/20" />
-
-          {/* Time indicator */}
-          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-            {Number.isFinite(duration) && duration > 0 && (
-              `${Math.floor((scrubberPosition / 100) * duration)}s / ${Math.floor(duration)}s`
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Progress bar at bottom - shows playback position during hover */}
-      {!isMobile && !disableScrubbing && !thumbnailMode && isActivated && scrubberPosition !== null && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30 z-20 pointer-events-none">
-          <div
-            className="h-full bg-primary transition-all duration-75"
-            style={{ width: `${scrubberPosition}%` }}
-          />
-        </div>
-      )}
-
-      {/* Speed controls overlay - Desktop only */}
-      {!isMobile && !disableScrubbing && !thumbnailMode && isActivated && showSpeedControls && (
-        <div 
-          className={cn(
-            'absolute flex items-center gap-x-1 opacity-0 group-hover:opacity-100 group-touch:opacity-100 transition-opacity bg-black/60 rounded-md px-2 py-1 backdrop-blur-sm z-20',
-            speedControlsPosition === 'top-left' 
-              ? 'top-2 left-2' 
-              : 'bottom-2 left-1/2 -translate-x-1/2'
-          )}
-        >
-          {speedOptions.map((speed) => (
-            <Button
-              key={speed}
-              variant={playbackRate === speed ? 'default' : 'secondary'}
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSpeedChange(speed);
-              }}
-              className={cn(
-                'h-5 min-w-[36px] px-1.5 text-xs',
-                playbackRate === speed ? 'text-white' : 'text-foreground'
-              )}
-            >
-              {speed}x
-            </Button>
-          ))}
-        </div>
-      )}
+      <HoverScrubVideoOverlays
+        posterOnlyUntilClick={posterOnlyUntilClick}
+        isActivated={isActivated}
+        onActivate={() => setIsActivated(true)}
+        isMobile={isMobile}
+        disableScrubbing={disableScrubbing}
+        thumbnailMode={thumbnailMode}
+        scrubberPosition={scrubberPosition}
+        scrubberVisible={scrubberVisible}
+        duration={duration}
+        showSpeedControls={showSpeedControls}
+        speedControlsPosition={speedControlsPosition}
+        speedOptions={speedOptions}
+        playbackRate={playbackRate}
+        onSpeedChange={handleSpeedChange}
+      />
     </div>
   );
 };

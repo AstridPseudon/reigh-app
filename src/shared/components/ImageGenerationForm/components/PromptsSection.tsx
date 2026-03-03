@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/primitives/label";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -18,12 +18,7 @@ import { SegmentedControl, SegmentedControlItem } from "@/shared/components/ui/s
 import { CollapsibleSection } from "@/shared/components/ui/collapsible-section";
 import { PromptMode } from "../types";
 import { SectionHeader } from "./SectionHeader";
-import { useIsMobile } from "@/shared/hooks/mobile";
-import {
-  useFormUIContext,
-  useFormCoreContext,
-  useFormPromptsContext,
-} from "../ImageGenerationFormContext";
+import { usePromptsSectionController } from "./prompts-section/usePromptsSectionController";
 
 interface PromptsSectionProps {
   /** Handler for prompt mode changes - includes side effects like adjusting imagesPerPrompt */
@@ -33,76 +28,19 @@ interface PromptsSectionProps {
 export const PromptsSection: React.FC<PromptsSectionProps> = ({
   onPromptModeChange,
 }) => {
-  // Pull from context
-  const { uiActions } = useFormUIContext();
-  const { isGenerating, ready } = useFormCoreContext();
-  const {
-    prompts,
-    masterPromptText,
-    effectivePromptMode: promptMode,
-    actionablePromptsCount,
-    currentBeforePromptText: beforeEachPromptText,
-    currentAfterPromptText: afterEachPromptText,
-    setMasterPromptText,
-    setCurrentBeforePromptText,
-    setCurrentAfterPromptText,
-    handleDeleteAllPrompts,
-    markAsInteracted,
-  } = useFormPromptsContext();
-
-  // Derived handlers
-  const onMasterPromptTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMasterPromptText(e.target.value);
-  }, [setMasterPromptText]);
-
-  const onBeforeEachPromptTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCurrentBeforePromptText(e.target.value);
-  }, [setCurrentBeforePromptText]);
-
-  const onAfterEachPromptTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCurrentAfterPromptText(e.target.value);
-  }, [setCurrentAfterPromptText]);
-
-  const onClearMasterPromptText = useCallback(() => {
-    markAsInteracted();
-    setMasterPromptText('');
-  }, [markAsInteracted, setMasterPromptText]);
-
-  const onClearBeforeEachPromptText = useCallback(() => {
-    markAsInteracted();
-    setCurrentBeforePromptText('');
-  }, [markAsInteracted, setCurrentBeforePromptText]);
-
-  const onClearAfterEachPromptText = useCallback(() => {
-    markAsInteracted();
-    setCurrentAfterPromptText('');
-  }, [markAsInteracted, setCurrentAfterPromptText]);
-
-  const onOpenPromptModal = useCallback(() => {
-    uiActions.setPromptModalOpen(true);
-  }, [uiActions]);
-
-  const onOpenMagicPrompt = useCallback(() => {
-    uiActions.openMagicPrompt();
-  }, [uiActions]);
-  const isMobile = useIsMobile();
-  
-  // Normalize promptMode to handle invalid/empty values from persistence
-  // If promptMode is null, undefined, or empty string, default to 'automated'
-  const normalizedPromptMode: PromptMode = 
-    (promptMode === 'automated' || promptMode === 'managed') ? promptMode : 'automated';
+  const controller = usePromptsSectionController();
   
   return (
     <div className="space-y-4">
       {/* Header section - stacks on mobile */}
-      <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'} mb-2`}>
+      <div className={`flex ${controller.isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'} mb-2`}>
         <div className="flex items-center gap-2">
           <SectionHeader title="Prompts" theme="orange" />
         </div>
         <div className="flex items-center gap-x-2">
           {/* Automated vs Managed Toggle */}
           <SegmentedControl
-            value={normalizedPromptMode}
+            value={controller.normalizedPromptMode}
             onValueChange={(value) => onPromptModeChange(value as PromptMode)}
             size="sm"
           >
@@ -110,21 +48,21 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
               Automated
             </SegmentedControlItem>
             <SegmentedControlItem value="managed">
-              Managed{prompts.length > 0 ? ` (${prompts.length})` : ''}
+              Managed{controller.prompts.length > 0 ? ` (${controller.prompts.length})` : ''}
             </SegmentedControlItem>
           </SegmentedControl>
         </div>
       </div>
 
       {/* Prompt display area - differs by mode */}
-      {normalizedPromptMode === 'automated' ? (
+      {controller.normalizedPromptMode === 'automated' ? (
         // Automated mode: Master prompt field
         <div className="mt-2">
           <div className="relative">
             <Label htmlFor="masterPromptText" className="text-sm font-light block mb-1.5">
               Master Prompt:
             </Label>
-            {isMobile ? (
+            {controller.isMobile ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <button 
@@ -158,29 +96,26 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
               </TooltipProvider>
             )}
           </div>
-          <Textarea
-            id="masterPromptText"
-            value={masterPromptText}
-            onChange={onMasterPromptTextChange}
-            placeholder="Describe what you want to generate..."
-            disabled={isGenerating || !ready}
-            className="min-h-[100px] resize-none"
-            rows={4}
-            clearable
-            onClear={onClearMasterPromptText}
-            voiceInput
-            voiceContext="This is a master prompt for AI image generation. The user describes what they want to generate, and AI will create multiple prompt variations from this description. Focus on capturing the visual concept, style, and key elements they want."
-            voiceExample="Different images of a woman going about her day - waking up in the morning light, having coffee at a cafe, walking through a busy city street, reading in a park, cooking dinner at home. Warm, cinematic lighting with a nostalgic film photography aesthetic."
-            onVoiceResult={(result) => {
-              const text = result.prompt || result.transcription;
-              onMasterPromptTextChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>);
-            }}
-          />
-        </div>
+            <Textarea
+              id="masterPromptText"
+              value={controller.masterPromptText}
+              onChange={controller.onMasterPromptTextChange}
+              placeholder="Describe what you want to generate..."
+              disabled={controller.isGenerating || !controller.ready}
+              className="min-h-[100px] resize-none"
+              rows={4}
+              clearable
+              onClear={controller.onClearMasterPromptText}
+              voiceInput
+              voiceContext="This is a master prompt for AI image generation. The user describes what they want to generate, and AI will create multiple prompt variations from this description. Focus on capturing the visual concept, style, and key elements they want."
+              voiceExample="Different images of a woman going about her day - waking up in the morning light, having coffee at a cafe, walking through a busy city street, reading in a park, cooking dinner at home. Warm, cinematic lighting with a nostalgic film photography aesthetic."
+              onVoiceResult={controller.onMasterVoiceResult}
+            />
+          </div>
       ) : (
         // Managed mode: Always show summary box
         <div className="space-y-3">
-          {!ready ? (
+          {!controller.ready ? (
             // Simple skeleton loading state
             <div>
               <div className="p-3 rounded-md shadow-sm bg-slate-50/30 dark:bg-slate-800/30">
@@ -188,25 +123,25 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
               </div>
             </div>
           ) : (
-            <div 
-              className="mt-2 group relative p-3 border rounded-md text-center bg-muted/50 hover:border-primary/50 cursor-pointer flex items-center justify-center min-h-[60px]" 
-              onClick={isMobile ? onOpenPromptModal : onOpenPromptModal}
+              <div 
+                className="mt-2 group relative p-3 border rounded-md text-center bg-muted/50 hover:border-primary/50 cursor-pointer flex items-center justify-center min-h-[60px]" 
+              onClick={controller.onOpenPromptModal}
             >
-              {prompts.length === 1 && actionablePromptsCount === 0 ? (
+              {controller.prompts.length === 1 && controller.actionablePromptsCount === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Click to add prompts...
                 </p>
-              ) : actionablePromptsCount === prompts.length ? (
+              ) : controller.actionablePromptsCount === controller.prompts.length ? (
                 <p className="text-sm text-muted-foreground">
-                  <span className="font-light text-primary">{prompts.length} {prompts.length === 1 ? 'prompt' : 'prompts'}</span> currently active.
+                  <span className="font-light text-primary">{controller.prompts.length} {controller.prompts.length === 1 ? 'prompt' : 'prompts'}</span> currently active.
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {prompts.length} {prompts.length === 1 ? 'prompt' : 'prompts'}, <span className="font-light text-primary">{actionablePromptsCount} currently active</span>
+                  {controller.prompts.length} {controller.prompts.length === 1 ? 'prompt' : 'prompts'}, <span className="font-light text-primary">{controller.actionablePromptsCount} currently active</span>
                 </p>
               )}
               {/* Action buttons container - right side */}
-              <div className={`absolute top-1 right-1 flex items-center gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+              <div className={`absolute top-1 right-1 flex items-center gap-1 ${controller.isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                 {/* Magic wand button */}
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
@@ -217,9 +152,9 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onOpenMagicPrompt();
+                          controller.onOpenMagicPrompt();
                         }}
-                        disabled={isGenerating || !ready}
+                        disabled={controller.isGenerating || !controller.ready}
                         aria-label="AI Prompt Tools"
                         className="h-6 w-6 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/20"
                       >
@@ -232,7 +167,7 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
                   </Tooltip>
                 </TooltipProvider>
                 {/* Delete All button - hide when there's only one empty prompt */}
-                {handleDeleteAllPrompts && !(prompts.length === 1 && actionablePromptsCount === 0) && (
+                {controller.handleDeleteAllPrompts && !(controller.prompts.length === 1 && controller.actionablePromptsCount === 0) && (
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -242,9 +177,9 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteAllPrompts();
+                            controller.handleDeleteAllPrompts();
                           }}
-                          disabled={isGenerating || !ready}
+                          disabled={controller.isGenerating || !controller.ready}
                           aria-label="Delete all prompts"
                           className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
@@ -272,20 +207,17 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
             </Label>
             <Textarea
               id="beforeEachPromptText"
-              value={beforeEachPromptText}
-              onChange={onBeforeEachPromptTextChange}
+              value={controller.beforeEachPromptText}
+              onChange={controller.onBeforeEachPromptTextChange}
               placeholder="Text to prepend"
-              disabled={isGenerating}
+              disabled={controller.isGenerating}
               className="mt-1 h-16 resize-none"
               rows={2}
               clearable
-              onClear={onClearBeforeEachPromptText}
+              onClear={controller.onClearBeforeEachPromptText}
               voiceInput
               voiceContext="This is text that will be prepended to every image generation prompt. Keep it short - things like style prefixes, quality tags, or subject descriptions that apply to all images."
-              onVoiceResult={(result) => {
-                const text = result.prompt || result.transcription;
-                onBeforeEachPromptTextChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>);
-              }}
+              onVoiceResult={controller.onBeforeVoiceResult}
             />
           </div>
           <div>
@@ -294,20 +226,17 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
             </Label>
             <Textarea
               id="afterEachPromptText"
-              value={afterEachPromptText}
-              onChange={onAfterEachPromptTextChange}
+              value={controller.afterEachPromptText}
+              onChange={controller.onAfterEachPromptTextChange}
               placeholder="Text to append"
-              disabled={isGenerating}
+              disabled={controller.isGenerating}
               className="mt-1 h-16 resize-none"
               rows={2}
               clearable
-              onClear={onClearAfterEachPromptText}
+              onClear={controller.onClearAfterEachPromptText}
               voiceInput
               voiceContext="This is text that will be appended to every image generation prompt. Keep it short - things like quality suffixes, negative prompts, or technical parameters that apply to all images."
-              onVoiceResult={(result) => {
-                const text = result.prompt || result.transcription;
-                onAfterEachPromptTextChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>);
-              }}
+              onVoiceResult={controller.onAfterVoiceResult}
             />
           </div>
         </div>
