@@ -1,21 +1,13 @@
 {
   "version": 5,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-02T23:59:50+00:00",
+  "updated": "2026-03-03T00:14:01+00:00",
   "queue_order": [
-    "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx",
-    "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx",
     "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useTimelineLightboxOrchestrator.ts::transitive_only",
     "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryLightboxControllers.ts::transitive_only",
     "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotPresentationAdapter.ts::transitive_only",
     "test_coverage::src/pages/Home/components/panes/sections/PhilosophySections.tsx::transitive_only",
-    "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only",
-    "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only",
     "test_coverage::src/shared/components/MediaLightbox/components/strokeOverlay/StrokeOverlayCanvas.tsx::transitive_only",
-    "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only",
-    "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only",
-    "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only",
-    "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only",
     "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only",
     "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorAIPanel.tsx::transitive_only",
     "test_coverage::src/tools/join-clips/pages/components/JoinClipsGrid.tsx::transitive_only",
@@ -2195,8 +2187,8 @@
     "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx": {
       "finding_id": "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:12:30+00:00"
     },
     "test_coverage::supabase/functions/trim-video/index.ts::untested_module": {
       "finding_id": "test_coverage::supabase/functions/trim-video/index.ts::untested_module",
@@ -2219,8 +2211,8 @@
     "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx": {
       "finding_id": "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:13:00+00:00"
     },
     "test_coverage::supabase/functions/broadcast-realtime/index.ts::untested_module": {
       "finding_id": "test_coverage::supabase/functions/broadcast-realtime/index.ts::untested_module",
@@ -2537,14 +2529,14 @@
     "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only": {
       "finding_id": "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:02:44+00:00"
     },
     "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only": {
       "finding_id": "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:02:45+00:00"
     },
     "test_coverage::src/shared/hooks/tasks/useTaskStatusCounts.ts::over_mocked::useTaskStatusCounts.test.ts": {
       "finding_id": "test_coverage::src/shared/hooks/tasks/useTaskStatusCounts.ts::over_mocked::useTaskStatusCounts.test.ts",
@@ -2591,8 +2583,8 @@
     "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only": {
       "finding_id": "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:03:39+00:00"
     },
     "test_coverage::src/integrations/supabase/instrumentation/realtime/diagnosticReporters.ts::transitive_only": {
       "finding_id": "test_coverage::src/integrations/supabase/instrumentation/realtime/diagnosticReporters.ts::transitive_only",
@@ -2609,20 +2601,20 @@
     "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only": {
       "finding_id": "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:05:23+00:00"
     },
     "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only": {
       "finding_id": "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:04:45+00:00"
     },
     "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only": {
       "finding_id": "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only",
       "created_at": "2026-03-02T23:01:06+00:00",
-      "cluster": "auto/test_coverage",
-      "updated_at": "2026-03-02T23:01:06+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T00:04:44+00:00"
     },
     "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only": {
       "finding_id": "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only",
@@ -10407,19 +10399,11 @@
       "name": "auto/test_coverage",
       "description": "Fix 106 test coverage issues",
       "finding_ids": [
-        "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx",
-        "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx",
         "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useTimelineLightboxOrchestrator.ts::transitive_only",
         "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryLightboxControllers.ts::transitive_only",
         "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotPresentationAdapter.ts::transitive_only",
         "test_coverage::src/pages/Home/components/panes/sections/PhilosophySections.tsx::transitive_only",
-        "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only",
-        "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only",
         "test_coverage::src/shared/components/MediaLightbox/components/strokeOverlay/StrokeOverlayCanvas.tsx::transitive_only",
-        "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only",
-        "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only",
-        "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only",
-        "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only",
         "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only",
         "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorAIPanel.tsx::transitive_only",
         "test_coverage::src/tools/join-clips/pages/components/JoinClipsGrid.tsx::transitive_only",
@@ -11991,19 +11975,11 @@
   },
   "superseded": {},
   "promoted_ids": [
-    "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx",
-    "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx",
     "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useTimelineLightboxOrchestrator.ts::transitive_only",
     "test_coverage::src/shared/components/MediaGallery/hooks/useMediaGalleryLightboxControllers.ts::transitive_only",
     "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotPresentationAdapter.ts::transitive_only",
     "test_coverage::src/pages/Home/components/panes/sections/PhilosophySections.tsx::transitive_only",
-    "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only",
-    "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only",
     "test_coverage::src/shared/components/MediaLightbox/components/strokeOverlay/StrokeOverlayCanvas.tsx::transitive_only",
-    "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only",
-    "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only",
-    "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only",
-    "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only",
     "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only",
     "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorAIPanel.tsx::transitive_only",
     "test_coverage::src/tools/join-clips/pages/components/JoinClipsGrid.tsx::transitive_only",
@@ -16144,7 +16120,319 @@
       "actor": "user",
       "note": "Verified and reran direct tests for fallback/config/error/overlay/session modules and resolved corresponding transitive coverage findings.",
       "detail": {}
+    },
+    {
+      "timestamp": "2026-03-02T23:59:51+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/shared/contexts/useProjectSessionCoordinator.ts::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Verified and reran direct tests for fallback/config/error/overlay/session modules and resolved corresponding transitive coverage findings.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:02:43+00:00",
+      "action": "move",
+      "finding_ids": [
+        "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:02:44+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct component tests for ResourceBrowser modal/base and grid rendering/interaction flows, and validated with targeted vitest plus TypeScript noEmit.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:02:44+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct component tests for ResourceBrowser modal/base and grid rendering/interaction flows, and validated with targeted vitest plus TypeScript noEmit.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:02:45+00:00",
+      "action": "move",
+      "finding_ids": [
+        "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:02:45+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct component tests for ResourceBrowser modal/base and grid rendering/interaction flows, and validated with targeted vitest plus TypeScript noEmit.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:02:45+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct component tests for ResourceBrowser modal/base and grid rendering/interaction flows, and validated with targeted vitest plus TypeScript noEmit.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:03:38+00:00",
+      "action": "move",
+      "finding_ids": [
+        "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:03:38+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct hook tests for resource merge/search behavior, visibility mutation path, and style-reference click processing; validated with vitest and TypeScript noEmit.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:03:39+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/features/resources/hooks/useResourceBrowserData.ts::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct hook tests for resource merge/search behavior, visibility mutation path, and style-reference click processing; validated with vitest and TypeScript noEmit.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually added and run direct tests for this hook, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:04:43+00:00",
+      "action": "move",
+      "finding_ids": [
+        "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:04:43+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct tests for desktop scrubbing portal preview rendering and video-gallery shot list display-state components/interactions; validated with vitest and TypeScript noEmit.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:04:44+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct tests for desktop scrubbing portal preview rendering and video-gallery shot list display-state components/interactions; validated with vitest and TypeScript noEmit.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:04:44+00:00",
+      "action": "move",
+      "finding_ids": [
+        "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:04:44+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct tests for desktop scrubbing portal preview rendering and video-gallery shot list display-state components/interactions; validated with vitest and TypeScript noEmit.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:04:45+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct tests for desktop scrubbing portal preview rendering and video-gallery shot list display-state components/interactions; validated with vitest and TypeScript noEmit.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:05:22+00:00",
+      "action": "move",
+      "finding_ids": [
+        "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "position": "top",
+        "target": null,
+        "offset": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:05:22+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct state-driven rendering tests for GenerationsPaneGallery (loading skeleton, gallery mapping, and error/empty outputs) and validated with vitest plus TypeScript noEmit.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:05:23+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneGallery.tsx::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct state-driven rendering tests for GenerationsPaneGallery (loading skeleton, gallery mapping, and error/empty outputs) and validated with vitest plus TypeScript noEmit.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually added and run direct tests for this component, and I am not gaming the score by resolving without fixing."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:12:30+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed redundant over-mocked MediaGalleryItem integration test; retained focused coverage in dedicated hook/component test suites.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:12:30+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/shared/components/MediaGalleryItem.tsx::over_mocked::MediaGalleryItem.test.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed redundant over-mocked MediaGalleryItem integration test; retained focused coverage in dedicated hook/component test suites.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Removed redundant over-mocked MediaGalleryItem integration test; retained focused coverage in dedicated hook/component test suites. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:12:59+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed redundant over-mocked GenerationsPane integration test; kept focused coverage in GenerationsPaneGallery and related pane component tests.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T00:13:00+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "test_coverage::src/shared/components/GenerationsPane/GenerationsPane.tsx::over_mocked::GenerationsPane.test.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed redundant over-mocked GenerationsPane integration test; kept focused coverage in GenerationsPaneGallery and related pane component tests.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Removed redundant over-mocked GenerationsPane integration test; kept focused coverage in GenerationsPaneGallery and related pane component tests. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T00:14:01+00:00",
+      "action": "done",
+      "finding_ids": [
+        "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/useTimelineLightboxOrchestrator.ts::transitive_only"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Added direct hook tests covering media merge behavior, lightbox close cleanup, shot-state derivation, and add-to-shot error handling.",
+      "detail": {}
     }
   ],
-  "epic_synthesis_meta": {}
+  "epic_triage_meta": {}
 }

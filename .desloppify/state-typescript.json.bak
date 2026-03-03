@@ -215,16 +215,16 @@
   "created": "2026-02-24T17:37:02+00:00",
   "last_scan": "2026-03-02T23:01:06+00:00",
   "scan_count": 144,
-  "overall_score": 75.4,
-  "objective_score": 96.8,
-  "strict_score": 75.4,
+  "overall_score": 75.5,
+  "objective_score": 96.9,
+  "strict_score": 75.5,
   "verified_strict_score": 95.9,
   "stats": {
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 80,
-    "open": 1879,
+    "fixed": 89,
+    "open": 1870,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -244,8 +244,8 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 72,
-        "open": 829,
+        "fixed": 81,
+        "open": 820,
         "wontfix": 0
       },
       "4": {
@@ -19221,17 +19221,23 @@
         "assertions": 7,
         "loc_weight": 26.476404589747453
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Removed redundant over-mocked MediaGalleryItem integration test; retained focused coverage in dedicated hook/component test suites.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:12:30+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Removed redundant over-mocked MediaGalleryItem integration test; retained focused coverage in dedicated hook/component test suites. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:12:30+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/FinalVideoSection.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/FinalVideoSection.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -21886,17 +21892,23 @@
         "assertions": 12,
         "loc_weight": 19.82422760159901
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Removed redundant over-mocked GenerationsPane integration test; kept focused coverage in GenerationsPaneGallery and related pane component tests.",
       "first_seen": "2026-02-24T17:37:24+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:13:00+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Removed redundant over-mocked GenerationsPane integration test; kept focused coverage in GenerationsPaneGallery and related pane component tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:13:00+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineContainer/components/ZoomControls.tsx::placeholder::moduleCoverageConsolidated.test.ts": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineContainer/components/ZoomControls.tsx::placeholder::moduleCoverageConsolidated.test.ts",
@@ -160091,17 +160103,23 @@
         "importer_count": 4,
         "loc_weight": 13.228756555322953
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct component tests for ResourceBrowser modal/base and grid rendering/interaction flows, and validated with targeted vitest plus TypeScript noEmit.",
       "first_seen": "2026-03-02T19:17:31+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:02:44+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-03T00:02:44+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only": {
       "id": "test_coverage::src/features/resources/components/ResourceBrowserGrid.tsx::transitive_only",
@@ -160116,17 +160134,23 @@
         "importer_count": 1,
         "loc_weight": 16.522711641858304
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct component tests for ResourceBrowser modal/base and grid rendering/interaction flows, and validated with targeted vitest plus TypeScript noEmit.",
       "first_seen": "2026-03-02T19:17:31+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:02:45+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-03T00:02:45+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/hooks/tasks/useTaskStatusCounts.ts::over_mocked::useTaskStatusCounts.test.ts": {
       "id": "test_coverage::src/shared/hooks/tasks/useTaskStatusCounts.ts::over_mocked::useTaskStatusCounts.test.ts",
@@ -160479,17 +160503,23 @@
         "importer_count": 2,
         "loc_weight": 16.30950643030009
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook tests for resource merge/search behavior, visibility mutation path, and style-reference click processing; validated with vitest and TypeScript noEmit.",
       "first_seen": "2026-03-02T19:17:31+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:03:39+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for this hook, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-03T00:03:39+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/integrations/supabase/instrumentation/realtime/diagnosticReporters.ts::transitive_only": {
       "id": "test_coverage::src/integrations/supabase/instrumentation/realtime/diagnosticReporters.ts::transitive_only",
@@ -164736,17 +164766,23 @@
         "importer_count": 1,
         "loc_weight": 11.135528725660043
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct state-driven rendering tests for GenerationsPaneGallery (loading skeleton, gallery mapping, and error/empty outputs) and validated with vitest plus TypeScript noEmit.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:05:22+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for this component, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-03T00:05:22+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates.tsx::transitive_only",
@@ -164761,17 +164797,23 @@
         "importer_count": 2,
         "loc_weight": 14.142135623730951
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct tests for desktop scrubbing portal preview rendering and video-gallery shot list display-state components/interactions; validated with vitest and TypeScript noEmit.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:04:45+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-03T00:04:45+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/ShotImageManager/components/DesktopScrubbingPreview.tsx::transitive_only",
@@ -164786,17 +164828,23 @@
         "importer_count": 1,
         "loc_weight": 9.486832980505138
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct tests for desktop scrubbing portal preview rendering and video-gallery shot list display-state components/interactions; validated with vitest and TypeScript noEmit.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:04:43+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-03T00:04:43+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/VideoGenerationModalSections.tsx::transitive_only",
@@ -164911,17 +164959,23 @@
         "importer_count": 1,
         "loc_weight": 8.717797887081348
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct tests for prompt editor list/footer rendering, timeline UI state hook transitions, and join-clips results rendering states; validated with vitest and TypeScript noEmit.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-02T23:54:37+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually added and run direct tests for these modules, and I am not gaming the score by resolving without fixing.",
+        "attested_at": "2026-03-02T23:54:37+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorFooter.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorFooter.tsx::transitive_only",
@@ -173883,18 +173937,18 @@
       "strict": 95.7
     },
     "Test health": {
-      "score": 95.0,
-      "strict_score": 95.0,
+      "score": 95.9,
+      "strict_score": 95.9,
       "verified_strict_score": 90.1,
       "checks": 16070,
-      "issues": 871,
+      "issues": 862,
       "tier": 4,
       "detectors": {
         "test_coverage": {
           "potential": 14914,
-          "pass_rate": 0.9662808163926868,
-          "issues": 33,
-          "weighted_failures": 502.88790431946876
+          "pass_rate": 0.9753892984924458,
+          "issues": 24,
+          "weighted_failures": 367.04400228366353
         },
         "subjective_review": {
           "potential": 1156,
@@ -173903,7 +173957,7 @@
           "weighted_failures": 294.6000000000014
         }
       },
-      "strict": 95.0
+      "strict": 95.9
     },
     "Security": {
       "score": 99.7,
