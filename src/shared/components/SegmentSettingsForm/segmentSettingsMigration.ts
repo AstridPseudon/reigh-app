@@ -10,9 +10,6 @@
  * - Reading settings from variant/generation params (multiple legacy formats)
  * - Building metadata updates (writing new format + cleaning old fields)
  * - Converting between lora formats (legacy object, pair array, ActiveLora)
- *
- * The PairMetadata type defines ALL known metadata shapes (new, deprecated pair_*,
- * and legacy user_overrides) so callers can type-check against any format.
  */
 
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
@@ -20,24 +17,24 @@ import type { ActiveLora } from '@/shared/hooks/useLoraManager';
 import { writeSegmentOverrides, type SegmentOverrides, type LoraConfig } from '@/shared/lib/settingsMigration';
 import type { SegmentSettings } from './segmentSettingsUtils';
 import { stripModeFromPhaseConfig } from './segmentSettingsUtils';
-import type { LegacyPairMetadataFields } from './segmentSettingsMigrationLegacy';
 
 // =============================================================================
-// PAIR METADATA TYPE (all known metadata shapes)
+// PAIR METADATA TYPE
 // =============================================================================
 
 /**
  * PairMetadata defines the shape of shot_generations.metadata.
- * Includes new format (segmentOverrides), deprecated pair_* fields,
- * and legacy user_overrides for backward compatibility.
+ *
+ * Only types the current format. Legacy fields (pair_*, user_overrides) may
+ * still exist in DB rows but are progressively cleaned up by
+ * cleanupLegacyPairMetadata/cleanupLegacyUserOverrides during saves.
  */
-export interface PairMetadata extends LegacyPairMetadataFields {
-  // NEW FORMAT: Segment overrides in nested structure
+export interface PairMetadata {
   segmentOverrides?: {
     prompt?: string;
     negativePrompt?: string;
     motionMode?: 'basic' | 'advanced';
-    amountOfMotion?: number; // 0-100 scale
+    amountOfMotion?: number;
     phaseConfig?: PhaseConfig;
     selectedPhasePresetId?: string | null;
     loras?: Array<{ path: string; strength: number; id?: string; name?: string }>;
@@ -45,8 +42,9 @@ export interface PairMetadata extends LegacyPairMetadataFields {
     randomSeed?: boolean;
     seed?: number;
   };
-  // AI-generated prompt (not user settings, kept separate)
   enhanced_prompt?: string;
+  base_prompt_for_enhancement?: string;
+  enhance_prompt_enabled?: boolean;
 }
 
 // =============================================================================

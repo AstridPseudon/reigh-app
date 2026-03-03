@@ -393,14 +393,9 @@ export function useSegmentSettings({
   }, [form, mutations, shotDefaults, onUpdateStructureVideoDefaults, structureVideoDefaults]);
 
   // 9. Extract enhanced prompt from metadata
-  const enhancedPrompt =
-    ((pairMetadata as Record<string, unknown> | null)?.enhanced_prompt as string)?.trim() ||
-    undefined;
-  const basePromptForEnhancement =
-    ((pairMetadata as Record<string, unknown> | null)?.base_prompt_for_enhancement as string)?.trim() ||
-    undefined;
-  const enhancePromptEnabled = (pairMetadata as Record<string, unknown> | null)
-    ?.enhance_prompt_enabled as boolean | undefined;
+  const enhancedPrompt = pairMetadata?.enhanced_prompt?.trim() || undefined;
+  const basePromptForEnhancement = pairMetadata?.base_prompt_for_enhancement?.trim() || undefined;
+  const enhancePromptEnabled = pairMetadata?.enhance_prompt_enabled;
 
   // 10. Convert shot settings to legacy ShotBatchSettings format for compatibility
   const shotBatchSettings = useMemo((): ShotBatchSettings | null => {
