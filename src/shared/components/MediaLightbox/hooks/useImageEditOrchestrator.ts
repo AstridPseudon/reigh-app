@@ -24,6 +24,7 @@ import { useEditSettingsSync } from './useEditSettingsSync';
 import { useMagicEditMode } from './useMagicEditMode';
 import { useRepositionMode } from './useRepositionMode';
 import { useImg2ImgMode } from './useImg2ImgMode';
+import { buildImageEditStateValue } from './buildImageEditStateValue';
 
 // ============================================================================
 // Props
@@ -211,40 +212,12 @@ export function useImageEditOrchestrator({
     initialEditMode: toInpaintingEditMode(persistedEditMode),
   });
 
+  // Destructure only what's needed for inter-hook wiring, settings sync, and return value
   const {
-    isInpaintMode,
-    brushStrokes,
-    isEraseMode,
-    inpaintPrompt,
-    inpaintNumGenerations,
-    brushSize,
-    isGeneratingInpaint,
-    inpaintGenerateSuccess,
-    isAnnotateMode,
-    editMode,
-    annotationMode,
-    selectedShapeId,
-    setIsInpaintMode,
-    setIsEraseMode,
-    setInpaintPrompt,
-    setInpaintNumGenerations,
-    setBrushSize,
-    setIsAnnotateMode,
-    setEditMode,
-    setAnnotationMode,
-    handleUndo,
-    handleClearMask,
-    handleEnterInpaintMode,
-    handleGenerateInpaint,
-    handleGenerateAnnotatedEdit,
-    handleDeleteSelected,
-    handleToggleFreeForm,
-    getDeleteButtonPosition,
-    onStrokeComplete,
-    onStrokesChange,
-    onSelectionChange,
-    onTextModeHint,
-    strokeOverlayRef,
+    isInpaintMode, editMode, setIsInpaintMode, setEditMode,
+    brushStrokes, inpaintPrompt, inpaintNumGenerations,
+    setInpaintPrompt, setInpaintNumGenerations,
+    handleEnterInpaintMode, handleGenerateInpaint, handleGenerateAnnotatedEdit,
   } = inpaintingHook;
 
   // ========================================
@@ -306,16 +279,8 @@ export function useImageEditOrchestrator({
   });
 
   const {
-    isMagicEditMode,
-    setIsMagicEditMode,
-    isCreatingMagicEditTasks,
-    magicEditTasksCreated,
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
-    handleEnterMagicEditMode,
-    handleExitMagicEditMode,
-    handleUnifiedGenerate,
-    isSpecialEditMode,
+    isMagicEditMode, isSpecialEditMode,
+    handleEnterMagicEditMode, handleExitMagicEditMode, handleUnifiedGenerate,
   } = magicEditHook;
 
   // ========================================
@@ -342,24 +307,7 @@ export function useImageEditOrchestrator({
     qwenEditModel,
   });
 
-  const {
-    transform: repositionTransform,
-    hasTransformChanges,
-    isGeneratingReposition,
-    repositionGenerateSuccess,
-    isSavingAsVariant,
-    saveAsVariantSuccess,
-    setScale,
-    setRotation,
-    toggleFlipH,
-    toggleFlipV,
-    resetTransform,
-    handleGenerateReposition,
-    handleSaveAsVariant,
-    getTransformStyle,
-    isDragging: isRepositionDragging,
-    dragHandlers: repositionDragHandlers,
-  } = repositionHook;
+  const { handleGenerateReposition, handleSaveAsVariant } = repositionHook;
 
   // ========================================
   // IMG2IMG MODE HOOK
@@ -392,159 +340,36 @@ export function useImageEditOrchestrator({
     },
   });
 
-  const {
-    img2imgPrompt,
-    img2imgStrength,
-    enablePromptExpansion,
-    isGeneratingImg2Img,
-    img2imgGenerateSuccess,
-    setImg2imgPrompt,
-    setImg2imgStrength,
-    setEnablePromptExpansion,
-    handleGenerateImg2Img,
-    loraManager: img2imgLoraManager,
-  } = img2imgHook;
+  const { handleGenerateImg2Img, loraManager: img2imgLoraManager } = img2imgHook;
 
   // ========================================
   // BUILD ImageEditContext VALUE
   // ========================================
 
-  const isFlippedHorizontally = Boolean(repositionTransform?.flipH);
-  const isSaving = isGeneratingReposition || isSavingAsVariant;
-
-  const imageEditValue = useMemo<ImageEditState>(() => ({
-    // Mode state
-    isInpaintMode,
-    isMagicEditMode,
-    isSpecialEditMode,
-    editMode: editMode as ImageEditState['editMode'],
-
-    // Mode setters
-    setIsInpaintMode,
-    setIsMagicEditMode,
-    setEditMode: setEditMode as ImageEditState['setEditMode'],
-
-    // Mode entry/exit handlers
-    handleEnterInpaintMode,
-    handleExitInpaintMode,
-    handleEnterMagicEditMode,
-    handleExitMagicEditMode,
-
-    // Brush/Inpaint state
-    brushSize,
-    setBrushSize,
-    isEraseMode,
-    setIsEraseMode,
-    brushStrokes,
-
-    // Annotation state
-    isAnnotateMode,
-    setIsAnnotateMode,
-    annotationMode,
-    setAnnotationMode,
-    selectedShapeId,
-
-    // Undo/Clear
-    handleUndo,
-    handleClearMask,
-
-    // Canvas interaction
-    onStrokeComplete,
-    onStrokesChange,
-    onSelectionChange,
-    onTextModeHint,
-    strokeOverlayRef,
-    getDeleteButtonPosition,
-    handleToggleFreeForm,
-    handleDeleteSelected,
-
-    // Reposition state + interaction handlers
-    repositionTransform,
-    hasTransformChanges,
-    isRepositionDragging,
-    repositionDragHandlers,
-    getTransformStyle,
-    setScale,
-    setRotation,
-    toggleFlipH,
-    toggleFlipV,
-    resetTransform,
-
-    // Display refs
-    imageContainerRef,
-    isFlippedHorizontally,
-    isSaving,
-
-    // Panel UI state
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
-
-    // Inpaint form
-    inpaintPrompt,
-    setInpaintPrompt,
-    inpaintNumGenerations,
-    setInpaintNumGenerations,
-
-    // Img2Img form
-    img2imgPrompt,
-    setImg2imgPrompt,
-    img2imgStrength,
-    setImg2imgStrength,
-    enablePromptExpansion,
-    setEnablePromptExpansion,
-
-    // LoRA mode
-    loraMode,
-    setLoraMode,
-    customLoraUrl,
-    setCustomLoraUrl,
-
-    // Generation options
-    createAsGeneration,
-    setCreateAsGeneration,
-
-    // Model selection
-    qwenEditModel,
-    setQwenEditModel,
-
-    // Advanced settings
-    advancedSettings,
-    setAdvancedSettings,
-
-    // Generation status
-    isGeneratingInpaint,
-    inpaintGenerateSuccess,
-    isGeneratingImg2Img,
-    img2imgGenerateSuccess,
-    isGeneratingReposition,
-    repositionGenerateSuccess,
-    isSavingAsVariant,
-    saveAsVariantSuccess,
-    isCreatingMagicEditTasks,
-    magicEditTasksCreated,
-  }), [
-    isInpaintMode, isMagicEditMode, isSpecialEditMode, editMode,
-    setIsInpaintMode, setIsMagicEditMode, setEditMode,
-    handleEnterInpaintMode, handleExitInpaintMode, handleEnterMagicEditMode, handleExitMagicEditMode,
-    brushSize, setBrushSize, isEraseMode, setIsEraseMode, brushStrokes,
-    isAnnotateMode, setIsAnnotateMode, annotationMode, setAnnotationMode, selectedShapeId,
-    handleUndo, handleClearMask,
-    onStrokeComplete, onStrokesChange, onSelectionChange, onTextModeHint, strokeOverlayRef,
-    getDeleteButtonPosition, handleToggleFreeForm, handleDeleteSelected,
-    repositionTransform, hasTransformChanges, isRepositionDragging, repositionDragHandlers,
-    getTransformStyle, setScale, setRotation, toggleFlipH, toggleFlipV, resetTransform,
-    imageContainerRef, isFlippedHorizontally, isSaving,
-    inpaintPanelPosition, setInpaintPanelPosition,
-    inpaintPrompt, setInpaintPrompt, inpaintNumGenerations, setInpaintNumGenerations,
-    img2imgPrompt, setImg2imgPrompt, img2imgStrength, setImg2imgStrength,
-    enablePromptExpansion, setEnablePromptExpansion,
-    loraMode, setLoraMode, customLoraUrl, setCustomLoraUrl,
-    createAsGeneration, setCreateAsGeneration, qwenEditModel, setQwenEditModel,
-    advancedSettings, setAdvancedSettings,
-    isGeneratingInpaint, inpaintGenerateSuccess, isGeneratingImg2Img, img2imgGenerateSuccess,
-    isGeneratingReposition, repositionGenerateSuccess, isSavingAsVariant, saveAsVariantSuccess,
-    isCreatingMagicEditTasks, magicEditTasksCreated,
-  ]);
+  const imageEditValue = useMemo<ImageEditState>(
+    () => buildImageEditStateValue({
+      inpainting: inpaintingHook,
+      magic: magicEditHook,
+      reposition: repositionHook,
+      img2img: img2imgHook,
+      imageContainerRef,
+      handleExitInpaintMode,
+      setEditMode: setEditMode as ImageEditState['setEditMode'],
+      loraMode, setLoraMode,
+      customLoraUrl, setCustomLoraUrl,
+      createAsGeneration, setCreateAsGeneration,
+      qwenEditModel, setQwenEditModel,
+      advancedSettings, setAdvancedSettings,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hook results are objects; deps track leaf values
+    [
+      inpaintingHook, magicEditHook, repositionHook, img2imgHook,
+      imageContainerRef, handleExitInpaintMode, setEditMode,
+      loraMode, setLoraMode, customLoraUrl, setCustomLoraUrl,
+      createAsGeneration, setCreateAsGeneration, qwenEditModel, setQwenEditModel,
+      advancedSettings, setAdvancedSettings,
+    ],
+  );
 
   return {
     imageEditValue,

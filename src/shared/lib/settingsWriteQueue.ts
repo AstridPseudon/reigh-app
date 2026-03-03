@@ -60,9 +60,22 @@ function throwIfAborted(signal?: AbortSignal): void {
 /**
  * Set the write function that performs the actual DB update.
  * Must be called once at app init (in useToolSettings.ts).
+ * Also registers page-unload listeners on first call (deferred from module load).
  */
 export function setSettingsWriteFunction(fn: (write: QueuedWrite) => Promise<unknown>) {
+  const isFirstInit = writeFunction === null;
   writeFunction = fn;
+
+  if (isFirstInit && typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+      flushAll();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushAll();
+      }
+    });
+  }
 }
 
 /**
@@ -216,17 +229,3 @@ function flushAll(): void {
   processQueue();
 }
 
-// Best-effort flush on page unload and tab hide
-// Mobile browsers don't reliably fire beforeunload (e.g., tab switching on iOS Safari),
-// so we also flush on visibilitychange to prevent losing pending writes.
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    flushAll();
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      flushAll();
-    }
-  });
-}

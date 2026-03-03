@@ -30,7 +30,7 @@ vi.mock('@/shared/components/ui/tooltip', () => ({
 }));
 
 vi.mock('@/shared/components/TaskTypeConfigInitializer', () => ({
-  TaskTypeConfigInitializer: () => <div data-testid="task-type-config-initializer" />,
+  TaskTypeConfigInitializer: wrapWithTestId('task-type-config-initializer'),
 }));
 
 vi.mock('@/shared/contexts/AuthContext', () => ({

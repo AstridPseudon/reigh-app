@@ -35,6 +35,7 @@ function composeProviders(providers: TreeProvider[]): TreeProvider {
 const AppProviderTree = composeProviders([
   AuthProvider,
   AuthGate,
+  TaskTypeConfigInitializer,
   UserSettingsProvider,
   ProjectProvider,
   RealtimeProvider,
@@ -52,7 +53,6 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={300}>
-        <TaskTypeConfigInitializer />
         <AppProviderTree>{children}</AppProviderTree>
       </TooltipProvider>
     </QueryClientProvider>

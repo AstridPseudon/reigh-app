@@ -247,6 +247,7 @@ export function useLightboxVideoMode(props: UseLightboxVideoModeProps): UseLight
     onTrimModeChange,
     resetTrim,
     setVideoDuration,
+    trimVideoRef,
   });
   const isVideoTrimModeActive = isVideo && isVideoTrimMode;
   const isVideoEditModeActive = isVideo && videoEditing.isVideoEditMode;

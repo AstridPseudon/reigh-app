@@ -7,7 +7,7 @@
  * all dependencies (videoEditing, resetTrim, etc.) are available.
  */
 
-import { useCallback } from 'react';
+import { useCallback, type RefObject } from 'react';
 
 export type VideoEditSubMode = 'trim' | 'replace' | 'regenerate' | 'enhance' | null;
 
@@ -28,6 +28,8 @@ interface UseVideoEditModeHandlersProps {
   resetTrim: () => void;
   /** Set video duration for trim controls */
   setVideoDuration: (duration: number) => void;
+  /** Ref to the trim video element for reading duration */
+  trimVideoRef: RefObject<HTMLVideoElement>;
 }
 
 interface UseVideoEditModeHandlersReturn {
@@ -60,19 +62,16 @@ export function useVideoEditModeHandlers({
   onTrimModeChange,
   resetTrim,
   setVideoDuration,
+  trimVideoRef,
 }: UseVideoEditModeHandlersProps): UseVideoEditModeHandlersReturn {
 
-  // Helper to capture video duration from DOM
+  // Read video duration from the trim video ref
   const captureVideoDuration = useCallback(() => {
-    setTimeout(() => {
-      const videoElements = document.querySelectorAll('video');
-      videoElements.forEach((video) => {
-        if (Number.isFinite(video.duration) && video.duration > 0) {
-          setVideoDuration(video.duration);
-        }
-      });
-    }, 100);
-  }, [setVideoDuration]);
+    const duration = trimVideoRef.current?.duration;
+    if (duration != null && Number.isFinite(duration) && duration > 0) {
+      setVideoDuration(duration);
+    }
+  }, [setVideoDuration, trimVideoRef]);
 
   // Handle entering video edit mode (unified) - restores last used sub-mode
   const handleEnterVideoEditMode = useCallback(() => {

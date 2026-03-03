@@ -6,7 +6,7 @@
  * Hardcoded fallbacks exist for backwards compatibility and offline scenarios.
  */
 
-import { getTaskTypeConfigCache, isTaskTypeConfigCacheInitialized, type TaskTypeInfo } from '@/shared/hooks/tasks/useTaskType';
+import { getTaskTypeConfigCache, isTaskTypeConfigCacheInitialized, type TaskTypeInfo } from '@/shared/lib/taskTypeCache';
 import {
   getTaskTypeConfigFallback,
   getTaskTypeFallbackEntries,

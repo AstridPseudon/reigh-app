@@ -27,6 +27,7 @@ import { useEditSettingsSync } from '@/shared/components/MediaLightbox/hooks/use
 import type { EditMode as SettingsEditMode } from '@/shared/components/MediaLightbox/hooks/editSettingsTypes';
 import type { EditMode as InpaintingEditMode } from '@/shared/components/MediaLightbox/hooks/inpainting/types';
 import type { ImageEditMode, ImageEditState } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
+import { buildImageEditStateValue } from '@/shared/components/MediaLightbox/hooks/buildImageEditStateValue';
 import { downloadMedia } from '@/shared/components/MediaLightbox/utils';
 import { useVariants } from '@/shared/hooks/useVariants';
 
@@ -325,66 +326,14 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     img2imgLoraManager: img2img.loraManager,
   };
 
-  const isFlippedHorizontally = Boolean(transformState.repositionTransform?.flipH);
-  const isSaving = reposition.isGeneratingReposition || reposition.isSavingAsVariant;
-
-  const imageEditValue: ImageEditState = {
-    isInpaintMode: inpainting.isInpaintMode,
-    isMagicEditMode: magic.isSpecialEditMode,
-    isSpecialEditMode: magic.isSpecialEditMode,
-    editMode: inpainting.editMode,
-    setIsInpaintMode: inpainting.setIsInpaintMode,
-    setIsMagicEditMode: magic.setIsMagicEditMode,
-    setEditMode: (mode: ImageEditMode) => inpainting.setEditMode(toInpaintingEditMode(mode)),
-    handleEnterInpaintMode: inpainting.handleEnterInpaintMode,
-    handleExitInpaintMode: () => inpainting.setIsInpaintMode(false),
-    handleEnterMagicEditMode: magic.handleEnterMagicEditMode,
-    handleExitMagicEditMode: magic.handleExitMagicEditMode,
-    brushSize: inpainting.brushSize,
-    setBrushSize: inpainting.setBrushSize,
-    isEraseMode: inpainting.isEraseMode,
-    setIsEraseMode: inpainting.setIsEraseMode,
-    brushStrokes: inpainting.brushStrokes,
-    isAnnotateMode: inpainting.isAnnotateMode,
-    setIsAnnotateMode: inpainting.setIsAnnotateMode,
-    annotationMode: inpainting.annotationMode,
-    setAnnotationMode: inpainting.setAnnotationMode,
-    selectedShapeId: inpainting.selectedShapeId,
-    onStrokeComplete: inpainting.onStrokeComplete,
-    onStrokesChange: inpainting.onStrokesChange,
-    onSelectionChange: inpainting.onSelectionChange,
-    onTextModeHint: inpainting.onTextModeHint,
-    strokeOverlayRef: inpainting.strokeOverlayRef,
-    getDeleteButtonPosition: inpainting.getDeleteButtonPosition,
-    handleToggleFreeForm: inpainting.handleToggleFreeForm,
-    handleDeleteSelected: inpainting.handleDeleteSelected,
-    handleUndo: inpainting.handleUndo,
-    handleClearMask: inpainting.handleClearMask,
-    repositionTransform: reposition.transform,
-    hasTransformChanges: reposition.hasTransformChanges,
-    isRepositionDragging: reposition.isDragging,
-    repositionDragHandlers: reposition.dragHandlers,
-    getTransformStyle: reposition.getTransformStyle,
-    setScale: reposition.setScale,
-    setRotation: reposition.setRotation,
-    toggleFlipH: reposition.toggleFlipH,
-    toggleFlipV: reposition.toggleFlipV,
-    resetTransform: reposition.resetTransform,
+  const imageEditValue = buildImageEditStateValue({
+    inpainting,
+    magic,
+    reposition,
+    img2img,
     imageContainerRef: env.imageContainerRef,
-    isFlippedHorizontally,
-    isSaving,
-    inpaintPanelPosition: magic.inpaintPanelPosition,
-    setInpaintPanelPosition: magic.setInpaintPanelPosition,
-    inpaintPrompt: inpainting.inpaintPrompt,
-    setInpaintPrompt: inpainting.setInpaintPrompt,
-    inpaintNumGenerations: inpainting.inpaintNumGenerations,
-    setInpaintNumGenerations: inpainting.setInpaintNumGenerations,
-    img2imgPrompt: img2img.img2imgPrompt,
-    setImg2imgPrompt: img2img.setImg2imgPrompt,
-    img2imgStrength: img2img.img2imgStrength,
-    setImg2imgStrength: img2img.setImg2imgStrength,
-    enablePromptExpansion: img2img.enablePromptExpansion,
-    setEnablePromptExpansion: img2img.setEnablePromptExpansion,
+    handleExitInpaintMode: () => inpainting.setIsInpaintMode(false),
+    setEditMode: (mode: ImageEditMode) => inpainting.setEditMode(toInpaintingEditMode(mode)),
     loraMode: env.loraState.loraMode,
     setLoraMode: env.loraState.setLoraMode,
     customLoraUrl: env.loraState.customLoraUrl,
@@ -395,17 +344,7 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     setQwenEditModel: persistence.editSettings.setQwenEditModel,
     advancedSettings: persistence.editSettings.advancedSettings,
     setAdvancedSettings: persistence.editSettings.setAdvancedSettings,
-    isGeneratingInpaint: inpainting.isGeneratingInpaint,
-    inpaintGenerateSuccess: inpainting.inpaintGenerateSuccess,
-    isGeneratingImg2Img: img2img.isGeneratingImg2Img,
-    img2imgGenerateSuccess: img2img.img2imgGenerateSuccess,
-    isGeneratingReposition: reposition.isGeneratingReposition,
-    repositionGenerateSuccess: reposition.repositionGenerateSuccess,
-    isSavingAsVariant: reposition.isSavingAsVariant,
-    saveAsVariantSuccess: reposition.saveAsVariantSuccess,
-    isCreatingMagicEditTasks: magic.isCreatingMagicEditTasks,
-    magicEditTasksCreated: magic.magicEditTasksCreated,
-  };
+  });
 
   return {
     inpaintingState,

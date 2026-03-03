@@ -1,17 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
+import { setTaskTypeConfigCache, type TaskTypeInfo } from '@/shared/lib/taskTypeCache';
 
-export interface TaskTypeInfo {
-  id: string;
-  name: string;
-  content_type: string | null;
-  tool_type: string | null;
-  display_name: string;
-  category: string;
-  is_visible: boolean;
-  supports_progress: boolean;
-}
+export type { TaskTypeInfo } from '@/shared/lib/taskTypeCache';
 
 /**
  * Hook to fetch task type information including content_type
@@ -48,29 +40,6 @@ export const useTaskType = (taskType: string) => {
   });
 };
 
-// =============================================================================
-// GLOBAL TASK TYPE CONFIG CACHE
-// =============================================================================
-
-// Global cache for synchronous access (populated by useAllTaskTypesConfig hook)
-let _taskTypeConfigCache: Record<string, TaskTypeInfo> = {};
-let _cacheInitialized = false;
-
-/**
- * Get the global task type config cache
- * Used by taskConfig.ts for synchronous access
- */
-export function getTaskTypeConfigCache(): Record<string, TaskTypeInfo> {
-  return _taskTypeConfigCache;
-}
-
-/**
- * Check if the cache has been initialized
- */
-export function isTaskTypeConfigCacheInitialized(): boolean {
-  return _cacheInitialized;
-}
-
 /**
  * Fetch all task types config directly (for initialization)
  * This is called once on app load to populate the cache
@@ -93,10 +62,7 @@ async function fetchAllTaskTypesConfig(): Promise<Record<string, TaskTypeInfo>> 
     return acc;
   }, {} as Record<string, TaskTypeInfo>);
 
-  // Update the global cache
-  _taskTypeConfigCache = configMap;
-  _cacheInitialized = true;
-  
+  setTaskTypeConfigCache(configMap);
   return configMap;
 }
 
