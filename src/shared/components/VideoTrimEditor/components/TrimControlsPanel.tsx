@@ -44,7 +44,6 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
   // Frame preview state
   const [startFrame, setStartFrame] = useState<string | null>(null);
   const [endFrame, setEndFrame] = useState<string | null>(null);
-  const [isExtractingFrames] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
   // Queue for sequential frame extraction (prevents race conditions)
@@ -331,11 +330,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
                 <img src={startFrame} alt="Start frame" className="w-full h-full object-cover" />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  {isExtractingFrames ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No frame</span>
-                  )}
+                  <span className="text-xs text-muted-foreground">No frame</span>
                 </div>
               )}
             </div>
@@ -350,11 +345,7 @@ export const TrimControlsPanel: React.FC<TrimControlsPanelProps> = ({
                 <img src={endFrame} alt="End frame" className="w-full h-full object-cover" />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  {isExtractingFrames ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No frame</span>
-                  )}
+                  <span className="text-xs text-muted-foreground">No frame</span>
                 </div>
               )}
             </div>

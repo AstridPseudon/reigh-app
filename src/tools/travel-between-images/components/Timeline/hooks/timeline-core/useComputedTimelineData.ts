@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { getPairInfo, TRAILING_ENDPOINT_KEY } from '../../utils/timeline-utils';
+import { getPairInfo, sortPositionEntries, TRAILING_ENDPOINT_KEY } from '../../utils/timeline-utils';
 import { TIMELINE_PADDING_OFFSET } from '../../constants';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { PairData } from '../../TimelineContainer/types';
@@ -40,7 +40,7 @@ export function useComputedTimelineData({
   // Compute shot_generation_id -> position index map
   const localShotGenPositions = useMemo(() => {
     const posMap = new Map<string, number>();
-    const sortedEntries = [...imageOnlyPositions.entries()].sort((a, b) => a[1] - b[1]);
+    const sortedEntries = sortPositionEntries(imageOnlyPositions);
     sortedEntries.forEach(([shotGenId], index) => {
       posMap.set(shotGenId, index);
     });
@@ -50,7 +50,7 @@ export function useComputedTimelineData({
   // Compute full pair data for each pair index
   const pairDataByIndex = useMemo(() => {
     const dataMap = new Map<number, PairData>();
-    const sortedEntries = [...imageOnlyPositions.entries()].sort((a, b) => a[1] - b[1]);
+    const sortedEntries = sortPositionEntries(imageOnlyPositions);
     for (let pairIndex = 0; pairIndex < sortedEntries.length - 1; pairIndex++) {
       const [startId, startFrame] = sortedEntries[pairIndex];
       const [endId, endFrame] = sortedEntries[pairIndex + 1];
@@ -83,7 +83,7 @@ export function useComputedTimelineData({
   // Calculate whether to show pair labels
   const showPairLabels = useMemo(() => {
     if (images.length < 2) return false;
-    const sortedPositions = [...imageOnlyPositions.entries()].sort((a, b) => a[1] - b[1]);
+    const sortedPositions = sortPositionEntries(imageOnlyPositions);
     let totalPairWidth = 0;
     let pairCount = 0;
     for (let i = 0; i < sortedPositions.length - 1; i++) {

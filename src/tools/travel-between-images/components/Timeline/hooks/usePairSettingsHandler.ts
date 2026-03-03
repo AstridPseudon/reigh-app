@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { PairData } from '../TimelineContainer/types';
+import { sortPositionEntries } from '../utils/timeline-utils';
 import type { getPairInfo } from '../utils/timeline-utils';
 
 interface UsePairSettingsHandlerProps {
@@ -62,7 +63,7 @@ export function usePairSettingsHandler({
 
     // Handle multi-image trailing segment (pairIndex is after all regular pairs)
     if (pairIndex === pairInfo.length && trailingEndFrame !== undefined && imagePositions.size > 0) {
-      const sortedEntries = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
+      const sortedEntries = sortPositionEntries(imagePositions);
       const lastEntry = sortedEntries[sortedEntries.length - 1];
       if (lastEntry) {
         const [imageId, imageFrame] = lastEntry;

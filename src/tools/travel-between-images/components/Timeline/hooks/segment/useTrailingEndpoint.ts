@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { TRAILING_ENDPOINT_KEY } from '../../utils/timeline-utils';
+import { TRAILING_ENDPOINT_KEY, sortPositionEntries } from '../../utils/timeline-utils';
 
 interface UseTrailingEndpointProps {
   /** Drag-aware positions from the orchestrator */
@@ -69,7 +69,7 @@ export function useTrailingEndpoint({
     if (imagePositions.size === 0) return;
 
     // Find the current last image (highest frame position)
-    const sortedEntries = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
+    const sortedEntries = sortPositionEntries(imagePositions);
     const currentLastImageId = sortedEntries[sortedEntries.length - 1]?.[0] || null;
 
     // If the last image changed, clear trailing video URL

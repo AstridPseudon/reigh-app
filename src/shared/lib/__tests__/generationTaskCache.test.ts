@@ -65,7 +65,7 @@ describe('preloadGenerationTaskMappings', () => {
   });
 
   it('does nothing for empty generation IDs', async () => {
-    await preloadGenerationTaskMappings([], mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[1]);
+    await preloadGenerationTaskMappings(mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0], []);
     expect(mockGetPrimaryTaskMappingsForGenerations).not.toHaveBeenCalled();
   });
 
@@ -78,8 +78,8 @@ describe('preloadGenerationTaskMappings', () => {
     );
 
     await preloadGenerationTaskMappings(
+      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
       ['gen-1', 'gen-2'],
-      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[1],
     );
 
     expect(mockQueryClient.setQueryData).toHaveBeenCalledTimes(2);
@@ -99,8 +99,8 @@ describe('preloadGenerationTaskMappings', () => {
     );
 
     await preloadGenerationTaskMappings(
+      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
       ['gen-1'],
-      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[1],
     );
 
     expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
@@ -124,8 +124,8 @@ describe('preloadGenerationTaskMappings', () => {
 
     await expect(
       preloadGenerationTaskMappings(
+        mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
         ['gen-1'],
-        mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[1],
       ),
     ).resolves.not.toThrow();
 
@@ -144,8 +144,8 @@ describe('preloadGenerationTaskMappings', () => {
     const ids = Array.from({ length: 12 }, (_, i) => `gen-${i}`);
 
     await preloadGenerationTaskMappings(
+      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
       ids,
-      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[1],
       {
         batchSize: 5,
         delayBetweenBatches: 0,

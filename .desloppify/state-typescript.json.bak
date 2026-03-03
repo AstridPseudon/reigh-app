@@ -27,7 +27,7 @@
       "provisional_until_scan": 153,
       "needs_review_refresh": true,
       "refresh_reason": "review_issue_fixed",
-      "stale_since": "2026-03-03T21:29:11+00:00"
+      "stale_since": "2026-03-03T21:29:21+00:00"
     },
     "initialization_coupling": {
       "score": 95.0,
@@ -75,7 +75,10 @@
       "source": "manual_override",
       "assessed_at": "2026-03-03T17:26:14+00:00",
       "provisional_override": true,
-      "provisional_until_scan": 153
+      "provisional_until_scan": 153,
+      "needs_review_refresh": true,
+      "refresh_reason": "review_issue_fixed",
+      "stale_since": "2026-03-03T21:35:08+00:00"
     },
     "ai_generated_debt": {
       "score": 77.2,
@@ -163,7 +166,7 @@
       "provisional_until_scan": 153,
       "needs_review_refresh": true,
       "refresh_reason": "review_issue_fixed",
-      "stale_since": "2026-03-03T20:33:00+00:00"
+      "stale_since": "2026-03-03T21:35:33+00:00"
     },
     "mid_level_elegance": {
       "score": 62.4,
@@ -221,15 +224,15 @@
     "total": 5651,
     "auto_resolved": 4943,
     "false_positive": 2,
-    "fixed": 54,
-    "open": 412,
+    "fixed": 58,
+    "open": 408,
     "wontfix": 240,
     "by_tier": {
       "1": {
         "auto_resolved": 226,
         "false_positive": 0,
-        "fixed": 33,
-        "open": 54,
+        "fixed": 37,
+        "open": 50,
         "wontfix": 23
       },
       "2": {
@@ -3160,13 +3163,13 @@
       "strict_score": 62.5,
       "verified_strict_score": 62.5,
       "checks": 10,
-      "failing": 8,
+      "failing": 7,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.625,
-          "failing": 8,
+          "failing": 7,
           "weighted_failures": 3.75,
           "assessment_score": 62.5,
           "placeholder": false,
@@ -3248,13 +3251,13 @@
       "strict_score": 62.4,
       "verified_strict_score": 62.4,
       "checks": 10,
-      "failing": 11,
+      "failing": 9,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.624,
-          "failing": 11,
+          "failing": 9,
           "weighted_failures": 3.76,
           "assessment_score": 62.4,
           "placeholder": false,
@@ -3336,13 +3339,13 @@
       "strict_score": 78.5,
       "verified_strict_score": 78.5,
       "checks": 10,
-      "failing": 1,
+      "failing": 0,
       "tier": 4,
       "detectors": {
         "subjective_assessment": {
           "potential": 10,
           "pass_rate": 0.785,
-          "failing": 1,
+          "failing": 0,
           "weighted_failures": 2.15,
           "assessment_score": 78.5,
           "placeholder": false,
@@ -191202,16 +191205,22 @@
         "suggestion": "Inline the null-check and MediaLightbox rendering at the call sites, or at minimum extract just a config object for the constant props. The component adds an interface and indirection without meaningful encapsulation.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Inlined SegmentVideoLightbox into both call sites in ShotImageManagerContainer, deleted wrapper component and interface",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:35:08+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually inlined the MediaLightbox calls and deleted the wrapper. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:35:08+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::abstraction_fitness::thin-repository-wrappers-forwarding-supabase::f129f317": {
       "id": "review::.::holistic::abstraction_fitness::thin-repository-wrappers-forwarding-supabase::f129f317",
@@ -192964,16 +192973,22 @@
         "suggestion": "Replace the single uuid import in useHuggingFaceUpload.ts with generateUUID() from shared/lib/taskCreation/ids.ts, then remove uuid and @types/uuid from package.json.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Replaced uuid/uuidv4 with crypto.randomUUID() in useHuggingFaceUpload.ts, uninstalled uuid + @types/uuid",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:29:21+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually replaced the single uuid import and uninstalled the packages. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:29:21+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::design_coherence::shot-editor-controller-god-hook::8cdbae45": {
       "id": "review::.::holistic::design_coherence::shot-editor-controller-god-hook::8cdbae45",
@@ -194017,16 +194032,22 @@
         "suggestion": "Remove the isExtractingFrames state entirely and the conditional spinner branches, or wire it to the actual isExtractingRef state if a loading indicator is desired.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Removed dead isExtractingFrames useState(false) and simplified JSX conditionals to static content",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:35:33+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually removed the dead state variable and simplified both JSX branches. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:35:33+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e": {
       "id": "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e",
@@ -194148,16 +194169,22 @@
         "suggestion": "Compute a single sortedImagePositions once via useMemo and pass it to all consumers. This eliminates redundant O(n log n) sorts and clarifies that they all operate on the same ordering.",
         "reasoning": ""
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Extracted sortPositionEntries utility into timeline-utils.ts and replaced all 10 identical sort patterns",
       "first_seen": "2026-03-03T16:45:04+00:00",
       "last_seen": "2026-03-03T17:26:14+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T21:35:21+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually replaced all 10 sorting call sites with the new utility. I am not gaming the score.",
+        "attested_at": "2026-03-03T21:35:21+00:00",
+        "scan_verified": false
+      }
     },
     "review::.::holistic::low_level_elegance::clear_all_enhanced_prompts_sequential_awaits::c86f06f4": {
       "id": "review::.::holistic::low_level_elegance::clear_all_enhanced_prompts_sequential_awaits::c86f06f4",

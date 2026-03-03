@@ -1,33 +1,8 @@
 {
   "version": 5,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-03T21:29:21+00:00",
+  "updated": "2026-03-03T21:39:41+00:00",
   "queue_order": [
-    "review::.::holistic::design_coherence::shot-editor-controller-god-hook::8cdbae45",
-    "review::.::holistic::design_coherence::media-gallery-item-mixed-concerns::2410572c",
-    "review::.::holistic::abstraction_fitness::useInlineEditState-massive-forwarding-return::4965f503",
-    "review::.::holistic::abstraction_fitness::inline-edit-prop-reshaping-ceremony::07b8bae0",
-    "review::.::holistic::low_level_elegance::inline_edit_state_manual_reshaping::5e03e30e",
-    "review::.::holistic::abstraction_fitness::video-edit-panel-wide-prop-surface::665c9ed4",
-    "review::.::holistic::abstraction_fitness::shot-image-manager-intermediate-controller-interfaces::fc33b25f",
-    "review::.::holistic::design_coherence::shot-image-manager-desktop-prop-sprawl::e9f849d9",
-    "review::.::holistic::abstraction_fitness::segment-video-lightbox-props-forwarding::954d0413",
-    "review::.::holistic::abstraction_fitness::image-lightbox-deep-nesting-pass-through::2dd589e2",
-    "review::.::holistic::mid_level_elegance::imagelightbox_prop_explosion::4539f920",
-    "review::.::holistic::design_coherence::clip-manager-effects-chain-risk::37432604",
-    "review::.::holistic::low_level_elegance::timeline_container_inline_iife_jsx::7ce93eda",
-    "review::.::holistic::low_level_elegance::timeline_container_repeated_sorting::2bf9f2c1",
-    "review::.::holistic::low_level_elegance::trim_controls_duplicate_throttle_blocks::178d617d",
-    "review::.::holistic::low_level_elegance::trim_controls_dead_state::c6efb395",
-    "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e",
-    "review::.::holistic::low_level_elegance::preview_playback_excessive_state_reset::1c26de9c",
-    "review::.::holistic::low_level_elegance::segment_controller_fallback_logic_opaque::28da007b",
-    "review::.::holistic::low_level_elegance::auto_save_settings_render_time_side_effects::7c9a3e55",
-    "review::.::holistic::api_surface_coherence::timeline_write_queue_positional_params::715396fe",
-    "review::.::holistic::api_surface_coherence::adjacent_preload_mixed_api_shapes::e771b112",
-    "review::.::holistic::api_surface_coherence::invalidation_module_mixed_sync_async::3d6fc1cb",
-    "review::.::holistic::api_surface_coherence::timeline_mutation_refetch_positional_vs_object::9525c4cb",
-    "review::.::holistic::api_surface_coherence::generation_task_cache_param_order_inconsistency::95cc36b4",
     "review::.::holistic::api_surface_coherence::scope_resolution_inconsistent_optional_param::98c80722",
     "review::.::holistic::api_surface_coherence::build_style_reference_metadata_6_field_input::26a9adaf",
     "review::.::holistic::design_coherence::segment-outputs-positional-params::1dd39842",
@@ -2573,6 +2548,216 @@
       "note": null,
       "attestation": null,
       "created_at": "2026-03-03T21:24:19+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::design_coherence::shot-editor-controller-god-hook::8cdbae45": {
+      "issue_id": "review::.::holistic::design_coherence::shot-editor-controller-god-hook::8cdbae45",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:34:55+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::design_coherence::media-gallery-item-mixed-concerns::2410572c": {
+      "issue_id": "review::.::holistic::design_coherence::media-gallery-item-mixed-concerns::2410572c",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:34:55+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::useInlineEditState-massive-forwarding-return::4965f503": {
+      "issue_id": "review::.::holistic::abstraction_fitness::useInlineEditState-massive-forwarding-return::4965f503",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:34:55+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::inline-edit-prop-reshaping-ceremony::07b8bae0": {
+      "issue_id": "review::.::holistic::abstraction_fitness::inline-edit-prop-reshaping-ceremony::07b8bae0",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:34:55+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::inline_edit_state_manual_reshaping::5e03e30e": {
+      "issue_id": "review::.::holistic::low_level_elegance::inline_edit_state_manual_reshaping::5e03e30e",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:34:55+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::video-edit-panel-wide-prop-surface::665c9ed4": {
+      "issue_id": "review::.::holistic::abstraction_fitness::video-edit-panel-wide-prop-surface::665c9ed4",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:34:55+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::shot-image-manager-intermediate-controller-interfaces::fc33b25f": {
+      "issue_id": "review::.::holistic::abstraction_fitness::shot-image-manager-intermediate-controller-interfaces::fc33b25f",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:01+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::design_coherence::shot-image-manager-desktop-prop-sprawl::e9f849d9": {
+      "issue_id": "review::.::holistic::design_coherence::shot-image-manager-desktop-prop-sprawl::e9f849d9",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:01+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::abstraction_fitness::image-lightbox-deep-nesting-pass-through::2dd589e2": {
+      "issue_id": "review::.::holistic::abstraction_fitness::image-lightbox-deep-nesting-pass-through::2dd589e2",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:15+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::mid_level_elegance::imagelightbox_prop_explosion::4539f920": {
+      "issue_id": "review::.::holistic::mid_level_elegance::imagelightbox_prop_explosion::4539f920",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:15+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::design_coherence::clip-manager-effects-chain-risk::37432604": {
+      "issue_id": "review::.::holistic::design_coherence::clip-manager-effects-chain-risk::37432604",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:15+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::timeline_container_inline_iife_jsx::7ce93eda": {
+      "issue_id": "review::.::holistic::low_level_elegance::timeline_container_inline_iife_jsx::7ce93eda",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:15+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::trim_controls_duplicate_throttle_blocks::178d617d": {
+      "issue_id": "review::.::holistic::low_level_elegance::trim_controls_duplicate_throttle_blocks::178d617d",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:35:27+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e": {
+      "issue_id": "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:38:54+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::preview_playback_excessive_state_reset::1c26de9c": {
+      "issue_id": "review::.::holistic::low_level_elegance::preview_playback_excessive_state_reset::1c26de9c",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:38:54+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::segment_controller_fallback_logic_opaque::28da007b": {
+      "issue_id": "review::.::holistic::low_level_elegance::segment_controller_fallback_logic_opaque::28da007b",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:38:54+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::low_level_elegance::auto_save_settings_render_time_side_effects::7c9a3e55": {
+      "issue_id": "review::.::holistic::low_level_elegance::auto_save_settings_render_time_side_effects::7c9a3e55",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:38:54+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::api_surface_coherence::timeline_write_queue_positional_params::715396fe": {
+      "issue_id": "review::.::holistic::api_surface_coherence::timeline_write_queue_positional_params::715396fe",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:39:29+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::api_surface_coherence::adjacent_preload_mixed_api_shapes::e771b112": {
+      "issue_id": "review::.::holistic::api_surface_coherence::adjacent_preload_mixed_api_shapes::e771b112",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:39:29+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::api_surface_coherence::invalidation_module_mixed_sync_async::3d6fc1cb": {
+      "issue_id": "review::.::holistic::api_surface_coherence::invalidation_module_mixed_sync_async::3d6fc1cb",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:39:29+00:00",
+      "review_after": null,
+      "skipped_at_scan": 152
+    },
+    "review::.::holistic::api_surface_coherence::timeline_mutation_refetch_positional_vs_object::9525c4cb": {
+      "issue_id": "review::.::holistic::api_surface_coherence::timeline_mutation_refetch_positional_vs_object::9525c4cb",
+      "kind": "temporary",
+      "reason": null,
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T21:39:29+00:00",
       "review_after": null,
       "skipped_at_scan": 152
     }
@@ -13250,8 +13435,8 @@
     "review::.::holistic::abstraction_fitness::segment-video-lightbox-props-forwarding::954d0413": {
       "finding_id": "review::.::holistic::abstraction_fitness::segment-video-lightbox-props-forwarding::954d0413",
       "created_at": "2026-03-03T18:21:58+00:00",
-      "cluster": "god-object-splits",
-      "updated_at": "2026-03-03T18:21:58+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T21:35:08+00:00"
     },
     "review::.::holistic::abstraction_fitness::image-lightbox-deep-nesting-pass-through::2dd589e2": {
       "finding_id": "review::.::holistic::abstraction_fitness::image-lightbox-deep-nesting-pass-through::2dd589e2",
@@ -13298,8 +13483,8 @@
     "review::.::holistic::api_surface_coherence::generation_task_cache_param_order_inconsistency::95cc36b4": {
       "finding_id": "review::.::holistic::api_surface_coherence::generation_task_cache_param_order_inconsistency::95cc36b4",
       "created_at": "2026-03-03T18:22:09+00:00",
-      "cluster": "api-consistency",
-      "updated_at": "2026-03-03T18:22:09+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T21:39:41+00:00"
     },
     "review::.::holistic::api_surface_coherence::scope_resolution_inconsistent_optional_param::98c80722": {
       "finding_id": "review::.::holistic::api_surface_coherence::scope_resolution_inconsistent_optional_param::98c80722",
@@ -13418,8 +13603,8 @@
     "review::.::holistic::low_level_elegance::timeline_container_repeated_sorting::2bf9f2c1": {
       "finding_id": "review::.::holistic::low_level_elegance::timeline_container_repeated_sorting::2bf9f2c1",
       "created_at": "2026-03-03T18:22:40+00:00",
-      "cluster": "timeline-cleanup",
-      "updated_at": "2026-03-03T18:22:40+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T21:35:21+00:00"
     },
     "review::.::holistic::low_level_elegance::trim_controls_duplicate_throttle_blocks::178d617d": {
       "finding_id": "review::.::holistic::low_level_elegance::trim_controls_duplicate_throttle_blocks::178d617d",
@@ -13430,8 +13615,8 @@
     "review::.::holistic::low_level_elegance::trim_controls_dead_state::c6efb395": {
       "finding_id": "review::.::holistic::low_level_elegance::trim_controls_dead_state::c6efb395",
       "created_at": "2026-03-03T18:22:40+00:00",
-      "cluster": "timeline-cleanup",
-      "updated_at": "2026-03-03T18:22:40+00:00"
+      "cluster": null,
+      "updated_at": "2026-03-03T21:35:34+00:00"
     },
     "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e": {
       "finding_id": "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e",
@@ -38170,6 +38355,205 @@
         "status": "fixed",
         "attestation": "I have actually replaced the single uuid import and uninstalled the packages. I am not gaming the score."
       }
+    },
+    {
+      "timestamp": "2026-03-03T21:34:55+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::design_coherence::shot-editor-controller-god-hook::8cdbae45",
+        "review::.::holistic::design_coherence::media-gallery-item-mixed-concerns::2410572c",
+        "review::.::holistic::abstraction_fitness::useInlineEditState-massive-forwarding-return::4965f503",
+        "review::.::holistic::abstraction_fitness::inline-edit-prop-reshaping-ceremony::07b8bae0",
+        "review::.::holistic::low_level_elegance::inline_edit_state_manual_reshaping::5e03e30e",
+        "review::.::holistic::abstraction_fitness::video-edit-panel-wide-prop-surface::665c9ed4"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:35:01+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::abstraction_fitness::shot-image-manager-intermediate-controller-interfaces::fc33b25f",
+        "review::.::holistic::design_coherence::shot-image-manager-desktop-prop-sprawl::e9f849d9"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:35:07+00:00",
+      "action": "done",
+      "issue_ids": [
+        "review::.::holistic::abstraction_fitness::segment-video-lightbox-props-forwarding::954d0413"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Inlined SegmentVideoLightbox into both call sites in ShotImageManagerContainer, deleted wrapper component and interface",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T21:35:08+00:00",
+      "action": "resolve",
+      "issue_ids": [
+        "review::.::holistic::abstraction_fitness::segment-video-lightbox-props-forwarding::954d0413"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Inlined SegmentVideoLightbox into both call sites in ShotImageManagerContainer, deleted wrapper component and interface",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually inlined the MediaLightbox calls and deleted the wrapper. I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:35:15+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::abstraction_fitness::image-lightbox-deep-nesting-pass-through::2dd589e2",
+        "review::.::holistic::mid_level_elegance::imagelightbox_prop_explosion::4539f920",
+        "review::.::holistic::design_coherence::clip-manager-effects-chain-risk::37432604",
+        "review::.::holistic::low_level_elegance::timeline_container_inline_iife_jsx::7ce93eda"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:35:21+00:00",
+      "action": "done",
+      "issue_ids": [
+        "review::.::holistic::low_level_elegance::timeline_container_repeated_sorting::2bf9f2c1"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted sortPositionEntries utility into timeline-utils.ts and replaced all 10 identical sort patterns",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T21:35:21+00:00",
+      "action": "resolve",
+      "issue_ids": [
+        "review::.::holistic::low_level_elegance::timeline_container_repeated_sorting::2bf9f2c1"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted sortPositionEntries utility into timeline-utils.ts and replaced all 10 identical sort patterns",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually replaced all 10 sorting call sites with the new utility. I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:35:27+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::low_level_elegance::trim_controls_duplicate_throttle_blocks::178d617d"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:35:33+00:00",
+      "action": "done",
+      "issue_ids": [
+        "review::.::holistic::low_level_elegance::trim_controls_dead_state::c6efb395"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed dead isExtractingFrames useState(false) and simplified JSX conditionals to static content",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T21:35:34+00:00",
+      "action": "resolve",
+      "issue_ids": [
+        "review::.::holistic::low_level_elegance::trim_controls_dead_state::c6efb395"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Removed dead isExtractingFrames useState(false) and simplified JSX conditionals to static content",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually removed the dead state variable and simplified both JSX branches. I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:38:54+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::low_level_elegance::preview_playback_retry_polling_pattern::67720d8e",
+        "review::.::holistic::low_level_elegance::preview_playback_excessive_state_reset::1c26de9c",
+        "review::.::holistic::low_level_elegance::segment_controller_fallback_logic_opaque::28da007b",
+        "review::.::holistic::low_level_elegance::auto_save_settings_render_time_side_effects::7c9a3e55"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:39:29+00:00",
+      "action": "skip",
+      "issue_ids": [
+        "review::.::holistic::api_surface_coherence::timeline_write_queue_positional_params::715396fe",
+        "review::.::holistic::api_surface_coherence::adjacent_preload_mixed_api_shapes::e771b112",
+        "review::.::holistic::api_surface_coherence::invalidation_module_mixed_sync_async::3d6fc1cb",
+        "review::.::holistic::api_surface_coherence::timeline_mutation_refetch_positional_vs_object::9525c4cb"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": null
+      }
+    },
+    {
+      "timestamp": "2026-03-03T21:39:40+00:00",
+      "action": "done",
+      "issue_ids": [
+        "review::.::holistic::api_surface_coherence::generation_task_cache_param_order_inconsistency::95cc36b4"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Swapped params to (queryClient, generationIds, options) to match convention, updated all call sites and tests",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T21:39:41+00:00",
+      "action": "resolve",
+      "issue_ids": [
+        "review::.::holistic::api_surface_coherence::generation_task_cache_param_order_inconsistency::95cc36b4"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Swapped params to (queryClient, generationIds, options) to match convention, updated all call sites and tests",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually swapped the parameter order and updated all callers. I am not gaming the score."
+      }
     }
   ],
   "epic_triage_meta": {
@@ -38376,6 +38760,10 @@
     "review::.::holistic::dependency_health::unused_dep_next_themes::124f3577",
     "review::.::holistic::dependency_health::redundant_types_jszip::e54a14d6",
     "review::.::holistic::dependency_health::phantom_dep_nanoid::8f7733ca",
-    "review::.::holistic::dependency_health::duplicate_uuid_generation::7d864039"
+    "review::.::holistic::dependency_health::duplicate_uuid_generation::7d864039",
+    "review::.::holistic::abstraction_fitness::segment-video-lightbox-props-forwarding::954d0413",
+    "review::.::holistic::low_level_elegance::timeline_container_repeated_sorting::2bf9f2c1",
+    "review::.::holistic::low_level_elegance::trim_controls_dead_state::c6efb395",
+    "review::.::holistic::api_surface_coherence::generation_task_cache_param_order_inconsistency::95cc36b4"
   ]
 }

@@ -30,8 +30,8 @@ export interface GenerationWithTaskData extends GenerationRow {
  * Preload task mappings for a batch of generations in the background.
  */
 export async function preloadGenerationTaskMappings(
-  generationIds: string[],
   queryClient: QueryClient,
+  generationIds: string[],
   options: PreloadGenerationTaskMappingsOptions = {},
 ) {
   const supabase = getSupabaseClient();

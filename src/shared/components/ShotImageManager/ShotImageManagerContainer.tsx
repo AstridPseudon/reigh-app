@@ -33,18 +33,6 @@ interface SegmentLightboxState {
   closeSegmentLightbox: () => void;
 }
 
-interface SegmentVideoLightboxProps {
-  currentSegmentMedia: GenerationRow | null;
-  selectedParentId: string | null;
-  currentSegmentSlot: SegmentSlot | null;
-  handleSegmentLightboxNext: () => void;
-  handleSegmentLightboxPrev: () => void;
-  closeSegmentLightbox: () => void;
-  segmentChildCount: number;
-  shotId?: string;
-  readOnly?: boolean;
-}
-
 interface SelectionOrderController {
   optimistic: ReturnType<typeof useOptimisticOrder>;
   selection: ReturnType<typeof useSelection>;
@@ -297,46 +285,6 @@ function useShotImageManagerContainerState(
   };
 }
 
-const SegmentVideoLightbox: React.FC<SegmentVideoLightboxProps> = ({
-  currentSegmentMedia,
-  selectedParentId,
-  currentSegmentSlot,
-  handleSegmentLightboxNext,
-  handleSegmentLightboxPrev,
-  closeSegmentLightbox,
-  segmentChildCount,
-  shotId,
-  readOnly,
-}) => {
-  if (!currentSegmentMedia) {
-    return null;
-  }
-
-  return (
-    <MediaLightbox
-      media={currentSegmentMedia}
-      parentGenerationIdOverride={selectedParentId}
-      onClose={closeSegmentLightbox}
-      onNext={handleSegmentLightboxNext}
-      onPrevious={handleSegmentLightboxPrev}
-      showNavigation={true}
-      showImageEditTools={false}
-      showDownload={true}
-      hasNext={segmentChildCount > 1}
-      hasPrevious={segmentChildCount > 1}
-      starred={currentSegmentMedia.starred ?? false}
-      shotId={shotId}
-      readOnly={readOnly}
-      showTaskDetails={true}
-      showVideoTrimEditor={true}
-      fetchVariantsForSelf={true}
-      currentSegmentImages={{
-        startShotGenerationId: currentSegmentSlot?.pairShotGenerationId,
-      }}
-    />
-  );
-};
-
 /**
  * Main container component for ShotImageManager
  *
@@ -381,17 +329,29 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
           deletingSegmentId={props.deletingSegmentId}
         />
 
-        <SegmentVideoLightbox
-          currentSegmentMedia={state.segments.segmentLightbox.currentSegmentMedia}
-          selectedParentId={state.segments.selectedParentId}
-          currentSegmentSlot={state.segments.segmentLightbox.currentSegmentSlot}
-          handleSegmentLightboxNext={state.segments.segmentLightbox.handleSegmentLightboxNext}
-          handleSegmentLightboxPrev={state.segments.segmentLightbox.handleSegmentLightboxPrev}
-          closeSegmentLightbox={state.segments.segmentLightbox.closeSegmentLightbox}
-          segmentChildCount={state.segments.segmentLightbox.segmentChildSlotIndices.length}
-          shotId={props.shotId}
-          readOnly={props.readOnly}
-        />
+        {state.segments.segmentLightbox.currentSegmentMedia && (
+          <MediaLightbox
+            media={state.segments.segmentLightbox.currentSegmentMedia}
+            parentGenerationIdOverride={state.segments.selectedParentId}
+            onClose={state.segments.segmentLightbox.closeSegmentLightbox}
+            onNext={state.segments.segmentLightbox.handleSegmentLightboxNext}
+            onPrevious={state.segments.segmentLightbox.handleSegmentLightboxPrev}
+            showNavigation={true}
+            showImageEditTools={false}
+            showDownload={true}
+            hasNext={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
+            hasPrevious={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
+            starred={state.segments.segmentLightbox.currentSegmentMedia.starred ?? false}
+            shotId={props.shotId}
+            readOnly={props.readOnly}
+            showTaskDetails={true}
+            showVideoTrimEditor={true}
+            fetchVariantsForSelf={true}
+            currentSegmentImages={{
+              startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+            }}
+          />
+        )}
       </>
     );
   }
@@ -416,17 +376,29 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
         deletingSegmentId={props.deletingSegmentId}
       />
 
-      <SegmentVideoLightbox
-        currentSegmentMedia={state.segments.segmentLightbox.currentSegmentMedia}
-        selectedParentId={state.segments.selectedParentId}
-        currentSegmentSlot={state.segments.segmentLightbox.currentSegmentSlot}
-        handleSegmentLightboxNext={state.segments.segmentLightbox.handleSegmentLightboxNext}
-        handleSegmentLightboxPrev={state.segments.segmentLightbox.handleSegmentLightboxPrev}
-        closeSegmentLightbox={state.segments.segmentLightbox.closeSegmentLightbox}
-        segmentChildCount={state.segments.segmentLightbox.segmentChildSlotIndices.length}
-        shotId={props.shotId}
-        readOnly={props.readOnly}
-      />
+      {state.segments.segmentLightbox.currentSegmentMedia && (
+        <MediaLightbox
+          media={state.segments.segmentLightbox.currentSegmentMedia}
+          parentGenerationIdOverride={state.segments.selectedParentId}
+          onClose={state.segments.segmentLightbox.closeSegmentLightbox}
+          onNext={state.segments.segmentLightbox.handleSegmentLightboxNext}
+          onPrevious={state.segments.segmentLightbox.handleSegmentLightboxPrev}
+          showNavigation={true}
+          showImageEditTools={false}
+          showDownload={true}
+          hasNext={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
+          hasPrevious={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
+          starred={state.segments.segmentLightbox.currentSegmentMedia.starred ?? false}
+          shotId={props.shotId}
+          readOnly={props.readOnly}
+          showTaskDetails={true}
+          showVideoTrimEditor={true}
+          fetchVariantsForSelf={true}
+          currentSegmentImages={{
+            startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+          }}
+        />
+      )}
     </>
   );
 };

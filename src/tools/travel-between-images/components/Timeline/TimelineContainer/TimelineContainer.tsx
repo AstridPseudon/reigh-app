@@ -6,7 +6,7 @@ import TimelineRuler from '../TimelineRuler';
 import PairRegion from '../PairRegion';
 import TimelineItem from '../TimelineItem';
 import TrailingEndpoint from '../TrailingEndpoint';
-import { TRAILING_ENDPOINT_KEY, PENDING_POSITION_KEY, getPairInfo, findTrailingVideoInfo } from '../utils/timeline-utils';
+import { TRAILING_ENDPOINT_KEY, PENDING_POSITION_KEY, getPairInfo, findTrailingVideoInfo, sortPositionEntries } from '../utils/timeline-utils';
 import { GuidanceVideoStrip } from '../GuidanceVideoStrip';
 import { GuidanceVideoUploader } from '../GuidanceVideoUploader';
 import { GuidanceVideosContainer } from '../GuidanceVideosContainer';
@@ -246,7 +246,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   // Live trailing detection: check if any completed video is anchored to the current
   // live last image. Auto-reveals trailing slot during drag without waiting for DB.
   const liveLastImageShotGenId = useMemo(() => {
-    const sorted = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
+    const sorted = sortPositionEntries(imagePositions);
     return sorted[sorted.length - 1]?.[0] ?? null;
   }, [imagePositions]);
 
@@ -400,7 +400,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
               {/* Segment output strip */}
               {shotId && (projectId || (readOnly && videoOutputs)) && (() => {
             const sortedEntries = imagePositions.size > 0
-              ? [...imagePositions.entries()].sort((a, b) => a[1] - b[1])
+              ? sortPositionEntries(imagePositions)
               : [];
             const lastEntry = sortedEntries[sortedEntries.length - 1];
             const isMultiImage = images.length > 1;
@@ -561,7 +561,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
 
             {/* Pair regions */}
             {(() => {
-              const sortedDynamicPositions = [...imagePositionsWithPending.entries()].sort((a, b) => a[1] - b[1]);
+              const sortedDynamicPositions = sortPositionEntries(imagePositionsWithPending);
               return pairInfoWithPending.map((pair, index) => {
               const [startEntry, endEntry] = [sortedDynamicPositions[index], sortedDynamicPositions[index + 1]];
 
@@ -654,7 +654,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
 
             {/* Trailing endpoint - appears after last image */}
             {imagePositions.size > 0 && (() => {
-              const sortedEntries = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
+              const sortedEntries = sortPositionEntries(imagePositions);
               const lastEntry = sortedEntries[sortedEntries.length - 1];
               if (!lastEntry) return null;
               const [id, imageFrame] = lastEntry;

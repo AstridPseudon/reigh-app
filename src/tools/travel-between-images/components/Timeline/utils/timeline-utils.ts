@@ -3,6 +3,10 @@ import { quantizeGap } from "./time-utils";
 // The trailing endpoint key — lives in the positions map but is not a real image
 export const TRAILING_ENDPOINT_KEY = '__trailing_endpoint';
 
+/** Sort a positions map by frame number (ascending), returning [id, frame] entries. */
+export const sortPositionEntries = (positions: Map<string, number>): [string, number][] =>
+  [...positions.entries()].sort((a, b) => a[1] - b[1]);
+
 // Phantom key for a pending item (duplicate/drop/external add) — used in augmented
 // positions maps so pair regions and segment strip can update before the real item arrives
 export const PENDING_POSITION_KEY = '__pending__';
@@ -22,7 +26,7 @@ export const quantizePositions = (positions: Map<string, number>): Map<string, n
   const imagePositions = new Map(positions);
   imagePositions.delete(TRAILING_ENDPOINT_KEY);
 
-  const entries = [...imagePositions.entries()].sort((a, b) => a[1] - b[1]);
+  const entries = sortPositionEntries(imagePositions);
 
   if (entries.length === 0) {
     // If only trailing existed, return it as-is
