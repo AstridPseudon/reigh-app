@@ -12,34 +12,22 @@
     "contract_coherence": {
       "score": 77.7,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T16:49:47+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "dependency_health": {
       "score": 72.7,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:31:30+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "initialization_coupling": {
       "score": 51.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:06:03+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "logic_clarity": {
       "score": 81.3,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:01:50+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "naming_quality": {
       "score": 89.0,
@@ -49,18 +37,12 @@
     "test_strategy": {
       "score": 52.4,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:08:55+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "type_safety": {
       "score": 80.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:03:50+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "abstraction_fitness": {
       "score": 60.1,
@@ -81,106 +63,67 @@
         "Delegation Density": 74.7,
         "Definition Directness": 65.0,
         "Type Discipline": 81.6
-      },
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:08:25+00:00"
+      }
     },
     "ai_generated_debt": {
       "score": 76.8,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:13:25+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "api_surface_coherence": {
       "score": 63.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T14:51:37+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "authorization_consistency": {
       "score": 76.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T14:54:16+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "convention_outlier": {
       "score": 78.1,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T16:51:38+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "cross_module_architecture": {
       "score": 47.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:23:27+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "design_coherence": {
       "score": 42.8,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:57:36+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "error_consistency": {
       "score": 59.0,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:26:13+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "high_level_elegance": {
       "score": 50.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:42:05+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "incomplete_migration": {
       "score": 53.5,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:11:31+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "low_level_elegance": {
       "score": 68.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:48:34+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "mid_level_elegance": {
       "score": 50.0,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:36:40+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "package_organization": {
       "score": 52.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:13:11+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     }
   },
   "potentials": {
@@ -215,16 +158,16 @@
   "created": "2026-02-24T17:37:02+00:00",
   "last_scan": "2026-03-02T23:01:06+00:00",
   "scan_count": 144,
-  "overall_score": 75.5,
-  "objective_score": 96.9,
-  "strict_score": 75.5,
+  "overall_score": 75.6,
+  "objective_score": 97.3,
+  "strict_score": 75.6,
   "verified_strict_score": 95.9,
   "stats": {
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 90,
-    "open": 1869,
+    "fixed": 113,
+    "open": 1846,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -244,8 +187,8 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 82,
-        "open": 819,
+        "fixed": 105,
+        "open": 796,
         "wontfix": 0
       },
       "4": {
@@ -138821,17 +138764,23 @@
         "importer_count": 1,
         "loc_weight": 15.968719422671311
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct tests for lightbox navigation prefetching, shot-association state derivation, task payload defaults, and generation navigation (including external fetch append path).",
       "first_seen": "2026-02-25T20:44:04+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:15:12+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct tests for lightbox navigation prefetching, shot-association state derivation, task payload defaults, and generation navigation (including external fetch append path). and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:15:12+00:00",
+        "scan_verified": false
+      }
     },
     "react::src/shared/components/MediaGallery/components/MediaGalleryLightbox.tsx::setLightboxSelectedShotId": {
       "id": "react::src/shared/components/MediaGallery/components/MediaGalleryLightbox.tsx::setLightboxSelectedShotId",
@@ -139067,17 +139016,23 @@
         "importer_count": 1,
         "loc_weight": 17.60681686165901
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct tests for slot-index/trailing-pair builders plus segment-slot presentation behavior: prompt overrides, transition navigation, debounced frame updates, and overlapping structure-video reconciliation.",
       "first_seen": "2026-02-25T20:54:22+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:17:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct tests for slot-index/trailing-pair builders plus segment-slot presentation behavior: prompt overrides, transition navigation, debounced frame updates, and overlapping structure-video reconciliation. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:17:32+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotDeepLinking.ts::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotDeepLinking.ts::transitive_only",
@@ -160084,17 +160039,23 @@
         "importer_count": 1,
         "loc_weight": 23.895606290697042
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct section-level tests covering travel demo replay and selector props, motion reference rendering, LoRA replay control, and closing navigation/community link actions.",
       "first_seen": "2026-03-02T19:17:31+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:18:16+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct section-level tests covering travel demo replay and selector props, motion reference rendering, LoRA replay control, and closing navigation/community link actions. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:18:16+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only": {
       "id": "test_coverage::src/features/resources/components/ResourceBrowserModalBase.tsx::transitive_only",
@@ -160266,17 +160227,23 @@
         "importer_count": 1,
         "loc_weight": 13.490737563232042
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct canvas tests for zero-dimension null rendering, stage pointer-event wiring, persisted/current stroke rendering branches, and erasing stroke compositing.",
       "first_seen": "2026-03-02T19:17:31+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:19:16+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct canvas tests for zero-dimension null rendering, stage pointer-event wiring, persisted/current stroke rendering branches, and erasing stroke compositing. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:19:16+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/integrations/supabase/repositories/generationMutationsRepository.ts::transitive_only": {
       "id": "test_coverage::src/integrations/supabase/repositories/generationMutationsRepository.ts::transitive_only",
@@ -164865,17 +164832,23 @@
         "importer_count": 1,
         "loc_weight": 15.968719422671311
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct tests for modal header thumbnail/overflow rendering and navigation action, loading skeleton layout, and form control callback wiring into updateField.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:20:11+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct tests for modal header thumbnail/overflow rendering and navigation action, loading skeleton layout, and form control callback wiring into updateField. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:20:11+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorAIPanel.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorAIPanel.tsx::transitive_only",
@@ -164890,17 +164863,23 @@
         "importer_count": 1,
         "loc_weight": 12.84523257866513
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct panel tests for generate/remix/bulk-edit rendering, prompt-context mapping, and trigger/touch/tab callback wiring.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:21:17+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct panel tests for generate/remix/bulk-edit rendering, prompt-context mapping, and trigger/touch/tab callback wiring. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:21:17+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/join-clips/pages/components/JoinClipsGrid.tsx::transitive_only": {
       "id": "test_coverage::src/tools/join-clips/pages/components/JoinClipsGrid.tsx::transitive_only",
@@ -164915,17 +164894,23 @@
         "importer_count": 1,
         "loc_weight": 9.695359714832659
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct grid tests for loading/hydration skeleton states and sortable clip rendering with loop-toggle callback wiring to updateField.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:22:00+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct grid tests for loading/hydration skeleton states and sortable clip rendering with loop-toggle callback wiring to updateField. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:22:00+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotEditor/hooks/editor-state/timelineDropHelpers.ts::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotEditor/hooks/editor-state/timelineDropHelpers.ts::transitive_only",
@@ -164940,17 +164925,23 @@
         "importer_count": 2,
         "loc_weight": 17.435595774162696
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct helper tests for crop fallback/success paths, frame calculation with filtering/uniqueness, and timeline position persistence success + failure handling.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:23:00+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct helper tests for crop fallback/success paths, frame calculation with filtering/uniqueness, and timeline position persistence success + failure handling. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:23:00+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/join-clips/pages/components/JoinClipsResults.tsx::transitive_only": {
       "id": "test_coverage::src/tools/join-clips/pages/components/JoinClipsResults.tsx::transitive_only",
@@ -165027,17 +165018,23 @@
         "importer_count": 1,
         "loc_weight": 15.329709716755891
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct hook tests for drag-target state, pending-skeleton/new-shot reconciliation, generation-drop error handling, and file-drop validation/filtering.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:24:05+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct hook tests for drag-target state, pending-skeleton/new-shot reconciliation, generation-drop error handling, and file-drop validation/filtering. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:24:05+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorPromptList.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/PromptEditorModal/components/PromptEditorPromptList.tsx::transitive_only",
@@ -165083,17 +165080,23 @@
         "importer_count": 2,
         "loc_weight": 12.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct helper-hook tests for LoRA sync idempotency, keepBridgingImages defaulting, validation/pair derivation logic, and visibility-driven query invalidation.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:24:51+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct helper-hook tests for LoRA sync idempotency, keepBridgingImages defaulting, validation/pair derivation logic, and visibility-driven query invalidation. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:24:51+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/timeline-core/useTimelineViewportController.ts::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/timeline-core/useTimelineViewportController.ts::transitive_only",
@@ -165108,17 +165111,23 @@
         "importer_count": 1,
         "loc_weight": 14.866068747318506
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct viewport-controller tests for center-based zoom in/out targeting, fallback behavior without refs, and post-zoom scroll recentering.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:25:43+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct viewport-controller tests for center-based zoom in/out targeting, fallback behavior without refs, and post-zoom scroll recentering. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:25:43+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/components/MobileSelectionActionBar.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/ShotImageManager/components/MobileSelectionActionBar.tsx::transitive_only",
@@ -165133,17 +165142,23 @@
         "importer_count": 1,
         "loc_weight": 9.591663046625438
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct mobile action-bar tests for visibility gating, selection label/offset rendering, deselect-delete/create states, and success jump-to-shot behavior.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:26:26+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct mobile action-bar tests for visibility gating, selection label/offset rendering, deselect-delete/create states, and success jump-to-shot behavior. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:26:26+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/timeline-core/useTimelineUiState.ts::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/hooks/timeline-core/useTimelineUiState.ts::transitive_only",
@@ -165190,17 +165205,23 @@
         "assertions": 4,
         "loc_weight": 6.708203932499369
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reworked the test from module-level vi.mock stubs to module spies, preserving coordinator assertions while reducing mock-heavy structure.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:27:27+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Reworked the test from module-level vi.mock stubs to module spies, preserving coordinator assertions while reducing mock-heavy structure. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:27:27+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/PhaseConfigSelectorModal/PhaseConfigVertical.tsx::over_mocked::PhaseConfigVertical.test.tsx": {
       "id": "test_coverage::src/shared/components/PhaseConfigSelectorModal/PhaseConfigVertical.tsx::over_mocked::PhaseConfigVertical.test.tsx",
@@ -165216,17 +165237,23 @@
         "assertions": 14,
         "loc_weight": 27.892651361962706
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Strengthened the existing test file with additional direct DOM assertions (controls, actions, header buttons) to improve behavioral signal relative to mocked scaffolding.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:28:12+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Strengthened the existing test file with additional direct DOM assertions (controls, actions, header buttons) to improve behavioral signal relative to mocked scaffolding. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:28:12+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneControls.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/GenerationsPane/components/GenerationsPaneControls.tsx::transitive_only",
@@ -165241,17 +165268,23 @@
         "importer_count": 1,
         "loc_weight": 17.26267650163207
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct controls tests for count fallback rendering, search/star callbacks, current-shot quick switch, and exclude-positioned checkbox behavior.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:29:01+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct controls tests for count fallback rendering, search/star callbacks, current-shot quick switch, and exclude-positioned checkbox behavior. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:29:01+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/hooks/shots/externalImageDrop.ts::over_mocked::externalImageDrop.test.ts": {
       "id": "test_coverage::src/shared/hooks/shots/externalImageDrop.ts::over_mocked::externalImageDrop.test.ts",
@@ -165267,17 +165300,23 @@
         "assertions": 5,
         "loc_weight": 19.8997487421324
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reduced mock-heavy footprint by removing unnecessary crop/aspect-ratio module mocks while preserving upload/attachment behavior assertions.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:29:57+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Reduced mock-heavy footprint by removing unnecessary crop/aspect-ratio module mocks while preserving upload/attachment behavior assertions. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:29:57+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/components/DesktopLightboxOverlay.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/ShotImageManager/components/DesktopLightboxOverlay.tsx::transitive_only",
@@ -165292,17 +165331,23 @@
         "importer_count": 1,
         "loc_weight": 13.379088160259652
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct overlay tests for null gating, in-shot navigation/delete wiring, and external-generation close cleanup + shot-selection rebinding.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:30:51+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct overlay tests for null gating, in-shot navigation/delete wiring, and external-generation close cleanup + shot-selection rebinding. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:30:51+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/VideoGallery/VideoTravelVideosGallery.tsx::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/VideoGallery/VideoTravelVideosGallery.tsx::transitive_only",
@@ -165317,17 +165362,23 @@
         "importer_count": 1,
         "loc_weight": 13.19090595827292
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct gallery tests for skeleton gating conditions and MediaGallery prop wiring (pagination, filters, add-to-shot, and preloading options).",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:31:35+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct gallery tests for skeleton gating conditions and MediaGallery prop wiring (pagination, filters, add-to-shot, and preloading options). and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:31:35+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineEmptyState.tsx::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/Timeline/TimelineEmptyState.tsx::transitive_only",
@@ -165342,17 +165393,23 @@
         "importer_count": 1,
         "loc_weight": 9.746794344808963
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Validated and retained dedicated TimelineEmptyState direct tests covering disabled-state null render, default upload UI, and drag-over handler wiring.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:32:02+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Validated and retained dedicated TimelineEmptyState direct tests covering disabled-state null render, default upload UI, and drag-over handler wiring. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:32:02+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/VideoGallery/VideoTravelListHeader.tsx::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/VideoGallery/VideoTravelListHeader.tsx::transitive_only",
@@ -165367,17 +165424,23 @@
         "importer_count": 1,
         "loc_weight": 16.55294535724685
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct list-header tests for desktop/mobile search behaviors, sort toggles, pagination reset on video changes, and segmented view-mode switching.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:33:26+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct list-header tests for desktop/mobile search behaviors, sort toggles, pagination reset on video changes, and segmented view-mode switching. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:33:26+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/ShotImageManager/components/MobileImageGrid.tsx::transitive_only": {
       "id": "test_coverage::src/shared/components/ShotImageManager/components/MobileImageGrid.tsx::transitive_only",
@@ -165392,17 +165455,23 @@
         "importer_count": 1,
         "loc_weight": 18.0
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct mobile-grid tests for item rendering/frame derivation, move-arrow insertion actions, and add-images upload input behavior.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:34:12+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct mobile-grid tests for item rendering/frame derivation, move-arrow insertion actions, and add-images upload input behavior. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:34:12+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/shared/components/GenerationDetails/useImageGenerationDetailsViewModel.ts::transitive_only": {
       "id": "test_coverage::src/shared/components/GenerationDetails/useImageGenerationDetailsViewModel.ts::transitive_only",
@@ -165417,17 +165486,23 @@
         "importer_count": 1,
         "loc_weight": 15.556349186104045
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct view-model tests for variant config resolution, active/additional LoRA normalization, and style-reference/Qwen/user-image derivations.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:34:57+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct view-model tests for variant config resolution, active/additional LoRA normalization, and style-reference/Qwen/user-image derivations. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:34:57+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/features/shots/components/CreateShotModal.tsx::transitive_only": {
       "id": "test_coverage::src/features/shots/components/CreateShotModal.tsx::transitive_only",
@@ -165442,17 +165517,23 @@
         "importer_count": 3,
         "loc_weight": 13.820274961085254
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Added direct modal tests for cropped/uncropped submit paths, default-name fallback, optional project aspect update, and cancel/reset behavior.",
       "first_seen": "2026-03-02T23:00:36+00:00",
       "last_seen": "2026-03-02T23:00:36+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T00:36:12+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Added direct modal tests for cropped/uncropped submit paths, default-name fallback, optional project aspect update, and cancel/reset behavior. and I am not gaming the score.",
+        "attested_at": "2026-03-03T00:36:12+00:00",
+        "scan_verified": false
+      }
     },
     "smells::src/shared/components/GenerationsPane/GenerationsPane.tsx::monster_function": {
       "id": "smells::src/shared/components/GenerationsPane/GenerationsPane.tsx::monster_function",
@@ -173943,18 +174024,18 @@
       "strict": 95.7
     },
     "Test health": {
-      "score": 96.0,
-      "strict_score": 96.0,
+      "score": 98.2,
+      "strict_score": 98.2,
       "verified_strict_score": 90.1,
       "checks": 16070,
-      "issues": 861,
+      "issues": 838,
       "tier": 4,
       "detectors": {
         "test_coverage": {
           "potential": 14914,
-          "pass_rate": 0.9764849223786177,
-          "issues": 23,
-          "weighted_failures": 350.7038676452953
+          "pass_rate": 1.0,
+          "issues": 0,
+          "weighted_failures": 0.0
         },
         "subjective_review": {
           "potential": 1156,
@@ -173963,7 +174044,7 @@
           "weighted_failures": 294.6000000000014
         }
       },
-      "strict": 96.0
+      "strict": 98.2
     },
     "Security": {
       "score": 99.7,
