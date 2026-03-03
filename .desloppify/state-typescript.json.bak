@@ -166,8 +166,8 @@
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 148,
-    "open": 1811,
+    "fixed": 189,
+    "open": 1770,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -187,8 +187,8 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 140,
-        "open": 761,
+        "fixed": 181,
+        "open": 720,
         "wontfix": 0
       },
       "4": {
@@ -7764,17 +7764,23 @@
         "line": 15,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed TaskDetailsPanelWrapperProps into core and legacy-compat interfaces composed via extends with no behavior changes; validated by tsc and TaskDetails/InfoPanel tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:40:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed TaskDetailsPanelWrapperProps into core and legacy-compat interfaces composed via extends with no behavior changes; validated by tsc and TaskDetails/InfoPanel tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:40:07+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/useImg2ImgMode.ts::UseImg2ImgModeProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/useImg2ImgMode.ts::UseImg2ImgModeProps",
@@ -7788,17 +7794,23 @@
         "line": 10,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Grouped Img2Img hook inputs into state/source/options objects and updated the orchestrator callsite to pass the new structured contract.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:07:39+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the hook contract and callsite and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:07:39+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/useLightboxVideoMode.ts::UseLightboxVideoModeProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/useLightboxVideoMode.ts::UseLightboxVideoModeProps",
@@ -7812,17 +7824,23 @@
         "line": 26,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Grouped lightbox video mode inputs into core, variants, editState, and enhance objects and updated the controller callsite accordingly.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:08:28+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the hook and callsite contracts and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:08:28+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/videoLightboxContracts.ts::VideoLightboxProps": {
       "id": "props::src/shared/components/MediaLightbox/videoLightboxContracts.ts::VideoLightboxProps",
@@ -7836,17 +7854,23 @@
         "line": 33,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split VideoLightboxProps into focused sections (core, task pane, state, and section props) while preserving the existing external contract.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:08:53+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:08:53+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/SegmentSettingsForm/components/StructureVideoSection.tsx::StructureVideoSectionProps": {
       "id": "props::src/shared/components/SegmentSettingsForm/components/StructureVideoSection.tsx::StructureVideoSectionProps",
@@ -7860,17 +7884,23 @@
         "line": 26,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split StructureVideoSectionProps into focused context/settings/timeline/upload/default-control interfaces and kept behavior unchanged.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:09:18+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the prop contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:09:18+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/character-animate/pages/components/MotionVideoPanel.tsx::MotionVideoPanelProps": {
       "id": "props::src/tools/character-animate/pages/components/MotionVideoPanel.tsx::MotionVideoPanelProps",
@@ -7884,17 +7914,23 @@
         "line": 11,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split MotionVideoPanelProps into state, refs, dropzone handlers, and actions interfaces while preserving the existing component behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:09:42+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:09:42+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ImageGenerationForm/hooks/formSubmission/types.ts::FormStateSnapshot": {
       "id": "props::src/shared/components/ImageGenerationForm/hooks/formSubmission/types.ts::FormStateSnapshot",
@@ -7932,17 +7968,23 @@
         "line": 13,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseTaskParamsBuilderProps into core, prompt, generation, and reference sections while preserving the hook API and behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:10:04+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:10:04+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/components/EditPanelLayout.tsx::EditPanelLayoutProps": {
       "id": "props::src/shared/components/MediaLightbox/components/EditPanelLayout.tsx::EditPanelLayoutProps",
@@ -7956,17 +7998,23 @@
         "line": 19,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split EditPanelLayoutProps into core, variants, promotion, and variant-action groups while keeping the component API and behavior unchanged.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:10:31+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:10:31+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/inpainting/types.ts::UseInpaintingProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/inpainting/types.ts::UseInpaintingProps",
@@ -7980,17 +8028,23 @@
         "line": 47,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseInpaintingProps into core, canvas, variant, and settings prop groups while preserving hook behavior and call contracts.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:10:52+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:10:52+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/reposition/types.ts::UseRepositionModeProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/reposition/types.ts::UseRepositionModeProps",
@@ -8004,17 +8058,23 @@
         "line": 22,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseRepositionModeProps into core, input, callback, variant-source, and settings groups while preserving hook behavior and usage.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:11:28+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:11:28+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/useEditModePanelState.ts::UseEditModePanelStateParams": {
       "id": "props::src/shared/components/MediaLightbox/hooks/useEditModePanelState.ts::UseEditModePanelStateParams",
@@ -8052,17 +8112,23 @@
         "line": 9,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split ShotFilterProps into core, position-filter, presentation, and dropdown-state groups while preserving the component API and behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:12:22+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:12:22+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ShotImageManager/components/PairPromptIndicator.tsx::PairPromptIndicatorProps": {
       "id": "props::src/shared/components/ShotImageManager/components/PairPromptIndicator.tsx::PairPromptIndicatorProps",
@@ -8076,17 +8142,23 @@
         "line": 9,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split PairPromptIndicatorProps into core, prompt, display, and override groups while keeping the render logic and memo behavior unchanged.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:12:43+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:12:43+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/VideoTrimEditor/types.ts::TrimControlsPanelProps": {
       "id": "props::src/shared/components/VideoTrimEditor/types.ts::TrimControlsPanelProps",
@@ -8100,17 +8172,23 @@
         "line": 4,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split TrimControlsPanelProps into state, action, save-status, layout, and video groups while preserving the component contract and behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:13:03+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:13:03+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/join-clips/pages/JoinClipsPage.tsx::JoinClipsPageLayoutProps": {
       "id": "props::src/tools/join-clips/pages/JoinClipsPage.tsx::JoinClipsPageLayoutProps",
@@ -8124,17 +8202,23 @@
         "line": 37,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split JoinClipsPageLayoutProps into core, state, results, and action groups while keeping page rendering and data flow unchanged.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:13:27+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:13:27+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/BatchGuidanceVideo.tsx::BatchGuidanceVideoProps": {
       "id": "props::src/tools/travel-between-images/components/BatchGuidanceVideo.tsx::BatchGuidanceVideoProps",
@@ -8148,17 +8232,23 @@
         "line": 15,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split BatchGuidanceVideoProps into core, treatment, and action groups while preserving existing behavior and caller contracts.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:13:55+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:13:55+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotEditor/state/types.ts::ShotEditorState": {
       "id": "props::src/tools/travel-between-images/components/ShotEditor/state/types.ts::ShotEditorState",
@@ -8220,17 +8310,23 @@
         "line": 84,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split PromptInputRowProps into core, action, and display groups while preserving PromptInputRow behavior and type compatibility.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:14:15+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:14:15+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/LoraSelectorModal/types.ts::LoraCardProps": {
       "id": "props::src/shared/components/LoraSelectorModal/types.ts::LoraCardProps",
@@ -8244,17 +8340,23 @@
         "line": 65,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split LoraCardProps into model, selection, action, and status groups while preserving card behavior and call contracts.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:14:41+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:14:41+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaGalleryItem/hooks/useMediaGalleryItemState.ts::UseMediaGalleryItemStateReturn": {
       "id": "props::src/shared/components/MediaGalleryItem/hooks/useMediaGalleryItemState.ts::UseMediaGalleryItemStateReturn",
@@ -8322,17 +8424,23 @@
         "line": 21,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseRepositionVariantSaveProps into core, mode, callback, canvas, and cache groups while preserving hook behavior and callsites.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:15:03+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:15:03+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ShotImageManager/ShotBatchItemDesktop.tsx::ShotBatchItemDesktopProps": {
       "id": "props::src/shared/components/ShotImageManager/ShotBatchItemDesktop.tsx::ShotBatchItemDesktopProps",
@@ -8346,17 +8454,23 @@
         "line": 22,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split ShotBatchItemDesktopProps into core, timeline, interaction, and mutation groups while preserving existing UI behavior and DnD interactions.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:15:30+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:15:30+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ShotImageManager/types.ts::ShotBatchItemMobileProps": {
       "id": "props::src/shared/components/ShotImageManager/types.ts::ShotBatchItemMobileProps",
@@ -8370,17 +8484,23 @@
         "line": 146,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split ShotBatchItemMobileProps into core, interaction, mutation, and variant groups while preserving mobile batch item behavior and usage.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:15:57+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:15:57+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/training-data-helper/components/VideoSegmentEditor/components/SegmentFormDialog.tsx::SegmentFormDialogProps": {
       "id": "props::src/tools/training-data-helper/components/VideoSegmentEditor/components/SegmentFormDialog.tsx::SegmentFormDialogProps",
@@ -8394,17 +8514,23 @@
         "line": 8,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split SegmentFormDialogProps into state, formatter, and action groups while preserving dialog behavior and call contracts.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:16:20+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:16:20+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/SortableShotItem.tsx::SortableShotItemProps": {
       "id": "props::src/tools/travel-between-images/components/SortableShotItem.tsx::SortableShotItemProps",
@@ -8448,17 +8574,23 @@
         "line": 4,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split TimelineTrackProps into ref, state, interaction, and content groups while preserving timeline behavior and caller compatibility.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:16:45+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:16:45+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/TrailingEndpoint.tsx::TrailingEndpointProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/TrailingEndpoint.tsx::TrailingEndpointProps",
@@ -8472,17 +8604,23 @@
         "line": 6,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split TrailingEndpointProps into position, timeline, duration, and feature groups while preserving endpoint drag and display behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:17:08+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:17:08+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/hooks/useSegmentOutputStrip.ts::UseSegmentOutputStripProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/hooks/useSegmentOutputStrip.ts::UseSegmentOutputStripProps",
@@ -8526,17 +8664,23 @@
         "line": 13,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split VideoItemActionsProps into core, delete, task, interaction, and share groups while preserving UI behavior and callback wiring.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:17:34+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:17:34+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/FileInput.tsx::FileInputProps": {
       "id": "props::src/shared/components/FileInput.tsx::FileInputProps",
@@ -8550,17 +8694,23 @@
         "line": 9,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split FileInputProps into core, presentation, and feature-flag groups while preserving upload behavior and all existing callsites.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:17:52+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:17:52+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaGalleryItem/components/ImageContent.tsx::ImageContentProps": {
       "id": "props::src/shared/components/MediaGalleryItem/components/ImageContent.tsx::ImageContentProps",
@@ -8574,17 +8724,23 @@
         "line": 6,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split ImageContentProps into core, load-state, and action groups while preserving progressive image behavior and handlers.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:18:23+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:18:23+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaGalleryItem/components/VideoContent.tsx::VideoContentProps": {
       "id": "props::src/shared/components/MediaGalleryItem/components/VideoContent.tsx::VideoContentProps",
@@ -8598,17 +8754,23 @@
         "line": 5,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split VideoContentProps into core, lightbox, touch, and load-handler groups while preserving thumbnail and scrub behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:18:50+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:18:50+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaGalleryItem/hooks/useShotActions.ts::UseShotActionsProps": {
       "id": "props::src/shared/components/MediaGalleryItem/hooks/useShotActions.ts::UseShotActionsProps",
@@ -8622,17 +8784,23 @@
         "line": 111,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseShotActionsProps into image, handler, optimistic, and state groups and cleaned callback deps to satisfy exhaustive-deps without behavior changes.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:19:23+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:19:23+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaGalleryPagination.tsx::MediaGalleryPaginationProps": {
       "id": "props::src/shared/components/MediaGalleryPagination.tsx::MediaGalleryPaginationProps",
@@ -8646,17 +8814,23 @@
         "line": 12,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split MediaGalleryPaginationProps into core, range, and display groups while preserving pagination behavior and sticky controls.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:19:55+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:19:55+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/components/StrokeOverlay.tsx::StrokeOverlayProps": {
       "id": "props::src/shared/components/MediaLightbox/components/StrokeOverlay.tsx::StrokeOverlayProps",
@@ -8670,17 +8844,23 @@
         "line": 19,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split StrokeOverlayProps into dimension, mode, and action groups while preserving drawing behavior and ref API.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:20:21+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:20:21+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/reposition/useRepositionTaskCreation.ts::UseRepositionTaskCreationProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/reposition/useRepositionTaskCreation.ts::UseRepositionTaskCreationProps",
@@ -8694,17 +8874,23 @@
         "line": 13,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseRepositionTaskCreationProps into core, input, mode, and canvas groups while preserving task generation behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:20:49+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:20:49+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/useEditSettingsSync.ts::UseEditSettingsSyncProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/useEditSettingsSync.ts::UseEditSettingsSyncProps",
@@ -8718,17 +8904,23 @@
         "line": 15,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseEditSettingsSyncProps into core, persisted values, UI values, UI setters, and persisted setters groups while preserving sync logic.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:21:14+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:21:14+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/useSharedLightboxState.ts::SharedLightboxShotProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/useSharedLightboxState.ts::SharedLightboxShotProps",
@@ -8742,17 +8934,23 @@
         "line": 79,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split SharedLightboxShotProps into core, action, and optimistic sections while preserving all shot-management contracts.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:21:42+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:21:42+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/hooks/useShotPositioning.ts::UseShotPositioningProps": {
       "id": "props::src/shared/components/MediaLightbox/hooks/useShotPositioning.ts::UseShotPositioningProps",
@@ -8766,17 +8964,23 @@
         "line": 25,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseShotPositioningProps into core, state, and action groups while preserving shot-positioning behavior and optimistic updates.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:22:12+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:22:12+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/types.ts::LightboxShotWorkflowProps": {
       "id": "props::src/shared/components/MediaLightbox/types.ts::LightboxShotWorkflowProps",
@@ -8790,17 +8994,23 @@
         "line": 14,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split LightboxShotWorkflowProps into core, action, and optimistic groups and cleaned an unused local interface in the same file.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:22:48+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:22:48+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/PhaseConfigSelectorModal/components/BrowsePresetsTab.tsx::BrowsePresetsTabProps": {
       "id": "props::src/shared/components/PhaseConfigSelectorModal/components/BrowsePresetsTab.tsx::BrowsePresetsTabProps",
@@ -8814,17 +9024,23 @@
         "line": 18,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split BrowsePresetsTabProps into selection, resource, filter, and pagination groups while preserving preset browsing behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:23:14+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:23:14+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/PhaseConfigSelectorModal/components/sections/SampleGenerationsSection.tsx::SampleGenerationsSectionProps": {
       "id": "props::src/shared/components/PhaseConfigSelectorModal/components/sections/SampleGenerationsSection.tsx::SampleGenerationsSectionProps",
@@ -8838,17 +9054,23 @@
         "line": 8,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Refactored SampleGenerationsSection to accept grouped nested props (editState, initialVideo, upload) and updated AddNewPresetTab callsite accordingly.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:25:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the component contract and callsite and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:25:07+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/TasksPane/TaskList.tsx::TaskListProps": {
       "id": "props::src/shared/components/TasksPane/TaskList.tsx::TaskListProps",
@@ -8862,17 +9084,23 @@
         "line": 109,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split TaskListProps into filter, pagination, lightbox, mobile-state, and project-scope groups while preserving task list behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:25:34+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:25:34+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/TasksPane/components/TaskItemActions.tsx::TaskItemActionsProps": {
       "id": "props::src/shared/components/TasksPane/components/TaskItemActions.tsx::TaskItemActionsProps",
@@ -8886,17 +9114,23 @@
         "line": 21,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split TaskItemActionsProps into core, task-type, data, handler, and project groups while preserving action button behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:26:05+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:26:05+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/character-animate/pages/components/CharacterImagePanel.tsx::CharacterImagePanelProps": {
       "id": "props::src/tools/character-animate/pages/components/CharacterImagePanel.tsx::CharacterImagePanelProps",
@@ -8910,17 +9144,23 @@
         "line": 11,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split CharacterImagePanelProps into state, refs, dropzone handlers, and action groups while preserving panel behavior.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:26:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:26:32+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/FinalVideoSection.tsx::FinalVideoSectionProps": {
       "id": "props::src/tools/travel-between-images/components/FinalVideoSection.tsx::FinalVideoSectionProps",
@@ -8934,17 +9174,23 @@
         "line": 40,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split FinalVideoSectionProps into core, selection, data, and action groups and fixed a neighboring exhaustive-deps lint issue triggered by this pass.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:27:17+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:27:17+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotImagesEditor/components/BatchModeContent.tsx::BatchModeGenerationState": {
       "id": "props::src/tools/travel-between-images/components/ShotImagesEditor/components/BatchModeContent.tsx::BatchModeGenerationState",
@@ -174116,11 +174362,11 @@
       "strict": 96.6
     },
     "Code quality": {
-      "score": 97.1,
-      "strict_score": 97.1,
+      "score": 97.2,
+      "strict_score": 97.2,
       "verified_strict_score": 96.9,
       "checks": 13377,
-      "issues": 579,
+      "issues": 538,
       "tier": 3,
       "detectors": {
         "unused": {
@@ -174149,9 +174395,9 @@
         },
         "props": {
           "potential": 673,
-          "pass_rate": 0.9609212481426448,
-          "issues": 77,
-          "weighted_failures": 26.300000000000026
+          "pass_rate": 0.9791976225854383,
+          "issues": 36,
+          "weighted_failures": 14.000000000000002
         },
         "smells": {
           "potential": 1417,
@@ -174208,7 +174454,7 @@
           "weighted_failures": 6.300000000000001
         }
       },
-      "strict": 97.1
+      "strict": 97.2
     },
     "Duplication": {
       "score": 95.7,
