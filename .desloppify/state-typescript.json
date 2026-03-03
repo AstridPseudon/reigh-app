@@ -159,15 +159,15 @@
   "last_scan": "2026-03-02T23:01:06+00:00",
   "scan_count": 144,
   "overall_score": 75.7,
-  "objective_score": 97.3,
+  "objective_score": 97.4,
   "strict_score": 75.7,
   "verified_strict_score": 95.9,
   "stats": {
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 190,
-    "open": 1769,
+    "fixed": 192,
+    "open": 1767,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -187,15 +187,15 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 182,
-        "open": 719,
+        "fixed": 183,
+        "open": 718,
         "wontfix": 0
       },
       "4": {
         "auto_resolved": 811,
         "false_positive": 0,
-        "fixed": 0,
-        "open": 839,
+        "fixed": 1,
+        "open": 838,
         "wontfix": 0
       }
     }
@@ -3680,17 +3680,23 @@
         ],
         "loc": 393
       },
-      "status": "open",
-      "note": "Reopened (\u00d71) \u2014 reappeared in scan (was fixed)",
+      "status": "fixed",
+      "note": "Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:36:33+00:00",
       "reopen_count": 1,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:36:33+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/MediaLightbox/components/MediaDisplayWithCanvas.tsx": {
       "id": "structural::src/shared/components/MediaLightbox/components/MediaDisplayWithCanvas.tsx",
@@ -160093,17 +160099,23 @@
       "detail": {
         "loc": 571
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export.",
       "first_seen": "2026-03-02T19:17:20+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:39:39+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:39:39+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/realtime/RealtimeConnection.ts": {
       "id": "structural::src/shared/realtime/RealtimeConnection.ts",
@@ -174351,21 +174363,21 @@
   },
   "dimension_scores": {
     "File health": {
-      "score": 96.6,
-      "strict_score": 96.6,
+      "score": 96.7,
+      "strict_score": 96.7,
       "verified_strict_score": 96.6,
       "checks": 1393,
-      "issues": 68,
+      "issues": 66,
       "tier": 3,
       "detectors": {
         "structural": {
           "potential": 1393,
-          "pass_rate": 0.9656137832017229,
-          "issues": 68,
-          "weighted_failures": 47.90000000000004
+          "pass_rate": 0.9668341708542714,
+          "issues": 66,
+          "weighted_failures": 46.20000000000004
         }
       },
-      "strict": 96.6
+      "strict": 96.7
     },
     "Code quality": {
       "score": 97.2,

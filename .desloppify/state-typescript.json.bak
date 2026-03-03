@@ -166,8 +166,8 @@
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 189,
-    "open": 1770,
+    "fixed": 191,
+    "open": 1768,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -187,15 +187,15 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 181,
-        "open": 720,
+        "fixed": 182,
+        "open": 719,
         "wontfix": 0
       },
       "4": {
         "auto_resolved": 811,
         "false_positive": 0,
-        "fixed": 0,
-        "open": 839,
+        "fixed": 1,
+        "open": 838,
         "wontfix": 0
       }
     }
@@ -3680,17 +3680,23 @@
         ],
         "loc": 393
       },
-      "status": "open",
-      "note": "Reopened (\u00d71) \u2014 reappeared in scan (was fixed)",
+      "status": "fixed",
+      "note": "Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T11:36:33+00:00",
       "reopen_count": 1,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring. and I am not gaming the score.",
+        "attested_at": "2026-03-03T11:36:33+00:00",
+        "scan_verified": false
+      }
     },
     "structural::src/shared/components/MediaLightbox/components/MediaDisplayWithCanvas.tsx": {
       "id": "structural::src/shared/components/MediaLightbox/components/MediaDisplayWithCanvas.tsx",
@@ -139447,17 +139453,23 @@
         "line": 10,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split UseSegmentSlotModeResolvedProps into core, prompt, structure-video, and action groups while preserving segment-slot hook contracts.",
       "first_seen": "2026-02-25T20:54:12+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T02:27:41+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually refactored the props contract structure and I am not gaming the score.",
+        "attested_at": "2026-03-03T02:27:41+00:00",
+        "scan_verified": false
+      }
     },
     "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotPresentationAdapter.ts::transitive_only": {
       "id": "test_coverage::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotPresentationAdapter.ts::transitive_only",
@@ -174349,14 +174361,14 @@
       "strict_score": 96.6,
       "verified_strict_score": 96.6,
       "checks": 1393,
-      "issues": 68,
+      "issues": 67,
       "tier": 3,
       "detectors": {
         "structural": {
           "potential": 1393,
-          "pass_rate": 0.9656137832017229,
-          "issues": 68,
-          "weighted_failures": 47.90000000000004
+          "pass_rate": 0.9663316582914572,
+          "issues": 67,
+          "weighted_failures": 46.90000000000004
         }
       },
       "strict": 96.6
@@ -174366,7 +174378,7 @@
       "strict_score": 97.2,
       "verified_strict_score": 96.9,
       "checks": 13377,
-      "issues": 538,
+      "issues": 537,
       "tier": 3,
       "detectors": {
         "unused": {
@@ -174395,9 +174407,9 @@
         },
         "props": {
           "potential": 673,
-          "pass_rate": 0.9791976225854383,
-          "issues": 36,
-          "weighted_failures": 14.000000000000002
+          "pass_rate": 0.9796433878157503,
+          "issues": 35,
+          "weighted_failures": 13.700000000000001
         },
         "smells": {
           "potential": 1417,

@@ -1,7 +1,7 @@
 {
   "version": 5,
   "created": "2026-03-02T01:10:28+00:00",
-  "updated": "2026-03-03T03:20:43+00:00",
+  "updated": "2026-03-03T11:39:39+00:00",
   "queue_order": [],
   "deferred": [],
   "skipped": {
@@ -353,6 +353,16 @@
       "attestation": "Reviewed impact scores and confirmed props work is not moving the overall score.",
       "created_at": "2026-03-03T02:42:39+00:00",
       "review_after": null,
+      "skipped_at_scan": 144
+    },
+    "structural::src/integrations/supabase/types.ts": {
+      "finding_id": "structural::src/integrations/supabase/types.ts",
+      "kind": "temporary",
+      "reason": "Generated Supabase schema contract file; decomposition is not practical because typegen emits this as a single canonical artifact.",
+      "note": null,
+      "attestation": null,
+      "created_at": "2026-03-03T11:37:13+00:00",
+      "review_after": 20,
       "skipped_at_scan": 144
     }
   },
@@ -19486,6 +19496,70 @@
       "detail": {
         "action": "set"
       }
+    },
+    {
+      "timestamp": "2026-03-03T11:36:33+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/shared/components/GenerationsPane/GenerationsPane.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:36:34+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/shared/components/GenerationsPane/GenerationsPane.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Extracted pane orchestration/state/effects into useGenerationsPaneController hook, leaving GenerationsPane as a slimmer render shell with delegated callbacks/props wiring. and I am not gaming the score."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T11:37:13+00:00",
+      "action": "skip",
+      "finding_ids": [
+        "structural::src/integrations/supabase/types.ts"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": null,
+      "detail": {
+        "kind": "temporary",
+        "reason": "Generated Supabase schema contract file; decomposition is not practical because typegen emits this as a single canonical artifact."
+      }
+    },
+    {
+      "timestamp": "2026-03-03T11:39:38+00:00",
+      "action": "done",
+      "finding_ids": [
+        "structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export.",
+      "detail": {}
+    },
+    {
+      "timestamp": "2026-03-03T11:39:39+00:00",
+      "action": "resolve",
+      "finding_ids": [
+        "structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx"
+      ],
+      "cluster_name": null,
+      "actor": "user",
+      "note": "Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export.",
+      "detail": {
+        "status": "fixed",
+        "attestation": "I have actually Decomposed the 571-line section file into focused modules (TravelDemoSection, MotionReferenceSection, LoraStyleSection, PhilosophyClosingSection, shared philosophyTypes) and kept PhilosophySections.tsx as a thin barrel export. and I am not gaming the score."
+      }
     }
   ],
   "epic_triage_meta": {
@@ -19531,6 +19605,9 @@
     }
   },
   "commit_log": [],
-  "uncommitted_findings": [],
+  "uncommitted_findings": [
+    "structural::src/shared/components/GenerationsPane/GenerationsPane.tsx",
+    "structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx"
+  ],
   "commit_tracking_branch": null
 }

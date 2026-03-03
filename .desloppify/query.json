@@ -2,64 +2,6 @@
   "command": "next",
   "items": [
     {
-      "id": "structural::src/shared/components/GenerationsPane/GenerationsPane.tsx",
-      "kind": "finding",
-      "confidence": "high",
-      "detector": "structural",
-      "file": "src/shared/components/GenerationsPane/GenerationsPane.tsx",
-      "summary": "Needs decomposition: complexity score 15 / 12 hooks (5 useStates, 20 custom hooks) / mixed: jsx_rendering, data_fetching, handlers(5)",
-      "detail": {
-        "complexity_score": 15,
-        "complexity_signals": [
-          "28 imports",
-          "destructure w/10 props"
-        ],
-        "hook_total": 12,
-        "hook_reasons": [
-          "5 useStates",
-          "20 custom hooks",
-          "12 total hooks"
-        ],
-        "concerns": [
-          "jsx_rendering",
-          "data_fetching",
-          "handlers(5)"
-        ],
-        "loc": 393
-      },
-      "status": "open",
-      "primary_command": "desloppify plan done \"structural::src/shared/components/GenerationsPane/GenerationsPane.tsx\" --note \"<what you did>\" --confirm",
-      "queue_position": 1
-    },
-    {
-      "id": "structural::src/integrations/supabase/types.ts",
-      "kind": "finding",
-      "confidence": "medium",
-      "detector": "structural",
-      "file": "src/integrations/supabase/types.ts",
-      "summary": "Needs decomposition: large (2576 LOC)",
-      "detail": {
-        "loc": 2576
-      },
-      "status": "open",
-      "primary_command": "desloppify plan done \"structural::src/integrations/supabase/types.ts\" --note \"<what you did>\" --confirm",
-      "queue_position": 2
-    },
-    {
-      "id": "structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx",
-      "kind": "finding",
-      "confidence": "medium",
-      "detector": "structural",
-      "file": "src/pages/Home/components/panes/sections/PhilosophySections.tsx",
-      "summary": "Needs decomposition: large (571 LOC)",
-      "detail": {
-        "loc": 571
-      },
-      "status": "open",
-      "primary_command": "desloppify plan done \"structural::src/pages/Home/components/panes/sections/PhilosophySections.tsx\" --note \"<what you did>\" --confirm",
-      "queue_position": 3
-    },
-    {
       "id": "structural::src/shared/components/FileInput.tsx",
       "kind": "finding",
       "confidence": "medium",
@@ -76,25 +18,11 @@
       },
       "status": "open",
       "primary_command": "desloppify plan done \"structural::src/shared/components/FileInput.tsx\" --note \"<what you did>\" --confirm",
-      "queue_position": 4
-    },
-    {
-      "id": "structural::src/shared/components/HoverScrubVideo.tsx",
-      "kind": "finding",
-      "confidence": "medium",
-      "detector": "structural",
-      "file": "src/shared/components/HoverScrubVideo.tsx",
-      "summary": "Needs decomposition: large (506 LOC)",
-      "detail": {
-        "loc": 506
-      },
-      "status": "open",
-      "primary_command": "desloppify plan done \"structural::src/shared/components/HoverScrubVideo.tsx\" --note \"<what you did>\" --confirm",
-      "queue_position": 5
+      "queue_position": 1
     }
   ],
   "queue": {
-    "total": 366
+    "total": 340
   },
   "narrative": {
     "phase": "stagnation",
@@ -130,7 +58,7 @@
       "stagnant_dimensions": [
         {
           "name": "File health",
-          "strict": 96.6,
+          "strict": 96.7,
           "stuck_scans": 5
         },
         {
@@ -230,8 +158,8 @@
       {
         "type": "refactor",
         "detector": "structural",
-        "count": 79,
-        "description": "79 structural findings in 2 cluster(s) \u2014 run `desloppify next`",
+        "count": 77,
+        "description": "77 structural findings in 2 cluster(s) \u2014 run `desloppify next`",
         "command": "desloppify next",
         "impact": 0.0,
         "dimension": "File health",
@@ -432,7 +360,7 @@
     "strategy": {
       "fixer_leverage": {
         "auto_fixable_count": 1,
-        "total_count": 1769,
+        "total_count": 1767,
         "coverage": 0.001,
         "impact_ratio": 0.0,
         "recommendation": "none"
@@ -781,19 +709,19 @@
       }
     ],
     "total_ordered": 0,
-    "total_skipped": 35,
+    "total_skipped": 36,
     "plan_overrides_narrative": true
   },
   "overall_score": 75.7,
-  "objective_score": 97.3,
+  "objective_score": 97.4,
   "strict_score": 75.7,
   "scorecard_dimensions": [
     {
       "name": "File health",
-      "score": 96.6,
-      "strict": 96.6,
+      "score": 96.7,
+      "strict": 96.7,
       "checks": 1393,
-      "issues": 68,
+      "issues": 66,
       "tier": 3,
       "subjective": false
     },
