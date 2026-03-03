@@ -4,39 +4,19 @@ export {
   type GenerationsPaneSettings,
 } from '@/shared/types/steerableMotion';
 
-/**
- * ShotEditorProps - Cleaned up props interface
- *
- * All video generation settings now come from VideoTravelSettingsProvider context.
- * This component MUST be wrapped in VideoTravelSettingsProvider.
- *
- * These props are only for:
- * - Core identifiers (shotId, projectId)
- * - Navigation callbacks (onBack, onPreviousShot, etc.)
- * - Parent refs (for floating UI coordination)
- * - Dimension settings (not in context yet)
- * - Non-settings callbacks (onShotImagesUpdate, etc.)
- *
- * @see providers/VideoTravelSettingsProvider.tsx for settings context
- */
+/** Must be wrapped in VideoTravelSettingsProvider (settings come from context). */
 export interface ShotEditorProps {
-  // ============================================================================
-  // CORE IDENTIFIERS
-  // ============================================================================
+  // Core identifiers
   selectedShotId: string;
   projectId: string;
   /** Optimistic shot data for newly created shots that aren't in the cache yet */
   optimisticShotData?: Partial<import('@/domains/generation/types').Shot>;
 
-  // ============================================================================
-  // CALLBACKS
-  // ============================================================================
+  // Callbacks
   onShotImagesUpdate: () => void;
   onBack: () => void;
 
-  // ============================================================================
-  // DIMENSION SETTINGS (not in context yet)
-  // ============================================================================
+  // Dimension settings (not in context yet)
   dimensionSource?: 'project' | 'firstImage' | 'custom';
   onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
   customWidth?: number;
@@ -44,9 +24,7 @@ export interface ShotEditorProps {
   customHeight?: number;
   onCustomHeightChange?: (height?: number) => void;
 
-  // ============================================================================
-  // NAVIGATION
-  // ============================================================================
+  // Navigation
   onPreviousShot?: () => void;
   onNextShot?: () => void;
   onPreviousShotNoScroll?: () => void;
@@ -55,23 +33,17 @@ export interface ShotEditorProps {
   hasNext?: boolean;
   onUpdateShotName?: (newName: string) => void;
 
-  // ============================================================================
-  // CACHE & VIDEO COUNTS
-  // ============================================================================
+  // Cache & video counts
   getShotVideoCount?: (shotId: string | null) => number | null;
   getFinalVideoCount?: (shotId: string | null) => number | null;
   getHasStructureVideo?: (shotId: string | null) => boolean | null;
   invalidateVideoCountsCache?: () => void;
 
-  // ============================================================================
-  // PARENT REFS (for floating UI coordination)
-  // ============================================================================
+  // Parent refs (for floating UI coordination)
   headerContainerRef?: (node: HTMLDivElement | null) => void;
   timelineSectionRef?: (node: HTMLDivElement | null) => void;
   ctaContainerRef?: (node: HTMLDivElement | null) => void;
   onSelectionChange?: (hasSelection: boolean) => void;
-
-  /** Mutable ref to expose shot-specific generation data to parent */
   getGenerationDataRef?: React.MutableRefObject<(() => {
     structureVideo: {
       path: string | null;
@@ -83,60 +55,40 @@ export interface ShotEditorProps {
     loras: Array<{ id: string; path: string; strength: number; name: string }>;
     clearEnhancedPrompts: () => Promise<void>;
   }) | null>;
-
-  /** Mutable ref to expose generate video function to parent */
   generateVideoRef?: React.MutableRefObject<((variantName?: string) => void | Promise<void>) | null>;
-
-  /** Mutable ref to expose name click handler to parent (for floating header) */
   nameClickRef?: React.MutableRefObject<(() => void) | null>;
 
-  // ============================================================================
-  // UI STATE
-  // ============================================================================
+  // UI state
   /** Whether the floating sticky header is visible (hide main header when true) */
   isSticky?: boolean;
-
-  /** CTA state from parent (for rendering CTA in both positions) */
   variantName?: string;
   onVariantNameChange?: (name: string) => void;
   isGeneratingVideo?: boolean;
   videoJustQueued?: boolean;
-
-  /** Drag state callback - used to suppress query refetches during drag operations */
+  /** Suppress query refetches during drag operations */
   onDragStateChange?: (isDragging: boolean) => void;
 }
 
-// Internal state interface for the shot editor
 export interface ShotEditorState {
-  // Upload and UI state
   isUploadingImage: boolean;
-  uploadProgress: number; // 0-100 percentage for image uploads
+  uploadProgress: number;
   fileInputKey: number;
   deletingVideoId: string | null;
   duplicatingImageId: string | null;
   duplicateSuccessImageId: string | null;
   pendingFramePositions: Map<string, number>;
-  
-  // REMOVED: localOrderedShotImages - redundant with two-phase loading + ShotImageManager's optimisticOrder
-  
-  // UI state
   creatingTaskId: string | null;
   isSettingsModalOpen: boolean;
   isModeReady: boolean;
   settingsError: string | null;
-  
-  // Shot name editing
   isEditingName: boolean;
   editingName: string;
   isTransitioningFromNameEdit: boolean;
-  
-  // Settings state
   showStepsNotification: boolean;
   hasInitializedShot: string | null;
   hasInitializedUISettings: string | null;
 }
 
-// Action types for state management
 export type ShotEditorAction =
   | { type: 'SET_UPLOADING_IMAGE'; payload: boolean }
   | { type: 'SET_UPLOAD_PROGRESS'; payload: number }

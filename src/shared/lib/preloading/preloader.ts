@@ -1,10 +1,3 @@
-/**
- * Image Preloader
- *
- * Core preloading logic - takes images and loads them via the queue.
- * Marks images as loaded when they complete.
- */
-
 import type { PreloadableImage, PreloadConfig } from './types';
 import { PreloadQueue } from './queue';
 import { setImageLoadStatus, hasLoadedImage, markImageLoaded } from './tracker';
@@ -15,32 +8,19 @@ function hasImageId(image: PreloadableImage): image is PreloadableImage & { id: 
   return typeof image.id === 'string' && image.id.length > 0;
 }
 
-/**
- * Preload a batch of images using the provided queue.
- * Marks images as loaded in the tracker when they complete.
- *
- * @param images - Images to preload
- * @param queue - The preload queue to use
- * @param config - Preload configuration
- * @param priority - Base priority for these images (higher = load first)
- */
 export async function preloadImages(
   images: PreloadableImage[],
   queue: PreloadQueue,
   config: PreloadConfig,
   priority = 0
 ): Promise<void> {
-  // Limit to max images per page
   const limitedImages = images.slice(0, config.maxImagesPerPage);
-
-  // Filter out already-loaded images
   const toPreload = limitedImages.filter((img) => !hasImageId(img) || !hasLoadedImage(img));
 
   if (toPreload.length === 0) {
     return;
   }
 
-  // Create promises for each image
   const promises = toPreload.map(async (img, idx) => {
     const url = getImageUrl(img, config.preloadThumbnailsOnly);
 
@@ -57,7 +37,6 @@ export async function preloadImages(
       // Slightly decrease priority for later images in the batch
       const element = await queue.add(url, priority - idx);
 
-      // Track by ID if available
       if (hasImageId(img)) {
         setImageLoadStatus(img, true);
       }
@@ -69,13 +48,9 @@ export async function preloadImages(
     }
   });
 
-  // Wait for all to settle (don't fail if some images fail)
   await Promise.allSettled(promises);
 }
 
-/**
- * Get the URL to preload for an image (thumbnail or full based on config)
- */
 function getImageUrl(img: PreloadableImage, thumbnailOnly: boolean): string | null {
   const rawUrl = thumbnailOnly
     ? (img.thumbUrl || img.thumbnail_url || null)
