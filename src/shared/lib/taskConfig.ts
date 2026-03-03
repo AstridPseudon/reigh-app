@@ -27,9 +27,6 @@ interface TaskTypeConfig {
   description?: string;
 }
 
-/**
- * Convert database TaskTypeInfo to TaskTypeConfig format
- */
 function dbConfigToTaskConfig(dbConfig: TaskTypeInfo): TaskTypeConfig {
   return {
     isVisible: dbConfig.is_visible ?? false,
@@ -68,24 +65,15 @@ function getTaskConfig(taskType: string): TaskTypeConfig {
   };
 }
 
-/**
- * Check if a task type should be visible in the UI
- */
 function isTaskVisible(taskType: string): boolean {
   return getTaskConfig(taskType).isVisible;
 }
 
-/**
- * Get the display name for a task type
- */
 export function getTaskDisplayName(taskType: string): string {
   const config = getTaskConfig(taskType);
   return config.displayName || taskType;
 }
 
-/**
- * Check if a task type supports progress checking
- */
 export function taskSupportsProgress(taskType: string): boolean {
   return getTaskConfig(taskType).supportsProgress || false;
 }
@@ -108,23 +96,14 @@ function getTaskTypesByVisibility(visible: boolean): string[] {
     .map(([taskType]) => taskType);
 }
 
-/**
- * Get all visible task types
- */
 export function getVisibleTaskTypes(): string[] {
   return getTaskTypesByVisibility(true);
 }
 
-/**
- * Get all hidden task types
- */
 export function getHiddenTaskTypes(): string[] {
   return getTaskTypesByVisibility(false);
 }
 
-/**
- * Filter tasks to only include visible ones
- */
 export function filterVisibleTasks<T extends { taskType: string }>(tasks: T[]): T[] {
   return tasks.filter(task => isTaskVisible(task.taskType));
 }

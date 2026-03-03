@@ -77,7 +77,6 @@ export function getThumbnailUrl(media: MediaWithUrls | null | undefined): string
  *
  * @param media The variant data
  * @param mediaType 'video' or 'image'
- * @param projectId Current project ID
  */
 export function variantToGenerationRow(
   media: {
@@ -90,10 +89,8 @@ export function variantToGenerationRow(
     generation_id?: string | null;
   },
   mediaType: 'video' | 'image',
-  projectId: string,
 ): GenerationRow {
   const generationId = getGenerationId(media) ?? media.id;
-  void projectId;
 
   return {
     id: media.id,

@@ -5,7 +5,7 @@
  * Extracted from useToolSettings.ts to reduce hook file complexity.
  *
  * Contains:
- * - Auth timeout/caching logic (getUserWithTimeout)
+ * - Auth caching logic (getCachedUserId)
  * - Settings fetch with single-flight deduplication (fetchToolSettingsSupabase)
  * - Module-level state for caching and deduplication
  */
@@ -59,7 +59,7 @@ function reportUnknownSettingsId(toolId: string): void {
  * Seed the user cache from an external source (e.g. AuthContext).
  *
  * Call this as early as possible — ideally in AuthContext right after getSession()
- * resolves, before AuthGate opens. This lets getUserWithTimeout() return
+ * resolves, before AuthGate opens. This lets getCachedUserId() return
  * immediately from cache without acquiring any navigator.locks, avoiding stalls
  * during token refresh.
  */
@@ -210,7 +210,7 @@ export interface SettingsFetchResult<T = unknown> {
  * the user ID from localStorage instead we avoid locks entirely. Token validity
  * for actual data requests is handled by createSupabaseClient's cached token.
  */
-export function getUserWithTimeout(): Promise<{ data: { user: { id: string } | null }; error: null }> {
+export function getCachedUserId(): Promise<{ data: { user: { id: string } | null }; error: null }> {
   // Check in-memory cache first
   if (cachedUser && (Date.now() - cachedUserAt) < USER_CACHE_MS) {
     return Promise.resolve({ data: { user: { id: cachedUser.id } }, error: null });
@@ -442,7 +442,7 @@ export async function fetchToolSettingsSupabase(
     const promise = (async (): Promise<SettingsFetchResult> => {
       throwIfAborted(signal);
 
-      const { data: { user } } = await getUserWithTimeout();
+      const { data: { user } } = await getCachedUserId();
 
       if (!user) {
         throw new ToolSettingsError('auth_required', 'Authentication required');

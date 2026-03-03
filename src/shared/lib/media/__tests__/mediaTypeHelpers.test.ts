@@ -118,7 +118,7 @@ describe('variantToGenerationRow', () => {
       },
     };
 
-    const result = variantToGenerationRow(variant, 'image', 'proj-1');
+    const result = variantToGenerationRow(variant, 'image');
 
     expect(result).toEqual({
       id: 'variant-1',
@@ -143,7 +143,7 @@ describe('variantToGenerationRow', () => {
       url: 'https://example.com/vid.mp4',
     };
 
-    const result = variantToGenerationRow(variant, 'video', 'proj-2');
+    const result = variantToGenerationRow(variant, 'video');
 
     expect(result.id).toBe('variant-2'); // Falls back to id
     expect(result.thumbUrl).toBeUndefined();

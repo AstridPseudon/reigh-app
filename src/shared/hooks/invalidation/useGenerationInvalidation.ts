@@ -35,13 +35,9 @@ function logInvalidationEvent(
   message: string,
   payload: Record<string, unknown>,
 ): void {
-  if (!import.meta.env.DEV) {
-    return;
+  if (import.meta.env.DEV) {
+    console.debug(`[Invalidation] ${message}`, payload);
   }
-  // Intentionally no console logging in production code paths.
-  // Keep the call sites to preserve reason-aware tracing hooks for future diagnostics.
-  void message;
-  void payload;
 }
 
 function buildInvalidationKey(shotId: string, options: InvalidationOptions): string {

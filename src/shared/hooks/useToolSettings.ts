@@ -18,7 +18,7 @@ import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import {
   classifyToolSettingsError,
   fetchToolSettingsSupabaseOrThrow,
-  getUserWithTimeout,
+  getCachedUserId,
   ToolSettingsError,
   type SettingsFetchResult,
 } from '@/shared/lib/toolSettingsService';
@@ -404,7 +404,7 @@ export function useToolSettings<T>(
 
       if (!idForScope) {
         if (scope === 'user') {
-          const { data: { user } } = await getUserWithTimeout();
+          const { data: { user } } = await getCachedUserId();
           idForScope = user?.id;
           if (!idForScope) {
             throw new ToolSettingsError(

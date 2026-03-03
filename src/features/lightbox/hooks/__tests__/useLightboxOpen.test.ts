@@ -1,24 +1,24 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useLightboxOpen } from '../useLightboxOpen';
 import {
+  useLightboxOpenState,
   __resetLightboxOpenStateForTests,
   acquireLightboxOpenState,
 } from '../../state/lightboxOpenState';
 
-describe('useLightboxOpen', () => {
+describe('useLightboxOpenState', () => {
   afterEach(() => {
     __resetLightboxOpenStateForTests();
   });
 
   it('returns false by default', () => {
-    const { result } = renderHook(() => useLightboxOpen());
+    const { result } = renderHook(() => useLightboxOpenState());
     expect(result.current).toBe(false);
   });
 
   it('returns true when state is already acquired before mount', () => {
     const release = acquireLightboxOpenState();
-    const { result } = renderHook(() => useLightboxOpen());
+    const { result } = renderHook(() => useLightboxOpenState());
     expect(result.current).toBe(true);
     act(() => {
       release();
@@ -26,7 +26,7 @@ describe('useLightboxOpen', () => {
   });
 
   it('reacts when a lightbox opens', () => {
-    const { result } = renderHook(() => useLightboxOpen());
+    const { result } = renderHook(() => useLightboxOpenState());
     expect(result.current).toBe(false);
 
     let release: () => void = () => {};
@@ -41,7 +41,7 @@ describe('useLightboxOpen', () => {
   });
 
   it('supports nested open handles and closes only when all are released', () => {
-    const { result } = renderHook(() => useLightboxOpen());
+    const { result } = renderHook(() => useLightboxOpenState());
     expect(result.current).toBe(false);
 
     let releaseFirst: () => void = () => {};

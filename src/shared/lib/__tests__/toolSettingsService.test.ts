@@ -42,7 +42,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
 }));
 
 import {
-  getUserWithTimeout,
+  getCachedUserId,
   fetchToolSettingsSupabase,
   fetchToolSettingsSupabaseOrThrow,
   ToolSettingsError,
@@ -81,11 +81,11 @@ describe('toolSettingsService', () => {
     localStorage.clear();
   });
 
-  describe('getUserWithTimeout', () => {
+  describe('getCachedUserId', () => {
     it('returns user from localStorage when cache is cold', async () => {
       setStoredSession('user-from-storage');
 
-      const result = await getUserWithTimeout();
+      const result = await getCachedUserId();
       expect(result.data.user?.id).toBe('user-from-storage');
       expect(result.error).toBeNull();
     });
@@ -96,7 +96,7 @@ describe('toolSettingsService', () => {
       // Remove from localStorage to confirm cache is used, not storage
       localStorage.clear();
 
-      const result = await getUserWithTimeout();
+      const result = await getCachedUserId();
       expect(result.data.user?.id).toBe('cached-user');
     });
 
@@ -109,7 +109,7 @@ describe('toolSettingsService', () => {
       // Update storage with new user (e.g. after re-login)
       setStoredSession('fresh-user');
 
-      const result = await getUserWithTimeout();
+      const result = await getCachedUserId();
       expect(result.data.user?.id).toBe('fresh-user');
     });
 
@@ -118,7 +118,7 @@ describe('toolSettingsService', () => {
       await vi.advanceTimersByTimeAsync(11_000);
       // No session in localStorage
 
-      const result = await getUserWithTimeout();
+      const result = await getCachedUserId();
       expect(result.data.user).toBeNull();
     });
 
@@ -126,11 +126,11 @@ describe('toolSettingsService', () => {
       setStoredSession('storage-user');
       await vi.advanceTimersByTimeAsync(11_000); // ensure cache is cold
 
-      await getUserWithTimeout(); // first call — reads from localStorage
+      await getCachedUserId(); // first call — reads from localStorage
 
       // Second call — cache should be warm (localStorage not needed)
       localStorage.clear();
-      const result = await getUserWithTimeout();
+      const result = await getCachedUserId();
       expect(result.data.user?.id).toBe('storage-user');
     });
   });

@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     supabase().auth.getSession().then(({ data: { session } }) => {
       // Seed toolSettingsService cache BEFORE opening AuthGate (setIsLoading(false)).
-      // This guarantees getUserWithTimeout() returns from cache (no navigator.locks)
+      // This guarantees getCachedUserId() returns from cache (no navigator.locks)
       // for all components that mount after the gate opens.
       if (session?.user?.id) {
         setCachedUserId(session.user.id);
