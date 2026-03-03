@@ -12,34 +12,22 @@
     "contract_coherence": {
       "score": 77.7,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T16:49:47+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "dependency_health": {
       "score": 72.7,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:31:30+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "initialization_coupling": {
       "score": 51.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:06:03+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "logic_clarity": {
       "score": 81.3,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:01:50+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "naming_quality": {
       "score": 89.0,
@@ -49,18 +37,12 @@
     "test_strategy": {
       "score": 52.4,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:08:55+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "type_safety": {
       "score": 80.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:03:50+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "abstraction_fitness": {
       "score": 60.1,
@@ -86,98 +68,62 @@
     "ai_generated_debt": {
       "score": 76.8,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:13:25+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "api_surface_coherence": {
       "score": 63.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T14:51:37+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "authorization_consistency": {
       "score": 76.2,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T14:54:16+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "convention_outlier": {
       "score": 78.1,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T16:51:38+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "cross_module_architecture": {
       "score": 47.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:23:27+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "design_coherence": {
       "score": 42.8,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:57:36+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "error_consistency": {
       "score": 59.0,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:26:13+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "high_level_elegance": {
       "score": 50.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T18:42:05+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "incomplete_migration": {
       "score": 53.5,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:11:31+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "low_level_elegance": {
       "score": 68.9,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:48:34+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "mid_level_elegance": {
       "score": 50.0,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T17:36:40+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     },
     "package_organization": {
       "score": 52.6,
       "source": "holistic",
-      "assessed_at": "2026-03-02T14:44:49+00:00",
-      "needs_review_refresh": true,
-      "refresh_reason": "review_finding_fixed",
-      "stale_since": "2026-03-02T19:13:11+00:00"
+      "assessed_at": "2026-03-02T14:44:49+00:00"
     }
   },
   "potentials": {
@@ -212,16 +158,16 @@
   "created": "2026-02-24T17:37:02+00:00",
   "last_scan": "2026-03-02T23:01:06+00:00",
   "scan_count": 144,
-  "overall_score": 75.6,
+  "overall_score": 75.7,
   "objective_score": 97.3,
-  "strict_score": 75.6,
+  "strict_score": 75.7,
   "verified_strict_score": 95.9,
   "stats": {
     "total": 5460,
     "auto_resolved": 3498,
     "false_positive": 3,
-    "fixed": 113,
-    "open": 1846,
+    "fixed": 148,
+    "open": 1811,
     "wontfix": 0,
     "by_tier": {
       "1": {
@@ -241,8 +187,8 @@
       "3": {
         "auto_resolved": 1755,
         "false_positive": 3,
-        "fixed": 105,
-        "open": 796,
+        "fixed": 140,
+        "open": 761,
         "wontfix": 0
       },
       "4": {
@@ -6102,17 +6048,23 @@
         "line": 30,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reduced VideoEditPanel prop surface by grouping trim/replace/enhance concerns into typed nested objects and updated the render-model callsite accordingly; validated with targeted vitest and TypeScript noEmit.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:16:59+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Reduced VideoEditPanel prop surface by grouping trim/replace/enhance concerns into typed nested objects and updated the render-model callsite accordingly; validated with targeted vitest and TypeScript noEmit. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:16:59+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/contexts/ImageEditCanvasContext.tsx::ImageEditCanvasState": {
       "id": "props::src/shared/components/MediaLightbox/contexts/ImageEditCanvasContext.tsx::ImageEditCanvasState",
@@ -6210,17 +6162,23 @@
         "line": 27,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Reduced EditModePanel top-level prop surface by introducing grouped concern objects (actions/upscale/lora/advanced/stateOverrides), removed unused legacy source-generation props, and updated ImageLightbox callsite to the new contract; validated with targeted vitest and TypeScript noEmit.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:18:29+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Reduced EditModePanel top-level prop surface by introducing grouped concern objects (actions/upscale/lora/advanced/stateOverrides), removed unused legacy source-generation props, and updated ImageLightbox callsite to the new contract; validated with targeted vitest and TypeScript noEmit. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:18:29+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/SegmentSettingsForm/types.ts::SegmentSettingsFormProps": {
       "id": "props::src/shared/components/SegmentSettingsForm/types.ts::SegmentSettingsFormProps",
@@ -6234,17 +6192,23 @@
         "line": 48,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed SegmentSettingsFormProps into focused concern interfaces (core/presentation/media/defaults/structure/enhancement) and kept SegmentSettingsFormProps as their composed contract to reduce bloat while preserving runtime behavior; validated with useSegmentSettingsForm tests and TypeScript noEmit.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:19:47+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed SegmentSettingsFormProps into focused concern interfaces (core/presentation/media/defaults/structure/enhancement) and kept SegmentSettingsFormProps as their composed contract to reduce bloat while preserving runtime behavior; validated with useSegmentSettingsForm tests and TypeScript noEmit. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:19:47+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/TimelineContainer/components/TimelineControls.tsx::TimelineControlsProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/TimelineContainer/components/TimelineControls.tsx::TimelineControlsProps",
@@ -6312,17 +6276,23 @@
         "line": 22,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed ImageGridProps into focused concern interfaces (core/interaction/duplication/pair-prompt/segment-video/scrubbing) while preserving the external composed contract; validated with ShotImageManagerDesktop and ImageGrid tests plus TypeScript noEmit.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:20:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed ImageGridProps into focused concern interfaces (core/interaction/duplication/pair-prompt/segment-video/scrubbing) while preserving the external composed contract; validated with ShotImageManagerDesktop and ImageGrid tests plus TypeScript noEmit. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:20:32+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotEditor/state/types.ts::ShotEditorProps": {
       "id": "props::src/tools/travel-between-images/components/ShotEditor/state/types.ts::ShotEditorProps",
@@ -6336,17 +6306,23 @@
         "line": 31,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Refactored ShotEditorProps into focused contract interfaces (core identifiers, callbacks, dimensions, navigation, cache, refs, UI state) and composed them into the public props type to reduce prop-bag complexity without runtime changes; validated with ShotEditor controller/type tests and TypeScript noEmit.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:21:10+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Refactored ShotEditorProps into focused contract interfaces (core identifiers, callbacks, dimensions, navigation, cache, refs, UI state) and composed them into the public props type to reduce prop-bag complexity without runtime changes; validated with ShotEditor controller/type tests and TypeScript noEmit. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:21:10+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/VideoPortionEditor/index.tsx::VideoPortionEditorProps": {
       "id": "props::src/shared/components/VideoPortionEditor/index.tsx::VideoPortionEditorProps",
@@ -6360,17 +6336,23 @@
         "line": 178,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed VideoPortionEditorProps into grouped concern objects (settings, selections, lora, motion, actions, stateOverrides) and updated both callsites in VideoReplaceMode and VideoEditPanel; validated by tsc and targeted vitest.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:23:51+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed VideoPortionEditorProps into grouped concern objects (settings, selections, lora, motion, actions, stateOverrides) and updated both callsites in VideoReplaceMode and VideoEditPanel; validated by tsc and targeted vitest. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:23:51+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/MotionControl.tsx::MotionControlProps": {
       "id": "props::src/tools/travel-between-images/components/MotionControl.tsx::MotionControlProps",
@@ -6384,17 +6366,23 @@
         "line": 60,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Refactored MotionControlProps into grouped concern objects (mode, structureVideo, lora, presets, advanced, stateOverrides), updated all MotionControl callsites, and adjusted test mocks for new shape; validated with tsc and targeted vitest.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:26:04+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Refactored MotionControlProps into grouped concern objects (mode, structureVideo, lora, presets, advanced, stateOverrides), updated all MotionControl callsites, and adjusted test mocks for new shape; validated with tsc and targeted vitest. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:26:04+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaGallery/types.ts::MediaGalleryProps": {
       "id": "props::src/shared/components/MediaGallery/types.ts::MediaGalleryProps",
@@ -6408,17 +6396,23 @@
         "line": 225,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed MediaGalleryProps into focused sub-interfaces (core, shot actions, pagination, filters, generation, presentation) and composed via extends without behavior changes; validated with tsc and MediaGallery/GenerationsPane tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:26:47+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed MediaGalleryProps into focused sub-interfaces (core, shot actions, pagination, filters, generation, presentation) and composed via extends without behavior changes; validated with tsc and MediaGallery/GenerationsPane tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:26:47+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx::SegmentRegenerateFormProps": {
       "id": "props::src/shared/components/MediaLightbox/components/SegmentRegenerateForm.tsx::SegmentRegenerateFormProps",
@@ -6432,17 +6426,23 @@
         "line": 30,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split SegmentRegenerateFormProps into cohesive concern interfaces (task, image refs, frame sync, structure defaults, structure management) and composed via extends with no behavior changes; validated via tsc and targeted MediaLightbox tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:27:33+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split SegmentRegenerateFormProps into cohesive concern interfaces (task, image refs, frame sync, structure defaults, structure management) and composed via extends with no behavior changes; validated via tsc and targeted MediaLightbox tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:27:33+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/components/WorkflowControlsBar.tsx::WorkflowControlsBarProps": {
       "id": "props::src/shared/components/MediaLightbox/components/WorkflowControlsBar.tsx::WorkflowControlsBarProps",
@@ -6624,17 +6624,23 @@
         "line": 17,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed UseMediaGalleryActionsProps into focused contract interfaces (handlers, lightbox state, optimistic state, backfill, data) and composed via extends with no behavior changes; validated with tsc and MediaGallery hook tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:27:56+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed UseMediaGalleryActionsProps into focused contract interfaces (handlers, lightbox state, optimistic state, backfill, data) and composed via extends with no behavior changes; validated with tsc and MediaGallery hook tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:27:56+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/VariantSelector/components/VariantCard.tsx::VariantCardProps": {
       "id": "props::src/shared/components/VariantSelector/components/VariantCard.tsx::VariantCardProps",
@@ -6648,17 +6654,23 @@
         "line": 26,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split VariantCardProps into state and action concern interfaces and composed via extends while preserving behavior and callsite API; validated by tsc and VariantSelector component tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:28:31+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split VariantCardProps into state and action concern interfaces and composed via extends while preserving behavior and callsite API; validated by tsc and VariantSelector component tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:28:31+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/TimelineItem.tsx::TimelineItemProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/TimelineItem.tsx::TimelineItemProps",
@@ -6702,17 +6714,23 @@
         "line": 33,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed UseFormSubmissionProps into targeted sub-interfaces (project, prompt state, ref state, reference settings, handlers) and composed via extends without behavior changes; validated by tsc and form submission tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:28:56+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed UseFormSubmissionProps into targeted sub-interfaces (project, prompt state, ref state, reference settings, handlers) and composed via extends without behavior changes; validated by tsc and form submission tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:28:56+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ImageGenerationForm/hooks/useFormContextBuilder.ts::UseFormContextBuilderProps": {
       "id": "props::src/shared/components/ImageGenerationForm/hooks/useFormContextBuilder.ts::UseFormContextBuilderProps",
@@ -6750,17 +6768,23 @@
         "line": 11,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split ShotSelectorControlsProps into focused interfaces (media, selection, positioning, actions, variant promotion, optimistic updates, UI state, navigation, lifecycle) and composed via extends with no runtime changes; validated by tsc and MediaLightbox control tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:29:34+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split ShotSelectorControlsProps into focused interfaces (media, selection, positioning, actions, variant promotion, optimistic updates, UI state, navigation, lifecycle) and composed via extends with no runtime changes; validated by tsc and MediaLightbox control tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:29:34+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/VariantSelector/components/VariantGrid.tsx::VariantGridProps": {
       "id": "props::src/shared/components/VariantSelector/components/VariantGrid.tsx::VariantGridProps",
@@ -6774,17 +6798,23 @@
         "line": 18,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed VariantGridProps into data, UI, and action interfaces composed via extends while preserving existing prop API and behavior; validated via tsc and VariantSelector tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:29:58+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed VariantGridProps into data, UI, and action interfaces composed via extends while preserving existing prop API and behavior; validated via tsc and VariantSelector tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:29:58+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotEditor/ShotSettingsContext.tsx::ShotSettingsContextValue": {
       "id": "props::src/tools/travel-between-images/components/ShotEditor/ShotSettingsContext.tsx::ShotSettingsContextValue",
@@ -6894,17 +6924,23 @@
         "line": 28,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Refactored SortableClipProps into grouped interfaces (data, UI state, refs, actions) and composed via extends without behavior changes; validated with tsc and JoinClips component tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:30:26+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Refactored SortableClipProps into grouped interfaces (data, UI state, refs, actions) and composed via extends without behavior changes; validated with tsc and JoinClips component tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:30:26+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx::SegmentOutputStripProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/SegmentOutputStrip.tsx::SegmentOutputStripProps",
@@ -6918,17 +6954,23 @@
         "line": 30,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Refactored SegmentOutputStripProps into cohesive interfaces (core, range, interaction, trailing segment config) and composed via extends without runtime changes; validated by tsc and timeline tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:31:00+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Refactored SegmentOutputStripProps into cohesive interfaces (core, range, interaction, trailing segment config) and composed via extends without runtime changes; validated by tsc and timeline tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:31:00+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/SettingsModal/types.ts::GenerationSectionProps": {
       "id": "props::src/shared/components/SettingsModal/types.ts::GenerationSectionProps",
@@ -6942,17 +6984,23 @@
         "line": 21,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed SettingsModal GenerationSectionProps into view, method state, token state, config state, and tab-state interfaces composed via extends with no runtime changes; validated by tsc and SettingsModal tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:31:27+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed SettingsModal GenerationSectionProps into view, method state, token state, config state, and tab-state interfaces composed via extends with no runtime changes; validated by tsc and SettingsModal tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:31:27+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx::VideoItemProps": {
       "id": "props::src/tools/travel-between-images/components/VideoGallery/components/VideoItem.tsx::VideoItemProps",
@@ -6966,17 +7014,23 @@
         "line": 20,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split VideoItemProps into core, interaction, task, share, and presentation interfaces composed via extends with no behavior changes; validated by tsc and travel-between-images gallery tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:31:59+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split VideoItemProps into core, interaction, task, share, and presentation interfaces composed via extends with no behavior changes; validated by tsc and travel-between-images gallery tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:31:59+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotEditor/sections/TimelineSection.tsx::TimelineSectionProps": {
       "id": "props::src/tools/travel-between-images/components/ShotEditor/sections/TimelineSection.tsx::TimelineSectionProps",
@@ -6990,17 +7044,23 @@
         "line": 23,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split TimelineSectionProps into focused interfaces (ref, mode, frame, layout, pending positions, selection, prompts, output) and composed via extends with no behavior changes; validated through tsc and ShotEditor tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:32:27+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split TimelineSectionProps into focused interfaces (ref, mode, frame, layout, pending positions, selection, prompts, output) and composed via extends with no behavior changes; validated through tsc and ShotEditor tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:32:27+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/TimelineContainer/components/GuidanceVideoControls.tsx::GuidanceVideoControlsProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/TimelineContainer/components/GuidanceVideoControls.tsx::GuidanceVideoControlsProps",
@@ -7014,17 +7074,23 @@
         "line": 13,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Refactored GuidanceVideoControlsProps into grouped interfaces (context, primary settings, actions, upload state) and composed via extends without runtime changes; validated via tsc and timeline control tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:32:53+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Refactored GuidanceVideoControlsProps into grouped interfaces (context, primary settings, actions, upload state) and composed via extends without runtime changes; validated via tsc and timeline control tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:32:53+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/LoraSelectorModal/types.ts::CommunityLorasTabProps": {
       "id": "props::src/shared/components/LoraSelectorModal/types.ts::CommunityLorasTabProps",
@@ -7038,17 +7104,23 @@
         "line": 26,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed CommunityLorasTabProps into selection, resource, filter, and pagination interfaces composed via extends with no runtime changes; validated by tsc and LoraSelectorModal tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:33:21+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed CommunityLorasTabProps into selection, resource, filter, and pagination interfaces composed via extends with no runtime changes; validated by tsc and LoraSelectorModal tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:33:21+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/SegmentSettingsForm/components/AdvancedSettingsSection.tsx::AdvancedSettingsSectionProps": {
       "id": "props::src/shared/components/SegmentSettingsForm/components/AdvancedSettingsSection.tsx::AdvancedSettingsSectionProps",
@@ -7062,17 +7134,23 @@
         "line": 30,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed AdvancedSettingsSectionProps into core, defaults, structure-video, and upload/drag interfaces composed via extends with no behavior changes; validated by tsc and SegmentSettingsForm tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:33:49+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed AdvancedSettingsSectionProps into core, defaults, structure-video, and upload/drag interfaces composed via extends with no behavior changes; validated by tsc and SegmentSettingsForm tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:33:49+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotMode.ts::UseSegmentSlotModeProps": {
       "id": "props::src/tools/travel-between-images/components/ShotImagesEditor/hooks/useSegmentSlotMode.ts::UseSegmentSlotModeProps",
@@ -7116,17 +7194,23 @@
         "line": 45,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed GuidanceVideoStripProps into media, timeline, range, and layout interfaces composed via extends with no behavioral changes; validated by tsc and timeline tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:34:18+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed GuidanceVideoStripProps into media, timeline, range, and layout interfaces composed via extends with no behavioral changes; validated by tsc and timeline tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:34:18+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/Timeline/PairRegion.tsx::PairRegionProps": {
       "id": "props::src/tools/travel-between-images/components/Timeline/PairRegion.tsx::PairRegionProps",
@@ -7140,17 +7224,23 @@
         "line": 7,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed PairRegionProps into geometry, interaction, and prompt interfaces composed via extends with no behavior change; validated by tsc and timeline tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:34:41+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed PairRegionProps into geometry, interaction, and prompt interfaces composed via extends with no behavior change; validated by tsc and timeline tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:34:41+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/components/layouts/types.ts::LayoutWorkflowBarProps": {
       "id": "props::src/shared/components/MediaLightbox/components/layouts/types.ts::LayoutWorkflowBarProps",
@@ -7242,17 +7332,23 @@
         "line": 42,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Split MotionPresetSelectorProps into core, action, state, and UI interfaces composed via extends with no behavior changes; validated by tsc and MotionPresetSelector tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:35:09+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Split MotionPresetSelectorProps into core, action, state, and UI interfaces composed via extends with no behavior changes; validated by tsc and MotionPresetSelector tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:35:09+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/PaneControlTab.tsx::PaneControlTabProps": {
       "id": "props::src/shared/components/PaneControlTab.tsx::PaneControlTabProps",
@@ -7266,17 +7362,23 @@
         "line": 19,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed PaneControlTabProps into state, action, button, and tour metadata interfaces composed via extends with no behavioral changes; validated by tsc and pane-related component tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:35:42+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed PaneControlTabProps into state, action, button, and tour metadata interfaces composed via extends with no behavioral changes; validated by tsc and pane-related component tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:35:42+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ShotSelector.tsx::ShotSelectorProps": {
       "id": "props::src/shared/components/ShotSelector.tsx::ShotSelectorProps",
@@ -7290,17 +7392,23 @@
         "line": 12,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed ShotSelectorProps into core, style, creation, popover, and navigation interfaces composed via extends without behavior changes; validated by tsc and selector-related tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:36:11+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed ShotSelectorProps into core, style, creation, popover, and navigation interfaces composed via extends without behavior changes; validated by tsc and selector-related tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:36:11+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ShotSelectorWithAdd.tsx::ShotSelectorWithAddProps": {
       "id": "props::src/shared/components/ShotSelectorWithAdd.tsx::ShotSelectorWithAddProps",
@@ -7314,17 +7422,23 @@
         "line": 18,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed ShotSelectorWithAddProps into image, selection, action, and layout interfaces composed via extends with no behavior changes; validated with tsc and selector/MediaLightbox tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:36:36+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed ShotSelectorWithAddProps into image, selection, action, and layout interfaces composed via extends with no behavior changes; validated with tsc and selector/MediaLightbox tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:36:36+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/inline-segment-video/types.ts::InlineSegmentVideoProps": {
       "id": "props::src/shared/components/inline-segment-video/types.ts::InlineSegmentVideoProps",
@@ -7338,17 +7452,23 @@
         "line": 14,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed InlineSegmentVideoProps into core, layout, action, status, and scrubbing interfaces composed via extends with no runtime changes; validated by tsc and inline-segment-video tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:37:07+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed InlineSegmentVideoProps into core, layout, action, status, and scrubbing interfaces composed via extends with no runtime changes; validated by tsc and inline-segment-video tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:37:07+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/ShotImagesEditor/components/PreviewTogetherStage.tsx::PreviewTogetherStageProps": {
       "id": "props::src/tools/travel-between-images/components/ShotImagesEditor/components/PreviewTogetherStage.tsx::PreviewTogetherStageProps",
@@ -7362,17 +7482,23 @@
         "line": 7,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed PreviewTogetherStageProps into data, refs, and action interfaces composed via extends with no behavior changes; validated via tsc and PreviewTogetherStage tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:37:32+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed PreviewTogetherStageProps into data, refs, and action interfaces composed via extends with no behavior changes; validated via tsc and PreviewTogetherStage tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:37:32+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/pages/Home/hooks/usePaneState.ts::UsePaneStateReturn": {
       "id": "props::src/pages/Home/hooks/usePaneState.ts::UsePaneStateReturn",
@@ -7434,17 +7560,23 @@
         "line": 52,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed UseTaskGenerationProps into context, variant, state, ref, and callback interfaces composed via extends with no runtime changes; validated via tsc and MediaLightbox inpainting tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:37:56+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed UseTaskGenerationProps into context, variant, state, ref, and callback interfaces composed via extends with no runtime changes; validated via tsc and MediaLightbox inpainting tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:37:56+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/contexts/PanesContext.tsx::PanesContextType": {
       "id": "props::src/shared/contexts/PanesContext.tsx::PanesContextType",
@@ -7482,17 +7614,23 @@
         "line": 13,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed HeaderProps into core, action, and layout interfaces composed via extends while preserving behavior; validated by tsc and ShotEditor tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:38:21+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed HeaderProps into core, action, and layout interfaces composed via extends while preserving behavior; validated by tsc and ShotEditor tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:38:21+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/tools/travel-between-images/components/VideoGallery/components/VideoItemMemo.ts::VideoItemMemoProps": {
       "id": "props::src/tools/travel-between-images/components/VideoGallery/components/VideoItemMemo.ts::VideoItemMemoProps",
@@ -7506,17 +7644,23 @@
         "line": 7,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed VideoItemMemoProps into data and handler interfaces composed via extends while preserving comparator behavior; validated by tsc and travel-between-images gallery tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:38:43+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed VideoItemMemoProps into data and handler interfaces composed via extends while preserving comparator behavior; validated by tsc and travel-between-images gallery tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:38:43+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/ImageGenerationForm/hooks/useReferenceUpload.ts::UseReferenceUploadProps": {
       "id": "props::src/shared/components/ImageGenerationForm/hooks/useReferenceUpload.ts::UseReferenceUploadProps",
@@ -7530,17 +7674,23 @@
         "line": 27,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed UseReferenceUploadProps into context, state, settings, and mode interfaces composed via extends with no runtime changes; validated with tsc and ImageGenerationForm module coverage tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:39:11+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed UseReferenceUploadProps into context, state, settings, and mode interfaces composed via extends with no runtime changes; validated with tsc and ImageGenerationForm module coverage tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:39:11+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/ImageLightbox.tsx::ImageLightboxProps": {
       "id": "props::src/shared/components/MediaLightbox/ImageLightbox.tsx::ImageLightboxProps",
@@ -7554,17 +7704,23 @@
         "line": 70,
         "kind": "props"
       },
-      "status": "open",
-      "note": null,
+      "status": "fixed",
+      "note": "Decomposed ImageLightboxProps into core, task-detail, UI-state, and behavior interfaces composed via extends with no behavioral changes; validated by tsc and MediaLightbox tests.",
       "first_seen": "2026-02-24T17:37:13+00:00",
       "last_seen": "2026-03-02T23:01:06+00:00",
-      "resolved_at": null,
+      "resolved_at": "2026-03-03T01:39:40+00:00",
       "reopen_count": 0,
       "lang": "typescript",
       "zone": "production",
       "suppressed": false,
       "suppressed_at": null,
-      "suppression_pattern": null
+      "suppression_pattern": null,
+      "resolution_attestation": {
+        "kind": "manual",
+        "text": "I have actually Decomposed ImageLightboxProps into core, task-detail, UI-state, and behavior interfaces composed via extends with no behavioral changes; validated by tsc and MediaLightbox tests. and I am not gaming the score.",
+        "attested_at": "2026-03-03T01:39:40+00:00",
+        "scan_verified": false
+      }
     },
     "props::src/shared/components/MediaLightbox/VideoLightbox.tsx::VideoLightboxProps": {
       "id": "props::src/shared/components/MediaLightbox/VideoLightbox.tsx::VideoLightboxProps",
@@ -173960,11 +174116,11 @@
       "strict": 96.6
     },
     "Code quality": {
-      "score": 97.0,
-      "strict_score": 97.0,
+      "score": 97.1,
+      "strict_score": 97.1,
       "verified_strict_score": 96.9,
       "checks": 13377,
-      "issues": 614,
+      "issues": 579,
       "tier": 3,
       "detectors": {
         "unused": {
@@ -173993,9 +174149,9 @@
         },
         "props": {
           "potential": 673,
-          "pass_rate": 0.9399702823179791,
-          "issues": 112,
-          "weighted_failures": 40.400000000000034
+          "pass_rate": 0.9609212481426448,
+          "issues": 77,
+          "weighted_failures": 26.300000000000026
         },
         "smells": {
           "potential": 1417,
@@ -174052,7 +174208,7 @@
           "weighted_failures": 6.300000000000001
         }
       },
-      "strict": 97.0
+      "strict": 97.1
     },
     "Duplication": {
       "score": 95.7,
