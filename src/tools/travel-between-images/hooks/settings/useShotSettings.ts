@@ -125,7 +125,7 @@ export const useShotSettings = (
       if (!hasShotSettings) {
         // Persist inherited settings immediately via the canonical auto-save boundary.
         saveImmediate(inheritedSettings).catch(err => {
-          console.error('[useShotSettings] Failed to save inherited settings:', err);
+          normalizeAndPresentError(err, { context: 'useShotSettings', showToast: false });
         });
       }
     }

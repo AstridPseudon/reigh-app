@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { cropFilename } from '@/shared/lib/stringFormatting';

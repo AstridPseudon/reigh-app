@@ -9,6 +9,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
+import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 interface HeaderProps {
   selectedShot: Shot;
@@ -112,15 +113,14 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           .eq('id', selectedShot.id);
         
         if (error) {
-          console.error('Failed to update aspect ratio:', error);
-          // Revert on error by invalidating all shots caches
+          normalizeAndPresentError(error, { context: 'ShotEditorHeader' });
           queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
         } else {
           // Invalidate tool settings to refresh UI with cleared custom dimensions
           queryClient.invalidateQueries({ queryKey: queryKeys.settings.tool(TOOL_IDS.TRAVEL_BETWEEN_IMAGES, projectId, selectedShot.id) });
         }
       } catch (error) {
-        console.error('Failed to update aspect ratio and settings:', error);
+        normalizeAndPresentError(error, { context: 'ShotEditorHeader' });
         queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
       }
     }, 300); // Wait 300ms after last change before updating database

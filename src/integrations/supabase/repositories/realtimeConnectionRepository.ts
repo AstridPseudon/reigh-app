@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 
-export async function fetchRealtimeSession() {
+export function fetchRealtimeSession() {
   return getSupabaseClient().auth.getSession();
 }
 

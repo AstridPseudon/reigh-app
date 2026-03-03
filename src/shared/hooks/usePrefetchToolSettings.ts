@@ -19,7 +19,7 @@ const EMPTY_SHOT_IDS: string[] = [];
 /**
  * Fetch tool settings using the shared service contract (for prefetching).
  */
-async function fetchSettingsForPrefetch(
+function fetchSettingsForPrefetch(
   toolId: string,
   ctx: { projectId?: string; shotId?: string },
 ): Promise<SettingsFetchResult> {

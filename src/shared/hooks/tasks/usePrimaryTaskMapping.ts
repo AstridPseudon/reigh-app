@@ -5,7 +5,7 @@ import {
   type GenerationTaskMapping,
 } from '@/shared/lib/generationTaskRepository';
 
-async function getPrimaryTaskMapping(generationId: string): Promise<GenerationTaskMapping> {
+function getPrimaryTaskMapping(generationId: string): Promise<GenerationTaskMapping> {
   return getPrimaryTaskMappingForGeneration(generationId);
 }
 

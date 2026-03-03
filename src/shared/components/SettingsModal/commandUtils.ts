@@ -4,7 +4,7 @@ import { writeClipboardTextSafe } from '@/shared/lib/clipboard';
 /**
  * Safe clipboard copy with fallback for older browsers
  */
-export const safeCopy = async (text: string): Promise<boolean> => {
+export const safeCopy = (text: string): Promise<boolean> => {
   return writeClipboardTextSafe(text, { allowExecCommandFallback: true });
 };
 

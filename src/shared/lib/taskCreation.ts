@@ -62,9 +62,5 @@ export {
 } from './taskCreation/schemaUtils';
 
 export {
-  setPayloadField,
-  setPayloadFieldIf,
-  setPayloadFieldIfDefined,
-  setPayloadFieldIfTruthy,
   setTaskLineageFields,
 } from './taskCreation/payloadFields';

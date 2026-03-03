@@ -102,7 +102,7 @@ export function useHuggingFaceToken() {
 
   const metadata = apiKey?.metadata as HuggingFaceMetadata | undefined;
 
-  const verifyToken = async (token: string): Promise<HuggingFaceTokenVerificationResult> => {
+  const verifyToken = (token: string): Promise<HuggingFaceTokenVerificationResult> => {
     return verifyHuggingFaceToken(token);
   };
 

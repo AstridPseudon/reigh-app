@@ -148,7 +148,7 @@ export function useJoinSegmentsSettings(
     if (inheritedSettings && shotId && status === 'ready') {
       if (!hasShotSettings) {
         saveImmediateRef.current(inheritedSettings).catch(err => {
-          console.error('[useJoinSegmentsSettings] Failed to save inherited settings:', err);
+          normalizeAndPresentError(err, { context: 'useJoinSegmentsSettings', showToast: false });
         });
       }
     }

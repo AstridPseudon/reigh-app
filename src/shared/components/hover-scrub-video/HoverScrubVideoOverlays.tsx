@@ -1,4 +1,3 @@
-import React from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { Button } from '@/shared/components/ui/button';
 

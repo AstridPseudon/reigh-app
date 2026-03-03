@@ -27,7 +27,7 @@ interface CreatePrimaryVariantInput {
   variantType: string;
 }
 
-export async function updateGenerationLocationByScope(
+export function updateGenerationLocationByScope(
   params: GenerationSettingsInput & { location: string; thumbnailUrl?: string },
 ) {
   return getSupabaseClient()
@@ -41,7 +41,7 @@ export async function updateGenerationLocationByScope(
     .select('id');
 }
 
-export async function createGenerationRecord(params: CreateGenerationRecordInput) {
+export function createGenerationRecord(params: CreateGenerationRecordInput) {
   return getSupabaseClient()
     .from('generations')
     .insert({
@@ -55,7 +55,7 @@ export async function createGenerationRecord(params: CreateGenerationRecordInput
     .single();
 }
 
-export async function createGenerationPrimaryVariant(params: CreatePrimaryVariantInput) {
+export function createGenerationPrimaryVariant(params: CreatePrimaryVariantInput) {
   return getSupabaseClient()
     .from('generation_variants')
     .insert({
@@ -69,7 +69,7 @@ export async function createGenerationPrimaryVariant(params: CreatePrimaryVarian
     });
 }
 
-export async function updateGenerationStarByScope(
+export function updateGenerationStarByScope(
   params: GenerationSettingsInput & { starred: boolean },
 ) {
   return getSupabaseClient()
@@ -80,7 +80,7 @@ export async function updateGenerationStarByScope(
     .select('id, starred');
 }
 
-export async function deleteGenerationByScope(params: GenerationSettingsInput) {
+export function deleteGenerationByScope(params: GenerationSettingsInput) {
   return getSupabaseClient()
     .from('generations')
     .delete()
@@ -89,7 +89,7 @@ export async function deleteGenerationByScope(params: GenerationSettingsInput) {
     .select('id');
 }
 
-export async function deleteGenerationVariantByScope(params: DeleteGenerationVariantInput) {
+export function deleteGenerationVariantByScope(params: DeleteGenerationVariantInput) {
   return getSupabaseClient()
     .from('generation_variants')
     .delete()

@@ -1,5 +1,5 @@
-import React, { ReactElement } from 'react';
-import { render, renderHook, RenderOptions, RenderHookOptions } from '@testing-library/react';
+import React from 'react';
+import { renderHook, RenderHookOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
@@ -66,19 +66,6 @@ function createWrapper(options: ProviderOptions = {}) {
       </QueryClientProvider>
     );
   };
-}
-
-/**
- * Render a component wrapped with test providers (QueryClient).
- * Use for component tests that need React Query context.
- */
-function _renderWithProviders(
-  ui: ReactElement,
-  options: ProviderOptions & Omit<RenderOptions, 'wrapper'> = {},
-) {
-  const { authContext, projectContext, queryClient, ...renderOptions } = options;
-  const Wrapper = createWrapper({ authContext, projectContext, queryClient });
-  return render(ui, { wrapper: Wrapper, ...renderOptions });
 }
 
 /**

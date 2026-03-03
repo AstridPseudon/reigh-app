@@ -214,7 +214,7 @@ function buildInlineEditSidebarModel(state: InlineEditStateResult): InlineEditSi
   };
 }
 
-function InlineEditSidebar({ variant, model, onClose, onNavigateToGeneration }: InlineEditSidebarProps) {
+function InlineEditSidebar({ variant, model, onClose }: InlineEditSidebarProps) {
   const sidebarContent = model.isSpecialEditMode ? (
     <EditModePanel
       variant={variant === 'mobile' ? 'mobile' : 'desktop'}
