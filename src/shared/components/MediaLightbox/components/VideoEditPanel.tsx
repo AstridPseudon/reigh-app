@@ -17,7 +17,7 @@ import { TrimControlsPanel } from '@/shared/components/VideoTrimEditor';
 import type { TrimState } from '@/shared/types/videoTrim';
 import { VideoPortionEditor } from '@/shared/components/VideoPortionEditor';
 import { DEFAULT_VACE_PHASE_CONFIG } from '@/shared/lib/vaceDefaults';
-import type { UseVideoEditingReturn } from '../hooks/useVideoEditing';
+import type { UseVideoEditingReturn } from '../hooks/modes/useVideoEditing.types';
 import { EditPanelLayout } from './EditPanelLayout';
 import { ModeSelector } from './ModeSelector';
 import { SegmentRegenerateForm } from './SegmentRegenerateForm';

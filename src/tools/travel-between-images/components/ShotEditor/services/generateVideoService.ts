@@ -1,67 +1,49 @@
 import { QueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { normalizeAndPresentError, type RuntimeErrorOptions } from '@/shared/lib/errorHandling/runtimeError';
-import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import { ValidationError } from '@/shared/lib/errorHandling/errors';
 import {
   createTravelBetweenImagesTask,
   validateTravelBetweenImagesParams,
-  type TravelBetweenImagesRequestPayload,
-  type PromptConfig,
-  type MotionConfig,
-  type ModelConfig,
-  type StructureVideoConfigWithMetadata,
-  type StitchConfig,
   DEFAULT_VIDEO_STRUCTURE_PARAMS,
 } from '@/shared/lib/tasks/travelBetweenImages';
 import { normalizeStructureGuidance } from '@/shared/lib/tasks/structureGuidance';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
 import { DEFAULT_RESOLUTION } from '../utils/dimension-utils';
-import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '../state/types';
-import type { PhaseConfig } from '@/shared/types/phaseConfig';
-import { isVideoAny } from '@/shared/lib/typeGuards';
-import {
-  readSegmentOverrides,
-  type SegmentOverrides,
-} from '@/shared/lib/settingsMigration';
-import { buildMotionTaskFields, stripModeFromPhaseConfig } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
+import { stripModeFromPhaseConfig } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
 import type { Shot } from '@/domains/generation/types';
 import {
   operationFailure,
   operationSuccess,
-  type OperationResult,
 } from '@/shared/lib/operationResult';
 import {
   buildBasicModeGenerationRequest,
   resolveModelPhaseSelection,
   validatePhaseConfigConsistency,
-  type ModelPhaseSelection,
 } from './generateVideo/modelPhase';
+import {
+  buildImagePayload,
+  buildTimelinePairConfig,
+  buildBatchPairConfig,
+  buildByPairConfig,
+  extractPairOverrides,
+  filterImageShotGenerations,
+} from './generateVideo/pairPayload';
+import { buildTravelRequestBodyV2 } from './generateVideo/requestBody';
+import type {
+  GenerateVideoParams,
+  GenerateVideoResult,
+  ShotGenRow,
+  ImagePayload,
+  PairConfigPayload,
+  ModelPhaseSelection,
+} from './generateVideo/types';
+import type {
+  StructureVideoConfigWithMetadata,
+  StitchConfig,
+} from '@/shared/lib/tasks/travelBetweenImages';
 
-// Re-export types used by consumers (VideoGenerationModal, etc.)
 export type { StitchConfig };
-
-/**
- * Extract segment overrides from metadata using migration utility.
- * Legacy formats should be migrated before this service is called.
- */
-function extractPairOverrides(metadata: Record<string, unknown> | null | undefined): {
-  overrides: SegmentOverrides;
-  enhancedPrompt: string | undefined;
-} {
-  if (!metadata) {
-    return { overrides: {}, enhancedPrompt: undefined };
-  }
-
-  const overrides = readSegmentOverrides(metadata);
-  const enhancedPrompt = metadata.enhanced_prompt as string | undefined;
-
-  return { overrides, enhancedPrompt };
-}
-
-// ============================================================================
-// STRUCTURE GUIDANCE BUILDER
-// ============================================================================
 
 /**
  * Build unified structure_guidance object for the API request.
@@ -78,33 +60,6 @@ function buildStructureGuidance(
   return normalized ?? null;
 }
 
-// ============================================================================
-
-interface GenerateVideoParams {
-  projectId: string;
-  selectedShotId: string;
-  selectedShot: Shot;
-  queryClient: QueryClient;
-  effectiveAspectRatio: string | null;
-  generationMode: 'timeline' | 'batch' | 'by-pair';
-  promptConfig: PromptConfig;
-  motionConfig: MotionConfig;
-  modelConfig: ModelConfig;
-  structureVideos?: StructureVideoConfigWithMetadata[];
-  batchVideoFrames: number;
-  selectedLoras: Array<{ id: string; path: string; strength: number; name: string }>;
-  variantNameParam: string;
-  clearAllEnhancedPrompts: () => Promise<void>;
-  parentGenerationId?: string;
-  stitchConfig?: StitchConfig;
-}
-
-interface GenerateVideoSuccessValue {
-  parentGenerationId?: string;
-}
-
-type GenerateVideoResult = OperationResult<GenerateVideoSuccessValue>;
-
 /** Shared Supabase query shape for shot_generations with joined generation data */
 const SHOT_GEN_QUERY = `
   id,
@@ -119,25 +74,6 @@ const SHOT_GEN_QUERY = `
   )
 `;
 
-type ShotGenRow = {
-  id: string;
-  generation_id: string | null;
-  timeline_frame: number | null;
-  metadata: Record<string, unknown> | null;
-  generation: { id: string; location: string | null; type: string | null; primary_variant_id?: string | null } | null;
-};
-
-/** Filter shot_generations to positioned image rows with valid locations */
-function filterImageShotGenerations(rows: ShotGenRow[]): ShotGenRow[] {
-  return rows.filter(shotGen => {
-    const hasValidLocation = shotGen.generation?.location && shotGen.generation.location !== '/placeholder.svg';
-    return shotGen.generation &&
-           shotGen.timeline_frame != null &&
-           !isVideoAny(shotGen) &&
-           hasValidLocation;
-  });
-}
-
 function failureResult(error: unknown, options: RuntimeErrorOptions): GenerateVideoResult {
   const appError = normalizeAndPresentError(error, options);
   return operationFailure(appError, {
@@ -151,24 +87,6 @@ function failureResult(error: unknown, options: RuntimeErrorOptions): GenerateVi
       logData: options.logData,
     },
   });
-}
-
-interface ImagePayload {
-  absoluteImageUrls: string[];
-  imageGenerationIds: string[];
-  imageVariantIds: string[];
-  pairShotGenerationIds: string[];
-}
-
-interface PairConfigPayload {
-  basePrompts: string[];
-  segmentFrames: number[];
-  frameOverlap: number[];
-  negativePrompts: string[];
-  enhancedPromptsArray: string[];
-  pairPhaseConfigsArray: Array<PhaseConfig | null>;
-  pairLorasArray: Array<Array<{ path: string; strength: number }> | null>;
-  pairMotionSettingsArray: Array<Record<string, unknown> | null>;
 }
 
 function resolveGenerationResolution(selectedShot: Shot, effectiveAspectRatio: string | null): string {
@@ -201,389 +119,6 @@ async function fetchFreshShotGenerations(selectedShotId: string): Promise<ShotGe
 
   if (error) throw error;
   return (data || []) as ShotGenRow[];
-}
-
-function buildImagePayload(allShotGenerations: ShotGenRow[]): ImagePayload {
-  const filteredForUrls = filterImageShotGenerations(allShotGenerations)
-    .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-
-  const freshImagesWithIds = filteredForUrls
-    .map(shotGen => ({
-      location: shotGen.generation?.location,
-      generationId: shotGen.generation?.id || shotGen.generation_id,
-      primaryVariantId: shotGen.generation?.primary_variant_id || undefined,
-      shotGenerationId: shotGen.id,
-    }))
-    .filter(item => Boolean(item.location));
-
-  const filteredImages = freshImagesWithIds.filter(item => {
-    const url = getDisplayUrl(item.location);
-    return Boolean(url) && url !== '/placeholder.svg';
-  });
-
-  return {
-    absoluteImageUrls: filteredImages
-      .map(item => getDisplayUrl(item.location))
-      .filter((url): url is string => Boolean(url) && url !== '/placeholder.svg'),
-    imageGenerationIds: filteredImages
-      .map(item => item.generationId)
-      .filter((id): id is string => Boolean(id)),
-    imageVariantIds: filteredImages
-      .map(item => item.primaryVariantId)
-      .filter((id): id is string => Boolean(id)),
-    pairShotGenerationIds: filteredImages
-      .slice(0, -1)
-      .map(item => item.shotGenerationId)
-      .filter((id): id is string => Boolean(id)),
-  };
-}
-
-function buildTimelinePairConfig(
-  allShotGenerations: ShotGenRow[],
-  batchVideoFrames: number,
-  defaultNegativePrompt: string,
-): PairConfigPayload {
-  const pairPrompts: Record<number, { prompt: string; negativePrompt: string }> = {};
-  const enhancedPrompts: Record<number, string> = {};
-  const pairPhaseConfigsOverrides: Record<number, PhaseConfig> = {};
-  const pairLorasOverrides: Record<number, Array<{ path: string; strength: number }>> = {};
-  const pairMotionSettingsOverrides: Record<number, Record<string, unknown>> = {};
-  const pairNumFramesOverrides: Record<number, number> = {};
-
-  const filteredShotGenerations = filterImageShotGenerations(allShotGenerations);
-  const sortedPositions = filteredShotGenerations
-    .filter(shotGen => shotGen.timeline_frame != null && shotGen.timeline_frame >= 0)
-    .map(shotGen => ({
-      id: shotGen.generation?.id || shotGen.generation_id || shotGen.id,
-      pos: shotGen.timeline_frame!,
-    }))
-    .sort((a, b) => a.pos - b.pos);
-
-  for (let i = 0; i < filteredShotGenerations.length - 1; i++) {
-    const firstItem = filteredShotGenerations[i];
-    const metadata = firstItem.metadata as Record<string, unknown> | null;
-    const { overrides, enhancedPrompt } = extractPairOverrides(metadata);
-
-    if (overrides.prompt || overrides.negativePrompt) {
-      pairPrompts[i] = {
-        prompt: overrides.prompt || '',
-        negativePrompt: overrides.negativePrompt || '',
-      };
-    }
-    if (enhancedPrompt) enhancedPrompts[i] = enhancedPrompt;
-
-    const isBasicMode = overrides.motionMode === 'basic';
-    if (!isBasicMode && overrides.phaseConfig) {
-      pairPhaseConfigsOverrides[i] = overrides.phaseConfig;
-    }
-
-    if (overrides.loras && overrides.loras.length > 0) {
-      pairLorasOverrides[i] = overrides.loras.map(lora => ({
-        path: lora.path,
-        strength: lora.strength,
-      }));
-    }
-
-    const hasMotionOverrides = overrides.motionMode !== undefined || overrides.amountOfMotion !== undefined;
-    const hasStructureOverrides = overrides.structureMotionStrength !== undefined ||
-      overrides.structureTreatment !== undefined ||
-      overrides.structureUni3cEndPercent !== undefined;
-
-    if (hasMotionOverrides || hasStructureOverrides) {
-      pairMotionSettingsOverrides[i] = {
-        ...(overrides.amountOfMotion !== undefined && { amount_of_motion: overrides.amountOfMotion / 100 }),
-        ...(overrides.motionMode !== undefined && { motion_mode: overrides.motionMode }),
-        ...(overrides.structureMotionStrength !== undefined && { structure_motion_strength: overrides.structureMotionStrength }),
-        ...(overrides.structureTreatment !== undefined && { structure_treatment: overrides.structureTreatment }),
-        ...(overrides.structureUni3cEndPercent !== undefined && { uni3c_end_percent: overrides.structureUni3cEndPercent }),
-      };
-    }
-
-    if (overrides.numFrames !== undefined) {
-      pairNumFramesOverrides[i] = overrides.numFrames;
-    }
-  }
-
-  const frameGaps: number[] = [];
-  for (let i = 0; i < sortedPositions.length - 1; i++) {
-    frameGaps.push(sortedPositions[i + 1].pos - sortedPositions[i].pos);
-  }
-
-  return {
-    basePrompts: frameGaps.length > 0
-      ? frameGaps.map((_, index) => pairPrompts[index]?.prompt?.trim() || '')
-      : [''],
-    segmentFrames: frameGaps.length > 0
-      ? frameGaps.map((gap, index) => pairNumFramesOverrides[index] ?? gap)
-      : [batchVideoFrames],
-    frameOverlap: frameGaps.length > 0 ? frameGaps.map(() => 10) : [10],
-    negativePrompts: frameGaps.length > 0
-      ? frameGaps.map((_, index) => pairPrompts[index]?.negativePrompt?.trim() || defaultNegativePrompt)
-      : [defaultNegativePrompt],
-    enhancedPromptsArray: frameGaps.length > 0
-      ? frameGaps.map((_, index) => enhancedPrompts[index] || '')
-      : [],
-    pairPhaseConfigsArray: frameGaps.length > 0
-      ? frameGaps.map((_, index) => pairPhaseConfigsOverrides[index] ? stripModeFromPhaseConfig(pairPhaseConfigsOverrides[index]) : null)
-      : [],
-    pairLorasArray: frameGaps.length > 0
-      ? frameGaps.map((_, index) => pairLorasOverrides[index] || null)
-      : [],
-    pairMotionSettingsArray: frameGaps.length > 0
-      ? frameGaps.map((_, index) => pairMotionSettingsOverrides[index] || null)
-      : [],
-  };
-}
-
-function buildBatchPairConfig(
-  absoluteImageUrls: string[],
-  batchVideoFrames: number,
-  defaultNegativePrompt: string,
-): PairConfigPayload {
-  const numPairs = Math.max(0, absoluteImageUrls.length - 1);
-  return {
-    basePrompts: numPairs > 0 ? Array(numPairs).fill('') : [''],
-    negativePrompts: numPairs > 0 ? Array(numPairs).fill(defaultNegativePrompt) : [defaultNegativePrompt],
-    segmentFrames: numPairs > 0 ? Array(numPairs).fill(batchVideoFrames) : [batchVideoFrames],
-    frameOverlap: numPairs > 0 ? Array(numPairs).fill(10) : [10],
-    pairPhaseConfigsArray: numPairs > 0 ? Array(numPairs).fill(null) : [],
-    pairLorasArray: numPairs > 0 ? Array(numPairs).fill(null) : [],
-    pairMotionSettingsArray: numPairs > 0 ? Array(numPairs).fill(null) : [],
-    enhancedPromptsArray: numPairs > 0 ? Array(numPairs).fill('') : [],
-  };
-}
-
-function buildByPairConfig(
-  allShotGenerations: ShotGenRow[],
-  batchVideoFrames: number,
-  defaultNegativePrompt: string,
-): PairConfigPayload {
-  const filteredShotGenerations = filterImageShotGenerations(allShotGenerations)
-    .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-  const pairCount = Math.max(0, filteredShotGenerations.length - 1);
-
-  if (pairCount === 0) {
-    return {
-      basePrompts: [''],
-      segmentFrames: [batchVideoFrames],
-      frameOverlap: [10],
-      negativePrompts: [defaultNegativePrompt],
-      enhancedPromptsArray: [],
-      pairPhaseConfigsArray: [],
-      pairLorasArray: [],
-      pairMotionSettingsArray: [],
-    };
-  }
-
-  const basePrompts: string[] = [];
-  const segmentFrames: number[] = [];
-  const frameOverlap: number[] = [];
-  const negativePrompts: string[] = [];
-  const enhancedPromptsArray: string[] = [];
-  const pairPhaseConfigsArray: Array<PhaseConfig | null> = [];
-  const pairLorasArray: Array<Array<{ path: string; strength: number }> | null> = [];
-  const pairMotionSettingsArray: Array<Record<string, unknown> | null> = [];
-
-  for (let i = 0; i < pairCount; i += 1) {
-    const metadata = filteredShotGenerations[i]?.metadata as Record<string, unknown> | null;
-    const { overrides, enhancedPrompt } = extractPairOverrides(metadata);
-
-    basePrompts.push(overrides.prompt?.trim() || '');
-    segmentFrames.push(overrides.numFrames ?? batchVideoFrames);
-    frameOverlap.push(10);
-    negativePrompts.push(overrides.negativePrompt?.trim() || defaultNegativePrompt);
-    enhancedPromptsArray.push(enhancedPrompt || '');
-
-    const isBasicMode = overrides.motionMode === 'basic';
-    pairPhaseConfigsArray.push(!isBasicMode && overrides.phaseConfig ? stripModeFromPhaseConfig(overrides.phaseConfig) : null);
-    pairLorasArray.push(
-      overrides.loras?.length
-        ? overrides.loras.map((lora) => ({ path: lora.path, strength: lora.strength }))
-        : null,
-    );
-
-    const hasMotionOverrides = overrides.motionMode !== undefined || overrides.amountOfMotion !== undefined;
-    const hasStructureOverrides = overrides.structureMotionStrength !== undefined
-      || overrides.structureTreatment !== undefined
-      || overrides.structureUni3cEndPercent !== undefined;
-    pairMotionSettingsArray.push(
-      (hasMotionOverrides || hasStructureOverrides)
-        ? {
-          ...(overrides.amountOfMotion !== undefined && { amount_of_motion: overrides.amountOfMotion / 100 }),
-          ...(overrides.motionMode !== undefined && { motion_mode: overrides.motionMode }),
-          ...(overrides.structureMotionStrength !== undefined && { structure_motion_strength: overrides.structureMotionStrength }),
-          ...(overrides.structureTreatment !== undefined && { structure_treatment: overrides.structureTreatment }),
-          ...(overrides.structureUni3cEndPercent !== undefined && { uni3c_end_percent: overrides.structureUni3cEndPercent }),
-        }
-        : null,
-    );
-  }
-
-  return {
-    basePrompts,
-    segmentFrames,
-    frameOverlap,
-    negativePrompts,
-    enhancedPromptsArray,
-    pairPhaseConfigsArray,
-    pairLorasArray,
-    pairMotionSettingsArray,
-  };
-}
-
-interface MotionParams {
-  amountOfMotion: number;
-  motionMode: MotionConfig['motion_mode'];
-  useAdvancedMode: boolean;
-  effectivePhaseConfig: PhaseConfig;
-  selectedPhasePresetId: string | null | undefined;
-}
-
-interface GenerationParams {
-  generationMode: GenerateVideoParams['generationMode'];
-  batchVideoPrompt: string;
-  enhancePrompt: boolean;
-  variantNameParam: string;
-  textBeforePrompts: string | undefined;
-  textAfterPrompts: string | undefined;
-}
-
-interface SeedParams {
-  seed: number;
-  randomSeed: boolean | undefined;
-  turboMode: boolean | undefined;
-  debug: boolean | undefined;
-}
-
-interface TravelRequestBodyV2Params {
-  projectId: string;
-  selectedShot: Shot;
-  imagePayload: ImagePayload;
-  pairConfig: PairConfigPayload;
-  parentGenerationId?: string;
-  actualModelName: string;
-  generationTypeMode: ModelConfig['generation_type_mode'];
-  motionParams: MotionParams;
-  generationParams: GenerationParams;
-  seedParams: SeedParams;
-}
-
-function assertMappedIdCardinality(
-  imagePayload: ImagePayload,
-  expectedImageCount: number,
-): void {
-  if (imagePayload.imageGenerationIds.length > 0 && imagePayload.imageGenerationIds.length !== expectedImageCount) {
-    throw new ValidationError(
-      'Travel payload integrity check failed: image_generation_ids count does not match image_urls count.',
-      { field: 'image_generation_ids' },
-    );
-  }
-
-  if (imagePayload.imageVariantIds.length > 0 && imagePayload.imageVariantIds.length !== expectedImageCount) {
-    throw new ValidationError(
-      'Travel payload integrity check failed: image_variant_ids count does not match image_urls count.',
-      { field: 'image_variant_ids' },
-    );
-  }
-
-  const expectedPairCount = Math.max(0, expectedImageCount - 1);
-  if (imagePayload.pairShotGenerationIds.length > 0 && imagePayload.pairShotGenerationIds.length !== expectedPairCount) {
-    throw new ValidationError(
-      'Travel payload integrity check failed: pair_shot_generation_ids count does not match pair count.',
-      { field: 'pair_shot_generation_ids' },
-    );
-  }
-}
-
-function buildTravelRequestBodyV2(params: TravelRequestBodyV2Params): TravelBetweenImagesRequestPayload {
-  const {
-    projectId,
-    selectedShot,
-    imagePayload,
-    pairConfig,
-    parentGenerationId,
-    actualModelName,
-    generationTypeMode,
-    motionParams,
-    generationParams,
-    seedParams,
-  } = params;
-  const {
-    amountOfMotion,
-    motionMode,
-    useAdvancedMode,
-    effectivePhaseConfig,
-    selectedPhasePresetId,
-  } = motionParams;
-  const {
-    generationMode,
-    batchVideoPrompt,
-    enhancePrompt,
-    variantNameParam,
-    textBeforePrompts,
-    textAfterPrompts,
-  } = generationParams;
-  const {
-    seed,
-    randomSeed,
-    turboMode,
-    debug,
-  } = seedParams;
-  const imageCount = imagePayload.absoluteImageUrls.length;
-  const expectedPairCount = Math.max(0, imageCount - 1);
-  assertMappedIdCardinality(imagePayload, imageCount);
-
-  const motionFields = buildMotionTaskFields({
-    amountOfMotion,
-    motionMode,
-    phaseConfig: effectivePhaseConfig,
-    selectedPhasePresetId,
-    omitBasicPhaseConfig: true,
-  });
-
-  const hasValidEnhancedPrompts = pairConfig.enhancedPromptsArray.some(prompt => prompt && prompt.trim().length > 0);
-
-  return {
-    project_id: projectId,
-    shot_id: selectedShot.id,
-    image_urls: imagePayload.absoluteImageUrls,
-    ...(imagePayload.imageGenerationIds.length > 0 && imagePayload.imageGenerationIds.length === imageCount
-      ? { image_generation_ids: imagePayload.imageGenerationIds }
-      : {}),
-    ...(imagePayload.imageVariantIds.length > 0 && imagePayload.imageVariantIds.length === imageCount
-      ? { image_variant_ids: imagePayload.imageVariantIds }
-      : {}),
-    ...(imagePayload.pairShotGenerationIds.length > 0 && imagePayload.pairShotGenerationIds.length === expectedPairCount
-      ? { pair_shot_generation_ids: imagePayload.pairShotGenerationIds }
-      : {}),
-    ...(parentGenerationId ? { parent_generation_id: parentGenerationId } : {}),
-    base_prompts: pairConfig.basePrompts,
-    base_prompt: batchVideoPrompt,
-    segment_frames: pairConfig.segmentFrames,
-    frame_overlap: pairConfig.frameOverlap,
-    negative_prompts: pairConfig.negativePrompts,
-    ...(hasValidEnhancedPrompts ? { enhanced_prompts: pairConfig.enhancedPromptsArray } : {}),
-    ...(pairConfig.pairPhaseConfigsArray.some(config => config !== null) ? { pair_phase_configs: pairConfig.pairPhaseConfigsArray } : {}),
-    ...(pairConfig.pairLorasArray.some(loras => loras !== null) ? { pair_loras: pairConfig.pairLorasArray } : {}),
-    ...(pairConfig.pairMotionSettingsArray.some(settings => settings !== null) ? { pair_motion_settings: pairConfig.pairMotionSettingsArray } : {}),
-    model_name: actualModelName,
-    model_type: generationTypeMode,
-    seed,
-    debug: debug ?? DEFAULT_STEERABLE_MOTION_SETTINGS.debug,
-    show_input_images: DEFAULT_STEERABLE_MOTION_SETTINGS.show_input_images,
-    enhance_prompt: enhancePrompt,
-    generation_mode: generationMode,
-    random_seed: randomSeed,
-    turbo_mode: turboMode,
-    ...motionFields,
-    advanced_mode: useAdvancedMode,
-    regenerate_anchors: false,
-    generation_name: variantNameParam.trim() || undefined,
-    ...(textBeforePrompts ? { text_before_prompts: textBeforePrompts } : {}),
-    ...(textAfterPrompts ? { text_after_prompts: textAfterPrompts } : {}),
-    independent_segments: true,
-    chain_segments: false,
-  };
 }
 
 // =============================================================================
@@ -715,12 +250,12 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     },
   });
 
-    if (selectedLoras && selectedLoras.length > 0) {
-      requestBody.loras = selectedLoras.map(lora => ({
-        path: lora.path,
-        strength: parseFloat(lora.strength?.toString() ?? '1') || 1.0,
-      }));
-    }
+  if (selectedLoras && selectedLoras.length > 0) {
+    requestBody.loras = selectedLoras.map(lora => ({
+      path: lora.path,
+      strength: parseFloat(lora.strength?.toString() ?? '1') || 1.0,
+    }));
+  }
 
   requestBody.resolution = resolution;
   if (stitchConfig) requestBody.stitch_config = stitchConfig;

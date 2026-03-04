@@ -19,6 +19,34 @@ export const DEFAULT_TRANSFORM: ImageTransform = {
   flipV: false,
 };
 
+function toFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function toBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+/**
+ * Runtime decoder for persisted transform payloads.
+ * Rejects non-object payloads and coerces each field with safe defaults.
+ */
+export function decodeImageTransform(payload: unknown): ImageTransform | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  return {
+    translateX: toFiniteNumber(record.translateX, DEFAULT_TRANSFORM.translateX),
+    translateY: toFiniteNumber(record.translateY, DEFAULT_TRANSFORM.translateY),
+    scale: toFiniteNumber(record.scale, DEFAULT_TRANSFORM.scale),
+    rotation: toFiniteNumber(record.rotation, DEFAULT_TRANSFORM.rotation),
+    flipH: toBoolean(record.flipH, DEFAULT_TRANSFORM.flipH),
+    flipV: toBoolean(record.flipV, DEFAULT_TRANSFORM.flipV),
+  };
+}
+
 export interface UseRepositionModeProps {
   media: GenerationRow;
   selectedProjectId: string | null;

@@ -16,6 +16,7 @@ interface PersistTimelineFrameBatchOptions {
   updates: TimelineFrameBatchUpdate[];
   operationLabel: string;
   timeoutOperationName: string;
+  signal?: AbortSignal;
   timeoutFloorMs?: number;
   timeoutPerUpdateMs?: number;
   logPrefix: string;
@@ -78,6 +79,7 @@ export async function persistTimelineFrameBatch({
   updates,
   operationLabel,
   timeoutOperationName,
+  signal,
   timeoutFloorMs = DEFAULT_TIMEOUT_FLOOR_MS,
   timeoutPerUpdateMs = DEFAULT_TIMEOUT_PER_UPDATE_MS,
   logPrefix,
@@ -163,6 +165,7 @@ export async function persistTimelineFrameBatch({
       },
       {
         timeoutMs: rpcTimeoutMs,
+        upstreamSignal: signal,
         onTimeout: ({ pendingMs, timeoutMs }) => {
           log(`${logPrefix} rpc batch_update_timeline_frames timed out`, {
             shotId: shortId(shotId),
@@ -215,7 +218,7 @@ export async function persistTimelineFrameBatch({
             if (error) throw error;
             return data ?? [];
           },
-          { timeoutMs: 5000 },
+          { timeoutMs: 5000, upstreamSignal: signal },
         );
 
         log(`${logPrefix} timeout diagnostics snapshot`, {

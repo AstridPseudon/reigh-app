@@ -269,11 +269,13 @@ const Timeline: React.FC<TimelineProps> = ({
       adjacentSegments: !shotSelection.lightboxShotState.isExternalGen
         ? shotSelection.adjacentSegmentsData
         : undefined,
-      onNext: images.length > 1 ? lightbox.goNext : undefined,
-      onPrevious: images.length > 1 ? lightbox.goPrev : undefined,
-      showNavigation: lightbox.showNavigation,
-      hasNext: lightbox.hasNext,
-      hasPrevious: lightbox.hasPrevious,
+      navigation: {
+        onNext: images.length > 1 ? lightbox.goNext : undefined,
+        onPrevious: images.length > 1 ? lightbox.goPrev : undefined,
+        showNavigation: lightbox.showNavigation,
+        hasNext: lightbox.hasNext,
+        hasPrevious: lightbox.hasPrevious,
+      },
       onNavigateToGeneration: (generationId: string) => {
         const index = media.currentImages.findIndex((img) => img.id === generationId);
         if (index !== -1) {
@@ -283,33 +285,38 @@ const Timeline: React.FC<TimelineProps> = ({
         }
       },
       onOpenExternalGeneration: external.handleOpenExternalGeneration,
-      allShots,
-      selectedShotId: selectedLightboxShotId,
-      onShotChange: shotSelection.lightboxShotState.isExternalGen
-        ? (shotId) => {
-            external.setExternalGenLightboxSelectedShot(shotId);
-          }
-        : (shotId) => {
-            shotSelection.setLightboxSelectedShotId(shotId);
-            onShotChange?.(shotId);
-          },
-      onAddToShot: shotSelection.lightboxShotState.isExternalGen
-        ? external.handleExternalGenAddToShot
-        : shotSelection.addToShot,
-      onAddToShotWithoutPosition: shotSelection.lightboxShotState.isExternalGen
-        ? external.handleExternalGenAddToShotWithoutPosition
-        : shotSelection.addToShotWithoutPosition,
-      onCreateShot,
-      positionedInSelectedShot: shotSelection.lightboxShotState.positionedInSelectedShot,
-      associatedWithoutPositionInSelectedShot: shotSelection.lightboxShotState.associatedWithoutPositionInSelectedShot,
-      onDelete: !readOnly
-        ? (mediaId: string) => onImageDelete(mediaId)
-        : undefined,
-      starred: media.currentLightboxImage.starred ?? false,
-      onMagicEdit: (_imageUrl, _prompt, _numImages) => {
-        // TODO: Implement magic edit generation
+      shotWorkflow: {
+        allShots,
+        selectedShotId: selectedLightboxShotId,
+        onShotChange: shotSelection.lightboxShotState.isExternalGen
+          ? (shotId) => {
+              external.setExternalGenLightboxSelectedShot(shotId);
+            }
+          : (shotId) => {
+              shotSelection.setLightboxSelectedShotId(shotId);
+              onShotChange?.(shotId);
+            },
+        onAddToShot: shotSelection.lightboxShotState.isExternalGen
+          ? external.handleExternalGenAddToShot
+          : shotSelection.addToShot,
+        onAddToShotWithoutPosition: shotSelection.lightboxShotState.isExternalGen
+          ? external.handleExternalGenAddToShotWithoutPosition
+          : shotSelection.addToShotWithoutPosition,
+        onCreateShot,
+        positionedInSelectedShot: shotSelection.lightboxShotState.positionedInSelectedShot,
+        associatedWithoutPositionInSelectedShot: shotSelection.lightboxShotState.associatedWithoutPositionInSelectedShot,
       },
-      showTaskDetails: true,
+      actions: {
+        onDelete: !readOnly
+          ? (mediaId: string) => onImageDelete(mediaId)
+          : undefined,
+        starred: media.currentLightboxImage.starred ?? false,
+      },
+      features: {
+        showTaskDetails: true,
+        showMagicEdit: true,
+        initialEditActive: lightbox.initialEditActive,
+      },
       taskDetailsData: {
         task: taskDetails.task ?? null,
         isLoading: taskDetails.isLoadingTask,
@@ -318,8 +325,6 @@ const Timeline: React.FC<TimelineProps> = ({
         taskId: taskDetails.task?.id || null,
         onClose: lightbox.closeLightbox,
       },
-      showMagicEdit: true,
-      initialEditActive: lightbox.initialEditActive,
     };
   }, [
     allShots,

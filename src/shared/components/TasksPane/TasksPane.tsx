@@ -395,32 +395,38 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
         <MediaLightbox
           media={lightboxProps.media}
           onClose={handleCloseLightbox}
-          onNext={lightboxProps.onNext}
-          onPrevious={lightboxProps.onPrevious}
-          showNavigation={lightboxProps.showNavigation}
-          hasNext={lightboxProps.hasNext}
-          hasPrevious={lightboxProps.hasPrevious}
-          showImageEditTools={lightboxProps.showImageEditTools}
-          showDownload={true}
-          showMagicEdit={lightboxProps.showMagicEdit}
-          showTaskDetails={true}
+          navigation={{
+            onNext: lightboxProps.onNext,
+            onPrevious: lightboxProps.onPrevious,
+            showNavigation: lightboxProps.showNavigation,
+            hasNext: lightboxProps.hasNext,
+            hasPrevious: lightboxProps.hasPrevious,
+          }}
+          features={{
+            showImageEditTools: lightboxProps.showImageEditTools,
+            showDownload: true,
+            showMagicEdit: lightboxProps.showMagicEdit,
+            showTaskDetails: true,
+          }}
           taskDetailsData={taskDetailsData ?? undefined}
-          allShots={simplifiedShotOptions}
-          selectedShotId={lightboxSelectedShotId || currentShotId || lastAffectedShotId || undefined}
-          onShotChange={setLightboxSelectedShotId}
-          onAddToShot={handleAddToShot}
-          onAddToShotWithoutPosition={handleAddToShotWithoutPosition}
-          optimisticPositionedIds={optimisticPositionedIds}
-          optimisticUnpositionedIds={optimisticUnpositionedIds}
-          onOptimisticPositioned={handleOptimisticPositioned}
-          onOptimisticUnpositioned={handleOptimisticUnpositioned}
+          shotWorkflow={{
+            allShots: simplifiedShotOptions,
+            selectedShotId: lightboxSelectedShotId || currentShotId || lastAffectedShotId || undefined,
+            onShotChange: setLightboxSelectedShotId,
+            onAddToShot: handleAddToShot,
+            onAddToShotWithoutPosition: handleAddToShotWithoutPosition,
+            optimisticPositionedIds,
+            optimisticUnpositionedIds,
+            onOptimisticPositioned: handleOptimisticPositioned,
+            onOptimisticUnpositioned: handleOptimisticUnpositioned,
+            onShowTick: async () => {},
+          }}
           showTickForImageId={undefined}
-          onShowTick={async () => {}}
           onOpenExternalGeneration={handleOpenExternalGeneration}
           tasksPaneOpen={true}
           tasksPaneWidth={tasksPaneWidth}
           initialVariantId={lightboxProps.initialVariantId}
-          fetchVariantsForSelf={lightboxProps.fetchVariantsForSelf}
+          videoProps={{ fetchVariantsForSelf: lightboxProps.fetchVariantsForSelf }}
         />,
         document.body
       )}

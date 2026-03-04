@@ -8,10 +8,10 @@
 
 import type { ImageEditState, ImageEditMode } from '../contexts/ImageEditContext';
 import type { EditAdvancedSettings, LoraMode, QwenEditModel } from './editSettingsTypes';
-import type { useInpainting } from './useInpainting';
-import type { useMagicEditMode } from './useMagicEditMode';
-import type { useRepositionMode } from './useRepositionMode';
-import type { useImg2ImgMode } from './useImg2ImgMode';
+import type { useInpainting } from '../hooks/useInpainting';
+import type { useMagicEditMode } from '../hooks/useMagicEditMode';
+import type { useRepositionMode } from '../hooks/useRepositionMode';
+import type { useImg2ImgMode } from '../hooks/useImg2ImgMode';
 
 export interface BuildImageEditStateParams {
   // Hook results (provide all canvas/status fields)

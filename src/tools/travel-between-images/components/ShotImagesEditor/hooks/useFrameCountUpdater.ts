@@ -144,7 +144,7 @@ export function useFrameCountUpdater({
       await runSerializedTimelineWrite(
         shotId,
         'segment-trailing-frame-update',
-        async () => {
+        async (signal) => {
 
           const current = await runTimelineWriteWithTimeout(
             'segment-trailing-fetch-metadata',
@@ -157,6 +157,7 @@ export function useFrameCountUpdater({
               return data;
             },
             {
+              upstreamSignal: signal,
               onTimeout: ({ pendingMs, timeoutMs }) => {
                 log(`${SEGMENT_FRAME_LOG_PREFIX} trailing metadata fetch timed out`, {
                   shotId: shortId(shotId),
@@ -185,6 +186,7 @@ export function useFrameCountUpdater({
               if (error) throw error;
             },
             {
+              upstreamSignal: signal,
               onTimeout: ({ pendingMs, timeoutMs }) => {
                 log(`${SEGMENT_FRAME_LOG_PREFIX} trailing metadata update timed out`, {
                   shotId: shortId(shotId),
@@ -273,7 +275,7 @@ export function useFrameCountUpdater({
     await runSerializedTimelineWrite(
       shotId,
       'segment-pair-frame-update',
-      async () => {
+      async (signal) => {
         await persistTimelineFrameBatch({
           shotId,
           updates: updates.map((update) => ({
@@ -286,6 +288,7 @@ export function useFrameCountUpdater({
           })),
           operationLabel: 'segment-pair-frame-update',
           timeoutOperationName: 'segment-pair-frame-rpc',
+          signal,
           logPrefix: SEGMENT_FRAME_LOG_PREFIX,
           log: (message, payload) => {
             log(message, {

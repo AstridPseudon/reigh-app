@@ -305,21 +305,28 @@ export const SegmentOutputStrip: React.FC<SegmentOutputStripProps> = ({
         <MediaLightbox
           media={lightboxMedia}
           onClose={handleLightboxClose}
-          onNext={handleLightboxNext}
-          onPrevious={handleLightboxPrev}
-          showNavigation={true}
-          showImageEditTools={false}
-          showDownload={true}
-          hasNext={childSlotIndices.length > 1}
-          hasPrevious={childSlotIndices.length > 1}
-          starred={currentLightboxMedia?.starred ?? false}
+          navigation={{
+            onNext: handleLightboxNext,
+            onPrevious: handleLightboxPrev,
+            showNavigation: true,
+            hasNext: childSlotIndices.length > 1,
+            hasPrevious: childSlotIndices.length > 1,
+          }}
+          features={{
+            showImageEditTools: false,
+            showDownload: true,
+            showTaskDetails: true,
+          }}
+          actions={{
+            starred: currentLightboxMedia?.starred ?? false,
+          }}
           shotId={shotId}
-          showTaskDetails={true}
-          showVideoTrimEditor={true}
-          fetchVariantsForSelf={true}
-          currentSegmentImages={lightboxCurrentSegmentImages}
-          onSegmentFrameCountChange={onSegmentFrameCountChange}
-          currentFrameCount={lightboxCurrentFrameCount}
+          videoProps={{
+            fetchVariantsForSelf: true,
+            currentSegmentImages: lightboxCurrentSegmentImages,
+            onSegmentFrameCountChange,
+            currentFrameCount: lightboxCurrentFrameCount,
+          }}
         />
       )}
 

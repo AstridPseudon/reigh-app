@@ -228,7 +228,6 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
             media={lightbox.currentImages[lightbox.lightboxIndex]}
             shotId={props.shotId}
             toolTypeOverride={props.toolTypeOverride}
-            initialEditActive={lightbox.shouldAutoEnterInpaint}
             initialVariantId={capturedVariantIdRef.current ?? undefined}
             onClose={() => {
               capturedVariantIdRef.current = null;
@@ -242,18 +241,24 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
               // Reset dropdown to current shot when closing
               setLightboxSelectedShotId?.(props.selectedShotId);
             }}
-            onNext={lightbox.handleNext}
-            onPrevious={lightbox.handlePrevious}
-            showNavigation={true}
-            showImageEditTools={true}
-            showDownload={true}
-            showMagicEdit={true}
-            hasNext={hasNext}
-            hasPrevious={hasPrevious}
-            starred={lightbox.currentImages[lightbox.lightboxIndex]?.starred || false}
-            onMagicEdit={props.onMagicEdit}
+            navigation={{
+              onNext: lightbox.handleNext,
+              onPrevious: lightbox.handlePrevious,
+              showNavigation: true,
+              hasNext,
+              hasPrevious,
+            }}
+            features={{
+              showImageEditTools: true,
+              showDownload: true,
+              showMagicEdit: true,
+              showTaskDetails: true,
+              initialEditActive: lightbox.shouldAutoEnterInpaint,
+            }}
+            actions={{
+              starred: lightbox.currentImages[lightbox.lightboxIndex]?.starred || false,
+            }}
             readOnly={props.readOnly}
-            showTaskDetails={true}
             taskDetailsData={taskDetailsData ?? undefined}
             adjacentSegments={adjacentSegmentsData}
             onNavigateToGeneration={(generationId: string) => {
@@ -272,26 +277,31 @@ export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapp
               }
             }}
             onOpenExternalGeneration={externalGens.handleOpenExternalGeneration}
-            allShots={props.allShots}
-            selectedShotId={isExternalGen ? externalGens.externalGenLightboxSelectedShot : (lightboxSelectedShotId || props.selectedShotId)}
-            onShotChange={isExternalGen ? (shotId) => {
-              externalGens.setExternalGenLightboxSelectedShot(shotId);
-            } : (shotId) => {
-              setLightboxSelectedShotId?.(shotId);
-              props.onShotChange?.(shotId);
+            shotWorkflow={{
+              allShots: props.allShots,
+              selectedShotId: isExternalGen
+                ? externalGens.externalGenLightboxSelectedShot
+                : (lightboxSelectedShotId || props.selectedShotId),
+              onShotChange: isExternalGen
+                ? (shotId) => {
+                    externalGens.setExternalGenLightboxSelectedShot(shotId);
+                  }
+                : (shotId) => {
+                    setLightboxSelectedShotId?.(shotId);
+                    props.onShotChange?.(shotId);
+                  },
+              onAddToShot: isExternalGen ? externalGens.handleExternalGenAddToShot : props.onAddToShot,
+              onAddToShotWithoutPosition: isExternalGen
+                ? externalGens.handleExternalGenAddToShotWithoutPosition
+                : props.onAddToShotWithoutPosition,
+              onCreateShot: props.onCreateShot,
+              positionedInSelectedShot,
+              associatedWithoutPositionInSelectedShot,
+              onShowTick: setShowTickForImageId,
+              onShowSecondaryTick: setShowTickForSecondaryImageId,
             }}
-            onAddToShot={(() => {
-              const result = isExternalGen ? externalGens.handleExternalGenAddToShot : props.onAddToShot;
-              return result;
-            })()}
-            onAddToShotWithoutPosition={isExternalGen ? externalGens.handleExternalGenAddToShotWithoutPosition : props.onAddToShotWithoutPosition}
-            onCreateShot={props.onCreateShot}
-            positionedInSelectedShot={positionedInSelectedShot}
-            associatedWithoutPositionInSelectedShot={associatedWithoutPositionInSelectedShot}
             showTickForImageId={showTickForImageId}
-            onShowTick={setShowTickForImageId}
             showTickForSecondaryImageId={showTickForSecondaryImageId}
-            onShowSecondaryTick={setShowTickForSecondaryImageId}
           />
         );
       })()}

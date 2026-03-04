@@ -55,6 +55,7 @@ const TIMELINE_WRITE_TIMEOUT_CODE = 'TIMELINE_WRITE_TIMEOUT';
 interface TimelineWriteTimeoutOptions {
   timeoutMs?: number;
   onTimeout?: (meta: { operation: string; timeoutMs: number; pendingMs: number }) => void;
+  upstreamSignal?: AbortSignal;
 }
 
 class TimelineWriteTimeoutError extends Error {
@@ -94,6 +95,20 @@ export async function runTimelineWriteWithTimeout<T>(
   const startedAt = Date.now();
   const controller = new AbortController();
   let timedOut = false;
+  let abortedByUpstream = false;
+
+  const upstreamSignal = options?.upstreamSignal;
+  const handleUpstreamAbort = () => {
+    abortedByUpstream = true;
+    controller.abort();
+  };
+  if (upstreamSignal) {
+    if (upstreamSignal.aborted) {
+      handleUpstreamAbort();
+    } else {
+      upstreamSignal.addEventListener('abort', handleUpstreamAbort, { once: true });
+    }
+  }
 
   const timeoutId = setTimeout(() => {
     timedOut = true;
@@ -108,12 +123,15 @@ export async function runTimelineWriteWithTimeout<T>(
   try {
     return await task(controller.signal);
   } catch (error) {
-    if (timedOut || (controller.signal.aborted && isAbortError(error))) {
+    if (timedOut || (abortedByUpstream && controller.signal.aborted) || (controller.signal.aborted && isAbortError(error))) {
       throw new TimelineWriteTimeoutError(operation, timeoutMs, error);
     }
     throw error;
   } finally {
     clearTimeout(timeoutId);
+    if (upstreamSignal) {
+      upstreamSignal.removeEventListener('abort', handleUpstreamAbort);
+    }
   }
 }
 
@@ -132,50 +150,6 @@ interface TimelineSerializedWriteOptions {
     pendingMs: number;
     requestId: number;
   }) => void;
-}
-
-function runSerializedTaskWithTimeout<T>(
-  operation: string,
-  task: () => Promise<T>,
-  timeoutMs: number,
-  onTimeout: () => void,
-): Promise<T> {
-  if (timeoutMs <= 0) {
-    return task();
-  }
-
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const timeoutId = setTimeout(() => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      onTimeout();
-      reject(new TimelineWriteTimeoutError(operation, timeoutMs));
-    }, timeoutMs);
-
-    Promise.resolve()
-      .then(task)
-      .then(
-        (result) => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          clearTimeout(timeoutId);
-          resolve(result);
-        },
-        (error) => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          clearTimeout(timeoutId);
-          reject(error);
-        },
-      );
-  });
 }
 
 /**
@@ -198,7 +172,7 @@ export function isTimelineWriteActive(shotId: string): boolean {
 export async function runSerializedTimelineWrite<T>(
   shotId: string,
   operation: string,
-  task: () => Promise<T>,
+  task: (signal: AbortSignal) => Promise<T>,
   onEvent?: TimelineWriteEventHandler,
   options?: TimelineSerializedWriteOptions,
 ): Promise<T> {
@@ -250,18 +224,20 @@ export async function runSerializedTimelineWrite<T>(
 
   try {
     const timeoutMs = options?.timeoutMs ?? DEFAULT_SERIALIZED_TIMELINE_TASK_TIMEOUT_MS;
-    return await runSerializedTaskWithTimeout(
+    return await runTimelineWriteWithTimeout(
       operation,
       task,
-      timeoutMs,
-      () => {
-        options?.onTimeout?.({
-          shotId,
-          operation,
-          timeoutMs,
-          pendingMs: Date.now() - startedAt,
-          requestId,
-        });
+      {
+        timeoutMs,
+        onTimeout: ({ pendingMs }) => {
+          options?.onTimeout?.({
+            shotId,
+            operation,
+            timeoutMs,
+            pendingMs,
+            requestId,
+          });
+        },
       },
     );
   } finally {

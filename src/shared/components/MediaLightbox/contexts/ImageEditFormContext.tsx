@@ -14,8 +14,8 @@ import type {
   LoraMode,
   QwenEditModel,
   EditAdvancedSettings,
-} from '../hooks/editSettingsTypes';
-import { DEFAULT_ADVANCED_SETTINGS } from '../hooks/editSettingsTypes';
+} from '../model/editSettingsTypes';
+import { DEFAULT_ADVANCED_SETTINGS } from '../model/editSettingsTypes';
 
 export type { LoraMode };
 

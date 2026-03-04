@@ -41,6 +41,7 @@ interface PersistSingleTimelineFrameInput {
   shotId: string;
   shotGenerationId: string;
   frame: number;
+  signal?: AbortSignal;
   logPrefix: string;
   log: TimelineLogFn;
 }
@@ -49,6 +50,7 @@ export async function persistSingleTimelineFrame({
   shotId,
   shotGenerationId,
   frame,
+  signal,
   logPrefix,
   log,
 }: PersistSingleTimelineFrameInput): Promise<void> {
@@ -68,6 +70,7 @@ export async function persistSingleTimelineFrame({
       }
     },
     {
+      upstreamSignal: signal,
       onTimeout: ({ pendingMs, timeoutMs }) => {
         log(`${logPrefix} updateTimelineFrame timed out`, {
           shotId: shortNullableId(shotId),
@@ -122,6 +125,7 @@ interface PersistTimelineFrameBatchUpdatesInput {
   operationLabel: string;
   timeoutOperationName: string;
   dragSource: 'batch-exchange' | 'batch-midpoint';
+  signal?: AbortSignal;
   logPrefix: string;
   log: TimelineLogFn;
 }
@@ -132,6 +136,7 @@ export async function persistTimelineFrameBatchUpdates({
   operationLabel,
   timeoutOperationName,
   dragSource,
+  signal,
   logPrefix,
   log,
 }: PersistTimelineFrameBatchUpdatesInput): Promise<void> {
@@ -147,6 +152,7 @@ export async function persistTimelineFrameBatchUpdates({
     })),
     operationLabel,
     timeoutOperationName,
+    signal,
     logPrefix,
     log,
   });
@@ -156,6 +162,7 @@ interface SyncTimelineGenerationFramesInput {
   shotId: string;
   targets: Array<{ generationId: string; frame: number }>;
   syncShotData: (generationId: string, targetShotId: string, frame: number) => Promise<void>;
+  signal?: AbortSignal;
   logPrefix: string;
   log: TimelineLogFn;
   ignoreTimeout?: boolean;
@@ -165,6 +172,7 @@ export async function syncTimelineGenerationFrames({
   shotId,
   targets,
   syncShotData,
+  signal,
   logPrefix,
   log,
   ignoreTimeout = false,
@@ -183,6 +191,7 @@ export async function syncTimelineGenerationFrames({
       },
       {
         timeoutMs: 10_000,
+        upstreamSignal: signal,
         onTimeout: ({ pendingMs, timeoutMs }) => {
           log(`${logPrefix} shot_data sync timed out`, {
             shotId: shortNullableId(shotId),

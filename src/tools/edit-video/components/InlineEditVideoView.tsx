@@ -28,8 +28,8 @@ import { useVideoTrimming, useTrimSave } from '@/shared/components/VideoTrimEdit
 import { ModeSelector } from '@/shared/components/MediaLightbox/components/ModeSelector';
 import { VideoEnhanceForm } from '@/shared/components/MediaLightbox/components/VideoEnhanceForm';
 import { useVideoEnhance } from '@/shared/components/MediaLightbox/hooks/useVideoEnhance';
-import { DEFAULT_ENHANCE_SETTINGS } from '@/shared/components/MediaLightbox/hooks/editSettingsTypes';
-import type { VideoEnhanceSettings } from '@/shared/components/MediaLightbox/hooks/editSettingsTypes';
+import { DEFAULT_ENHANCE_SETTINGS } from '@/shared/components/MediaLightbox/model/editSettingsTypes';
+import type { VideoEnhanceSettings } from '@/shared/components/MediaLightbox/model/editSettingsTypes';
 import { VideoEditModeDisplay } from '@/shared/components/MediaLightbox/components/VideoEditModeDisplay';
 import { VideoTrimModeDisplay } from '@/shared/components/MediaLightbox/components/VideoTrimModeDisplay';
 import { MediaDisplayWithCanvas } from '@/shared/components/MediaLightbox/components/MediaDisplayWithCanvas';

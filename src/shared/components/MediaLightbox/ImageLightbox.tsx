@@ -14,7 +14,7 @@
  * ImageLightbox or VideoLightbox based on media type.
  */
 
-import React, { useMemo, useEffect, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { OverlayViewportConstraints } from '@/features/layout/contracts/overlayViewportConstraints';
 import type {
@@ -46,8 +46,7 @@ import { ImageEditProvider } from './contexts/ImageEditContext';
 import type { WorkflowControlsBarProps } from './components/WorkflowControlsBar';
 import type { LightboxLayoutProps } from './components/layouts/types';
 
-import { handleLightboxDownload } from './utils';
-import { invokeLightboxDelete } from './utils';
+import { handleLightboxDownload, invokeLightboxDelete } from './utils';
 
 // Re-export grouped sub-interfaces for consumers that import from ImageLightbox
 export type {
@@ -108,19 +107,18 @@ function useImageLightboxRenderModel(
     media,
     onClose,
     readOnly = false,
+    adjacentSegments,
     showTickForImageId,
     showTickForSecondaryImageId,
-    adjacentSegments,
   } = props;
 
   const navigation = props.navigation;
   const shotWorkflow = props.shotWorkflow;
-  const features = props.features;
-  const actions = props.actions;
 
   const { sharedState, handleSlotNavNext, handleSlotNavPrev } = sharedModel;
   const { editOrchestrator, adjustedTaskDetailsData, variantBadges } = editModel;
 
+  // --- Variant state for LightboxStateContext ---
   const lightboxVariants = useMemo(() => ({
     variants: sharedState.variants.list,
     activeVariant: sharedState.variants.activeVariant,
@@ -141,37 +139,112 @@ function useImageLightboxRenderModel(
     onMarkAllViewed: variantBadges.handleMarkAllViewed,
     variantsSectionRef: env.variantsSectionRef,
   }), [
-    sharedState.variants.list,
-    sharedState.variants.activeVariant,
-    sharedState.variants.primaryVariant,
-    sharedState.variants.isLoading,
-    sharedState.variants.setActiveVariantId,
-    sharedState.variants.setPrimaryVariant,
-    sharedState.variants.deleteVariant,
-    env.setVariantParamsToLoad,
-    sharedState.variants.promoteSuccess,
-    sharedState.variants.isPromoting,
-    sharedState.variants.handlePromoteToGeneration,
-    sharedState.makeMainVariant.isMaking,
-    sharedState.makeMainVariant.canMake,
-    sharedState.makeMainVariant.handle,
-    variantBadges.pendingTaskCount,
-    variantBadges.unviewedVariantCount,
-    variantBadges.handleMarkAllViewed,
-    env.variantsSectionRef,
+    sharedState.variants, env.setVariantParamsToLoad,
+    sharedState.makeMainVariant, variantBadges, env.variantsSectionRef,
   ]);
+
+  // --- Action handlers ---
+  const handleDownload = useCallback(() => {
+    return handleLightboxDownload({
+      intendedVariantId: sharedState.intendedActiveVariantIdRef.current,
+      variants: sharedState.variants.list,
+      fallbackUrl: sharedState.effectiveMedia.mediaUrl ?? '',
+      media, isVideo: false, setIsDownloading: env.setIsDownloading,
+    });
+  }, [sharedState.intendedActiveVariantIdRef, sharedState.variants.list, sharedState.effectiveMedia.mediaUrl, media, env.setIsDownloading]);
+
+  const handleDelete = useCallback(async (): Promise<void> => {
+    if (!props.actions?.onDelete) return;
+    await invokeLightboxDelete(props.actions.onDelete, media.id, 'ImageLightbox.delete');
+  }, [props.actions?.onDelete, media.id]);
+
+  const handleApplySettings = useCallback(() => {
+    props.actions?.onApplySettings?.(media.metadata);
+  }, [props.actions?.onApplySettings, media.metadata]);
+
+  // --- Workflow bar ---
+  const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
+    if (!shotWorkflow?.onNavigateToShot) return;
+    onClose();
+    shotWorkflow.onNavigateToShot({ id: shot.id, name: shot.name, images: [], position: 0 });
+  }, [onClose, shotWorkflow]);
+
+  const allShots = useMemo(() => shotWorkflow?.allShots ?? [], [shotWorkflow?.allShots]);
+  const selectedShotId = shotWorkflow?.selectedShotId;
+
+  const workflowBar = useMemo(() => ({
+    core: {
+      onDelete: props.actions?.onDelete,
+      onApplySettings: props.actions?.onApplySettings,
+      isSpecialEditMode: editOrchestrator.isSpecialEditMode,
+      isVideo: false,
+      handleApplySettings,
+    },
+    shotSelector: shotWorkflow?.onAddToShot
+      ? {
+          mediaId: env.actualGenerationId ?? media.id,
+          imageUrl: sharedState.effectiveMedia.mediaUrl ?? '',
+          thumbUrl: media.thumbUrl,
+          allShots, selectedShotId,
+          onShotChange: shotWorkflow?.onShotChange,
+          onCreateShot: shotWorkflow?.onCreateShot,
+          isAlreadyPositionedInSelectedShot: sharedState.shots.isAlreadyPositionedInSelectedShot,
+          isAlreadyAssociatedWithoutPosition: sharedState.shots.isAlreadyAssociatedWithoutPosition,
+          showTickForImageId, showTickForSecondaryImageId,
+          onAddToShot: shotWorkflow.onAddToShot,
+          onAddToShotWithoutPosition: shotWorkflow?.onAddToShotWithoutPosition,
+          onAddVariantAsNewGeneration: sharedState.variants.handleAddVariantAsNewGenerationToShot,
+          activeVariantId: sharedState.variants.activeVariant?.id || sharedState.variants.primaryVariant?.id,
+          currentTimelineFrame: media.timeline_frame ?? undefined,
+          onShowTick: shotWorkflow?.onShowTick,
+          onOptimisticPositioned: shotWorkflow?.onOptimisticPositioned,
+          onShowSecondaryTick: shotWorkflow?.onShowSecondaryTick,
+          onOptimisticUnpositioned: shotWorkflow?.onOptimisticUnpositioned,
+          isAdding: false, isAddingWithoutPosition: false,
+          contentRef: env.contentRef,
+          onNavigateToShot: handleNavigateToShotFromSelector,
+          onClose,
+        }
+      : undefined,
+  } satisfies WorkflowControlsBarProps), [
+    props.actions?.onDelete, props.actions?.onApplySettings,
+    editOrchestrator.isSpecialEditMode, handleApplySettings,
+    shotWorkflow, env.actualGenerationId, env.contentRef,
+    media.id, media.thumbUrl, media.timeline_frame,
+    sharedState.effectiveMedia.mediaUrl, allShots, selectedShotId,
+    sharedState.shots.isAlreadyPositionedInSelectedShot,
+    sharedState.shots.isAlreadyAssociatedWithoutPosition,
+    showTickForImageId, showTickForSecondaryImageId,
+    sharedState.variants.handleAddVariantAsNewGenerationToShot,
+    sharedState.variants.activeVariant?.id, sharedState.variants.primaryVariant?.id,
+    handleNavigateToShotFromSelector, onClose,
+  ]);
+
+  // --- Panel layout ---
+  const showTaskDetails = props.features?.showTaskDetails ?? false;
+  const showPanel = sharedState.layout.shouldShowSidePanel
+    || ((showTaskDetails || editOrchestrator.isSpecialEditMode) && env.isMobile);
+  const panelVariant = (sharedState.layout.shouldShowSidePanel && !env.isMobile)
+    ? 'desktop' as const : 'mobile' as const;
+  const panelTaskId = adjustedTaskDetailsData?.taskId || media?.source_task_id || null;
+
+  const needsFullscreenLayout = true;
+  const needsTasksPaneOffset = needsFullscreenLayout
+    && (env.effectiveTasksPaneOpen || env.isTasksPaneLocked)
+    && !sharedState.layout.isPortraitMode
+    && sharedState.layout.isTabletOrLarger;
+
+  // --- Build lightbox state value ---
   const lightboxStateValue = useMemo(() => ({
     core: {
-      onClose,
-      readOnly,
+      onClose, readOnly,
       isMobile: env.isMobile,
       isTabletOrLarger: sharedState.layout.isTabletOrLarger,
       selectedProjectId: env.selectedProjectId,
       actualGenerationId: env.actualGenerationId,
     },
     media: {
-      media,
-      isVideo: false,
+      media, isVideo: false,
       effectiveMediaUrl: sharedState.effectiveMedia.mediaUrl ?? '',
       effectiveVideoUrl: '',
       effectiveImageDimensions: sharedState.effectiveMedia.imageDimensions,
@@ -183,166 +256,21 @@ function useImageLightboxRenderModel(
       showNavigation: navigation?.showNavigation ?? true,
       hasNext: navigation?.hasNext ?? false,
       hasPrevious: navigation?.hasPrevious ?? false,
-      handleSlotNavNext,
-      handleSlotNavPrev,
+      handleSlotNavNext, handleSlotNavPrev,
       swipeNavigation: sharedState.navigation.swipeNavigation,
     },
   }), [
-    onClose,
-    readOnly,
-    env.isMobile,
-    sharedState.layout.isTabletOrLarger,
-    env.selectedProjectId,
-    env.actualGenerationId,
-    media,
-    sharedState.effectiveMedia.mediaUrl,
-    sharedState.effectiveMedia.imageDimensions,
-    env.imageDimensions,
-    env.setImageDimensions,
-    lightboxVariants,
-    navigation?.showNavigation,
-    navigation?.hasNext,
-    navigation?.hasPrevious,
-    handleSlotNavNext,
-    handleSlotNavPrev,
-    sharedState.navigation.swipeNavigation,
+    onClose, readOnly, env.isMobile, sharedState.layout.isTabletOrLarger,
+    env.selectedProjectId, env.actualGenerationId, media,
+    sharedState.effectiveMedia.mediaUrl, sharedState.effectiveMedia.imageDimensions,
+    env.imageDimensions, env.setImageDimensions, lightboxVariants,
+    navigation?.showNavigation, navigation?.hasNext, navigation?.hasPrevious,
+    handleSlotNavNext, handleSlotNavPrev, sharedState.navigation.swipeNavigation,
   ]);
-
-  const handleDownload = useCallback(() => {
-    return handleLightboxDownload({
-      intendedVariantId: sharedState.intendedActiveVariantIdRef.current,
-      variants: sharedState.variants.list,
-      fallbackUrl: sharedState.effectiveMedia.mediaUrl ?? '',
-      media,
-      isVideo: false,
-      setIsDownloading: env.setIsDownloading,
-    });
-  }, [
-    sharedState.intendedActiveVariantIdRef,
-    sharedState.variants.list,
-    sharedState.effectiveMedia.mediaUrl,
-    media,
-    env.setIsDownloading,
-  ]);
-
-  const handleDelete = useCallback(async (): Promise<void> => {
-    if (!actions?.onDelete) {
-      return;
-    }
-    await invokeLightboxDelete(actions.onDelete, media.id, 'ImageLightbox.delete');
-  }, [actions?.onDelete, media.id]);
-
-  const onApplySettings = actions?.onApplySettings;
-  const handleApplySettings = useCallback(() => {
-    onApplySettings?.(media.metadata);
-  }, [onApplySettings, media.metadata]);
-
-  const onNavigateToShot = shotWorkflow?.onNavigateToShot;
-  const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
-    if (!onNavigateToShot) return;
-    const minimalShot = { id: shot.id, name: shot.name, images: [], position: 0 };
-    onClose();
-    onNavigateToShot(minimalShot);
-  }, [onClose, onNavigateToShot]);
-
-  const showTaskDetails = features?.showTaskDetails ?? false;
-
-  const needsFullscreenLayout = true;
-  const needsTasksPaneOffset = needsFullscreenLayout
-    && (env.effectiveTasksPaneOpen || env.isTasksPaneLocked)
-    && !sharedState.layout.isPortraitMode
-    && sharedState.layout.isTabletOrLarger;
-
-  const accessibilityTitle = `Image Lightbox - ${media?.id?.substring(0, 8)}`;
-  const accessibilityDescription = 'View and interact with image in full screen. Use arrow keys to navigate, Escape to close.';
-
-  const showPanel = sharedState.layout.shouldShowSidePanel
-    || ((showTaskDetails || editOrchestrator.isSpecialEditMode) && env.isMobile);
-
-  const panelVariant = (sharedState.layout.shouldShowSidePanel && !env.isMobile) ? 'desktop' as const : 'mobile' as const;
-  const panelTaskId = adjustedTaskDetailsData?.taskId
-    || media?.source_task_id
-    || null;
 
   const controlsPanelContent = useImageLightboxControlsPanel(
-    props,
-    env,
-    sharedModel,
-    editModel,
-    showPanel,
-    panelVariant,
-    panelTaskId,
+    props, env, sharedModel, editModel, showPanel, panelVariant, panelTaskId,
   );
-  const allShots = useMemo(() => shotWorkflow?.allShots ?? [], [shotWorkflow?.allShots]);
-  const selectedShotId = shotWorkflow?.selectedShotId;
-  const workflowBar = useMemo(() => ({
-    core: {
-      onDelete: actions?.onDelete,
-      onApplySettings: actions?.onApplySettings,
-      isSpecialEditMode: editOrchestrator.isSpecialEditMode,
-      isVideo: false,
-      handleApplySettings,
-    },
-    shotSelector: shotWorkflow?.onAddToShot
-      ? {
-          mediaId: env.actualGenerationId ?? media.id,
-          imageUrl: sharedState.effectiveMedia.mediaUrl ?? '',
-          thumbUrl: media.thumbUrl,
-          allShots,
-          selectedShotId,
-          onShotChange: shotWorkflow?.onShotChange,
-          onCreateShot: shotWorkflow?.onCreateShot,
-          isAlreadyPositionedInSelectedShot: sharedState.shots.isAlreadyPositionedInSelectedShot,
-          isAlreadyAssociatedWithoutPosition: sharedState.shots.isAlreadyAssociatedWithoutPosition,
-          showTickForImageId,
-          showTickForSecondaryImageId,
-          onAddToShot: shotWorkflow.onAddToShot,
-          onAddToShotWithoutPosition: shotWorkflow?.onAddToShotWithoutPosition,
-          onAddVariantAsNewGeneration: sharedState.variants.handleAddVariantAsNewGenerationToShot,
-          activeVariantId: sharedState.variants.activeVariant?.id || sharedState.variants.primaryVariant?.id,
-          currentTimelineFrame: media.timeline_frame ?? undefined,
-          onShowTick: shotWorkflow?.onShowTick,
-          onOptimisticPositioned: shotWorkflow?.onOptimisticPositioned,
-          onShowSecondaryTick: shotWorkflow?.onShowSecondaryTick,
-          onOptimisticUnpositioned: shotWorkflow?.onOptimisticUnpositioned,
-          isAdding: false,
-          isAddingWithoutPosition: false,
-          contentRef: env.contentRef,
-          onNavigateToShot: handleNavigateToShotFromSelector,
-          onClose,
-        }
-      : undefined,
-  } satisfies WorkflowControlsBarProps), [
-    actions?.onDelete,
-    actions?.onApplySettings,
-    editOrchestrator.isSpecialEditMode,
-    handleApplySettings,
-    shotWorkflow?.onAddToShot,
-    env.actualGenerationId,
-    env.contentRef,
-    media.id,
-    media.thumbUrl,
-    media.timeline_frame,
-    sharedState.effectiveMedia.mediaUrl,
-    allShots,
-    selectedShotId,
-    shotWorkflow?.onShotChange,
-    shotWorkflow?.onCreateShot,
-    sharedState.shots.isAlreadyPositionedInSelectedShot,
-    sharedState.shots.isAlreadyAssociatedWithoutPosition,
-    showTickForImageId,
-    showTickForSecondaryImageId,
-    shotWorkflow?.onAddToShotWithoutPosition,
-    shotWorkflow?.onShowTick,
-    shotWorkflow?.onOptimisticPositioned,
-    shotWorkflow?.onShowSecondaryTick,
-    shotWorkflow?.onOptimisticUnpositioned,
-    handleNavigateToShotFromSelector,
-    onClose,
-    sharedState.variants.handleAddVariantAsNewGenerationToShot,
-    sharedState.variants.activeVariant?.id,
-    sharedState.variants.primaryVariant?.id,
-  ]);
 
   const layoutProps = useMemo(() => ({
     showPanel,
@@ -355,34 +283,23 @@ function useImageLightboxRenderModel(
       bottomRight: sharedState.buttonGroupProps.bottomRight,
       topRight: {
         ...sharedState.buttonGroupProps.topRight,
-        handleDownload,
-        handleDelete,
+        handleDownload, handleDelete,
       },
     },
     adjacentSegments,
     segmentSlotMode: undefined,
   } satisfies LightboxLayoutProps), [
-    showPanel,
-    sharedState.layout.shouldShowSidePanel,
-    env.effectiveTasksPaneOpen,
-    env.effectiveTasksPaneWidth,
-    workflowBar,
-    sharedState.buttonGroupProps.bottomLeft,
-    sharedState.buttonGroupProps.bottomRight,
-    sharedState.buttonGroupProps.topRight,
-    handleDownload,
-    handleDelete,
-    adjacentSegments,
+    showPanel, sharedState.layout.shouldShowSidePanel,
+    env.effectiveTasksPaneOpen, env.effectiveTasksPaneWidth, workflowBar,
+    sharedState.buttonGroupProps.bottomLeft, sharedState.buttonGroupProps.bottomRight,
+    sharedState.buttonGroupProps.topRight, handleDownload, handleDelete, adjacentSegments,
   ]);
 
   return {
-    lightboxStateValue,
-    layoutProps,
-    controlsPanelContent,
-    needsFullscreenLayout,
-    needsTasksPaneOffset,
-    accessibilityTitle,
-    accessibilityDescription,
+    lightboxStateValue, layoutProps, controlsPanelContent,
+    needsFullscreenLayout, needsTasksPaneOffset,
+    accessibilityTitle: `Image Lightbox - ${media?.id?.substring(0, 8)}`,
+    accessibilityDescription: 'View and interact with image in full screen. Use arrow keys to navigate, Escape to close.',
   };
 }
 

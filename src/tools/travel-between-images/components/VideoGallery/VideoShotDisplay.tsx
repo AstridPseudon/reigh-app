@@ -828,14 +828,17 @@ const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({ shot, onSelectShot,
         <MediaLightbox
           media={finalVideoRow}
           onClose={() => setFinalVideoLightboxOpen(false)}
-          showNavigation={false}
-          showImageEditTools={false}
-          showDownload={true}
-          hasNext={false}
-          hasPrevious={false}
-          starred={false}
+          navigation={{
+            showNavigation: false,
+            hasNext: false,
+            hasPrevious: false,
+          }}
+          features={{
+            showImageEditTools: false,
+            showDownload: true,
+          }}
+          actions={{ starred: false }}
           shotId={shot.id}
-          showVideoTrimEditor={true}
         />
       )}
     </>

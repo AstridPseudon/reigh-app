@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import { useGenerationEditSettings } from './useGenerationEditSettings';
-import { useLastUsedEditSettings } from './useLastUsedEditSettings';
+import { useGenerationEditSettings } from '../useGenerationEditSettings';
+import { useLastUsedEditSettings } from '../useLastUsedEditSettings';
 
 // Import canonical types from single source of truth
 import {
@@ -16,7 +16,7 @@ import {
   DEFAULT_EDIT_SETTINGS,
   DEFAULT_ADVANCED_SETTINGS,
   DEFAULT_ENHANCE_SETTINGS,
-} from './editSettingsTypes';
+} from '../../model/editSettingsTypes';
 
 interface UseEditSettingsPersistenceProps {
   generationId: string | null;

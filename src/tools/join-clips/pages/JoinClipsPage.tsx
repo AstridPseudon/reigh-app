@@ -223,8 +223,8 @@ function JoinClipsPageLayout({
             type: 'video',
           }}
           onClose={() => clipManager.setLightboxClip(null)}
-          showNavigation={false}
-          showDownload
+          navigation={{ showNavigation: false }}
+          features={{ showDownload: true }}
         />
       )}
 

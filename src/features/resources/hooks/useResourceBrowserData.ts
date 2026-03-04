@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { processImageUrl } from '@/shared/lib/urlToFile';
 import {
@@ -61,13 +61,6 @@ export function useResourceBrowserData({
   const [processingResource, setProcessingResource] = useState<string | null>(null);
   const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
   const [showMyResourcesOnly, setShowMyResourcesOnly] = useState(false);
-
-  // Reset to page 1 synchronously when filter changes (avoids extra render from useEffect+setState)
-  const prevShowMyResourcesOnlyRef = React.useRef(showMyResourcesOnly);
-  if (prevShowMyResourcesOnlyRef.current !== showMyResourcesOnly) {
-    prevShowMyResourcesOnlyRef.current = showMyResourcesOnly;
-    setCurrentPage(1);
-  }
 
   useEffect(() => {
     if (!isOpen) {
@@ -235,11 +228,16 @@ export function useResourceBrowserData({
   }, []);
 
   const toggleMyResourcesFilter = useCallback(() => {
+    setCurrentPage(1);
     setShowMyResourcesOnly((previous) => !previous);
   }, []);
 
   const clearMyResourcesFilter = useCallback(() => {
-    setShowMyResourcesOnly(false);
+    setShowMyResourcesOnly((previous) => {
+      if (!previous) return previous;
+      setCurrentPage(1);
+      return false;
+    });
   }, []);
 
   return {

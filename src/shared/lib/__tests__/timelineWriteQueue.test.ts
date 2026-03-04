@@ -125,4 +125,49 @@ describe('timelineWriteQueue', () => {
     await firstAssertion;
     await expect(second).resolves.toBe('second-result');
   });
+
+  it('aborts serialized writes on timeout so timed-out side effects cannot complete', async () => {
+    vi.useFakeTimers();
+
+    let sideEffectCommitted = false;
+
+    const first = runSerializedTimelineWrite(
+      'shot-timeout-abort',
+      'abortable-write',
+      async (signal) => await new Promise<void>((resolve, reject) => {
+        const work = setTimeout(() => {
+          if (!signal.aborted) {
+            sideEffectCommitted = true;
+            resolve();
+          }
+        }, 100);
+
+        signal.addEventListener('abort', () => {
+          clearTimeout(work);
+          reject(new DOMException('aborted', 'AbortError'));
+        }, { once: true });
+      }),
+      undefined,
+      { timeoutMs: 10 },
+    );
+
+    const second = runSerializedTimelineWrite(
+      'shot-timeout-abort',
+      'follow-up',
+      async () => 'ok',
+      undefined,
+      { timeoutMs: 1000 },
+    );
+
+    await vi.advanceTimersByTimeAsync(11);
+    await expect(first).rejects.toSatisfy((error: unknown) => (
+      isTimelineWriteTimeoutError(error)
+      && error instanceof Error
+      && error.message.includes('abortable-write')
+    ));
+
+    await vi.advanceTimersByTimeAsync(150);
+    expect(sideEffectCommitted).toBe(false);
+    await expect(second).resolves.toBe('ok');
+  });
 });

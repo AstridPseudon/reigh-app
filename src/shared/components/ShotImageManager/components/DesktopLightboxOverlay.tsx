@@ -101,7 +101,6 @@ export function DesktopLightboxOverlay({
       media={lightbox.currentImages[lightboxIndex]}
       shotId={managerProps.shotId}
       toolTypeOverride={managerProps.toolTypeOverride}
-      initialEditActive={lightbox.shouldAutoEnterInpaint}
       initialVariantId={capturedVariantIdRef.current ?? undefined}
       onClose={() => {
         capturedVariantIdRef.current = null;
@@ -114,27 +113,31 @@ export function DesktopLightboxOverlay({
         }
         setLightboxSelectedShotId?.(managerProps.selectedShotId);
       }}
-      onNext={lightbox.handleNext}
-      onPrevious={lightbox.handlePrevious}
-      onDelete={
-        !managerProps.readOnly
+      navigation={{
+        onNext: lightbox.handleNext,
+        onPrevious: lightbox.handlePrevious,
+        showNavigation: true,
+        hasNext,
+        hasPrevious,
+      }}
+      features={{
+        showImageEditTools: true,
+        showDownload: true,
+        showMagicEdit: true,
+        showTaskDetails: true,
+        initialEditActive: lightbox.shouldAutoEnterInpaint,
+      }}
+      actions={{
+        onDelete: !managerProps.readOnly
           ? () => {
               const activeImage = lightbox.currentImages[lightboxIndex];
               const shotImageEntryId = activeImage.shotImageEntryId || activeImage.id;
               managerProps.onImageDelete(shotImageEntryId);
             }
-          : undefined
-      }
-      showNavigation
-      showImageEditTools
-      showDownload
-      showMagicEdit
-      hasNext={hasNext}
-      hasPrevious={hasPrevious}
-      starred={lightbox.currentImages[lightboxIndex]?.starred || false}
-      onMagicEdit={managerProps.onMagicEdit}
+          : undefined,
+        starred: lightbox.currentImages[lightboxIndex]?.starred || false,
+      }}
       readOnly={managerProps.readOnly}
-      showTaskDetails
       taskDetailsData={taskDetailsData}
       onNavigateToGeneration={(generationId: string) => {
         const index = lightbox.currentImages.findIndex((img: GenerationRow) => img.id === generationId);
@@ -143,36 +146,32 @@ export function DesktopLightboxOverlay({
         }
       }}
       onOpenExternalGeneration={externalGens.handleOpenExternalGeneration}
-      allShots={managerProps.allShots}
-      selectedShotId={
-        isExternalGen
+      shotWorkflow={{
+        allShots: managerProps.allShots,
+        selectedShotId: isExternalGen
           ? externalGens.externalGenLightboxSelectedShot
-          : lightboxSelectedShotId || managerProps.selectedShotId
-      }
-      onShotChange={
-        isExternalGen
+          : lightboxSelectedShotId || managerProps.selectedShotId,
+        onShotChange: isExternalGen
           ? (shotId) => {
               externalGens.setExternalGenLightboxSelectedShot(shotId);
             }
           : (shotId) => {
               setLightboxSelectedShotId?.(shotId);
               managerProps.onShotChange?.(shotId);
-            }
-      }
-      onAddToShot={isExternalGen ? externalGens.handleExternalGenAddToShot : managerProps.onAddToShot}
-      onAddToShotWithoutPosition={
-        isExternalGen
+            },
+        onAddToShot: isExternalGen ? externalGens.handleExternalGenAddToShot : managerProps.onAddToShot,
+        onAddToShotWithoutPosition: isExternalGen
           ? externalGens.handleExternalGenAddToShotWithoutPosition
-          : managerProps.onAddToShotWithoutPosition
-      }
-      onCreateShot={managerProps.onCreateShot}
-      positionedInSelectedShot={positionedInSelectedShot}
-      associatedWithoutPositionInSelectedShot={associatedWithoutPositionInSelectedShot}
+          : managerProps.onAddToShotWithoutPosition,
+        onCreateShot: managerProps.onCreateShot,
+        positionedInSelectedShot,
+        associatedWithoutPositionInSelectedShot,
+        onShowTick,
+        onShowSecondaryTick,
+        onNavigateToShot,
+      }}
       showTickForImageId={showTickForImageId}
-      onShowTick={onShowTick}
       showTickForSecondaryImageId={showTickForSecondaryImageId}
-      onShowSecondaryTick={onShowSecondaryTick}
-      onNavigateToShot={onNavigateToShot}
       adjacentSegments={adjacentSegments}
     />
   );

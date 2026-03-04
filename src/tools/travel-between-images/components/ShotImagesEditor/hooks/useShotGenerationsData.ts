@@ -94,7 +94,7 @@ export function useShotGenerationsData({
   // Utility hook data (used when preloaded images provided)
   const utilsData = useTimelinePositionUtils({
     shotId: preloadedImages ? selectedShotId : null,
-    generations: preloadedImages || coreHookData.positionedItems,
+    generations: preloadedImages || [],
     projectId: projectId,
   });
 
@@ -127,13 +127,12 @@ export function useShotGenerationsData({
       pairPrompts: coreHookData.pairPrompts as Record<string, { prompt: string; negativePrompt: string }>,
       isLoading: coreHookData.isLoading,
       error: coreHookData.error?.message || '',
-      updateTimelineFrame: utilsData.updateTimelineFrame,
-      batchExchangePositions: utilsData.batchExchangePositions,
-      moveItemsToMidpoint: utilsData.moveItemsToMidpoint,
+      updateTimelineFrame: coreHookData.updatePosition,
+      batchExchangePositions: coreHookData.commitPositions,
       loadPositions: async (options) => {
-        await utilsData.loadPositions({ silent: options?.silent });
+        await Promise.resolve(coreHookData.refetch());
       },
-      clearEnhancedPrompt: utilsData.clearEnhancedPrompt,
+      clearEnhancedPrompt: coreHookData.clearEnhancedPrompt,
       getImagesForMode: () => coreHookData.positionedItems,
       deleteItem: coreHookData.deleteItem,
     };

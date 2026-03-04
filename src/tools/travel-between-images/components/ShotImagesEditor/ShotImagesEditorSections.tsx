@@ -528,12 +528,12 @@ export function EditorOverlays(props: {
 
       {mode.segmentSlot.segmentSlotModeData && (
         <MediaLightbox
-          media={mode.segmentSlot.segmentSlotModeData.segmentVideo}
+          media={mode.segmentSlot.segmentSlotModeData.segmentVideo || undefined}
           segmentSlotMode={mode.segmentSlot.segmentSlotModeData}
           onClose={() => mode.segmentSlot.setSegmentSlotLightboxIndex(null)}
           shotId={selectedShotId}
           readOnly={readOnly}
-          fetchVariantsForSelf
+          videoProps={{ fetchVariantsForSelf: true }}
         />
       )}
 

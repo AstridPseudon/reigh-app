@@ -332,23 +332,30 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
         {state.segments.segmentLightbox.currentSegmentMedia && (
           <MediaLightbox
             media={state.segments.segmentLightbox.currentSegmentMedia}
-            parentGenerationIdOverride={state.segments.selectedParentId}
+            parentGenerationIdOverride={state.segments.selectedParentId || undefined}
             onClose={state.segments.segmentLightbox.closeSegmentLightbox}
-            onNext={state.segments.segmentLightbox.handleSegmentLightboxNext}
-            onPrevious={state.segments.segmentLightbox.handleSegmentLightboxPrev}
-            showNavigation={true}
-            showImageEditTools={false}
-            showDownload={true}
-            hasNext={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
-            hasPrevious={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
-            starred={state.segments.segmentLightbox.currentSegmentMedia.starred ?? false}
+            navigation={{
+              onNext: state.segments.segmentLightbox.handleSegmentLightboxNext,
+              onPrevious: state.segments.segmentLightbox.handleSegmentLightboxPrev,
+              showNavigation: true,
+              hasNext: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
+              hasPrevious: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
+            }}
+            features={{
+              showImageEditTools: false,
+              showDownload: true,
+              showTaskDetails: true,
+            }}
+            actions={{
+              starred: state.segments.segmentLightbox.currentSegmentMedia.starred ?? false,
+            }}
             shotId={props.shotId}
             readOnly={props.readOnly}
-            showTaskDetails={true}
-            showVideoTrimEditor={true}
-            fetchVariantsForSelf={true}
-            currentSegmentImages={{
-              startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+            videoProps={{
+              fetchVariantsForSelf: true,
+              currentSegmentImages: {
+                startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+              },
             }}
           />
         )}
@@ -379,23 +386,30 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
       {state.segments.segmentLightbox.currentSegmentMedia && (
         <MediaLightbox
           media={state.segments.segmentLightbox.currentSegmentMedia}
-          parentGenerationIdOverride={state.segments.selectedParentId}
+          parentGenerationIdOverride={state.segments.selectedParentId || undefined}
           onClose={state.segments.segmentLightbox.closeSegmentLightbox}
-          onNext={state.segments.segmentLightbox.handleSegmentLightboxNext}
-          onPrevious={state.segments.segmentLightbox.handleSegmentLightboxPrev}
-          showNavigation={true}
-          showImageEditTools={false}
-          showDownload={true}
-          hasNext={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
-          hasPrevious={state.segments.segmentLightbox.segmentChildSlotIndices.length > 1}
-          starred={state.segments.segmentLightbox.currentSegmentMedia.starred ?? false}
+          navigation={{
+            onNext: state.segments.segmentLightbox.handleSegmentLightboxNext,
+            onPrevious: state.segments.segmentLightbox.handleSegmentLightboxPrev,
+            showNavigation: true,
+            hasNext: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
+            hasPrevious: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
+          }}
+          features={{
+            showImageEditTools: false,
+            showDownload: true,
+            showTaskDetails: true,
+          }}
+          actions={{
+            starred: state.segments.segmentLightbox.currentSegmentMedia.starred ?? false,
+          }}
           shotId={props.shotId}
           readOnly={props.readOnly}
-          showTaskDetails={true}
-          showVideoTrimEditor={true}
-          fetchVariantsForSelf={true}
-          currentSegmentImages={{
-            startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+          videoProps={{
+            fetchVariantsForSelf: true,
+            currentSegmentImages: {
+              startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+            },
           }}
         />
       )}

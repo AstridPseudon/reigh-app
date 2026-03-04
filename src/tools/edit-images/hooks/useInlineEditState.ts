@@ -22,12 +22,12 @@ import { useMagicEditMode } from '@/shared/components/MediaLightbox/hooks/useMag
 import { useStarToggle } from '@/shared/components/MediaLightbox/hooks/useStarToggle';
 import { useRepositionMode } from '@/shared/components/MediaLightbox/hooks/useRepositionMode';
 import { useImg2ImgMode } from '@/shared/components/MediaLightbox/hooks/useImg2ImgMode';
-import { useEditSettingsPersistence } from '@/shared/components/MediaLightbox/hooks/useEditSettingsPersistence';
-import { useEditSettingsSync } from '@/shared/components/MediaLightbox/hooks/useEditSettingsSync';
-import type { EditMode as SettingsEditMode } from '@/shared/components/MediaLightbox/hooks/editSettingsTypes';
+import { useEditSettingsPersistence } from '@/shared/components/MediaLightbox/hooks/persistence/useEditSettingsPersistence';
+import { useEditSettingsSync } from '@/shared/components/MediaLightbox/hooks/persistence/useEditSettingsSync';
+import type { EditMode as SettingsEditMode } from '@/shared/components/MediaLightbox/model/editSettingsTypes';
 import type { EditMode as InpaintingEditMode } from '@/shared/components/MediaLightbox/hooks/inpainting/types';
 import type { ImageEditMode, ImageEditState } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
-import { buildImageEditStateValue } from '@/shared/components/MediaLightbox/hooks/buildImageEditStateValue';
+import { buildImageEditStateValue } from '@/shared/components/MediaLightbox/model/buildImageEditStateValue';
 import { downloadMedia } from '@/shared/components/MediaLightbox/utils';
 import { useVariants } from '@/shared/hooks/useVariants';
 

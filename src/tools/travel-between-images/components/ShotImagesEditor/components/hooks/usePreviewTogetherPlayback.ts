@@ -1,34 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { PreviewSegment } from '../PreviewTogetherTypes';
-
-interface UsePreviewTogetherPlaybackParams {
-  isOpen: boolean;
-  previewableSegments: PreviewSegment[];
-  audioUrl?: string | null;
-  initialPairIndex?: number | null;
-}
-
-type VideoSlot = 'A' | 'B';
-
-interface VideoHandlers {
-  onClick: () => void;
-  onPlay: () => void;
-  onPause: () => void;
-  onTimeUpdate: () => void;
-  onSeeked: () => void;
-  onLoadedMetadata: () => void;
-  onEnded: () => void;
-}
-
-const NOOP_VIDEO_HANDLERS: VideoHandlers = {
-  onClick: () => undefined,
-  onPlay: () => undefined,
-  onPause: () => undefined,
-  onTimeUpdate: () => undefined,
-  onSeeked: () => undefined,
-  onLoadedMetadata: () => undefined,
-  onEnded: () => undefined,
-};
+import { computeSegmentTiming, scrollCurrentThumbnailIntoView } from './usePreviewTogetherPlayback.timing';
+import {
+  NOOP_VIDEO_HANDLERS,
+  type UsePreviewTogetherPlaybackParams,
+  type VideoHandlers,
+  type VideoSlot,
+} from './usePreviewTogetherPlayback.types';
 
 export function usePreviewTogetherPlayback({
   isOpen,
@@ -118,12 +95,7 @@ export function usePreviewTogetherPlayback({
   useEffect(() => {
     if (!isOpen || previewableSegments.length === 0) return;
 
-    const durations = previewableSegments.map((segment) => segment.durationFromFrames || 2);
-    const offsets: number[] = [0];
-    for (let idx = 0; idx < durations.length - 1; idx++) {
-      offsets.push(offsets[idx] + durations[idx]);
-    }
-
+    const { durations, offsets } = computeSegmentTiming(previewableSegments);
     setSegmentDurations(durations);
     setSegmentOffsets(offsets);
   }, [isOpen, previewableSegments]);
@@ -131,25 +103,11 @@ export function usePreviewTogetherPlayback({
   useEffect(() => {
     if (!isOpen || !previewThumbnailsRef.current) return;
 
-    const container = previewThumbnailsRef.current;
-    const thumbnailWidth = 64;
-    const gap = 8;
-    const itemTotalWidth = thumbnailWidth + gap;
-    const containerWidth = container.offsetWidth;
-    const totalSegments = previewableSegments.length;
-    const totalContentWidth = (totalSegments * thumbnailWidth) + ((totalSegments - 1) * gap);
-
-    if (totalContentWidth <= containerWidth) return;
-
-    const thumbnailCenter = (currentPreviewIndex * itemTotalWidth) + (thumbnailWidth / 2);
-    const idealScrollLeft = thumbnailCenter - (containerWidth / 2);
-    const maxScroll = totalContentWidth - containerWidth;
-    const clampedScrollLeft = Math.max(0, Math.min(maxScroll, idealScrollLeft));
-
-    container.scrollTo({
-      left: clampedScrollLeft,
-      behavior: 'smooth',
-    });
+    scrollCurrentThumbnailIntoView(
+      previewThumbnailsRef.current,
+      currentPreviewIndex,
+      previewableSegments.length,
+    );
   }, [currentPreviewIndex, isOpen, previewableSegments.length]);
 
   useEffect(() => {

@@ -10,7 +10,7 @@
  */
 
 import { useRef, useEffect } from 'react';
-import type { EditMode } from './useGenerationEditSettings';
+import type { EditMode } from '../useGenerationEditSettings';
 
 interface UseEditSettingsSyncProps {
   /** Current generation ID for tracking changes */

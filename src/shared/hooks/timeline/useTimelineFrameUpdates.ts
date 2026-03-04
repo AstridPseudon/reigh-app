@@ -1,23 +1,3 @@
-/**
- * Timeline Frame Updates
- *
- * This hook serves the BATCH EDITOR path: the user drags an image to a new
- * slot in the image grid and the reorder persists DB-first, with the UI
- * updating via React Query cache refetch once the write completes.
- *
- * The TIMELINE DRAG path (dragging nodes on the ruler) is handled by
- * useTimelinePositions, which applies positions optimistically and guards
- * them with pendingUpdatesRef across async syncs.
- *
- * Both paths share the same serialization queue (runSerializedTimelineWrite)
- * and the same RPC (persistTimelineFrameBatch) so their writes are ordered.
- *
- * Operations:
- * - updateTimelineFrame: single frame update (e.g. typing a frame number)
- * - batchExchangePositions: swap a set of items into absolute frame slots
- * - moveItemsToMidpoint: insert item(s) between neighbors (batch drag)
- */
-
 import { useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ShotGeneration } from '@/shared/hooks/useTimelineCore';
@@ -93,7 +73,7 @@ export function useTimelineFrameUpdates({
     await runSerializedTimelineWrite(
       shotId,
       'timeline-frame-single-update',
-      async () => {
+      async (signal) => {
 
         const live = shotGenerationsRef.current;
         const shotGen = live.find((sg) => sg.id === shotGenerationId)
@@ -110,6 +90,7 @@ export function useTimelineFrameUpdates({
           shotId,
           shotGenerationId: shotGen.id,
           frame,
+          signal,
           logPrefix: TIMELINE_FRAME_LOG_PREFIX,
           log,
         });
@@ -119,6 +100,7 @@ export function useTimelineFrameUpdates({
             shotId,
             targets: [{ generationId: shotGen.generation_id, frame }],
             syncShotData,
+            signal,
             logPrefix: TIMELINE_FRAME_LOG_PREFIX,
             log,
           });
@@ -144,7 +126,7 @@ export function useTimelineFrameUpdates({
     await runSerializedTimelineWrite(
       shotId,
       'timeline-frame-batch-exchange',
-      async () => {
+      async (signal) => {
 
         try {
           if (updates.length === 0) {
@@ -169,6 +151,7 @@ export function useTimelineFrameUpdates({
             operationLabel: 'timeline-frame-batch-exchange',
             timeoutOperationName: 'timeline-frame-batch-rpc',
             dragSource: 'batch-exchange',
+            signal,
             logPrefix: TIMELINE_FRAME_LOG_PREFIX,
             log,
           });
@@ -180,6 +163,7 @@ export function useTimelineFrameUpdates({
               frame: newFrame,
             })),
             syncShotData,
+            signal,
             logPrefix: TIMELINE_FRAME_LOG_PREFIX,
             log,
             ignoreTimeout: true,
@@ -220,7 +204,7 @@ export function useTimelineFrameUpdates({
     await runSerializedTimelineWrite(
       shotId,
       'timeline-frame-midpoint-move',
-      async () => {
+      async (signal) => {
 
         // Read the latest shotGenerations at execution time, not at enqueue
         // time — this task may have waited in queue behind a slow write.
@@ -303,6 +287,7 @@ export function useTimelineFrameUpdates({
             operationLabel: 'timeline-frame-midpoint-move',
             timeoutOperationName: 'timeline-frame-midpoint-rpc',
             dragSource: 'batch-midpoint',
+            signal,
             logPrefix: TIMELINE_FRAME_LOG_PREFIX,
             log,
           });

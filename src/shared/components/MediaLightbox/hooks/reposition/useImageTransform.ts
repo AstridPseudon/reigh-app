@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ImageTransform, DEFAULT_TRANSFORM } from './types';
+import { ImageTransform, DEFAULT_TRANSFORM, decodeImageTransform } from './types';
 
 interface UseImageTransformProps {
   /** Active variant ID or generation ID for cache key */
@@ -77,20 +77,13 @@ export function useImageTransform({
       // 3. Default transform
       // Note: repositioned variants use 'transform_applied' (history only), not 'transform' (restorable)
       const cachedTransform = transformCacheRef.current.get(currentCacheKey);
-      const savedTransform = activeVariantParams?.transform as ImageTransform | undefined;
+      const savedTransform = decodeImageTransform(activeVariantParams?.transform);
 
       if (cachedTransform) {
         setTransform(cachedTransform);
-      } else if (savedTransform && typeof savedTransform === 'object') {
-        // Load saved transform from variant params
-        setTransform({
-          translateX: savedTransform.translateX ?? 0,
-          translateY: savedTransform.translateY ?? 0,
-          scale: savedTransform.scale ?? 1,
-          rotation: savedTransform.rotation ?? 0,
-          flipH: savedTransform.flipH ?? false,
-          flipV: savedTransform.flipV ?? false,
-        });
+      } else if (savedTransform) {
+        // Load validated transform from variant params.
+        setTransform(savedTransform);
       } else {
         setTransform(DEFAULT_TRANSFORM);
       }

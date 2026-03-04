@@ -7,6 +7,7 @@ interface PersistTrailingEndpointArgs {
   shotId: string;
   operationId: string;
   shotGenerations: GenerationRow[];
+  signal?: AbortSignal;
   logPrefix: string;
   log: (message: string, payload: Record<string, unknown>) => void;
 }
@@ -44,6 +45,7 @@ async function loadShotGenerationMetadata(
       return data;
     },
     {
+      upstreamSignal: args.signal,
       onTimeout: ({ pendingMs }) => {
         log(`${logPrefix} ${timeoutLogMessage}`, {
           shotId: shortId(shotId),
@@ -75,6 +77,7 @@ async function writeShotGenerationMetadata(
       if (error) throw error;
     },
     {
+      upstreamSignal: args.signal,
       onTimeout: ({ pendingMs }) => {
         log(`${logPrefix} ${timeoutLogMessage}`, {
           shotId: shortId(shotId),

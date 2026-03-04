@@ -536,15 +536,20 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
         <MediaLightbox
           media={parentVideoRow}
           onClose={handleLightboxClose}
-          showNavigation={false}
-          showImageEditTools={false}
-          showDownload={true}
-          hasNext={false}
-          hasPrevious={false}
-          starred={parentVideoRow.starred ?? false}
+          navigation={{
+            showNavigation: false,
+            hasNext: false,
+            hasPrevious: false,
+          }}
+          features={{
+            showImageEditTools: false,
+            showDownload: true,
+            showTaskDetails: true,
+          }}
+          actions={{
+            starred: parentVideoRow.starred ?? false,
+          }}
           shotId={shotId}
-          showTaskDetails={true}
-          showVideoTrimEditor={true}
           readOnly={readOnly}
           taskDetailsData={{
             task: task ?? null,

@@ -1,0 +1,123 @@
+import { ValidationError } from '@/shared/lib/errorHandling/errors';
+import { buildMotionTaskFields } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
+import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '../../state/types';
+import type { BuildTravelRequestBodyParams, ImagePayload } from './types';
+import type { TravelBetweenImagesRequestPayload } from '@/shared/lib/tasks/travelBetweenImages';
+
+function assertMappedIdCardinality(
+  imagePayload: ImagePayload,
+  expectedImageCount: number,
+): void {
+  if (imagePayload.imageGenerationIds.length > 0 && imagePayload.imageGenerationIds.length !== expectedImageCount) {
+    throw new ValidationError(
+      'Travel payload integrity check failed: image_generation_ids count does not match image_urls count.',
+      { field: 'image_generation_ids' },
+    );
+  }
+
+  if (imagePayload.imageVariantIds.length > 0 && imagePayload.imageVariantIds.length !== expectedImageCount) {
+    throw new ValidationError(
+      'Travel payload integrity check failed: image_variant_ids count does not match image_urls count.',
+      { field: 'image_variant_ids' },
+    );
+  }
+
+  const expectedPairCount = Math.max(0, expectedImageCount - 1);
+  if (imagePayload.pairShotGenerationIds.length > 0 && imagePayload.pairShotGenerationIds.length !== expectedPairCount) {
+    throw new ValidationError(
+      'Travel payload integrity check failed: pair_shot_generation_ids count does not match pair count.',
+      { field: 'pair_shot_generation_ids' },
+    );
+  }
+}
+
+export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): TravelBetweenImagesRequestPayload {
+  const {
+    projectId,
+    selectedShot,
+    imagePayload,
+    pairConfig,
+    parentGenerationId,
+    actualModelName,
+    generationTypeMode,
+    motionParams,
+    generationParams,
+    seedParams,
+  } = params;
+  const {
+    amountOfMotion,
+    motionMode,
+    useAdvancedMode,
+    effectivePhaseConfig,
+    selectedPhasePresetId,
+  } = motionParams;
+  const {
+    generationMode,
+    batchVideoPrompt,
+    enhancePrompt,
+    variantNameParam,
+    textBeforePrompts,
+    textAfterPrompts,
+  } = generationParams;
+  const {
+    seed,
+    randomSeed,
+    turboMode,
+    debug,
+  } = seedParams;
+  const imageCount = imagePayload.absoluteImageUrls.length;
+  const expectedPairCount = Math.max(0, imageCount - 1);
+  assertMappedIdCardinality(imagePayload, imageCount);
+
+  const motionFields = buildMotionTaskFields({
+    amountOfMotion,
+    motionMode,
+    phaseConfig: effectivePhaseConfig,
+    selectedPhasePresetId,
+    omitBasicPhaseConfig: true,
+  });
+
+  const hasValidEnhancedPrompts = pairConfig.enhancedPromptsArray.some(prompt => prompt && prompt.trim().length > 0);
+
+  return {
+    project_id: projectId,
+    shot_id: selectedShot.id,
+    image_urls: imagePayload.absoluteImageUrls,
+    ...(imagePayload.imageGenerationIds.length > 0 && imagePayload.imageGenerationIds.length === imageCount
+      ? { image_generation_ids: imagePayload.imageGenerationIds }
+      : {}),
+    ...(imagePayload.imageVariantIds.length > 0 && imagePayload.imageVariantIds.length === imageCount
+      ? { image_variant_ids: imagePayload.imageVariantIds }
+      : {}),
+    ...(imagePayload.pairShotGenerationIds.length > 0 && imagePayload.pairShotGenerationIds.length === expectedPairCount
+      ? { pair_shot_generation_ids: imagePayload.pairShotGenerationIds }
+      : {}),
+    ...(parentGenerationId ? { parent_generation_id: parentGenerationId } : {}),
+    base_prompts: pairConfig.basePrompts,
+    base_prompt: batchVideoPrompt,
+    segment_frames: pairConfig.segmentFrames,
+    frame_overlap: pairConfig.frameOverlap,
+    negative_prompts: pairConfig.negativePrompts,
+    ...(hasValidEnhancedPrompts ? { enhanced_prompts: pairConfig.enhancedPromptsArray } : {}),
+    ...(pairConfig.pairPhaseConfigsArray.some(config => config !== null) ? { pair_phase_configs: pairConfig.pairPhaseConfigsArray } : {}),
+    ...(pairConfig.pairLorasArray.some(loras => loras !== null) ? { pair_loras: pairConfig.pairLorasArray } : {}),
+    ...(pairConfig.pairMotionSettingsArray.some(settings => settings !== null) ? { pair_motion_settings: pairConfig.pairMotionSettingsArray } : {}),
+    model_name: actualModelName,
+    model_type: generationTypeMode,
+    seed,
+    debug: debug ?? DEFAULT_STEERABLE_MOTION_SETTINGS.debug,
+    show_input_images: DEFAULT_STEERABLE_MOTION_SETTINGS.show_input_images,
+    enhance_prompt: enhancePrompt,
+    generation_mode: generationMode,
+    random_seed: randomSeed,
+    turbo_mode: turboMode,
+    ...motionFields,
+    advanced_mode: useAdvancedMode,
+    regenerate_anchors: false,
+    generation_name: variantNameParam.trim() || undefined,
+    ...(textBeforePrompts ? { text_before_prompts: textBeforePrompts } : {}),
+    ...(textAfterPrompts ? { text_after_prompts: textAfterPrompts } : {}),
+    independent_segments: true,
+    chain_segments: false,
+  };
+}

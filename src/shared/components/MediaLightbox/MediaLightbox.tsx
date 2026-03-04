@@ -1,9 +1,16 @@
 import React from 'react';
-import type { GenerationRow, Shot } from '@/domains/generation/types';
+import type { GenerationRow } from '@/domains/generation/types';
 import { isVideoAny } from '@/shared/lib/typeGuards';
-import type { AdjacentSegmentsData, SegmentSlotModeData } from './types';
-import type { ShotOption, TaskDetailsData } from './types';
-import type { LightboxNavigationProps, LightboxShotWorkflowProps, LightboxFeatureFlags, LightboxActionHandlers, VideoLightboxVideoProps } from './types';
+import type {
+  AdjacentSegmentsData,
+  SegmentSlotModeData,
+  TaskDetailsData,
+  LightboxNavigationProps,
+  LightboxShotWorkflowProps,
+  LightboxFeatureFlags,
+  LightboxActionHandlers,
+  VideoLightboxVideoProps,
+} from './types';
 import { ImageLightbox } from './ImageLightbox';
 import { VideoLightbox } from './VideoLightbox';
 
@@ -19,73 +26,20 @@ interface MediaLightboxCoreProps {
   shotId?: string;
   tasksPaneOpen?: boolean;
   tasksPaneWidth?: number;
-  showVideoTrimEditor?: boolean;
-  onTrimModeChange?: (isTrimMode: boolean) => void;
-  initialVideoTrimMode?: boolean;
   initialVariantId?: string;
-  fetchVariantsForSelf?: boolean;
-  currentSegmentImages?: {
-    startUrl?: string;
-    endUrl?: string;
-    startGenerationId?: string;
-    endGenerationId?: string;
-    startShotGenerationId?: string;
-    endShotGenerationId?: string;
-    activeChildGenerationId?: string;
-    startVariantId?: string;
-    endVariantId?: string;
-  };
-  onSegmentFrameCountChange?: (pairShotGenerationId: string, frameCount: number) => void;
-  currentFrameCount?: number;
   adjacentSegments?: AdjacentSegmentsData;
 }
 
-interface MediaLightboxNavigationFlatProps {
-  onNext?: () => void;
-  onPrevious?: () => void;
-  showNavigation?: boolean;
-  hasNext?: boolean;
-  hasPrevious?: boolean;
+interface MediaLightboxBehaviorProps {
+  navigation?: LightboxNavigationProps;
+  shotWorkflow?: LightboxShotWorkflowProps;
+  features?: LightboxFeatureFlags;
+  actions?: LightboxActionHandlers;
+  videoProps?: VideoLightboxVideoProps;
 }
 
-interface MediaLightboxFeaturesFlatProps {
-  showImageEditTools?: boolean;
-  showDownload?: boolean;
-  showMagicEdit?: boolean;
-  initialEditActive?: boolean;
-  showTaskDetails?: boolean;
-}
-
-interface MediaLightboxShotWorkflowFlatProps {
-  allShots?: ShotOption[];
-  selectedShotId?: string;
-  onShotChange?: (shotId: string) => void;
-  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onCreateShot?: (shotName: string, files: File[]) => Promise<{ shotId?: string; shotName?: string } | void>;
-  onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
-  onShowTick?: (imageId: string) => void;
-  onShowSecondaryTick?: (imageId: string) => void;
-  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
-  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
-  optimisticPositionedIds?: Set<string>;
-  optimisticUnpositionedIds?: Set<string>;
-  positionedInSelectedShot?: boolean;
-  associatedWithoutPositionInSelectedShot?: boolean;
-}
-
-interface MediaLightboxActionsFlatProps {
-  onDelete?: LightboxActionHandlers['onDelete'];
-  isDeleting?: string | null;
-  onApplySettings?: (metadata: GenerationRow['metadata']) => void;
-  onMagicEdit?: (imageUrl: string, prompt: string, numImages: number) => void;
-  starred?: boolean;
-  onToggleStar?: (id: string, starred: boolean) => void;
-}
-
-interface MediaLightboxTaskDetailsFlatProps {
+interface MediaLightboxTaskDetailsProps {
   taskDetailsData?: TaskDetailsData;
-  onShowTaskDetails?: () => void;
 }
 
 interface MediaLightboxTickStateProps {
@@ -95,63 +49,20 @@ interface MediaLightboxTickStateProps {
 
 export type MediaLightboxProps =
   & MediaLightboxCoreProps
-  & MediaLightboxNavigationFlatProps
-  & MediaLightboxFeaturesFlatProps
-  & MediaLightboxShotWorkflowFlatProps
-  & MediaLightboxActionsFlatProps
-  & MediaLightboxTaskDetailsFlatProps
+  & MediaLightboxBehaviorProps
+  & MediaLightboxTaskDetailsProps
   & MediaLightboxTickStateProps;
 
 const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
-  const { media, segmentSlotMode } = props;
-
-  const navigation: LightboxNavigationProps = {
-    onNext: props.onNext,
-    onPrevious: props.onPrevious,
-    showNavigation: props.showNavigation,
-    hasNext: props.hasNext,
-    hasPrevious: props.hasPrevious,
-  };
-  const shotWorkflow: LightboxShotWorkflowProps = {
-    allShots: props.allShots,
-    selectedShotId: props.selectedShotId,
-    onShotChange: props.onShotChange,
-    onAddToShot: props.onAddToShot,
-    onAddToShotWithoutPosition: props.onAddToShotWithoutPosition,
-    onCreateShot: props.onCreateShot,
-    onNavigateToShot: props.onNavigateToShot,
-    onShowTick: props.onShowTick,
-    onShowSecondaryTick: props.onShowSecondaryTick,
-    onOptimisticPositioned: props.onOptimisticPositioned,
-    onOptimisticUnpositioned: props.onOptimisticUnpositioned,
-    optimisticPositionedIds: props.optimisticPositionedIds,
-    optimisticUnpositionedIds: props.optimisticUnpositionedIds,
-    positionedInSelectedShot: props.positionedInSelectedShot,
-    associatedWithoutPositionInSelectedShot: props.associatedWithoutPositionInSelectedShot,
-  };
-  const features: LightboxFeatureFlags = {
-    showImageEditTools: props.showImageEditTools,
-    showDownload: props.showDownload,
-    showMagicEdit: props.showMagicEdit,
-    initialEditActive: props.initialEditActive,
-    showTaskDetails: props.showTaskDetails,
-  };
-  const actions: LightboxActionHandlers = {
-    onDelete: props.onDelete,
-    isDeleting: props.isDeleting,
-    onApplySettings: props.onApplySettings,
-    onToggleStar: props.onToggleStar,
-    starred: props.starred,
-  };
-  const videoProps: VideoLightboxVideoProps = {
-    initialVideoTrimMode: props.initialVideoTrimMode,
-    fetchVariantsForSelf: props.fetchVariantsForSelf,
-    currentSegmentImages: props.currentSegmentImages,
-    onSegmentFrameCountChange: props.onSegmentFrameCountChange,
-    currentFrameCount: props.currentFrameCount,
-    onTrimModeChange: props.onTrimModeChange,
-    onShowTaskDetails: props.onShowTaskDetails,
-  };
+  const {
+    media,
+    segmentSlotMode,
+    navigation,
+    shotWorkflow,
+    features,
+    actions,
+    videoProps,
+  } = props;
 
   const sharedContainerProps = {
     onClose: props.onClose,

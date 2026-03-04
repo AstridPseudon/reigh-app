@@ -207,41 +207,49 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
           onClose={handleLightboxClose}
           shotId={selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined}
           toolTypeOverride={toolTypeOverride}
-          onNext={onNext}
-          onPrevious={onPrevious}
-          showNavigation={true}
-          hasNext={hasNext}
-          hasPrevious={hasPrevious}
+          navigation={{
+            onNext,
+            onPrevious,
+            showNavigation: true,
+            hasNext,
+            hasPrevious,
+          }}
           onNavigateToGeneration={handleNavigateToGeneration}
           onOpenExternalGeneration={handleOpenExternalGeneration}
-          allShots={simplifiedShotOptions}
-          selectedShotId={selectedShotIdForLightbox}
-          onShotChange={handleLightboxShotChange}
-          onAddToShot={onAddToShot}
-          onAddToShotWithoutPosition={onAddToShotWithoutPosition}
-          onCreateShot={onCreateShot}
-          onNavigateToShot={onNavigateToShot}
-          positionedInSelectedShot={positionedInSelectedShot}
-          associatedWithoutPositionInSelectedShot={associatedWithoutPositionInSelectedShot}
-          onDelete={onDelete}
-          isDeleting={isDeleting}
-          onApplySettings={onApplySettings}
-          starred={enhancedMedia.starred ?? false}
-          showTaskDetails={true}
+          shotWorkflow={{
+            allShots: simplifiedShotOptions,
+            selectedShotId: selectedShotIdForLightbox,
+            onShotChange: handleLightboxShotChange,
+            onAddToShot,
+            onAddToShotWithoutPosition,
+            onCreateShot,
+            onNavigateToShot,
+            positionedInSelectedShot,
+            associatedWithoutPositionInSelectedShot,
+            onShowTick: setShowTickForImageId,
+            onShowSecondaryTick: setShowTickForSecondaryImageId,
+            optimisticPositionedIds,
+            optimisticUnpositionedIds,
+            onOptimisticPositioned,
+            onOptimisticUnpositioned,
+          }}
+          actions={{
+            onDelete,
+            isDeleting,
+            onApplySettings,
+            starred: enhancedMedia.starred ?? false,
+          }}
+          features={{
+            showTaskDetails: true,
+            showImageEditTools: !((activeLightboxMedia?.type || '').includes('video')),
+            showDownload: true,
+            showMagicEdit: false,
+            initialEditActive: effectiveAutoEnterEditMode,
+          }}
           taskDetailsData={taskDetailsPayload}
-          onShowTaskDetails={isMobile ? onShowTaskDetails : undefined}
           showTickForImageId={showTickForImageId}
-          onShowTick={setShowTickForImageId}
           showTickForSecondaryImageId={showTickForSecondaryImageId}
-          onShowSecondaryTick={setShowTickForSecondaryImageId}
-          optimisticPositionedIds={optimisticPositionedIds}
-          optimisticUnpositionedIds={optimisticUnpositionedIds}
-          onOptimisticPositioned={onOptimisticPositioned}
-          onOptimisticUnpositioned={onOptimisticUnpositioned}
-          showImageEditTools={!((activeLightboxMedia?.type || '').includes('video'))}
-          showDownload={true}
-          showMagicEdit={false}
-          initialEditActive={effectiveAutoEnterEditMode}
+          videoProps={{ onShowTaskDetails: isMobile ? onShowTaskDetails : undefined }}
         />
       )}
 
