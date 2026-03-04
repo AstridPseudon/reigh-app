@@ -1,13 +1,13 @@
-import React, { useState, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { Task } from '@/types/tasks';
-import { Check, Copy, CornerDownLeft, ImageIcon } from 'lucide-react';
-import { GenerationDetails } from '@/shared/components/GenerationDetails';
-import { usePublicLoras } from '@/shared/hooks/useResources';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { CornerDownLeft, ImageIcon } from 'lucide-react';
+import { useTaskDetailsPresenter } from '@/shared/components/TaskDetails/hooks/useTaskDetailsPresenter';
+import { TaskDetailsSummaryAndParams } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
+import { TaskDetailsIdCopyButton } from '@/shared/components/TaskDetails/components/TaskDetailsIdCopyButton';
 
 interface TaskDetailsPanelProps {
   task: Task | null;
@@ -41,30 +41,14 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
   hideHeader = false
 }) => {
   const isMobile = useIsMobile();
-  const [showDetailedParams, setShowDetailedParams] = useState(false);
-  const [showAllImages, setShowAllImages] = useState(false);
-  const [showFullPrompt, setShowFullPrompt] = useState(false);
-  const [idCopied, setIdCopied] = useState(false);
-  const [showFullNegativePrompt, setShowFullNegativePrompt] = useState(false);
-  const [paramsCopied, setParamsCopied] = useState(false);
-
-  // Fetch public LoRAs for proper name display
-  const { data: availableLoras } = usePublicLoras();
+  const presenter = useTaskDetailsPresenter({
+    task,
+    errorContext: 'TaskDetailsPanel',
+  });
 
   const handleApplySettingsFromTask = () => {
     if (taskId && onApplySettingsFromTask && task) {
       onApplySettingsFromTask(taskId, replaceImages, inputImages);
-    }
-  };
-
-  const handleCopyParams = async () => {
-    if (!task?.params) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(task.params, null, 2));
-      setParamsCopied(true);
-      setTimeout(() => setParamsCopied(false), 2000);
-    } catch (err) {
-      normalizeAndPresentError(err, { context: 'TaskDetailsPanel', showToast: false });
     }
   };
 
@@ -131,103 +115,39 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
       {!hideHeader && (
         <div className="flex-shrink-0 p-4 border-b">
           <div className="flex items-center justify-end">
-            {taskId && (
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(taskId);
-                  setIdCopied(true);
-                  setTimeout(() => setIdCopied(false), 2000);
-                }}
-                className={`px-2 py-1 text-xs rounded transition-colors ${
-                  idCopied
-                    ? "text-green-400"
-                    : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700"
-                }`}
-              >
-                {idCopied ? 'copied' : 'id'}
-              </button>
-            )}
+            <TaskDetailsIdCopyButton
+              taskId={taskId}
+              idCopied={presenter.idCopied}
+              onCopyId={presenter.handleCopyId}
+            />
           </div>
         </div>
       )}
 
       {contentWrapper(
-        <div className="space-y-6">
-          {/* Generation Summary Section */}
-          <div className="space-y-3">
-            <GenerationDetails
-              task={task}
-              inputImages={inputImages}
-              variant="panel"
-              isMobile={isMobile}
-              showAllImages={showAllImages}
-              onShowAllImagesChange={setShowAllImages}
-              showFullPrompt={showFullPrompt}
-              onShowFullPromptChange={setShowFullPrompt}
-              showFullNegativePrompt={showFullNegativePrompt}
-              onShowFullNegativePromptChange={setShowFullNegativePrompt}
-              availableLoras={availableLoras}
-              showCopyButtons={true}
-            />
-          </div>
-
-          {/* Detailed Parameters - Show ABOVE "Based on this" list */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCopyParams}
-                  className="h-7 px-2 -ml-2"
-                  title="Copy all parameters"
-                >
-                  {paramsCopied ? (
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-                <h4 className="text-sm font-medium text-muted-foreground">Detailed Task Parameters</h4>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDetailedParams(!showDetailedParams)}
-                className="h-7 px-2 flex items-center gap-x-1 text-muted-foreground hover:text-foreground"
-              >
-                <svg
-                  className={`h-3.5 w-3.5 transition-transform ${showDetailedParams ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-                <span className="text-xs">
-                  {showDetailedParams ? 'Hide' : 'Show'}
-                </span>
-              </Button>
-            </div>
-            {showDetailedParams && (
-              <div className="bg-muted/30 rounded-lg border p-4 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all leading-relaxed min-w-0" style={{ wordBreak: 'break-all', overflowWrap: 'break-word' }}>
-                    {(() => {
-                      return JSON.stringify(task?.params ?? {}, null, 2);
-                    })()}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Based On Section */}
+        <TaskDetailsSummaryAndParams
+          task={task}
+          inputImages={inputImages}
+          detailsVariant="panel"
+          isMobile={isMobile}
+          availableLoras={presenter.availableLoras}
+          showAllImages={presenter.showAllImages}
+          onShowAllImagesChange={presenter.setShowAllImages}
+          showFullPrompt={presenter.showFullPrompt}
+          onShowFullPromptChange={presenter.setShowFullPrompt}
+          showFullNegativePrompt={presenter.showFullNegativePrompt}
+          onShowFullNegativePromptChange={presenter.setShowFullNegativePrompt}
+          showDetailedParams={presenter.showDetailedParams}
+          onShowDetailedParamsChange={presenter.setShowDetailedParams}
+          paramsCopied={presenter.paramsCopied}
+          onCopyParams={() => {
+            void presenter.handleCopyParams();
+          }}
+          showCopyButtons={true}
+        >
           {basedOnSection}
-
-          {/* Derived Generations Section - Show AFTER detailed parameters */}
           {derivedSection}
-        </div>
+        </TaskDetailsSummaryAndParams>
       )}
 
       {/* Footer with controls - Sticky to bottom - only show when Apply Settings is available */}

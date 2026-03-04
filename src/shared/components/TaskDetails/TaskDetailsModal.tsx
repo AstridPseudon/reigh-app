@@ -9,7 +9,6 @@
  */
 
 import React, { useState, ReactNode } from 'react';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
   Dialog,
   DialogContent,
@@ -23,12 +22,12 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useLargeModal } from '@/shared/hooks/useModal';
 import { Label } from '@/shared/components/ui/primitives/label';
-import { Check, Copy } from 'lucide-react';
-import { GenerationDetails } from '@/shared/components/GenerationDetails';
-import { usePublicLoras } from '@/shared/hooks/useResources';
 import { normalizeTaskDetailsPayload } from '@/shared/components/TaskDetails/hooks/normalizeTaskDetailsPayload';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useGenerationTaskDetails } from '@/shared/components/TaskDetails/hooks/useGenerationTaskDetails';
+import { useTaskDetailsPresenter } from '@/shared/components/TaskDetails/hooks/useTaskDetailsPresenter';
+import { TaskDetailsSummaryAndParams } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
+import { TaskDetailsIdCopyButton } from '@/shared/components/TaskDetails/components/TaskDetailsIdCopyButton';
 
 interface TaskDetailsModalProps {
   generationId: string;
@@ -56,12 +55,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
     }
   };
   const [replaceImages, setReplaceImages] = useState(true);
-  const [showDetailedParams, setShowDetailedParams] = useState(false);
-  const [showAllImages, setShowAllImages] = useState(false);
-  const [showFullPrompt, setShowFullPrompt] = useState(false);
-  const [showFullNegativePrompt, setShowFullNegativePrompt] = useState(false);
-  const [paramsCopied, setParamsCopied] = useState(false);
-  const [idCopied, setIdCopied] = useState(false);
   const { selectedProjectId } = useProject();
 
   const {
@@ -76,8 +69,10 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
     resolveMappingOnDemand: true,
   });
 
-  // Fetch public LoRAs for proper name display
-  const { data: availableLoras } = usePublicLoras();
+  const presenter = useTaskDetailsPresenter({
+    task,
+    errorContext: 'TaskDetailsModal',
+  });
 
   const normalizedTaskPayload = React.useMemo(() => normalizeTaskDetailsPayload(task), [task]);
   const detailInputImages = normalizedTaskPayload.inputImages.length > 0
@@ -91,17 +86,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
     }
     setIsOpen(false);
     onClose?.();
-  };
-
-  const handleCopyParams = async () => {
-    if (!task?.params) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(task.params, null, 2));
-      setParamsCopied(true);
-      setTimeout(() => setParamsCopied(false), 2000);
-    } catch (err) {
-      normalizeAndPresentError(err, { context: 'TaskDetailsModal', showToast: false });
-    }
   };
 
   const isLoading = isLoadingTask;
@@ -128,22 +112,11 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="sr-only">Task Details</DialogTitle>
-              {taskId && (
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(taskId);
-                    setIdCopied(true);
-                    setTimeout(() => setIdCopied(false), 2000);
-                  }}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    idCopied
-                      ? "text-green-400"
-                      : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700"
-                  }`}
-                >
-                  {idCopied ? 'copied' : 'id'}
-                </button>
-              )}
+              <TaskDetailsIdCopyButton
+                taskId={taskId}
+                idCopied={presenter.idCopied}
+                onCopyId={presenter.handleCopyId}
+              />
             </div>
             <p id="task-details-description" className="sr-only">
               View details about the task that generated this video, including input images, settings, and parameters.
@@ -164,70 +137,25 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
             </div>
           ) : task ? (
             <div className="space-y-6 p-4">
-              {/* Generation Summary Section */}
-              <div className="space-y-3">
-                <GenerationDetails
-                  task={task}
-                  inputImages={detailInputImages}
-                  variant="modal"
-                  isMobile={isMobile}
-                  showAllImages={showAllImages}
-                  onShowAllImagesChange={setShowAllImages}
-                  showFullPrompt={showFullPrompt}
-                  onShowFullPromptChange={setShowFullPrompt}
-                  showFullNegativePrompt={showFullNegativePrompt}
-                  onShowFullNegativePromptChange={setShowFullNegativePrompt}
-                  availableLoras={availableLoras}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCopyParams}
-                      className="h-8 px-2 -ml-2"
-                      title="Copy all parameters"
-                    >
-                      {paramsCopied ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <h3 className="text-lg font-light text-foreground">Detailed Task Parameters</h3>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDetailedParams(!showDetailedParams)}
-                    className="h-8 px-2"
-                  >
-                    <svg
-                      className={`h-4 w-4 transition-transform ${showDetailedParams ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    <span className="ml-1 text-xs">
-                      {showDetailedParams ? 'Hide' : 'Show'}
-                    </span>
-                  </Button>
-                </div>
-                {showDetailedParams && (
-                  <div className="bg-muted/30 rounded-lg border p-4">
-                    <div className="max-h-96 overflow-y-auto">
-                      <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                        {JSON.stringify(task?.params ?? {}, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <TaskDetailsSummaryAndParams
+                task={task}
+                inputImages={detailInputImages}
+                detailsVariant="modal"
+                isMobile={isMobile}
+                availableLoras={presenter.availableLoras}
+                showAllImages={presenter.showAllImages}
+                onShowAllImagesChange={presenter.setShowAllImages}
+                showFullPrompt={presenter.showFullPrompt}
+                onShowFullPromptChange={presenter.setShowFullPrompt}
+                showFullNegativePrompt={presenter.showFullNegativePrompt}
+                onShowFullNegativePromptChange={presenter.setShowFullNegativePrompt}
+                showDetailedParams={presenter.showDetailedParams}
+                onShowDetailedParamsChange={presenter.setShowDetailedParams}
+                paramsCopied={presenter.paramsCopied}
+                onCopyParams={() => {
+                  void presenter.handleCopyParams();
+                }}
+              />
             </div>
           ) : (
             <div className="flex justify-center items-center h-64">

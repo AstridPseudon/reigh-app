@@ -8,220 +8,160 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/domains/generation/types';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
-import { segmentQueryKeys } from '@/shared/lib/queryKeys/segments';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import {
+  extractExpectedSegmentData,
+  isSegmentGeneration,
+} from './segmentDataTransforms';
+import {
+  buildChildrenQueryKey,
+  buildLiveTimelineQueryKey,
+  buildParentGenerationsQueryKey,
+  fetchChildGenerations,
+  fetchLiveTimeline,
+  fetchParentGenerations,
+} from './segmentOutputsQueries';
+import { buildSegmentSlots } from './segmentSlotAssignment';
+import type {
+  ExpectedSegmentData,
+  LiveTimelineRow,
+  SegmentSlot,
+} from './segmentOutputTypes';
 
-// Slot type - either a real child or a placeholder for a processing segment
-export type SegmentSlot =
-  | { type: 'child'; child: GenerationRow; index: number; pairShotGenerationId?: string }
-  | { type: 'placeholder'; index: number; expectedFrames?: number; expectedPrompt?: string; startImage?: string; endImage?: string; pairShotGenerationId?: string };
-
-interface ExpectedSegmentData {
-  count: number;
-  frames: number[];
-  prompts: string[];
-  inputImages: string[];
-  inputImageGenIds: string[];
-  pairShotGenIds: string[];
-}
+export type { SegmentSlot } from './segmentOutputTypes';
 
 interface UseSegmentOutputsReturn {
-  // Multiple parent generations (different "runs")
   parentGenerations: GenerationRow[];
   selectedParentId: string | null;
   setSelectedParentId: (id: string | null) => void;
-
-  // Currently selected parent's data
   selectedParent: GenerationRow | null;
-  hasFinalOutput: boolean; // parent.location exists
-
-  // Segment slots for current parent
+  hasFinalOutput: boolean;
   segmentSlots: SegmentSlot[];
-  segments: GenerationRow[]; // Actual segment children (not placeholders)
+  segments: GenerationRow[];
   segmentProgress: { completed: number; total: number };
   expectedSegmentData: ExpectedSegmentData | null;
-
-  // Loading states
   isLoading: boolean;
   isRefetching: boolean;
-
-  // Actions
   refetch: () => void;
 }
 
-/**
- * Extract expected segment data from parent's orchestrator_details
- */
-function extractExpectedSegmentData(parentParams: Record<string, unknown> | null): ExpectedSegmentData | null {
-  if (!parentParams) return null;
+function derivePreloadedParentGenerations(
+  preloadedGenerations?: GenerationRow[],
+): GenerationRow[] | undefined {
+  if (!preloadedGenerations) {
+    return undefined;
+  }
 
-  const orchestratorDetails = parentParams.orchestrator_details as Record<string, unknown> | undefined;
-  if (!orchestratorDetails) return null;
+  const parentIds = new Set<string>();
+  preloadedGenerations.forEach((generation) => {
+    if (generation.parent_generation_id) {
+      parentIds.add(generation.parent_generation_id);
+    }
+  });
 
-  const segmentCount = (orchestratorDetails.num_new_segments_to_generate as number)
-    || (orchestratorDetails.segment_frames_expanded as unknown[] | undefined)?.length
-    || 0;
+  const parents = preloadedGenerations.filter((generation) => {
+    const isVideo = generation.type?.includes('video');
+    const isNotChild = !generation.parent_generation_id;
+    const hasOrchestratorDetails = !!(
+      generation.params as Record<string, unknown> | undefined
+    )?.orchestrator_details;
+    const generationId = getGenerationId(generation);
+    const hasChildren = typeof generationId === 'string' && parentIds.has(generationId);
 
-  if (segmentCount === 0) return null;
+    return isVideo && isNotChild && (hasOrchestratorDetails || hasChildren);
+  });
 
-  return {
-    count: segmentCount,
-    frames: (orchestratorDetails.segment_frames_expanded as number[]) || [],
-    prompts: (orchestratorDetails.enhanced_prompts_expanded as string[]) || (orchestratorDetails.base_prompts_expanded as string[]) || [],
-    inputImages: (orchestratorDetails.input_image_paths_resolved as string[]) || [],
-    // Include IDs for tethering videos to shot_generations
-    inputImageGenIds: (orchestratorDetails.input_image_generation_ids as string[]) || [],
-    pairShotGenIds: (orchestratorDetails.pair_shot_generation_ids as string[]) || [],
-  };
+  parents.sort((a, b) => {
+    const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+    const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+    return dateB - dateA;
+  });
+
+  return parents;
 }
 
-/**
- * Extract pair identifiers from a generation (checks column first, then params)
- * @param generation - The generation row (may have pair_shot_generation_id column)
- * @param params - The params JSONB (legacy storage location)
- */
-function getPairIdentifiers(
-  generation: { pair_shot_generation_id?: string | null } | null,
-  params: Record<string, unknown> | null
-): { pairShotGenId?: string; startGenId?: string } {
-  const columnValue = generation?.pair_shot_generation_id;
-  if (!columnValue) return {};
-  const individualParams = params?.individual_segment_params as Record<string, unknown> | undefined;
-  return {
-    pairShotGenId: columnValue,
-    startGenId: (individualParams?.start_image_generation_id || params?.start_image_generation_id) as string | undefined,
-  };
+function derivePreloadedChildren(
+  preloadedGenerations: GenerationRow[] | undefined,
+  selectedParentId: string | null,
+  parentGenerations: GenerationRow[],
+): GenerationRow[] | undefined {
+  if (!preloadedGenerations || !selectedParentId) {
+    return undefined;
+  }
+
+  const selectedParent = parentGenerations.find(
+    (parent) => parent.id === selectedParentId || parent.generation_id === selectedParentId,
+  );
+  const parentGenerationId = selectedParent?.generation_id || selectedParentId;
+
+  return preloadedGenerations.filter((generation) => {
+    const parentId = generation.parent_generation_id;
+    return parentId === parentGenerationId || parentId === selectedParentId;
+  });
 }
 
-/**
- * Check if a generation is a travel segment (has segment_index in params)
- * vs a join output (no segment_index)
- */
-function isSegment(params: Record<string, unknown> | null): boolean {
-  return typeof params?.segment_index === 'number';
+function derivePreloadedTimelineData(
+  preloadedGenerations?: GenerationRow[],
+): LiveTimelineRow[] | undefined {
+  if (!preloadedGenerations) {
+    return undefined;
+  }
+
+  return preloadedGenerations
+    .filter((generation) => (
+      generation.timeline_frame !== null
+      && generation.timeline_frame !== undefined
+      && generation.timeline_frame >= 0
+    ))
+    .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0))
+    .map((generation) => ({
+      id: generation.id,
+      generation_id: generation.generation_id,
+      timeline_frame: generation.timeline_frame,
+    }));
 }
 
-/**
- * Transform raw generation data to GenerationRow format
- */
-interface RawGenerationDbRow {
-  id: string;
-  location?: string | null;
-  thumbnail_url?: string | null;
-  type?: string | null;
-  created_at?: string;
-  updated_at?: string | null;
-  params?: Record<string, unknown> | null;
-  parent_generation_id?: string | null;
-  child_order?: number | null;
-  starred?: boolean;
-  pair_shot_generation_id?: string | null;
-  primary_variant_id?: string | null;
-}
-
-function transformToGenerationRow(gen: RawGenerationDbRow): GenerationRow {
-  return {
-    id: gen.id,
-    location: gen.location || '',
-    imageUrl: gen.location || '',
-    thumbUrl: gen.thumbnail_url || gen.location || '',
-    type: gen.type || 'video',
-    created_at: gen.updated_at || gen.created_at || new Date().toISOString(),
-    createdAt: gen.updated_at || gen.created_at || new Date().toISOString(),
-    params: gen.params as GenerationRow['params'],
-    parent_generation_id: gen.parent_generation_id,
-    child_order: gen.child_order,
-    starred: gen.starred,
-    // Include pair_shot_generation_id column (for FK-based slot matching)
-    pair_shot_generation_id: gen.pair_shot_generation_id,
-  };
+function buildPositionMap(timelineData: LiveTimelineRow[] | undefined): Map<string, number> {
+  const map = new Map<string, number>();
+  (timelineData || []).forEach((timelineItem, index) => {
+    map.set(timelineItem.id, index);
+  });
+  return map;
 }
 
 export function useSegmentOutputsForShot(
   shotId: string | null,
   projectId: string | null,
-  /** Local shot_generation positions for instant updates during drag */
   localShotGenPositions?: Map<string, number>,
-  /** Optional controlled selected parent ID (lifted state from parent) */
   controlledSelectedParentId?: string | null,
-  /** Optional callback when selected parent changes (for controlled mode) */
   onSelectedParentChange?: (id: string | null) => void,
-  /** Optional preloaded generations for readOnly mode (bypasses database queries) */
   preloadedGenerations?: GenerationRow[],
-  /** Optional trailing segment shot_generation_id (allows videos at end position to show) */
-  trailingShotGenId?: string
+  trailingShotGenId?: string,
 ): UseSegmentOutputsReturn {
-  // [TrailingDebug] Log when trailingShotGenId is passed
-
-  // Debug: Log when local positions are passed
-
-  // Track selected parent generation - use controlled value if provided, otherwise internal state
   const [internalSelectedParentId, setInternalSelectedParentId] = useState<string | null>(null);
 
-  // Determine if we're in controlled mode
   const isControlled = controlledSelectedParentId !== undefined;
   const selectedParentId = isControlled ? controlledSelectedParentId : internalSelectedParentId;
   const setSelectedParentId = useCallback((id: string | null) => {
     if (isControlled && onSelectedParentChange) {
       onSelectedParentChange(id);
-    } else {
-      setInternalSelectedParentId(id);
+      return;
     }
+    setInternalSelectedParentId(id);
   }, [isControlled, onSelectedParentChange]);
 
-  // Derive parent generations from preloaded data if available
-  // Parent generations are videos that:
-  // 1. type = 'video'
-  // 2. parent_generation_id IS NULL (not a child itself)
-  // 3. Has orchestrator_details OR has children pointing to it
-  const preloadedParentGenerations = useMemo(() => {
-    if (!preloadedGenerations) return undefined;
-
-    // First, find all generation IDs that are referenced as parents
-    const parentIds = new Set<string>();
-    preloadedGenerations.forEach(gen => {
-      const parentId = gen.parent_generation_id;
-      if (parentId) parentIds.add(parentId);
-    });
-
-    const parents = preloadedGenerations.filter(gen => {
-      const isVideo = gen.type?.includes('video');
-      // Check if this is NOT a child (no parent_generation_id)
-      const isNotChild = !gen.parent_generation_id;
-      // Has orchestrator_details OR is referenced as a parent by other generations
-      const hasOrchestratorDetails = !!(gen.params as Record<string, unknown> | undefined)?.orchestrator_details;
-      // Use generation_id for parent lookup (shot_generations.generation_id -> generations.id)
-      const genId = getGenerationId(gen);
-      const hasChildren = typeof genId === 'string' ? parentIds.has(genId) : false;
-
-      return isVideo && isNotChild && (hasOrchestratorDetails || hasChildren);
-    });
-
-    // Sort by created_at descending (most recent first) to match actual page behavior
-    // This ensures auto-select picks the most recent parent
-    parents.sort((a, b) => {
-      const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
-      const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
-      return dateB - dateA; // Descending - most recent first
-    });
-
-    return parents;
-  }, [preloadedGenerations]);
-
-  // Memoize query keys to prevent React Query observer.setOptions() from seeing
-  // "changed" options on every render (shallowEqualObjects compares by reference).
-  // Without this, unstable keys + staleTime: 0 cause a fetch→render→fetch loop.
-  const parentQueryKey = useMemo(
-    () => segmentQueryKeys.parents(shotId!, projectId ?? undefined),
-    [shotId, projectId]
+  const preloadedParentGenerations = useMemo(
+    () => derivePreloadedParentGenerations(preloadedGenerations),
+    [preloadedGenerations],
   );
 
-  // Fetch parent generations using the shot_final_videos view (single query, all filtering server-side)
-  // Skip query when preloaded data is available
+  const parentQueryKey = useMemo(
+    () => buildParentGenerationsQueryKey(shotId!, projectId),
+    [projectId, shotId],
+  );
+
   const {
     data: parentGenerationsData,
     isLoading: isLoadingParents,
@@ -230,97 +170,56 @@ export function useSegmentOutputsForShot(
   } = useQuery({
     queryKey: parentQueryKey,
     queryFn: async () => {
-      if (!shotId || !projectId) return [];
-
-      // Single query using the shot_final_videos view
-      // This replaces 3 queries + client-side filtering with 1 indexed query
-      const { data, error } = await supabase().from('shot_final_videos')
-        .select('*')
-        .eq('shot_id', shotId)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        normalizeAndPresentError(error, {
-          context: 'useSegmentOutputsForShot.fetchParents',
-          showToast: false,
-          logData: { shotId, projectId },
-        });
-        throw error;
+      if (!shotId || !projectId) {
+        return [];
       }
-
-      return ((data || []) as unknown as RawGenerationDbRow[]).map(transformToGenerationRow);
+      return fetchParentGenerations(shotId, projectId);
     },
     enabled: !!shotId && !!projectId && !preloadedGenerations,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
   });
 
-  // Use preloaded data if available, otherwise use query data
   const parentGenerations = useMemo(
     () => (preloadedParentGenerations ?? parentGenerationsData) || [],
     [preloadedParentGenerations, parentGenerationsData],
   );
 
-  // Auto-select the first (most recent) parent if none selected
-  // IMPORTANT: Only auto-select when:
-  // 1. The query is enabled (shotId exists) - prevents controlled components with disabled queries from clearing selection
-  // 2. NOT in controlled mode - parent component manages selection
-  // 3. There are parent generations to select from
   useEffect(() => {
-    // Don't auto-select if query is disabled (we're just using controlled state passthrough)
-    if (!shotId) return;
-
-    // Don't auto-select if in controlled mode - parent component manages selection
-    if (isControlled) return;
+    if (!shotId || isControlled) {
+      return;
+    }
 
     if (parentGenerations.length > 0 && !selectedParentId) {
       setSelectedParentId(parentGenerations[0].id);
-    } else if (parentGenerations.length > 0 && selectedParentId) {
-      // Validate that current selection exists in the list
-      const selectionExists = parentGenerations.some(p => p.id === selectedParentId);
+      return;
+    }
+
+    if (parentGenerations.length > 0 && selectedParentId) {
+      const selectionExists = parentGenerations.some((parent) => parent.id === selectedParentId);
       if (!selectionExists) {
         setSelectedParentId(parentGenerations[0].id);
       }
     }
-    // Note: We don't set to null when parentGenerations is empty - keep last selection
-  }, [parentGenerations, selectedParentId, shotId, isControlled, setSelectedParentId]);
+  }, [isControlled, parentGenerations, selectedParentId, setSelectedParentId, shotId]);
 
-  // Get the selected parent
   const selectedParent = useMemo(() => {
-    if (!selectedParentId) return null;
-    return parentGenerations.find(p => p.id === selectedParentId) || null;
+    if (!selectedParentId) {
+      return null;
+    }
+    return parentGenerations.find((parent) => parent.id === selectedParentId) || null;
   }, [parentGenerations, selectedParentId]);
 
-  // Derive children from preloaded data if available
-  // Children are generations with parent_generation_id pointing to the selected parent
-  const preloadedChildren = useMemo(() => {
-    if (!preloadedGenerations || !selectedParentId) return undefined;
+  const preloadedChildren = useMemo(
+    () => derivePreloadedChildren(preloadedGenerations, selectedParentId, parentGenerations),
+    [preloadedGenerations, selectedParentId, parentGenerations],
+  );
 
-    // The selected parent might be a shot_generations.id or a generations.id
-    // We need to find the generation_id for the selected parent
-    const selectedParent = parentGenerations.find(p => p.id === selectedParentId || p.generation_id === selectedParentId);
-    const parentGenId = selectedParent?.generation_id || selectedParentId;
-
-    const children = preloadedGenerations.filter(gen => {
-      // Check if this generation's parent_generation_id matches the selected parent
-      const parentId = gen.parent_generation_id;
-      return parentId === parentGenId || parentId === selectedParentId;
-    });
-
-    return children;
-  }, [preloadedGenerations, selectedParentId, parentGenerations]);
-
-  // Smart polling for segment children - allows new segments to appear after task completion
-  // CRITICAL: Memoize query key — an unstable array reference here was the root cause of a
-  // 15/sec render loop. React Query's setOptions() uses shallowEqualObjects which compares
-  // queryKey by reference. New array + staleTime: 0 → fetch→render→fetch infinite loop.
   const childrenQueryKey = useMemo(
-    () => [...segmentQueryKeys.children(selectedParentId!)] as string[],
-    [selectedParentId]
+    () => buildChildrenQueryKey(selectedParentId!),
+    [selectedParentId],
   );
   const childrenPollingConfig = useSmartPollingConfig(childrenQueryKey);
 
-  // Fetch children for selected parent - skip if preloaded data available
   const {
     data: childGenerationsData,
     isLoading: isLoadingChildren,
@@ -329,306 +228,100 @@ export function useSegmentOutputsForShot(
   } = useQuery({
     queryKey: childrenQueryKey,
     queryFn: async () => {
-      if (!selectedParentId) return [];
-
-      // [TrailingDebug] Also check if there are ANY videos with matching pair_shot_generation_id
-      // This helps diagnose if videos exist but under a different parent
-      const { data, error } = await supabase().from('generations')
-        .select('*')
-        .eq('parent_generation_id', selectedParentId)
-        .order('child_order', { ascending: true })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        normalizeAndPresentError(error, {
-          context: 'useSegmentOutputsForShot.fetchChildren',
-          showToast: false,
-          logData: { selectedParentId },
-        });
-        throw error;
+      if (!selectedParentId) {
+        return [];
       }
-
-      return ((data || []) as unknown as RawGenerationDbRow[]).map(transformToGenerationRow);
+      return fetchChildGenerations(selectedParentId);
     },
     enabled: !!selectedParentId && !preloadedGenerations,
-    // Smart polling config - polls when realtime is unhealthy, otherwise relies on invalidation
     ...childrenPollingConfig,
     refetchOnWindowFocus: false,
   });
 
-  // Use preloaded children if available
   const childGenerations = useMemo(
     () => (preloadedChildren ?? childGenerationsData) || [],
     [preloadedChildren, childGenerationsData],
   );
 
-  // Filter to only segments (not join outputs)
-  const segments = useMemo(() => {
-    const filtered = childGenerations.filter(child => isSegment(child.params as Record<string, unknown> | null));
-
-    return filtered;
-  }, [childGenerations]);
-
-  // Derive timeline data from preloaded generations if available
-  const preloadedTimelineData = useMemo(() => {
-    if (!preloadedGenerations) return undefined;
-    // Filter to positioned items and map to timeline format
-    return preloadedGenerations
-      .filter(gen => gen.timeline_frame !== null && gen.timeline_frame !== undefined && gen.timeline_frame >= 0)
-      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0))
-      .map(gen => ({
-        id: gen.id,  // shot_generations.id
-        generation_id: gen.generation_id,
-        timeline_frame: gen.timeline_frame,
-      }));
-  }, [preloadedGenerations]);
-
-  const liveTimelineQueryKey = useMemo(
-    () => segmentQueryKeys.liveTimeline(shotId!),
-    [shotId]
+  const segments = useMemo(
+    () => childGenerations.filter((child) => isSegmentGeneration(child.params as Record<string, unknown> | null)),
+    [childGenerations],
   );
 
-  // Fetch LIVE shot_generations to get current timeline order
-  // This is the source of truth for video positioning - videos move with their images
-  // Skip if preloaded data available
+  const preloadedTimelineData = useMemo(
+    () => derivePreloadedTimelineData(preloadedGenerations),
+    [preloadedGenerations],
+  );
+
+  const liveTimelineQueryKey = useMemo(
+    () => buildLiveTimelineQueryKey(shotId!),
+    [shotId],
+  );
+
   const {
     data: liveTimelineData,
     refetch: refetchTimeline,
   } = useQuery({
     queryKey: liveTimelineQueryKey,
     queryFn: async () => {
-      if (!shotId) return [];
-
-      const { data, error } = await supabase().from('shot_generations')
-        .select('id, generation_id, timeline_frame')
-        .eq('shot_id', shotId)
-        .gte('timeline_frame', 0) // Only positioned images
-        .order('timeline_frame', { ascending: true });
-
-      if (error) {
-        normalizeAndPresentError(error, {
-          context: 'useSegmentOutputsForShot.fetchLiveTimeline',
-          showToast: false,
-          logData: { shotId },
-        });
-        throw error;
+      if (!shotId) {
+        return [];
       }
-
-      return data || [];
+      return fetchLiveTimeline(shotId);
     },
     enabled: !!shotId && !preloadedGenerations,
-    staleTime: 10000, // Refresh more frequently to catch timeline changes
+    staleTime: 10000,
   });
 
-  // Use preloaded timeline if available
   const effectiveTimelineData = preloadedTimelineData ?? liveTimelineData;
 
-  // Build map of shot_generation.id → current position (live, not snapshot)
-  const liveShotGenIdToPosition = useMemo(() => {
-    const map = new Map<string, number>();
-    (effectiveTimelineData || []).forEach((sg, index) => {
-      map.set(sg.id, index);
-    });
+  const liveShotGenIdToPosition = useMemo(
+    () => buildPositionMap(effectiveTimelineData),
+    [effectiveTimelineData],
+  );
 
-    return map;
-  }, [effectiveTimelineData, shotId, preloadedTimelineData]);
-
-  // Extract expected segment data from selected parent
   const expectedSegmentData = useMemo(() => {
-    if (!selectedParent) return null;
+    if (!selectedParent) {
+      return null;
+    }
     return extractExpectedSegmentData(selectedParent.params as Record<string, unknown> | null);
   }, [selectedParent]);
 
-  // Build segment slots
-  // Uses LOCAL positions (instant during drag) or LIVE timeline (from DB) for slot assignment
-  const segmentSlots = useMemo((): SegmentSlot[] => {
-    const hasLocalPositions = !!localShotGenPositions && localShotGenPositions.size > 0;
-    const localPositionCount = localShotGenPositions?.size ?? 0;
-    const useLocalPositions = hasLocalPositions;
+  const segmentSlots = useMemo(() => buildSegmentSlots({
+    segments,
+    expectedSegmentData,
+    effectiveTimelineData,
+    liveShotGenIdToPosition,
+    localShotGenPositions,
+    trailingShotGenId,
+  }), [
+    effectiveTimelineData,
+    expectedSegmentData,
+    liveShotGenIdToPosition,
+    localShotGenPositions,
+    segments,
+    trailingShotGenId,
+  ]);
 
-    const positionMap = useLocalPositions ? localShotGenPositions : liveShotGenIdToPosition;
-    const baseSlotCount = useLocalPositions
-      ? localPositionCount - 1  // N images = N-1 pairs
-      : (effectiveTimelineData?.length ? effectiveTimelineData.length - 1 : 0);
-    // Add extra slot for trailing segment if provided
-    const slotCount = trailingShotGenId ? baseSlotCount + 1 : baseSlotCount;
-
-    // Use slotCount (current timeline) for positioning, not expectedCount (original generation)
-    if (slotCount === 0) {
-      if (!effectiveTimelineData) {
-        // Timeline still loading — return empty to avoid collision/shift artifacts.
-        // The child_order fallback below causes two problems when timeline data arrives:
-        // (1) segments with the same child_order collide, making one permanently invisible,
-        // (2) segments visually shift position when the FK-based layout kicks in.
-        return [];
-      }
-      // Genuinely no timeline images — show what we have at child_order positions
-      const fallbackSlots = segments.map((child, index) => ({
-        type: 'child' as const,
-        child,
-        index: child.child_order ?? index,
-      }));
-      return fallbackSlots;
-    }
-
-    // Create slots for all expected segments
-    const slots: SegmentSlot[] = [];
-    const childrenBySlot = new Map<number, GenerationRow>();
-    const usedSlots = new Set<number>();
-    const childrenWithoutValidSlot: GenerationRow[] = [];
-    // Priority chain for slot mapping:
-    // 1. pair_shot_generation_id → position (LOCAL for instant, LIVE as fallback)
-    // 2. child_order (fallback ONLY for videos without pair_shot_generation_id)
-    segments.forEach(child => {
-      const childParams = child.params as Record<string, unknown> | null;
-      const { pairShotGenId } = getPairIdentifiers(child, childParams);
-      const childOrder = child.child_order;
-
-      // Extract end image generation_id for pair validation
-      const individualParams = (childParams?.individual_segment_params || {}) as Record<string, unknown>;
-      const endGenId = (individualParams.end_image_generation_id || childParams?.end_image_generation_id) as string | undefined;
-
-      let derivedSlot: number | undefined;
-      let slotSource = 'NONE';
-      let pairShotGenPosition: number | undefined;
-
-      // Priority 1: pair_shot_generation_id → look up position (instant from local, or from DB)
-      // Videos should move with their images
-      if (pairShotGenId && positionMap.has(pairShotGenId)) {
-        pairShotGenPosition = positionMap.get(pairShotGenId)!;
-        // Only validate against slot count (current timeline)
-        // Position N means "start of pair N", but pair N only exists if there's an image at N+1
-        // EXCEPTION: If this is a trailing segment (pairShotGenId matches trailingShotGenId),
-        // allow it even at the end position
-        const isTrailingSegment = trailingShotGenId && pairShotGenId === trailingShotGenId;
-
-        if (pairShotGenPosition < slotCount || isTrailingSegment) {
-          derivedSlot = pairShotGenPosition;
-          slotSource = isTrailingSegment ? 'TRAILING_SEGMENT' : (useLocalPositions ? 'LOCAL_POSITION' : 'PAIR_SHOT_GEN_ID_LIVE');
-        } else {
-          // Image is at last position - no valid pair starts there
-          slotSource = 'PAIR_AT_END_NO_SLOT';
-        }
-
-        // Verify end image still matches — catches insertion between pair images.
-        // ONLY run against LIVE positions (not during local drag). During drag,
-        // derivedSlot comes from localShotGenPositions but effectiveTimelineData
-        // still has LIVE (pre-drag) order — the mixed coordinate systems cause
-        // false demotions on swap/reorder. After commit, LIVE data refreshes and
-        // this check runs against consistent positions.
-        if (!useLocalPositions && derivedSlot !== undefined && endGenId && effectiveTimelineData) {
-          const endImageInTimeline = effectiveTimelineData[derivedSlot + 1];
-          if (endImageInTimeline && endImageInTimeline.generation_id !== endGenId) {
-            // Only demote if the end image is still AFTER this slot (X inserted between A and B)
-            // or is gone entirely (end image deleted). If the end image moved BEFORE this slot
-            // (swap/reorder), the video should follow its start image — ambiguous order > lost data.
-            const endImageNewSlot = effectiveTimelineData.findIndex(
-              item => item.generation_id === endGenId
-            );
-            if (endImageNewSlot === -1 || endImageNewSlot > derivedSlot) {
-              derivedSlot = undefined;
-              slotSource = 'STALE_END_IMAGE';
-            }
-          }
-        }
-      }
-
-      // Priority 2: child_order fallback (legacy segments only)
-      // Fall back to child_order ONLY when there's no pairShotGenId at all.
-      // A stale FK (pairShotGenId exists but not in positionMap) means the source
-      // image was removed from the timeline — the segment is orphaned and should
-      // NOT claim a slot. Letting it fall back to child_order would block valid
-      // segments from their correct positions.
-      if (derivedSlot === undefined && !pairShotGenId &&
-          typeof childOrder === 'number' && childOrder >= 0 && childOrder < slotCount) {
-        derivedSlot = childOrder;
-        slotSource = 'CHILD_ORDER';
-      }
-
-      // Skip videos whose pair_shot_gen is at an invalid position (e.g., last image)
-      // These videos can't be shown because their start image has no following image
-      if (slotSource === 'PAIR_AT_END_NO_SLOT') {
-        return; // Skip this video entirely
-      }
-
-      // Check if slot is valid and not already used
-      if (derivedSlot !== undefined && !usedSlots.has(derivedSlot)) {
-        childrenBySlot.set(derivedSlot, child);
-        usedSlots.add(derivedSlot);
-      } else if (derivedSlot !== undefined && usedSlots.has(derivedSlot)) {
-        // Slot collision — prefer the segment with actual content (location).
-        // This prevents demoted/empty segments from blocking valid ones,
-        // even in timing windows where demote hasn't cleared location yet.
-        const existing = childrenBySlot.get(derivedSlot)!;
-        if (!existing.location && child.location) {
-          childrenBySlot.set(derivedSlot, child);
-          childrenWithoutValidSlot.push(existing);
-        } else {
-          childrenWithoutValidSlot.push(child);
-        }
-      } else {
-        childrenWithoutValidSlot.push(child);
-      }
-    });
-
-    // DON'T assign orphans to available slots - this was causing deleted segments
-    // to be replaced by other segments. Orphan segments (without valid pair_shot_generation_id)
-    // should NOT be displayed. They'll remain hidden until regenerated for the correct slot.
-
-    // Fill in slots using LIVE timeline data for placeholders
-    for (let i = 0; i < slotCount; i++) {
-      const child = childrenBySlot.get(i);
-      // Use live timeline for pair_shot_generation_id (shot_generations.id of start image)
-      const liveStartImage = effectiveTimelineData?.[i];
-      const liveEndImage = effectiveTimelineData?.[i + 1];
-      // Get pair_shot_generation_id: prefer live data, fall back to expected data
-      const pairShotGenerationId = liveStartImage?.id || expectedSegmentData?.pairShotGenIds?.[i];
-
-      if (child) {
-        // Use the child's own pair_shot_generation_id for the key.
-        // liveStartImage?.id is wrong when LOCAL and LIVE orders diverge (e.g. after a drag reorder),
-        // causing buildDisplaySlots to fail to match this slot to the correct LOCAL pair.
-        const childPsgId = getPairIdentifiers(child, child.params as Record<string, unknown> | null).pairShotGenId;
-        slots.push({ type: 'child', child, index: i, pairShotGenerationId: childPsgId || pairShotGenerationId });
-      } else {
-        slots.push({
-          type: 'placeholder',
-          index: i,
-          expectedFrames: expectedSegmentData?.frames[i],
-          expectedPrompt: expectedSegmentData?.prompts[i],
-          startImage: liveStartImage?.generation_id || expectedSegmentData?.inputImages[i],
-          endImage: liveEndImage?.generation_id || expectedSegmentData?.inputImages[i + 1],
-          pairShotGenerationId,
-        });
-      }
-    }
-
-    return slots;
-  }, [segments, expectedSegmentData, effectiveTimelineData, liveShotGenIdToPosition, localShotGenPositions, trailingShotGenId]);
-
-  // Calculate progress
   const segmentProgress = useMemo(() => {
-    const completed = segmentSlots.filter(s => s.type === 'child' && s.child.location).length;
-    const total = segmentSlots.length;
-
-    return { completed, total };
+    const completed = segmentSlots.filter((slot) => slot.type === 'child' && slot.child.location).length;
+    return { completed, total: segmentSlots.length };
   }, [segmentSlots]);
 
-  // Combined refetch
   const refetch = useCallback(() => {
     refetchParents();
     refetchChildren();
     refetchTimeline();
-  }, [refetchParents, refetchChildren, refetchTimeline]);
+  }, [refetchChildren, refetchParents, refetchTimeline]);
 
   return {
     parentGenerations,
     selectedParentId,
     setSelectedParentId,
     selectedParent,
-    hasFinalOutput: !!(selectedParent?.location),
+    hasFinalOutput: !!selectedParent?.location,
     segmentSlots,
-    segments, // Actual segment children (for join functionality)
+    segments,
     segmentProgress,
     expectedSegmentData,
     isLoading: isLoadingParents || isLoadingChildren,

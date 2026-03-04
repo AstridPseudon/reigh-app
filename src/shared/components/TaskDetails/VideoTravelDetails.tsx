@@ -1,40 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/shared/components/ui/button';
-import { Copy, Check } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
-import { parseTaskParams, deriveInputImages, derivePrompt } from '@/shared/lib/taskParamsUtils';
 import { getDisplayNameFromUrl } from '@/shared/lib/loraUtils';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { presetQueryKeys } from '@/shared/lib/queryKeys/presets';
-import type { PhaseSettings, PhaseLoraConfig } from '@/shared/types/phaseConfig';
-import { pickFirstStructureGuidance } from '@/shared/lib/tasks/structureGuidance';
-import { buildTaskPayloadSnapshot } from '@/shared/lib/tasks/taskPayloadSnapshot';
-import { writeClipboardTextSafe } from '@/shared/lib/clipboard';
+import type { PhaseLoraConfig, PhaseSettings } from '@/shared/types/phaseConfig';
+import { asNumber, asString, asRecord } from '@/shared/lib/tasks/taskParamParsers';
 import {
-  readTravelContractData,
-  readTravelStructureVideoFromGuidance,
-} from '@/shared/lib/tasks/travelContractData';
-import {
-  asRecord,
-  asString,
-  asNumber,
-  asStringArray,
-} from '@/shared/lib/tasks/taskParamParsers';
-
-// Built-in preset ID → name mapping (matches segmentSettingsUtils.ts)
-const BUILTIN_PRESET_NAMES: Record<string, string> = {
-  '__builtin_default_i2v__': 'Basic',
-  '__builtin_default_vace__': 'Basic',
-};
-
-function pickString(...values: unknown[]): string | undefined {
-  for (const value of values) {
-    const parsed = asString(value);
-    if (parsed !== undefined) return parsed;
-  }
-  return undefined;
-}
+  formatTravelModelName,
+  resolveTravelPresetName,
+  useVideoTravelTaskData,
+} from './hooks/useVideoTravelTaskData';
+import { useCopyToClipboard } from './hooks/useCopyToClipboard';
+import { TaskGuidanceImages } from './components/TaskGuidanceImages';
+import { TaskPromptDetails } from './components/TaskPromptDetails';
+import { TaskLoraDetails } from './components/TaskLoraDetails';
 
 /**
  * Task details for video travel/generation tasks
@@ -56,146 +37,45 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 }) => {
   const config = getVariantConfig(variant, isMobile, inputImages.length);
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const [copiedLoraUrl, setCopiedLoraUrl] = useState<string | null>(null);
 
-  const handleCopyPrompt = async (text: string, setStateFn: (val: boolean) => void) => {
-    const copied = await writeClipboardTextSafe(text);
-    if (!copied) return;
-    setStateFn(true);
-    setTimeout(() => setStateFn(false), 2000);
-  };
+  const { copiedValue: copiedPromptValue, copyText: copyPromptText } = useCopyToClipboard<'prompt'>();
+  const { copiedValue: copiedLoraUrl, copyText: copyLoraUrl } = useCopyToClipboard<string>();
 
-  const handleCopyLoraUrl = async (url: string) => {
-    const copied = await writeClipboardTextSafe(url);
-    if (!copied) return;
-    setCopiedLoraUrl(url);
-    setTimeout(() => setCopiedLoraUrl(null), 2000);
-  };
+  const handleCopyPrompt = useCallback((text: string) => {
+    void copyPromptText(text, 'prompt');
+  }, [copyPromptText]);
 
-  const parsedParams = useMemo(() => parseTaskParams(task?.params), [task?.params]);
-  const payloadSnapshot = useMemo(
-    () => buildTaskPayloadSnapshot(parsedParams),
-    [parsedParams],
-  );
-  const travelContractData = useMemo(
-    () => readTravelContractData(payloadSnapshot),
-    [payloadSnapshot],
-  );
-  const rawParams = payloadSnapshot.rawParams;
-  const derivedImages = useMemo(() => deriveInputImages(rawParams), [rawParams]);
+  const handleCopyLoraUrl = useCallback((url: string) => {
+    void copyLoraUrl(url, url);
+  }, [copyLoraUrl]);
 
-  // For segment tasks, prefer derived images from task params (they're more accurate)
-  // For other tasks, use inputImages if provided, otherwise derived
-  const isSegmentTaskCheck = rawParams.segment_index !== undefined;
-  const contractInputImages = travelContractData.inputImages || [];
-  const effectiveInputImages = contractInputImages.length > 0
-    ? contractInputImages
-    : (isSegmentTaskCheck && derivedImages.length > 0)
-    ? derivedImages
-    : (inputImages.length > 0 ? inputImages : derivedImages);
-
-  const individualSegmentParams = payloadSnapshot.individualSegmentParams;
-
-  // Phase config
-  const phaseConfig = useMemo(() => (
-    asRecord(individualSegmentParams?.phase_config) ||
-    travelContractData.phaseConfig
-  ), [individualSegmentParams, travelContractData.phaseConfig]);
-
-  // Check if in advanced mode - if not, we show additional_loras instead of phase config
-  const isAdvancedMode = useMemo(() => {
-    const advancedMode = individualSegmentParams?.advanced_mode ??
-      travelContractData.advancedMode;
-    const motionMode = individualSegmentParams?.motion_mode ??
-      travelContractData.motionMode;
-
-    const hasPhaseConfig = !!phaseConfig?.phases?.length;
-
-    // advanced_mode explicitly false means basic mode
-    // motion_mode === 'basic' means basic mode
-    // Otherwise, if we have phase config with phases, assume advanced mode for backward compatibility
-    if (advancedMode === false || motionMode === 'basic') {
-      return false;
-    }
-    return advancedMode === true || motionMode === 'advanced' || motionMode === 'presets' || hasPhaseConfig;
-  }, [individualSegmentParams, travelContractData.advancedMode, travelContractData.motionMode, phaseConfig]);
-
-  const phaseStepsDisplay = useMemo(() => {
-    if (!phaseConfig?.steps_per_phase || !Array.isArray(phaseConfig.steps_per_phase)) return null;
-    const stepsArray = phaseConfig.steps_per_phase;
-    const total = stepsArray.reduce((a: number, b: number) => a + b, 0);
-    return `${stepsArray.join(' → ')} (${total} total)`;
-  }, [phaseConfig?.steps_per_phase]);
-
-  const additionalLoras = (
-    asRecord(individualSegmentParams?.additional_loras) ||
-    travelContractData.additionalLoras
-  );
-
-  // Segment info
-  const isSegmentTask = rawParams.segment_index !== undefined;
-
-  // Layout for two-column on large screens when phases present AND in advanced mode
-  // In basic mode, we don't show phase config details even if they exist internally
-  const showPhaseContentInRightColumn = isAdvancedMode && phaseConfig?.phases && variant === 'panel';
-
-  // Get prompt using shared utility
-  const prompt = useMemo(() => (
-    travelContractData.prompt || derivePrompt(rawParams)
-  ), [rawParams, travelContractData.prompt]);
-
-  const orchestratorNegativePrompts = asStringArray(payloadSnapshot.orchestratorDetails.negative_prompts_expanded);
-  const negativePrompt = (individualSegmentParams?.negative_prompt as string | undefined)
-    || travelContractData.negativePrompt
-    ||
-    (isSegmentTask
-      ? asString(rawParams.negative_prompt)
-      : (orchestratorNegativePrompts?.[0] || asString(rawParams.negative_prompt)));
-
-  const enhancePrompt = pickString(
-    asString(payloadSnapshot.orchestratorDetails.enhance_prompt),
-    travelContractData.enhancedPrompt,
-    asString(rawParams.enhanced_prompt),
-  );
-
-  // Structure guidance (new format with videos array, target, strength, step_window)
-  const structureGuidance = pickFirstStructureGuidance(
-    individualSegmentParams?.structure_guidance,
-    travelContractData.structureGuidance,
-    asRecord(rawParams.structure_guidance),
-  );
-
-  // Video/style reference - prefer new structure_guidance.videos format, fall back to legacy fields
-  const structureVideo = readTravelStructureVideoFromGuidance(structureGuidance);
-  const videoPath = pickString(
-    structureVideo?.path,
-    asString(payloadSnapshot.orchestratorDetails.structure_video_path),
-    asString(rawParams.structure_video_path),
-  );
-  const videoTreatment = pickString(
-    structureVideo?.treatment,
-    asString(payloadSnapshot.orchestratorDetails.structure_video_treatment),
-    asString(rawParams.structure_video_treatment),
-  );
-  const motionStrength = asNumber(structureGuidance?.strength)
-    ?? asNumber(payloadSnapshot.orchestratorDetails.structure_video_motion_strength)
-    ?? asNumber(rawParams.structure_video_motion_strength);
-
-  const styleImage = pickString(
-    asString(rawParams.style_reference_image),
-    asString(payloadSnapshot.orchestratorDetails.style_reference_image),
-  );
-  const styleStrength = asNumber(rawParams.style_reference_strength)
-    ?? asNumber(payloadSnapshot.orchestratorDetails.style_reference_strength);
-
-  // Preset
-  const presetId = pickString(
-    individualSegmentParams?.selected_phase_preset_id,
-    travelContractData.selectedPhasePresetId,
-  );
-
-  const isDbPreset = presetId && !presetId.startsWith('__builtin_');
+  const {
+    isSegmentTask,
+    isAdvancedMode,
+    showPhaseContentInRightColumn,
+    effectiveInputImages,
+    phaseConfig,
+    phaseStepsDisplay,
+    additionalLoras,
+    prompt,
+    enhancePrompt,
+    negativePrompt,
+    structureGuidance,
+    videoPath,
+    videoTreatment,
+    motionStrength,
+    styleImage,
+    styleStrength,
+    presetId,
+    isDbPreset,
+    modelName,
+    resolution,
+    frames,
+  } = useVideoTravelTaskData({
+    taskParams: task.params,
+    inputImages,
+    variant,
+  });
 
   const { data: dbPresetName } = useQuery({
     queryKey: presetQueryKeys.name(presetId ?? ''),
@@ -213,66 +93,70 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
     staleTime: Infinity,
   });
 
-  const presetName = presetId
-    ? (BUILTIN_PRESET_NAMES[presetId] || dbPresetName || null)
-    : null;
+  const presetName = resolveTravelPresetName(presetId, dbPresetName);
+  const phaseSettings = useMemo(() => {
+    if (!Array.isArray(phaseConfig?.phases)) {
+      return [];
+    }
+    return phaseConfig.phases as PhaseSettings[];
+  }, [phaseConfig]);
 
-  // Technical settings
-  const modelName = pickString(
-    travelContractData.modelName,
-  );
-  const resolution = pickString(
-    travelContractData.resolution,
-    asString(payloadSnapshot.orchestratorDetails.parsed_resolution_wh),
-    asString(rawParams.parsed_resolution_wh),
-  );
-  const orchestratorSegmentFrames = travelContractData.segmentFramesExpanded;
-  const rawSegmentFrames = rawParams.segment_frames_expanded;
-  const parsedSegmentFrames = Array.isArray(rawSegmentFrames)
-    ? rawSegmentFrames
-      .map((value) => (typeof value === 'number' ? value : Number(value)))
-      .filter((value) => Number.isFinite(value))
-    : undefined;
-  const frames = isSegmentTask
-    ? (
-      asNumber(individualSegmentParams?.num_frames)
-      || asNumber(rawParams.num_frames)
-      || asNumber(rawParams.segment_frames_target)
-    )
-    : (orchestratorSegmentFrames?.[0] || parsedSegmentFrames?.[0]);
+  const phaseStepsPerPhase = useMemo(() => {
+    if (!Array.isArray(phaseConfig?.steps_per_phase)) {
+      return undefined;
+    }
+    const parsed = phaseConfig.steps_per_phase
+      .map((value) => asNumber(value))
+      .filter((value): value is number => value !== undefined);
+    return parsed.length > 0 ? parsed : undefined;
+  }, [phaseConfig]);
 
-  const formatModelName = (name: string) => {
-    return name
-      .replace(/wan_2_2_i2v_lightning_baseline_(\d+)_(\d+)_(\d+)/, 'Wan 2.2 I2V Lightning ($1.$2.$3)')
-      .replace(/wan_2_2_i2v_baseline_(\d+)_(\d+)_(\d+)/, 'Wan 2.2 I2V Baseline ($1.$2.$3)')
-      .replace(/wan_2_2_i2v_lightning/, 'Wan 2.2 I2V Lightning')
-      .replace(/wan_2_2_i2v/, 'Wan 2.2 I2V')
-      .replace(/_/g, ' ');
-  };
+  const phaseCount = asNumber(phaseConfig?.num_phases) || phaseSettings.length;
+  const phaseFlowShift = asNumber(phaseConfig?.flow_shift);
+  const phaseSolver = asString(phaseConfig?.sample_solver);
 
-  const renderPhasesList = (phases: PhaseSettings[], stepsPerPhase?: number[]) => (
+  const renderPhasesList = () => (
     <>
-      {phases.map((phase: PhaseSettings, phaseIndex: number) => (
+      {phaseSettings.map((phase, phaseIndex) => (
         <div key={phase.phase} className="space-y-1">
           <p className={`${config.textSize} font-medium`}>Phase {phase.phase}</p>
           <div className="ml-2 space-y-1">
             <div className="flex gap-3">
-              <span className={`${config.textSize} text-muted-foreground`}>Guidance: <span className={`${config.fontWeight} text-foreground`}>{Number(phase.guidance_scale).toFixed(1)}</span></span>
-              {stepsPerPhase?.[phaseIndex] !== undefined && (
-                <span className={`${config.textSize} text-muted-foreground`}>Steps: <span className={`${config.fontWeight} text-foreground`}>{stepsPerPhase[phaseIndex]}</span></span>
+              <span className={`${config.textSize} text-muted-foreground`}>
+                Guidance:{' '}
+                <span className={`${config.fontWeight} text-foreground`}>
+                  {Number(phase.guidance_scale).toFixed(1)}
+                </span>
+              </span>
+              {phaseStepsPerPhase?.[phaseIndex] !== undefined && (
+                <span className={`${config.textSize} text-muted-foreground`}>
+                  Steps:{' '}
+                  <span className={`${config.fontWeight} text-foreground`}>
+                    {phaseStepsPerPhase[phaseIndex]}
+                  </span>
+                </span>
               )}
             </div>
-            {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx: number) => (
-              <div key={idx} className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
-                <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}</span>
+            {phase.loras?.length > 0 && phase.loras.map((lora: PhaseLoraConfig & { name?: string }, idx) => (
+              <div
+                key={idx}
+                className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}
+              >
+                <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>
+                  {getDisplayNameFromUrl(lora.url, availableLoras, lora.name)}
+                </span>
                 <button
-                  onClick={() => { void handleCopyLoraUrl(lora.url); }}
+                  onClick={() => handleCopyLoraUrl(lora.url)}
                   className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover/lora:opacity-100 shrink-0"
                   title="Copy LoRA URL"
                 >
-                  {copiedLoraUrl === lora.url ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                  {copiedLoraUrl === lora.url
+                    ? <Check className="w-3 h-3 text-green-500" />
+                    : <Copy className="w-3 h-3" />}
                 </button>
-                <span className="text-muted-foreground shrink-0">{Number(lora.multiplier).toFixed(1)}</span>
+                <span className="text-muted-foreground shrink-0">
+                  {Number(lora.multiplier).toFixed(1)}
+                </span>
               </div>
             ))}
           </div>
@@ -281,99 +165,82 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
     </>
   );
 
-  /** Renders the "Phase Settings" summary + phases list. Used in both inline and right-column layouts. */
   const renderPhaseConfigSection = (opts: { showSummary: boolean; borderTop?: string }) => {
-    if (!phaseConfig?.phases || phaseConfig.phases.length === 0) return null;
+    if (phaseSettings.length === 0) {
+      return null;
+    }
+
     return (
       <>
         {opts.showSummary && (
           <div className="space-y-2">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>Phase Settings</p>
             <div className="grid grid-cols-2 gap-2">
-              <div><span className={`${config.textSize} text-muted-foreground`}>Phases:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.num_phases || phaseConfig.phases?.length}</span></div>
-              {phaseConfig.flow_shift !== undefined && <div><span className={`${config.textSize} text-muted-foreground`}>Flow Shift:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.flow_shift}</span></div>}
-              {phaseConfig.sample_solver && <div><span className={`${config.textSize} text-muted-foreground`}>Solver:</span> <span className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseConfig.sample_solver}</span></div>}
+              <div>
+                <span className={`${config.textSize} text-muted-foreground`}>Phases:</span>{' '}
+                <span className={`${config.textSize} ${config.fontWeight}`}>{phaseCount}</span>
+              </div>
+              {phaseFlowShift !== undefined && (
+                <div>
+                  <span className={`${config.textSize} text-muted-foreground`}>Flow Shift:</span>{' '}
+                  <span className={`${config.textSize} ${config.fontWeight}`}>{phaseFlowShift}</span>
+                </div>
+              )}
+              {phaseSolver && (
+                <div>
+                  <span className={`${config.textSize} text-muted-foreground`}>Solver:</span>{' '}
+                  <span className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseSolver}</span>
+                </div>
+              )}
             </div>
-            {phaseStepsDisplay && <div><span className={`${config.textSize} text-muted-foreground`}>Steps per Phase:</span> <span className={`${config.textSize} ${config.fontWeight}`}>{phaseStepsDisplay}</span></div>}
+            {phaseStepsDisplay && (
+              <div>
+                <span className={`${config.textSize} text-muted-foreground`}>Steps per Phase:</span>{' '}
+                <span className={`${config.textSize} ${config.fontWeight}`}>{phaseStepsDisplay}</span>
+              </div>
+            )}
           </div>
         )}
         <div className={`${opts.borderTop ?? 'pt-2'} border-t border-muted-foreground/20 space-y-2`}>
           <p className={`${config.textSize} font-medium text-muted-foreground`}>Phases</p>
-          {renderPhasesList(phaseConfig.phases, phaseConfig.steps_per_phase)}
+          {renderPhasesList()}
         </div>
       </>
     );
   };
 
   return (
-    <div className={`p-3 bg-muted/30 rounded-lg border ${showPhaseContentInRightColumn ? 'w-full grid grid-cols-1 lg:grid-cols-2 gap-4' : ''} ${!showPhaseContentInRightColumn && variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : !showPhaseContentInRightColumn ? 'w-[360px]' : ''}`}>
-      {/* Main Content Column */}
+    <div
+      className={`p-3 bg-muted/30 rounded-lg border ${showPhaseContentInRightColumn ? 'w-full grid grid-cols-1 lg:grid-cols-2 gap-4' : ''} ${!showPhaseContentInRightColumn && variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : !showPhaseContentInRightColumn ? 'w-[360px]' : ''}`}
+    >
       <div className={showPhaseContentInRightColumn ? 'space-y-4 min-w-0' : 'space-y-4'}>
-        {/* Guidance Images */}
-        {/* Guidance Images + Structure Video side by side */}
-        {(effectiveInputImages.length > 0 || videoPath) && (
-          <div className="flex gap-3 items-start">
-            {effectiveInputImages.length > 0 && (
-              <div className="gap-y-1.5 flex-1 min-w-0">
-                <p className={`${config.textSize} font-medium text-muted-foreground`}>
-                  Image Guidance ({effectiveInputImages.length})
-                </p>
-                <div className={`grid gap-1 ${config.imageGridCols}`}>
-                  {(showAllImages ? effectiveInputImages : effectiveInputImages.slice(0, config.maxImages)).map((img, i) => (
-                    <img key={i} src={img} alt={`Input ${i + 1}`} className="w-full aspect-square object-cover rounded border shadow-sm" />
-                  ))}
-                  {effectiveInputImages.length > config.maxImages && !showAllImages && (
-                    <div onClick={() => onShowAllImagesChange?.(true)} className="w-full aspect-square bg-muted/50 hover:bg-muted/70 rounded border cursor-pointer flex items-center justify-center">
-                      <span className={`${config.textSize} text-muted-foreground font-medium`}>{effectiveInputImages.length - config.maxImages} more</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+        <TaskGuidanceImages
+          config={config}
+          effectiveInputImages={effectiveInputImages}
+          showAllImages={showAllImages}
+          onShowAllImagesChange={onShowAllImagesChange}
+          videoPath={videoPath}
+          videoLoaded={videoLoaded}
+          onLoadVideo={() => setVideoLoaded(true)}
+          structureGuidance={structureGuidance}
+          videoTreatment={videoTreatment}
+          motionStrength={motionStrength}
+        />
 
-            {videoPath && (
-              <div className="space-y-1.5 shrink-0">
-                <p className={`${config.textSize} font-medium text-muted-foreground`}>
-                  {structureGuidance?.target ? 'Structure' : 'Video'}
-                </p>
-                <div className="flex items-start gap-2">
-                  <div className="relative group cursor-pointer shrink-0" style={{ width: '80px' }} onClick={() => setVideoLoaded(true)}>
-                    {!videoLoaded ? (
-                      <div className="w-full aspect-video bg-black rounded border flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                      </div>
-                    ) : (
-                      <video src={videoPath} className="w-full rounded border" loop muted playsInline autoPlay />
-                    )}
-                  </div>
-                  <div className={`${config.textSize} ${config.fontWeight} space-y-0.5`}>
-                    {structureGuidance?.strength != null && (
-                      <div><span className="text-muted-foreground">Str: </span>{structureGuidance.strength}</div>
-                    )}
-                    {structureGuidance?.step_window && Array.isArray(structureGuidance.step_window) && (
-                      <div><span className="text-muted-foreground">Window: </span>{structureGuidance.step_window[0]}→{structureGuidance.step_window[1]}</div>
-                    )}
-                    {videoTreatment && <div className="text-muted-foreground capitalize">{videoTreatment}</div>}
-                    {motionStrength != null && <div><span className="text-muted-foreground">Motion: </span>{Math.round(motionStrength * 100)}%</div>}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Style Reference */}
         {styleImage && (
           <div className="space-y-1.5">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>Style Reference</p>
             <div className="flex items-center gap-3">
               <img src={styleImage} alt="Style" className="w-[80px] object-cover rounded border" />
-              {styleStrength != null && <span className={`${config.textSize} ${config.fontWeight}`}>Strength: {Math.round(styleStrength * 100)}%</span>}
+              {styleStrength != null && (
+                <span className={`${config.textSize} ${config.fontWeight}`}>
+                  Strength: {Math.round(styleStrength * 100)}%
+                </span>
+              )}
             </div>
           </div>
         )}
 
-        {/* Preset */}
         {presetName && (
           <div className="space-y-1">
             <p className={`${config.textSize} font-medium text-muted-foreground`}>Motion Preset</p>
@@ -381,52 +248,26 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
           </div>
         )}
 
-        {/* Prompts */}
-        <div className="space-y-3 pt-1">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt{enhancePrompt ? ' (enhanced)' : ''}</p>
-              {prompt && showCopyButtons && (
-                <button
-                  onClick={() => handleCopyPrompt(prompt, setCopiedPrompt)}
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title="Copy prompt"
-                >
-                  {copiedPrompt ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              )}
-            </div>
-            <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap preserve-case`}>
-              {prompt ? (showFullPrompt || prompt.length <= config.promptLength ? prompt : prompt.slice(0, config.promptLength) + '...') : 'None'}
-            </p>
-            {prompt && prompt.length > config.promptLength && onShowFullPromptChange && (
-              <Button variant="ghost" size="sm" onClick={() => onShowFullPromptChange(!showFullPrompt)} className="h-6 px-0 text-xs text-primary">
-                {showFullPrompt ? 'Show Less' : 'Show More'}
-              </Button>
-            )}
-          </div>
-          {negativePrompt && negativePrompt !== 'N/A' && (
-            <div className="space-y-1">
-              <p className={`${config.textSize} font-medium text-muted-foreground`}>Negative Prompt</p>
-              <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap preserve-case`}>
-                {showFullNegativePrompt || negativePrompt.length <= config.negativePromptLength ? negativePrompt : negativePrompt.slice(0, config.negativePromptLength) + '...'}
-              </p>
-              {negativePrompt.length > config.negativePromptLength && onShowFullNegativePromptChange && (
-                <Button variant="ghost" size="sm" onClick={() => onShowFullNegativePromptChange(!showFullNegativePrompt)} className="h-6 px-0 text-xs text-primary">
-                  {showFullNegativePrompt ? 'Show Less' : 'Show More'}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        <TaskPromptDetails
+          config={config}
+          prompt={prompt}
+          enhancePrompt={enhancePrompt}
+          negativePrompt={negativePrompt}
+          showFullPrompt={showFullPrompt}
+          onShowFullPromptChange={onShowFullPromptChange}
+          showFullNegativePrompt={showFullNegativePrompt}
+          onShowFullNegativePromptChange={onShowFullNegativePromptChange}
+          showCopyButtons={showCopyButtons}
+          copiedPrompt={copiedPromptValue === 'prompt'}
+          onCopyPrompt={handleCopyPrompt}
+        />
 
-        {/* Technical Settings - only show in advanced mode */}
         {isAdvancedMode && (
           <div className="grid grid-cols-2 gap-3">
             {modelName && (
               <div className="space-y-1">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Model</p>
-                <p className={`${config.textSize} ${config.fontWeight}`}>{formatModelName(modelName)}</p>
+                <p className={`${config.textSize} ${config.fontWeight}`}>{formatTravelModelName(modelName)}</p>
               </div>
             )}
             <div className="space-y-1">
@@ -434,19 +275,21 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
               <p className={`${config.textSize} ${config.fontWeight}`}>{resolution || 'N/A'}</p>
             </div>
             <div className="space-y-1">
-              <p className={`${config.textSize} font-medium text-muted-foreground`}>{isSegmentTask ? 'Frames' : 'Frames / Segment'}</p>
+              <p className={`${config.textSize} font-medium text-muted-foreground`}>
+                {isSegmentTask ? 'Frames' : 'Frames / Segment'}
+              </p>
               <p className={`${config.textSize} ${config.fontWeight}`}>{frames || 'N/A'}</p>
             </div>
-            {phaseConfig?.flow_shift !== undefined && (
+            {phaseFlowShift !== undefined && (
               <div className="space-y-1">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Flow Shift</p>
-                <p className={`${config.textSize} ${config.fontWeight}`}>{phaseConfig.flow_shift}</p>
+                <p className={`${config.textSize} ${config.fontWeight}`}>{phaseFlowShift}</p>
               </div>
             )}
-            {phaseConfig?.sample_solver && (
+            {phaseSolver && (
               <div className="space-y-1">
                 <p className={`${config.textSize} font-medium text-muted-foreground`}>Solver</p>
-                <p className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseConfig.sample_solver}</p>
+                <p className={`${config.textSize} ${config.fontWeight} capitalize`}>{phaseSolver}</p>
               </div>
             )}
           </div>
@@ -454,24 +297,14 @@ export const VideoTravelDetails: React.FC<TaskDetailsProps> = ({
 
         {!showPhaseContentInRightColumn && isAdvancedMode && renderPhaseConfigSection({ showSummary: false })}
 
-        {/* In basic mode OR no phases with loras: show "LoRAs" from additional_loras */}
-        {!showPhaseContentInRightColumn && (!isAdvancedMode || !phaseConfig?.phases?.length) && additionalLoras && Object.keys(additionalLoras).length > 0 && (
-          <div className="pt-2 border-t border-muted-foreground/20 space-y-2">
-            <p className={`${config.textSize} font-medium text-muted-foreground`}>LoRAs</p>
-            {Object.entries(additionalLoras).slice(0, config.maxLoras).map(([url, strength]) => (
-              <div key={url} className={`group/lora flex items-center gap-2 p-1.5 bg-background/50 rounded border ${config.textSize} min-w-0`}>
-                <span className={`${config.fontWeight} truncate min-w-0 flex-1`}>{getDisplayNameFromUrl(url, availableLoras)}</span>
-                <button
-                  onClick={() => { void handleCopyLoraUrl(url); }}
-                  className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover/lora:opacity-100 shrink-0"
-                  title="Copy LoRA URL"
-                >
-                  {copiedLoraUrl === url ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                </button>
-                <span className="text-muted-foreground shrink-0">{Number(strength).toFixed(1)}</span>
-              </div>
-            ))}
-          </div>
+        {!showPhaseContentInRightColumn && (!isAdvancedMode || phaseSettings.length === 0) && (
+          <TaskLoraDetails
+            config={config}
+            additionalLoras={additionalLoras}
+            availableLoras={availableLoras}
+            copiedLoraUrl={copiedLoraUrl}
+            onCopyLoraUrl={handleCopyLoraUrl}
+          />
         )}
       </div>
 
