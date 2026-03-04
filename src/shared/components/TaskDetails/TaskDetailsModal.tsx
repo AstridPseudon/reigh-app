@@ -8,7 +8,7 @@
  * to shared/ because it's used by MediaGalleryLightbox and other shared components.
  */
 
-import React, { useState, ReactNode } from 'react';
+import React, { useCallback, useState, ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,9 @@ import { Label } from '@/shared/components/ui/primitives/label';
 import { normalizeTaskDetailsPayload } from '@/shared/components/TaskDetails/hooks/normalizeTaskDetailsPayload';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useGenerationTaskDetails } from '@/shared/components/TaskDetails/hooks/useGenerationTaskDetails';
-import { useTaskDetailsPresenter } from '@/shared/components/TaskDetails/hooks/useTaskDetailsPresenter';
+import { usePublicLoras } from '@/shared/hooks/useResources';
+import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { TaskDetailsSummaryAndParams } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
-import { TaskDetailsIdCopyButton } from '@/shared/components/TaskDetails/components/TaskDetailsIdCopyButton';
 
 interface TaskDetailsModalProps {
   generationId: string;
@@ -55,7 +55,14 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
     }
   };
   const [replaceImages, setReplaceImages] = useState(true);
+  const [showDetailedParams, setShowDetailedParams] = useState(false);
+  const [showAllImages, setShowAllImages] = useState(false);
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const [showFullNegativePrompt, setShowFullNegativePrompt] = useState(false);
+  const [paramsCopied, setParamsCopied] = useState(false);
+  const [idCopied, setIdCopied] = useState(false);
   const { selectedProjectId } = useProject();
+  const { data: availableLoras } = usePublicLoras();
 
   const {
     taskId,
@@ -69,10 +76,23 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
     resolveMappingOnDemand: true,
   });
 
-  const presenter = useTaskDetailsPresenter({
-    task,
-    errorContext: 'TaskDetailsModal',
-  });
+  const handleCopyParams = useCallback(async () => {
+    if (!task?.params) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(task.params, null, 2));
+      setParamsCopied(true);
+      setTimeout(() => setParamsCopied(false), 2000);
+    } catch (err) {
+      normalizeAndPresentError(err, { context: 'TaskDetailsModal', showToast: false });
+    }
+  }, [task?.params]);
+
+  const handleCopyId = useCallback(() => {
+    if (!taskId) return;
+    navigator.clipboard.writeText(taskId);
+    setIdCopied(true);
+    setTimeout(() => setIdCopied(false), 2000);
+  }, [taskId]);
 
   const normalizedTaskPayload = React.useMemo(() => normalizeTaskDetailsPayload(task), [task]);
   const detailInputImages = normalizedTaskPayload.inputImages.length > 0
@@ -112,11 +132,16 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="sr-only">Task Details</DialogTitle>
-              <TaskDetailsIdCopyButton
-                taskId={taskId}
-                idCopied={presenter.idCopied}
-                onCopyId={presenter.handleCopyId}
-              />
+              {taskId && (
+                <button
+                  onClick={handleCopyId}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    idCopied ? 'text-green-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700'
+                  }`}
+                >
+                  {idCopied ? 'copied' : 'id'}
+                </button>
+              )}
             </div>
             <p id="task-details-description" className="sr-only">
               View details about the task that generated this video, including input images, settings, and parameters.
@@ -142,19 +167,17 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
                 inputImages={detailInputImages}
                 detailsVariant="modal"
                 isMobile={isMobile}
-                availableLoras={presenter.availableLoras}
-                showAllImages={presenter.showAllImages}
-                onShowAllImagesChange={presenter.setShowAllImages}
-                showFullPrompt={presenter.showFullPrompt}
-                onShowFullPromptChange={presenter.setShowFullPrompt}
-                showFullNegativePrompt={presenter.showFullNegativePrompt}
-                onShowFullNegativePromptChange={presenter.setShowFullNegativePrompt}
-                showDetailedParams={presenter.showDetailedParams}
-                onShowDetailedParamsChange={presenter.setShowDetailedParams}
-                paramsCopied={presenter.paramsCopied}
-                onCopyParams={() => {
-                  void presenter.handleCopyParams();
-                }}
+                availableLoras={availableLoras}
+                showAllImages={showAllImages}
+                onShowAllImagesChange={setShowAllImages}
+                showFullPrompt={showFullPrompt}
+                onShowFullPromptChange={setShowFullPrompt}
+                showFullNegativePrompt={showFullNegativePrompt}
+                onShowFullNegativePromptChange={setShowFullNegativePrompt}
+                showDetailedParams={showDetailedParams}
+                onShowDetailedParamsChange={setShowDetailedParams}
+                paramsCopied={paramsCopied}
+                onCopyParams={() => { void handleCopyParams(); }}
               />
             </div>
           ) : (

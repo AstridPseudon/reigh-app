@@ -1,13 +1,18 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
+import { toast } from '@/shared/components/ui/toast';
 import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/domains/generation/types';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useIsMobile } from '@/shared/hooks/mobile';
+import { useCancelTask } from '@/shared/hooks/tasks/useTaskCancellation';
 import { useTaskType } from '@/shared/hooks/tasks/useTaskType';
 import { usePublicLoras } from '@/shared/hooks/useResources';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName, taskSupportsProgress } from '@/shared/lib/taskConfig';
+import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { parseTaskParamsForDisplay, extractShotId } from './utils/task-utils';
 import { useTaskContentType } from './hooks/useTaskContentType';
 import { useVideoGenerations } from './hooks/useVideoGenerations';
@@ -15,11 +20,9 @@ import { useImageGeneration } from './hooks/useImageGeneration';
 import { useTaskNavigation } from './hooks/useTaskNavigation';
 import { useTaskErrorDisplay } from './hooks/useTaskErrorDisplay';
 import { useTaskItemDisplay } from './hooks/useTaskItemDisplay';
-import { useTaskItemCancel } from './hooks/useTaskItemCancel';
 import { TaskItemActions } from './components/TaskItemActions';
 import { TaskItemTooltip } from './components/TaskItemTooltip';
 import { TaskItemPreview } from './components/TaskItemPreview';
-import { TaskItemFooter } from './components/TaskItemFooter';
 
 interface TaskItemProps {
   task: Task;
@@ -49,10 +52,42 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
   const isMobile = useIsMobile();
   const { selectedProjectId, setSelectedProjectId } = useProject();
   const navigate = useNavigate();
-  const { cancelTaskMutation, handleCancel } = useTaskItemCancel({
-    selectedProjectId,
-    taskId: task.id,
-  });
+  const queryClient = useQueryClient();
+  const cancelTaskMutation = useCancelTask(selectedProjectId);
+
+  const handleCancel = useCallback(() => {
+    const queryKey = taskQueryKeys.paginated(selectedProjectId!);
+    const previousData = queryClient.getQueryData(queryKey);
+
+    queryClient.setQueriesData(
+      { queryKey },
+      (oldData: { tasks?: Task[]; total?: number } | undefined) => {
+        if (!oldData?.tasks) return oldData;
+        return {
+          ...oldData,
+          tasks: oldData.tasks.map((existingTask: Task) => (
+            existingTask.id === task.id
+              ? { ...existingTask, status: 'Cancelled' as const }
+              : existingTask
+          )),
+        };
+      },
+    );
+
+    cancelTaskMutation.mutate(task.id, {
+      onError: (error) => {
+        queryClient.setQueryData(queryKey, previousData);
+        toast({
+          title: 'Cancellation Failed',
+          description: error.message || 'Could not cancel the task.',
+          variant: 'destructive',
+        });
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey });
+      },
+    });
+  }, [cancelTaskMutation, queryClient, selectedProjectId, task.id]);
   const { data: taskTypeInfo } = useTaskType(task.taskType);
   const { data: availableLoras = [] } = usePublicLoras();
 
@@ -205,17 +240,58 @@ const TaskItemComponent: React.FC<TaskItemProps> = ({
         isCascadedTaskLoading={isCascadedTaskLoading}
       />
 
-      <TaskItemFooter
-        task={task}
-        createdTimeAgo={createdTimeAgo}
-        processingTime={processingTime}
-        completedTime={completedTime}
-        variantName={variantName}
-        progressPercent={progressPercent}
-        onCheckProgress={handleCheckProgress}
-        onCancel={handleCancel}
-        isCancelling={cancelTaskMutation.isPending}
-      />
+      <div className="flex items-center text-[11px] text-zinc-400">
+        <span className="flex-1">
+          {task.status === 'In Progress' && processingTime
+            ? processingTime
+            : task.status === 'Complete' && completedTime
+              ? completedTime
+              : `Created ${createdTimeAgo ?? 'Unknown'}`}
+        </span>
+
+        {variantName && (
+          <span className="ml-2 px-1.5 py-0.5 bg-black/50 text-white text-[10px] rounded-md flex-shrink-0 preserve-case">
+            {variantName}
+          </span>
+        )}
+
+        {(task.status === 'Queued' || task.status === 'In Progress') && (
+          <div className="flex items-center flex-shrink-0">
+            {taskSupportsProgress(task.taskType) && task.status === 'In Progress' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCheckProgress}
+                disabled={progressPercent !== null}
+                className="px-2 py-1 min-w-[80px] h-auto text-blue-400 hover:bg-blue-900/20 hover:text-blue-300 flex flex-col items-center justify-center"
+              >
+                <div className="text-xs leading-tight">
+                  {progressPercent === null ? (
+                    <>
+                      <div>Check</div>
+                      <div>Progress</div>
+                    </>
+                  ) : (
+                    <>
+                      <div>{progressPercent}%</div>
+                      <div>Complete</div>
+                    </>
+                  )}
+                </div>
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              disabled={cancelTaskMutation.isPending}
+              className="px-2 py-0.5 text-red-400 hover:bg-red-900/20 hover:text-red-300"
+            >
+              {cancelTaskMutation.isPending ? 'Cancelling...' : 'Cancel'}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 

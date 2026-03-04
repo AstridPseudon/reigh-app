@@ -12,7 +12,6 @@ import { BaseShotImageManagerProps } from './types';
 import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
 import { MobileImageGrid } from './components/MobileImageGrid';
 import { MobileSelectionActionBar } from './components/MobileSelectionActionBar';
-import { useConfirmDialog } from './hooks/useConfirmDialog';
 import { useMobileImageSelection } from './hooks/useMobileImageSelection';
 import { useMobileOptimisticOrder } from './hooks/useMobileOptimisticOrder';
 import { getMobileGridColsClass } from './constants';
@@ -57,13 +56,16 @@ export const ShotImageManagerMobile: React.FC<BaseShotImageManagerProps> = ({
     readOnly,
     onSelectionChange,
   });
-  const {
-    confirmOpen,
-    setConfirmOpen,
-    pendingDeleteIds,
-    openConfirm,
-    closeConfirm,
-  } = useConfirmDialog();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
+  const openConfirm = useCallback((ids: string[]) => {
+    setPendingDeleteIds(ids);
+    setConfirmOpen(true);
+  }, []);
+  const closeConfirm = useCallback(() => {
+    setConfirmOpen(false);
+    setPendingDeleteIds([]);
+  }, []);
   const {
     currentImages,
     setOptimisticOrder,

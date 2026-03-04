@@ -1,13 +1,13 @@
-import React, { ReactNode } from 'react';
+import React, { useCallback, useState, ReactNode } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { Task } from '@/types/tasks';
 import { CornerDownLeft, ImageIcon } from 'lucide-react';
-import { useTaskDetailsPresenter } from '@/shared/components/TaskDetails/hooks/useTaskDetailsPresenter';
+import { usePublicLoras } from '@/shared/hooks/useResources';
+import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { TaskDetailsSummaryAndParams } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
-import { TaskDetailsIdCopyButton } from '@/shared/components/TaskDetails/components/TaskDetailsIdCopyButton';
 
 interface TaskDetailsPanelProps {
   task: Task | null;
@@ -41,10 +41,31 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
   hideHeader = false
 }) => {
   const isMobile = useIsMobile();
-  const presenter = useTaskDetailsPresenter({
-    task,
-    errorContext: 'TaskDetailsPanel',
-  });
+  const [showDetailedParams, setShowDetailedParams] = useState(false);
+  const [showAllImages, setShowAllImages] = useState(false);
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const [showFullNegativePrompt, setShowFullNegativePrompt] = useState(false);
+  const [paramsCopied, setParamsCopied] = useState(false);
+  const [idCopied, setIdCopied] = useState(false);
+  const { data: availableLoras } = usePublicLoras();
+
+  const handleCopyParams = useCallback(async () => {
+    if (!task?.params) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(task.params, null, 2));
+      setParamsCopied(true);
+      setTimeout(() => setParamsCopied(false), 2000);
+    } catch (err) {
+      normalizeAndPresentError(err, { context: 'TaskDetailsPanel', showToast: false });
+    }
+  }, [task?.params]);
+
+  const handleCopyId = useCallback(() => {
+    if (!taskId) return;
+    navigator.clipboard.writeText(taskId);
+    setIdCopied(true);
+    setTimeout(() => setIdCopied(false), 2000);
+  }, [taskId]);
 
   const handleApplySettingsFromTask = () => {
     if (taskId && onApplySettingsFromTask && task) {
@@ -115,11 +136,16 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
       {!hideHeader && (
         <div className="flex-shrink-0 p-4 border-b">
           <div className="flex items-center justify-end">
-            <TaskDetailsIdCopyButton
-              taskId={taskId}
-              idCopied={presenter.idCopied}
-              onCopyId={presenter.handleCopyId}
-            />
+            {taskId && (
+              <button
+                onClick={handleCopyId}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  idCopied ? 'text-green-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700'
+                }`}
+              >
+                {idCopied ? 'copied' : 'id'}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -130,19 +156,17 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
           inputImages={inputImages}
           detailsVariant="panel"
           isMobile={isMobile}
-          availableLoras={presenter.availableLoras}
-          showAllImages={presenter.showAllImages}
-          onShowAllImagesChange={presenter.setShowAllImages}
-          showFullPrompt={presenter.showFullPrompt}
-          onShowFullPromptChange={presenter.setShowFullPrompt}
-          showFullNegativePrompt={presenter.showFullNegativePrompt}
-          onShowFullNegativePromptChange={presenter.setShowFullNegativePrompt}
-          showDetailedParams={presenter.showDetailedParams}
-          onShowDetailedParamsChange={presenter.setShowDetailedParams}
-          paramsCopied={presenter.paramsCopied}
-          onCopyParams={() => {
-            void presenter.handleCopyParams();
-          }}
+          availableLoras={availableLoras}
+          showAllImages={showAllImages}
+          onShowAllImagesChange={setShowAllImages}
+          showFullPrompt={showFullPrompt}
+          onShowFullPromptChange={setShowFullPrompt}
+          showFullNegativePrompt={showFullNegativePrompt}
+          onShowFullNegativePromptChange={setShowFullNegativePrompt}
+          showDetailedParams={showDetailedParams}
+          onShowDetailedParamsChange={setShowDetailedParams}
+          paramsCopied={paramsCopied}
+          onCopyParams={() => { void handleCopyParams(); }}
           showCopyButtons={true}
         >
           {basedOnSection}

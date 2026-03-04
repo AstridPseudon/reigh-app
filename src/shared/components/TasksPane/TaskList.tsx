@@ -8,7 +8,7 @@ import { GenerationRow } from '@/domains/generation/types';
 import TaskItem from './TaskItem';
 import IncomingTaskItem from './IncomingTaskItem';
 import { FilterGroup } from './constants';
-import { TaskListSkeleton } from './components/TaskListSkeleton';
+import { TaskItemSkeleton } from './components/TaskItemSkeleton';
 import { useTaskFiltering } from './hooks/useTaskFiltering';
 import { useTaskListPresentationState } from './hooks/useTaskListPresentationState';
 
@@ -91,12 +91,25 @@ const TaskListComponent: React.FC<TaskListProps> = ({
         </div>
       )}
 
-      {showSkeleton && (
-        <TaskListSkeleton
-          activeFilter={activeFilter}
-          count={activeFilter === 'Processing' ? statusCounts?.processing : undefined}
-        />
-      )}
+      {showSkeleton && (() => {
+        const skeletonCount = Math.min(
+          activeFilter === 'Processing' ? (statusCounts?.processing ?? 4) : 4,
+          4,
+        );
+        const variant = activeFilter === 'Succeeded' ? 'complete'
+          : activeFilter === 'Failed' ? 'failed'
+          : 'processing';
+        return (
+          <div className="space-y-1">
+            {Array.from({ length: skeletonCount }, (_, i) => (
+              <React.Fragment key={i}>
+                <TaskItemSkeleton variant={variant} showImages={i % 2 === 0} showPrompt={i % 2 === 1} />
+                {i < skeletonCount - 1 && <div className="h-0 border-b border-zinc-700/40 my-1" />}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+      })()}
 
       {showEmptyMessage && <p className="text-zinc-400 text-center">{emptyMessage}</p>}
 
