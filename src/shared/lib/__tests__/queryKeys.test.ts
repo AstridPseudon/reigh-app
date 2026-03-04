@@ -98,6 +98,11 @@ describe('queryKeys', () => {
       expect(queryKeys.tasks.detail('t1')).toEqual(['tasks', 't1']);
     });
 
+    it('single includes explicit project scope', () => {
+      expect(queryKeys.tasks.single('t1', 'p1')).toEqual(['tasks', 'single', 't1', 'p1']);
+      expect(queryKeys.tasks.single('t1', null)).toEqual(['tasks', 'single', 't1', '__no-project__']);
+    });
+
     it('paginated returns project-scoped key', () => {
       expect(queryKeys.tasks.paginated('p1')).toEqual(['tasks', 'paginated', 'p1']);
     });
@@ -110,8 +115,8 @@ describe('queryKeys', () => {
       expect(queryKeys.tasks.result('t1')).toEqual(['task-result', 't1']);
     });
 
-    it('generationTaskId returns generation-scoped key', () => {
-      expect(queryKeys.tasks.generationTaskId('g1')).toEqual(['tasks', 'taskId', 'g1']);
+    it('generationMapping returns generation-scoped key', () => {
+      expect(queryKeys.tasks.generationMapping('g1')).toEqual(['generation-task-mapping', 'g1']);
     });
 
     it('pendingGeneration returns shot-scoped key', () => {

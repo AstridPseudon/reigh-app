@@ -1,5 +1,5 @@
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/databasePublicTypes';
 
 function buildAuthError(message: string, context: string, cause?: unknown): Error {
   return new Error(`${context}: ${message}`, cause ? { cause } : undefined);

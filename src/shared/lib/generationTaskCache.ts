@@ -4,6 +4,7 @@ import type { GenerationRow } from '@/domains/generation/types';
 import { Task } from '@/types/tasks';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
 import { isTaskDbRow, mapTaskDbRowToTask } from '@/shared/lib/taskRowMapper';
 import {
   getPrimaryTaskMappingsForGenerations,
@@ -16,7 +17,6 @@ interface PreloadGenerationTaskMappingsOptions {
   batchSize?: number;
   delayBetweenBatches?: number;
   preloadFullTaskData?: boolean;
-  projectId?: string;
 }
 
 export interface GenerationWithTaskData extends GenerationRow {
@@ -26,26 +26,38 @@ export interface GenerationWithTaskData extends GenerationRow {
   taskMappingError?: string;
 }
 
+function resolveTaskScopeProjectId(projectId: string | null): string | null {
+  if (projectId && projectId.trim().length > 0) {
+    return projectId;
+  }
+  const selectedProjectId = getProjectSelectionFallbackId();
+  if (selectedProjectId && selectedProjectId.trim().length > 0) {
+    return selectedProjectId;
+  }
+  return null;
+}
+
 /**
  * Preload task mappings for a batch of generations in the background.
  */
 export async function preloadGenerationTaskMappings(
   queryClient: QueryClient,
   generationIds: string[],
+  projectId: string | null,
   options: PreloadGenerationTaskMappingsOptions = {},
 ) {
   const supabase = getSupabaseClient();
+  const effectiveProjectId = resolveTaskScopeProjectId(projectId);
   const {
     batchSize = 5,
     delayBetweenBatches = 200,
     preloadFullTaskData = false,
-    projectId,
   } = options;
 
   for (let i = 0; i < generationIds.length; i += batchSize) {
     const batch = generationIds.slice(i, i + batchSize);
 
-    const mappings = await getPrimaryTaskMappingsForGenerations(batch, { projectId });
+    const mappings = await getPrimaryTaskMappingsForGenerations(batch, { projectId: effectiveProjectId ?? undefined });
     let reportedBatchQueryFailure = false;
 
     const prefetchTasks: Array<Promise<unknown>> = [];
@@ -66,14 +78,15 @@ export async function preloadGenerationTaskMappings(
         });
       }
 
-      if (preloadFullTaskData && cacheEntry.taskId && cacheEntry.status === 'ok') {
+      if (preloadFullTaskData && effectiveProjectId && cacheEntry.taskId && cacheEntry.status === 'ok') {
         prefetchTasks.push(queryClient.prefetchQuery({
-          queryKey: taskQueryKeys.single(cacheEntry.taskId),
+          queryKey: taskQueryKeys.single(cacheEntry.taskId, effectiveProjectId),
           queryFn: async () => {
             const { data, error } = await supabase
               .from('tasks')
               .select('*')
               .eq('id', cacheEntry.taskId)
+              .eq('project_id', effectiveProjectId)
               .single();
 
             if (error) throw error;
@@ -100,14 +113,19 @@ export async function preloadGenerationTaskMappings(
 export function mergeGenerationsWithTaskData(
   generations: GenerationRow[],
   queryClient: QueryClient,
+  projectId: string | null,
 ): GenerationWithTaskData[] {
+  const effectiveProjectId = resolveTaskScopeProjectId(projectId);
+
   return generations.map((generation) => {
     const generationId = generation.generation_id ?? generation.id;
     const cachedMapping = queryClient.getQueryData<GenerationTaskMappingCacheEntry>(
       taskQueryKeys.generationMapping(generationId),
     );
     const taskId = cachedMapping?.taskId || null;
-    const taskData = taskId ? queryClient.getQueryData<Task>(taskQueryKeys.single(taskId)) : null;
+    const taskData = (taskId && effectiveProjectId)
+      ? queryClient.getQueryData<Task>(taskQueryKeys.single(taskId, effectiveProjectId))
+      : null;
     const taskMappingStatus = cachedMapping?.status ?? (taskId ? 'ok' : 'not_loaded');
 
     return {

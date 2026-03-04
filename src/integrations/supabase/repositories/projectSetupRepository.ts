@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 
 export function rpcCopyOnboardingTemplate(targetProjectId: string, targetShotId: string) {
   return getSupabaseClient().rpc('copy_onboarding_template', {

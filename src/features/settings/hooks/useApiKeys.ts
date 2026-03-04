@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { isNotFoundError } from '@/shared/constants/supabaseErrors';
 import { apiQueryKeys } from '@/shared/lib/queryKeys/api';

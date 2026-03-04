@@ -1,8 +1,8 @@
 import { __CORRUPTION_TIMELINE__, addCorruptionEvent } from '@/integrations/supabase/utils/timeline';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { normalizeAndReportError } from '@/shared/lib/errorHandling/runtimeErrorReporting';
 
 export function reportRealtimeCorruption(message: string, logData: Record<string, unknown>) {
-  normalizeAndPresentError(new Error(message), {
+  normalizeAndReportError(new Error(message), {
     context: 'RealtimeInstrumentation',
     showToast: false,
     logData,

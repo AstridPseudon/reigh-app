@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import {
   resolveGenerationMode,

@@ -6,6 +6,7 @@ import {
   preloadGenerationTaskMappings,
   mergeGenerationsWithTaskData,
 } from '@/shared/lib/generationTaskCache';
+import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
 
 // ================================================================
 // GENERATION-TASK INTEGRATION CONTEXT
@@ -46,9 +47,10 @@ export function GenerationTaskProvider({
 
   const preloadTaskMappings = React.useCallback(async (generationIds: string[]) => {
     if (!isPreloadingEnabled || generationIds.length === 0) return;
+    const projectId = getProjectSelectionFallbackId();
 
     try {
-      await preloadGenerationTaskMappings(queryClient, generationIds, {
+      await preloadGenerationTaskMappings(queryClient, generationIds, projectId, {
         batchSize: preloadBatchSize,
         delayBetweenBatches: preloadDelay,
         preloadFullTaskData: true, // Preload full task data for better UX
@@ -59,7 +61,8 @@ export function GenerationTaskProvider({
   }, [queryClient, isPreloadingEnabled, preloadBatchSize, preloadDelay]);
 
   const enhanceWithTaskData = React.useCallback((generations: GenerationRow[]) => {
-    return mergeGenerationsWithTaskData(generations, queryClient);
+    const projectId = getProjectSelectionFallbackId();
+    return mergeGenerationsWithTaskData(generations, queryClient, projectId);
   }, [queryClient]);
 
   // Memoize context value to prevent unnecessary re-renders of consumers

@@ -26,7 +26,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.mock('@/shared/lib/queryKeys/tasks', () => ({
   taskQueryKeys: {
     generationMapping: (id: string) => ['generation-task-mapping', id],
-    single: (id: string) => ['tasks', 'single', id],
+    single: (id: string, projectId: string | null) => ['tasks', 'single', id, projectId ?? '__no-project__'],
   },
 }));
 
@@ -49,6 +49,7 @@ import {
 } from '../generationTaskCache';
 
 describe('preloadGenerationTaskMappings', () => {
+  const PROJECT_ID = 'project-1';
   const mockQueryClient = {
     setQueryData: vi.fn(),
     prefetchQuery: vi.fn(),
@@ -65,7 +66,11 @@ describe('preloadGenerationTaskMappings', () => {
   });
 
   it('does nothing for empty generation IDs', async () => {
-    await preloadGenerationTaskMappings(mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0], []);
+    await preloadGenerationTaskMappings(
+      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
+      [],
+      PROJECT_ID,
+    );
     expect(mockGetPrimaryTaskMappingsForGenerations).not.toHaveBeenCalled();
   });
 
@@ -80,6 +85,7 @@ describe('preloadGenerationTaskMappings', () => {
     await preloadGenerationTaskMappings(
       mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
       ['gen-1', 'gen-2'],
+      PROJECT_ID,
     );
 
     expect(mockQueryClient.setQueryData).toHaveBeenCalledTimes(2);
@@ -101,11 +107,31 @@ describe('preloadGenerationTaskMappings', () => {
     await preloadGenerationTaskMappings(
       mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
       ['gen-1'],
+      PROJECT_ID,
     );
 
     expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
       ['generation-task-mapping', 'gen-1'],
       { taskId: null, status: 'ok' },
+    );
+  });
+
+  it('prefetches task details with project-scoped cache key', async () => {
+    mockGetPrimaryTaskMappingsForGenerations.mockResolvedValue(
+      new Map([['gen-1', { generationId: 'gen-1', taskId: 'task-1', status: 'ok' }]]),
+    );
+
+    await preloadGenerationTaskMappings(
+      mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
+      ['gen-1'],
+      PROJECT_ID,
+      { preloadFullTaskData: true },
+    );
+
+    expect(mockQueryClient.prefetchQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['tasks', 'single', 'task-1', PROJECT_ID],
+      }),
     );
   });
 
@@ -126,6 +152,7 @@ describe('preloadGenerationTaskMappings', () => {
       preloadGenerationTaskMappings(
         mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
         ['gen-1'],
+        PROJECT_ID,
       ),
     ).resolves.not.toThrow();
 
@@ -146,6 +173,7 @@ describe('preloadGenerationTaskMappings', () => {
     await preloadGenerationTaskMappings(
       mockQueryClient as unknown as Parameters<typeof preloadGenerationTaskMappings>[0],
       ids,
+      PROJECT_ID,
       {
         batchSize: 5,
         delayBetweenBatches: 0,
@@ -172,7 +200,7 @@ describe('mergeGenerationsWithTaskData', () => {
       if (key[0] === 'generation-task-mapping' && key[1] === 'gen-1') {
         return { taskId: 'task-1', status: 'ok' };
       }
-      if (key[0] === 'tasks' && key[1] === 'single' && key[2] === 'task-1') {
+      if (key[0] === 'tasks' && key[1] === 'single' && key[2] === 'task-1' && key[3] === 'project-1') {
         return { id: 'task-1' };
       }
       return null;
@@ -182,6 +210,7 @@ describe('mergeGenerationsWithTaskData', () => {
     const result = mergeGenerationsWithTaskData(
       generations as Parameters<typeof mergeGenerationsWithTaskData>[0],
       mockQueryClient as unknown as Parameters<typeof mergeGenerationsWithTaskData>[1],
+      'project-1',
     );
 
     expect(result[0].taskId).toBe('task-1');
@@ -195,6 +224,7 @@ describe('mergeGenerationsWithTaskData', () => {
     const result = mergeGenerationsWithTaskData(
       generations as Parameters<typeof mergeGenerationsWithTaskData>[0],
       mockQueryClient as unknown as Parameters<typeof mergeGenerationsWithTaskData>[1],
+      'project-1',
     );
 
     expect(result[0].taskId).toBeNull();
@@ -212,6 +242,7 @@ describe('mergeGenerationsWithTaskData', () => {
     const result = mergeGenerationsWithTaskData(
       generations as Parameters<typeof mergeGenerationsWithTaskData>[0],
       mockQueryClient as unknown as Parameters<typeof mergeGenerationsWithTaskData>[1],
+      'project-1',
     );
 
     expect(result[0].id).toBe('gen-1');
@@ -234,6 +265,7 @@ describe('mergeGenerationsWithTaskData', () => {
     const result = mergeGenerationsWithTaskData(
       generations as Parameters<typeof mergeGenerationsWithTaskData>[0],
       mockQueryClient as unknown as Parameters<typeof mergeGenerationsWithTaskData>[1],
+      'project-1',
     );
 
     expect(result[0].taskId).toBe('task-1');
@@ -252,6 +284,7 @@ describe('mergeGenerationsWithTaskData', () => {
     const result = mergeGenerationsWithTaskData(
       generations as Parameters<typeof mergeGenerationsWithTaskData>[0],
       mockQueryClient as unknown as Parameters<typeof mergeGenerationsWithTaskData>[1],
+      'project-1',
     );
 
     expect(result[0].taskId).toBeNull();

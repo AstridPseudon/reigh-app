@@ -1,145 +1,25 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { getAuthStateManager } from '@/integrations/supabase/auth/AuthStateManager';
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import type { NavigatorWithDeviceInfo } from '@/types/browser-extensions';
-import {
-  fetchCurrentSession,
-  rpcCreateReferralFromSession,
-  setSessionFromTokens,
-  subscribeToAuthStateChanges,
-} from '@/integrations/supabase/repositories/homeAuthRepository';
+import { useOAuthHashSessionRestore } from './auth/useOAuthHashSessionRestore';
+import { useStandaloneAuthRedirect } from './auth/useStandaloneAuthRedirect';
+import { useHomeAuthSubscription } from './auth/useHomeAuthSubscription';
 
-// Full home page auth flow: iPad OAuth hash parsing, PWA redirect,
-// delayed session restoration, auth manager subscription + referral linking
 export function useHomeAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // [iPadAuthFix] Explicitly check for OAuth tokens in URL hash on mount
-    const handleHashTokens = async () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        try {
-          const hashParams = new URLSearchParams(hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            try { localStorage.setItem('oauthInProgress', 'true'); } catch { /* intentionally ignored */ }
-
-            const { data, error } = await setSessionFromTokens(accessToken, refreshToken);
-
-            if (error) {
-              normalizeAndPresentError(error, { context: 'HomePage', showToast: false });
-              try { localStorage.removeItem('oauthInProgress'); } catch { /* intentionally ignored */ }
-            } else if (data.session) {
-              setSession(data.session);
-            }
-          } else {
-            const { data, error } = await fetchCurrentSession();
-            if (error) {
-              normalizeAndPresentError(error, { context: 'HomePage', showToast: false });
-            } else if (data.session) {
-              setSession(data.session);
-            }
-          }
-
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        } catch (err) {
-          normalizeAndPresentError(err, { context: 'HomePage', showToast: false });
-        }
-      }
-    };
-
-    handleHashTokens();
-
-    // Check for standalone/PWA mode once
-    const nav = navigator as NavigatorWithDeviceInfo;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                        window.matchMedia('(display-mode: fullscreen)').matches ||
-                        nav.standalone === true;
-
-    fetchCurrentSession().then(({ data: { session } }) => {
-      setSession(session);
-
-      if (session && isStandalone) {
-        navigate('/tools');
-      }
-    });
-
-    // Also redirect if we're in PWA mode and session becomes available later
-    if (isStandalone) {
-      const checkSessionAndRedirect = async () => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const { data: { session: delayedSession } } = await fetchCurrentSession();
-        if (delayedSession) {
-          navigate('/tools');
-        }
-      };
-      checkSessionAndRedirect();
-    }
-
-    const authManager = getAuthStateManager();
-    let unsubscribe: (() => void) | null = null;
-
-    const handleAuthChange = (event: string, session: Session | null) => {
-      const navInner = navigator as NavigatorWithDeviceInfo;
-      const isStandaloneNow = window.matchMedia('(display-mode: standalone)').matches ||
-                              window.matchMedia('(display-mode: fullscreen)').matches ||
-                              navInner.standalone === true;
-
-      setSession(session);
-
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && isStandaloneNow) {
-        navigate('/tools');
-        return;
-      }
-
-      if (event === 'SIGNED_IN' && session) {
-        const isHomePath = location.pathname === '/home' || location.pathname === '/';
-        const oauthInProgress = localStorage.getItem('oauthInProgress') === 'true';
-        if (oauthInProgress) {
-          try {
-            const referralCode = localStorage.getItem('referralCode');
-            const referralSessionId = localStorage.getItem('referralSessionId');
-            const referralFingerprint = localStorage.getItem('referralFingerprint');
-            if (referralCode && referralSessionId && referralFingerprint) {
-              (async () => {
-                try {
-                  await rpcCreateReferralFromSession(referralSessionId, referralFingerprint);
-                } catch { /* intentionally ignored */ } finally {
-                  try {
-                    localStorage.removeItem('referralCode');
-                    localStorage.removeItem('referralSessionId');
-                    localStorage.removeItem('referralFingerprint');
-                    localStorage.removeItem('referralTimestamp');
-                  } catch { /* intentionally ignored */ }
-                }
-              })();
-            }
-          } catch { /* intentionally ignored */ }
-          localStorage.removeItem('oauthInProgress');
-          navigate('/tools');
-        } else if (!isHomePath) {
-          navigate('/tools');
-        }
-      }
-    };
-
-    if (authManager) {
-      unsubscribe = authManager.subscribe('HomePage', handleAuthChange);
-    } else {
-      unsubscribe = subscribeToAuthStateChanges(handleAuthChange);
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [navigate, location.pathname]);
+  // Session restoration for OAuth hash redirects.
+  useOAuthHashSessionRestore({ setSession });
+  // Standalone/PWA auth bootstrap + redirect policy.
+  useStandaloneAuthRedirect({ setSession, navigate });
+  // Ongoing auth event subscription + post-signin side effects.
+  useHomeAuthSubscription({
+    setSession,
+    navigate,
+    pathname: location.pathname,
+  });
 
   return { session };
 }

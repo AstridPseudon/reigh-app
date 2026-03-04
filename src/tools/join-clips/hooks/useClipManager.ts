@@ -11,6 +11,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { subscribeJoinClipsIntents } from '@/shared/lib/joinClipsIntentStore';
 import type { VideoClip, TransitionPrompt } from '../types';
 import type { useJoinClipsSettings } from './useJoinClipsSettings';
 import type { useCreateGeneration } from '@/domains/generation/hooks/useGenerationMutations';
@@ -60,6 +61,7 @@ export function useClipManager({
   const [isScrolling, setIsScrolling] = useState(false);
   const [isLoadingPersistedMedia, setIsLoadingPersistedMedia] = useState(false);
   const [initialHydrationComplete, setInitialHydrationComplete] = useState(false);
+  const [pendingIntentVersion, setPendingIntentVersion] = useState(0);
   const [cachedClipsCount, setCachedClipsCountState] = useState(() =>
     getCachedClipsCount(selectedProjectId),
   );
@@ -69,6 +71,7 @@ export function useClipManager({
   const loadedForProjectRef = useRef<string | null>(null);
   const activeProjectIdRef = useRef<string | null>(selectedProjectId);
   const hydrationRequestVersionRef = useRef(0);
+  const durationHydrationVersionRef = useRef(0);
   const pendingConsumeVersionRef = useRef(0);
   const preloadedPostersRef = useRef<Set<string>>(new Set());
   const fileInputRefs = useRef<{ [clipId: string]: HTMLInputElement | null }>({});
@@ -81,6 +84,7 @@ export function useClipManager({
     activeProjectIdRef.current = selectedProjectId;
     if (selectedProjectId && selectedProjectId !== loadedForProjectRef.current) {
       hydrationRequestVersionRef.current += 1;
+      durationHydrationVersionRef.current += 1;
       pendingConsumeVersionRef.current += 1;
       hasLoadedFromSettings.current = false;
       loadedForProjectRef.current = selectedProjectId;
@@ -91,6 +95,23 @@ export function useClipManager({
       preloadedPostersRef.current.clear();
       setCachedClipsCountState(getCachedClipsCount(selectedProjectId));
     }
+  }, [selectedProjectId]);
+
+  // ---------------------------------------------------------------------------
+  // React to explicit join-clips intents (e.g. lightbox "Add to Join")
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!selectedProjectId) return;
+
+    const unsubscribe = subscribeJoinClipsIntents((scope) => {
+      const scopeProjectId = scope.projectId ?? null;
+      if (scopeProjectId && scopeProjectId !== selectedProjectId) {
+        return;
+      }
+      setPendingIntentVersion((prev) => prev + 1);
+    });
+
+    return unsubscribe;
   }, [selectedProjectId]);
 
   // ---------------------------------------------------------------------------
@@ -132,7 +153,7 @@ export function useClipManager({
     return () => {
       cancelled = true;
     };
-  }, [settingsLoaded, selectedProjectId, initialHydrationComplete]);
+  }, [settingsLoaded, selectedProjectId, initialHydrationComplete, pendingIntentVersion]);
 
   // ---------------------------------------------------------------------------
   // Initialize clips from settings or create 2 empty slots
@@ -219,6 +240,15 @@ export function useClipManager({
   useEffect(() => {
     const clipsNeedingDuration = getClipsNeedingDuration(clips);
     if (clipsNeedingDuration.length === 0) return;
+    const projectIdAtRequestStart = activeProjectIdRef.current;
+    const requestVersion = durationHydrationVersionRef.current + 1;
+    durationHydrationVersionRef.current = requestVersion;
+    let cancelled = false;
+    const isCurrentRequest = () => (
+      !cancelled
+      && durationHydrationVersionRef.current === requestVersion
+      && activeProjectIdRef.current === projectIdAtRequestStart
+    );
 
     // Mark as loading
     setClips(prev =>
@@ -226,11 +256,15 @@ export function useClipManager({
         clipsNeedingDuration.some(c => c.id === clip.id)
           ? { ...clip, metadataLoading: true }
           : clip,
-      ),
+        ),
     );
 
     clipsNeedingDuration.forEach(async clip => {
       const result = await loadClipDuration(clip);
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       if (!result.ok) {
         normalizeAndPresentError(toOperationResultError(result), {
           context: 'JoinClipsPage.durationMetadata',
@@ -238,6 +272,7 @@ export function useClipManager({
           logData: { clipId: clip.id },
         });
       }
+
       setClips(prev =>
         prev.map(c =>
           c.id === clip.id
@@ -257,6 +292,10 @@ export function useClipManager({
         ),
       );
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [clips]);
 
   // ---------------------------------------------------------------------------

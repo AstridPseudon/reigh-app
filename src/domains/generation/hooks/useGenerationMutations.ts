@@ -16,7 +16,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import {
   createGenerationPrimaryVariant,
   createGenerationRecord,

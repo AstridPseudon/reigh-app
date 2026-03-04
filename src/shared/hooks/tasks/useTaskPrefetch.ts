@@ -38,7 +38,7 @@ function resolveProjectScope(projectId?: string | null): string | null {
 export function useTaskFromUnifiedCache(generationId: string) {
   const hasPersistedGenerationId = isUuid(generationId);
   const result = useQuery<GenerationTaskMappingCacheEntry>({
-    queryKey: taskQueryKeys.generationTaskId(generationId),
+    queryKey: taskQueryKeys.generationMapping(generationId),
     queryFn: async (): Promise<GenerationTaskMappingCacheEntry> => {
       if (!hasPersistedGenerationId) {
         return { taskId: null, status: 'not_loaded' };
@@ -95,7 +95,7 @@ export function usePrefetchTaskData() {
 
     // Check if task ID mapping is already cached (including { taskId: null } for no-task generations)
     let taskId: string | null = null;
-    const cachedMapping = queryClient.getQueryData(taskQueryKeys.generationTaskId(generationId)) as GenerationTaskMappingCacheEntry | undefined;
+    const cachedMapping = queryClient.getQueryData(taskQueryKeys.generationMapping(generationId)) as GenerationTaskMappingCacheEntry | undefined;
 
     if (cachedMapping !== undefined) {
       // Already cached - use the cached value (could be null if no task)
@@ -104,7 +104,7 @@ export function usePrefetchTaskData() {
       // Not cached - fetch the task ID mapping
       try {
         const result = await queryClient.fetchQuery({
-          queryKey: taskQueryKeys.generationTaskId(generationId),
+          queryKey: taskQueryKeys.generationMapping(generationId),
           queryFn: async (): Promise<GenerationTaskMappingCacheEntry> => {
             const { data, error } = await supabase().from('generations')
               .select('tasks')

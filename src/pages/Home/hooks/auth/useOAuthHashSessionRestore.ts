@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
-import type { Session } from '@getSupabase/supabase-js';
-import { getSupabaseClient } from '@/integrations/supabase/client';
+import type { Session } from '@supabase/supabase-js';
+import { setSessionFromTokens } from '@/integrations/supabase/repositories/homeAuthRepository';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { removeStorageItem, setStorageItem } from './storage';
-
-const getSupabase = () => getSupabaseClient();
 
 interface UseOAuthHashSessionRestoreOptions {
   setSession: (session: Session | null) => void;
@@ -37,10 +35,7 @@ export function useOAuthHashSessionRestore({
           'useOAuthHashSessionRestore.setOAuthInProgress',
         );
 
-        const { data, error } = await getSupabase().auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+        const { data, error } = await setSessionFromTokens(accessToken, refreshToken);
 
         if (error) {
           throw error;

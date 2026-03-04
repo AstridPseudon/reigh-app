@@ -9,41 +9,44 @@ import { render, screen, act } from '@testing-library/react';
 
 // Mock all external dependencies
 let statusChangeCallback: ((state: Record<string, unknown>) => void) | null = null;
-
-vi.mock('@/shared/contexts/ProjectContext', () => ({
-  useProject: vi.fn().mockReturnValue({ selectedProjectId: 'proj-1' }),
-}));
-
-vi.mock('@/shared/realtime/RealtimeConnection', () => ({
-  realtimeConnection: {
-    connect: vi.fn().mockResolvedValue(true),
-    disconnect: vi.fn().mockResolvedValue(undefined),
-    reset: vi.fn(),
-    getState: vi.fn().mockReturnValue({
+const mockRealtimeConnection = {
+  connect: vi.fn().mockResolvedValue(true),
+  disconnect: vi.fn().mockResolvedValue(undefined),
+  reset: vi.fn(),
+  getState: vi.fn().mockReturnValue({
+    status: 'disconnected',
+    projectId: null,
+    error: null,
+    statusChangedAt: Date.now(),
+    reconnectAttempt: 0,
+    nextRetryAt: null,
+  }),
+  onStatusChange: vi.fn().mockImplementation((cb: (state: Record<string, unknown>) => void) => {
+    statusChangeCallback = cb;
+    // Immediately call with current state per the implementation
+    cb({
       status: 'disconnected',
       projectId: null,
       error: null,
       statusChangedAt: Date.now(),
       reconnectAttempt: 0,
       nextRetryAt: null,
-    }),
-    onStatusChange: vi.fn().mockImplementation((cb: (state: Record<string, unknown>) => void) => {
-      statusChangeCallback = cb;
-      // Immediately call with current state per the implementation
-      cb({
-        status: 'disconnected',
-        projectId: null,
-        error: null,
-        statusChangedAt: Date.now(),
-        reconnectAttempt: 0,
-        nextRetryAt: null,
-      });
-      return () => { statusChangeCallback = null; };
-    }),
-    onEvent: vi.fn().mockImplementation((_cb: (event: Record<string, unknown>) => void) => {
-      return () => undefined;
-    }),
-  },
+    });
+    return () => {
+      statusChangeCallback = null;
+    };
+  }),
+  onEvent: vi.fn().mockImplementation((_cb: (event: Record<string, unknown>) => void) => {
+    return () => undefined;
+  }),
+};
+
+vi.mock('@/shared/contexts/ProjectContext', () => ({
+  useProject: vi.fn().mockReturnValue({ selectedProjectId: 'proj-1' }),
+}));
+
+vi.mock('@/shared/realtime/RealtimeConnection', () => ({
+  getRealtimeConnection: vi.fn(() => mockRealtimeConnection),
 }));
 
 vi.mock('@/shared/realtime/RealtimeEventProcessor', () => ({
@@ -64,7 +67,6 @@ vi.mock('@/shared/hooks/useRealtimeInvalidation', () => ({
 }));
 
 import { RealtimeProvider, useRealtime } from '../RealtimeProvider';
-import { realtimeConnection } from '@/shared/realtime/RealtimeConnection';
 
 // Test consumer component
 function RealtimeConsumer() {
@@ -120,7 +122,7 @@ describe('RealtimeProvider', () => {
       </RealtimeProvider>
     );
 
-    expect(realtimeConnection.connect).toHaveBeenCalledWith('proj-1');
+    expect(mockRealtimeConnection.connect).toHaveBeenCalledWith('proj-1');
   });
 
   it('subscribes to status changes', () => {
@@ -130,7 +132,7 @@ describe('RealtimeProvider', () => {
       </RealtimeProvider>
     );
 
-    expect(realtimeConnection.onStatusChange).toHaveBeenCalled();
+    expect(mockRealtimeConnection.onStatusChange).toHaveBeenCalled();
   });
 
   it('wires connection events to event processor', () => {
@@ -140,7 +142,7 @@ describe('RealtimeProvider', () => {
       </RealtimeProvider>
     );
 
-    expect(realtimeConnection.onEvent).toHaveBeenCalled();
+    expect(mockRealtimeConnection.onEvent).toHaveBeenCalled();
   });
 
   it('updates state when status changes', () => {
@@ -179,8 +181,8 @@ describe('RealtimeProvider', () => {
       screen.getByTestId('reconnect').click();
     });
 
-    expect(realtimeConnection.reset).toHaveBeenCalled();
-    expect(realtimeConnection.connect).toHaveBeenCalledWith('proj-1');
+    expect(mockRealtimeConnection.reset).toHaveBeenCalled();
+    expect(mockRealtimeConnection.connect).toHaveBeenCalledWith('proj-1');
   });
 
   describe('useRealtime hook', () => {

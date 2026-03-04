@@ -1,11 +1,15 @@
 import { useCallback, useState } from 'react';
 import { usePersistentToolState } from '@/shared/hooks/usePersistentToolState';
-import type {
-  BulkEditControlValues,
-  EditorMode,
-  GenerationControlValues,
-  PersistedEditorControlsSettings,
-} from '../types';
+import type { GenerationControlValues } from '@/shared/components/PromptGenerationControls';
+import type { BulkEditControlValues } from '@/shared/components/PromptEditorModal/BulkEditControls';
+
+type EditorMode = 'generate' | 'remix' | 'bulk-edit';
+
+interface PersistedEditorControlsSettings {
+  generationSettings: GenerationControlValues;
+  bulkEditSettings: BulkEditControlValues;
+  activeTab: EditorMode;
+}
 
 interface UsePersistentPromptSettingsParams {
   selectedProjectId: string | null;

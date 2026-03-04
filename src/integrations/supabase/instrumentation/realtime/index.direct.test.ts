@@ -3,10 +3,10 @@ import { installRealtimeInstrumentation } from './index';
 
 const {
   installReferencePatchersMock,
-  normalizeAndPresentErrorMock,
+  normalizeAndReportErrorMock,
 } = vi.hoisted(() => ({
   installReferencePatchersMock: vi.fn(),
-  normalizeAndPresentErrorMock: vi.fn(),
+  normalizeAndReportErrorMock: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/config/env', () => ({
@@ -28,8 +28,8 @@ vi.mock('@/integrations/supabase/utils/snapshot', () => ({
   captureRealtimeSnapshot: () => ({ socket: 'ok' }),
 }));
 
-vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  normalizeAndPresentError: normalizeAndPresentErrorMock,
+vi.mock('@/shared/lib/errorHandling/runtimeErrorReporting', () => ({
+  normalizeAndReportError: normalizeAndReportErrorMock,
 }));
 
 describe('realtime instrumentation behavior', () => {
@@ -53,7 +53,7 @@ describe('realtime instrumentation behavior', () => {
     });
 
     expect(() => installRealtimeInstrumentation({ realtime: { socket: null } } as never)).not.toThrow();
-    expect(normalizeAndPresentErrorMock).toHaveBeenCalledWith(
+    expect(normalizeAndReportErrorMock).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({
         context: 'RealtimeInstrumentation',

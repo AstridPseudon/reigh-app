@@ -513,5 +513,25 @@ export class RealtimeConnection {
   }
 }
 
-// Singleton instance
-export const realtimeConnection = new RealtimeConnection();
+let realtimeConnectionInstance: RealtimeConnection | null = null;
+
+/**
+ * Lazily create the app-wide realtime connection instance.
+ *
+ * Avoiding eager module-level construction prevents constructor side effects
+ * from being tied to import order.
+ */
+export function getRealtimeConnection(): RealtimeConnection {
+  if (!realtimeConnectionInstance) {
+    realtimeConnectionInstance = new RealtimeConnection();
+  }
+  return realtimeConnectionInstance;
+}
+
+/** @internal For test isolation. */
+export async function _resetRealtimeConnectionForTesting(): Promise<void> {
+  if (realtimeConnectionInstance) {
+    realtimeConnectionInstance.destroy();
+  }
+  realtimeConnectionInstance = null;
+}

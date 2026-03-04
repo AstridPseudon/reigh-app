@@ -200,6 +200,7 @@ export class RealtimeEventProcessor {
 
       return {
         id: newRecord.id,
+        projectId: newRecord.project_id,
         newStatus: newRecord.status,
         oldStatus: oldRecord?.status,
         isComplete: newRecord.status === 'Complete',

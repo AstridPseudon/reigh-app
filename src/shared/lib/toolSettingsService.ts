@@ -6,6 +6,7 @@
  *
  * Contains:
  * - Auth caching logic (getCachedUserId)
+ * - Auth transition cache invalidation helpers
  * - Settings fetch with single-flight deduplication (fetchToolSettingsSupabase)
  * - Module-level state for caching and deduplication
  */
@@ -36,6 +37,11 @@ let cachedUser: { id: string } | null = null;
 let cachedUserAt: number = 0;
 const USER_CACHE_MS = 10_000; // 10 seconds
 
+function invalidateAuthDependentState(): void {
+  // Auth changes invalidate cross-component dedupe state to prevent stale reuse.
+  inflightSettingsFetches.clear();
+}
+
 const unknownSettingsIdsReported = new Set<string>();
 
 function reportUnknownSettingsId(toolId: string): void {
@@ -64,14 +70,22 @@ function reportUnknownSettingsId(toolId: string): void {
  * during token refresh.
  */
 export function setCachedUserId(userId: string) {
+  invalidateAuthDependentState();
   cachedUser = { id: userId };
   cachedUserAt = Date.now();
+}
+
+export function clearCachedUserId() {
+  invalidateAuthDependentState();
+  cachedUser = null;
+  cachedUserAt = 0;
 }
 
 /** @internal Only for test isolation — do not call in production code. */
 export function _resetCachedUserForTesting() {
   cachedUser = null;
   cachedUserAt = 0;
+  inflightSettingsFetches.clear();
 }
 
 // ============================================================================
@@ -418,8 +432,21 @@ export async function fetchToolSettingsSupabase(
       }));
     }
 
+    const { data: { user } } = await getCachedUserId();
+
+    if (!user) {
+      return toOperationFailure(new ToolSettingsError('auth_required', 'Authentication required'));
+    }
+
+    const userId = user.id;
+
     // Single-flight dedupe key for concurrent identical requests
-    const singleFlightKey = JSON.stringify({ toolId, projectId: ctx.projectId ?? null, shotId: ctx.shotId ?? null });
+    const singleFlightKey = JSON.stringify({
+      toolId,
+      projectId: ctx.projectId ?? null,
+      shotId: ctx.shotId ?? null,
+      userId,
+    });
     const existingPromise = inflightSettingsFetches.get(singleFlightKey);
     if (existingPromise) {
       const value = await raceWithAbort(existingPromise as Promise<SettingsFetchResult>, signal);
@@ -429,17 +456,20 @@ export async function fetchToolSettingsSupabase(
     const promise = (async (): Promise<SettingsFetchResult> => {
       throwIfAborted(signal);
 
-      const { data: { user } } = await getCachedUserId();
-
-      if (!user) {
-        throw new ToolSettingsError('auth_required', 'Authentication required');
-      }
-
       throwIfAborted(signal);
 
       const supabaseClient = getSupabaseClient();
-      const [userResult, projectResult, shotResult] = await fetchAllScopes(supabaseClient, user.id, ctx, signal);
+      const [userResult, projectResult, shotResult] = await fetchAllScopes(supabaseClient, userId, ctx, signal);
       throwIfAborted(signal);
+
+      const { data: { user: latestUser } } = await getCachedUserId();
+      if (!latestUser || latestUser.id !== userId) {
+        throw new ToolSettingsError('cancelled', 'Request was cancelled due to auth state change', {
+          recoverable: true,
+          metadata: { expectedUserId: userId, latestUserId: latestUser?.id ?? null },
+        });
+      }
+
       return extractAndMergeSettings(userResult, projectResult, shotResult, toolId, ctx);
     })();
 

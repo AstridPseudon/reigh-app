@@ -6,13 +6,13 @@ const {
   installWebSocketProbeMock,
   addCorruptionEventMock,
   parsePhoenixMessageMock,
-  normalizeAndPresentErrorMock,
+  normalizeAndReportErrorMock,
 } = vi.hoisted(() => ({
   installGlobalErrorPatchersMock: vi.fn(),
   installWebSocketProbeMock: vi.fn(),
   addCorruptionEventMock: vi.fn(),
   parsePhoenixMessageMock: vi.fn(),
-  normalizeAndPresentErrorMock: vi.fn(),
+  normalizeAndReportErrorMock: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/config/env', () => ({
@@ -42,8 +42,8 @@ vi.mock('@/integrations/supabase/utils/snapshot', () => ({
   captureRealtimeSnapshot: () => ({ snapshot: true }),
 }));
 
-vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  normalizeAndPresentError: normalizeAndPresentErrorMock,
+vi.mock('@/shared/lib/errorHandling/runtimeErrorReporting', () => ({
+  normalizeAndReportError: normalizeAndReportErrorMock,
 }));
 
 describe('window instrumentation behavior', () => {
@@ -92,7 +92,7 @@ describe('window instrumentation behavior', () => {
       new Error('boom'),
     );
 
-    expect(normalizeAndPresentErrorMock).toHaveBeenCalledWith(
+    expect(normalizeAndReportErrorMock).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({
         context: 'WindowInstrumentation',

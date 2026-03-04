@@ -516,6 +516,59 @@ describe('useClipManager', () => {
     });
   });
 
+  it('ignores stale duration hydration results after a project switch', async () => {
+    let resolveDuration: ((value: unknown) => void) | null = null;
+    mockBuildInitialClipsFromSettings.mockReturnValue({
+      clips: [],
+      transitionPrompts: [],
+      posterUrlsToPreload: [],
+    });
+    mockGetClipsNeedingDuration.mockImplementation((currentClips: Array<{ id: string; url?: string }>) => (
+      currentClips.filter((clip) => clip.id === 'proj1-clip')
+    ));
+    mockLoadClipDuration.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveDuration = resolve as (value: unknown) => void;
+        }),
+    );
+
+    const params = createDefaultParams();
+    const { result, rerender } = renderHook(
+      ({ p }) => useClipManager(p),
+      { initialProps: { p: params } },
+    );
+
+    act(() => {
+      result.current.setClips([
+        { id: 'proj1-clip', url: 'https://example.com/proj1.mp4', loaded: false, playing: false },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(mockLoadClipDuration).toHaveBeenCalledTimes(1);
+    });
+
+    rerender({
+      p: {
+        ...params,
+        selectedProjectId: 'proj-2',
+      },
+    });
+
+    expect(resolveDuration).toBeTruthy();
+    resolveDuration?.({
+      ok: true,
+      value: { durationSeconds: 12 },
+      policy: 'best_effort',
+      recoverable: false,
+    });
+
+    await waitFor(() => {
+      expect(result.current.clips.some(clip => clip.id === 'proj1-clip')).toBe(false);
+    });
+  });
+
   it('resets state when project changes', () => {
     const params = createDefaultParams();
     const { rerender } = renderHook(

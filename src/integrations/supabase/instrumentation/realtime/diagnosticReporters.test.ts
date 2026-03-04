@@ -6,13 +6,13 @@ import {
 } from './diagnosticReporters';
 
 const mocks = vi.hoisted(() => ({
-  normalizeAndPresentError: vi.fn(),
+  normalizeAndReportError: vi.fn(),
   addCorruptionEvent: vi.fn(),
   timeline: [] as Array<{ event: string; data: Record<string, unknown> }>,
 }));
 
-vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  normalizeAndPresentError: (...args: unknown[]) => mocks.normalizeAndPresentError(...args),
+vi.mock('@/shared/lib/errorHandling/runtimeErrorReporting', () => ({
+  normalizeAndReportError: (...args: unknown[]) => mocks.normalizeAndReportError(...args),
 }));
 
 vi.mock('@/integrations/supabase/utils/timeline', () => ({
@@ -29,7 +29,7 @@ describe('diagnosticReporters', () => {
   it('normalizes realtime corruption reports with consistent context', () => {
     reportRealtimeCorruption('channel mismatch', { channel: 'project-1' });
 
-    expect(mocks.normalizeAndPresentError).toHaveBeenCalledWith(
+    expect(mocks.normalizeAndReportError).toHaveBeenCalledWith(
       expect.any(Error),
       {
         context: 'RealtimeInstrumentation',

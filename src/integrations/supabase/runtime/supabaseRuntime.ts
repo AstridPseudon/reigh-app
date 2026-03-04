@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/databasePublicTypes';
 import { createSupabaseClient } from '@/integrations/supabase/bootstrap/createSupabaseClient';
 import { initializeSupabaseRuntime } from '@/integrations/supabase/bootstrap/initializeSupabaseRuntime';
 

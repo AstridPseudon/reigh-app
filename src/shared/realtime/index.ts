@@ -1,4 +1,4 @@
-export { RealtimeConnection, realtimeConnection } from './RealtimeConnection';
+export { RealtimeConnection, getRealtimeConnection } from './RealtimeConnection';
 export { RealtimeEventProcessor, realtimeEventProcessor } from './RealtimeEventProcessor';
 export { dataFreshnessManager } from './DataFreshnessManager';
 

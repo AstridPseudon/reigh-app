@@ -4,7 +4,8 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import type { LoraModel } from '@/shared/types/lora';
 import { PhaseConfig } from '@/shared/types/phaseConfig';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import type { Database, Json } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/databasePublicTypes';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';

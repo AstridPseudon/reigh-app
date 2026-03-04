@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { getAuthStateManager } from '@/integrations/supabase/auth/AuthStateManager';
-import { setCachedUserId } from '@/shared/lib/toolSettingsService';
+import { clearCachedUserId, setCachedUserId } from '@/shared/lib/toolSettingsService';
 import type { Session } from '@supabase/supabase-js';
 import { requireContextValue } from './contextGuard';
 
@@ -58,6 +58,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // acquire navigator.locks when called from within AuthGate
       if (currentUserId) {
         setCachedUserId(currentUserId);
+      } else {
+        clearCachedUserId();
       }
 
       // Update user ID
@@ -73,6 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // cachedUser is still null (debounce hasn't fired processAuthChange yet).
       if (session?.user?.id) {
         setCachedUserId(session.user.id);
+      } else {
+        clearCachedUserId();
       }
 
       // Store the latest auth state
@@ -102,6 +106,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // for all components that mount after the gate opens.
       if (session?.user?.id) {
         setCachedUserId(session.user.id);
+      } else {
+        clearCachedUserId();
       }
       setUserId(session?.user?.id);
       setIsLoading(false);

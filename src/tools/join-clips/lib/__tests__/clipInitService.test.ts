@@ -24,6 +24,10 @@ import {
   padClipsWithEmptySlots,
   type PendingClipAction,
 } from '../clipInitService';
+import {
+  _clearJoinClipsIntentsForTesting,
+  enqueueJoinClipsIntent,
+} from '@/shared/lib/joinClipsIntentStore';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClipsPendingQueue';
 
@@ -41,6 +45,7 @@ describe('getCachedClipsCount', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.mocked(normalizeAndPresentError).mockClear();
+    _clearJoinClipsIntentsForTesting();
   });
 
   it('returns 0 for null projectId', () => {
@@ -195,6 +200,41 @@ describe('consumePendingJoinClips', () => {
       policy: 'best_effort',
       recoverable: false,
     });
+  });
+
+  it('consumes in-memory intents and clears matching storage fallback', async () => {
+    const now = Date.now();
+    const activeKey = getPendingJoinClipsStorageKey('project-1', 'user-1');
+    localStorage.setItem(activeKey, JSON.stringify([
+      {
+        videoUrl: 'https://example.com/storage.mp4',
+        generationId: 'gen-storage',
+        timestamp: now,
+      },
+    ]));
+
+    enqueueJoinClipsIntent(
+      {
+        videoUrl: 'https://example.com/memory.mp4',
+        thumbnailUrl: 'https://example.com/memory.jpg',
+        generationId: 'gen-memory',
+        timestamp: now,
+        projectId: 'project-1',
+        userId: 'user-1',
+      },
+      { projectId: 'project-1', userId: 'user-1' },
+    );
+
+    const readVideoDuration = vi.fn().mockResolvedValue(7);
+    const result = await consumePendingJoinClips({ projectId: 'project-1', readVideoDuration });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.value).toHaveLength(1);
+    expect(result.value[0].clip.generationId).toBe('gen-memory');
+    expect(localStorage.getItem(activeKey)).toBeNull();
   });
 
   it('drops expired entries and clears storage', async () => {

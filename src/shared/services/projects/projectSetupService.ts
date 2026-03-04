@@ -1,4 +1,4 @@
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
   deleteProjectByIdForUser,

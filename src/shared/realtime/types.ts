@@ -154,6 +154,7 @@ export interface TasksUpdatedEvent extends BaseProcessedEvent {
   type: 'tasks-updated';
   tasks: Array<{
     id: string;
+    projectId: string | null;
     newStatus: string;
     oldStatus?: string;
     isComplete: boolean;

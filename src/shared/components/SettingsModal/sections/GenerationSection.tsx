@@ -47,8 +47,7 @@ const SHELL_LABELS: Record<string, string> = {
   cmd: 'Command Prompt',
   powershell: 'PowerShell',
 };
-import { useCommandVisibility } from "@/shared/components/SettingsModal/sections/GenerationSection/hooks/useCommandVisibility";
-import { useCopyFeedback } from "@/shared/components/SettingsModal/sections/GenerationSection/hooks/useCopyFeedback";
+import { useCallback, useRef, useState } from 'react';
 
 const GenerationSection: React.FC<GenerationSectionProps> = ({
   isMobile,
@@ -75,26 +74,32 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
   setActiveInstallTab,
   creditsTab = "purchase",
 }) => {
-  const {
-    copiedInstallCommand,
-    copiedRunCommand,
-    copiedAIInstructions,
-    markInstallCopied,
-    markRunCopied,
-    markAICopied,
-  } = useCopyFeedback();
-  const {
-    showFullInstallCommand,
-    setShowFullInstallCommand,
-    showFullRunCommand,
-    setShowFullRunCommand,
-    showPrerequisites,
-    setShowPrerequisites,
-    installCommandRef,
-    runCommandRef,
-    revealInstallCommand,
-    revealRunCommand,
-  } = useCommandVisibility();
+  // Copy feedback state
+  const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
+  const [copiedRunCommand, setCopiedRunCommand] = useState(false);
+  const [copiedAIInstructions, setCopiedAIInstructions] = useState(false);
+  const triggerCopyFeedback = useCallback((setCopied: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  }, []);
+  const markInstallCopied = () => triggerCopyFeedback(setCopiedInstallCommand);
+  const markRunCopied = () => triggerCopyFeedback(setCopiedRunCommand);
+  const markAICopied = () => triggerCopyFeedback(setCopiedAIInstructions);
+
+  // Command visibility state
+  const [showFullInstallCommand, setShowFullInstallCommand] = useState(false);
+  const [showFullRunCommand, setShowFullRunCommand] = useState(false);
+  const [showPrerequisites, setShowPrerequisites] = useState(false);
+  const installCommandRef = useRef<HTMLDivElement>(null);
+  const runCommandRef = useRef<HTMLDivElement>(null);
+  const revealInstallCommand = () => {
+    setShowFullInstallCommand(true);
+    setTimeout(() => installCommandRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+  const revealRunCommand = () => {
+    setShowFullRunCommand(true);
+    setTimeout(() => runCommandRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
 
   // Build command config
   const getCommandConfig = (): CommandConfig => ({

@@ -1,4 +1,5 @@
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { normalizeAndReportError } from '@/shared/lib/errorHandling/runtimeErrorReporting';
+import { getReconnectScheduler } from '@/integrations/supabase/support/reconnect/ReconnectScheduler';
 import type { SupabaseClient, Session } from '@supabase/supabase-js';
 
 type AuthCallback = (event: string, session: Session | null) => void;
@@ -24,7 +25,7 @@ export class AuthStateManager {
       try {
         callback(event, session);
       } catch (error) {
-        normalizeAndPresentError(error, { context: 'AuthStateManager', showToast: false });
+        normalizeAndReportError(error, { context: 'AuthStateManager', showToast: false });
       }
     });
   }
@@ -41,26 +42,20 @@ export class AuthStateManager {
               this.__LAST_AUTH_HEAL_AT__ = now;
               
               // Use ReconnectScheduler instead of direct event dispatch
-              try {
-                const module = await import('@/integrations/supabase/support/reconnect/ReconnectScheduler');
-                const { getReconnectScheduler } = module;
-                const scheduler = getReconnectScheduler();
-                scheduler.requestReconnect({
-                  source: 'AuthManager',
-                  reason: `SIGNED_IN event (${event})`,
-                  priority: 'high'
-                });
-              } catch (importError) {
-                normalizeAndPresentError(importError, { context: 'AuthStateManager', showToast: false });
-              }
+              const scheduler = getReconnectScheduler();
+              scheduler.requestReconnect({
+                source: 'AuthManager',
+                reason: `SIGNED_IN event (${event})`,
+                priority: 'high'
+              });
             }
           } catch (healError) {
-            normalizeAndPresentError(healError, { context: 'AuthStateManager', showToast: false });
+            normalizeAndReportError(healError, { context: 'AuthStateManager', showToast: false });
           }
         }, 1000);
       }
     } catch (setAuthError) {
-      normalizeAndPresentError(setAuthError, { context: 'AuthStateManager', showToast: false });
+      normalizeAndReportError(setAuthError, { context: 'AuthStateManager', showToast: false });
     }
   }
 
@@ -76,7 +71,7 @@ export class AuthStateManager {
       });
       this.isInitialized = true;
     } catch (authError) {
-      normalizeAndPresentError(authError, { context: 'AuthStateManager', showToast: false });
+      normalizeAndReportError(authError, { context: 'AuthStateManager', showToast: false });
     }
   }
 }

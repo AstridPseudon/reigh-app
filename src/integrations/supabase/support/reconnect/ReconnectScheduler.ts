@@ -1,6 +1,6 @@
 // Network status integration can be added later if needed
 
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { normalizeAndReportError } from '@/shared/lib/errorHandling/runtimeErrorReporting';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import { registerDebugGlobal } from '@/shared/runtime/debugRegistry';
 
@@ -109,7 +109,7 @@ export class ReconnectScheduler {
       });
       
     } catch (error) {
-      normalizeAndPresentError(error, { context: 'ReconnectScheduler', showToast: false });
+      normalizeAndReportError(error, { context: 'ReconnectScheduler', showToast: false });
     } finally {
       this.isProcessing = false;
     }

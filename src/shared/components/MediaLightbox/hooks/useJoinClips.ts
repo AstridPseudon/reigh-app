@@ -12,6 +12,7 @@ import {
   getPendingJoinClipsStorageKey,
   type PendingJoinClipEntry,
 } from '@/shared/lib/joinClipsPendingQueue';
+import { enqueueJoinClipsIntent } from '@/shared/lib/joinClipsIntentStore';
 import { readUserIdFromStorage } from '@/shared/lib/supabaseSession';
 import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
 import { GenerationRow } from '@/domains/generation/types';
@@ -78,6 +79,7 @@ export function useJoinClips({
           ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
           ...(userId ? { userId } : {}),
         };
+        enqueueJoinClipsIntent(newClip, { projectId: selectedProjectId, userId });
         pendingClips.push(newClip);
         localStorage.setItem(queueKey, JSON.stringify(pendingClips));
       }

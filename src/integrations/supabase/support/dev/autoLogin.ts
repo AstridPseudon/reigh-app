@@ -1,5 +1,5 @@
 import { __IS_DEV_ENV__, getSupabaseUrl } from '@/integrations/supabase/config/env';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { normalizeAndReportError } from '@/shared/lib/errorHandling/runtimeErrorReporting';
 import type { SupabaseClient, AuthError } from '@supabase/supabase-js';
 
 // Read the stored session from localStorage without acquiring navigator.locks.
@@ -16,7 +16,7 @@ function hasStoredSession(): boolean {
     if (!parsed?.access_token) return false;
     return true;
   } catch (error) {
-    normalizeAndPresentError(error, {
+    normalizeAndReportError(error, {
       context: 'SupabaseAutoLogin.hasStoredSession',
       showToast: false,
     });
@@ -38,7 +38,7 @@ export function maybeAutoLogin(supabase: SupabaseClient) {
       password: DEV_USER_PASSWORD,
     }).then(({ error }: { error: AuthError | null }) => {
       if (error) {
-        normalizeAndPresentError(error, { context: 'SupabaseAutoLogin', showToast: false });
+        normalizeAndReportError(error, { context: 'SupabaseAutoLogin', showToast: false });
       }
     });
   }

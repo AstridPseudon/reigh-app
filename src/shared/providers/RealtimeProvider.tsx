@@ -8,9 +8,9 @@
  *
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { realtimeConnection } from '@/shared/realtime/RealtimeConnection';
+import { getRealtimeConnection } from '@/shared/realtime/RealtimeConnection';
 import { realtimeEventProcessor } from '@/shared/realtime/RealtimeEventProcessor';
 import { dataFreshnessManager } from '@/shared/realtime/DataFreshnessManager';
 import { useRealtimeInvalidation } from '@/shared/hooks/useRealtimeInvalidation';
@@ -59,7 +59,8 @@ interface RealtimeProviderProps {
 
 export function RealtimeProvider({ children }: RealtimeProviderProps) {
   const { selectedProjectId } = useProject();
-  const [connectionState, setConnectionState] = useState<ConnectionState>(
+  const realtimeConnection = useMemo(() => getRealtimeConnection(), []);
+  const [connectionState, setConnectionState] = useState<ConnectionState>(() =>
     realtimeConnection.getState()
   );
 
@@ -72,7 +73,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
       realtimeEventProcessor.process(event);
     });
     return unsubscribe;
-  }, []);
+  }, [realtimeConnection]);
 
   // Subscribe to connection status changes
   useEffect(() => {
@@ -80,7 +81,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
       setConnectionState(state);
     });
     return unsubscribe;
-  }, []);
+  }, [realtimeConnection]);
 
   // Connect/disconnect when project changes
   useEffect(() => {
@@ -96,7 +97,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
       // Don't disconnect on cleanup - let the next effect handle it
       // This prevents disconnect/reconnect when the component re-renders
     };
-  }, [selectedProjectId]);
+  }, [selectedProjectId, realtimeConnection]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -111,7 +112,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
       realtimeConnection.reset();
       realtimeConnection.connect(selectedProjectId);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, realtimeConnection]);
 
   // Derive context value from connection state
   const contextValue: RealtimeContextValue = {
@@ -130,4 +131,3 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
     </RealtimeContext.Provider>
   );
 }
-

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 
 interface GenerationSettingsInput {
   id: string;

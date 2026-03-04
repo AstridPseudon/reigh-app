@@ -12,7 +12,7 @@ import { PromptEditorFooter } from './PromptEditorModal/components/PromptEditorF
 import { useAIInteractionService } from '@/features/ai/hooks/useAIInteractionService';
 import { usePersistentPromptSettings } from './PromptEditorModal/hooks/usePersistentPromptSettings';
 import { usePromptEditing } from './PromptEditorModal/hooks/usePromptEditing';
-import type { EditorMode } from './PromptEditorModal/types';
+type EditorMode = 'generate' | 'remix' | 'bulk-edit';
 
 interface PromptEditorModalProps {
   isOpen: boolean;

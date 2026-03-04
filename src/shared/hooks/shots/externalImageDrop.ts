@@ -1,5 +1,5 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/databasePublicTypes';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';

@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 
 /**
  * Standardized settings inheritance for new shots

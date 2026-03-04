@@ -13,9 +13,11 @@
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
   getPendingJoinClipsCandidateKeys,
+  getPendingJoinClipsStorageKey,
   isPendingJoinClipInScope,
   type PendingJoinClipEntry,
 } from '@/shared/lib/joinClipsPendingQueue';
+import { consumeJoinClipsIntents } from '@/shared/lib/joinClipsIntentStore';
 import { generateUUID } from '@/shared/lib/taskCreation';
 import { readUserIdFromStorage } from '@/shared/lib/supabaseSession';
 import {
@@ -209,6 +211,33 @@ interface ConsumePendingJoinClipsOptions {
   readVideoDuration?: (videoUrl: string) => Promise<number>;
 }
 
+async function toPendingClipActions(
+  entries: PendingJoinClipEntry[],
+  readVideoDuration: (videoUrl: string) => Promise<number>,
+): Promise<PendingClipAction[]> {
+  const actions: PendingClipAction[] = [];
+
+  for (const { videoUrl, thumbnailUrl, generationId } of entries) {
+    if (!videoUrl) continue;
+
+    const durationSeconds = await readVideoDuration(videoUrl);
+
+    const clip: VideoClip = {
+      id: generateUUID(),
+      url: videoUrl,
+      posterUrl: thumbnailUrl,
+      durationSeconds,
+      loaded: false,
+      playing: false,
+      generationId,
+    };
+
+    actions.push({ type: 'deferred_insert', clip });
+  }
+
+  return actions;
+}
+
 export async function consumePendingJoinClips(
   options: ConsumePendingJoinClipsOptions = {},
 ): Promise<OperationResult<PendingClipAction[]>> {
@@ -217,6 +246,25 @@ export async function consumePendingJoinClips(
 
   try {
     const userId = readUserIdFromStorage();
+
+    const inMemoryPending = consumeJoinClipsIntents({ projectId, userId });
+    if (inMemoryPending.length > 0) {
+      const now = Date.now();
+      const scopedRecentClips = inMemoryPending.filter(
+        (clip) =>
+          now - clip.timestamp < PENDING_CLIPS_TTL_MS
+          && isPendingJoinClipInScope(clip, { projectId, userId }),
+      );
+      if (scopedRecentClips.length === 0) {
+        localStorage.removeItem(getPendingJoinClipsStorageKey(projectId, userId));
+        return operationSuccess([]);
+      }
+
+      const actions = await toPendingClipActions(scopedRecentClips, readVideoDuration);
+      localStorage.removeItem(getPendingJoinClipsStorageKey(projectId, userId));
+      return operationSuccess(actions);
+    }
+
     const pendingKeys = getPendingJoinClipsCandidateKeys({ projectId, userId });
     const pendingSource = pendingKeys
       .map((key) => ({ key, raw: localStorage.getItem(key) }))
@@ -270,25 +318,7 @@ export async function consumePendingJoinClips(
       });
     }
 
-    const actions: PendingClipAction[] = [];
-
-    for (const { videoUrl, thumbnailUrl, generationId } of scopedRecentClips) {
-      if (!videoUrl) continue;
-
-      const durationSeconds = await readVideoDuration(videoUrl);
-
-      const clip: VideoClip = {
-        id: generateUUID(),
-        url: videoUrl,
-        posterUrl: thumbnailUrl,
-        durationSeconds,
-        loaded: false,
-        playing: false,
-        generationId,
-      };
-
-      actions.push({ type: 'deferred_insert', clip });
-    }
+    const actions = await toPendingClipActions(scopedRecentClips, readVideoDuration);
 
     localStorage.removeItem(pendingSource.key);
     return operationSuccess(actions, {

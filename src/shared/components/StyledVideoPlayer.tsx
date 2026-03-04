@@ -5,7 +5,21 @@ import { useIsMobile } from '@/shared/hooks/mobile';
 import { VideoPlayerControls } from '@/shared/components/StyledVideoPlayer/components/VideoPlayerControls';
 import { useVideoPlayerControls } from '@/shared/components/StyledVideoPlayer/hooks/useVideoPlayerControls';
 import { useVideoPlayerState } from '@/shared/components/StyledVideoPlayer/hooks/useVideoPlayerState';
-import type { StyledVideoPlayerProps } from '@/shared/components/StyledVideoPlayer/types';
+interface StyledVideoPlayerProps {
+  src: string;
+  poster?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  loop?: boolean;
+  muted?: boolean;
+  autoPlay?: boolean;
+  playsInline?: boolean;
+  preload?: 'auto' | 'metadata' | 'none';
+  onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
+  playbackStart?: number;
+  playbackEnd?: number;
+  videoDimensions?: { width: number; height: number };
+}
 
 export const StyledVideoPlayer: React.FC<StyledVideoPlayerProps> = ({
   src,

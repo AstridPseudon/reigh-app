@@ -14,11 +14,9 @@ import {
   useShotImagesEditorModel,
 } from './hooks';
 import { useShotImagesEditorCallbacks } from './hooks/useShotImagesEditorCallbacks';
-import {
-  EditorHeader,
-  EditorContent,
-  EditorOverlays,
-} from './ShotImagesEditorSections';
+import { EditorHeader } from './ShotImagesEditorHeader';
+import { EditorContent } from './ShotImagesEditorContent';
+import { EditorOverlays } from './ShotImagesEditorOverlays';
 import {
   resolveShotImagesEditorProps,
   type ShotImagesEditorProps,

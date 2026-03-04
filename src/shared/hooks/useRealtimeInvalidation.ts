@@ -86,7 +86,7 @@ function handleTasksUpdated(queryClient: QueryClient, event: TasksUpdatedEvent):
 
   // Invalidate individual task queries
   event.tasks.forEach((task) => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.single(task.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.tasks.single(task.id, task.projectId) });
   });
 
   // Check for completed tasks

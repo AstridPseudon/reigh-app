@@ -3,7 +3,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { useAutoSaveSettings } from '@/shared/hooks/settings/useAutoSaveSettings';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 
 // Import canonical types from single source of truth
