@@ -1,537 +1,91 @@
 /**
  * FinalVideoSection - Prominent final video display with output selector
- * 
+ *
  * Shows the final joined video output at the top of the shot editor,
  * with a dropdown to switch between different generation outputs.
- * Styled similar to ChildGenerationsView's "Final Video" section.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { Check, Film, Loader2, Trash2, Share2, Copy } from 'lucide-react';
+import React from 'react';
 import { Card, CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
-import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select';
-import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
-import { VideoItem } from './VideoGallery/components/VideoItem';
 import MediaLightbox from '@/shared/components/MediaLightbox';
-import { GenerationRow } from '@/domains/generation/types';
-import { formatDistanceToNow } from 'date-fns';
-import { useIsMobile } from '@/shared/hooks/mobile';
-import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
-import { useQuery } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
-import { useShareGeneration } from '@/shared/hooks/useShareGeneration';
-import { useMarkVariantViewed } from '@/shared/hooks/useMarkVariantViewed';
-import { VariantBadge } from '@/shared/components/VariantBadge';
-import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
+import { FinalVideoSectionControls } from './FinalVideoSectionControls';
+import { FinalVideoSectionDisplay } from './FinalVideoSectionDisplay';
+import { useFinalVideoSectionController } from './hooks/useFinalVideoSectionController';
+import type { FinalVideoSectionProps } from './FinalVideoSection.types';
 
-// Stable empty function reference to avoid re-renders from inline () => {}
-const noop = () => {};
-
-interface FinalVideoSectionProps {
-  shotId: string;
-  projectId: string;
-  projectAspectRatio?: string;
-  onApplySettingsFromTask?: (taskId: string, replaceImages: boolean, inputImages: string[]) => void;
-  onJoinSegmentsClick?: () => void;
-  /** Optional controlled selected parent ID (shared with other components) */
-  selectedParentId?: string | null;
-  /** Optional callback when selected parent changes (for controlled mode) */
-  onSelectedParentChange?: (id: string | null) => void;
-  /** Parent generations passed from parent (to avoid duplicate fetch) */
-  parentGenerations?: GenerationRow[];
-  /** Segment progress passed from parent */
-  segmentProgress?: { completed: number; total: number };
-  /** Loading state from parent (when in controlled mode) */
-  isParentLoading?: boolean;
-  /** Cached final video count for showing skeleton during load */
-  getFinalVideoCount?: (shotId: string | null) => number | null;
-  /** Delete handler for the final video generation */
-  onDelete?: (generationId: string) => void;
-  /** Whether a delete is in progress */
-  isDeleting?: boolean;
-  /** Read-only mode - hides action buttons (for share pages) */
-  readOnly?: boolean;
-  /** Preloaded parent generation (for share pages - bypasses hook fetching) */
-  preloadedParent?: GenerationRow | null;
-}
-
-export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
-  shotId,
-  projectId,
-  projectAspectRatio,
-  onApplySettingsFromTask,
-  onJoinSegmentsClick,
-  selectedParentId: controlledSelectedParentId,
-  onSelectedParentChange,
-  parentGenerations: parentGenerationsFromProps,
-  segmentProgress: segmentProgressFromProps,
-  isParentLoading = false,
-  getFinalVideoCount,
-  onDelete,
-  isDeleting = false,
-  readOnly = false,
-  preloadedParent,
-}) => {
-  const isMobile = useIsMobile();
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  
-  // Determine if we're in controlled mode (props provided from parent)
-  const isControlled = controlledSelectedParentId !== undefined && onSelectedParentChange !== undefined;
-
-  // In read-only mode with preloadedParent, skip the hook entirely
-  const skipHook = readOnly && preloadedParent !== undefined;
-
-  // OPTIMIZATION: If parent provides data, skip the duplicate fetch
-  // Parent (ShotEditor) already calls useSegmentOutputsForShot - no need to fetch again
-  const hasParentData = (parentGenerationsFromProps && parentGenerationsFromProps.length > 0) || isControlled;
-
-  // Only fetch if parent didn't provide data (standalone usage or share page)
-  const hookResult = useSegmentOutputsForShot(
-    (skipHook || hasParentData) ? null : shotId, // Skip if parent provides data
-    (skipHook || hasParentData) ? '' : projectId,
-    undefined,
-    controlledSelectedParentId,
-    onSelectedParentChange
-  );
-
-  // PRIORITY: Use parent-provided data first (instant), then hook data, then preloaded
-  // This eliminates the duplicate fetch waterfall
-  const parentGenerations = useMemo(() => {
-    if (skipHook && preloadedParent) {
-      return [preloadedParent];
-    }
-    if (parentGenerationsFromProps && parentGenerationsFromProps.length > 0) {
-      return parentGenerationsFromProps;
-    }
-    return hookResult.parentGenerations;
-  }, [skipHook, preloadedParent, parentGenerationsFromProps, hookResult.parentGenerations]);
-  const selectedParentId = skipHook && preloadedParent
-    ? preloadedParent.id
-    : (isControlled ? controlledSelectedParentId : hookResult.selectedParentId);
-  const setSelectedParentId = isControlled ? onSelectedParentChange! : hookResult.setSelectedParentId;
-  const segmentProgress = skipHook
-    ? { completed: 0, total: 0 }
-    : (segmentProgressFromProps && segmentProgressFromProps.total > 0
-        ? segmentProgressFromProps  // Use parent data first
-        : hookResult.segmentProgress);
-  // Use parent loading state when parent provides data, otherwise use hook loading state
-  const isLoading = skipHook ? false : (hasParentData ? isParentLoading : hookResult.isLoading);
-  
-  // Derive selectedParent from parentGenerations (works in both controlled and uncontrolled mode)
-  const selectedParent = useMemo(() => {
-    if (!selectedParentId) return null;
-    return parentGenerations.find((p) => p.id === selectedParentId) || null;
-  }, [parentGenerations, selectedParentId]);
-  
-  const hasFinalOutput = !!(selectedParent?.location);
-
-  // Get variant badge data for the selected parent
-  const { getBadgeData } = useVariantBadges(
-    selectedParentId ? [selectedParentId] : [],
-    !!selectedParentId && hasFinalOutput
-  );
-  const badgeData = selectedParentId ? getBadgeData(selectedParentId) : null;
-
-  // Mark variants as viewed (for clearing "new" badge)
-  const { markAllViewed } = useMarkVariantViewed();
-  const handleMarkAllVariantsViewed = useCallback(() => {
-    if (selectedParentId) {
-      markAllViewed(selectedParentId);
-    }
-  }, [selectedParentId, markAllViewed]);
-
-  // Transform selected parent for VideoItem/Lightbox
-  const parentVideoRow = useMemo(() => {
-    if (!selectedParent) return null;
-    // The hook's transformer already sets created_at to updated_at, so we just use it directly
-    return {
-      ...selectedParent,
-      type: 'video',
-    } as GenerationRow;
-  }, [selectedParent]);
-  
-  // Get task data for lightbox task details using shared hook
+export const FinalVideoSection: React.FC<FinalVideoSectionProps> = (props) => {
   const {
+    isMobile,
+    isLightboxOpen,
+    handleLightboxOpen,
+    handleLightboxClose,
+    parentGenerations,
+    selectedParentId,
+    selectedIndex,
+    hasFinalOutput,
+    badgeData,
+    handleMarkAllVariantsViewed,
+    parentVideoRow,
     taskDetailsData,
     taskMapping,
     task,
     taskError,
-  } = useTaskDetails({
-    generationId: selectedParentId,
-    projectId,
-    onApplySettingsFromTask,
-  });
-
-  // Share functionality - pass shotId to fetch input images and settings for final video shares
-  const {
+    inputImages,
     handleShare,
     isCreatingShare,
     shareCopied,
     shareSlug,
-  } = useShareGeneration(selectedParentId ?? undefined, taskMapping?.taskId, shotId);
-
-  // Check for active join_clips_orchestrator tasks for this shot
-  // Include parentGenerations IDs in query key so we can match by parent_generation_id
-  const parentGenIdsForQuery = useMemo(() => parentGenerations.map(p => p.id), [parentGenerations]);
-  const { data: activeJoinTask } = useQuery({
-    queryKey: [...taskQueryKeys.activeJoinClips(shotId), projectId, parentGenIdsForQuery],
-    queryFn: async () => {
-      if (!shotId || !projectId) return null;
-
-      // Query for join_clips_orchestrator tasks that are queued or generating
-      const { data, error } = await supabase().from('tasks')
-        .select('id, status, params')
-        .eq('task_type', 'join_clips_orchestrator')
-        .eq('project_id', projectId)
-        .in('status', ['Queued', 'In Progress'])
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('[FinalVideoSection] Error checking for active join tasks:', error);
-        return null;
-      }
-
-      // Filter to find tasks that have this shot_id in their params
-      // Also check parent_generation_id as fallback for tasks created before shot_id was added
-      const parentGenIds = new Set(parentGenIdsForQuery);
-
-      const matchingTask = (data || []).find((task) => {
-        const params = task.params as Record<string, unknown>;
-        const orchestratorDetails = params?.orchestrator_details as Record<string, unknown> | undefined;
-        const taskShotId = orchestratorDetails?.shot_id || params?.shot_id;
-        const taskParentGenId = orchestratorDetails?.parent_generation_id || params?.parent_generation_id;
-
-        // Match by shot_id (preferred)
-        if (taskShotId === shotId) {
-          return true;
-        }
-
-        // Fallback: match by parent_generation_id (for tasks without shot_id)
-        if (typeof taskParentGenId === 'string' && parentGenIds.has(taskParentGenId)) {
-          return true;
-        }
-
-        return false;
-      });
-
-      return matchingTask || null;
-    },
-    enabled: !!shotId && !!projectId,
-    refetchInterval: 3000, // Poll every 3 seconds to catch status changes
-    staleTime: 1000,
-  });
-
-  const hasActiveJoinTask = !!activeJoinTask;
-
-  // Derive input images from task params for lightbox
-  const inputImages: string[] = useMemo(() => {
-    if (!task?.params) return [];
-    const params = task.params as Record<string, unknown>;
-    
-    // Try different sources for input images
-    const orchestratorDetails = (params.orchestrator_details || {}) as Record<string, unknown>;
-    const inputPaths = params.input_image_paths_resolved ||
-                      orchestratorDetails.input_image_paths_resolved ||
-                      params.input_images ||
-                      [];
-    
-    return Array.isArray(inputPaths) ? inputPaths : [];
-  }, [task]);
-  
-  // Get selected index for display
-  const selectedIndex = parentGenerations.findIndex(p => p.id === selectedParentId);
-  
-  // Calculate progress for currently selected parent
-  const currentProgress = segmentProgress;
-  
-  // Handle lightbox open
-  const handleLightboxOpen = useCallback(() => {
-    setIsLightboxOpen(true);
-  }, []);
-  
-  // Handle lightbox close
-  const handleLightboxClose = useCallback(() => {
-    setIsLightboxOpen(false);
-  }, []);
-  
-  // Handle output selection change
-  const handleOutputSelect = useCallback((id: string) => {
-    setSelectedParentId(id);
-  }, [setSelectedParentId]);
-  
-  // Mobile tap handler (simplified - just opens lightbox)
-  const handleMobileTap = useCallback(() => {
-    handleLightboxOpen();
-  }, [handleLightboxOpen]);
-
-  // Handle delete
-  const handleDelete = useCallback(() => {
-    if (selectedParentId && onDelete) {
-      onDelete(selectedParentId);
-    }
-  }, [selectedParentId, onDelete]);
-  
-  // Determine if currently loading
-  const isCurrentlyLoading = isLoading || isParentLoading;
-
-  // Show skeleton when we know a final video will be displayed but it's not visible yet.
-  // Two signals that a video is coming:
-  // 1. Cache says there's a completed final video (from shot_statistics)
-  // 2. Parent generations are already loaded with a completed video, but no selection yet
-  //    (output selection still initializing from persisted settings)
-  // The parentGenerations.length check in case 1 handles stale cache after delete - if we
-  // finished loading and have no generations, the cache count is stale so don't show skeleton.
-  const cachedFinalVideoCount = getFinalVideoCount?.(shotId) ?? null;
-  const willHaveFinalVideo = cachedFinalVideoCount !== null && cachedFinalVideoCount > 0;
-  const hasCompletedParent = parentGenerations.some(p => !!p.location);
-  const shouldShowSkeleton = !hasFinalOutput && (
-    // Case 1: Cache confirms a final video exists, waiting for data or selection
-    (willHaveFinalVideo && (isCurrentlyLoading || parentGenerations.length > 0))
-    // Case 2: Parent data loaded with completed video, but selection not initialized yet
-    || (hasCompletedParent && !selectedParentId)
-  );
+    handleOutputSelect,
+    segmentProgress,
+    handleDelete,
+    isCurrentlyLoading,
+    shouldShowSkeleton,
+    hasActiveJoinTask,
+  } = useFinalVideoSectionController(props);
 
   return (
     <div className="w-full">
       <Card className="border rounded-xl shadow-sm">
         <CardContent className="p-4 sm:p-6">
-          {/* Header with title and Join clips button */}
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h2 className="text-base sm:text-lg font-light flex items-center gap-2">
-              <Film className="w-5 h-5 text-muted-foreground" />
-              Final Video
-              {/* Variant count and NEW badge */}
-              {hasFinalOutput && badgeData && (badgeData.derivedCount > 0 || badgeData.hasUnviewedVariants) && (
-                <VariantBadge
-                  derivedCount={badgeData.derivedCount}
-                  unviewedVariantCount={badgeData.unviewedVariantCount}
-                  hasUnviewedVariants={badgeData.hasUnviewedVariants}
-                  variant="inline"
-                  size="md"
-                  onMarkAllViewed={handleMarkAllVariantsViewed}
-                />
-              )}
-            </h2>
+          <FinalVideoSectionControls
+            readOnly={Boolean(props.readOnly)}
+            hasFinalOutput={hasFinalOutput}
+            badgeData={badgeData}
+            onMarkAllVariantsViewed={handleMarkAllVariantsViewed}
+            selectedParentId={selectedParentId}
+            onShare={handleShare}
+            isCreatingShare={isCreatingShare}
+            shareCopied={shareCopied}
+            shareSlug={shareSlug}
+            progress={segmentProgress}
+            onJoinSegmentsClick={props.onJoinSegmentsClick}
+            parentGenerations={parentGenerations}
+            selectedIndex={selectedIndex}
+            onOutputSelect={handleOutputSelect}
+          />
 
-            {/* Action buttons on the right - hidden in readOnly mode */}
-            {!readOnly && (
-              <div className="flex items-center gap-2">
-                {/* Share button - only show when there's a final video */}
-                {hasFinalOutput && selectedParentId && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleShare}
-                        disabled={isCreatingShare}
-                        className={shareCopied ? 'bg-green-500/10 border-green-500/50' : ''}
-                      >
-                        {isCreatingShare ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : shareCopied ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : shareSlug ? (
-                          <Copy className="h-4 w-4" />
-                        ) : (
-                          <Share2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {shareCopied ? 'Link copied!' : shareSlug ? 'Copy share link' : 'Share this video'}
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-
-                {/* Join clips button */}
-                {currentProgress.total > 0 && currentProgress.completed === currentProgress.total && onJoinSegmentsClick && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onJoinSegmentsClick}
-                  >
-                    Join clips
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Output Selector Dropdown (full width on mobile, left-aligned on desktop) - hidden in readOnly mode */}
-          {!readOnly && parentGenerations.length > 1 && (
-            <div className="mb-4">
-              <Select value={selectedParentId || ''} onValueChange={handleOutputSelect}>
-                <SelectTrigger className="w-full sm:w-auto sm:min-w-[160px] h-8 text-sm">
-                  <SelectValue placeholder="Select output">
-                    {selectedParentId && (
-                      <span className="flex items-center gap-1.5">
-                        Output {selectedIndex + 1} of {parentGenerations.length}
-                      </span>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {parentGenerations.map((parent, index) => {
-                    const createdAt = parent.created_at || parent.createdAt;
-                    const timeAgo = createdAt ? formatDistanceToNow(new Date(createdAt), { addSuffix: true }) : '';
-                    const hasOutput = !!parent.location;
-
-                    return (
-                      <SelectItem key={parent.id} value={parent.id}>
-                        <div className="flex items-center gap-2">
-                          <span>Output {index + 1}</span>
-                          {hasOutput && <Check className="w-3 h-3 text-green-500" />}
-                          <span className="text-xs text-muted-foreground">{timeAgo}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
           <div className="my-3 h-px w-full bg-border" />
-          
-          {/* Video Display */}
-          {shouldShowSkeleton ? (
-            // Skeleton state - reserve space for video that will load
-            <div className="flex justify-center mt-4">
-              <div
-                style={(() => {
-                  if (!projectAspectRatio) {
-                    return { width: '50%' };
-                  }
-                  const [w, h] = projectAspectRatio.split(':').map(Number);
-                  if (w && h) {
-                    const ratio = w / h;
-                    if (h > w) {
-                      return { width: `min(100%, calc(60vh * ${ratio}))` };
-                    }
-                    return { width: '50%' };
-                  }
-                  return { width: '50%' };
-                })()}
-              >
-                <Skeleton
-                  className="w-full rounded-lg"
-                  style={{
-                    aspectRatio: projectAspectRatio
-                      ? projectAspectRatio.replace(':', '/')
-                      : '16/9'
-                  }}
-                />
-              </div>
-            </div>
-          ) : hasFinalOutput && parentVideoRow ? (
-            <div className="flex justify-center mt-4">
-              {/* Constrain video size based on aspect ratio */}
-              <div
-                className="relative group"
-                style={(() => {
-                  if (!projectAspectRatio) {
-                    return { width: '50%' };
-                  }
-                  const [w, h] = projectAspectRatio.split(':').map(Number);
-                  if (w && h) {
-                    const ratio = w / h;
-                    // Portrait: constrain by height (max 60vh), calculate width from aspect ratio
-                    if (h > w) {
-                      return {
-                        width: `min(100%, calc(60vh * ${ratio}))`,
-                      };
-                    }
-                    // Landscape/square: constrain by width (max 50%)
-                    return { width: '50%' };
-                  }
-                  return { width: '50%' };
-                })()}
-              >
-                <VideoItem
-                  video={parentVideoRow}
-                  index={0}
-                  originalIndex={0}
-                  shouldPreload="metadata"
-                  isMobile={isMobile}
-                  projectAspectRatio={projectAspectRatio}
-                  projectId={projectId}
-                  onLightboxOpen={handleLightboxOpen}
-                  onMobileTap={handleMobileTap}
-                  onDelete={noop}
-                  deletingVideoId={null}
-                  onHoverStart={noop}
-                  onHoverEnd={noop}
-                  onMobileModalOpen={noop}
-                  selectedVideoForDetails={null}
-                  showTaskDetailsModal={false}
-                  onApplySettingsFromTask={onApplySettingsFromTask || noop}
-                  hideActions={true}
-                />
-                {/* Delete button overlay - hidden in readOnly mode */}
-                {!readOnly && onDelete && (
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="h-8 w-8 bg-red-600/80 hover:bg-red-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete();
-                          }}
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete final video</TooltipContent>
-                    </Tooltip>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center pt-4 pb-1 text-muted-foreground">
-              {isCurrentlyLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Loading...</span>
-                </div>
-              ) : hasActiveJoinTask ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Generating joined clip...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Film className="w-4 h-4 opacity-40" />
-                  <span className="text-sm">No final video yet</span>
-                </div>
-              )}
-            </div>
-          )}
+
+          <FinalVideoSectionDisplay
+            projectAspectRatio={props.projectAspectRatio}
+            shouldShowSkeleton={shouldShowSkeleton}
+            hasFinalOutput={hasFinalOutput}
+            parentVideoRow={parentVideoRow}
+            isMobile={isMobile}
+            projectId={props.projectId}
+            onLightboxOpen={handleLightboxOpen}
+            onMobileTap={handleLightboxOpen}
+            onApplySettingsFromTask={props.onApplySettingsFromTask}
+            readOnly={Boolean(props.readOnly)}
+            onDelete={props.onDelete}
+            onDeleteSelected={handleDelete}
+            isDeleting={Boolean(props.isDeleting)}
+            isCurrentlyLoading={isCurrentlyLoading}
+            hasActiveJoinTask={hasActiveJoinTask}
+          />
         </CardContent>
       </Card>
-      
-      {/* Lightbox for viewing final video */}
+
       {isLightboxOpen && parentVideoRow && (
         <MediaLightbox
           media={parentVideoRow}
@@ -549,15 +103,15 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = ({
           actions={{
             starred: parentVideoRow.starred ?? false,
           }}
-          shotId={shotId}
-          readOnly={readOnly}
+          shotId={props.shotId}
+          readOnly={Boolean(props.readOnly)}
           taskDetailsData={{
             task: task ?? null,
             isLoading: taskDetailsData?.isLoading ?? false,
             error: taskError,
             inputImages,
             taskId: taskMapping?.taskId || null,
-            onApplySettingsFromTask: onApplySettingsFromTask,
+            onApplySettingsFromTask: props.onApplySettingsFromTask,
             onClose: handleLightboxClose,
           }}
         />

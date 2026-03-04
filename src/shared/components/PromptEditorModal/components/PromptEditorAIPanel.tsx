@@ -14,8 +14,8 @@ import {
 } from '@/shared/components/PromptEditorModal/BulkEditControls';
 import type { PromptEntry } from '@/shared/components/ImageGenerationForm';
 import type { GeneratePromptsParams } from '@/types/ai';
+import type { EditorMode } from '../types';
 
-type EditorMode = 'generate' | 'remix' | 'bulk-edit';
 type GenerationControlValues = PGCGenerationControlValues;
 type BulkEditControlValues = BECBulkEditControlValues;
 

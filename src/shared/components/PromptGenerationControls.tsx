@@ -1,43 +1,19 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Slider } from '@/shared/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { GeneratePromptsParams, AIPromptItem } from '@/types/ai';
-import {
-  ChevronDown,
-  ChevronRight,
-  Settings,
-  Zap
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, Settings, Zap } from 'lucide-react';
+import { useGenerationControlsState } from './PromptGenerationControls/hooks/useGenerationControlsState';
+import { AdvancedOptionsPanel } from './PromptGenerationControls/components/AdvancedOptionsPanel';
+import type { GenerationControlValues } from './PromptGenerationControls/types';
 
-/** Auto-format text lines with bullet point prefixes */
-const formatBulletLines = (text: string): string => {
-  return text.split('\n').map((line) => {
-    const trimmedLine = line.trim();
-    if (trimmedLine !== '' && !line.startsWith('•') && !line.startsWith('-') && !line.startsWith('*')) {
-      return `• ${line}`;
-    }
-    return line;
-  }).join('\n');
-};
-
-export interface GenerationControlValues {
-  overallPromptText: string;
-  remixPromptText: string;
-  rulesToRememberText: string;
-  numberToGenerate: number;
-  includeExistingContext: boolean;
-  addSummary: boolean;
-  replaceCurrentPrompts: boolean;
-  temperature: number;
-  showAdvanced: boolean;
-}
+export type { GenerationControlValues };
 
 interface PromptGenerationControlsProps {
-  onGenerate: (params: GeneratePromptsParams) => Promise<void>; 
+  onGenerate: (params: GeneratePromptsParams) => Promise<void>;
   onGenerateAndQueue?: (params: GeneratePromptsParams) => Promise<void>;
   isGenerating: boolean;
   hasApiKey?: boolean;
@@ -46,14 +22,6 @@ interface PromptGenerationControlsProps {
   onValuesChange?: (values: GenerationControlValues) => void;
   remixMode?: boolean;
 }
-
-const temperatureOptions = [
-  { value: 0.4, label: 'Predictable', description: 'Very consistent' },
-  { value: 0.6, label: 'Interesting', description: 'Some variation' },
-  { value: 0.8, label: 'Balanced', description: 'Balanced creativity' },
-  { value: 1.0, label: 'Chaotic', description: 'Wild & unexpected' },
-  { value: 1.2, label: 'Insane', description: 'Maximum randomness' },
-];
 
 export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> = ({
   onGenerate,
@@ -65,87 +33,36 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
   onValuesChange,
   remixMode = false,
 }) => {
-  
-  const [overallPromptText, setOverallPromptText] = useState(initialValues?.overallPromptText || '');
-  const [remixPromptText, setRemixPromptText] = useState(initialValues?.remixPromptText || 'More like this');
-  const [rulesToRememberText, setRulesToRememberText] = useState(initialValues?.rulesToRememberText || '');
-  const [numberToGenerate, setNumberToGenerate] = useState<number>(initialValues?.numberToGenerate || 16);
-  const [includeExistingContext, setIncludeExistingContext] = useState(initialValues?.includeExistingContext ?? true);
-  const addSummary = true; // Always true, no longer user-configurable
-  const [replaceCurrentPrompts, setReplaceCurrentPrompts] = useState(initialValues?.replaceCurrentPrompts || false);
-  const [temperature, setTemperature] = useState<number>(initialValues?.temperature || 0.8);
-  const [showAdvanced, setShowAdvanced] = useState(initialValues?.showAdvanced || false);
+  const {
+    overallPromptText,
+    remixPromptText,
+    rulesToRememberText,
+    numberToGenerate,
+    includeExistingContext,
+    replaceCurrentPrompts,
+    temperature,
+    showAdvanced,
+    emitChange,
+    setOverallPromptText,
+    setRemixPromptText,
+    setRulesToRememberText,
+    setNumberToGenerate,
+    setIncludeExistingContext,
+    setReplaceCurrentPrompts,
+    setTemperatureWithSnap,
+    setShowAdvanced,
+  } = useGenerationControlsState({
+    initialValues,
+    onValuesChange,
+    remixMode,
+  });
 
-  // Hydrate from initialValues only once to avoid overriding user typing on parent updates
-  const hasHydratedRef = useRef(false);
-  useEffect(() => {
-    if (!hasHydratedRef.current && initialValues) {
-      setOverallPromptText(initialValues.overallPromptText || '');
-      setRemixPromptText(initialValues.remixPromptText || 'More like this');
-      setRulesToRememberText(initialValues.rulesToRememberText || '');
-      setNumberToGenerate(initialValues.numberToGenerate || 3);
-      setIncludeExistingContext(initialValues.includeExistingContext ?? true);
-      // addSummary is now hardcoded to true
-      setReplaceCurrentPrompts(initialValues.replaceCurrentPrompts || false);
-      setTemperature(initialValues.temperature || 0.8);
-      setShowAdvanced(initialValues.showAdvanced || false);
-      hasHydratedRef.current = true;
-      // Emit once after hydration so parent has a consistent snapshot
-      onValuesChange?.({
-        overallPromptText: initialValues.overallPromptText || '',
-        remixPromptText: initialValues.remixPromptText || 'More like this',
-        rulesToRememberText: initialValues.rulesToRememberText || '',
-        numberToGenerate: initialValues.numberToGenerate || 3,
-        includeExistingContext: initialValues.includeExistingContext ?? true,
-        addSummary: true,
-        replaceCurrentPrompts: initialValues.replaceCurrentPrompts || false,
-        temperature: initialValues.temperature || 0.8,
-        showAdvanced: initialValues.showAdvanced || false,
-      });
-    }
-  }, [initialValues, onValuesChange]);
-
-  // Emit change using latest values with optional overrides to avoid stale closures
-  const emitChange = useCallback((overrides?: Partial<GenerationControlValues>) => {
-    if (!onValuesChange) return;
-    onValuesChange({
-      overallPromptText,
-      remixPromptText,
-      rulesToRememberText,
-      numberToGenerate,
-      includeExistingContext,
-      addSummary: true,
-      replaceCurrentPrompts,
-      temperature,
-      showAdvanced,
-      ...overrides,
-    });
-  }, [overallPromptText, remixPromptText, rulesToRememberText, numberToGenerate, includeExistingContext, replaceCurrentPrompts, temperature, showAdvanced, onValuesChange]);
-
-  // When remixMode is enabled, automatically set includeExistingContext and replaceCurrentPrompts to true
-  useEffect(() => {
-    if (remixMode) {
-      setIncludeExistingContext(true);
-      setReplaceCurrentPrompts(true);
-      
-      // Notify parent of the change
-      onValuesChange?.({
-        overallPromptText,
-        remixPromptText,
-        rulesToRememberText,
-        numberToGenerate,
-        includeExistingContext: true,
-        addSummary: true,
-        replaceCurrentPrompts: true,
-        temperature,
-        showAdvanced,
-      });
-    }
-  }, [remixMode, onValuesChange, overallPromptText, remixPromptText, rulesToRememberText, numberToGenerate, temperature, showAdvanced]);
+  const addSummary = true;
 
   const buildGenerateParams = (): GeneratePromptsParams => {
     const shouldIncludeExisting = remixMode || includeExistingContext;
     const shouldReplace = remixMode || replaceCurrentPrompts;
+
     return {
       overallPromptText: remixMode ? remixPromptText : overallPromptText,
       rulesToRememberText,
@@ -157,20 +74,20 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
     };
   };
 
-  const handleGenerateClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleGenerateClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
     if (!hasApiKey) {
-        alert('API Key is required to generate prompts.');
-        return;
+      alert('API Key is required to generate prompts.');
+      return;
     }
     await onGenerate(buildGenerateParams());
   };
 
-  const handleGenerateAndQueueClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleGenerateAndQueueClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
     if (!hasApiKey) {
-        alert('API Key is required to generate prompts.');
-        return;
+      alert('API Key is required to generate prompts.');
+      return;
     }
     if (!onGenerateAndQueue) {
       return;
@@ -178,74 +95,59 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
     await onGenerateAndQueue(buildGenerateParams());
   };
 
-  const selectedTemperatureOption = temperatureOptions.find(opt => opt.value === temperature);
-
-  const handleTemperatureChange = (newValue: number | readonly number[]) => {
-    const normalizedValue = Array.isArray(newValue) ? (newValue[0] ?? temperature) : newValue;
-    // Find the closest temperature option
-    const closest = temperatureOptions.reduce((prev, curr) => 
-      Math.abs(curr.value - normalizedValue) < Math.abs(prev.value - normalizedValue) ? curr : prev
-    );
-    setTemperature(closest.value);
-    emitChange({ temperature: closest.value });
-  };
-
   return (
     <div className="p-4">
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Main content - left side on desktop, full width on mobile */}
         <div className="flex-1 space-y-2">
-          {/* Main prompt input - always visible */}
           <div>
-          <Label htmlFor="gen_overallPromptText" className="mb-2 block">
-            {remixMode ? 'How would you like to remix the prompts?' : 'What prompts would you like to generate?'}
-          </Label>
-          <Textarea
-            id="gen_overallPromptText"
-            value={remixMode ? remixPromptText : overallPromptText}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (remixMode) {
-                setRemixPromptText(next);
-                emitChange({ remixPromptText: next });
-              } else {
-                setOverallPromptText(next);
-                emitChange({ overallPromptText: next });
-              }
-            }}
-            placeholder={remixMode ? "e.g., Transform into fever dreams..." : "e.g., A medieval fantasy adventure with dragons and magic..."}
+            <Label htmlFor="gen_overallPromptText" className="mb-2 block">
+              {remixMode ? 'How would you like to remix the prompts?' : 'What prompts would you like to generate?'}
+            </Label>
+            <Textarea
+              id="gen_overallPromptText"
+              value={remixMode ? remixPromptText : overallPromptText}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                if (remixMode) {
+                  setRemixPromptText(nextValue);
+                  emitChange({ remixPromptText: nextValue });
+                } else {
+                  setOverallPromptText(nextValue);
+                  emitChange({ overallPromptText: nextValue });
+                }
+              }}
+              placeholder={remixMode ? 'e.g., Transform into fever dreams...' : 'e.g., A medieval fantasy adventure with dragons and magic...'}
               rows={2}
-            disabled={!hasApiKey || isGenerating}
+              disabled={!hasApiKey || isGenerating}
               className="min-h-[60px] max-h-[60px]"
-            clearable
-            onClear={() => {
-              if (remixMode) {
-                setRemixPromptText('');
-                emitChange({ remixPromptText: '' });
-              } else {
-                setOverallPromptText('');
-                emitChange({ overallPromptText: '' });
-              }
-            }}
-            voiceInput
-            voiceContext={remixMode 
-              ? "This is a remix instruction for AI prompt generation. Describe how you want to transform or remix existing prompts - like 'make them more surreal' or 'transform into horror style'. Be creative and descriptive."
-              : "This is a master prompt for AI image generation. Describe the overall theme, style, or concept you want to generate multiple prompts for. AI will create variations based on this description."}
-            onVoiceResult={(result) => {
-              const text = result.prompt || result.transcription;
-              if (remixMode) {
-                setRemixPromptText(text);
-                emitChange({ remixPromptText: text });
-              } else {
-                setOverallPromptText(text);
-                emitChange({ overallPromptText: text });
-              }
-            }}
-          />
-        </div>
+              clearable
+              onClear={() => {
+                if (remixMode) {
+                  setRemixPromptText('');
+                  emitChange({ remixPromptText: '' });
+                } else {
+                  setOverallPromptText('');
+                  emitChange({ overallPromptText: '' });
+                }
+              }}
+              voiceInput
+              voiceContext={remixMode
+                ? 'This is a remix instruction for AI prompt generation. Describe how you want to transform or remix existing prompts - like make them more surreal or transform into horror style. Be creative and descriptive.'
+                : 'This is a master prompt for AI image generation. Describe the overall theme, style, or concept you want to generate multiple prompts for. AI will create variations based on this description.'}
+              onVoiceResult={(result) => {
+                const text = result.prompt || result.transcription;
+                if (remixMode) {
+                  setRemixPromptText(text);
+                  emitChange({ remixPromptText: text });
+                } else {
+                  setOverallPromptText(text);
+                  emitChange({ overallPromptText: text });
+                }
+              }}
+            />
+          </div>
 
-          {/* Number to Generate - desktop has toggle on same row, mobile separate */}
-          <div className={`flex items-start gap-4 w-full sm:w-[400px]`}>
+          <div className="flex items-start gap-4 w-full sm:w-[400px]">
             <div className="flex-1 sm:flex-none sm:w-[70%]">
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="gen_numberToGenerate" className="text-sm font-medium">
@@ -274,17 +176,16 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
               </div>
             </div>
 
-            {/* Advanced toggle button - desktop only, allow wrapping */}
             <div className="hidden sm:flex flex-shrink-0 pt-2 w-[30%]">
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
                 <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="flex items-center gap-2 text-xs p-2 h-auto justify-center w-full"
                     onClick={() => {
-                      const next = !showAdvanced;
-                      setShowAdvanced(next);
-                      emitChange({ showAdvanced: next });
+                      const nextValue = !showAdvanced;
+                      setShowAdvanced(nextValue);
+                      emitChange({ showAdvanced: nextValue });
                     }}
                   >
                     <Settings className="h-3 w-3" />
@@ -296,17 +197,16 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
             </div>
           </div>
 
-          {/* Advanced toggle button - mobile only, before generate button */}
           <div className="sm:hidden -mt-4">
             <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
               <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="flex items-center gap-2 text-sm p-2 h-auto justify-start"
                   onClick={() => {
-                    const next = !showAdvanced;
-                    setShowAdvanced(next);
-                    emitChange({ showAdvanced: next });
+                    const nextValue = !showAdvanced;
+                    setShowAdvanced(nextValue);
+                    emitChange({ showAdvanced: nextValue });
                   }}
                 >
                   <Settings className="h-4 w-4" />
@@ -317,215 +217,53 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
             </Collapsible>
           </div>
 
-          {/* Advanced settings - sidebar on desktop, below on mobile */}
           <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
             <CollapsibleContent>
-              <div className="w-full lg:w-80 space-y-4 bg-accent/30 border border-accent-foreground/10 rounded-lg p-4 lg:hidden">
-                {/* Rules/Constraints - moved into advanced */}
-                <div>
-          <Label htmlFor="gen_rulesToRememberText" className="mb-2 block">Rules/Constraints:</Label>
-          <Textarea
-            id="gen_rulesToRememberText"
-            value={rulesToRememberText}
-            onChange={(e) => {
-              const formatted = formatBulletLines(e.target.value);
-              setRulesToRememberText(formatted);
-              emitChange({ rulesToRememberText: formatted });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const textarea = e.target as HTMLTextAreaElement;
-                const cursorPos = textarea.selectionStart;
-                const currentValue = textarea.value;
-
-                // Insert new line with bullet point
-                const beforeCursor = currentValue.slice(0, cursorPos);
-                const afterCursor = currentValue.slice(cursorPos);
-                const newValue = beforeCursor + '\n• ' + afterCursor;
-                
-                setRulesToRememberText(newValue);
-                emitChange({ rulesToRememberText: newValue });
-                
-                // Position cursor after the new bullet
-                setTimeout(() => {
-                  textarea.setSelectionRange(cursorPos + 3, cursorPos + 3);
-                }, 0);
-              } else if (e.key === 'Backspace') {
-                const textarea = e.target as HTMLTextAreaElement;
-                const cursorPos = textarea.selectionStart;
-                const cursorEnd = textarea.selectionEnd;
-                const currentValue = textarea.value;
-                
-                // Only handle if no text is selected (cursor position)
-                if (cursorPos === cursorEnd && cursorPos > 0) {
-                  const lines = currentValue.split('\n');
-                  
-                  // Find which line the cursor is on
-                  let currentLineStart = 0;
-                  let currentLineIndex = 0;
-                  for (let i = 0; i < lines.length; i++) {
-                    const lineLength = lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for \n
-                    if (currentLineStart + lineLength > cursorPos) {
-                      currentLineIndex = i;
-                      break;
-                    }
-                    currentLineStart += lineLength;
-                  }
-                  
-                  const currentLine = lines[currentLineIndex];
-                  const positionInLine = cursorPos - currentLineStart;
-                  
-                  // Simple logic: If we're on a line that only contains a bullet (and it's not the first line),
-                  // and we press backspace anywhere on that line, delete it and jump back
-                  const isEmptyBulletLine = currentLine === '• ' || currentLine === '- ' || currentLine === '* ' ||
-                                           currentLine === '•' || currentLine === '-' || currentLine === '*';
-                  
-                  const shouldDeleteEmptyBulletLine = currentLineIndex > 0 && isEmptyBulletLine;
-                  
-                  // Also handle the original case: backspace at beginning of any bulleted line (not first line)
-                  const shouldDeleteAtBeginning = currentLineIndex > 0 && positionInLine === 0 && 
-                                                 (currentLine.startsWith('• ') || currentLine.startsWith('- ') || currentLine.startsWith('* '));
-                  
-                  if (shouldDeleteEmptyBulletLine || shouldDeleteAtBeginning) {
-                    e.preventDefault();
-                    
-                    // Remove the current line and move cursor to end of previous line
-                    const newLines = [...lines];
-                    newLines.splice(currentLineIndex, 1);
-                    const newValue = newLines.join('\n');
-                    
-                    setRulesToRememberText(newValue);
-                    emitChange({ rulesToRememberText: newValue });
-                    
-                    // Position cursor at end of previous line
-                    const previousLineEnd = currentLineStart - 1; // -1 to account for removed \n
-                    setTimeout(() => {
-                      textarea.setSelectionRange(previousLineEnd, previousLineEnd);
-                    }, 0);
-                  }
-                }
-              }
-            }}
-            onFocus={(e) => {
-              // Add bullet point when focusing on empty textarea
-              const currentValue = e.target.value;
-              if (currentValue.trim() === '') {
-                const newValue = '• ';
-                setRulesToRememberText(newValue);
-                emitChange({ rulesToRememberText: newValue });
-                // Position cursor after the bullet
-                setTimeout(() => {
-                  e.target.setSelectionRange(2, 2);
-                }, 0);
-              }
-            }}
-            placeholder="e.g., Under 50 words&#10;No modern technology&#10;Include vivid descriptions"
-                    rows={3}
-            disabled={!hasApiKey || isGenerating}
-            clearable
-            onClear={() => {
-              setRulesToRememberText('');
-              emitChange({ rulesToRememberText: '' });
-            }}
-            voiceInput
-            voiceContext="These are rules and constraints for AI prompt generation. List requirements like 'keep prompts under 50 words' or 'always include lighting details'. Speak each rule clearly - they will be formatted as bullet points."
-            onVoiceResult={(result) => {
-              // Format voice result as bullet points
-              const text = result.prompt || result.transcription;
-              const formatted = text.startsWith('•') || text.startsWith('-') || text.startsWith('*') 
-                ? text 
-                : `• ${text}`;
-              setRulesToRememberText(formatted);
-              emitChange({ rulesToRememberText: formatted });
-            }}
-          />
-        </div>
-
-                {/* Creativity slider - moved into advanced */}
-                <div>
-                  <div className="text-center mb-3">
-                    <span className="font-light text-sm">Level of creativity</span>
-                  </div>
-                  <div className="relative mb-0">
-                    <Slider
-                      id="gen_temperature_mobile"
-                      value={temperature}
-                      onValueChange={handleTemperatureChange}
-                      min={0.4}
-                      max={1.2}
-                      step={0.2}
-                      disabled={!hasApiKey || isGenerating}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                      <span>1</span>
-                      <span>5</span>
-                    </div>
-                  </div>
-                  <div className="text-center -mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {selectedTemperatureOption?.description || 'Good balance of creativity'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Checkboxes - moved into advanced, hidden in remix mode */}
-                {!remixMode && (
-                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                    <div className="flex items-center gap-x-2">
-                      <Checkbox 
-                        id="gen_includeExistingContext" 
-                        checked={includeExistingContext} 
-                        onCheckedChange={(checked) => {
-                          const next = Boolean(checked);
-                          setIncludeExistingContext(next);
-                          emitChange({ includeExistingContext: next });
-                        }} 
-                        disabled={!hasApiKey || isGenerating || existingPromptsForContext.length === 0}
-                      />
-                      <Label htmlFor="gen_includeExistingContext" className="font-normal">
-                        Include current prompts
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-x-2">
-                      <Checkbox 
-                        id="gen_replaceCurrentPrompts" 
-                        checked={replaceCurrentPrompts} 
-                        onCheckedChange={(checked) => {
-                          const next = Boolean(checked);
-                          setReplaceCurrentPrompts(next);
-                          emitChange({ replaceCurrentPrompts: next });
-                        }} 
-                        disabled={!hasApiKey || isGenerating}
-                      />
-                      <Label htmlFor="gen_replaceCurrentPrompts" className="font-normal">Replace current prompts</Label>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <AdvancedOptionsPanel
+                isDesktop={false}
+                remixMode={remixMode}
+                rulesToRememberText={rulesToRememberText}
+                onRulesToRememberTextChange={(value) => {
+                  setRulesToRememberText(value);
+                  emitChange({ rulesToRememberText: value });
+                }}
+                temperature={temperature}
+                onTemperatureChange={setTemperatureWithSnap}
+                includeExistingContext={includeExistingContext}
+                onIncludeExistingContextChange={(value) => {
+                  setIncludeExistingContext(value);
+                  emitChange({ includeExistingContext: value });
+                }}
+                replaceCurrentPrompts={replaceCurrentPrompts}
+                onReplaceCurrentPromptsChange={(value) => {
+                  setReplaceCurrentPrompts(value);
+                  emitChange({ replaceCurrentPrompts: value });
+                }}
+                hasApiKey={hasApiKey}
+                isGenerating={isGenerating}
+                existingPromptsCount={existingPromptsForContext.length}
+              />
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Generate button */}
           <div className="w-full sm:w-[300px] space-y-2">
-            <Button 
+            <Button
               type="button"
               variant="retro"
               size="retro-sm"
               onClick={handleGenerateClick}
-              disabled={!hasApiKey || isGenerating} 
+              disabled={!hasApiKey || isGenerating}
               className="w-full"
             >
               {isGenerating ? 'Generating...' : 'Generate Prompts'}
             </Button>
             {onGenerateAndQueue && (
-              <Button 
+              <Button
                 type="button"
                 variant="retro-secondary"
                 size="retro-sm"
                 onClick={handleGenerateAndQueueClick}
-                disabled={!hasApiKey || isGenerating} 
+                disabled={!hasApiKey || isGenerating}
                 className="w-full"
               >
                 <Zap className="h-3.5 w-3.5 mr-1.5" />
@@ -535,208 +273,33 @@ export const PromptGenerationControls: React.FC<PromptGenerationControlsProps> =
           </div>
         </div>
 
-        {/* Advanced settings - sidebar on desktop only */}
         {showAdvanced && (
-          <div className="hidden lg:block w-80 space-y-4 bg-accent/30 border border-accent-foreground/10 rounded-lg p-4">
-              {/* Rules/Constraints - moved into advanced */}
-              <div>
-                <Label htmlFor="gen_rulesToRememberText" className="mb-2 block">Rules/Constraints:</Label>
-                <Textarea
-                  id="gen_rulesToRememberText"
-                  value={rulesToRememberText}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    // Add bullet points for lines that have content (not empty lines)
-                    const lines = next.split('\n');
-                    const formattedLines = lines.map((line) => {
-                      const trimmedLine = line.trim();
-                      // Only add bullet to lines that have content and don't already have a bullet
-                      if (trimmedLine !== '' && !line.startsWith('•') && !line.startsWith('-') && !line.startsWith('*')) {
-                        return `• ${line}`;
-                      }
-                      return line;
-                    });
-                    const formatted = formattedLines.join('\n');
-                    setRulesToRememberText(formatted);
-                    emitChange({ rulesToRememberText: formatted });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const textarea = e.target as HTMLTextAreaElement;
-                      const cursorPos = textarea.selectionStart;
-                      const currentValue = textarea.value;
-                      
-                      // Insert new line with bullet point
-                      const beforeCursor = currentValue.slice(0, cursorPos);
-                      const afterCursor = currentValue.slice(cursorPos);
-                      const newValue = beforeCursor + '\n• ' + afterCursor;
-                      
-                      setRulesToRememberText(newValue);
-                      emitChange({ rulesToRememberText: newValue });
-                      
-                      // Position cursor after the new bullet
-                      setTimeout(() => {
-                        textarea.setSelectionRange(cursorPos + 3, cursorPos + 3);
-                      }, 0);
-                    } else if (e.key === 'Backspace') {
-                      const textarea = e.target as HTMLTextAreaElement;
-                      const cursorPos = textarea.selectionStart;
-                      const cursorEnd = textarea.selectionEnd;
-                      const currentValue = textarea.value;
-
-                      // Only handle if no text is selected (cursor position)
-                      if (cursorPos === cursorEnd && cursorPos > 0) {
-                        const lines = currentValue.split('\n');
-                        
-                        // Find which line the cursor is on
-                        let currentLineStart = 0;
-                        let currentLineIndex = 0;
-                        for (let i = 0; i < lines.length; i++) {
-                          const lineLength = lines[i].length + (i < lines.length - 1 ? 1 : 0); // +1 for \n
-                          if (currentLineStart + lineLength > cursorPos) {
-                            currentLineIndex = i;
-                            break;
-                          }
-                          currentLineStart += lineLength;
-                        }
-                        
-                        const currentLine = lines[currentLineIndex];
-                        const positionInLine = cursorPos - currentLineStart;
-                        
-                        // Simple logic: If we're on a line that only contains a bullet (and it's not the first line),
-                        // and we press backspace anywhere on that line, delete it and jump back
-                        const isEmptyBulletLine = currentLine === '• ' || currentLine === '- ' || currentLine === '* ' ||
-                                                 currentLine === '•' || currentLine === '-' || currentLine === '*';
-                        
-                        const shouldDeleteEmptyBulletLine = currentLineIndex > 0 && isEmptyBulletLine;
-                        
-                        // Also handle the original case: backspace at beginning of any bulleted line (not first line)
-                        const shouldDeleteAtBeginning = currentLineIndex > 0 && positionInLine === 0 && 
-                                                       (currentLine.startsWith('• ') || currentLine.startsWith('- ') || currentLine.startsWith('* '));
-                        
-                        if (shouldDeleteEmptyBulletLine || shouldDeleteAtBeginning) {
-                          e.preventDefault();
-                          
-                          // Remove the current line and move cursor to end of previous line
-                          const newLines = [...lines];
-                          newLines.splice(currentLineIndex, 1);
-                          const newValue = newLines.join('\n');
-                          
-                          setRulesToRememberText(newValue);
-                          emitChange({ rulesToRememberText: newValue });
-                          
-                          // Position cursor at end of previous line
-                          const previousLineEnd = currentLineStart - 1; // -1 to account for removed \n
-                          setTimeout(() => {
-                            textarea.setSelectionRange(previousLineEnd, previousLineEnd);
-                          }, 0);
-                        }
-                      }
-                    }
-                  }}
-                  onFocus={(e) => {
-                    // Add bullet point when focusing on empty textarea
-                    const currentValue = e.target.value;
-                    if (currentValue.trim() === '') {
-                      const newValue = '• ';
-                      setRulesToRememberText(newValue);
-                      emitChange({ rulesToRememberText: newValue });
-                      // Position cursor after the bullet
-                      setTimeout(() => {
-                        e.target.setSelectionRange(2, 2);
-                      }, 0);
-                    }
-                  }}
-                  placeholder="e.g., Under 50 words&#10;No modern technology&#10;Include vivid descriptions"
-                  rows={3}
-                  disabled={!hasApiKey || isGenerating}
-                  clearable
-                  onClear={() => {
-                    setRulesToRememberText('');
-                    emitChange({ rulesToRememberText: '' });
-                  }}
-                  voiceInput
-                  voiceContext="These are rules and constraints for AI prompt generation. List requirements like 'keep prompts under 50 words' or 'always include lighting details'. Speak each rule clearly - they will be formatted as bullet points."
-                  onVoiceResult={(result) => {
-                    // Format voice result as bullet points
-                    const text = result.transcription;
-                    const formatted = text.startsWith('•') || text.startsWith('-') || text.startsWith('*') 
-                      ? text 
-                      : `• ${text}`;
-                    setRulesToRememberText(formatted);
-                    emitChange({ rulesToRememberText: formatted });
-                  }}
-                />
-              </div>
-
-              {/* Creativity slider and checkboxes side-by-side */}
-              <div className={remixMode ? "" : "flex gap-4"}>
-                {/* Creativity slider on left - 50% width (or full width in remix mode) */}
-                <div className={remixMode ? "" : "flex-1"}>
-                  <div className="text-center mb-3">
-                    <span className="font-light text-sm">Level of creativity</span>
-                  </div>
-                  <div className="relative mb-0">
-                    <Slider
-                      id="gen_temperature"
-                      value={temperature}
-                      onValueChange={handleTemperatureChange}
-                      min={0.4}
-                      max={1.2}
-                      step={0.2}
-                      disabled={!hasApiKey || isGenerating}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                      <span>1</span>
-                      <span>5</span>
-                    </div>
-                  </div>
-                  <div className="text-center -mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {selectedTemperatureOption?.description || 'Good balance of creativity'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Checkboxes stacked on right - 50% width, hidden in remix mode */}
-                {!remixMode && (
-                  <div className="flex-1 flex flex-col gap-3 justify-center">
-                    <div className="flex items-center gap-x-2">
-                      <Checkbox 
-                        id="gen_includeExistingContext" 
-                        checked={includeExistingContext} 
-                        onCheckedChange={(checked) => {
-                          const next = Boolean(checked);
-                          setIncludeExistingContext(next);
-                          emitChange({ includeExistingContext: next });
-                        }} 
-                        disabled={!hasApiKey || isGenerating || existingPromptsForContext.length === 0}
-                      />
-                      <Label htmlFor="gen_includeExistingContext" className="font-normal text-sm">
-                        Include current prompts
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-x-2">
-                      <Checkbox 
-                        id="gen_replaceCurrentPrompts" 
-                        checked={replaceCurrentPrompts} 
-                        onCheckedChange={(checked) => {
-                          const next = Boolean(checked);
-                          setReplaceCurrentPrompts(next);
-                          emitChange({ replaceCurrentPrompts: next });
-                        }} 
-                        disabled={!hasApiKey || isGenerating}
-                      />
-                      <Label htmlFor="gen_replaceCurrentPrompts" className="font-normal text-sm">Replace current prompts</Label>
-                    </div>
-                  </div>
-                )}
-              </div>
-      </div>
+          <AdvancedOptionsPanel
+            isDesktop
+            remixMode={remixMode}
+            rulesToRememberText={rulesToRememberText}
+            onRulesToRememberTextChange={(value) => {
+              setRulesToRememberText(value);
+              emitChange({ rulesToRememberText: value });
+            }}
+            temperature={temperature}
+            onTemperatureChange={setTemperatureWithSnap}
+            includeExistingContext={includeExistingContext}
+            onIncludeExistingContextChange={(value) => {
+              setIncludeExistingContext(value);
+              emitChange({ includeExistingContext: value });
+            }}
+            replaceCurrentPrompts={replaceCurrentPrompts}
+            onReplaceCurrentPromptsChange={(value) => {
+              setReplaceCurrentPrompts(value);
+              emitChange({ replaceCurrentPrompts: value });
+            }}
+            hasApiKey={hasApiKey}
+            isGenerating={isGenerating}
+            existingPromptsCount={existingPromptsForContext.length}
+          />
         )}
       </div>
     </div>
   );
-}; 
+};

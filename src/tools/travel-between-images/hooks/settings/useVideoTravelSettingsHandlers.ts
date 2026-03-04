@@ -17,7 +17,7 @@
 import { useCallback, useMemo, useRef, MutableRefObject } from 'react';
 import { Shot } from '@/domains/generation/types';
 import { VideoTravelSettings, PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '../../settings';
-import { BUILTIN_DEFAULT_I2V_ID, BUILTIN_DEFAULT_VACE_ID } from '../../components/MotionControl';
+import { BUILTIN_DEFAULT_I2V_ID, BUILTIN_DEFAULT_VACE_ID } from '../../components/MotionControl.constants';
 import { SteerableMotionSettings, DEFAULT_STEERABLE_MOTION_SETTINGS } from '../../components/ShotEditor/state/types';
 import { buildBasicModeGenerationRequest as buildBasicModePhaseConfig } from '../../components/ShotEditor/services/generateVideo/modelPhase';
 import { UseShotSettingsReturn } from './useShotSettings';

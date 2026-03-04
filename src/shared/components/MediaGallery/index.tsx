@@ -9,7 +9,6 @@ import { useIsMobile, useIsTablet } from "@/shared/hooks/mobile";
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTaskDetails';
 import { useBackgroundThumbnailGenerator } from '@/shared/hooks/media/useBackgroundThumbnailGenerator';
-import { useVariantBadges } from '@/shared/hooks/useVariantBadges';
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { cn } from '@/shared/components/ui/contracts/cn';
 
@@ -31,9 +30,9 @@ import { MediaGalleryGrid } from './components/MediaGalleryGrid';
 import { MediaGalleryLightbox, type MediaGalleryLightboxSession } from './components/MediaGalleryLightbox';
 import { MobileBottomBar } from './components/MobileBottomBar';
 import { useMediaGalleryDebugTools } from './hooks/useMediaGalleryDebugTools';
-
-// Import utils
-import { GRID_COLUMN_CLASSES, calculateGalleryLayout } from './utils';
+import { useAspectRatioLayout } from './hooks/useAspectRatioLayout';
+import { usePaginatedImagesWithBadges } from './hooks/usePaginatedImagesWithBadges';
+import { useMediaGalleryItemProps } from './hooks/useMediaGalleryItemProps';
 
 // Import types
 import type {
@@ -46,26 +45,6 @@ export type { GalleryFilterState };
 export { DEFAULT_GALLERY_FILTERS } from './types';
 import { DEFAULT_GALLERY_CONFIG } from './types';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
-import type {
-  ItemActions,
-  ItemFeatures,
-  ItemLoading,
-  ItemMobileInteraction,
-  ItemShotWorkflow,
-} from '@/shared/components/MediaGalleryItem/types';
-
-function resolveLightboxDeletingId(
-  isDeleting: string | boolean | null | undefined,
-  activeMediaId: string | undefined,
-): string | null {
-  if (typeof isDeleting === 'string') {
-    return isDeleting;
-  }
-  if (isDeleting && activeMediaId) {
-    return activeMediaId;
-  }
-  return null;
-}
 
 /**
  * MediaGallery Component with consolidated state management
@@ -157,25 +136,18 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   
   const { navigateToShot } = useShotNavigation();
 
-  // Compute aspect-ratio-aware layout (columns, itemsPerPage, skeletonColumns)
-  // This adjusts columns based on both image dimensions AND container width:
-  // - Wide images (16:9) → larger target width → fewer columns
-  // - Tall images (9:16) → smaller target width → more columns
-  // - Wider containers → more columns fit
-  // - Narrower containers → fewer columns fit
-  // Tweak TARGET_IMAGE_WIDTH.BASE in mediaGallery-constants.ts to adjust density.
-  const aspectRatioLayout = React.useMemo(() => {
-    return calculateGalleryLayout(projectAspectRatio, isMobile, containerWidth, undefined, reducedSpacing);
-  }, [projectAspectRatio, isMobile, containerWidth, reducedSpacing]);
-
-  // Use aspect-ratio-aware defaults, but allow explicit override via props
-  // 'auto' means dynamic calculation based on aspect ratio, any number is a fixed column count
-  const effectiveColumnsPerRow = columnsPerRow === 'auto' ? aspectRatioLayout.columns : columnsPerRow;
-  const defaultItemsPerPage = aspectRatioLayout.itemsPerPage;
-
-  // Ensure itemsPerPage is a multiple of columns to guarantee full rows
-  const rawItemsPerPage = itemsPerPage ?? defaultItemsPerPage;
-  const actualItemsPerPage = Math.floor(rawItemsPerPage / effectiveColumnsPerRow) * effectiveColumnsPerRow || effectiveColumnsPerRow;
+  const {
+    effectiveColumnsPerRow,
+    actualItemsPerPage,
+    gridColumnClasses,
+  } = useAspectRatioLayout({
+    projectAspectRatio,
+    isMobile,
+    containerWidth,
+    reducedSpacing,
+    columnsPerRow,
+    itemsPerPage,
+  });
 
   // Memoize simplified shot options to prevent re-computation on every render
   const simplifiedShotOptions = React.useMemo(() =>
@@ -189,11 +161,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
       })),
     [allShots]
   );
-
-  // Memoize grid column classes to prevent unnecessary recalculations
-  const gridColumnClasses = React.useMemo(() => {
-    return GRID_COLUMN_CLASSES[effectiveColumnsPerRow as keyof typeof GRID_COLUMN_CLASSES] || aspectRatioLayout.gridColumnClasses;
-  }, [effectiveColumnsPerRow, aspectRatioLayout.gridColumnClasses]);
 
   // Core state management hook
   const stateHook = useMediaGalleryState({
@@ -313,38 +280,9 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     enabled: !!selectedProjectId && (paginationHook.paginatedImages?.length || 0) > 0,
   });
 
-  // Lazy-load variant badge data (derivedCount, hasUnviewedVariants, unviewedVariantCount)
-  // This allows images to display immediately while badge data loads in background
-  const paginatedGenerationIds = useMemo(() =>
-    (paginationHook.paginatedImages || []).map(img =>
-      getGenerationId(img)
-    ).filter((id): id is string => typeof id === 'string' && id.length > 0),
-    [paginationHook.paginatedImages]
-  );
-  const { getBadgeData, isLoading: isBadgeDataLoading } = useVariantBadges(paginatedGenerationIds);
-
-  // Merge badge data with paginated images (only when badge data is loaded)
-  const paginatedImagesWithBadges = useMemo(() => {
-    if (!paginationHook.paginatedImages) return [];
-    return paginationHook.paginatedImages.map(img => {
-      // Don't merge badge data while loading - prevents showing "0" badges
-      // Strip out any existing derivedCount to prevent flash of "0"
-      if (isBadgeDataLoading) {
-        const { derivedCount, hasUnviewedVariants, unviewedVariantCount, ...imgWithoutBadges } = img;
-        return imgWithoutBadges;
-      }
-      const generationId = getGenerationId(img);
-      const badgeData = generationId
-        ? getBadgeData(generationId)
-        : { derivedCount: 0, hasUnviewedVariants: false, unviewedVariantCount: 0 };
-      return {
-        ...img,
-        derivedCount: badgeData.derivedCount,
-        hasUnviewedVariants: badgeData.hasUnviewedVariants,
-        unviewedVariantCount: badgeData.unviewedVariantCount,
-      };
-    });
-  }, [paginationHook.paginatedImages, getBadgeData, isBadgeDataLoading]);
+  const { paginatedImagesWithBadges } = usePaginatedImagesWithBadges({
+    paginatedImages: paginationHook.paginatedImages,
+  });
 
   // Calculate effective page for progressive loading
   const effectivePage = paginationHook.isServerPagination
@@ -420,11 +358,34 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     handleShowTaskDetails,
   } = galleryHandlers;
 
-  const itemShotWorkflow = useMemo<ItemShotWorkflow>(() => ({
-    selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
+  const {
+    itemShotWorkflow,
+    itemMobileInteraction,
+    itemFeatures,
+    itemActions,
+    itemLoading,
+    lightboxDeletingId,
+  } = useMediaGalleryItemProps({
     simplifiedShotOptions,
+    currentViewingShotId,
+    onCreateShot,
+    onAddToLastShot,
+    onAddToLastShotWithoutPosition,
+    showDelete,
+    showDownload,
+    showShare,
+    showEdit,
+    showStar,
+    showAddToShot,
+    enableSingleClick,
+    videosAsThumbnails,
+    onToggleStar,
+    onApplySettings,
+    onImageClick,
+    isDeleting,
+    selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
     setSelectedShotIdLocal: stateHook.setSelectedShotIdLocal,
-    setLastAffectedShotId: actionsHook.handleShotChange,
+    onShotChange: actionsHook.handleShotChange,
     showTickForImageId: stateHook.state.showTickForImageId,
     onShowTick: actionsHook.handleShowTick,
     showTickForSecondaryImageId: stateHook.state.showTickForSecondaryImageId,
@@ -438,92 +399,16 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     setAddingToShotImageId: stateHook.setAddingToShotImageId,
     addingToShotWithoutPositionImageId: stateHook.state.addingToShotWithoutPositionImageId,
     setAddingToShotWithoutPositionImageId: stateHook.setAddingToShotWithoutPositionImageId,
-    currentViewingShotId,
-    onCreateShot,
-    onAddToLastShot,
-    onAddToLastShotWithoutPosition,
-  }), [
-    actionsHook.handleShotChange,
-    actionsHook.handleShowSecondaryTick,
-    actionsHook.handleShowTick,
-    currentViewingShotId,
-    onAddToLastShot,
-    onAddToLastShotWithoutPosition,
-    onCreateShot,
-    simplifiedShotOptions,
-    stateHook.markOptimisticPositioned,
-    stateHook.markOptimisticUnpositioned,
-    stateHook.setAddingToShotImageId,
-    stateHook.setAddingToShotWithoutPositionImageId,
-    stateHook.setSelectedShotIdLocal,
-    stateHook.state.addingToShotImageId,
-    stateHook.state.addingToShotWithoutPositionImageId,
-    stateHook.state.optimisticDeletedIds,
-    stateHook.state.optimisticPositionedIds,
-    stateHook.state.optimisticUnpositionedIds,
-    stateHook.state.selectedShotIdLocal,
-    stateHook.state.showTickForImageId,
-    stateHook.state.showTickForSecondaryImageId,
-  ]);
-
-  const itemMobileInteraction = useMemo<Omit<ItemMobileInteraction, 'isMobile'>>(() => ({
     mobileActiveImageId: stateHook.state.mobileActiveImageId,
     mobilePopoverOpenImageId: stateHook.state.mobilePopoverOpenImageId,
     onMobileTap: mobileInteractions.handleMobileTap,
     setMobilePopoverOpenImageId: stateHook.setMobilePopoverOpenImageId,
-  }), [
-    mobileInteractions.handleMobileTap,
-    stateHook.setMobilePopoverOpenImageId,
-    stateHook.state.mobileActiveImageId,
-    stateHook.state.mobilePopoverOpenImageId,
-  ]);
-
-  const itemFeatures = useMemo<ItemFeatures>(() => ({
-    showDelete,
-    showDownload,
-    showShare,
-    showEdit,
-    showStar: showStar && typeof onToggleStar === 'function',
-    showAddToShot,
-    enableSingleClick,
-    videosAsThumbnails,
-  }), [
-    enableSingleClick,
-    showAddToShot,
-    showDelete,
-    showDownload,
-    showEdit,
-    showShare,
-    showStar,
-    onToggleStar,
-    videosAsThumbnails,
-  ]);
-
-  const itemActions = useMemo<ItemActions>(() => ({
     onOpenLightbox: actionsHook.handleOpenLightbox,
     onDelete: actionsHook.handleOptimisticDelete,
-    onApplySettings,
     onDownloadImage: actionsHook.handleDownloadImage,
-    onToggleStar,
-    onImageClick,
-  }), [
-    actionsHook.handleDownloadImage,
-    actionsHook.handleOpenLightbox,
-    actionsHook.handleOptimisticDelete,
-    onApplySettings,
-    onImageClick,
-    onToggleStar,
-  ]);
-
-  const itemLoading = useMemo<Omit<ItemLoading, 'shouldLoad' | 'isPriority' | 'isGalleryLoading'>>(() => ({
-    isDeleting,
+    activeLightboxMediaId: stateHook.state.activeLightboxMedia?.id,
     downloadingImageId: stateHook.state.downloadingImageId,
-  }), [isDeleting, stateHook.state.downloadingImageId]);
-
-  const lightboxDeletingId = useMemo(
-    () => resolveLightboxDeletingId(isDeleting, stateHook.state.activeLightboxMedia?.id),
-    [isDeleting, stateHook.state.activeLightboxMedia?.id],
-  );
+  });
 
   const lightboxSession = useMemo<MediaGalleryLightboxSession>(() => ({
     activeLightboxMedia: stateHook.state.activeLightboxMedia,
