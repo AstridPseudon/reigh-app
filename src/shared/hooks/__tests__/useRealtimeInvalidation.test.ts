@@ -19,7 +19,7 @@ vi.mock('@/shared/realtime/DataFreshnessManager', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation', () => ({
-  invalidateGenerationsSync: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
   invalidateAllShotGenerations: vi.fn(),
 }));
 

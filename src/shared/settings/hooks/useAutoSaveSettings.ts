@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { useDebouncedSettingsSave } from '@/shared/settings/hooks/useDebouncedSettingsSave';

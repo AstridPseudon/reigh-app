@@ -1,4 +1,3 @@
-import React from 'react';
 import { CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
 import { Button } from '@/shared/components/ui/button';

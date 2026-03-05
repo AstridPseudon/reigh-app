@@ -5,12 +5,11 @@
  * Extracted from useToolSettings.ts to reduce hook file complexity.
  *
  * Contains:
- * - Auth caching logic (getCachedUserId)
+ * - Auth caching logic (resolveAndCacheUserId / readCachedUserId)
  * - Auth transition cache invalidation helpers
  * - Settings fetch with single-flight deduplication (fetchToolSettingsSupabase)
  * - Module-level state for caching and deduplication
  */
-
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { deepMerge } from '@/shared/lib/utils/deepEqual';
 import { isCancellationError, getErrorMessage } from '@/shared/lib/errorHandling/errorUtils';
@@ -24,26 +23,17 @@ import {
   type OperationResult,
 } from '@/shared/lib/operationResult';
 import { toolDefaultsRegistry } from '@/tooling/toolDefaultsRegistry';
-
-// ============================================================================
-// Module-level state
-// ============================================================================
-
-// Single-flight dedupe for settings fetches across components
 const inflightSettingsFetches = new Map<string, Promise<unknown>>();
-
-// Lightweight user cache to avoid repeated localStorage reads within a short window
 let cachedUser: { id: string } | null = null;
 let cachedUserAt: number = 0;
 const USER_CACHE_MS = 10_000; // 10 seconds
 
+type UserLookupResult = Promise<{ data: { user: { id: string } | null }; error: null }>;
+
 function invalidateAuthDependentState(): void {
-  // Auth changes invalidate cross-component dedupe state to prevent stale reuse.
   inflightSettingsFetches.clear();
 }
-
 const unknownSettingsIdsReported = new Set<string>();
-
 function reportUnknownSettingsId(toolId: string): void {
   if (isKnownSettingsId(toolId) || unknownSettingsIdsReported.has(toolId)) {
     return;
@@ -51,7 +41,6 @@ function reportUnknownSettingsId(toolId: string): void {
   if (import.meta.env.MODE === 'test') {
     return;
   }
-
   unknownSettingsIdsReported.add(toolId);
   if (import.meta.env.DEV) {
     console.warn(
@@ -60,12 +49,11 @@ function reportUnknownSettingsId(toolId: string): void {
     );
   }
 }
-
 /**
  * Seed the user cache from an external source (e.g. AuthContext).
  *
  * Call this as early as possible — ideally in AuthContext right after getSession()
- * resolves, before AuthGate opens. This lets getCachedUserId() return
+ * resolves, before AuthGate opens. This lets resolveAndCacheUserId() return
  * immediately from cache without acquiring any navigator.locks, avoiding stalls
  * during token refresh.
  */
@@ -74,29 +62,21 @@ export function setCachedUserId(userId: string) {
   cachedUser = { id: userId };
   cachedUserAt = Date.now();
 }
-
 export function clearCachedUserId() {
   invalidateAuthDependentState();
   cachedUser = null;
   cachedUserAt = 0;
 }
-
 /** @internal Only for test isolation — do not call in production code. */
 export function _resetCachedUserForTesting() {
   cachedUser = null;
   cachedUserAt = 0;
   inflightSettingsFetches.clear();
 }
-
-// ============================================================================
-// Types
-// ============================================================================
-
 interface ToolSettingsContext {
   projectId?: string;
   shotId?: string;
 }
-
 type ToolSettingsErrorCode =
   | 'auth_required'
   | 'cancelled'
@@ -104,19 +84,16 @@ type ToolSettingsErrorCode =
   | 'scope_fetch_failed'
   | 'invalid_scope_identifier'
   | 'unknown';
-
 interface ToolSettingsErrorOptions {
   recoverable?: boolean;
   cause?: unknown;
   metadata?: Record<string, unknown>;
 }
-
 export class ToolSettingsError extends Error {
   readonly code: ToolSettingsErrorCode;
   readonly recoverable: boolean;
   readonly metadata?: Record<string, unknown>;
   readonly cause?: unknown;
-
   constructor(
     code: ToolSettingsErrorCode,
     message: string,
@@ -130,23 +107,19 @@ export class ToolSettingsError extends Error {
     this.cause = options.cause;
   }
 }
-
 function isToolSettingsError(error: unknown): error is ToolSettingsError {
   return error instanceof ToolSettingsError;
 }
-
 export function classifyToolSettingsError(error: unknown): ToolSettingsError {
   if (isToolSettingsError(error)) {
     return error;
   }
-
   if (isCancellationError(error)) {
     return new ToolSettingsError('cancelled', 'Request was cancelled', {
       recoverable: true,
       cause: error,
     });
   }
-
   const message = getErrorMessage(error);
   if (message.includes('Authentication required')) {
     return new ToolSettingsError('auth_required', message, {
@@ -154,7 +127,6 @@ export function classifyToolSettingsError(error: unknown): ToolSettingsError {
       cause: error,
     });
   }
-
   if (
     message.includes('Failed to fetch')
     || message.includes('ERR_INSUFFICIENT_RESOURCES')
@@ -166,13 +138,11 @@ export function classifyToolSettingsError(error: unknown): ToolSettingsError {
       cause: error,
     });
   }
-
   return new ToolSettingsError('unknown', message, {
     recoverable: false,
     cause: error,
   });
 }
-
 function toOperationFailure(error: ToolSettingsError): OperationFailure {
   return operationFailure(error, {
     policy: error.recoverable ? 'best_effort' : 'fail_closed',
@@ -182,7 +152,6 @@ function toOperationFailure(error: ToolSettingsError): OperationFailure {
     cause: error.cause,
   });
 }
-
 function toToolSettingsErrorFromOperationFailure(failure: OperationFailure): ToolSettingsError {
   const code = failure.errorCode as ToolSettingsErrorCode;
   const normalizedCode: ToolSettingsErrorCode = (
@@ -193,23 +162,16 @@ function toToolSettingsErrorFromOperationFailure(failure: OperationFailure): Too
     || code === 'invalid_scope_identifier'
     || code === 'unknown'
   ) ? code : 'unknown';
-
   return new ToolSettingsError(normalizedCode, failure.message, {
     recoverable: failure.recoverable,
     cause: failure.cause ?? failure.error,
   });
 }
-
 /** The wrapper format returned by fetchToolSettingsSupabase */
 export interface SettingsFetchResult<T = unknown> {
   settings: T;
   hasShotSettings: boolean;
 }
-
-// ============================================================================
-// Auth helpers
-// ============================================================================
-
 /**
  * Get authenticated user ID without acquiring navigator.locks.
  *
@@ -224,64 +186,66 @@ export interface SettingsFetchResult<T = unknown> {
  * the user ID from localStorage instead we avoid locks entirely. Token validity
  * for actual data requests is handled by createSupabaseClient's cached token.
  */
-export function getCachedUserId(): Promise<{ data: { user: { id: string } | null }; error: null }> {
-  // Check in-memory cache first
-  if (cachedUser && (Date.now() - cachedUserAt) < USER_CACHE_MS) {
-    return Promise.resolve({ data: { user: { id: cachedUser.id } }, error: null });
+function buildUserLookupResult(userId: string | null): UserLookupResult {
+  return Promise.resolve({
+    data: { user: userId ? { id: userId } : null },
+    error: null,
+  });
+}
+
+function readFreshCachedUserId(): string | null {
+  if (!cachedUser || (Date.now() - cachedUserAt) >= USER_CACHE_MS) {
+    return null;
+  }
+  return cachedUser.id;
+}
+
+export function readCachedUserId(): UserLookupResult {
+  return buildUserLookupResult(readFreshCachedUserId());
+}
+
+export function resolveAndCacheUserId(): UserLookupResult {
+  const cachedUserId = readFreshCachedUserId();
+  if (cachedUserId) {
+    return buildUserLookupResult(cachedUserId);
   }
 
-  // Read from localStorage — synchronous, no navigator.locks, always fresh
   const localUserId = readUserIdFromStorage();
   if (localUserId) {
     cachedUser = { id: localUserId };
     cachedUserAt = Date.now();
-    return Promise.resolve({ data: { user: { id: localUserId } }, error: null });
+    return buildUserLookupResult(localUserId);
   }
 
-  // No session in storage — user is signed out
-  return Promise.resolve({ data: { user: null }, error: null });
+  return buildUserLookupResult(null);
 }
-
-// ============================================================================
-// Settings fetch helpers
-// ============================================================================
-
 type SettingsRow = { data: { settings: unknown } | null; error: unknown };
-
 function throwIfAborted(signal?: AbortSignal): void {
   if (!signal?.aborted) {
     return;
   }
-
   throw new ToolSettingsError('cancelled', 'Request was cancelled', {
     recoverable: true,
   });
 }
-
 type AbortableQuery<T> = {
   abortSignal?: (signal: AbortSignal) => T;
 };
-
 function maybeAttachAbortSignal<T>(query: T, signal?: AbortSignal): T {
   if (!signal) {
     return query;
   }
-
   const abortable = query as AbortableQuery<T>;
   if (typeof abortable.abortSignal === 'function') {
     return abortable.abortSignal(signal);
   }
-
   return query;
 }
-
 async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) {
     return promise;
   }
-
   throwIfAborted(signal);
-
   return await new Promise<T>((resolve, reject) => {
     const onAbort = () => {
       cleanup();
@@ -289,11 +253,9 @@ async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Prom
         recoverable: true,
       }));
     };
-
     const cleanup = () => {
       signal.removeEventListener('abort', onAbort);
     };
-
     signal.addEventListener('abort', onAbort, { once: true });
     promise.then(
       (value) => {
@@ -307,7 +269,6 @@ async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Prom
     );
   });
 }
-
 /** Fetch settings from all three scopes (user, project, shot) in parallel. */
 function fetchAllScopes(
   supabaseClient: ReturnType<typeof getSupabaseClient>,
@@ -323,7 +284,6 @@ function fetchAllScopes(
       .maybeSingle(),
     signal,
   );
-
   const projectQuery = ctx.projectId
     ? maybeAttachAbortSignal(
         supabaseClient
@@ -334,7 +294,6 @@ function fetchAllScopes(
         signal,
       )
     : Promise.resolve({ data: null, error: null });
-
   const shotQuery = ctx.shotId
     ? maybeAttachAbortSignal(
         supabaseClient
@@ -345,14 +304,12 @@ function fetchAllScopes(
         signal,
       )
     : Promise.resolve({ data: null, error: null });
-
   return Promise.all([
     userQuery,
     projectQuery,
     shotQuery,
   ]) as Promise<[SettingsRow, SettingsRow, SettingsRow]>;
 }
-
 /** Extract tool-specific settings from scope results and merge in priority order. */
 function extractAndMergeSettings(
   userResult: SettingsRow,
@@ -382,7 +339,6 @@ function extractAndMergeSettings(
       { recoverable: true, cause: shotResult.error, metadata: { scope: 'shot', shotId: ctx.shotId } },
     );
   }
-
   const userSettingsData = userResult.data?.settings as Record<string, unknown> | null;
   const projectSettingsData = projectResult.data?.settings as Record<string, unknown> | null;
   const shotSettingsData = shotResult.data?.settings as Record<string, unknown> | null;
@@ -390,10 +346,7 @@ function extractAndMergeSettings(
   const projectSettings = (projectSettingsData?.[toolId] as Record<string, unknown>) ?? {};
   const shotSettings = (shotSettingsData?.[toolId] as Record<string, unknown>) ?? {};
   const defaultSettings = (toolDefaultsRegistry[toolId] as Record<string, unknown> | undefined) ?? {};
-
   const hasShotSettings = shotSettings && Object.keys(shotSettings).length > 0;
-
-  // Merge in priority order: defaults -> user -> project -> shot
   const merged = deepMerge(
     {},
     defaultSettings,
@@ -401,14 +354,8 @@ function extractAndMergeSettings(
     projectSettings,
     shotSettings
   );
-
   return { settings: merged, hasShotSettings };
 }
-
-// ============================================================================
-// Settings fetch
-// ============================================================================
-
 /**
  * Fetch and merge tool settings from all scopes using direct Supabase calls.
  *
@@ -424,23 +371,16 @@ export async function fetchToolSettingsSupabase(
 ): Promise<OperationResult<SettingsFetchResult>> {
   try {
     reportUnknownSettingsId(toolId);
-
-    // Check if request was cancelled before starting
     if (signal?.aborted) {
       return toOperationFailure(new ToolSettingsError('cancelled', 'Request was cancelled', {
         recoverable: true,
       }));
     }
-
-    const { data: { user } } = await getCachedUserId();
-
+    const { data: { user } } = await resolveAndCacheUserId();
     if (!user) {
       return toOperationFailure(new ToolSettingsError('auth_required', 'Authentication required'));
     }
-
     const userId = user.id;
-
-    // Single-flight dedupe key for concurrent identical requests
     const singleFlightKey = JSON.stringify({
       toolId,
       projectId: ctx.projectId ?? null,
@@ -452,37 +392,27 @@ export async function fetchToolSettingsSupabase(
       const value = await raceWithAbort(existingPromise as Promise<SettingsFetchResult>, signal);
       return operationSuccess(value);
     }
-
     const promise = (async (): Promise<SettingsFetchResult> => {
       throwIfAborted(signal);
-
       throwIfAborted(signal);
-
       const supabaseClient = getSupabaseClient();
       const [userResult, projectResult, shotResult] = await fetchAllScopes(supabaseClient, userId, ctx, signal);
       throwIfAborted(signal);
-
-      const { data: { user: latestUser } } = await getCachedUserId();
+      const { data: { user: latestUser } } = await resolveAndCacheUserId();
       if (!latestUser || latestUser.id !== userId) {
         throw new ToolSettingsError('cancelled', 'Request was cancelled due to auth state change', {
           recoverable: true,
           metadata: { expectedUserId: userId, latestUserId: latestUser?.id ?? null },
         });
       }
-
       return extractAndMergeSettings(userResult, projectResult, shotResult, toolId, ctx);
     })();
-
     inflightSettingsFetches.set(singleFlightKey, promise);
-    // The .finally cleanup promise is intentionally not awaited or returned.
-    // Suppress its rejection to avoid unhandled rejection warnings — the original
-    // `promise` reference (returned below) handles propagation to the caller.
     promise.finally(() => {
       inflightSettingsFetches.delete(singleFlightKey);
     }).catch(() => {});
     const value = await raceWithAbort(promise, signal);
     return operationSuccess(value);
-
   } catch (error: unknown) {
     if (isToolSettingsError(error) && error.code === 'cancelled') {
       return toOperationFailure(error);
@@ -493,14 +423,12 @@ export async function fetchToolSettingsSupabase(
         cause: error,
       }));
     }
-    // Build context info without calling getSession() — can block during token refresh
     const errorMsg = getErrorMessage(error);
     const contextInfo = {
       visibilityState: typeof document !== 'undefined' ? document.visibilityState : 'unknown',
       hidden: typeof document !== 'undefined' ? document.hidden : false,
       online: typeof navigator !== 'undefined' ? navigator.onLine : true,
     };
-
     if (errorMsg.includes('Auth timeout') || errorMsg.includes('Auth request was cancelled')) {
       normalizeAndPresentError(error, {
         context: 'fetchToolSettingsSupabase.authTimeout',
@@ -517,7 +445,6 @@ export async function fetchToolSettingsSupabase(
         },
       ));
     }
-
     if (errorMsg.includes('Failed to fetch')) {
       normalizeAndPresentError(error, { context: 'fetchToolSettingsSupabase.network', showToast: false, logData: contextInfo });
       return toOperationFailure(new ToolSettingsError(
@@ -530,12 +457,10 @@ export async function fetchToolSettingsSupabase(
         },
       ));
     }
-
     normalizeAndPresentError(error, { context: 'fetchToolSettingsSupabase', showToast: false, logData: contextInfo });
     return toOperationFailure(classifyToolSettingsError(error));
   }
 }
-
 /**
  * Fetch tool settings and throw `ToolSettingsError` on failure.
  *

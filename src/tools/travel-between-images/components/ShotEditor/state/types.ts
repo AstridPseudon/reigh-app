@@ -5,41 +5,41 @@ export {
 } from '@/shared/types/steerableMotion';
 
 /** Must be wrapped in VideoTravelSettingsProvider (settings come from context). */
-export interface ShotEditorProps {
-  // Core identifiers
+interface ShotEditorCoreProps {
   selectedShotId: string;
   projectId: string;
   /** Optimistic shot data for newly created shots that aren't in the cache yet */
   optimisticShotData?: Partial<import('@/domains/generation/types').Shot>;
+}
 
-  // Callbacks
+interface ShotEditorCallbackProps {
   onShotImagesUpdate: () => void;
   onBack: () => void;
+}
 
-  // Dimension settings (not in context yet)
+interface ShotEditorDimensionProps {
   dimensionSource?: 'project' | 'firstImage' | 'custom';
   onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
   customWidth?: number;
   onCustomWidthChange?: (width?: number) => void;
   customHeight?: number;
   onCustomHeightChange?: (height?: number) => void;
+}
 
-  // Navigation
+interface ShotEditorNavigationProps {
   onPreviousShot?: () => void;
   onNextShot?: () => void;
-  onPreviousShotNoScroll?: () => void;
-  onNextShotNoScroll?: () => void;
   hasPrevious?: boolean;
   hasNext?: boolean;
   onUpdateShotName?: (newName: string) => void;
+}
 
-  // Cache & video counts
-  getShotVideoCount?: (shotId: string | null) => number | null;
+interface ShotEditorCacheProps {
   getFinalVideoCount?: (shotId: string | null) => number | null;
   getHasStructureVideo?: (shotId: string | null) => boolean | null;
-  invalidateVideoCountsCache?: () => void;
+}
 
-  // Parent refs (for floating UI coordination)
+interface ShotEditorRefsProps {
   headerContainerRef?: (node: HTMLDivElement | null) => void;
   timelineSectionRef?: (node: HTMLDivElement | null) => void;
   ctaContainerRef?: (node: HTMLDivElement | null) => void;
@@ -57,8 +57,9 @@ export interface ShotEditorProps {
   }) | null>;
   generateVideoRef?: React.MutableRefObject<((variantName?: string) => void | Promise<void>) | null>;
   nameClickRef?: React.MutableRefObject<(() => void) | null>;
+}
 
-  // UI state
+interface ShotEditorUiProps {
   /** Whether the floating sticky header is visible (hide main header when true) */
   isSticky?: boolean;
   variantName?: string;
@@ -68,6 +69,14 @@ export interface ShotEditorProps {
   /** Suppress query refetches during drag operations */
   onDragStateChange?: (isDragging: boolean) => void;
 }
+
+export type ShotEditorProps = ShotEditorCoreProps &
+  ShotEditorCallbackProps &
+  ShotEditorDimensionProps &
+  ShotEditorNavigationProps &
+  ShotEditorCacheProps &
+  ShotEditorRefsProps &
+  ShotEditorUiProps;
 
 export interface ShotEditorState {
   isUploadingImage: boolean;

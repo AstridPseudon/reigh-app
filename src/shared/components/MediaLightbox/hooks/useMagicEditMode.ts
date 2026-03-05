@@ -23,7 +23,7 @@ interface UseMagicEditModeParams {
   setInpaintPrompt: (value: string) => void;
   inpaintNumGenerations: number;
   setInpaintNumGenerations: (value: number) => void;
-  editModeLoRAs: Array<{ url: string; strength: number }> | undefined;
+  editModeLoras: Array<{ url: string; strength: number }> | undefined;
   sourceUrlForTasks: string;
   imageDimensions: { width: number; height: number } | null;
   toolTypeOverride?: string;
@@ -77,7 +77,7 @@ export const useMagicEditMode = ({
   setInpaintPrompt,
   inpaintNumGenerations,
   setInpaintNumGenerations,
-  editModeLoRAs,
+  editModeLoras,
   sourceUrlForTasks,
   imageDimensions,
   toolTypeOverride,
@@ -210,7 +210,7 @@ export const useMagicEditMode = ({
               seed: 11111,
               shot_id: currentShotId || undefined,
               tool_type: toolTypeOverride,
-              loras: editModeLoRAs,
+              loras: editModeLoras,
               based_on: actualGenerationId ?? undefined,
               source_variant_id: activeVariantId || undefined,
               create_as_generation: createAsGeneration,
@@ -260,7 +260,7 @@ export const useMagicEditMode = ({
     qwenEditModel,
     activeVariantId,
     activeVariantLocation,
-    editModeLoRAs,
+    editModeLoras,
     run,
   ]);
 

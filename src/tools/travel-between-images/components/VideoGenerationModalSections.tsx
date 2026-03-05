@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import BatchSettingsForm from '@/tools/travel-between-images/components/BatchSettingsForm';
 import { MotionControl } from '@/tools/travel-between-images/components/MotionControl';
-import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
+import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { DEFAULT_PHASE_CONFIG, type VideoTravelSettings } from '@/tools/travel-between-images/settings';
 import type { ActiveLora, LoraModel } from '@/shared/types/lora';
 import type { Project } from '@/types/project';

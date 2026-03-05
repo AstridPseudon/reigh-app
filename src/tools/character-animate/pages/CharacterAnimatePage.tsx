@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { PageFadeIn } from '@/shared/components/transitions';
+import { PageFadeIn } from '@/shared/components/transitions/PageFadeIn';
 
 import { CharacterImagePanel } from './components/CharacterImagePanel';
 import { ModeSelector } from './components/ModeSelector';

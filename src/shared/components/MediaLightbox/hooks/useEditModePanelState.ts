@@ -1,14 +1,4 @@
-/**
- * useEditModePanelState
- *
- * Encapsulates the non-JSX logic for EditModePanel:
- * - Props-first state resolution (props override context when provided)
- * - Local state: prompt-edited tracking, mode-switch LoRA reset
- * - Mode selector item configuration
- * - Responsive style helpers
- *
- * Keeps EditModePanel as a pure rendering component.
- */
+/** View-model state for EditModePanel. */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Paintbrush, Pencil, Type, Move, Wand2, ArrowUp } from 'lucide-react';
@@ -20,19 +10,13 @@ import { useImageEditCanvasSafe } from '../contexts/ImageEditCanvasContext';
 import { useImageEditFormSafe } from '../contexts/ImageEditFormContext';
 import { useImageEditStatusSafe } from '../contexts/ImageEditStatusContext';
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface UseEditModePanelStateParams {
   variant: 'desktop' | 'mobile';
   currentMediaId: string;
 
-  // Cloud mode controls
   isCloudMode?: boolean;
   handleUpscale?: () => Promise<void>;
 
-  // Optional state overrides (props-first pattern)
   coreState?: Pick<LightboxCoreState, 'onClose'>;
   imageEditState?: ImageEditState;
   variantsState?: Pick<LightboxVariantState,
@@ -55,10 +39,6 @@ export interface ModeSelectorItem {
   onClick: () => void;
 }
 
-// ============================================================================
-// Hook
-// ============================================================================
-
 export function useEditModePanelState({
   variant,
   currentMediaId,
@@ -69,20 +49,14 @@ export function useEditModePanelState({
   variantsState,
 }: UseEditModePanelStateParams) {
   const isMobile = variant === 'mobile';
-
-  // ========================================
-  // STATE: Props-first with context fallback
-  // ========================================
   const contextCore = useLightboxCoreSafe();
   const contextCanvas = useImageEditCanvasSafe();
   const contextForm = useImageEditFormSafe();
   const contextStatus = useImageEditStatusSafe();
   const contextVariants = useLightboxVariantsSafe();
 
-  // Core state
   const { onClose } = coreState ?? contextCore;
 
-  // Canvas state (mode, brush, reposition)
   const {
     editMode,
     setEditMode,
@@ -92,7 +66,6 @@ export function useEditModePanelState({
     hasTransformChanges,
   } = imageEditState ?? contextCanvas;
 
-  // Form state (prompts, LoRA, model, settings)
   const {
     inpaintPrompt,
     setInpaintPrompt,
@@ -113,7 +86,6 @@ export function useEditModePanelState({
     setQwenEditModel,
   } = imageEditState ?? contextForm;
 
-  // Generation status
   const {
     isGeneratingReposition,
     repositionGenerateSuccess,
@@ -127,7 +99,6 @@ export function useEditModePanelState({
     img2imgGenerateSuccess,
   } = imageEditState ?? contextStatus;
 
-  // Variants state
   const {
     variants,
     activeVariant,
@@ -141,18 +112,8 @@ export function useEditModePanelState({
   } = variantsState ?? contextVariants;
 
   const activeVariantId = activeVariant?.id || null;
-
-  // ========================================
-  // LOCAL STATE & EFFECTS
-  // ========================================
-
-  // Track previous edit mode to detect changes
   const prevEditModeRef = useRef(editMode);
-
-  // Track if user has interacted with the prompt field
   const [hasUserEditedPrompt, setHasUserEditedPrompt] = useState(false);
-
-  // Reset the flag when media changes
   const prevMediaIdRef = useRef(currentMediaId);
   useEffect(() => {
     if (currentMediaId !== prevMediaIdRef.current) {
@@ -161,7 +122,6 @@ export function useEditModePanelState({
     }
   }, [currentMediaId]);
 
-  // Auto-reset LoRA mode to "none" when switching to inpaint or annotate
   useEffect(() => {
     const prevMode = prevEditModeRef.current;
     if (prevMode !== editMode && (editMode === 'inpaint' || editMode === 'annotate')) {
@@ -170,18 +130,10 @@ export function useEditModePanelState({
     prevEditModeRef.current = editMode;
   }, [editMode, setLoraMode]);
 
-  // ========================================
-  // HANDLERS
-  // ========================================
-
   const handleClearLora = (e: React.MouseEvent) => {
     e.stopPropagation();
     setLoraMode('none');
   };
-
-  // ========================================
-  // MODE SELECTOR ITEMS
-  // ========================================
 
   const modeSelectorItems: ModeSelectorItem[] = [
     {
@@ -214,7 +166,6 @@ export function useEditModePanelState({
       icon: React.createElement(Wand2),
       onClick: () => { setIsInpaintMode(true); setEditMode('img2img'); },
     },
-    // Enhance mode (upscale) - only shown when cloud mode is enabled
     ...(isCloudMode && handleUpscale ? [{
       id: 'upscale',
       label: 'Enhance',
@@ -222,10 +173,6 @@ export function useEditModePanelState({
       onClick: () => { setIsInpaintMode(false); setEditMode('upscale'); },
     }] : []),
   ];
-
-  // ========================================
-  // RESPONSIVE STYLES
-  // ========================================
 
   const labelSize = isMobile ? 'text-[10px] uppercase tracking-wide text-muted-foreground' : 'text-sm';
   const textareaMinHeight = isMobile ? 'min-h-[50px]' : 'min-h-[100px]';
@@ -236,16 +183,13 @@ export function useEditModePanelState({
 
   return {
     isMobile,
-    // Core
     onClose,
-    // Canvas
     editMode,
     setEditMode,
     setIsInpaintMode,
     brushStrokes,
     handleExitMagicEditMode,
     hasTransformChanges,
-    // Form
     inpaintPrompt,
     setInpaintPrompt,
     inpaintNumGenerations,
@@ -263,7 +207,6 @@ export function useEditModePanelState({
     setEnablePromptExpansion,
     qwenEditModel,
     setQwenEditModel,
-    // Status
     isGeneratingReposition,
     repositionGenerateSuccess,
     isSavingAsVariant,
@@ -274,7 +217,6 @@ export function useEditModePanelState({
     magicEditTasksCreated,
     isGeneratingImg2Img,
     img2imgGenerateSuccess,
-    // Variants
     variants,
     activeVariantId,
     onVariantSelect,
@@ -284,14 +226,10 @@ export function useEditModePanelState({
     isPromoting,
     onDeleteVariant,
     onLoadVariantSettings,
-    // Local state
     hasUserEditedPrompt,
     setHasUserEditedPrompt,
-    // Handlers
     handleClearLora,
-    // Mode selector
     modeSelectorItems,
-    // Responsive styles
     labelSize,
     textareaMinHeight,
     textareaRows,

@@ -62,12 +62,12 @@ export interface ApplyResult {
   details?: Record<string, unknown> | string;
 }
 
-export interface ApplyContext {
-  // Current state
+interface ApplyContextCurrentState {
   currentGenerationMode: 'batch' | 'timeline' | 'by-pair';
   currentAdvancedMode: boolean;
+}
 
-  // Callbacks for applying settings
+interface ApplyContextCallbacks {
   onBatchVideoPromptChange: (prompt: string) => void;
   onSteerableMotionSettingsChange: (settings: { model_name?: string; negative_prompt?: string }) => void;
   onBatchVideoFramesChange: (frames: number) => void;
@@ -84,8 +84,9 @@ export interface ApplyContext {
   onTextBeforePromptsChange?: (text: string) => void;
   onTextAfterPromptsChange?: (text: string) => void;
   onAmountOfMotionChange?: (motion: number) => void;
+}
 
-  // Structure video
+interface ApplyContextStructureVideo {
   onStructureVideoInputChange: (
     videoPath: string | null,
     metadata: VideoMetadata | null,
@@ -93,18 +94,21 @@ export interface ApplyContext {
     motionStrength: number,
     structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
   ) => void;
+}
 
-  // LoRAs
+interface ApplyContextLoraState {
   loraManager: {
     setSelectedLoras?: (loras: Array<{ id: string; name: string; path: string; strength: number; [key: string]: unknown }>) => void;
     handleAddLora: (lora: LoraModel, showToast: boolean, strength: number) => void;
   };
   availableLoras: LoraModel[];
+}
 
-  // Pair prompts (for timeline mode)
+interface ApplyContextPairPromptState {
   updatePairPromptsByIndex?: (index: number, prompt: string, negativePrompt: string) => Promise<void>;
+}
 
-  // Current values for comparison
+interface ApplyContextComparisonValues {
   steerableMotionSettings: { model_name: string };
   batchVideoFrames: number;
   batchVideoSteps: number;
@@ -116,3 +120,10 @@ export interface ApplyContext {
   motionMode?: 'basic' | 'advanced';
   generationTypeMode?: 'i2v' | 'vace';
 }
+
+export type ApplyContext = ApplyContextCurrentState &
+  ApplyContextCallbacks &
+  ApplyContextStructureVideo &
+  ApplyContextLoraState &
+  ApplyContextPairPromptState &
+  ApplyContextComparisonValues;

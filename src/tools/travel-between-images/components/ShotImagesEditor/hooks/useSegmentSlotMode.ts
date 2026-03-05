@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import type { PairData } from '../../Timeline/TimelineContainer';
+import type { PairData } from '../../Timeline/TimelineContainer/types';
 import { usePairData } from './usePairData';
 import { useFrameCountUpdater } from './useFrameCountUpdater';
 import type {

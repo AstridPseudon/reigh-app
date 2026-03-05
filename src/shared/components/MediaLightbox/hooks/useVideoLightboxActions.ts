@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { handleLightboxDownload } from '../utils';
-import { invokeLightboxDelete } from '../utils';
+import { handleLightboxDownload } from '../utils/lightboxDownload';
+import { invokeLightboxDelete } from '../utils/lightboxDelete';
 import type {
   VideoLightboxSharedStateModel,
 } from './useVideoLightboxController';

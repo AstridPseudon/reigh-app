@@ -1,15 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn(() => ({ data: null })),
-        })),
-      })),
+const mockFrom = vi.fn(() => ({
+  select: vi.fn(() => ({
+    eq: vi.fn(() => ({
+      maybeSingle: vi.fn(() => ({ data: null })),
     })),
-  },
+  })),
+}));
+
+const mockSupabaseClient = {
+  from: mockFrom,
+};
+
+vi.mock('@/integrations/supabase/client', () => ({
+  getSupabaseClient: vi.fn(() => mockSupabaseClient),
 }));
 
 import {
@@ -304,16 +308,22 @@ describe('isSegmentVideoTask', () => {
 });
 
 describe('checkSegmentConnection', () => {
-  it('returns false for null pairShotGenerationId', async () => {
-    expect(await checkSegmentConnection(null, 'shot-1')).toBe(false);
+  it('returns disconnected result for null pairShotGenerationId', async () => {
+    expect(await checkSegmentConnection(null, 'shot-1')).toEqual({
+      ok: true,
+      connected: false,
+    });
   });
 
-  it('calls supabase and returns false when no data returned', async () => {
+  it('calls supabase and returns disconnected result when no data returned', async () => {
     const result = await checkSegmentConnection('pair-1', 'shot-1');
-    expect(result).toBe(false);
+    expect(result).toEqual({
+      ok: true,
+      connected: false,
+    });
   });
 
-  it('returns true when data matches shot and has valid timeline_frame', async () => {
+  it('returns connected result when data matches shot and has valid timeline_frame', async () => {
     const mockMaybeSingle = vi.fn(() => ({
       data: { id: 'pair-1', shot_id: 'shot-1', timeline_frame: 5 },
     }));
@@ -322,10 +332,13 @@ describe('checkSegmentConnection', () => {
     vi.mocked(supabase().from).mockReturnValueOnce({ select: mockSelect } as unknown);
 
     const result = await checkSegmentConnection('pair-1', 'shot-1');
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      ok: true,
+      connected: true,
+    });
   });
 
-  it('returns false when shot_id does not match', async () => {
+  it('returns disconnected result when shot_id does not match', async () => {
     const mockMaybeSingle = vi.fn(() => ({
       data: { id: 'pair-1', shot_id: 'different-shot', timeline_frame: 5 },
     }));
@@ -334,6 +347,25 @@ describe('checkSegmentConnection', () => {
     vi.mocked(supabase().from).mockReturnValueOnce({ select: mockSelect } as unknown);
 
     const result = await checkSegmentConnection('pair-1', 'shot-1');
-    expect(result).toBe(false);
+    expect(result).toEqual({
+      ok: true,
+      connected: false,
+    });
+  });
+
+  it('returns error result when query fails', async () => {
+    const mockMaybeSingle = vi.fn(() => ({
+      data: null,
+      error: { message: 'query failed' },
+    }));
+    const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
+    const mockSelect = vi.fn(() => ({ eq: mockEq }));
+    vi.mocked(supabase().from).mockReturnValueOnce({ select: mockSelect } as unknown);
+
+    const result = await checkSegmentConnection('pair-1', 'shot-1');
+    expect(result).toEqual({
+      ok: false,
+      error: 'query failed',
+    });
   });
 });

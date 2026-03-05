@@ -128,14 +128,14 @@ const mockUseImg2ImgMode = vi.fn().mockReturnValue({
 vi.mock('@/features/image-edit', () => ({
   useUpscale: (...args: unknown[]) => mockUseUpscale(...args),
   useInpainting: (...args: unknown[]) => mockUseInpainting(...args),
-  useEditModeLoRAs: () => ({
+  useEditModeLoras: () => ({
     isInSceneBoostEnabled: false,
     setIsInSceneBoostEnabled: vi.fn(),
     loraMode: 'none',
     setLoraMode: vi.fn(),
     customLoraUrl: '',
     setCustomLoraUrl: vi.fn(),
-    editModeLoRAs: [],
+    editModeLoras: [],
   }),
   useSourceGeneration: () => ({
     sourceGenerationData: null,

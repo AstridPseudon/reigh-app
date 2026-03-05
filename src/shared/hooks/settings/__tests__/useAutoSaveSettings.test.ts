@@ -23,7 +23,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   reportRuntimeError: vi.fn(),
 }));
 
-import { useAutoSaveSettings } from '@/shared/hooks/settings/useAutoSaveSettings';
+import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import { useToolSettings } from '@/shared/hooks/useToolSettings';
 
 type TestSettings = Record<string, unknown> & {

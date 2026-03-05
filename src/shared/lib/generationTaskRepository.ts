@@ -75,12 +75,6 @@ interface GenerationTaskRepositoryOptions {
   supabaseRegistry?: SupabaseClientRegistry;
 }
 
-function normalizeScopedGenerationInput(
-  input: ScopedGenerationInput,
-): { id: string; projectId?: string } {
-  return typeof input === 'string' ? { id: input } : input;
-}
-
 export async function resolveGenerationProjectScope(
   generationId: string,
   expectedProjectId?: string,

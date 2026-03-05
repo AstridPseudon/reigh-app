@@ -19,7 +19,7 @@ import { useTimelineDomainService } from "./hooks/timeline-core/useTimelineDomai
 import { quantizeGap } from "./utils/time-utils";
 import { useTimelineLightboxOrchestrator } from "./hooks/useTimelineLightboxOrchestrator";
 
-import TimelineContainer from "./TimelineContainer";
+import TimelineContainer from "./TimelineContainer/TimelineContainer";
 import { useEmptyStateDrop } from "./hooks/drag/useEmptyStateDrop";
 
 interface TimelineCoreAdapter {

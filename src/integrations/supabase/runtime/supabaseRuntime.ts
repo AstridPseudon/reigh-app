@@ -51,11 +51,3 @@ export function getSupabaseRuntimeClientResult(): SupabaseClientAccessResult {
     error: new Error(SUPABASE_RUNTIME_NOT_INITIALIZED_MESSAGE),
   };
 }
-
-function getSupabaseRuntimeClient(): SupabaseClientInstance {
-  const result = getSupabaseRuntimeClientResult();
-  if (!result.ok) {
-    throw result.error;
-  }
-  return result.client;
-}

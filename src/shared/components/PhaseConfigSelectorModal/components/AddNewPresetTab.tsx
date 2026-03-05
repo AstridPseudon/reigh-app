@@ -16,6 +16,49 @@ import { SampleGenerationsSection } from './sections/SampleGenerationsSection';
 import { useAddNewPresetTabController } from '../hooks/useAddNewPresetTabController';
 import type { AddNewTabProps } from './AddNewPresetTab.types';
 
+interface EditModeStatusBannerProps {
+  isOverwriting: boolean;
+  presetName?: string;
+  onCancel: () => void;
+}
+
+function EditModeStatusBanner({ isOverwriting, presetName, onCancel }: EditModeStatusBannerProps) {
+  return (
+    <div
+      className={`flex items-center justify-between p-3 border rounded-lg ${
+        isOverwriting
+          ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'
+          : 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <Pencil className={`h-4 w-4 ${isOverwriting ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`} />
+        <span className={`text-sm font-medium preserve-case ${isOverwriting ? 'text-orange-900 dark:text-orange-100' : 'text-blue-900 dark:text-blue-100'}`}>
+          {isOverwriting ? `Overwriting: ${presetName}` : `Editing: ${presetName}`}
+        </span>
+      </div>
+      <Button variant="ghost" size="sm" onClick={onCancel}>
+        Cancel Edit
+      </Button>
+    </div>
+  );
+}
+
+function resolveSubmitButtonLabel(params: {
+  isSubmitting: boolean;
+  isEditMode: boolean;
+  isOverwriting: boolean;
+}): string {
+  const { isSubmitting, isEditMode, isOverwriting } = params;
+  if (isSubmitting) {
+    return isEditMode ? 'Saving Changes...' : 'Creating Preset...';
+  }
+  if (!isEditMode) {
+    return 'Create Preset';
+  }
+  return isOverwriting ? 'Overwrite Preset' : 'Save Changes';
+}
+
 export const AddNewPresetTab: React.FC<AddNewTabProps> = (props) => {
   const {
     isEditMode,
@@ -42,29 +85,16 @@ export const AddNewPresetTab: React.FC<AddNewTabProps> = (props) => {
     isOverwriting = false,
     availableLoras = [],
   } = props;
+  const presetName = editingPreset?.metadata.name;
 
   return (
     <div className="space-y-4">
       {isEditMode && (
-        <div
-          className={`flex items-center justify-between p-3 border rounded-lg ${
-            isOverwriting
-              ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'
-              : 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Pencil className={`h-4 w-4 ${isOverwriting ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`} />
-            <span className={`text-sm font-medium preserve-case ${isOverwriting ? 'text-orange-900 dark:text-orange-100' : 'text-blue-900 dark:text-blue-100'}`}>
-              {isOverwriting
-                ? `Overwriting: ${editingPreset?.metadata.name}`
-                : `Editing: ${editingPreset?.metadata.name}`}
-            </span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
-            Cancel Edit
-          </Button>
-        </div>
+        <EditModeStatusBanner
+          isOverwriting={isOverwriting}
+          presetName={presetName}
+          onCancel={handleCancelEdit}
+        />
       )}
 
       <Card>
@@ -158,9 +188,7 @@ export const AddNewPresetTab: React.FC<AddNewTabProps> = (props) => {
             onClick={handleSubmit}
             disabled={isSubmitting || !addForm.name.trim()}
           >
-            {isSubmitting
-              ? (isEditMode ? 'Saving Changes...' : 'Creating Preset...')
-              : (isEditMode ? (isOverwriting ? 'Overwrite Preset' : 'Save Changes') : 'Create Preset')}
+            {resolveSubmitButtonLabel({ isSubmitting, isEditMode, isOverwriting })}
           </Button>
         </ItemCardFooter>
       </Card>

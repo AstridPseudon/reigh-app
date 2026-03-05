@@ -16,7 +16,7 @@ vi.mock('@/shared/components/ui/runtime/sonner', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation', () => ({
-  invalidateGenerationsSync: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
 }));
 
 import { useDuplicateAsNewGeneration } from '../useDuplicateAsNewGeneration';

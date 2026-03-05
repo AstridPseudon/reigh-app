@@ -34,13 +34,13 @@ serve(async (req) => {
 
     // Rate limit: 10 requests per minute for this destructive operation
     const deleteProjectLimit = { maxRequests: 10, windowSeconds: 60 }
-    const rateLimitResult = await checkRateLimit(
+    const rateLimitResult = await checkRateLimit({
       supabaseAdmin,
-      'delete-project',
-      auth.userId,
-      deleteProjectLimit,
-      '[DELETE-PROJECT]'
-    )
+      functionName: 'delete-project',
+      identifier: auth.userId,
+      config: deleteProjectLimit,
+      logPrefix: '[DELETE-PROJECT]',
+    })
     if (!rateLimitResult.ok) {
       if (isRateLimitExceededFailure(rateLimitResult)) {
         logger.warn("Rate limit exceeded", { user_id: auth.userId })

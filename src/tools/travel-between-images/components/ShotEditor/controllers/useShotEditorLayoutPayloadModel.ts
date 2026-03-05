@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
 import type { Project } from '@/types/project';
@@ -126,9 +126,17 @@ interface UseShotEditorLayoutPayloadModelParams {
   };
 }
 
+export interface ShotEditorLayoutFinalVideoModel extends Omit<ShotEditorLayoutProps['finalVideo'], 'onJoinSegmentsClick'> {
+  onRequestJoinMode: () => void;
+}
+
 interface ShotEditorLayoutPayloadModel {
   contextInput: UseShotSettingsValueProps;
-  sections: Omit<ShotEditorLayoutProps, 'contextValue'>;
+  headerModel: ShotEditorLayoutProps['header'];
+  finalVideoModel: ShotEditorLayoutFinalVideoModel;
+  timelineModel: ShotEditorLayoutProps['timeline'];
+  generationModel: ShotEditorLayoutProps['generation'];
+  modalsModel: ShotEditorLayoutProps['modals'];
 }
 
 export function useShotEditorLayoutPayloadModel({
@@ -139,22 +147,6 @@ export function useShotEditorLayoutPayloadModel({
   dimensions,
   sections,
 }: UseShotEditorLayoutPayloadModelParams): ShotEditorLayoutPayloadModel {
-  const handleJoinSegmentsClick = useCallback(() => {
-    controllers.joinWorkflow.setGenerateMode('join');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const target = sections.refs.generateVideosCardRef.current;
-        if (!target) {
-          return;
-        }
-
-        const rect = target.getBoundingClientRect();
-        const scrollTop = window.scrollY + rect.top - 20;
-        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-      });
-    });
-  }, [controllers.joinWorkflow, sections.refs.generateVideosCardRef]);
-
   const contextInput = useMemo<UseShotSettingsValueProps>(
     () => ({
       selectedShot: core.selectedShot!,
@@ -244,87 +236,105 @@ export function useShotEditorLayoutPayloadModel({
     [core, images, controllers, settings.accelerated, settings.randomSeed, dimensions]
   );
 
-  const layoutSections = useMemo<Omit<ShotEditorLayoutProps, 'contextValue'>>(
+  const headerModel = useMemo<ShotEditorLayoutProps['header']>(
     () => ({
-      header: {
-        onBack: sections.onBack,
-        onPreviousShot: sections.onPreviousShot,
-        onNextShot: sections.onNextShot,
-        hasPrevious: sections.hasPrevious,
-        hasNext: sections.hasNext,
-        onUpdateShotName: sections.onUpdateShotName,
-        onNameClick: controllers.mediaEditing.handleNameClick,
-        onNameSave: controllers.mediaEditing.handleNameSave,
-        onNameCancel: controllers.mediaEditing.handleNameCancel,
-        onNameKeyDown: controllers.mediaEditing.handleNameKeyDown,
-        headerContainerRef: sections.headerContainerRef,
-        centerSectionRef: sections.refs.centerSectionRef,
-        isSticky: sections.isSticky,
-      },
-      finalVideo: {
-        selectedShotId: core.selectedShotId,
-        projectId: core.projectId,
-        effectiveAspectRatio: core.effectiveAspectRatio,
-        onApplySettingsFromTask: sections.applySettingsFromTask,
-        onJoinSegmentsClick: handleJoinSegmentsClick,
-        selectedOutputId: controllers.output.selectedOutputId,
-        onSelectedOutputChange: controllers.output.setSelectedOutputId,
-        parentGenerations: controllers.output.parentGenerations,
-        initialParentGenerations: sections.initialParentGenerations,
-        segmentProgress: controllers.output.segmentProgress,
-        isSegmentOutputsLoading: controllers.output.isSegmentOutputsLoading,
-        getFinalVideoCount: sections.getFinalVideoCount,
-        onDeleteFinalVideo: controllers.imageManagement.handleDeleteFinalVideo,
-        isClearingFinalVideo: controllers.imageManagement.isClearingFinalVideo,
-        videoGalleryRef: sections.refs.videoGalleryRef,
-        generateVideosCardRef: sections.refs.generateVideosCardRef,
-      },
-      timeline: {
-        timelineSectionRef: sections.timelineSectionRef,
-        isModeReady: core.state.isModeReady,
-        settingsError: core.state.settingsError,
-        isPhone: settings.isPhone,
-        generationMode: settings.generationModeSettings.generationMode,
-        onGenerationModeChange: settings.generationModeSettings.setGenerationMode,
-        batchVideoFrames: settings.frameSettings.batchVideoFrames,
-        onBatchVideoFramesChange: settings.frameSettings.setFrames,
-        aspectAdjustedColumns: settings.aspectAdjustedColumns as 2 | 3 | 4 | 6,
-        pendingFramePositions: core.state.pendingFramePositions,
-        onPendingPositionApplied: controllers.imageManagement.handlePendingPositionApplied,
-        onSelectionChange: controllers.bridge.handleSelectionChangeLocal,
-        prompt: settings.promptSettings.prompt,
-        onPromptChange: settings.promptSettings.setPrompt,
-        negativePrompt: settings.promptSettings.negativePrompt,
-        onNegativePromptChange: settings.promptSettings.setNegativePrompt,
-        smoothContinuations: settings.motionSettings.smoothContinuations,
-        onDragStateChange: sections.onDragStateChange,
-        getHasStructureVideo: sections.getHasStructureVideo,
-      },
-      generation: {
-        ctaContainerRef: sections.ctaContainerRef,
-        swapButtonRef: sections.refs.swapButtonRef,
-        joinSegmentsSectionRef: sections.refs.joinSegmentsSectionRef,
-        parentVariantName: sections.parentVariantName,
-        parentOnVariantNameChange: sections.parentOnVariantNameChange,
-        parentIsGeneratingVideo: sections.parentIsGeneratingVideo,
-        parentVideoJustQueued: sections.parentVideoJustQueued,
-      },
-      modals: {
-        isLoraModalOpen: controllers.loraManager.isLoraModalOpen,
-        onLoraModalClose: () => controllers.loraManager.setIsLoraModalOpen(false),
-        onAddLora: controllers.loraManager.handleAddLora,
-        onRemoveLora: controllers.loraManager.handleRemoveLora,
-        onUpdateLoraStrength: controllers.loraManager.handleLoraStrengthChange,
-        selectedLoras: controllers.loraManager.selectedLoras,
-        isSettingsModalOpen: core.state.isSettingsModalOpen,
-        onSettingsModalOpenChange: core.actions.setSettingsModalOpen,
-      },
+      onBack: sections.onBack,
+      onPreviousShot: sections.onPreviousShot,
+      onNextShot: sections.onNextShot,
+      hasPrevious: sections.hasPrevious,
+      hasNext: sections.hasNext,
+      onUpdateShotName: sections.onUpdateShotName,
+      onNameClick: controllers.mediaEditing.handleNameClick,
+      onNameSave: controllers.mediaEditing.handleNameSave,
+      onNameCancel: controllers.mediaEditing.handleNameCancel,
+      onNameKeyDown: controllers.mediaEditing.handleNameKeyDown,
+      headerContainerRef: sections.headerContainerRef,
+      centerSectionRef: sections.refs.centerSectionRef,
+      isSticky: sections.isSticky,
     }),
-    [core, sections, controllers, settings, handleJoinSegmentsClick]
+    [controllers.mediaEditing, sections]
+  );
+
+  const finalVideoModel = useMemo<ShotEditorLayoutFinalVideoModel>(
+    () => ({
+      selectedShotId: core.selectedShotId,
+      projectId: core.projectId,
+      effectiveAspectRatio: core.effectiveAspectRatio,
+      onApplySettingsFromTask: sections.applySettingsFromTask,
+      onRequestJoinMode: () => controllers.joinWorkflow.setGenerateMode('join'),
+      selectedOutputId: controllers.output.selectedOutputId,
+      onSelectedOutputChange: controllers.output.setSelectedOutputId,
+      parentGenerations: controllers.output.parentGenerations,
+      initialParentGenerations: sections.initialParentGenerations,
+      segmentProgress: controllers.output.segmentProgress,
+      isSegmentOutputsLoading: controllers.output.isSegmentOutputsLoading,
+      getFinalVideoCount: sections.getFinalVideoCount,
+      onDeleteFinalVideo: controllers.imageManagement.handleDeleteFinalVideo,
+      isClearingFinalVideo: controllers.imageManagement.isClearingFinalVideo,
+      videoGalleryRef: sections.refs.videoGalleryRef,
+      generateVideosCardRef: sections.refs.generateVideosCardRef,
+    }),
+    [core, sections, controllers.joinWorkflow, controllers.output, controllers.imageManagement]
+  );
+
+  const timelineModel = useMemo<ShotEditorLayoutProps['timeline']>(
+    () => ({
+      timelineSectionRef: sections.timelineSectionRef,
+      isModeReady: core.state.isModeReady,
+      settingsError: core.state.settingsError,
+      isPhone: settings.isPhone,
+      generationMode: settings.generationModeSettings.generationMode,
+      onGenerationModeChange: settings.generationModeSettings.setGenerationMode,
+      batchVideoFrames: settings.frameSettings.batchVideoFrames,
+      onBatchVideoFramesChange: settings.frameSettings.setFrames,
+      aspectAdjustedColumns: settings.aspectAdjustedColumns as 2 | 3 | 4 | 6,
+      pendingFramePositions: core.state.pendingFramePositions,
+      onPendingPositionApplied: controllers.imageManagement.handlePendingPositionApplied,
+      onSelectionChange: controllers.bridge.handleSelectionChangeLocal,
+      prompt: settings.promptSettings.prompt,
+      onPromptChange: settings.promptSettings.setPrompt,
+      negativePrompt: settings.promptSettings.negativePrompt,
+      onNegativePromptChange: settings.promptSettings.setNegativePrompt,
+      smoothContinuations: settings.motionSettings.smoothContinuations,
+      onDragStateChange: sections.onDragStateChange,
+      getHasStructureVideo: sections.getHasStructureVideo,
+    }),
+    [core.state, sections, controllers.imageManagement, controllers.bridge, settings]
+  );
+
+  const generationModel = useMemo<ShotEditorLayoutProps['generation']>(
+    () => ({
+      ctaContainerRef: sections.ctaContainerRef,
+      swapButtonRef: sections.refs.swapButtonRef,
+      joinSegmentsSectionRef: sections.refs.joinSegmentsSectionRef,
+      parentVariantName: sections.parentVariantName,
+      parentOnVariantNameChange: sections.parentOnVariantNameChange,
+      parentIsGeneratingVideo: sections.parentIsGeneratingVideo,
+      parentVideoJustQueued: sections.parentVideoJustQueued,
+    }),
+    [sections]
+  );
+
+  const modalsModel = useMemo<ShotEditorLayoutProps['modals']>(
+    () => ({
+      isLoraModalOpen: controllers.loraManager.isLoraModalOpen,
+      onLoraModalClose: () => controllers.loraManager.setIsLoraModalOpen(false),
+      onAddLora: controllers.loraManager.handleAddLora,
+      onRemoveLora: controllers.loraManager.handleRemoveLora,
+      onUpdateLoraStrength: controllers.loraManager.handleLoraStrengthChange,
+      selectedLoras: controllers.loraManager.selectedLoras,
+      isSettingsModalOpen: core.state.isSettingsModalOpen,
+      onSettingsModalOpenChange: core.actions.setSettingsModalOpen,
+    }),
+    [controllers.loraManager, core.state.isSettingsModalOpen, core.actions.setSettingsModalOpen]
   );
 
   return {
     contextInput,
-    sections: layoutSections,
+    headerModel,
+    finalVideoModel,
+    timelineModel,
+    generationModel,
+    modalsModel,
   };
 }

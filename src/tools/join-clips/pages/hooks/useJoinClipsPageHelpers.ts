@@ -7,7 +7,7 @@ import {
   type ValidationResult,
   validateClipsForJoin,
 } from '@/tools/join-clips/utils/validation';
-import type { ClipPairInfo } from '@/shared/components/JoinClipsSettingsForm';
+import type { ClipPairInfo } from '@/shared/components/JoinClipsSettingsForm/types';
 import type { useClipManager } from '@/tools/join-clips/hooks/useClipManager';
 import type { useJoinClipsSettings } from '@/tools/join-clips/hooks/useJoinClipsSettings';
 import type { useLoraManager } from '@/shared/hooks/useLoraManager';

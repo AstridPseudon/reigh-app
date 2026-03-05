@@ -389,39 +389,55 @@ export function useVideoRegenerateMode({
     const effectiveFrameCount = segmentSlotMode?.pairData?.frames ?? currentFrameCount;
 
     return {
-      params: taskParams as SegmentRegenerateFormProps['params'],
-      projectId: selectedProjectId ?? null,
-      generationId: parentGenerationId,
-      shotId,
-      childGenerationId,
-      segmentIndex,
-      startImageUrl: segmentImageInfo.startUrl,
-      endImageUrl: segmentImageInfo.endUrl,
-      startImageGenerationId: segmentImageInfo.startGenId,
-      endImageGenerationId: segmentImageInfo.endGenId,
-      startImageVariantId: segmentImageInfo.startVariantId,
-      endImageVariantId: segmentImageInfo.endVariantId,
-      projectResolution: effectiveRegenerateResolution,
-      pairShotGenerationId,
-      onFrameCountChange: onSegmentFrameCountChange,
-      currentFrameCount: effectiveFrameCount,
-      variantParamsToLoad: variantParamsToLoad as SegmentRegenerateFormProps['variantParamsToLoad'],
-      onVariantParamsLoaded: () => setVariantParamsToLoad(null),
-      structureVideoType,
-      structureVideoDefaults,
-      structureVideoUrl,
-      structureVideoFrameRange: segmentSlotMode?.structureVideoFrameRange,
-      onUpdateStructureVideoDefaults: handleUpdateStructureVideoDefaults,
-      // Per-segment structure video management (from segmentSlotMode)
-      isTimelineMode: segmentSlotMode?.isTimelineMode,
-      onAddSegmentStructureVideo: segmentSlotMode?.onAddSegmentStructureVideo,
-      onUpdateSegmentStructureVideo: segmentSlotMode?.onUpdateSegmentStructureVideo,
-      onRemoveSegmentStructureVideo: segmentSlotMode?.onRemoveSegmentStructureVideo,
-      // Navigation to constituent images
-      endImageShotGenerationId: segmentSlotMode?.pairData?.endImage?.id || currentSegmentImages?.endShotGenerationId,
-      onNavigateToImage: segmentSlotMode?.onNavigateToImage,
-      // Frame limit (from segmentSlotMode)
-      maxFrames: segmentSlotMode?.maxFrameLimit,
+      task: {
+        params: taskParams as SegmentRegenerateFormProps['task']['params'],
+        projectId: selectedProjectId ?? null,
+        generationId: parentGenerationId,
+        shotId,
+        childGenerationId,
+        segmentIndex,
+      },
+      images: {
+        startImageUrl: segmentImageInfo.startUrl,
+        endImageUrl: segmentImageInfo.endUrl,
+        startImageGenerationId: segmentImageInfo.startGenId,
+        endImageGenerationId: segmentImageInfo.endGenId,
+        startImageVariantId: segmentImageInfo.startVariantId,
+        endImageVariantId: segmentImageInfo.endVariantId,
+        pairShotGenerationId,
+      },
+      frame: {
+        projectResolution: effectiveRegenerateResolution,
+        onFrameCountChange: onSegmentFrameCountChange,
+        currentFrameCount: effectiveFrameCount,
+        maxFrames: segmentSlotMode?.maxFrameLimit,
+      },
+      variant: {
+        variantParamsToLoad:
+          variantParamsToLoad as NonNullable<
+            SegmentRegenerateFormProps['variant']
+          >['variantParamsToLoad'],
+        onVariantParamsLoaded: () => setVariantParamsToLoad(null),
+      },
+      structure: {
+        structureVideoType,
+        structureVideoDefaults,
+        structureVideoUrl,
+        structureVideoFrameRange: segmentSlotMode?.structureVideoFrameRange,
+        onUpdateStructureVideoDefaults: handleUpdateStructureVideoDefaults,
+      },
+      navigation: {
+        endImageShotGenerationId:
+          segmentSlotMode?.pairData?.endImage?.id ||
+          currentSegmentImages?.endShotGenerationId,
+        onNavigateToImage: segmentSlotMode?.onNavigateToImage,
+      },
+      timeline: {
+        isTimelineMode: segmentSlotMode?.isTimelineMode,
+        onAddSegmentStructureVideo: segmentSlotMode?.onAddSegmentStructureVideo,
+        onUpdateSegmentStructureVideo: segmentSlotMode?.onUpdateSegmentStructureVideo,
+        onRemoveSegmentStructureVideo: segmentSlotMode?.onRemoveSegmentStructureVideo,
+      },
     };
   }, [
     canRegenerate,

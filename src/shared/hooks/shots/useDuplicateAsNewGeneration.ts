@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/jsonTypes';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import { invalidateGenerationsSync } from '@/shared/hooks/invalidation';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 
@@ -258,7 +258,7 @@ export const useDuplicateAsNewGeneration = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(data.project_id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.generations.byProjectAll });
-      invalidateGenerationsSync(queryClient, data.shot_id, {
+      enqueueGenerationsInvalidation(queryClient, data.shot_id, {
         reason: 'duplicate-as-new-generation',
         scope: 'all',
       });

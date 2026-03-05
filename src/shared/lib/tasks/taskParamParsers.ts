@@ -34,15 +34,6 @@ export function asNumberArray(value: unknown): number[] | undefined {
   return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
 }
 
-function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
-  for (const value of values) {
-    if (value !== undefined && value !== null) {
-      return value;
-    }
-  }
-  return undefined;
-}
-
 export function resolveStringCandidate(...values: unknown[]): string | undefined {
   for (const value of values) {
     const parsed = asString(value);
@@ -56,16 +47,6 @@ export function resolveStringCandidate(...values: unknown[]): string | undefined
 export function resolveNumberCandidate(...values: unknown[]): number | undefined {
   for (const value of values) {
     const parsed = asNumber(value);
-    if (parsed !== undefined) {
-      return parsed;
-    }
-  }
-  return undefined;
-}
-
-function resolveBooleanCandidate(...values: unknown[]): boolean | undefined {
-  for (const value of values) {
-    const parsed = asBoolean(value);
     if (parsed !== undefined) {
       return parsed;
     }

@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/toast';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
-import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
+import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm/SegmentSettingsForm';
 import { extractSettingsFromParams } from '@/shared/components/SegmentSettingsForm/segmentSettingsMigration';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import { submitSegmentTask, buildStructureVideoForTask } from './submitSegmentTask';
@@ -27,19 +27,22 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-export interface SegmentRegenerateFormProps {
-  /** Generation params from the current video */
+interface SegmentRegenerateCoreProps {
+  /** Generation params from the current video. */
   params: Record<string, unknown>;
-  /** Project ID for task creation */
+  /** Project ID for task creation. */
   projectId: string | null;
-  /** Generation ID to use as parent for the variant */
+  /** Generation ID to use as parent for the variant. */
   generationId: string;
-  /** Shot ID for fetching structure video settings */
+  /** Shot ID for fetching structure video settings. */
   shotId?: string;
-  /** Optional existing child generation ID (for Replace mode - creates variant instead of new child) */
+  /** Optional existing child generation ID (for Replace mode - creates variant instead of new child). */
   childGenerationId?: string;
-  /** Optional segment index (defaults to 0 for single-segment videos) */
+  /** Optional segment index (defaults to 0 for single-segment videos). */
   segmentIndex?: number;
+}
+
+interface SegmentRegenerateImageProps {
   /** Start image URL for the segment */
   startImageUrl?: string;
   /** End image URL for the segment */
@@ -54,6 +57,9 @@ export interface SegmentRegenerateFormProps {
   endImageVariantId?: string;
   /** Shot generation ID for the start image (for video-to-timeline tethering) */
   pairShotGenerationId?: string;
+}
+
+interface SegmentRegenerateFrameProps {
   /** Project resolution for output */
   projectResolution?: string;
   /** Callback when frame count changes - for instant timeline updates */
@@ -62,10 +68,16 @@ export interface SegmentRegenerateFormProps {
   currentFrameCount?: number;
   /** Maximum frames allowed (77 with smooth continuations, 81 otherwise) */
   maxFrames?: number;
+}
+
+interface SegmentRegenerateVariantImportProps {
   /** Variant params to load into the form (set externally, e.g., from VariantSelector hover) */
   variantParamsToLoad?: Record<string, unknown> | null;
   /** Callback when variant params have been loaded (to clear the trigger) */
   onVariantParamsLoaded?: () => void;
+}
+
+interface SegmentRegenerateStructureDefaultsProps {
   /** Structure video type for this segment (null = no structure video coverage) */
   structureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth' | null;
   /** Shot-level structure video defaults */
@@ -89,12 +101,16 @@ export interface SegmentRegenerateFormProps {
     treatment?: 'adjust' | 'clip';
     uni3cEndPercent?: number;
   }) => Promise<void>;
+}
 
+interface SegmentRegenerateNavigationProps {
   /** Shot generation ID for the end image (for navigation) */
   endImageShotGenerationId?: string;
   /** Callback to navigate to a constituent image by shot_generation.id */
   onNavigateToImage?: (shotGenerationId: string) => void;
+}
 
+interface SegmentRegenerateTimelineStructureProps {
   // Per-segment structure video management (Timeline Mode only)
   /** Whether in timeline mode (shows structure video upload) vs batch mode (preview only) */
   isTimelineMode?: boolean;
@@ -106,40 +122,70 @@ export interface SegmentRegenerateFormProps {
   onRemoveSegmentStructureVideo?: () => void;
 }
 
+export interface SegmentRegenerateFormProps {
+  task: SegmentRegenerateCoreProps;
+  images: SegmentRegenerateImageProps;
+  frame: SegmentRegenerateFrameProps;
+  variant?: SegmentRegenerateVariantImportProps;
+  structure?: SegmentRegenerateStructureDefaultsProps;
+  navigation?: SegmentRegenerateNavigationProps;
+  timeline?: SegmentRegenerateTimelineStructureProps;
+}
+
 export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
-  params: initialParams,
-  projectId,
-  generationId,
-  shotId,
-  childGenerationId,
-  segmentIndex = 0,
-  startImageUrl,
-  endImageUrl,
-  startImageGenerationId,
-  endImageGenerationId,
-  startImageVariantId,
-  endImageVariantId,
-  pairShotGenerationId,
-  projectResolution,
-  onFrameCountChange,
-  currentFrameCount,
-  maxFrames,
-  variantParamsToLoad,
-  onVariantParamsLoaded,
-  structureVideoType,
-  structureVideoDefaults,
-  structureVideoUrl,
-  structureVideoFrameRange,
-  onUpdateStructureVideoDefaults,
-  // Navigation to constituent images
-  endImageShotGenerationId,
-  onNavigateToImage,
-  // Per-segment structure video management
-  isTimelineMode,
-  onAddSegmentStructureVideo,
-  onUpdateSegmentStructureVideo,
-  onRemoveSegmentStructureVideo,
+  task,
+  images,
+  frame,
+  variant,
+  structure,
+  navigation,
+  timeline,
 }) => {
+  const {
+    params: initialParams,
+    projectId,
+    generationId,
+    shotId,
+    childGenerationId,
+    segmentIndex = 0,
+  } = task;
+  const {
+    startImageUrl,
+    endImageUrl,
+    startImageGenerationId,
+    endImageGenerationId,
+    startImageVariantId,
+    endImageVariantId,
+    pairShotGenerationId,
+  } = images;
+  const {
+    projectResolution,
+    onFrameCountChange,
+    currentFrameCount,
+    maxFrames,
+  } = frame;
+  const {
+    variantParamsToLoad,
+    onVariantParamsLoaded,
+  } = variant ?? {};
+  const {
+    structureVideoType,
+    structureVideoDefaults,
+    structureVideoUrl,
+    structureVideoFrameRange,
+    onUpdateStructureVideoDefaults,
+  } = structure ?? {};
+  const {
+    endImageShotGenerationId,
+    onNavigateToImage,
+  } = navigation ?? {};
+  const {
+    isTimelineMode,
+    onAddSegmentStructureVideo,
+    onUpdateSegmentStructureVideo,
+    onRemoveSegmentStructureVideo,
+  } = timeline ?? {};
+
   const queryClient = useQueryClient();
   const orchestratorDetails = asRecord(initialParams.orchestrator_details);
   const initialNumFrames = asNumber(initialParams.num_frames);

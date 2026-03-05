@@ -23,7 +23,11 @@ import { withEdgeRequest } from "../_shared/edgeHandler.ts";
  * - 403 Forbidden if user doesn't own the tasks' project
  * - 500 Internal Server Error
  */
-serve((req) => withEdgeRequest(req, {
+serve((req) => {
+  if (!req.headers.get("authorization")) {
+    return new Response("Authentication failed", { status: 401 });
+  }
+  return withEdgeRequest(req, {
   functionName: "get-orchestrator-children",
   logPrefix: "[GET-ORCHESTRATOR-CHILDREN]",
   parseBody: "strict",
@@ -113,4 +117,5 @@ serve((req) => withEdgeRequest(req, {
     status: 200,
     headers: { "Content-Type": "application/json" }
   });
-}));
+});
+});

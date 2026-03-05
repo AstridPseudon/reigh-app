@@ -20,7 +20,7 @@ import { ResourceBrowserModalBase } from '@/features/resources/components/Resour
 import { FieldDefaultControls } from './FieldDefaultControls';
 import { StructureVideoPreview } from './StructureVideoPreview';
 import { VideoPreviewSkeleton } from './VideoPreviewSkeleton';
-import type { useStructureVideoUpload } from '../hooks';
+import type { useStructureVideoUpload } from '../hooks/useStructureVideoUpload';
 import type { SegmentSettings } from '../types';
 
 interface StructureVideoSectionProps {

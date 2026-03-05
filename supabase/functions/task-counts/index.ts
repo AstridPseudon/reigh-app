@@ -6,6 +6,23 @@ import { SystemLogger } from "../_shared/systemLogger.ts";
 
 declare const Deno: { env: { get: (key: string) => string | undefined } };
 
+type RunType = 'gpu' | 'api';
+
+function parseRunType(body: unknown): RunType | null {
+  if (!body || typeof body !== 'object') {
+    return null;
+  }
+  const runType = (body as Record<string, unknown>).run_type;
+  return runType === 'gpu' || runType === 'api' ? runType : null;
+}
+
+function parseDebug(body: unknown): boolean {
+  if (!body || typeof body !== 'object') {
+    return false;
+  }
+  return (body as Record<string, unknown>).debug === true;
+}
+
 /**
  * Edge function: task-counts
  *
@@ -18,7 +35,7 @@ declare const Deno: { env: { get: (key: string) => string | undefined } };
  * POST /functions/v1/task-counts
  * Headers: Authorization: Bearer <JWT or PAT>
  * Body: {
- *   run_type?: 'gpu' | 'api',  // Optional: filter tasks by execution environment
+ *   run_type?: 'gpu' | 'api',  // Optional service-role filter by execution environment
  *   debug?: boolean            // Optional: enable verbose logging and extra queries
  * }
  *
@@ -26,7 +43,9 @@ declare const Deno: { env: { get: (key: string) => string | undefined } };
  * {
  *   mode: 'count',
  *   timestamp: string,
+ *   run_type_filter_requested?: 'gpu' | 'api' | null,
  *   run_type_filter?: 'gpu' | 'api' | null,
+ *   // For PAT requests, run_type_filter is always null (filter not applied)
  *
  *   // Quick counts for scaling math (service role only)
  *   totals: {
@@ -88,8 +107,8 @@ serve(async (req) => {
     logger.debug("No valid JSON body provided, using defaults");
   }
 
-  const runType = requestBody.run_type || null; // 'gpu', 'api', or null (no filtering)
-  const debug = requestBody.debug === true; // Enable verbose logging
+  const requestedRunType = parseRunType(requestBody); // 'gpu', 'api', or null (no filtering)
+  const debug = parseDebug(requestBody); // Enable verbose logging
 
   const startTime = Date.now();
 
@@ -104,12 +123,16 @@ serve(async (req) => {
 
   const isServiceRole = auth.isServiceRole;
   const callerId = auth.userId;
+  const appliedRunType = isServiceRole ? requestedRunType : null;
 
   if (debug) {
     if (isServiceRole) {
       logger.debug("Authenticated via service-role key");
     } else {
       logger.debug("Authenticated via PAT", { user_id: callerId });
+      if (requestedRunType) {
+        logger.debug("Ignoring run_type filter for PAT request", { requested_run_type: requestedRunType });
+      }
     }
   }
 
@@ -121,9 +144,9 @@ serve(async (req) => {
 
       // ESSENTIAL: Get counts from RPC functions (4 parallel calls)
       const [countQueuedOnly, countQueuedPlusActive, breakdownResult, userStatsResult] = await Promise.all([
-        supabaseAdmin.rpc('count_eligible_tasks_service_role', { p_include_active: false, p_run_type: runType }),
-        supabaseAdmin.rpc('count_eligible_tasks_service_role', { p_include_active: true, p_run_type: runType }),
-        supabaseAdmin.rpc('count_queued_tasks_breakdown_service_role', { p_run_type: runType }),
+        supabaseAdmin.rpc('count_eligible_tasks_service_role', { p_include_active: false, p_run_type: appliedRunType }),
+        supabaseAdmin.rpc('count_eligible_tasks_service_role', { p_include_active: true, p_run_type: appliedRunType }),
+        supabaseAdmin.rpc('count_queued_tasks_breakdown_service_role', { p_run_type: appliedRunType }),
         supabaseAdmin.rpc('per_user_capacity_stats_service_role')
       ]);
 
@@ -176,7 +199,7 @@ serve(async (req) => {
 
       // Fetch task_types lookup if run_type filtering is needed
       let taskTypeRunTypeMap: Map<string, string> | null = null;
-      if (runType) {
+      if (appliedRunType) {
         const { data: taskTypes } = await supabaseAdmin
           .from('task_types')
           .select('name, run_type')
@@ -274,9 +297,9 @@ serve(async (req) => {
           const userInProgress = userInProgressMap.get(task.projects.user_id) ?? 0;
           if (userInProgress >= 5) return false;
           // Apply run_type filter if specified
-          if (runType && taskTypeRunTypeMap) {
+          if (appliedRunType && taskTypeRunTypeMap) {
             const taskRunType = taskTypeRunTypeMap.get(task.task_type);
-            if (!taskRunType || taskRunType !== runType) return false;
+            if (!taskRunType || taskRunType !== appliedRunType) return false;
           }
           return true;
         })
@@ -292,10 +315,10 @@ serve(async (req) => {
         .filter(task => {
           if (task.task_type?.toLowerCase().includes('orchestrator')) return false;
           if (task.projects.users.credits <= 0) return false;
-          if (runType === 'gpu' && task.worker_id === 'api-worker-main') return false;
-          if (runType && taskTypeRunTypeMap) {
+          if (appliedRunType === 'gpu' && task.worker_id === 'api-worker-main') return false;
+          if (appliedRunType && taskTypeRunTypeMap) {
             const taskRunType = taskTypeRunTypeMap.get(task.task_type);
-            if (!taskRunType || taskRunType !== runType) return false;
+            if (!taskRunType || taskRunType !== appliedRunType) return false;
           }
           return true;
         })
@@ -310,7 +333,7 @@ serve(async (req) => {
       // Debug logging (only when debug=true)
       if (debug) {
         logger.debug('Service role counts', {
-          runType: runType || 'ALL',
+          runType: appliedRunType || 'ALL',
           queued_only, blocked_by_capacity, blocked_by_deps, blocked_by_settings,
           potentially_claimable, active_only,
           queued_tasks_count: queued_tasks.length,
@@ -332,7 +355,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         mode: 'count',
         timestamp: new Date().toISOString(),
-        run_type_filter: runType,
+        run_type_filter_requested: requestedRunType,
+        run_type_filter: appliedRunType,
         totals: {
           // Core counts (capacity-limited, for claim logic)
           queued_only,              // Immediately claimable (capacity-limited)
@@ -439,7 +463,8 @@ serve(async (req) => {
         mode: 'count',
         timestamp: new Date().toISOString(),
         user_id: callerId,
-        run_type_filter: runType,
+        run_type_filter_requested: requestedRunType,
+        run_type_filter: appliedRunType,
         totals: {
           queued_only,
           active_only,

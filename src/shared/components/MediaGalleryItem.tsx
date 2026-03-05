@@ -10,7 +10,7 @@ import { ShotActions } from "./MediaGalleryItem/components/ShotActions";
 import { ActionButtons } from "./MediaGalleryItem/components/ActionButtons";
 import { ItemShotBadges } from "./MediaGalleryItem/components/ItemShotBadges";
 import { ItemMetadataBar } from "./MediaGalleryItem/components/ItemMetadataBar";
-import { useShotActions } from "./MediaGalleryItem/hooks/useShotActions";
+import { useMediaGalleryItemShotActions } from "./MediaGalleryItem/hooks/useShotActions";
 import { useImageLoading } from "./MediaGalleryItem/hooks/useImageLoading";
 import { useMediaGalleryItemState } from "./MediaGalleryItem/hooks/useMediaGalleryItemState";
 import { useStableMediaUrls } from "./MediaGalleryItem/hooks/useStableMediaUrls";
@@ -32,7 +32,6 @@ import { deriveGalleryInputImages } from "./MediaGallery/utils";
 import { isImageEditTaskType } from "@/shared/lib/taskParamsUtils";
 import { useMarkVariantViewed } from "@/shared/hooks/useMarkVariantViewed";
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
-
 export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   image,
   index,
@@ -44,8 +43,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   projectAspectRatio,
   dataTour,
 }) => {
-  // ── Destructure grouped props ──
-
   const {
     selectedShotIdLocal,
     simplifiedShotOptions,
@@ -67,14 +64,12 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     onAddToLastShot,
     onAddToLastShotWithoutPosition,
   } = shotWorkflow;
-
   const {
     isMobile,
     mobileActiveImageId,
     mobilePopoverOpenImageId,
     onMobileTap,
   } = mobileInteraction;
-
   const {
     showShare = true,
     showDelete = true,
@@ -84,7 +79,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     enableSingleClick = false,
     videosAsThumbnails = false,
   } = features;
-
   const {
     onOpenLightbox,
     onDelete,
@@ -92,14 +86,11 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     onImageClick,
     onImageLoaded,
   } = actions;
-
   const {
     shouldLoad = true,
     isPriority = false,
     isDeleting,
   } = loading;
-
-  // Consolidated local UI state management
   const {
     localStarred,
     setLocalStarred,
@@ -116,14 +107,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     isCreatingShot,
     handleCreateShot,
   } = useMediaGalleryItemState({ image, onCreateShot });
-
-  // Prefetch task data on hover for faster lightbox loading
   const prefetchTaskData = usePrefetchTaskData();
-
-  // Fetch task data for video tasks to show proper details
-  // Try to get task ID from metadata first (more efficient), fallback to cache query
-  // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
-  // For ShotImageManager images, id is shot_generations.id but generation_id is the actual generation ID
   const taskIdFromMetadata = image.metadata?.taskId as string | undefined;
   const actualGenerationId = getGenerationId(image);
   const generationIdForActions = actualGenerationId || image.id;
@@ -131,47 +115,28 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   const { data: taskIdMapping } = useTaskFromUnifiedCache(actualGenerationId ?? '');
   const taskIdFromCache = typeof taskIdMapping?.taskId === 'string' ? taskIdMapping.taskId : null;
   const taskId: string | null = taskIdFromMetadata || taskIdFromCache;
-
   const { data: taskData } = useGetTask(taskId ?? '', selectedProjectId ?? null);
-
-  // Prefetch task data on mouse enter (desktop only)
   const handleMouseEnter = useCallback(() => {
     if (!isMobile && actualGenerationId) {
       prefetchTaskData(actualGenerationId);
     }
   }, [isMobile, actualGenerationId, prefetchTaskData]);
-
-  // Derive input images for guidance tooltip
   const inputImages = useMemo(() => deriveGalleryInputImages(taskData), [taskData]);
-
-  // Only use the actual task type name (like 'wan_2_2_t2i'), not tool_type (like 'image-generation')
-  // tool_type and task type name are different concepts - tool_type is a broader category
   const taskType = taskData?.taskType;
   const { data: taskTypeInfo } = useTaskType(taskType || '');
-
-  // Determine if this should show task details (GenerationDetails)
-  // Use content_type from task_types table. Fallback to legacy tool_type for video travel.
   const isVideoTask = taskTypeInfo?.content_type === 'video' ||
     (!taskTypeInfo && image.metadata?.tool_type === TOOL_IDS.TRAVEL_BETWEEN_IMAGES);
   const isImageEditTask = isImageEditTaskType(taskType || undefined);
   const shouldShowTaskDetails = (!!taskData) && (isVideoTask || isImageEditTask);
-
-  // Share functionality
   const { handleShare, isCreatingShare, shareCopied, shareSlug } = useShareGeneration(image.id, taskId);
-
   const { markAllViewed } = useMarkVariantViewed();
-
-  // Callback to mark all variants for this generation as viewed
   const handleMarkAllVariantsViewed = useCallback(() => {
     if (actualGenerationId) {
       markAllViewed(actualGenerationId);
     }
   }, [actualGenerationId, markAllViewed]);
-
   const { navigateToShot } = useShotNavigation();
   const { setLastAffectedShotId: updateLastAffectedShotId } = useLastAffectedShot();
-
-  // Use consolidated hook for quick shot creation
   const {
     quickCreateSuccess,
     handleQuickCreateAndAdd,
@@ -192,7 +157,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     onLoadingStart: () => setAddingToShotImageId(image.id),
     onLoadingEnd: () => setAddingToShotImageId(null),
   });
-  // Stable media URLs (handles progressive loading + token-rotation stability)
   const {
     isVideoContent,
     displayUrl,
@@ -203,8 +167,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     isFullLoaded,
     progressiveRef,
   } = useStableMediaUrls({ image, isPriority });
-
-  // Image loading state management (error handling, retry logic, loading state)
   const {
     actualSrc,
     actualDisplayUrl,
@@ -220,9 +182,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     shouldLoad,
     onImageLoaded,
   });
-
-  // Shot actions with retry logic
-  const { addToShot, addToShotWithoutPosition } = useShotActions({
+  const { addToShot, addToShotWithoutPosition } = useMediaGalleryItemShotActions({
     imageId: image.id,
     generationId: generationIdForActions,
     imageUrl: image.url,
@@ -239,53 +199,36 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     setAddingToShotImageId,
     setAddingToShotWithoutPositionImageId,
   });
-
-  // Check if we should show metadata details (only when tooltip/popover is open for performance)
   const shouldShowMetadata = useMemo(() => {
     if (!image.metadata) return false;
-
-    // On mobile, only show when popover is open; on desktop, only when tooltip might be shown
     return isMobile
       ? (mobilePopoverOpenImageId === image.id)
       : isInfoOpen;
   }, [image.metadata, isMobile, mobilePopoverOpenImageId, image.id, isInfoOpen]);
   const isCurrentDeleting = isDeleting === true || isDeleting === image.id;
   const imageKey = image.id || `image-${actualDisplayUrl}-${index}`;
-
-
-  // Placeholder check
   const isPlaceholder = !image.id && actualDisplayUrl === "/placeholder.svg";
   const currentTargetShotName = selectedShotIdLocal ? simplifiedShotOptions.find(s => s.id === selectedShotIdLocal)?.name : undefined;
-
-  // Handle drag start for dropping onto timeline
   const handleDragStart = useCallback((e: React.DragEvent) => {
-    // Only enable drag on desktop
     if (isMobile) {
       e.preventDefault();
       return;
     }
-
     setIsDragging(true);
-
-    // Use shared utility to set drag data
     setGenerationDragData(e, {
       generationId: image.id,
       imageUrl: image.url,
       thumbUrl: image.thumbUrl,
       metadata: image.metadata
     });
-
-    // Create drag preview and clean up after brief moment
     const cleanup = createDragPreview(e);
     if (cleanup) {
       setTimeout(cleanup, 0);
     }
   }, [image, isMobile, setIsDragging]);
-
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
   }, [setIsDragging]);
-
   const { handleTouchStart, handleInteraction } = useItemInteraction({
     image,
     isMobile,
@@ -294,8 +237,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     onImageClick,
     onMobileTap,
   });
-
-  // Shot position state (positioned, associated-without-position, viewing selected shot)
   const {
     isAlreadyPositionedInSelectedShot,
     isAlreadyAssociatedWithoutPosition,
@@ -310,11 +251,8 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     showTickForImageId,
     addingToShotImageId,
   });
-
   const aspectRatioPadding = resolveAspectRatioPadding(image, projectAspectRatio);
   const minHeight = '120px'; // Minimum height for very small images
-
-  // If it's a placeholder, render simplified placeholder item
   if (isPlaceholder) {
     return (
       <div
@@ -329,8 +267,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       </div>
     );
   }
-
-  // Conditionally wrap with DraggableImage only on desktop to avoid interfering with mobile scrolling
   const imageContent = (
     <div
         className={`border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 relative group bg-card ${
@@ -346,12 +282,9 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             e.stopPropagation();
             onImageClick(image);
           } else {
-            // Fallback to standard behavior if onImageClick not provided but enabled
             onOpenLightbox(image);
           }
         } : undefined}
-        // Mobile touch handlers on outer div as fallback for iPad Safari
-        // This ensures touch events are captured even if inner elements don't receive them
         onTouchStart={isMobile && !enableSingleClick && !isVideoContent ? handleTouchStart : undefined}
         onTouchEnd={isMobile && !enableSingleClick && !isVideoContent ? handleInteraction : undefined}
     >
@@ -402,7 +335,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
           )}
       </div>
       </div>
-
       {/* Action buttons and UI elements */}
       {image.id && ( // Ensure image has ID for actions
       <>
@@ -418,7 +350,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
               }
             }}
           />
-
           {/* Add to Shot UI - Top Left (for non-video content) */}
           {showAddToShot && simplifiedShotOptions.length > 0 && onAddToLastShot && (
             <ShotActions
@@ -455,7 +386,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
               }}
             />
           )}
-
           {/* Timestamp - Top Right (hides on hover for images, stays visible for videos) */}
           <TimeStamp
             createdAt={image.createdAt}
@@ -464,7 +394,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             hideOnHover={!isVideoContent}
             className="z-30"
           />
-
           <ItemMetadataBar
             image={image}
             isVideoContent={isVideoContent}
@@ -482,7 +411,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
             shareSlug={shareSlug}
             onMarkAllVariantsViewed={handleMarkAllVariantsViewed}
           />
-
           <ActionButtons
             image={image}
             localStarred={localStarred}
@@ -501,8 +429,6 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       }
     </div>
   );
-
-  // On mobile, drag is already disabled by using the non-draggable branch.
   return isMobile ? (
     <React.Fragment key={imageKey}>
       {imageContent}

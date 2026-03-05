@@ -25,7 +25,11 @@ import { authorizeTaskActor } from "../_shared/taskActorPolicy.ts";
  * - 404 Not Found if task doesn't exist
  * - 500 Internal Server Error
  */
-serve((req) => withEdgeRequest(req, {
+serve((req) => {
+  if (!req.headers.get("authorization")) {
+    return new Response("Authentication failed", { status: 401 });
+  }
+  return withEdgeRequest(req, {
   functionName: "get-task-output",
   logPrefix: "[GET-TASK-OUTPUT]",
   parseBody: "strict",
@@ -82,4 +86,5 @@ serve((req) => withEdgeRequest(req, {
     params: task.params,
     dependant_on: task.dependant_on,
   }, 200);
-}));
+});
+});

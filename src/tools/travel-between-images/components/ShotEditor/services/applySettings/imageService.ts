@@ -62,12 +62,12 @@ export const applyFramePositionsToExistingImages = async (
     });
 
     const results = await Promise.all(updates);
-    const successCount = results.filter(r => r !== null).length;
+    const updatedFrameCount = results.filter(r => r !== null).length;
 
     return {
       success: true,
       settingName: 'framePositions',
-      details: { updated: successCount, total: simpleFilteredImages.length },
+      details: { updated: updatedFrameCount, total: simpleFilteredImages.length },
     };
   } catch (e) {
     const appError = normalizeAndPresentError(e, {

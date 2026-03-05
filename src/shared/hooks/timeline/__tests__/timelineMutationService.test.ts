@@ -45,7 +45,12 @@ describe('timelineMutationService', () => {
       refetchQueries: vi.fn(),
     };
 
-    await refetchTimelineFrameCaches(queryClient as never, 'shot-1', 'project-1', true);
+    await refetchTimelineFrameCaches({
+      queryClient: queryClient as never,
+      shotId: 'shot-1',
+      projectId: 'project-1',
+      includeLiveTimeline: true,
+    });
 
     expect(queryClient.refetchQueries).toHaveBeenNthCalledWith(1, {
       queryKey: queryKeys.generations.byShot('shot-1'),

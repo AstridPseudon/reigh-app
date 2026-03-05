@@ -7,7 +7,7 @@ import {
   callUpdateToolSettingsAtomicRpc,
   resolveSettingsScopeTable,
   selectSettingsForScope,
-} from '@/integrations/supabase/repositories/toolSettingsWriteRepository';
+} from '@/shared/hooks/toolSettingsWriteRepository';
 import {
   enqueueSettingsWrite,
   setSettingsWriteFunction,
@@ -18,7 +18,7 @@ import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import {
   classifyToolSettingsError,
   fetchToolSettingsSupabaseOrThrow,
-  getCachedUserId,
+  resolveAndCacheUserId,
   ToolSettingsError,
   type SettingsFetchResult,
 } from '@/shared/lib/toolSettingsService';
@@ -404,7 +404,7 @@ export function useToolSettings<T>(
 
       if (!idForScope) {
         if (scope === 'user') {
-          const { data: { user } } = await getCachedUserId();
+          const { data: { user } } = await resolveAndCacheUserId();
           idForScope = user?.id;
           if (!idForScope) {
             throw new ToolSettingsError(

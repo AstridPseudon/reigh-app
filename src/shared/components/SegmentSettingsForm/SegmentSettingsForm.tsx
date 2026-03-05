@@ -33,7 +33,8 @@ import { AdvancedSettingsSection } from './components/AdvancedSettingsSection';
 import { PromptSection } from './components/PromptSection';
 
 // Extracted hooks
-import { useSaveFieldAsDefault, useStructureVideoUpload } from './hooks';
+import { useSaveFieldAsDefault } from './hooks/useSaveFieldAsDefault';
+import { useStructureVideoUpload } from './hooks/useStructureVideoUpload';
 
 // Types
 import type { SegmentSettingsFormProps } from './types';
@@ -292,22 +293,28 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
         modelName={modelName}
         queryKeyPrefix={queryKeyPrefix}
         edgeExtendAmount={edgeExtendAmount}
-        shotDefaults={shotDefaults}
-        hasOverride={hasOverride}
-        onSaveFieldAsDefault={onSaveFieldAsDefault}
-        structureVideoType={structureVideoType}
-        structureVideoUrl={structureVideoUrl}
-        structureVideoFrameRange={structureVideoFrameRange}
-        structureVideoDefaults={structureVideoDefaults}
-        isTimelineMode={isTimelineMode}
-        onAddSegmentStructureVideo={onAddSegmentStructureVideo}
-        onRemoveSegmentStructureVideo={onRemoveSegmentStructureVideo}
-        videoUpload={videoUpload}
-        isDraggingVideo={isDraggingVideo}
-        onDragOver={handleDragOver}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        defaults={{
+          shotDefaults,
+          hasOverride,
+          onSaveFieldAsDefault,
+        }}
+        structureVideo={{
+          type: structureVideoType,
+          url: structureVideoUrl,
+          frameRange: structureVideoFrameRange,
+          defaults: structureVideoDefaults,
+          isTimelineMode,
+          onAddSegmentStructureVideo,
+          onRemoveSegmentStructureVideo,
+        }}
+        videoInteraction={{
+          videoUpload,
+          isDraggingVideo,
+          onDragOver: handleDragOver,
+          onDragEnter: handleDragEnter,
+          onDragLeave: handleDragLeave,
+          onDrop: handleDrop,
+        }}
       />
 
       {/* Submit Button */}

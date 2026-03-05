@@ -6,7 +6,7 @@ import {
   insertDefaultShotForProject,
   rpcCopyOnboardingTemplate,
   rpcCreateUserRecordIfNotExists,
-} from '@/integrations/supabase/repositories/projectSetupRepository';
+} from '@/shared/services/projects/projectSetupRepository';
 
 async function copyTemplateToNewUser(newProjectId: string, newShotId: string): Promise<void> {
   const { error } = await rpcCopyOnboardingTemplate(newProjectId, newShotId);

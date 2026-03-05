@@ -1,13 +1,10 @@
+import { type OperationResult, type OperationFailure, operationFailure, operationSuccess } from './edgeOperation.ts';
 import { createClient } from './supabaseClient.ts';
 import { SystemLogger } from './systemLogger.ts';
-import {
-  type OperationFailure,
-  operationFailure,
-  operationSuccess,
-  type OperationResult,
-} from './edgeOperation.ts';
 
 declare const Deno: { env: { get: (key: string) => string | undefined } };
+
+// --- Edge runtime initialization ---
 
 export interface EdgeRuntime {
   supabaseAdmin: ReturnType<typeof createClient>;
@@ -66,28 +63,7 @@ export async function ensureRequestMethod(
   });
 }
 
-export function requestMethodFailureResponse(
-  failure: OperationFailure,
-  method: string,
-): Response {
-  return parseJsonFailureResponse(failure, 405, { Allow: method });
-}
-
-export function operationFailureResponse(
-  failure: OperationFailure,
-  status = 500,
-  extraHeaders?: Record<string, string>,
-): Response {
-  return edgeErrorResponse(
-    {
-      errorCode: failure.errorCode,
-      message: failure.message,
-      recoverable: failure.recoverable,
-    },
-    status,
-    extraHeaders,
-  );
-}
+// --- JSON body parsing ---
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -97,51 +73,7 @@ function coerceLooseObject(value: unknown): Record<string, unknown> {
   return isJsonObject(value) ? value : {};
 }
 
-export function readEdgeErrorCode(payload: Record<string, unknown> | null): string | null {
-  if (!payload) {
-    return null;
-  }
-  if (typeof payload.errorCode === 'string' && payload.errorCode.trim().length > 0) {
-    return payload.errorCode;
-  }
-  if (typeof payload.error === 'string' && payload.error.trim().length > 0) {
-    return payload.error;
-  }
-  return null;
-}
-
-interface EdgeErrorEnvelopeInput {
-  errorCode: string;
-  message: string;
-  recoverable: boolean;
-  retryAfter?: number;
-}
-
-export function edgeErrorResponse(
-  input: EdgeErrorEnvelopeInput,
-  status: number,
-  extraHeaders?: Record<string, string>,
-): Response {
-  return new Response(
-    JSON.stringify({
-      error: input.errorCode,
-      errorCode: input.errorCode,
-      message: input.message,
-      recoverable: input.recoverable,
-      ...(input.retryAfter !== undefined ? { retryAfter: input.retryAfter } : {}),
-    }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        ...(extraHeaders ?? {}),
-      },
-    },
-  );
-}
-
-interface ParseJsonBodyOptions {
+export interface ParseJsonBodyOptions {
   mode?: 'strict' | 'loose';
   message?: string;
   nonObjectMessage?: string;
@@ -214,6 +146,70 @@ export async function parseJsonBodyStrict(
   });
 }
 
+// --- Error code reading ---
+
+export function readEdgeErrorCode(payload: Record<string, unknown> | null): string | null {
+  if (!payload) {
+    return null;
+  }
+  if (typeof payload.errorCode === 'string' && payload.errorCode.trim().length > 0) {
+    return payload.errorCode;
+  }
+  if (typeof payload.error === 'string' && payload.error.trim().length > 0) {
+    return payload.error;
+  }
+  return null;
+}
+
+// --- Error response helpers ---
+
+interface EdgeErrorEnvelopeInput {
+  errorCode: string;
+  message: string;
+  recoverable: boolean;
+  retryAfter?: number;
+}
+
+export function edgeErrorResponse(
+  input: EdgeErrorEnvelopeInput,
+  status: number,
+  extraHeaders?: Record<string, string>,
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: input.errorCode,
+      errorCode: input.errorCode,
+      message: input.message,
+      recoverable: input.recoverable,
+      ...(input.retryAfter !== undefined ? { retryAfter: input.retryAfter } : {}),
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        ...(extraHeaders ?? {}),
+      },
+    },
+  );
+}
+
+export function operationFailureResponse(
+  failure: OperationFailure,
+  status = 500,
+  extraHeaders?: Record<string, string>,
+): Response {
+  return edgeErrorResponse(
+    {
+      errorCode: failure.errorCode,
+      message: failure.message,
+      recoverable: failure.recoverable,
+    },
+    status,
+    extraHeaders,
+  );
+}
+
 export function parseJsonFailureResponse(
   failure: OperationFailure,
   status = 400,
@@ -228,4 +224,11 @@ export function parseJsonFailureResponse(
     status,
     extraHeaders,
   );
+}
+
+export function requestMethodFailureResponse(
+  failure: OperationFailure,
+  method: string,
+): Response {
+  return parseJsonFailureResponse(failure, 405, { Allow: method });
 }

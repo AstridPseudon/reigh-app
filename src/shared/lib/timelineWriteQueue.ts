@@ -1,5 +1,7 @@
 import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
 
+// --- Timeline write logging ---
+
 type TimelineWritePhase = 'queued' | 'start' | 'end';
 
 interface TimelineWriteEventMeta {
@@ -13,7 +15,7 @@ interface TimelineWriteEventMeta {
   blockedByDurationMs?: number | null;
 }
 
-type TimelineWriteEventHandler = (phase: TimelineWritePhase, meta: TimelineWriteEventMeta) => void;
+export type TimelineWriteEventHandler = (phase: TimelineWritePhase, meta: TimelineWriteEventMeta) => void;
 
 interface TimelineWriteLoggerOptions {
   logPrefix: string;
@@ -49,6 +51,8 @@ export function createTimelineWriteQueueLogger(options: TimelineWriteLoggerOptio
   };
 }
 
+// --- Timeline write timeout ---
+
 const DEFAULT_TIMELINE_WRITE_TIMEOUT_MS = 15_000;
 const TIMELINE_WRITE_TIMEOUT_CODE = 'TIMELINE_WRITE_TIMEOUT';
 
@@ -82,11 +86,7 @@ export function isTimelineWriteTimeoutError(error: unknown): error is TimelineWr
   );
 }
 
-/**
- * Guard a write request with an abortable timeout so stalled network calls
- * cannot block the serialized per-shot queue forever.
- */
-export async function runTimelineWriteWithTimeout<T>(
+async function runTimelineWriteWithTimeout<T>(
   operation: string,
   task: (signal: AbortSignal) => Promise<T>,
   options?: TimelineWriteTimeoutOptions,
@@ -134,6 +134,8 @@ export async function runTimelineWriteWithTimeout<T>(
     }
   }
 }
+
+// --- Serialized timeline write queue ---
 
 const shotWriteTail = new Map<string, Promise<void>>();
 const shotWriteDepth = new Map<string, number>();

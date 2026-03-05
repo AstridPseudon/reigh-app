@@ -157,7 +157,7 @@ function performInvalidation(
   }
 }
 
-export function useInvalidateGenerations() {
+export function useEnqueueGenerationsInvalidation() {
   const queryClient = useQueryClient();
   const timeoutRefs = useRef<TimeoutStore>(new Map());
 
@@ -166,7 +166,7 @@ export function useInvalidateGenerations() {
   }, [queryClient]);
 }
 
-export function invalidateGenerationsSync(
+export function enqueueGenerationsInvalidation(
   queryClient: QueryClient,
   shotId: string,
   options: InvalidationOptions
@@ -180,7 +180,7 @@ export function invalidateAllShotGenerations(queryClient: QueryClient): void {
   });
 }
 
-export async function invalidateVariantChange(
+export async function enqueueVariantInvalidation(
   queryClient: QueryClient,
   options: VariantInvalidationOptions
 ): Promise<void> {
@@ -234,3 +234,10 @@ export async function invalidateVariantChange(
     predicate: (query) => query.queryKey[0] === queryKeys.segments.sourceSlotAll[0],
   });
 }
+
+/** @deprecated Use `useEnqueueGenerationsInvalidation` for explicit queue semantics. */
+export const useInvalidateGenerations = useEnqueueGenerationsInvalidation;
+/** @deprecated Use `enqueueGenerationsInvalidation` for explicit queue semantics. */
+export const invalidateGenerationsSync = enqueueGenerationsInvalidation;
+/** @deprecated Use `enqueueVariantInvalidation` for explicit queue semantics. */
+export const invalidateVariantChange = enqueueVariantInvalidation;

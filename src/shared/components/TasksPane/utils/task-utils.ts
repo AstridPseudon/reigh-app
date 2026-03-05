@@ -154,18 +154,32 @@ export const isSegmentVideoTask = (task: Task): boolean => {
   return task.taskType === 'individual_travel_segment';
 };
 
+export type SegmentConnectionResult =
+  | { ok: true; connected: boolean }
+  | { ok: false; error: string };
+
 export const checkSegmentConnection = async (
   pairShotGenerationId: string | null,
   shotId: string
-): Promise<boolean> => {
+): Promise<SegmentConnectionResult> => {
   if (!pairShotGenerationId) {
-    return false;
+    return { ok: true, connected: false };
   }
 
-  const { data } = await supabase().from('shot_generations')
+  const { data, error } = await supabase().from('shot_generations')
     .select('id, shot_id, timeline_frame')
     .eq('id', pairShotGenerationId)
     .maybeSingle();
 
-  return !!data && data.shot_id === shotId && (data.timeline_frame ?? -1) >= 0;
+  if (error) {
+    return {
+      ok: false,
+      error: error.message || 'Failed to verify segment connection',
+    };
+  }
+
+  return {
+    ok: true,
+    connected: !!data && data.shot_id === shotId && (data.timeline_frame ?? -1) >= 0,
+  };
 };

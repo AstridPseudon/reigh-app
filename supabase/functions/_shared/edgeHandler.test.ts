@@ -25,7 +25,7 @@ vi.mock('./edgeRequest.ts', () => ({
 
 import { bootstrapEdgeHandler, withEdgeRequest } from './edgeHandler.ts';
 
-function jsonResponse(payload: Record<string, unknown>, status: number, headers?: Record<string, string>) {
+function edgeTestJsonResponse(payload: Record<string, unknown>, status: number, headers?: Record<string, string>) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
@@ -59,7 +59,7 @@ beforeEach(() => {
     message: string;
     recoverable: boolean;
   }, status: number, headers?: Record<string, string>) =>
-    jsonResponse(
+    edgeTestJsonResponse(
       {
         error: input.errorCode,
         errorCode: input.errorCode,
@@ -71,10 +71,10 @@ beforeEach(() => {
     ),
   );
   mocks.parseJsonFailureResponse.mockImplementation((failure: { errorCode: string; message: string }, status = 400) =>
-    jsonResponse({ error: failure.errorCode, message: failure.message }, status),
+    edgeTestJsonResponse({ error: failure.errorCode, message: failure.message }, status),
   );
   mocks.operationFailureResponse.mockImplementation((failure: { errorCode: string; message: string }, status = 500) =>
-    jsonResponse({ error: failure.errorCode, message: failure.message }, status),
+    edgeTestJsonResponse({ error: failure.errorCode, message: failure.message }, status),
   );
   mocks.parseJsonBody.mockResolvedValue({ ok: true, value: {} });
   mocks.parseJsonBodyStrict.mockResolvedValue({ ok: true, value: {} });

@@ -60,26 +60,30 @@ function useLightboxLayoutModel(props: LightboxLayoutProps) {
 
   return {
     props,
-    core,
-    mediaState,
-    variantsState,
-    navigation,
-    imageEdit,
-    videoEdit,
-    isSidePanelLayout,
-    isStackedLayout,
-    floatingToolVariant,
-    mediaDisplayVariant,
-    mediaDisplayContainerClassName,
-    mediaDisplayDebugContext,
-    topCenterClassName,
+    contexts: {
+      core,
+      mediaState,
+      variantsState,
+      navigation,
+      imageEdit,
+      videoEdit,
+    },
+    layout: {
+      isSidePanelLayout,
+      isStackedLayout,
+      floatingToolVariant,
+      mediaDisplayVariant,
+      mediaDisplayContainerClassName,
+      mediaDisplayDebugContext,
+      topCenterClassName,
+    },
   };
 }
 
 type LightboxLayoutModel = ReturnType<typeof useLightboxLayoutModel>;
 
 function MediaContent({ model }: { model: LightboxLayoutModel }) {
-  const { mediaState, variantsState, videoEdit } = model;
+  const { mediaState, variantsState, videoEdit } = model.contexts;
 
   if (mediaState.isVideo && videoEdit.isVideoEditModeActive && videoEdit.videoEditing) {
     return (
@@ -124,10 +128,10 @@ function MediaContent({ model }: { model: LightboxLayoutModel }) {
           videoEdit.setVideoDuration(video.duration);
         }
       }}
-      variant={model.mediaDisplayVariant}
-      containerClassName={model.mediaDisplayContainerClassName}
-      tasksPaneWidth={model.isSidePanelLayout && model.props.effectiveTasksPaneOpen ? model.props.effectiveTasksPaneWidth : 0}
-      debugContext={model.mediaDisplayDebugContext}
+      variant={model.layout.mediaDisplayVariant}
+      containerClassName={model.layout.mediaDisplayContainerClassName}
+      tasksPaneWidth={model.layout.isSidePanelLayout && model.props.effectiveTasksPaneOpen ? model.props.effectiveTasksPaneWidth : 0}
+      debugContext={model.layout.mediaDisplayDebugContext}
       imageDimensions={mediaState.effectiveImageDimensions}
     />
   );
@@ -136,22 +140,22 @@ function MediaContent({ model }: { model: LightboxLayoutModel }) {
 function TopCenterOverlay({ model, className }: { model: LightboxLayoutModel; className: string }) {
   return (
     <div className={className}>
-      {model.props.adjacentSegments && !model.mediaState.isVideo && (
+      {model.props.adjacentSegments && !model.contexts.mediaState.isVideo && (
         <AdjacentSegmentNavigation adjacentSegments={model.props.adjacentSegments} />
       )}
-      {model.mediaState.isVideo && model.props.segmentSlotMode?.adjacentVideoThumbnails && model.props.segmentSlotMode?.onOpenPreviewDialog && (
+      {model.contexts.mediaState.isVideo && model.props.segmentSlotMode?.adjacentVideoThumbnails && model.props.segmentSlotMode?.onOpenPreviewDialog && (
         <PreviewSequencePill
           adjacentVideoThumbnails={model.props.segmentSlotMode.adjacentVideoThumbnails}
           onOpenPreviewDialog={model.props.segmentSlotMode.onOpenPreviewDialog}
         />
       )}
       <VariantOverlayBadge
-        activeVariant={model.variantsState.activeVariant ?? undefined}
-        variants={model.variantsState.variants}
-        readOnly={model.core.readOnly}
-        isMakingMainVariant={model.variantsState.isMakingMainVariant}
-        canMakeMainVariant={model.variantsState.canMakeMainVariant}
-        onMakeMainVariant={model.variantsState.handleMakeMainVariant}
+        activeVariant={model.contexts.variantsState.activeVariant ?? undefined}
+        variants={model.contexts.variantsState.variants}
+        readOnly={model.contexts.core.readOnly}
+        isMakingMainVariant={model.contexts.variantsState.isMakingMainVariant}
+        canMakeMainVariant={model.contexts.variantsState.canMakeMainVariant}
+        onMakeMainVariant={model.contexts.variantsState.handleMakeMainVariant}
       />
     </div>
   );
@@ -162,7 +166,8 @@ function OverlayElements({ model, topCenterClassName, showFloatingTools }: {
   topCenterClassName: string;
   showFloatingTools: boolean;
 }) {
-  const { core, mediaState, variantsState, props } = model;
+  const { core, mediaState, variantsState } = model.contexts;
+  const { props } = model;
   const buttonGroups = props.buttonGroups;
 
   return (
@@ -180,8 +185,8 @@ function OverlayElements({ model, topCenterClassName, showFloatingTools }: {
         onPromote={variantsState.handlePromoteToGeneration}
       />
 
-      {showFloatingTools && model.imageEdit.isSpecialEditMode && (
-        <FloatingToolControls variant={model.floatingToolVariant} />
+      {showFloatingTools && model.contexts.imageEdit.isSpecialEditMode && (
+        <FloatingToolControls variant={model.layout.floatingToolVariant} />
       )}
 
       <BottomLeftControls {...buttonGroups.bottomLeft} />
@@ -205,7 +210,7 @@ function OverlayElements({ model, topCenterClassName, showFloatingTools }: {
 }
 
 function CompactEditControls({ model }: { model: LightboxLayoutModel }) {
-  const { core, imageEdit } = model;
+  const { core, imageEdit } = model.contexts;
   if (core.readOnly || !imageEdit.isSpecialEditMode || imageEdit.editMode === 'text') return null;
 
   return (
@@ -285,8 +290,8 @@ function CompactEditControls({ model }: { model: LightboxLayoutModel }) {
 }
 
 function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
-  const isDesktopPanel = model.isSidePanelLayout;
-  const showAnnotationControls = model.imageEdit.isSpecialEditMode && model.imageEdit.editMode === 'annotate';
+  const isDesktopPanel = model.layout.isSidePanelLayout;
+  const showAnnotationControls = model.contexts.imageEdit.isSpecialEditMode && model.contexts.imageEdit.editMode === 'annotate';
 
   return (
     <div
@@ -301,22 +306,22 @@ function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
           ? { width: '60%' }
           : {
               height: '50%',
-              transform: model.navigation.swipeNavigation.isSwiping
-                ? `translateX(${model.navigation.swipeNavigation.swipeOffset}px)`
+              transform: model.contexts.navigation.swipeNavigation.isSwiping
+                ? `translateX(${model.contexts.navigation.swipeNavigation.swipeOffset}px)`
                 : undefined,
-              transition: model.navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
+              transition: model.contexts.navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
             }}
         onClick={(event) => event.stopPropagation()}
-        {...(!isDesktopPanel ? model.navigation.swipeNavigation.swipeHandlers : {})}
+        {...(!isDesktopPanel ? model.contexts.navigation.swipeNavigation.swipeHandlers : {})}
       >
         {isDesktopPanel && (
           <NavigationArrows
-            showNavigation={model.navigation.showNavigation}
-            readOnly={model.core.readOnly}
-            onPrevious={model.navigation.handleSlotNavPrev}
-            onNext={model.navigation.handleSlotNavNext}
-            hasPrevious={model.navigation.hasPrevious}
-            hasNext={model.navigation.hasNext}
+            showNavigation={model.contexts.navigation.showNavigation}
+            readOnly={model.contexts.core.readOnly}
+            onPrevious={model.contexts.navigation.handleSlotNavPrev}
+            onNext={model.contexts.navigation.handleSlotNavNext}
+            hasPrevious={model.contexts.navigation.hasPrevious}
+            hasNext={model.contexts.navigation.hasNext}
             variant="desktop"
           />
         )}
@@ -324,28 +329,28 @@ function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
         <MediaContent model={model} />
         {showAnnotationControls && (
           <AnnotationFloatingControls
-            selectedShapeId={model.imageEdit.selectedShapeId}
-            isAnnotateMode={model.imageEdit.isAnnotateMode}
-            brushStrokes={model.imageEdit.brushStrokes}
-            getDeleteButtonPosition={model.imageEdit.getDeleteButtonPosition}
-            onToggleFreeForm={model.imageEdit.handleToggleFreeForm}
-            onDeleteSelected={model.imageEdit.handleDeleteSelected}
+            selectedShapeId={model.contexts.imageEdit.selectedShapeId}
+            isAnnotateMode={model.contexts.imageEdit.isAnnotateMode}
+            brushStrokes={model.contexts.imageEdit.brushStrokes}
+            getDeleteButtonPosition={model.contexts.imageEdit.getDeleteButtonPosition}
+            onToggleFreeForm={model.contexts.imageEdit.handleToggleFreeForm}
+            onDeleteSelected={model.contexts.imageEdit.handleDeleteSelected}
             positionStrategy="fixed"
             freeFormActiveClassName="bg-purple-600 hover:bg-purple-700 text-white"
             freeFormInactiveClassName="bg-gray-700 hover:bg-gray-600 text-white"
             deleteButtonClassName="bg-red-600 hover:bg-red-700 text-white"
           />
         )}
-        <OverlayElements model={model} topCenterClassName={model.topCenterClassName} showFloatingTools={true} />
+        <OverlayElements model={model} topCenterClassName={model.layout.topCenterClassName} showFloatingTools={true} />
 
         {!isDesktopPanel && (
           <NavigationArrows
-            showNavigation={model.navigation.showNavigation}
-            readOnly={model.core.readOnly}
-            onPrevious={model.navigation.handleSlotNavPrev}
-            onNext={model.navigation.handleSlotNavNext}
-            hasPrevious={model.navigation.hasPrevious}
-            hasNext={model.navigation.hasNext}
+            showNavigation={model.contexts.navigation.showNavigation}
+            readOnly={model.contexts.core.readOnly}
+            onPrevious={model.contexts.navigation.handleSlotNavPrev}
+            onNext={model.contexts.navigation.handleSlotNavNext}
+            hasPrevious={model.contexts.navigation.hasPrevious}
+            hasNext={model.contexts.navigation.hasNext}
             variant="mobile"
           />
         )}
@@ -363,7 +368,7 @@ function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
 }
 
 function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
-  const showAnnotationControls = model.imageEdit.isSpecialEditMode && model.imageEdit.editMode === 'annotate';
+  const showAnnotationControls = model.contexts.imageEdit.isSpecialEditMode && model.contexts.imageEdit.editMode === 'annotate';
 
   return (
     <div
@@ -375,29 +380,29 @@ function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
         data-lightbox-bg
         className={cn(
           'relative flex items-center justify-center max-w-full my-auto',
-          model.core.isMobile && model.imageEdit.isInpaintMode && 'pointer-events-auto',
+          model.contexts.core.isMobile && model.contexts.imageEdit.isInpaintMode && 'pointer-events-auto',
           'touch-none'
         )}
         style={{
           height: 'calc(100vh - 220px)',
           maxHeight: 'calc(100vh - 220px)',
-          transform: model.navigation.swipeNavigation.isSwiping
-            ? `translateX(${model.navigation.swipeNavigation.swipeOffset}px)`
+          transform: model.contexts.navigation.swipeNavigation.isSwiping
+            ? `translateX(${model.contexts.navigation.swipeNavigation.swipeOffset}px)`
             : undefined,
-          transition: model.navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
+          transition: model.contexts.navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
         }}
         onClick={(event) => event.stopPropagation()}
-        {...model.navigation.swipeNavigation.swipeHandlers}
+        {...model.contexts.navigation.swipeNavigation.swipeHandlers}
       >
         <MediaContent model={model} />
         {showAnnotationControls && (
           <AnnotationFloatingControls
-            selectedShapeId={model.imageEdit.selectedShapeId}
-            isAnnotateMode={model.imageEdit.isAnnotateMode}
-            brushStrokes={model.imageEdit.brushStrokes}
-            getDeleteButtonPosition={model.imageEdit.getDeleteButtonPosition}
-            onToggleFreeForm={model.imageEdit.handleToggleFreeForm}
-            onDeleteSelected={model.imageEdit.handleDeleteSelected}
+            selectedShapeId={model.contexts.imageEdit.selectedShapeId}
+            isAnnotateMode={model.contexts.imageEdit.isAnnotateMode}
+            brushStrokes={model.contexts.imageEdit.brushStrokes}
+            getDeleteButtonPosition={model.contexts.imageEdit.getDeleteButtonPosition}
+            onToggleFreeForm={model.contexts.imageEdit.handleToggleFreeForm}
+            onDeleteSelected={model.contexts.imageEdit.handleDeleteSelected}
             positionStrategy="fixed"
             freeFormActiveClassName="bg-purple-600 hover:bg-purple-700 text-white"
             freeFormInactiveClassName="bg-gray-700 hover:bg-gray-600 text-white"
@@ -412,12 +417,12 @@ function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
         <CompactEditControls model={model} />
 
         <NavigationArrows
-          showNavigation={model.navigation.showNavigation}
-          readOnly={model.core.readOnly}
-          onPrevious={model.navigation.handleSlotNavPrev}
-          onNext={model.navigation.handleSlotNavNext}
-          hasPrevious={model.navigation.hasPrevious}
-          hasNext={model.navigation.hasNext}
+          showNavigation={model.contexts.navigation.showNavigation}
+          readOnly={model.contexts.core.readOnly}
+          onPrevious={model.contexts.navigation.handleSlotNavPrev}
+          onNext={model.contexts.navigation.handleSlotNavNext}
+          hasPrevious={model.contexts.navigation.hasPrevious}
+          hasNext={model.contexts.navigation.hasNext}
           variant="mobile"
         />
       </div>

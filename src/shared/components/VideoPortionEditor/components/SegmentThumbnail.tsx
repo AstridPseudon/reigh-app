@@ -1,5 +1,5 @@
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { useVideoFrameExtraction } from '@/shared/components/VideoPortionEditor/hooks/useVideoFrameExtraction';
+import { useVideoPortionFrameExtraction } from '@/shared/components/VideoPortionEditor/hooks/useVideoFrameExtraction';
 
 interface SegmentThumbnailProps {
   videoUrl: string;
@@ -13,7 +13,7 @@ export function SegmentThumbnail({
   size = 'small',
 }: SegmentThumbnailProps) {
   const { canvasRef, loaded, error, canvasWidth, canvasHeight } =
-    useVideoFrameExtraction({
+    useVideoPortionFrameExtraction({
       videoUrl,
       time,
       size,

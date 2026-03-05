@@ -1,7 +1,7 @@
 import { useCallback, useRef, useMemo, useEffect } from 'react';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { useAutoSaveSettings } from '@/shared/hooks/settings/useAutoSaveSettings';
+import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import { VideoTravelSettings, DEFAULT_PHASE_CONFIG, videoTravelSettings } from '../../settings';
 import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';

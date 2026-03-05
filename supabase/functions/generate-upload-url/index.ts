@@ -22,7 +22,11 @@ interface UploadUrlResponse {
   thumbnail_token?: string;
 }
 
-serve((req) => withEdgeRequest<GenerateUploadUrlBody>(req, {
+serve((req) => {
+  if (!req.headers.get("authorization")) {
+    return new Response("Authentication failed", { status: 401 });
+  }
+  return withEdgeRequest<GenerateUploadUrlBody>(req, {
   functionName: "generate-upload-url",
   logPrefix: "[GENERATE-UPLOAD-URL]",
   parseBody: "strict",
@@ -119,4 +123,5 @@ serve((req) => withEdgeRequest<GenerateUploadUrlBody>(req, {
     has_thumbnail: Boolean(response.thumbnail_upload_url),
   });
   return jsonResponse(response, 200);
-}));
+});
+});

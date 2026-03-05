@@ -25,6 +25,9 @@ import { dollarsToCents, validateAutoTopupConfig } from "../_shared/autoTopupDom
  * - 500 Internal Server Error
  */
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "setup-auto-topup",
     logPrefix: "[SETUP-AUTO-TOPUP]",
@@ -59,8 +62,8 @@ serve(async (req) => {
     autoTopupAmount,
     autoTopupThreshold,
   });
-  if (autoTopupValidationError) {
-    return jsonResponse({ error: autoTopupValidationError }, 400);
+  if (!autoTopupValidationError.ok) {
+    return jsonResponse({ error: autoTopupValidationError.error.message }, 400);
   }
 
   // ─── 2. Authenticate request ────────────────────────────────────

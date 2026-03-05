@@ -86,7 +86,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
   
   // Use controlled state if provided, otherwise use internal state
   const isOpen = open !== undefined ? open : internalOpen;
-  const setIsOpen = useCallback((newOpen: boolean) => {
+  const setShotSelectorOpen = useCallback((newOpen: boolean) => {
     if (open === undefined) {
       setInternalOpen(newOpen);
     }
@@ -170,7 +170,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover open={isOpen} onOpenChange={setShotSelectorOpen}>
         <PopoverTrigger asChild>
           <button
             role="combobox"
@@ -225,7 +225,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
                     e.preventDefault();
                     e.stopPropagation();
                     if (quickCreateSuccess.isLoading) return;
-                    setIsOpen(false);
+                    setShotSelectorOpen(false);
                     if (onQuickCreateSuccess) {
                       onQuickCreateSuccess();
                     }
@@ -300,7 +300,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
                     className="text-xs group/shot relative"
                     onSelect={() => {
                       onValueChange(shot.id);
-                      setIsOpen(false);
+                      setShotSelectorOpen(false);
                     }}
                   >
                     <div className="flex items-center justify-between w-full">
@@ -321,7 +321,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setIsOpen(false);
+                          setShotSelectorOpen(false);
                           onNavigateToShot(shot);
                         }}
                         onPointerDown={(e) => {

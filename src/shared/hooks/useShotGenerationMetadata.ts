@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
-import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 interface ShotGenerationMetadata {
@@ -36,7 +36,7 @@ export function useShotGenerationMetadata({
   const [metadata, setMetadata] = useState<ShotGenerationMetadata>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const invalidateGenerations = useInvalidateGenerations();
+  const invalidateGenerations = useEnqueueGenerationsInvalidation();
 
   // Load metadata from database
   useEffect(() => {

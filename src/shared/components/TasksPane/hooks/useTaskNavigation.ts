@@ -222,9 +222,14 @@ export function useTaskNavigation({
       // For segment videos, try to open in shot context for full timeline integration
       if (isSegmentVideoTask(task) && shotId) {
         const pairShotGenerationId = extractPairShotGenerationId(task);
-        const isConnected = await checkSegmentConnection(pairShotGenerationId, shotId);
+        const segmentConnection = await checkSegmentConnection(pairShotGenerationId, shotId);
 
-        if (isConnected) {
+        if (!segmentConnection.ok) {
+          normalizeAndPresentError(new Error(segmentConnection.error), {
+            context: 'TaskItem.checkSegmentConnection',
+            showToast: false,
+          });
+        } else if (segmentConnection.connected) {
           onCloseLightbox?.();
           navigateToShot(shotId, { openSegmentSlot: pairShotGenerationId });
           return;

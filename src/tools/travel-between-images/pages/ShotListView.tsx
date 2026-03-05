@@ -15,12 +15,10 @@ import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { useStableObject } from '@/shared/hooks/useStableObject';
-import {
-  useVideoTravelViewMode,
-  useVideoTravelDropHandlers,
-  useVideoTravelAddToShot,
-  useVideoLayoutConfig,
-} from '../hooks';
+import { useVideoTravelViewMode } from '../hooks/workflow/useVideoTravelViewMode';
+import { useVideoTravelDropHandlers } from '../hooks/workflow/useVideoTravelDropHandlers';
+import { useVideoTravelAddToShot } from '../hooks/workflow/useVideoTravelAddToShot';
+import { useVideoLayoutConfig } from '../hooks/video/useVideoLayoutConfig';
 import { VideoTravelListHeader } from '../components/VideoGallery/VideoTravelListHeader';
 import { VideoTravelVideosGallery } from '../components/VideoGallery/VideoTravelVideosGallery';
 

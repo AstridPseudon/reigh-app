@@ -11,7 +11,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
-  invalidateVariantChange: vi.fn().mockResolvedValue(undefined),
+  enqueueVariantInvalidation: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

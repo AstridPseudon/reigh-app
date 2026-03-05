@@ -3,10 +3,10 @@ import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import {
-  useInvalidateGenerations,
-  invalidateGenerationsSync,
+  useEnqueueGenerationsInvalidation,
+  enqueueGenerationsInvalidation,
   invalidateAllShotGenerations,
-  invalidateVariantChange,
+  enqueueVariantInvalidation,
 } from '../useGenerationInvalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 
@@ -21,10 +21,10 @@ function createWrapper() {
   };
 }
 
-describe('useInvalidateGenerations', () => {
+describe('useEnqueueGenerationsInvalidation', () => {
   it('returns a stable function', () => {
     const { wrapper } = createWrapper();
-    const { result, rerender } = renderHook(() => useInvalidateGenerations(), { wrapper });
+    const { result, rerender } = renderHook(() => useEnqueueGenerationsInvalidation(), { wrapper });
 
     const first = result.current;
     rerender();
@@ -32,7 +32,7 @@ describe('useInvalidateGenerations', () => {
   });
 });
 
-describe('invalidateGenerationsSync', () => {
+describe('enqueueGenerationsInvalidation', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -45,7 +45,7 @@ describe('invalidateGenerationsSync', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const shotId = 'shot-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
       scope: 'images',
     });
@@ -61,7 +61,7 @@ describe('invalidateGenerationsSync', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const shotId = 'shot-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
       scope: 'metadata',
     });
@@ -76,7 +76,7 @@ describe('invalidateGenerationsSync', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const shotId = 'shot-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
       scope: 'counts',
     });
@@ -91,7 +91,7 @@ describe('invalidateGenerationsSync', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const shotId = 'shot-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
       scope: 'all',
     });
@@ -109,7 +109,7 @@ describe('invalidateGenerationsSync', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const shotId = 'shot-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
     });
 
@@ -122,7 +122,7 @@ describe('invalidateGenerationsSync', () => {
     const shotId = 'shot-123';
     const projectId = 'project-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
       includeShots: true,
       projectId,
@@ -139,7 +139,7 @@ describe('invalidateGenerationsSync', () => {
     const shotId = 'shot-123';
     const projectId = 'project-123';
 
-    invalidateGenerationsSync(queryClient, shotId, {
+    enqueueGenerationsInvalidation(queryClient, shotId, {
       reason: 'test',
       includeProjectUnified: true,
       projectId,
@@ -155,7 +155,7 @@ describe('invalidateGenerationsSync', () => {
     vi.useFakeTimers();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    invalidateGenerationsSync(queryClient, 'shot-123', {
+    enqueueGenerationsInvalidation(queryClient, 'shot-123', {
       reason: 'test',
       scope: 'images',
       delayMs: 500,
@@ -188,7 +188,7 @@ describe('invalidateAllShotGenerations', () => {
   });
 });
 
-describe('invalidateVariantChange', () => {
+describe('enqueueVariantInvalidation', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -201,7 +201,7 @@ describe('invalidateVariantChange', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const generationId = 'gen-123';
 
-    await invalidateVariantChange(queryClient, {
+    await enqueueVariantInvalidation(queryClient, {
       generationId,
       reason: 'test',
     });
@@ -219,7 +219,7 @@ describe('invalidateVariantChange', () => {
     const generationId = 'gen-123';
     const shotId = 'shot-123';
 
-    await invalidateVariantChange(queryClient, {
+    await enqueueVariantInvalidation(queryClient, {
       generationId,
       reason: 'test',
       shotId,
@@ -234,7 +234,7 @@ describe('invalidateVariantChange', () => {
   it('invalidates unified.all as fallback when no projectId', async () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    await invalidateVariantChange(queryClient, {
+    await enqueueVariantInvalidation(queryClient, {
       generationId: 'gen-123',
       reason: 'test',
     });
@@ -252,7 +252,7 @@ describe('invalidateVariantChange', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const projectId = 'project-123';
 
-    await invalidateVariantChange(queryClient, {
+    await enqueueVariantInvalidation(queryClient, {
       generationId: 'gen-123',
       reason: 'test',
       projectId,
@@ -270,7 +270,7 @@ describe('invalidateVariantChange', () => {
     vi.useFakeTimers();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    const promise = invalidateVariantChange(queryClient, {
+    const promise = enqueueVariantInvalidation(queryClient, {
       generationId: 'gen-123',
       reason: 'test',
       delayMs: 200,
@@ -290,7 +290,7 @@ describe('invalidateVariantChange', () => {
     vi.useFakeTimers();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-    const first = invalidateVariantChange(queryClient, {
+    const first = enqueueVariantInvalidation(queryClient, {
       generationId: 'gen-123',
       reason: 'first',
       delayMs: 500,
@@ -299,7 +299,7 @@ describe('invalidateVariantChange', () => {
     // Queue a superseding call before the first delay elapses.
     await vi.advanceTimersByTimeAsync(100);
 
-    const second = invalidateVariantChange(queryClient, {
+    const second = enqueueVariantInvalidation(queryClient, {
       generationId: 'gen-123',
       reason: 'second',
       delayMs: 500,

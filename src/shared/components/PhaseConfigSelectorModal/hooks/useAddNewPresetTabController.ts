@@ -7,13 +7,10 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import type { PhaseConfigMetadata } from '@/shared/hooks/useResources';
 import { usePresetSampleFiles } from '../hooks/usePresetSampleFiles';
 import type { AddNewTabProps } from '../components/AddNewPresetTab.types';
-
-// Generate a preset name based on timestamp
 const generatePresetName = (): string => {
   const now = new Date();
   return `Preset ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 };
-
 interface FormFields {
   name: string;
   description: string;
@@ -27,14 +24,12 @@ interface FormFields {
   enhancePrompt: boolean;
   durationFrames: number;
 }
-
 interface FormState {
   fields: FormFields;
   editablePhaseConfig: PhaseConfig;
   generationTypeMode: 'i2v' | 'vace';
   isSubmitting: boolean;
 }
-
 type FormAction =
   | { type: 'SET_FORM_FIELD'; field: string; value: string | boolean | number }
   | { type: 'SET_FORM_FIELDS'; fields: Partial<FormFields> }
@@ -48,21 +43,16 @@ type FormAction =
   | { type: 'SET_GENERATION_TYPE_MODE'; mode: 'i2v' | 'vace' }
   | { type: 'SET_SUBMISSION_STATE'; isSubmitting: boolean }
   | { type: 'RESET_FORM'; defaultIsPublic: boolean; phaseConfig: PhaseConfig };
-
 function formReducer(state: FormState, action: FormAction): FormState {
   switch (action.type) {
     case 'SET_FORM_FIELD':
       return { ...state, fields: { ...state.fields, [action.field]: action.value } };
-
     case 'SET_FORM_FIELDS':
       return { ...state, fields: { ...state.fields, ...action.fields } };
-
     case 'SET_ALL_FORM_FIELDS':
       return { ...state, fields: action.fields };
-
     case 'SET_PHASE_CONFIG':
       return { ...state, editablePhaseConfig: action.config };
-
     case 'UPDATE_PHASE_CONFIG_FIELD':
       return {
         ...state,
@@ -71,7 +61,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
           [action.field]: action.value,
         },
       };
-
     case 'UPDATE_PHASE':
       return {
         ...state,
@@ -82,7 +71,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
           ),
         },
       };
-
     case 'UPDATE_PHASE_LORA':
       return {
         ...state,
@@ -101,7 +89,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
           }),
         },
       };
-
     case 'ADD_LORA_TO_PHASE':
       return {
         ...state,
@@ -121,7 +108,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
           }),
         },
       };
-
     case 'REMOVE_LORA_FROM_PHASE':
       return {
         ...state,
@@ -138,13 +124,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
           }),
         },
       };
-
     case 'SET_GENERATION_TYPE_MODE':
       return { ...state, generationTypeMode: action.mode };
-
     case 'SET_SUBMISSION_STATE':
       return { ...state, isSubmitting: action.isSubmitting };
-
     case 'RESET_FORM':
       return {
         ...state,
@@ -163,13 +146,11 @@ function formReducer(state: FormState, action: FormAction): FormState {
         },
         editablePhaseConfig: action.phaseConfig,
       };
-
     default:
       return state;
   }
 }
-
-function createInitialState(
+function createAddPresetTabInitialState(
   editingPreset: AddNewTabProps['editingPreset'],
   isOverwriting: boolean,
   currentPhaseConfig: PhaseConfig | undefined,
@@ -180,11 +161,9 @@ function createInitialState(
   const generationTypeMode = editingPreset?.metadata?.generationTypeMode && !isOverwriting
     ? editingPreset.metadata.generationTypeMode
     : initialGenerationTypeMode;
-
   const editablePhaseConfig = editingPreset?.metadata?.phaseConfig && !isOverwriting
     ? editingPreset.metadata.phaseConfig
     : currentPhaseConfig || DEFAULT_PHASE_CONFIG;
-
   return {
     fields: {
       name: generatePresetName(),
@@ -204,7 +183,6 @@ function createInitialState(
     isSubmitting: false,
   };
 }
-
 export function useAddNewPresetTabController({
   createResource,
   updateResource,
@@ -218,7 +196,6 @@ export function useAddNewPresetTabController({
   defaultIsPublic,
 }: AddNewTabProps) {
   const isEditMode = Boolean(editingPreset);
-
   const [state, dispatch] = useReducer(
     formReducer,
     {
@@ -229,7 +206,7 @@ export function useAddNewPresetTabController({
       initialGenerationTypeMode,
       defaultIsPublic,
     },
-    (args) => createInitialState(
+    (args) => createAddPresetTabInitialState(
       args.editingPreset,
       args.isOverwriting,
       args.currentPhaseConfig,
@@ -238,33 +215,26 @@ export function useAddNewPresetTabController({
       args.defaultIsPublic,
     ),
   );
-
   const { fields: addForm, editablePhaseConfig, generationTypeMode, isSubmitting } = state;
   const sampleFilesHook = usePresetSampleFiles();
-
   const updatePhaseConfig = useCallback(
     <K extends keyof PhaseConfig>(field: K, value: PhaseConfig[K]) => {
       dispatch({ type: 'UPDATE_PHASE_CONFIG_FIELD', field, value });
     },
     [],
   );
-
   const updatePhase = useCallback((phaseIdx: number, updates: Partial<PhaseConfig['phases'][0]>) => {
     dispatch({ type: 'UPDATE_PHASE', phaseIdx, updates });
   }, []);
-
   const updatePhaseLora = useCallback((phaseIdx: number, loraIdx: number, updates: Partial<{ url: string; multiplier: string }>) => {
     dispatch({ type: 'UPDATE_PHASE_LORA', phaseIdx, loraIdx, updates });
   }, []);
-
   const addLoraToPhase = useCallback((phaseIdx: number, url: string = '', multiplier: string = '1.0') => {
     dispatch({ type: 'ADD_LORA_TO_PHASE', phaseIdx, url, multiplier });
   }, []);
-
   const removeLoraFromPhase = useCallback((phaseIdx: number, loraIdx: number) => {
     dispatch({ type: 'REMOVE_LORA_FROM_PHASE', phaseIdx, loraIdx });
   }, []);
-
   const resetForm = useCallback(() => {
     dispatch({
       type: 'RESET_FORM',
@@ -273,7 +243,6 @@ export function useAddNewPresetTabController({
     });
     sampleFilesHook.resetSampleFiles();
   }, [currentPhaseConfig, defaultIsPublic, sampleFilesHook]);
-
   useEffect(() => {
     if (editingPreset?.metadata?.phaseConfig) {
       if (!isOverwriting) {
@@ -291,7 +260,6 @@ export function useAddNewPresetTabController({
       dispatch({ type: 'SET_PHASE_CONFIG', config: DEFAULT_PHASE_CONFIG });
     }
   }, [editingPreset, isOverwriting, currentPhaseConfig, initialGenerationTypeMode]);
-
   useEffect(() => {
     if (!editingPreset && currentSettings) {
       dispatch({
@@ -306,17 +274,14 @@ export function useAddNewPresetTabController({
           durationFrames: currentSettings.durationFrames || 60,
         },
       });
-
       if (currentSettings.lastGeneratedVideoUrl) {
         sampleFilesHook.setInitialVideo(currentSettings.lastGeneratedVideoUrl);
       }
     }
   }, [currentSettings, editingPreset, sampleFilesHook]);
-
   useEffect(() => {
     if (editingPreset && editingPreset.metadata) {
       const metadata = editingPreset.metadata;
-
       if (isOverwriting && currentSettings) {
         dispatch({
           type: 'SET_ALL_FORM_FIELDS',
@@ -334,7 +299,6 @@ export function useAddNewPresetTabController({
             durationFrames: currentSettings.durationFrames || 60,
           },
         });
-
         sampleFilesHook.resetSampleFiles();
       } else {
         dispatch({
@@ -354,9 +318,7 @@ export function useAddNewPresetTabController({
           },
         });
       }
-
       sampleFilesHook.resetSampleFiles();
-
       if (isOverwriting && currentSettings?.lastGeneratedVideoUrl) {
         sampleFilesHook.setInitialVideo(currentSettings.lastGeneratedVideoUrl);
       } else if (!isOverwriting) {
@@ -364,29 +326,23 @@ export function useAddNewPresetTabController({
       }
     }
   }, [editingPreset, isOverwriting, currentSettings, sampleFilesHook]);
-
   const handleFormChange = useCallback((field: string, value: string | boolean | number) => {
     dispatch({ type: 'SET_FORM_FIELD', field, value });
   }, []);
-
   const handleCancelEdit = useCallback(() => {
     onClearEdit();
     resetForm();
   }, [onClearEdit, resetForm]);
-
   const handleSubmit = useCallback(async () => {
     if (!addForm.name.trim()) {
       toast.error('Name is required');
       return;
     }
-
     if (!editablePhaseConfig) {
       toast.error('No phase config available to save');
       return;
     }
-
     dispatch({ type: 'SET_SUBMISSION_STATE', isSubmitting: true });
-
     try {
       const uploadedSamples: Array<{ url: string; type: 'image' | 'video'; alt_text?: string }> = [];
       for (const file of sampleFilesHook.sampleFiles) {
@@ -397,19 +353,15 @@ export function useAddNewPresetTabController({
           alt_text: file.name,
         });
       }
-
       const existingSamples = isEditMode
         ? (editingPreset?.metadata.sample_generations || []).filter(
             (sample) => !sampleFilesHook.deletedExistingSampleUrls.includes(sample.url),
           )
         : [];
-
       const initialSample = ((!isEditMode || isOverwriting) && sampleFilesHook.initialVideoSample && !sampleFilesHook.initialVideoDeleted)
         ? [{ url: sampleFilesHook.initialVideoSample, type: 'video' as const, alt_text: 'Latest video generation' }]
         : [];
-
       const finalSamples = [...initialSample, ...existingSamples, ...uploadedSamples];
-
       let mainGeneration: string | undefined;
       if ((!isEditMode || isOverwriting) && sampleFilesHook.initialVideoSample && !sampleFilesHook.initialVideoDeleted) {
         mainGeneration = sampleFilesHook.initialVideoSample;
@@ -420,7 +372,6 @@ export function useAddNewPresetTabController({
       } else if (finalSamples.length > 0) {
         mainGeneration = finalSamples[0].url;
       }
-
       const presetMetadata: PhaseConfigMetadata = {
         name: addForm.name,
         description: addForm.description,
@@ -445,7 +396,6 @@ export function useAddNewPresetTabController({
         selectedLoras: currentSettings?.selectedLoras,
         generationTypeMode,
       };
-
       if (isEditMode && editingPreset) {
         await updateResource.mutateAsync({
           id: editingPreset.id,
@@ -456,7 +406,6 @@ export function useAddNewPresetTabController({
       } else {
         await createResource.mutateAsync({ type: 'phase-config', metadata: presetMetadata });
       }
-
       resetForm();
       onSwitchToBrowse();
     } catch (error) {
@@ -479,7 +428,6 @@ export function useAddNewPresetTabController({
     resetForm,
     onSwitchToBrowse,
   ]);
-
   return {
     isEditMode,
     addForm,

@@ -98,10 +98,17 @@ serve(async (req) => {
   }
 
   if (!isServiceRole && callerId) {
-    const rateLimitDenied = await enforceRateLimit(
-      supabaseAdmin, 'create-task', callerId, RATE_LIMITS.taskCreation, logger, '[CREATE-TASK]',
-      () => createCorsResponse("Rate limit service unavailable", 503),
-    );
+    const rateLimitDenied = await enforceRateLimit({
+      supabaseAdmin,
+      functionName: 'create-task',
+      userId: callerId,
+      config: RATE_LIMITS.taskCreation,
+      logger,
+      logPrefix: '[CREATE-TASK]',
+      responses: {
+        serviceUnavailable: () => createCorsResponse("Rate limit service unavailable", 503),
+      },
+    });
     if (rateLimitDenied) return rateLimitDenied;
   }
 

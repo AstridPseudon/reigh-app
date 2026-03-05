@@ -5,7 +5,7 @@ import React from 'react';
 
 // Mock supabase
 vi.mock('@/integrations/supabase/client', () => {
-  const createChain = () => {
+  const createSupabaseMockChain = () => {
     const chain: Record<string, ReturnType<typeof vi.fn>> = {};
     chain.select = vi.fn().mockReturnValue(chain);
     chain.eq = vi.fn().mockReturnValue(chain);
@@ -16,7 +16,7 @@ vi.mock('@/integrations/supabase/client', () => {
 
   return {
     supabase: {
-      from: vi.fn(() => createChain()),
+      from: vi.fn(() => createSupabaseMockChain()),
     },
   };
 });

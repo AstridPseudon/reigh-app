@@ -56,7 +56,7 @@ vi.mock('@/shared/lib/media/aspectRatios', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
-  invalidateGenerationsSync: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
 }));
 
 vi.mock('../useShotsCrud', () => ({

@@ -11,7 +11,7 @@ import { GenerationRow } from '@/domains/generation/types';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/projects/useProjectGenerations';
-import MediaGallery, { DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
+import { MediaGallery, DEFAULT_GALLERY_FILTERS, type GalleryFilterState } from '@/shared/components/MediaGallery';
 import { useListShots } from '@/shared/hooks/shots';
 
 interface MediaSelectionPanelProps {
@@ -78,11 +78,13 @@ export function MediaSelectionPanel({ onSelect, mediaType, label }: MediaSelecti
                allShots={shots || []}
                filters={galleryFilters}
                onFiltersChange={setGalleryFilters}
-               itemsPerPage={itemsPerPage}
-               offset={(currentPage - 1) * itemsPerPage}
-               totalCount={(generationsData as GenerationsPaginatedResponse | undefined)?.total || 0}
-               onServerPageChange={setCurrentPage}
-               serverPage={currentPage}
+               pagination={{
+                 itemsPerPage,
+                 offset: (currentPage - 1) * itemsPerPage,
+                 totalCount: (generationsData as GenerationsPaginatedResponse | undefined)?.total || 0,
+                 onServerPageChange: setCurrentPage,
+                 serverPage: currentPage,
+               }}
                config={{
                  showShotFilter: true,
                  showSearch: true,

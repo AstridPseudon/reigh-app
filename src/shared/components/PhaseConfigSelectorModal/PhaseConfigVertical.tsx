@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { LoraSelectorModal } from '@/shared/components/LoraSelectorModal';
-import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal';
+import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal/PhaseConfigSelectorModal';
 import { DEFAULT_PHASE_CONFIG } from '@/shared/types/phaseConfig';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 import { PHASE_LABELS_2, PHASE_LABELS_3 } from './PhaseConfigVertical.helpers';

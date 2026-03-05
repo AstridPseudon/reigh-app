@@ -7,7 +7,7 @@ import { Copy, Check, LogIn } from 'lucide-react';
 import { ProjectSelectorModal } from './ProjectSelectorModal';
 import BatchSettingsForm from './BatchSettingsForm';
 import { MotionControl } from './MotionControl';
-import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
+import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { useIsMobile, useDeviceInfo } from '@/shared/hooks/mobile';
 import ShotImagesEditor from './ShotImagesEditor';
 import { VideoTravelSettings } from '../settings';

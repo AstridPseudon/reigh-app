@@ -3,7 +3,6 @@ import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edg
 import { jsonResponse } from "../_shared/http.ts";
 import {
   createStripeClient,
-  handleAutoTopupConfigError,
   validatePersistedAutoTopupConfig,
 } from "../_shared/autoTopupDomain.ts";
 
@@ -22,6 +21,9 @@ import {
  * - 500 Internal Server Error
  */
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "process-auto-topup",
     logPrefix: "[PROCESS-AUTO-TOPUP]",
@@ -86,8 +88,8 @@ serve(async (req) => {
       user.auto_topup_amount,
       user.auto_topup_threshold,
     );
-    if (autoTopupConfigError) {
-      return jsonResponse({ error: autoTopupConfigError }, 400);
+    if (!autoTopupConfigError.ok) {
+      return jsonResponse({ error: autoTopupConfigError.error.message }, 400);
     }
 
     // Check if balance is still above threshold (may have changed since trigger)
@@ -126,7 +128,13 @@ serve(async (req) => {
     }
 
     // ─── 6. Initialize Stripe and create Payment Intent ─────────────
-    const stripe = createStripeClient();
+    const stripeResult = createStripeClient();
+    if (!stripeResult.ok) {
+      logger.error(stripeResult.error.logMessage);
+      await logger.flush();
+      return jsonResponse({ error: stripeResult.error.message }, 500);
+    }
+    const stripe = stripeResult.value;
 
     // Create off-session payment intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -221,9 +229,6 @@ serve(async (req) => {
     }
 
   } catch (error: unknown) {
-    const configResponse = await handleAutoTopupConfigError(error, logger);
-    if (configResponse) return configResponse;
-
     const errorMessage = error instanceof Error ? error.message : String(error);
     const stripeErrorType = (error as { type?: string } | null)?.type;
     logger.error('Error in process-auto-topup', { error: errorMessage });

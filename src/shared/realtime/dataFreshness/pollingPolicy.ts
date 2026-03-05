@@ -1,7 +1,7 @@
 export type RealtimeStatus = 'connected' | 'disconnected' | 'error';
 export type PollingInterval = number | false;
 
-interface PollingFailureInfo {
+export interface PollingFailureInfo {
   count: number;
   lastFailure: number;
 }

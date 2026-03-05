@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { Shot } from '@/domains/generation/types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { isNotFoundError } from '@/shared/constants/supabaseErrors';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import {
@@ -56,7 +56,7 @@ export const useDeleteShot = () => {
 
     onSuccess: ({ shotId, projectId }) => {
       // Invalidate related queries
-      invalidateGenerationsSync(queryClient, shotId, {
+      enqueueGenerationsInvalidation(queryClient, shotId, {
         reason: 'delete-shot',
         scope: 'all',
         includeProjectUnified: true,

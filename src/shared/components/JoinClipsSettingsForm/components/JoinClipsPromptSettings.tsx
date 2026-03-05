@@ -1,7 +1,7 @@
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
+import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 
 interface JoinClipsPromptSettingsProps {
   prompt: string;

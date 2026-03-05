@@ -83,10 +83,16 @@ vi.mock('./ShotSettingsContext', () => ({
   ShotSettingsProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('./sections', () => ({
+vi.mock('./sections/HeaderSection', () => ({
   HeaderSection: () => <div data-testid="header-section">header</div>,
+}));
+vi.mock('./sections/TimelineSection', () => ({
   TimelineSection: () => <div data-testid="timeline-section">timeline</div>,
+}));
+vi.mock('./sections/ModalsSection', () => ({
   ModalsSection: () => <div data-testid="modals-section">modals</div>,
+}));
+vi.mock('./sections/GenerationSection', () => ({
   GenerationSection: () => <div data-testid="generation-section">generation</div>,
 }));
 

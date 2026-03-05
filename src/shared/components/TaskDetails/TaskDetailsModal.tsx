@@ -8,7 +8,7 @@
  * to shared/ because it's used by MediaGalleryLightbox and other shared components.
  */
 
-import React, { useCallback, useState, ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,8 +26,8 @@ import { normalizeTaskDetailsPayload } from '@/shared/components/TaskDetails/hoo
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useGenerationTaskDetails } from '@/shared/components/TaskDetails/hooks/useGenerationTaskDetails';
 import { usePublicLoras } from '@/shared/hooks/useResources';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { TaskDetailsSummaryAndParams } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
+import { useTaskDetailsModalState } from '@/shared/components/TaskDetails/hooks/useTaskDetailsModalState';
 import { AlertTriangle } from 'lucide-react';
 
 interface TaskDetailsModalProps {
@@ -45,8 +45,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
   const isMobile = useIsMobile();
   const modal = useLargeModal();
   const [internalOpen, setInternalOpen] = useState(false);
-
-  // Use controlled state if provided, otherwise fall back to internal state
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = (value: boolean) => {
     if (onOpenChange) {
@@ -55,13 +53,6 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
       setInternalOpen(value);
     }
   };
-  const [replaceImages, setReplaceImages] = useState(true);
-  const [showDetailedParams, setShowDetailedParams] = useState(false);
-  const [showAllImages, setShowAllImages] = useState(false);
-  const [showFullPrompt, setShowFullPrompt] = useState(false);
-  const [showFullNegativePrompt, setShowFullNegativePrompt] = useState(false);
-  const [paramsCopied, setParamsCopied] = useState(false);
-  const [idCopied, setIdCopied] = useState(false);
   const { selectedProjectId } = useProject();
   const { data: availableLoras } = usePublicLoras();
 
@@ -78,24 +69,25 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
     enabled: isOpen,
     resolveMappingOnDemand: true,
   });
-
-  const handleCopyParams = useCallback(async () => {
-    if (!task?.params) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(task.params, null, 2));
-      setParamsCopied(true);
-      setTimeout(() => setParamsCopied(false), 2000);
-    } catch (err) {
-      normalizeAndPresentError(err, { context: 'TaskDetailsModal', showToast: false });
-    }
-  }, [task?.params]);
-
-  const handleCopyId = useCallback(() => {
-    if (!taskId) return;
-    navigator.clipboard.writeText(taskId);
-    setIdCopied(true);
-    setTimeout(() => setIdCopied(false), 2000);
-  }, [taskId]);
+  const {
+    replaceImages,
+    setReplaceImages,
+    showDetailedParams,
+    setShowDetailedParams,
+    showAllImages,
+    setShowAllImages,
+    showFullPrompt,
+    setShowFullPrompt,
+    showFullNegativePrompt,
+    setShowFullNegativePrompt,
+    paramsCopied,
+    idCopied,
+    handleCopyParams,
+    handleCopyId,
+  } = useTaskDetailsModalState({
+    taskId,
+    taskParams: task?.params,
+  });
 
   const normalizedTaskPayload = React.useMemo(() => normalizeTaskDetailsPayload(task), [task]);
   const detailInputImages = normalizedTaskPayload.inputImages.length > 0

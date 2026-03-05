@@ -18,7 +18,7 @@ vi.mock('@/shared/lib/compat/errorHandler', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
-  invalidateGenerationsSync: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
 }));
 
 vi.mock('@/shared/constants/supabaseErrors', () => ({

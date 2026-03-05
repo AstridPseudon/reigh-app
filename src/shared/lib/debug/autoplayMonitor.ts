@@ -109,3 +109,5 @@ const startAutoplayMonitoring = () => {
     }
   }, 1000); // Check every second
 };
+
+startAutoplayMonitoring();

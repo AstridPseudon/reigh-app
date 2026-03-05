@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEnhancedShotImageReorder } from '@/tools/travel-between-images/hooks/timeline/useEnhancedShotImageReorder';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
@@ -11,10 +10,7 @@ import {
 } from '@/shared/lib/operationResult';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { ShotImagesEditorDataModel } from './useShotImagesEditorModel';
-import {
-  deleteSegmentGenerationGroup,
-  syncSegmentDeletionCaches,
-} from '../services/segmentDeletionService';
+import { useDeleteSegmentHandler } from './useDeleteSegmentHandler';
 
 type ShotDataForCallbacks = Pick<
   ShotImagesEditorDataModel,
@@ -49,100 +45,17 @@ interface ShotCreationOperationResult {
   shotName: string;
 }
 
-interface SegmentDeleteOperationResult {
-  deleted: boolean;
+interface UseShotActionOperationsInput {
+  onAddToShot?: (shotId: string, generationId: string, position?: number) => Promise<boolean | void>;
+  onAddToShotWithoutPosition?: (shotId: string, generationId: string) => Promise<boolean>;
+  onCreateShot?: (name: string) => Promise<string>;
 }
 
-function useDeleteSegmentHandler(
-  queryClient: ReturnType<typeof useQueryClient>,
-  setDeletingSegmentId: Dispatch<SetStateAction<string | null>>,
-  projectId?: string,
-) {
-  return useCallback(async (generationId: string) => {
-    if (!projectId) {
-      return operationFailure(new Error('Project scope is required for segment deletion'), {
-        policy: 'fail_closed',
-        recoverable: false,
-        errorCode: 'shot_editor_segment_delete_missing_project_scope',
-        message: 'Project scope is required for segment deletion',
-      });
-    }
-
-    setDeletingSegmentId(generationId);
-    try {
-      const deletion = await deleteSegmentGenerationGroup({
-        generationId,
-        projectId,
-      });
-
-      if (!deletion.deleted) {
-        return operationSuccess(
-          { deleted: false } satisfies SegmentDeleteOperationResult,
-          { policy: 'best_effort' },
-        );
-      }
-
-      await syncSegmentDeletionCaches({
-        queryClient,
-        projectId,
-        parentGenerationId: deletion.parentGenerationId,
-        idsToDelete: deletion.idsToDelete,
-      });
-
-      return operationSuccess(
-        { deleted: true } satisfies SegmentDeleteOperationResult,
-        { policy: 'best_effort' },
-      );
-    } catch (error) {
-      normalizeAndPresentError(error, {
-        context: 'SegmentDelete',
-        toastTitle: 'Failed to delete segment',
-      });
-      return operationFailure(error, {
-        policy: 'best_effort',
-        recoverable: true,
-        errorCode: 'shot_editor_segment_delete_failed',
-        message: 'Failed to delete segment',
-      });
-    } finally {
-      setDeletingSegmentId(null);
-    }
-  }, [projectId, queryClient, setDeletingSegmentId]);
-}
-
-export function useShotImagesEditorCallbacks(options: UseShotImagesEditorCallbacksOptions) {
-  const {
-    selectedShotId,
-    projectId,
-    preloadedImages,
-    onImageDelete,
-    onAddToShot,
-    onAddToShotWithoutPosition,
-    onCreateShot,
-    onDragStateChange,
-    data,
-  } = options;
-
-  const {
-    shotGenerations,
-    clearEnhancedPrompt,
-    batchExchangePositions,
-    moveItemsToMidpoint,
-    deleteItem,
-    getImagesForMode,
-    loadPositions,
-    positionsLoading,
-  } = data;
-
-  const queryClient = useQueryClient();
-  const [deletingSegmentId, setDeletingSegmentId] = useState<string | null>(null);
-
-  const handleDragStateChange = useCallback((isDragging: boolean) => {
-    onDragStateChange?.(isDragging);
-  }, [onDragStateChange]);
-
-  const runDeleteSegmentOperation = useDeleteSegmentHandler(queryClient, setDeletingSegmentId, projectId);
-
+function useShotActionOperations({
+  onAddToShot,
+  onAddToShotWithoutPosition,
+  onCreateShot,
+}: UseShotActionOperationsInput) {
   const runAddToShotOperation = useCallback(async (
     targetShotId: string,
     generationId: string,
@@ -246,6 +159,55 @@ export function useShotImagesEditorCallbacks(options: UseShotImagesEditorCallbac
       });
     }
   }, [onCreateShot]);
+
+  return {
+    runAddToShotOperation,
+    runAddToShotWithoutPositionOperation,
+    runCreateShotOperation,
+  };
+}
+
+export function useShotImagesEditorCallbacks(options: UseShotImagesEditorCallbacksOptions) {
+  const {
+    selectedShotId,
+    projectId,
+    preloadedImages,
+    onImageDelete,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onCreateShot,
+    onDragStateChange,
+    data,
+  } = options;
+
+  const {
+    shotGenerations,
+    clearEnhancedPrompt,
+    batchExchangePositions,
+    moveItemsToMidpoint,
+    deleteItem,
+    getImagesForMode,
+    loadPositions,
+    positionsLoading,
+  } = data;
+
+  const queryClient = useQueryClient();
+  const [deletingSegmentId, setDeletingSegmentId] = useState<string | null>(null);
+
+  const handleDragStateChange = useCallback((isDragging: boolean) => {
+    onDragStateChange?.(isDragging);
+  }, [onDragStateChange]);
+
+  const runDeleteSegmentOperation = useDeleteSegmentHandler(queryClient, setDeletingSegmentId, projectId);
+  const {
+    runAddToShotOperation,
+    runAddToShotWithoutPositionOperation,
+    runCreateShotOperation,
+  } = useShotActionOperations({
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onCreateShot,
+  });
 
   const handleClearEnhancedPromptByIndex = useCallback(async (pairIndex: number) => {
     const sorted = [...shotGenerations]

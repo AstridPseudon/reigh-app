@@ -222,52 +222,74 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
   hideShotNotifier: false,
 };
 
-export interface MediaGalleryProps {
+interface MediaGalleryDataProps {
   images: GeneratedImageWithMetadata[];
-  onDelete?: LightboxDeleteHandler;
-  isDeleting?: string | boolean | null;
-  onApplySettings?: (metadata: DisplayableMetadata | undefined) => void;
   allShots: Shot[];
+  currentToolType?: string;
+  currentToolTypeName?: string;
+  currentViewingShotId?: string;
   lastShotId?: string;
   lastShotNameForTooltip?: string;
+  isDeleting?: string | boolean | null;
+}
+
+interface MediaGalleryActionsProps {
+  onDelete?: LightboxDeleteHandler;
+  onApplySettings?: (metadata: DisplayableMetadata | undefined) => void;
   onAddToLastShot?: AddToShotHandler;
   onAddToLastShotWithoutPosition?: AddToShotHandler;
-  currentToolType?: string;
-  initialFilterState?: boolean;
-  currentViewingShotId?: string;
+  onToggleStar?: (id: string, starred: boolean) => void;
+  onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
+  /** Called after delete to trigger data refetch. Should invalidate queries and refetch current page. */
+  onBackfillRequest?: () => Promise<void>;
+  onImageClick?: (image: GeneratedImageWithMetadata) => void;
+  formAssociatedShotId?: string | null;
+  onSwitchToAssociatedShot?: (shotId: string) => void;
+}
+
+interface MediaGalleryPagingProps {
   offset?: number;
   totalCount?: number;
-  /**
-   * Number of columns per row.
-   * - 'auto': Calculate dynamically based on project aspect ratio (default)
-   * - number: Fixed number of columns
-   */
-  columnsPerRow?: ColumnsPerRow;
   itemsPerPage?: number;
+  onServerPageChange?: (page: number, fromBottom?: boolean) => void;
+  serverPage?: number;
+  enableAdjacentPagePreloading?: boolean;
+}
+
+interface MediaGalleryPaginationConfigProps {
+  pagination?: MediaGalleryPagingProps;
+}
+
+interface MediaGalleryFilterProps {
+  initialFilterState?: boolean;
   /** Controlled filter state — parent owns the values */
   filters?: GalleryFilterState;
   /** Callback when any filter changes (controlled mode) */
   onFiltersChange?: (filters: GalleryFilterState) => void;
   /** Default filter overrides for uncontrolled mode */
   defaultFilters?: Partial<GalleryFilterState>;
-  onServerPageChange?: (page: number, fromBottom?: boolean) => void;
-  serverPage?: number;
-  onToggleStar?: (id: string, starred: boolean) => void;
-  currentToolTypeName?: string;
-  formAssociatedShotId?: string | null;
-  onSwitchToAssociatedShot?: (shotId: string) => void;
-  /** Additional className to apply to the gallery wrapper (can override default spacing) */
-  className?: string;
-  enableAdjacentPagePreloading?: boolean;
   /** Filters for generation queries - enables automatic preloading */
   generationFilters?: Record<string, unknown>;
-  onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
-  /** Called after delete to trigger data refetch. Should invalidate queries and refetch current page. */
-  onBackfillRequest?: () => Promise<void>;
-  onImageClick?: (image: GeneratedImageWithMetadata) => void;
+}
+
+interface MediaGalleryDisplayProps {
+  /**
+   * Number of columns per row.
+   * - 'auto': Calculate dynamically based on project aspect ratio (default)
+   * - number: Fixed number of columns
+   */
+  columnsPerRow?: ColumnsPerRow;
+  /** Additional className to apply to the gallery wrapper (can override default spacing) */
+  className?: string;
   /**
    * Boolean config flags controlling gallery appearance and behavior.
    * All fields optional — unset fields use defaults from DEFAULT_GALLERY_CONFIG.
    */
   config?: Partial<GalleryConfig>;
 }
+
+export type MediaGalleryProps = MediaGalleryDataProps &
+  MediaGalleryActionsProps &
+  MediaGalleryPaginationConfigProps &
+  MediaGalleryFilterProps &
+  MediaGalleryDisplayProps;

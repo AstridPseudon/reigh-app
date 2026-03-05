@@ -14,16 +14,16 @@ describe('_shared/rateLimit', () => {
   });
 
   it('fails open when backend limiter errors', async () => {
-    const result = await checkRateLimit(
-      {
+    const result = await checkRateLimit({
+      supabaseAdmin: {
         rpc: async () => {
           throw new Error('rpc failed');
         },
       },
-      'func',
-      'user',
-      RATE_LIMITS.read,
-    );
+      functionName: 'func',
+      identifier: 'user',
+      config: RATE_LIMITS.read,
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -35,17 +35,17 @@ describe('_shared/rateLimit', () => {
   });
 
   it('fails open when limiter RPC returns invalid payload shape', async () => {
-    const result = await checkRateLimit(
-      {
+    const result = await checkRateLimit({
+      supabaseAdmin: {
         rpc: async () => ({
           data: { allowed: true, count: 'oops', reset_at: 123 },
           error: null,
         }),
       },
-      'func',
-      'user',
-      RATE_LIMITS.read,
-    );
+      functionName: 'func',
+      identifier: 'user',
+      config: RATE_LIMITS.read,
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -82,17 +82,17 @@ describe('_shared/rateLimit', () => {
 
   it('returns denied decision payload for blocked requests and maps it to 429 response', async () => {
     const resetAt = new Date(Date.now() + 2_000).toISOString();
-    const result = await checkRateLimit(
-      {
+    const result = await checkRateLimit({
+      supabaseAdmin: {
         rpc: async () => ({
           data: { allowed: false, count: RATE_LIMITS.userAction.maxRequests, reset_at: resetAt },
           error: null,
         }),
       },
-      'func',
-      'user',
-      RATE_LIMITS.userAction,
-    );
+      functionName: 'func',
+      identifier: 'user',
+      config: RATE_LIMITS.userAction,
+    });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {

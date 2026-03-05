@@ -9,7 +9,7 @@ import { useIsMobile } from '@/shared/hooks/mobile';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { useUpscale } from './useUpscale';
 import { useEditSettingsPersistence } from './useEditSettingsPersistence';
-import { extractDimensionsFromMedia } from '../utils';
+import { extractDimensionsFromMedia } from '../utils/dimensions';
 
 interface UseImageLightboxEnvironmentProps {
   media: GenerationRow;
@@ -79,15 +79,15 @@ export function useImageLightboxEnvironment(props: UseImageLightboxEnvironmentPr
     disableAutoLoad: true,
   });
 
-  const effectiveEditModeLoRAs = useMemo(() => {
+  const effectiveEditModeLoras = useMemo(() => {
     if (editLoraManager.selectedLoras.length > 0) {
       return editLoraManager.selectedLoras.map((lora) => ({
         url: lora.path,
         strength: lora.strength,
       }));
     }
-    return editSettingsPersistence.editModeLoRAs;
-  }, [editLoraManager.selectedLoras, editSettingsPersistence.editModeLoRAs]);
+    return editSettingsPersistence.editModeLoras;
+  }, [editLoraManager.selectedLoras, editSettingsPersistence.editModeLoras]);
 
   return {
     isMobile,
@@ -114,7 +114,7 @@ export function useImageLightboxEnvironment(props: UseImageLightboxEnvironmentPr
     editSettingsPersistence,
     availableLoras,
     editLoraManager,
-    effectiveEditModeLoRAs,
+    effectiveEditModeLoras,
   };
 }
 

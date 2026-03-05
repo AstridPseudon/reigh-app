@@ -7,7 +7,7 @@ interface PromptInputRowController {
   currentPlaceholder: string;
   displayText: string;
   handleBlur: () => void;
-  handleClick: () => void;
+  handlePromptRowClick: () => void;
   handleFocus: () => void;
   handleFullPromptChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handlePointerDown: (event: React.PointerEvent) => void;
@@ -131,7 +131,7 @@ export const usePromptInputRowController = ({
     }
   }, [isMobile, onSetActiveForFullView, promptEntry.id]);
 
-  const handleClick = useCallback(() => {
+  const handlePromptRowClick = useCallback(() => {
     if (isMobile && !isDragging.current) {
       setPendingEnterEdit(true);
       onSetActiveForFullView(promptEntry.id);
@@ -191,7 +191,7 @@ export const usePromptInputRowController = ({
     currentPlaceholder,
     displayText,
     handleBlur,
-    handleClick,
+    handlePromptRowClick,
     handleFocus,
     handleFullPromptChange,
     handlePointerDown,

@@ -261,7 +261,3 @@ function toGenerationMetadata(value: unknown): GenerationMetadata | null {
 
   return metadata;
 }
-
-function toGenerationMetadataRecord(value: unknown): Record<string, unknown> | null {
-  return toGenerationMetadata(value);
-}

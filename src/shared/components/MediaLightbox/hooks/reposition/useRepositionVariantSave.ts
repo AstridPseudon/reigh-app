@@ -4,7 +4,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueVariantInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { ImageTransform } from './types';
 import type { GenerationRow } from '@/domains/generation/types';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
@@ -265,7 +265,7 @@ export function useRepositionVariantSave({
       const effectiveShotId = shotId || mediaExt.shot_id ||
         (mediaExt.all_shot_associations?.[0]?.shot_id);
 
-      await invalidateVariantChange(queryClient, {
+      await enqueueVariantInvalidation(queryClient, {
         generationId: actualGenerationId ?? media.id,
         shotId: effectiveShotId,
         reason: 'reposition-variant-created',

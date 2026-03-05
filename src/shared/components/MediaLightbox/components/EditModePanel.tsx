@@ -17,7 +17,7 @@ import { ModeSelector } from './ModeSelector';
 import { RepositionButtons } from './editModes/RepositionButtons';
 import { Img2ImgControls } from './editModes/Img2ImgControls';
 import { GenerateButton } from './editModes/GenerateButton';
-import type { EditModePanelProps } from './EditModePanel.types';
+import type { EditModePanelProps } from './types';
 import { useEditModePanelState } from '../hooks/useEditModePanelState';
 
 /**

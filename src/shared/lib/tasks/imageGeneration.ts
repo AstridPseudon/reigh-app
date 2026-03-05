@@ -10,7 +10,6 @@ import { rethrowTaskCreationError } from './taskCreationError';
 import { composeTaskParams, composeTaskRequest } from './taskRequestComposer';
 import { composeOptionalFields } from './taskFieldPolicy';
 import { runTaskCreationPipeline } from './taskCreatorPipeline';
-import { resolveByPrecedence } from './taskParamContract';
 import {
   buildHiresOverride,
   buildImageGenerationBaseParams,

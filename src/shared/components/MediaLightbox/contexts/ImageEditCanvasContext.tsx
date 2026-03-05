@@ -20,8 +20,7 @@ import type { StrokeOverlayHandle } from '../components/StrokeOverlay';
 
 export type ImageEditMode = 'inpaint' | 'annotate' | 'reposition' | 'img2img' | 'text' | 'upscale' | null;
 
-export interface ImageEditCanvasState {
-  // Edit mode
+interface ImageEditModeState {
   isInpaintMode: boolean;
   isMagicEditMode: boolean;
   isSpecialEditMode: boolean;
@@ -33,8 +32,9 @@ export interface ImageEditCanvasState {
   handleExitInpaintMode: () => void;
   handleEnterMagicEditMode: () => void;
   handleExitMagicEditMode: () => void;
+}
 
-  // Brush tool
+interface ImageEditBrushState {
   brushSize: number;
   setBrushSize: (size: number) => void;
   isEraseMode: boolean;
@@ -44,15 +44,17 @@ export interface ImageEditCanvasState {
   handleClearMask: () => void;
   inpaintPanelPosition: 'left' | 'right';
   setInpaintPanelPosition: (pos: 'left' | 'right') => void;
+}
 
-  // Annotation tool
+interface ImageEditAnnotationState {
   isAnnotateMode: boolean;
   setIsAnnotateMode: (value: boolean | ((prev: boolean) => boolean)) => void;
   annotationMode: AnnotationMode;
   setAnnotationMode: (mode: AnnotationMode | ((prev: AnnotationMode) => AnnotationMode)) => void;
   selectedShapeId: string | null;
+}
 
-  // Canvas interaction
+interface ImageEditCanvasInteractionState {
   onStrokeComplete: (stroke: BrushStroke) => void;
   onStrokesChange: (strokes: BrushStroke[]) => void;
   onSelectionChange: (shapeId: string | null) => void;
@@ -61,8 +63,9 @@ export interface ImageEditCanvasState {
   getDeleteButtonPosition: () => { x: number; y: number } | null;
   handleToggleFreeForm: () => void;
   handleDeleteSelected: () => void;
+}
 
-  // Reposition
+interface ImageEditRepositionState {
   repositionTransform: ImageTransform | null;
   hasTransformChanges: boolean;
   isRepositionDragging: boolean;
@@ -79,12 +82,20 @@ export interface ImageEditCanvasState {
   toggleFlipH: () => void;
   toggleFlipV: () => void;
   resetTransform: () => void;
+}
 
-  // Display refs
+interface ImageEditDisplayState {
   imageContainerRef: React.RefObject<HTMLDivElement | null>;
   isFlippedHorizontally: boolean;
   isSaving: boolean;
 }
+
+export type ImageEditCanvasState = ImageEditModeState &
+  ImageEditBrushState &
+  ImageEditAnnotationState &
+  ImageEditCanvasInteractionState &
+  ImageEditRepositionState &
+  ImageEditDisplayState;
 
 // ============================================================================
 // Defaults

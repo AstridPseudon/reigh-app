@@ -30,7 +30,9 @@ interface GenerationsPaneGalleryModel {
   onFiltersChange: (newFilters: GalleryFilterState) => void;
   onAddToShot: NonNullable<MediaGalleryProps['onAddToLastShot']>;
   onAddToShotWithoutPosition: NonNullable<MediaGalleryProps['onAddToLastShotWithoutPosition']>;
-  onServerPageChange: NonNullable<MediaGalleryProps['onServerPageChange']>;
+  onServerPageChange: NonNullable<
+    NonNullable<MediaGalleryProps['pagination']>['onServerPageChange']
+  >;
   generationFilters: MediaGalleryProps['generationFilters'];
   currentViewingShotId?: string;
   onCreateShot: NonNullable<MediaGalleryProps['onCreateShot']>;
@@ -94,9 +96,6 @@ export function GenerationsPaneGallery({
             onAddToLastShotWithoutPosition={(targetShotId, generationId, imageUrl, thumbUrl) => {
               return gallery.onAddToShotWithoutPosition(targetShotId, generationId, imageUrl, thumbUrl);
             }}
-            offset={(pagination.page - 1) * layout.itemsPerPage}
-            totalCount={pagination.totalCount}
-            itemsPerPage={layout.itemsPerPage}
             className="space-y-0 pb-8"
             config={{
               darkSurface: true,
@@ -105,8 +104,13 @@ export function GenerationsPaneGallery({
               hideTopFilters: true,
               showShare: false,
             }}
-            serverPage={pagination.page}
-            onServerPageChange={gallery.onServerPageChange}
+            pagination={{
+              offset: (pagination.page - 1) * layout.itemsPerPage,
+              totalCount: pagination.totalCount,
+              itemsPerPage: layout.itemsPerPage,
+              serverPage: pagination.page,
+              onServerPageChange: gallery.onServerPageChange,
+            }}
             generationFilters={gallery.generationFilters}
             currentViewingShotId={gallery.currentViewingShotId}
             onCreateShot={gallery.onCreateShot}

@@ -12,7 +12,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { TasksPaneProcessingWarning } from '../ProcessingWarnings';
 import { useBottomOffset } from '@/features/layout/hooks/useBottomOffset';
-import MediaLightbox from '@/shared/components/MediaLightbox';
+import MediaLightbox from '@/shared/components/MediaLightbox/MediaLightbox';
 import { useListShots } from '@/shared/hooks/shots';
 import { useLastAffectedShot } from '@/shared/hooks/useLastAffectedShot';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';

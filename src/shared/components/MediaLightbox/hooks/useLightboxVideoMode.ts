@@ -17,7 +17,8 @@ import { useRef, useState, useEffect } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
-import { useVideoTrimming, useTrimSave } from '@/shared/components/VideoTrimEditor';
+import { useVideoTrimming } from '@/shared/components/VideoTrimEditor/hooks/useVideoTrimming';
+import { useTrimSave } from '@/shared/components/VideoTrimEditor/hooks/useTrimSave';
 import { useVideoEditing } from './useVideoEditing';
 import { useVideoEnhance, type VideoEnhanceSettings } from './useVideoEnhance';
 import { useVideoEditModeHandlers } from './useVideoEditModeHandlers';
@@ -138,6 +139,73 @@ function useTrimPlaybackGuard({ trimVideoRef, trimState, isVideoTrimMode }: UseT
   }, [isVideoTrimMode, trimState.startTrim, trimState.endTrim, trimState.videoDuration, trimVideoRef]);
 }
 
+interface BuildLightboxVideoModeReturnInput {
+  trimVideoRef: React.RefObject<HTMLVideoElement>;
+  trimState: UseLightboxVideoModeReturn['trimState'];
+  trimCurrentTime: number;
+  setTrimCurrentTime: (time: number) => void;
+  trimmedDuration: number;
+  hasTrimChanges: boolean;
+  setStartTrim: (value: number) => void;
+  setEndTrim: (value: number) => void;
+  resetTrim: () => void;
+  setVideoDuration: (duration: number) => void;
+  isSavingTrim: boolean;
+  trimSaveProgress: number;
+  trimSaveError: string | null;
+  trimSaveSuccess: boolean;
+  saveTrimmedVideo: () => Promise<void>;
+  videoEditing: ReturnType<typeof useVideoEditing>;
+  videoEnhance: ReturnType<typeof useVideoEnhance>;
+  videoEditModeHandlers: ReturnType<typeof useVideoEditModeHandlers>;
+  isVideoTrimMode: boolean;
+  isInVideoEditMode: boolean;
+  isVideoTrimModeActive: boolean;
+  isVideoEditModeActive: boolean;
+}
+
+function buildLightboxVideoModeReturn(
+  input: BuildLightboxVideoModeReturnInput,
+): UseLightboxVideoModeReturn {
+  return {
+    trimVideoRef: input.trimVideoRef,
+    trimState: input.trimState,
+    trimCurrentTime: input.trimCurrentTime,
+    setTrimCurrentTime: input.setTrimCurrentTime,
+    trimmedDuration: input.trimmedDuration,
+    hasTrimChanges: input.hasTrimChanges,
+    setStartTrim: input.setStartTrim,
+    setEndTrim: input.setEndTrim,
+    resetTrim: input.resetTrim,
+    setVideoDuration: input.setVideoDuration,
+    isSavingTrim: input.isSavingTrim,
+    trimSaveProgress: input.trimSaveProgress,
+    trimSaveError: input.trimSaveError,
+    trimSaveSuccess: input.trimSaveSuccess,
+    saveTrimmedVideo: input.saveTrimmedVideo,
+    videoEditing: input.videoEditing,
+    videoEnhance: {
+      settings: input.videoEnhance.settings,
+      updateSetting: input.videoEnhance.updateSetting,
+      handleGenerate: input.videoEnhance.handleGenerate,
+      isGenerating: input.videoEnhance.isGenerating,
+      generateSuccess: input.videoEnhance.generateSuccess,
+      canSubmit: input.videoEnhance.canSubmit,
+    },
+    handleEnterVideoEditMode: input.videoEditModeHandlers.handleEnterVideoEditMode,
+    handleExitVideoEditMode: input.videoEditModeHandlers.handleExitVideoEditMode,
+    handleEnterVideoTrimMode: input.videoEditModeHandlers.handleEnterVideoTrimMode,
+    handleEnterVideoReplaceMode: input.videoEditModeHandlers.handleEnterVideoReplaceMode,
+    handleEnterVideoRegenerateMode: input.videoEditModeHandlers.handleEnterVideoRegenerateMode,
+    handleEnterVideoEnhanceMode: input.videoEditModeHandlers.handleEnterVideoEnhanceMode,
+    handleExitVideoTrimMode: input.videoEditModeHandlers.handleExitVideoTrimMode,
+    isVideoTrimMode: input.isVideoTrimMode,
+    isInVideoEditMode: input.isInVideoEditMode,
+    isVideoTrimModeActive: input.isVideoTrimModeActive,
+    isVideoEditModeActive: input.isVideoEditModeActive,
+  };
+}
+
 export function useLightboxVideoMode(props: UseLightboxVideoModeProps): UseLightboxVideoModeReturn {
   const {
     onTrimModeChange,
@@ -252,7 +320,7 @@ export function useLightboxVideoMode(props: UseLightboxVideoModeProps): UseLight
   const isVideoTrimModeActive = isVideo && isVideoTrimMode;
   const isVideoEditModeActive = isVideo && videoEditing.isVideoEditMode;
 
-  return {
+  return buildLightboxVideoModeReturn({
     trimVideoRef,
     trimState,
     trimCurrentTime,
@@ -269,24 +337,11 @@ export function useLightboxVideoMode(props: UseLightboxVideoModeProps): UseLight
     trimSaveSuccess,
     saveTrimmedVideo,
     videoEditing,
-    videoEnhance: {
-      settings: videoEnhance.settings,
-      updateSetting: videoEnhance.updateSetting,
-      handleGenerate: videoEnhance.handleGenerate,
-      isGenerating: videoEnhance.isGenerating,
-      generateSuccess: videoEnhance.generateSuccess,
-      canSubmit: videoEnhance.canSubmit,
-    },
-    handleEnterVideoEditMode: videoEditModeHandlers.handleEnterVideoEditMode,
-    handleExitVideoEditMode: videoEditModeHandlers.handleExitVideoEditMode,
-    handleEnterVideoTrimMode: videoEditModeHandlers.handleEnterVideoTrimMode,
-    handleEnterVideoReplaceMode: videoEditModeHandlers.handleEnterVideoReplaceMode,
-    handleEnterVideoRegenerateMode: videoEditModeHandlers.handleEnterVideoRegenerateMode,
-    handleEnterVideoEnhanceMode: videoEditModeHandlers.handleEnterVideoEnhanceMode,
-    handleExitVideoTrimMode: videoEditModeHandlers.handleExitVideoTrimMode,
+    videoEnhance,
+    videoEditModeHandlers,
     isVideoTrimMode,
     isInVideoEditMode,
     isVideoTrimModeActive,
     isVideoEditModeActive,
-  };
+  });
 }

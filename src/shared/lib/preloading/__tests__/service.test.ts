@@ -57,10 +57,10 @@ describe('PreloadingService', () => {
 
   it('tracks current project ID', async () => {
     const { preloadingService } = await import('../service');
-    expect(preloadingService.getCurrentProjectId()).toBeNull();
+    expect(preloadingService.getDiagnostics().state.currentProjectId).toBeNull();
 
     preloadingService.onProjectChange('project-1');
-    expect(preloadingService.getCurrentProjectId()).toBe('project-1');
+    expect(preloadingService.getDiagnostics().state.currentProjectId).toBe('project-1');
   });
 
   it('clears queue on project change', async () => {
@@ -107,13 +107,13 @@ describe('PreloadingService', () => {
   it('supports pause and resume', async () => {
     const { preloadingService } = await import('../service');
 
-    expect(preloadingService.isPaused()).toBe(false);
+    expect(preloadingService.getDiagnostics().state.isPaused).toBe(false);
 
     preloadingService.pause();
-    expect(preloadingService.isPaused()).toBe(true);
+    expect(preloadingService.getDiagnostics().state.isPaused).toBe(true);
 
     preloadingService.resume();
-    expect(preloadingService.isPaused()).toBe(false);
+    expect(preloadingService.getDiagnostics().state.isPaused).toBe(false);
   });
 
   it('does not preload when paused', async () => {
@@ -131,10 +131,10 @@ describe('PreloadingService', () => {
     const { preloadingService } = await import('../service');
 
     preloadingService.onConnectionStatusChange(false);
-    expect(preloadingService.isConnected()).toBe(false);
+    expect(preloadingService.getDiagnostics().state.isConnected).toBe(false);
 
     preloadingService.onConnectionStatusChange(true);
-    expect(preloadingService.isConnected()).toBe(true);
+    expect(preloadingService.getDiagnostics().state.isConnected).toBe(true);
   });
 
   it('supports subscribers', async () => {
@@ -166,16 +166,4 @@ describe('PreloadingService', () => {
     expect(diagnostics.queue).toHaveProperty('active');
   });
 
-  it('delegates isImageLoaded to tracker', async () => {
-    const { preloadingService } = await import('../service');
-    const { hasLoadedImage } = await import('../tracker');
-
-    vi.mocked(hasLoadedImage).mockReturnValue(true);
-    expect(preloadingService.isImageLoaded({ id: 'img-1' })).toBe(true);
-  });
-
-  it('returns false for image without id', async () => {
-    const { preloadingService } = await import('../service');
-    expect(preloadingService.isImageLoaded({})).toBe(false);
-  });
 });

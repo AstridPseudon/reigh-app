@@ -15,7 +15,7 @@ import { useIsMobile } from '@/shared/hooks/mobile';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
 import { useUpdateShotName } from '@/shared/hooks/shots';
 import { usePrimeShotImagesCache } from '@/shared/hooks/useShotImages';
-import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { useProjectVideoCountsCache } from '@/shared/hooks/projects/useProjectVideoCountsCache';
 import { useProjectGenerationModesCache } from '@/shared/hooks/projects/useProjectGenerationModesCache';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
@@ -25,11 +25,9 @@ import { ShotSettingsEditor } from '../components/ShotEditor';
 import { VideoTravelSettingsProvider, useVideoTravelSettings } from '../providers';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { VideoTravelFloatingOverlay } from '../components/VideoTravelFloatingOverlay';
-import {
-  useStickyHeader,
-  useNavigationState,
-  useOperationTracking,
-} from '../hooks';
+import { useStickyHeader } from '../hooks/useStickyHeader';
+import { useNavigationState } from '../hooks/navigation/useNavigationState';
+import { useOperationTracking } from '../hooks/useOperationTracking';
 
 interface ShotEditorViewProps {
   /** The shot to edit */
@@ -70,14 +68,14 @@ export function ShotEditorView({
   const updateShotNameMutation = useUpdateShotName();
   const updateShotNameMutateRef = useRef(updateShotNameMutation.mutate);
   updateShotNameMutateRef.current = updateShotNameMutation.mutate;
-  const invalidateGenerations = useInvalidateGenerations();
+  const invalidateGenerations = useEnqueueGenerationsInvalidation();
 
   // Get generation location settings to auto-disable turbo mode when not in cloud
   const { value: generationMethods } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
   const isCloudGenerationEnabled = generationMethods.inCloud;
 
   // Project caches
-  const { getShotVideoCount, getFinalVideoCount, getHasStructureVideo, invalidateOnVideoChanges } = useProjectVideoCountsCache(selectedProjectId);
+  const { getFinalVideoCount, getHasStructureVideo } = useProjectVideoCountsCache(selectedProjectId);
   const { updateShotMode } = useProjectGenerationModesCache(selectedProjectId);
 
   // Dimension state (local, not persisted)
@@ -165,18 +163,6 @@ export function ShotEditorView({
     }
   }, [sortedShots, shotToEdit, navigateToNextShot]);
 
-  const handlePreviousShotNoScroll = useCallback(() => {
-    if (sortedShots && shotToEdit) {
-      navigateToPreviousShot(sortedShots, shotToEdit, { scrollToTop: false });
-    }
-  }, [sortedShots, shotToEdit, navigateToPreviousShot]);
-
-  const handleNextShotNoScroll = useCallback(() => {
-    if (sortedShots && shotToEdit) {
-      navigateToNextShot(sortedShots, shotToEdit, { scrollToTop: false });
-    }
-  }, [sortedShots, shotToEdit, navigateToNextShot]);
-
   const handleUpdateShotName = useCallback((newName: string) => {
     updateShotNameMutateRef.current({
       shotId: shotToEdit.id,
@@ -234,16 +220,12 @@ export function ShotEditorView({
               // Navigation
               onPreviousShot={handlePreviousShot}
               onNextShot={handleNextShot}
-              onPreviousShotNoScroll={handlePreviousShotNoScroll}
-              onNextShotNoScroll={handleNextShotNoScroll}
               hasPrevious={hasPrevious}
               hasNext={hasNext}
               onUpdateShotName={handleUpdateShotName}
               // Loading and cache
-              getShotVideoCount={getShotVideoCount}
               getFinalVideoCount={getFinalVideoCount}
               getHasStructureVideo={getHasStructureVideo}
-              invalidateVideoCountsCache={invalidateOnVideoChanges}
               // UI coordination
               onDragStateChange={setIsDraggingInTimeline}
               headerContainerRef={headerCallbackRef}

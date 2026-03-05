@@ -13,8 +13,8 @@ import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { useVideoEditingSelections } from './useVideoEditingSelections';
 import { buildVideoEditOrchestratorDetails } from './videoEditingTaskPayload';
 
-export type { UseVideoEditingProps, UseVideoEditingReturn } from './useVideoEditing.types';
-import type { UseVideoEditingProps, UseVideoEditingReturn } from './useVideoEditing.types';
+export type { UseVideoEditingProps, UseVideoEditingReturn } from './types';
+import type { UseVideoEditingProps, UseVideoEditingReturn } from './types';
 
 const VIDEO_EDIT_FPS = 16;
 

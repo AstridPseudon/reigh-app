@@ -2,14 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from '@/shared/components/ui/toast';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { toOperationResultError } from '@/shared/lib/operationResult';
-import {
-  DragEndEvent,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
+import { DragEndEvent, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { subscribeJoinClipsIntents } from '@/shared/lib/joinClipsIntentStore';
 import type { VideoClip, TransitionPrompt } from '../types';
@@ -34,7 +27,6 @@ import {
   updateClipInArray,
   clearClipVideo,
 } from '../lib/clipManagerService';
-
 interface UseClipManagerParams {
   selectedProjectId: string | null;
   joinSettings: ReturnType<typeof useJoinClipsSettings>;
@@ -42,7 +34,6 @@ interface UseClipManagerParams {
   loopFirstClip: boolean;
   createGenerationMutation: ReturnType<typeof useCreateGeneration>;
 }
-
 export function useClipManager({
   selectedProjectId,
   joinSettings,
@@ -50,9 +41,6 @@ export function useClipManager({
   loopFirstClip,
   createGenerationMutation,
 }: UseClipManagerParams) {
-  // ---------------------------------------------------------------------------
-  // State
-  // ---------------------------------------------------------------------------
   const [clips, setClips] = useState<VideoClip[]>([]);
   const [uploadingClipId, setUploadingClipId] = useState<string | null>(null);
   const [lightboxClip, setLightboxClip] = useState<VideoClip | null>(null);
@@ -65,8 +53,6 @@ export function useClipManager({
   const [cachedClipsCount, setCachedClipsCountState] = useState(() =>
     getCachedClipsCount(selectedProjectId),
   );
-
-  // Refs
   const hasLoadedFromSettings = useRef(false);
   const loadedForProjectRef = useRef<string | null>(null);
   const activeProjectIdRef = useRef<string | null>(selectedProjectId);
@@ -76,10 +62,6 @@ export function useClipManager({
   const preloadedPostersRef = useRef<Set<string>>(new Set());
   const fileInputRefs = useRef<{ [clipId: string]: HTMLInputElement | null }>({});
   const videoRefs = useRef<{ [clipId: string]: HTMLVideoElement | null }>({});
-
-  // ---------------------------------------------------------------------------
-  // Reset loading state when project changes
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     activeProjectIdRef.current = selectedProjectId;
     if (selectedProjectId && selectedProjectId !== loadedForProjectRef.current) {
@@ -96,13 +78,8 @@ export function useClipManager({
       setCachedClipsCountState(getCachedClipsCount(selectedProjectId));
     }
   }, [selectedProjectId]);
-
-  // ---------------------------------------------------------------------------
-  // React to explicit join-clips intents (e.g. lightbox "Add to Join")
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!selectedProjectId) return;
-
     const unsubscribe = subscribeJoinClipsIntents((scope) => {
       const scopeProjectId = scope.projectId ?? null;
       if (scopeProjectId && scopeProjectId !== selectedProjectId) {
@@ -110,21 +87,14 @@ export function useClipManager({
       }
       setPendingIntentVersion((prev) => prev + 1);
     });
-
     return unsubscribe;
   }, [selectedProjectId]);
-
-  // ---------------------------------------------------------------------------
-  // Check for pending join clips from lightbox "Add to Join" button
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!settingsLoaded || !selectedProjectId || !initialHydrationComplete) return;
-
     const projectIdAtRequestStart = selectedProjectId;
     const requestVersion = pendingConsumeVersionRef.current + 1;
     pendingConsumeVersionRef.current = requestVersion;
     let cancelled = false;
-
     void consumePendingJoinClips({ projectId: projectIdAtRequestStart }).then(result => {
       if (cancelled) {
         return;
@@ -136,7 +106,6 @@ export function useClipManager({
       if (!isCurrentRequest) {
         return;
       }
-
       if (!result.ok) {
         normalizeAndPresentError(toOperationResultError(result), {
           context: 'JoinClipsPage.pendingClipsConsume',
@@ -149,18 +118,12 @@ export function useClipManager({
         setClips(prev => applyPendingClipActions(prev, actions));
       }
     });
-
     return () => {
       cancelled = true;
     };
   }, [settingsLoaded, selectedProjectId, initialHydrationComplete, pendingIntentVersion]);
-
-  // ---------------------------------------------------------------------------
-  // Initialize clips from settings or create 2 empty slots
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!selectedProjectId || !settingsLoaded || hasLoadedFromSettings.current) return;
-
     const projectIdAtHydrationStart = selectedProjectId;
     const requestVersion = hydrationRequestVersionRef.current + 1;
     hydrationRequestVersionRef.current = requestVersion;
@@ -170,20 +133,16 @@ export function useClipManager({
       hydrationRequestVersionRef.current === requestVersion
       && activeProjectIdRef.current === projectIdAtHydrationStart
     );
-
     const {
       clips: initialClips,
       transitionPrompts: initialPrompts,
       posterUrlsToPreload,
     } = buildInitialClipsFromSettings(joinSettings.settings);
-
     if (initialPrompts.length > 0) {
       setTransitionPrompts(initialPrompts);
     }
-
     if (initialClips.length > 0) {
       const clipsToSet = padClipsWithEmptySlots(initialClips);
-
       if (posterUrlsToPreload.length > 0) {
         setIsLoadingPersistedMedia(true);
         void preloadPosterImages(posterUrlsToPreload, preloadedPostersRef.current).then(() => {
@@ -209,23 +168,15 @@ export function useClipManager({
       setInitialHydrationComplete(true);
     }
   }, [selectedProjectId, joinSettings.settings, settingsLoaded]);
-
-  // ---------------------------------------------------------------------------
-  // Persist clips to settings whenever they change
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!settingsLoaded || !initialHydrationComplete) return;
-
     const clipsToSave = buildClipsToSave(clips);
     setCachedClipsCount(selectedProjectId, clipsToSave.length);
-
     const promptsToSave = buildPromptsToSave(clips, transitionPrompts);
-
     const currentClipsJson = JSON.stringify(joinSettings.settings.clips || []);
     const newClipsJson = JSON.stringify(clipsToSave);
     const currentPromptsJson = JSON.stringify(joinSettings.settings.transitionPrompts || []);
     const newPromptsJson = JSON.stringify(promptsToSave);
-
     if (currentClipsJson !== newClipsJson || currentPromptsJson !== newPromptsJson) {
       joinSettings.updateFields({
         clips: clipsToSave,
@@ -233,10 +184,6 @@ export function useClipManager({
       });
     }
   }, [clips, transitionPrompts, settingsLoaded, joinSettings, selectedProjectId, initialHydrationComplete]);
-
-  // ---------------------------------------------------------------------------
-  // Lazy-load duration for clips that have URLs but no duration
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const clipsNeedingDuration = getClipsNeedingDuration(clips);
     if (clipsNeedingDuration.length === 0) return;
@@ -249,8 +196,6 @@ export function useClipManager({
       && durationHydrationVersionRef.current === requestVersion
       && activeProjectIdRef.current === projectIdAtRequestStart
     );
-
-    // Mark as loading
     setClips(prev =>
       prev.map(clip =>
         clipsNeedingDuration.some(c => c.id === clip.id)
@@ -258,13 +203,11 @@ export function useClipManager({
           : clip,
         ),
     );
-
     clipsNeedingDuration.forEach(async clip => {
       const result = await loadClipDuration(clip);
       if (!isCurrentRequest()) {
         return;
       }
-
       if (!result.ok) {
         normalizeAndPresentError(toOperationResultError(result), {
           context: 'JoinClipsPage.durationMetadata',
@@ -272,7 +215,6 @@ export function useClipManager({
           logData: { clipId: clip.id },
         });
       }
-
       setClips(prev =>
         prev.map(c =>
           c.id === clip.id
@@ -292,19 +234,13 @@ export function useClipManager({
         ),
       );
     });
-
     return () => {
       cancelled = true;
     };
   }, [clips]);
-
-  // ---------------------------------------------------------------------------
-  // Ensure minimum of 2 clips, auto-add empty slot, trim trailing empties
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const result = normalizeClipSlots(clips);
     if (!result) return;
-
     setClips(result.clips);
     if (result.removedClipIds.length > 0) {
       setTransitionPrompts(prev =>
@@ -312,13 +248,8 @@ export function useClipManager({
       );
     }
   }, [clips]);
-
-  // ---------------------------------------------------------------------------
-  // Prevent autoplay on mobile
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     const cleanups: Array<() => void> = [];
-
     clips.forEach(clip => {
       const video = videoRefs.current[clip.id];
       if (video) {
@@ -330,18 +261,12 @@ export function useClipManager({
         });
       }
     });
-
     return () => {
       cleanups.forEach(cleanup => cleanup());
     };
   }, [clips]);
-
-  // ---------------------------------------------------------------------------
-  // Track scroll state
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     let scrollTimer: ReturnType<typeof setTimeout> | null = null;
-
     const handleScroll = () => {
       setIsScrolling(true);
       if (scrollTimer) {
@@ -352,7 +277,6 @@ export function useClipManager({
         scrollTimer = null;
       }, 200);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -361,10 +285,6 @@ export function useClipManager({
       }
     };
   }, []);
-
-  // ---------------------------------------------------------------------------
-  // Upload helper (wraps service + manages React state/side-effects)
-  // ---------------------------------------------------------------------------
   const uploadVideoFile = useCallback(async (
     file: File,
     clipId: string,
@@ -377,12 +297,9 @@ export function useClipManager({
       });
       return null;
     }
-
     setUploadingClipId(clipId);
     try {
       const result = await uploadClipVideo(file);
-
-      // Create a generation record so the video appears in the gallery
       if (selectedProjectId) {
         try {
           await createGenerationMutation.mutateAsync({
@@ -398,7 +315,6 @@ export function useClipManager({
           normalizeAndPresentError(genError, { context: 'JoinClipsPage', showToast: false });
         }
       }
-
       return result;
     } catch (error) {
       normalizeAndPresentError(error, { context: 'JoinClipsPage', toastTitle: 'Upload failed' });
@@ -407,11 +323,6 @@ export function useClipManager({
       setUploadingClipId(null);
     }
   }, [selectedProjectId, createGenerationMutation]);
-
-  // ---------------------------------------------------------------------------
-  // Clip CRUD callbacks
-  // ---------------------------------------------------------------------------
-
   const handleRemoveClip = useCallback((clipId: string) => {
     setClips(prev => {
       if (prev.length <= 2) return prev;
@@ -419,14 +330,12 @@ export function useClipManager({
     });
     setTransitionPrompts(prev => prev.filter(p => p.id !== clipId));
   }, []);
-
   const handleClearVideo = useCallback(
     (clipId: string) => {
       const clipIndex = clips.findIndex(c => c.id === clipId);
       if (clipIndex === 0 && loopFirstClip) {
         joinSettings.updateField('loopFirstClip', false);
       }
-
       setClips(prev =>
         prev.map(clip => (clip.id === clipId ? clearClipVideo(clip) : clip)),
       );
@@ -442,15 +351,12 @@ export function useClipManager({
     },
     [clips, loopFirstClip, joinSettings],
   );
-
   const handleVideoUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>, clipId: string) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
       const result = await uploadVideoFile(file, clipId);
       if (!result) return;
-
       setClips(prev =>
         updateClipInArray(prev, clipId, {
           url: result.videoUrl,
@@ -465,11 +371,6 @@ export function useClipManager({
     },
     [uploadVideoFile],
   );
-
-  // ---------------------------------------------------------------------------
-  // File drag-and-drop handlers
-  // ---------------------------------------------------------------------------
-
   const handleDragOver = useCallback(
     (e: React.DragEvent, _clipId: string) => {
       if (isScrolling) return;
@@ -478,31 +379,26 @@ export function useClipManager({
     },
     [isScrolling],
   );
-
   const handleDragEnter = useCallback(
     (e: React.DragEvent, clipId: string) => {
       if (isScrolling) return;
       e.preventDefault();
       e.stopPropagation();
-
       const items = Array.from(e.dataTransfer.items);
       const hasValidVideo = items.some(
         item => item.kind === 'file' && item.type.startsWith('video/'),
       );
-
       if (hasValidVideo) {
         setDraggingOverClipId(clipId);
       }
     },
     [isScrolling],
   );
-
   const handleDragLeave = useCallback(
     (e: React.DragEvent, _clipId: string) => {
       if (isScrolling) return;
       e.preventDefault();
       e.stopPropagation();
-
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX;
       const y = e.clientY;
@@ -512,20 +408,16 @@ export function useClipManager({
     },
     [isScrolling],
   );
-
   const handleDrop = useCallback(
     async (e: React.DragEvent, clipId: string) => {
       if (isScrolling) return;
       e.preventDefault();
       e.stopPropagation();
       setDraggingOverClipId(null);
-
       const file = e.dataTransfer.files?.[0];
       if (!file) return;
-
       const result = await uploadVideoFile(file, clipId);
       if (!result) return;
-
       setClips(prev =>
         updateClipInArray(prev, clipId, {
           url: result.videoUrl,
@@ -540,11 +432,6 @@ export function useClipManager({
     },
     [isScrolling, uploadVideoFile],
   );
-
-  // ---------------------------------------------------------------------------
-  // Transition prompt editing
-  // ---------------------------------------------------------------------------
-
   const handlePromptChange = useCallback((clipId: string, prompt: string) => {
     setTransitionPrompts(prev => {
       const existing = prev.find(p => p.id === clipId);
@@ -555,11 +442,6 @@ export function useClipManager({
       }
     });
   }, []);
-
-  // ---------------------------------------------------------------------------
-  // DnD kit sensors + reorder handler
-  // ---------------------------------------------------------------------------
-
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: { distance: 8 },
@@ -571,12 +453,10 @@ export function useClipManager({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (!over || active.id === over.id) return;
-
       const reordered = reorderClipsAndPrompts(
         clips,
         transitionPrompts,
@@ -588,11 +468,6 @@ export function useClipManager({
     },
     [clips, transitionPrompts],
   );
-
-  // ---------------------------------------------------------------------------
-  // Public API
-  // ---------------------------------------------------------------------------
-
   return {
     clips,
     setClips,

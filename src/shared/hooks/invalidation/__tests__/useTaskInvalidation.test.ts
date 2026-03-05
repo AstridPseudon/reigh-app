@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 
 vi.mock('./useGenerationInvalidation', () => ({
-  invalidateGenerationsSync: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
 }));
 
 describe('useTaskInvalidation', () => {

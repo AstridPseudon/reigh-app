@@ -6,19 +6,23 @@ import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shar
 import { useCreateGeneration, useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
-import MediaLightbox from '@/shared/components/MediaLightbox';
+import MediaLightbox from '@/shared/components/MediaLightbox/MediaLightbox';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { Card } from '@/shared/components/ui/card';
-import { PageFadeIn } from '@/shared/components/transitions';
+import { PageFadeIn } from '@/shared/components/transitions/PageFadeIn';
 import {
   type ValidationResult,
 } from '../utils/validation';
 import { useJoinClipsSettings } from '../hooks/useJoinClipsSettings';
 import { useClipManager } from '../hooks/useClipManager';
 import { useJoinClipsGenerate } from '../hooks/useJoinClipsGenerate';
-import { JoinClipsSettingsForm, type ClipPairInfo, DEFAULT_JOIN_CLIPS_PHASE_CONFIG } from '@/shared/components/JoinClipsSettingsForm';
+import {
+  JoinClipsSettingsForm,
+  DEFAULT_JOIN_CLIPS_PHASE_CONFIG,
+} from '@/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm';
+import type { ClipPairInfo } from '@/shared/components/JoinClipsSettingsForm/types';
 import {
   useEnsureKeepBridgingImages,
   useJoinClipPairs,

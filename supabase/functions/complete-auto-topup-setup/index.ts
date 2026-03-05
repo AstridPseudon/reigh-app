@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { jsonResponse } from "../_shared/http.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
-import { createStripeClient, handleAutoTopupConfigError } from "../_shared/autoTopupDomain.ts";
+import { createStripeClient } from "../_shared/autoTopupDomain.ts";
 
 /**
  * Edge function: complete-auto-topup-setup
@@ -19,6 +19,9 @@ import { createStripeClient, handleAutoTopupConfigError } from "../_shared/autoT
  * - 500 Internal Server Error
  */
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "complete-auto-topup-setup",
     logPrefix: "[COMPLETE-AUTO-TOPUP-SETUP]",
@@ -48,7 +51,13 @@ serve(async (req) => {
 
   try {
     // ─── 4. Initialize Stripe ───────────────────────────────────────
-    const stripe = createStripeClient();
+    const stripeResult = createStripeClient();
+    if (!stripeResult.ok) {
+      logger.error(stripeResult.error.logMessage);
+      await logger.flush();
+      return jsonResponse({ error: stripeResult.error.message }, 500);
+    }
+    const stripe = stripeResult.value;
 
     // ─── 5. Retrieve checkout session and payment intent ────────────
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -106,8 +115,6 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const configResponse = await handleAutoTopupConfigError(error, logger);
-    if (configResponse) return configResponse;
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Error in complete-auto-topup-setup', { error: errorMessage });
     

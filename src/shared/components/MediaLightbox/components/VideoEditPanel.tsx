@@ -13,11 +13,11 @@ import React from 'react';
 import { Scissors, RefreshCw, RotateCcw, ArrowUp } from 'lucide-react';
 
 // Import video editing components
-import { TrimControlsPanel } from '@/shared/components/VideoTrimEditor';
+import { TrimControlsPanel } from '@/shared/components/VideoTrimEditor/components/TrimControlsPanel';
 import type { TrimState } from '@/shared/types/videoTrim';
 import { VideoPortionEditor } from '@/shared/components/VideoPortionEditor';
 import { DEFAULT_VACE_PHASE_CONFIG } from '@/shared/lib/vaceDefaults';
-import type { UseVideoEditingReturn } from '../hooks/modes/useVideoEditing.types';
+import type { UseVideoEditingReturn } from '../hooks/modes/types';
 import { EditPanelLayout } from './EditPanelLayout';
 import { ModeSelector } from './ModeSelector';
 import { SegmentRegenerateForm } from './SegmentRegenerateForm';

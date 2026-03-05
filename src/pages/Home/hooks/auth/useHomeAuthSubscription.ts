@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getAuthStateManager } from '@/integrations/supabase/auth/AuthStateManager';
-import { subscribeToAuthStateChanges } from '@/integrations/supabase/repositories/homeAuthRepository';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 import { useAuthReferralFinalize } from './useAuthReferralFinalize';
 import { getStorageItem, removeStorageItem } from './storage';
 import { isStandaloneDisplayMode } from './displayMode';
@@ -60,6 +60,7 @@ export function useHomeAuthSubscription({
       return authManager.subscribe('HomePage', handleAuthChange);
     }
 
-    return subscribeToAuthStateChanges(handleAuthChange);
+    const { data: listener } = getSupabaseClient().auth.onAuthStateChange(handleAuthChange);
+    return () => listener.subscription.unsubscribe();
   }, [finalizeReferral, navigate, pathname, setSession]);
 }

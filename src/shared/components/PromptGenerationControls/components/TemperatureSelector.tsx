@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Slider } from '@/shared/components/ui/slider';
-import { temperatureOptions } from '@/shared/components/PromptGenerationControls';
+import { temperatureOptions } from '../constants';
 
 interface TemperatureSelectorProps {
   temperature: number;

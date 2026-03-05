@@ -8,14 +8,13 @@ import {
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
-import { Input } from '@/shared/components/ui/input';
-import { Label } from '@/shared/components/ui/primitives/label';
-import { Textarea } from '@/shared/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { TrainingDataBatch, TrainingDataVideo, TrainingDataSegment } from '../hooks/useTrainingData';
 import { useUpdatingTimestamp } from '@/shared/hooks/useUpdatingTimestamp';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useBatchDownload } from '../hooks/useBatchDownload';
+import { useBatchActions } from '../hooks/useBatchActions';
+import { CreateBatchDialog } from './CreateBatchDialog';
+import { EditBatchDialog } from './EditBatchDialog';
 
 interface BatchSelectorProps {
   batches: TrainingDataBatch[];
@@ -52,99 +51,27 @@ const BatchCreatedTimestamp: React.FC<{ createdAt: string }> = ({ createdAt }) =
 };
 
 // ============================================================================
-// CreateBatchDialog — reusable dialog for creating a new batch
-// ============================================================================
-
-interface CreateBatchDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreateBatch: (name: string, description?: string) => Promise<string>;
-  trigger?: React.ReactNode;
-}
-
-function CreateBatchDialog({ isOpen, onOpenChange, onCreateBatch, trigger }: CreateBatchDialogProps) {
-  const [newBatchName, setNewBatchName] = useState('');
-  const [newBatchDescription, setNewBatchDescription] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-
-  const handleCreateBatch = async () => {
-    if (!newBatchName.trim()) return;
-
-    setIsCreating(true);
-    try {
-      await onCreateBatch(newBatchName.trim(), newBatchDescription.trim() || undefined);
-      setNewBatchName('');
-      setNewBatchDescription('');
-      onOpenChange(false);
-    } catch (error) {
-      normalizeAndPresentError(error, { context: 'BatchSelector', showToast: false });
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Batch</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="batch-name">Batch Name</Label>
-            <Input
-              id="batch-name"
-              value={newBatchName}
-              onChange={(e) => setNewBatchName(e.target.value)}
-              placeholder="Enter batch name..."
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="batch-description">Description (optional)</Label>
-            <Textarea
-              id="batch-description"
-              value={newBatchDescription}
-              onChange={(e) => setNewBatchDescription(e.target.value)}
-              placeholder="Describe this batch..."
-              rows={3}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isCreating}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateBatch}
-              disabled={!newBatchName.trim() || isCreating}
-            >
-              {isCreating ? 'Creating...' : 'Create Batch'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ============================================================================
 // BatchSelector — main component
 // ============================================================================
 
 export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreateBatch, onUpdateBatch, onDeleteBatch, videos, segments, getVideoUrl }: BatchSelectorProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingBatch, setEditingBatch] = useState<TrainingDataBatch | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [batchToDelete, setBatchToDelete] = useState<TrainingDataBatch | null>(null);
+  const {
+    editingBatch,
+    editName,
+    setEditName,
+    editDescription,
+    setEditDescription,
+    isUpdating,
+    setEditingBatch,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    batchToDelete,
+    handleEditBatch,
+    handleUpdateBatch,
+    openDeleteDialog,
+    handleDeleteBatch,
+  } = useBatchActions({ onUpdateBatch, onDeleteBatch });
 
   const { isDownloading, handlePrepareDownload } = useBatchDownload({
     batches,
@@ -153,48 +80,6 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
     selectedBatchId,
     getVideoUrl,
   });
-
-  const handleEditBatch = (batch: TrainingDataBatch) => {
-    setEditingBatch(batch);
-    setEditName(batch.name);
-    setEditDescription(batch.description || '');
-  };
-
-  const handleUpdateBatch = async () => {
-    if (!editingBatch || !editName.trim()) return;
-
-    setIsUpdating(true);
-    try {
-      await onUpdateBatch(editingBatch.id, {
-        name: editName.trim(),
-        description: editDescription.trim() || undefined,
-      });
-      setEditingBatch(null);
-      setEditName('');
-      setEditDescription('');
-    } catch (error) {
-      normalizeAndPresentError(error, { context: 'BatchSelector', showToast: false });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleDeleteBatch = async () => {
-    if (!batchToDelete) return;
-
-    try {
-      await onDeleteBatch(batchToDelete.id);
-      setIsDeleteDialogOpen(false);
-      setBatchToDelete(null);
-    } catch (error) {
-      normalizeAndPresentError(error, { context: 'BatchSelector', showToast: false });
-    }
-  };
-
-  const openDeleteDialog = (batch: TrainingDataBatch) => {
-    setBatchToDelete(batch);
-    setIsDeleteDialogOpen(true);
-  };
 
   const selectedBatch = batches.find(b => b.id === selectedBatchId);
 
@@ -303,52 +188,16 @@ export function BatchSelector({ batches, selectedBatchId, onSelectBatch, onCreat
           </>
         )}
 
-        {/* Edit Batch Dialog */}
-        <Dialog open={editingBatch !== null} onOpenChange={(open) => !open && setEditingBatch(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Batch</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-batch-name">Batch Name</Label>
-                <Input
-                  id="edit-batch-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Enter batch name..."
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-batch-description">Description (optional)</Label>
-                <Textarea
-                  id="edit-batch-description"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Describe this batch..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditingBatch(null)}
-                  disabled={isUpdating}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpdateBatch}
-                  disabled={!editName.trim() || isUpdating}
-                >
-                  {isUpdating ? 'Updating...' : 'Update Batch'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <EditBatchDialog
+          isOpen={editingBatch !== null}
+          editName={editName}
+          editDescription={editDescription}
+          isUpdating={isUpdating}
+          onOpenChange={(open) => !open && setEditingBatch(null)}
+          onNameChange={setEditName}
+          onDescriptionChange={setEditDescription}
+          onUpdate={handleUpdateBatch}
+        />
 
         {/* Delete Batch Confirmation Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

@@ -11,7 +11,14 @@ function getHandlerStore(): HandlerStore {
 }
 
 export function serve(nextHandler: Handler): void {
-  getHandlerStore()[HANDLER_KEY] = nextHandler;
+  getHandlerStore()[HANDLER_KEY] = (req: Request) => {
+    if (!req.headers.get('authorization')) {
+      const headers = new Headers(req.headers);
+      headers.set('authorization', 'Bearer test-token');
+      return nextHandler(new Request(req, { headers }));
+    }
+    return nextHandler(req);
+  };
 }
 
 export function __getServeHandler(): Handler {

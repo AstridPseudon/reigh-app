@@ -11,7 +11,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueVariantInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { useAppEventListener } from '@/shared/lib/typedEvents';
@@ -152,7 +152,7 @@ export const useVariants = ({
 
       // Invalidate caches using centralized function
       if (generationId) {
-        await invalidateVariantChange(queryClient, {
+        await enqueueVariantInvalidation(queryClient, {
           generationId,
           reason: 'set-primary-variant',
         });
@@ -214,7 +214,7 @@ export const useVariants = ({
           normalizeAndPresentError(insertError, { context: 'useVariants', showToast: false });
         } else {
           // Invalidate parent's variant cache
-          await invalidateVariantChange(queryClient, {
+          await enqueueVariantInvalidation(queryClient, {
             generationId: generation.parent_generation_id,
             reason: 'single-segment-propagation',
           });
@@ -266,7 +266,7 @@ export const useVariants = ({
 
       // Invalidate caches
       if (generationId) {
-        await invalidateVariantChange(queryClient, {
+        await enqueueVariantInvalidation(queryClient, {
           generationId,
           reason: 'delete-variant',
         });

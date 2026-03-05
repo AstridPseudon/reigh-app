@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { fetchCurrentSession } from '@/integrations/supabase/repositories/homeAuthRepository';
+import { getSupabaseClient } from '@/integrations/supabase/client';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { isStandaloneDisplayMode } from './displayMode';
 
@@ -19,7 +19,7 @@ export function useStandaloneAuthRedirect({
 
     const syncSessionAndRedirect = async () => {
       try {
-        const { data, error } = await fetchCurrentSession();
+        const { data, error } = await getSupabaseClient().auth.getSession();
         if (error) {
           throw error;
         }

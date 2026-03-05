@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useToolSettings } from '@/shared/hooks/useToolSettings';
+import { useCallback } from 'react';
+import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 
 export interface AudioMetadata {
@@ -10,6 +10,11 @@ export interface AudioMetadata {
 interface UseAudioParams {
   projectId: string;
   shotId: string | undefined;
+}
+
+interface AudioSettings {
+  url: string | null;
+  metadata: AudioMetadata | null;
 }
 
 export interface UseAudioReturn {
@@ -23,87 +28,40 @@ export interface UseAudioReturn {
 }
 
 /**
- * Hook to manage audio state with database persistence
- * Handles loading from settings, auto-save on changes, and shot-switching
+ * Hook to manage per-shot audio persistence.
+ * Standardized on useAutoSaveSettings for load/save behavior.
  */
 export function useAudio({
   projectId,
   shotId,
 }: UseAudioParams): UseAudioReturn {
-  // Audio persistence using separate tool settings (per-shot basis)
-  const {
-    settings: audioSettings,
-    update: updateAudioSettings,
-    isLoading: isAudioSettingsLoading
-  } = useToolSettings<{
-    url?: string | null;
-    metadata?: AudioMetadata | null;
-  }>(SETTINGS_IDS.TRAVEL_AUDIO, {
+  const audioSettings = useAutoSaveSettings<AudioSettings>({
+    toolId: SETTINGS_IDS.TRAVEL_AUDIO,
     projectId,
-    shotId: shotId,
-    enabled: !!shotId
+    shotId: shotId ?? null,
+    scope: 'shot',
+    defaults: {
+      url: null,
+      metadata: null,
+    },
+    enabled: !!shotId,
+    debounceMs: 100,
   });
 
-  // Audio state
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioMetadata, setAudioMetadata] = useState<AudioMetadata | null>(null);
-  const [hasInitializedAudio, setHasInitializedAudio] = useState<string | null>(null);
-
-  // Reset initialization state when shot changes
-  useEffect(() => {
-    if (shotId !== hasInitializedAudio) {
-      setHasInitializedAudio(null);
-    }
-  }, [shotId, hasInitializedAudio]);
-
-  // Load audio from settings when shot loads
-  useEffect(() => {
-    if (!hasInitializedAudio && !isAudioSettingsLoading && shotId) {
-      if (audioSettings?.url) {
-        setAudioUrl(audioSettings.url);
-        setAudioMetadata(audioSettings.metadata || null);
-      } else {
-        // No saved audio - initialize with defaults
-        setAudioUrl(null);
-        setAudioMetadata(null);
-      }
-      setHasInitializedAudio(shotId);
-    }
-  }, [audioSettings, isAudioSettingsLoading, shotId, hasInitializedAudio]);
-
-  // Refs for stable callback
-  const updateAudioSettingsRef = useRef(updateAudioSettings);
-  updateAudioSettingsRef.current = updateAudioSettings;
-  const shotIdRef = useRef(shotId);
-  shotIdRef.current = shotId;
-
-  // Handler for audio changes with auto-save
   const handleAudioChange = useCallback((
     url: string | null,
     metadata: AudioMetadata | null
   ) => {
-
-    setAudioUrl(url);
-    setAudioMetadata(metadata);
-
-    // Save to database
-    if (url) {
-      updateAudioSettingsRef.current('shot', {
-        url: url,
-        metadata: metadata || null
-      });
-    } else {
-      updateAudioSettingsRef.current('shot', {
-        url: null,
-        metadata: null
-      });
-    }
-  }, []);
+    audioSettings.updateFields({
+      url,
+      metadata: metadata ?? null,
+    });
+  }, [audioSettings]);
 
   return {
-    audioUrl,
-    audioMetadata,
+    audioUrl: audioSettings.settings.url ?? null,
+    audioMetadata: audioSettings.settings.metadata ?? null,
     handleAudioChange,
-    isLoading: isAudioSettingsLoading,
+    isLoading: !!shotId && audioSettings.status === 'loading',
   };
 }

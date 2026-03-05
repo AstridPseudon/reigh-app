@@ -20,7 +20,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import type { GenerationRow } from '@/domains/generation/types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useShotImages } from '@/shared/hooks/useShotImages';
-import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { calculateNextAvailableFrame, extractExistingFrames, DEFAULT_FRAME_SPACING } from '@/shared/lib/timelinePositionCalculator';
 import {
@@ -50,7 +50,7 @@ export type { ShotGeneration, PositionMetadata } from './useTimelineCore.types';
 // Hook Implementation
 // ============================================================================
 
-type InvalidateGenerationsFn = ReturnType<typeof useInvalidateGenerations>;
+type InvalidateGenerationsFn = ReturnType<typeof useEnqueueGenerationsInvalidation>;
 
 interface TimelinePositionOperations {
   updatePosition: TimelineCoreResult['updatePosition'];
@@ -316,7 +316,7 @@ function useTimelineItemOperations(
 
 export function useTimelineCore(shotId: string | null): TimelineCoreResult {
   const queryClient = useQueryClient();
-  const invalidateGenerations = useInvalidateGenerations();
+  const invalidateGenerations = useEnqueueGenerationsInvalidation();
   const {
     data: generations,
     isLoading,

@@ -106,7 +106,7 @@ export const VideoEditModeDisplay: React.FC<VideoEditModeDisplayProps> = ({
     return { inZone: false, segmentIndex: -1, selectionId: null };
   }, [currentVideoTime, selections]);
 
-  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const handleEditVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
     if (Number.isFinite(video.duration) && video.duration > 0) {
       onLoadedMetadata(video.duration);
@@ -182,7 +182,7 @@ export const VideoEditModeDisplay: React.FC<VideoEditModeDisplayProps> = ({
         preload="auto"
         className="max-w-full max-h-full object-contain shadow-wes border border-border/20 rounded cursor-pointer"
         style={{ WebkitAppearance: 'none' }}
-        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedMetadata={handleEditVideoLoadedMetadata}
         onClick={handlePlayPause}
       />
 

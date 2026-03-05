@@ -15,24 +15,27 @@ import { GenerationRow, Shot } from '@/domains/generation/types';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
-import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { AddImageToShotVariables } from '@/shared/hooks/shots/addImageToShotHelpers';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 
-interface ApplySettingsHandlerState {
-  // IDs
+interface ApplySettingsHandlerIds {
   projectId: string;
   selectedShotId: string;
-  
-  // Data
+}
+
+interface ApplySettingsHandlerData {
   simpleFilteredImages: GenerationRow[];
   selectedShot: Shot | undefined;
   availableLoras: LoraModel[];
-  
-  // State callbacks (from props)
+}
+
+interface ApplySettingsHandlerCallbacks {
   onBatchVideoPromptChange: (prompt: string) => void;
-  onSteerableMotionSettingsChange: (settings: Partial<SteerableMotionSettings>) => void;
+  onSteerableMotionSettingsChange: (
+    settings: Partial<SteerableMotionSettings>
+  ) => void;
   onBatchVideoFramesChange: (frames: number) => void;
   onBatchVideoStepsChange: (steps: number) => void;
   onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
@@ -43,7 +46,11 @@ interface ApplySettingsHandlerState {
   onMotionModeChange: (mode: 'basic' | 'advanced') => void;
   onGenerationTypeModeChange: (mode: 'i2v' | 'vace') => void;
   onPhaseConfigChange: (config: PhaseConfig) => void;
-  onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
+  onPhasePresetSelect: (
+    presetId: string,
+    config: PhaseConfig,
+    presetMetadata?: PresetMetadata
+  ) => void;
   onPhasePresetRemove: () => void;
   onTurboModeChange: (turbo: boolean) => void;
   onEnhancePromptChange: (enhance: boolean) => void;
@@ -56,10 +63,11 @@ interface ApplySettingsHandlerState {
     treatment: 'adjust' | 'clip',
     motionStrength: number,
     structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string,
+    resourceId?: string
   ) => void;
-  
-  // Current values
+}
+
+interface ApplySettingsHandlerCurrentValues {
   generationMode: 'batch' | 'timeline' | 'by-pair';
   generationTypeMode: 'i2v' | 'vace';
   advancedMode: boolean;
@@ -72,15 +80,24 @@ interface ApplySettingsHandlerState {
   batchVideoSteps: number;
   batchVideoFrames: number;
   steerableMotionSettings: SteerableMotionSettings;
-  
-  // Managers/Mutations
+}
+
+interface ApplySettingsHandlerManagers {
   loraManager: {
     setSelectedLoras?: (
-      loras: Array<{ id: string; name: string; path: string; strength: number; [key: string]: unknown }>
+      loras: Array<{
+        id: string;
+        name: string;
+        path: string;
+        strength: number;
+        [key: string]: unknown;
+      }>
     ) => void;
     handleAddLora: (lora: LoraModel, showToast: boolean, strength: number) => void;
   };
-  addImageToShotMutation: { mutateAsync: (params: AddImageToShotVariables) => Promise<unknown> };
+  addImageToShotMutation: {
+    mutateAsync: (params: AddImageToShotVariables) => Promise<unknown>;
+  };
   removeImageFromShotMutation: {
     mutateAsync: (params: {
       shotId: string;
@@ -89,9 +106,21 @@ interface ApplySettingsHandlerState {
       shiftItems?: { id: string; newFrame: number }[];
     }) => Promise<unknown>;
   };
-  updatePairPromptsByIndex: (pairIndex: number, prompt: string, negativePrompt: string) => Promise<void>;
-  loadPositions: (opts?: { silent?: boolean; reason?: string }) => void | Promise<void>;
+  updatePairPromptsByIndex: (
+    pairIndex: number,
+    prompt: string,
+    negativePrompt: string
+  ) => Promise<void>;
+  loadPositions: (
+    opts?: { silent?: boolean; reason?: string }
+  ) => void | Promise<void>;
 }
+
+type ApplySettingsHandlerState = ApplySettingsHandlerIds &
+  ApplySettingsHandlerData &
+  ApplySettingsHandlerCallbacks &
+  ApplySettingsHandlerCurrentValues &
+  ApplySettingsHandlerManagers;
 
 function buildServiceApplyContext(handlerState: ApplySettingsHandlerState): ApplySettingsService.ApplyContext {
   return {
@@ -182,7 +211,7 @@ async function applySettingsFromTask(
   );
 
   if (handlerState.selectedShot?.id) {
-    invalidateGenerationsSync(queryClient, handlerState.selectedShot.id, {
+    enqueueGenerationsInvalidation(queryClient, handlerState.selectedShot.id, {
       reason: 'apply-settings-force-reload',
       scope: 'all',
       delayMs: 200,

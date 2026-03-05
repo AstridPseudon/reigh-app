@@ -5,7 +5,7 @@ import { GenerationRow, Shot } from "@/domains/generation/types";
 import { useRemoveImageFromShot } from "@/shared/hooks/shots";
 import { useQueryClient } from '@tanstack/react-query';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
-import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 
 interface UseDeleteActionsProps {
   selectedShot: Shot;
@@ -124,7 +124,7 @@ export const useDeleteActions = ({
         shiftItems,
       });
 
-      invalidateGenerationsSync(queryClientRef.current, currentShot.id, {
+      enqueueGenerationsInvalidation(queryClientRef.current, currentShot.id, {
         reason: isDeletingFirstItem ? 'delete-image-frame-shift' : 'delete-image',
         scope: 'all',
         includeShots: true,

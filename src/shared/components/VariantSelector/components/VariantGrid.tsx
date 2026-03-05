@@ -76,6 +76,28 @@ export const VariantGrid: React.FC<VariantGridProps> = ({
   const totalPages = Math.ceil(filteredVariants.length / ITEMS_PER_PAGE);
   const start = currentPage * ITEMS_PER_PAGE;
   const paginatedVariants = filteredVariants.slice(start, start + ITEMS_PER_PAGE);
+  const sharedVariantCardProps = {
+    activeVariantId,
+    isMobile,
+    readOnly,
+    variants: allVariants,
+    availableLoras,
+    copiedVariantId,
+    loadedSettingsVariantId,
+    onVariantSelect,
+    onMakePrimary,
+    onDeleteVariant,
+    onLoadVariantSettings,
+    onToggleStar,
+    onMouseEnter,
+    onShowMobileInfo,
+    onShowLineageGif,
+    onCopyId,
+    onLoadSettings,
+    onLoadImages,
+    currentSegmentImages,
+    loadedImagesVariantId,
+  };
 
   return (
     <>
@@ -132,28 +154,9 @@ export const VariantGrid: React.FC<VariantGridProps> = ({
               isPrimary={isPrimary}
               isParent={isParent}
               isChild={isChild}
-              activeVariantId={activeVariantId}
-              isMobile={isMobile}
-              readOnly={readOnly}
-              variants={allVariants}
-              availableLoras={availableLoras}
               lineageDepth={variantLineageDepth[variant.id] || 0}
               isDeleteLoading={isDeleteLoading(variant.id)}
-              copiedVariantId={copiedVariantId}
-              loadedSettingsVariantId={loadedSettingsVariantId}
-              onVariantSelect={onVariantSelect}
-              onMakePrimary={onMakePrimary}
-              onDeleteVariant={onDeleteVariant}
-              onLoadVariantSettings={onLoadVariantSettings}
-              onToggleStar={onToggleStar}
-              onMouseEnter={onMouseEnter}
-              onShowMobileInfo={onShowMobileInfo}
-              onShowLineageGif={onShowLineageGif}
-              onCopyId={onCopyId}
-              onLoadSettings={onLoadSettings}
-              onLoadImages={onLoadImages}
-              currentSegmentImages={currentSegmentImages}
-              loadedImagesVariantId={loadedImagesVariantId}
+              {...sharedVariantCardProps}
             />
           );
         })}

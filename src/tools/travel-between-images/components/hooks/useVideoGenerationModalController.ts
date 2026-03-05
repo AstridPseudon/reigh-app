@@ -15,7 +15,7 @@ import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useShotImages } from '@/shared/hooks/useShotImages';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import { findClosestAspectRatio } from '@/shared/lib/media/aspectRatios';
-import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { buildBasicModeGenerationRequest as buildBasicModePhaseConfig } from '../ShotEditor/services/generateVideo/modelPhase';
@@ -25,7 +25,6 @@ import {
   BUILTIN_DEFAULT_VACE_ID,
   FEATURED_PRESET_IDS,
 } from '../MotionControl.constants';
-import type { VideoGenerationModalProps } from '../VideoGenerationModal';
 
 const knownPresetIds = [
   BUILTIN_DEFAULT_I2V_ID,
@@ -74,10 +73,14 @@ function mapSelectedLorasToActiveLoras(
   }));
 }
 
-export function useVideoGenerationModalController({ isOpen, onClose, shot }: VideoGenerationModalProps) {
+export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
+  isOpen: boolean;
+  onClose: () => void;
+  shot: Shot;
+}) {
   const { selectedProjectId, projects } = useProject();
   const queryClient = useQueryClient();
-  const invalidateGenerations = useInvalidateGenerations();
+  const invalidateGenerations = useEnqueueGenerationsInvalidation();
   const { navigateToShot } = useShotNavigation();
 
   const [isGenerating, setIsGenerating] = useState(false);

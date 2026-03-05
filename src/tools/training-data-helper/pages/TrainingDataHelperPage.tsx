@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { PageFadeIn } from '@/shared/components/transitions';
+import { PageFadeIn } from '@/shared/components/transitions/PageFadeIn';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { VideoUploadList } from '../components/VideoUploadList';
 import { VideoSegmentEditor } from '../components/VideoSegmentEditor/VideoSegmentEditor';

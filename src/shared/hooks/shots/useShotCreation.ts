@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { invalidateGenerationsSync } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useCreateShot } from './useShotsCrud';
 import { useAddImageToShot, useAddImageToShotWithoutPosition } from './useShotGenerationMutations';
@@ -67,7 +67,7 @@ export const useCreateShotWithImage = () => {
       });
 
       if (data.shotId) {
-        invalidateGenerationsSync(queryClient, data.shotId, {
+        enqueueGenerationsInvalidation(queryClient, data.shotId, {
           reason: 'create-shot-with-image',
           scope: 'all',
           delayMs: 100,

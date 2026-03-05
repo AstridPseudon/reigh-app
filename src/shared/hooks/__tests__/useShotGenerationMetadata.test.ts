@@ -21,7 +21,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
-  useInvalidateGenerations: vi.fn(() => vi.fn()),
+  useEnqueueGenerationsInvalidation: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

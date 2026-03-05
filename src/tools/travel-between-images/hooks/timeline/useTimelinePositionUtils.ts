@@ -21,7 +21,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { GenerationRow } from '@/domains/generation/types';
 import type { ShotGeneration, PositionMetadata } from '@/shared/hooks/useTimelineCore';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
-import { useInvalidateGenerations } from '@/shared/hooks/invalidation';
+import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 
@@ -41,7 +41,7 @@ interface UseTimelinePositionUtilsOptions {
 
 export function useTimelinePositionUtils({ shotId, generations, projectId }: UseTimelinePositionUtilsOptions) {
   const queryClient = useQueryClient();
-  const invalidateGenerations = useInvalidateGenerations();
+  const invalidateGenerations = useEnqueueGenerationsInvalidation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

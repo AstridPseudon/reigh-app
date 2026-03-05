@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Mic, Square, Loader2, X, Check, Wand2, Send } from "lucide-react"
+import { Loader2, Send, X } from "lucide-react"
 import { cn } from "@/shared/components/ui/contracts/cn"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip"
 import { TouchableTooltip } from "./touchableTooltip"
@@ -7,12 +7,13 @@ import { TextAction } from "./text-action"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { useVoiceRecording } from "@/shared/hooks/useVoiceRecording"
 import { useIsMobile } from "@/shared/hooks/mobile"
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { useAIInputMode } from "@/shared/contexts/AIInputModeContext"
-import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError"
-import { getErrorMessage } from "@/shared/lib/errorHandling/errorUtils"
-
-type TextProcessingState = "idle" | "open" | "processing" | "success"
+import { useAIInputTextPopover } from "@/shared/components/ui/hooks/useAIInputTextPopover"
+import {
+  getButtonStyles,
+  getMainIcon,
+  getTooltipText,
+} from "@/shared/components/ui/ai-input-button.visuals"
 
 interface AIInputButtonProps {
   onResult: (result: { transcription: string; prompt?: string }) => void
@@ -44,10 +45,22 @@ export const AIInputButton = React.forwardRef<
   })
   
   // Text prompt state
-  const [textState, setTextState] = React.useState<TextProcessingState>("idle")
-  const [inputValue, setInputValue] = React.useState("")
-  const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
-  const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  const {
+    textState,
+    inputValue,
+    setInputValue,
+    isPopoverOpen,
+    inputRef,
+    handlePopoverOpenChange,
+    handleTextSubmit,
+    handleKeyDown,
+  } = useAIInputTextPopover({
+    onResult,
+    onError,
+    context,
+    example,
+    existingValue,
+  })
   
   const isTextActive = textState === "open" || textState === "processing" || textState === "success"
   const isActive = isVoiceActive || isTextActive
@@ -56,13 +69,6 @@ export const AIInputButton = React.forwardRef<
   React.useEffect(() => {
     onActiveStateChange?.(isActive)
   }, [isActive, onActiveStateChange])
-
-  // Focus input when popover opens
-  React.useEffect(() => {
-    if (isPopoverOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 50)
-    }
-  }, [isPopoverOpen])
 
   const hasExistingContent = existingValue.trim().length > 0
 
@@ -87,136 +93,12 @@ export const AIInputButton = React.forwardRef<
     e.stopPropagation()
     cancelRecording()
   }
-
-  // Text mode handlers
-  const handlePopoverOpenChange = (open: boolean) => {
-    if (textState === "processing") return
-    setIsPopoverOpen(open)
-    if (open) {
-      setTextState("open")
-      setInputValue("")
-    } else {
-      setTextState("idle")
-    }
-  }
-
-  const handleTextSubmit = async () => {
-    if (!inputValue.trim() || textState === "processing") return
-    
-    setTextState("processing")
-    
-    try {
-      const { data, error } = await supabase().functions.invoke("ai-voice-prompt", {
-        body: {
-          textInstructions: inputValue.trim(),
-          task: "transcribe_and_write",
-          context: context || "",
-          example: example || "",
-          existingValue: existingValue || "",
-        },
-      })
-
-      if (error) {
-        normalizeAndPresentError(error, { context: 'AIInputButton', showToast: false })
-        onError?.(error.message || "Failed to process instructions")
-        setTextState("open")
-        return
-      }
-
-      if (data?.error) {
-        normalizeAndPresentError(new Error(data.error), { context: 'AIInputButton', showToast: false })
-        onError?.(data.error)
-        setTextState("open")
-        return
-      }
-
-      onResult?.({
-        transcription: data.transcription,
-        prompt: data.prompt,
-      })
-      
-      setTextState("success")
-      
-      setTimeout(() => {
-        setIsPopoverOpen(false)
-        setTextState("idle")
-        setInputValue("")
-      }, 500)
-    } catch (err: unknown) {
-      normalizeAndPresentError(err, { context: 'AIInputButton', showToast: false })
-      onError?.(getErrorMessage(err) || "Failed to process instructions")
-      setTextState("open")
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleTextSubmit()
-    }
-    if (e.key === "Escape") {
-      setIsPopoverOpen(false)
-    }
-  }
-
-  // Get the appropriate icon for the main button
-  const getMainIcon = () => {
-    if (mode === "voice") {
-      switch (voiceState) {
-        case "recording":
-          return <Square className="h-3 w-3 fill-current" />
-        case "processing":
-          return <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        default:
-          return <Mic className="h-3.5 w-3.5" />
-      }
-    } else {
-      switch (textState) {
-        case "processing":
-          return <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        case "success":
-          return <Check className="h-3.5 w-3.5" />
-        default:
-          return <Wand2 className="h-3.5 w-3.5" />
-      }
-    }
-  }
-
-  const getTooltipText = () => {
-    if (mode === "voice") {
-      switch (voiceState) {
-        case "recording":
-          return "Stop recording"
-        case "processing":
-          return "Processing..."
-        default:
-          return hasExistingContent 
-            ? "Voice input to create/edit prompt" 
-            : "Voice input to create prompt"
-      }
-    } else {
-      return hasExistingContent 
-        ? "Type instructions to create/edit prompt" 
-        : "Type instructions to create prompt"
-    }
-  }
-
-  // Determine button background color
-  const getButtonStyles = () => {
-    if (mode === "voice") {
-      if (voiceState === "recording") {
-        return "bg-red-500 text-white hover:bg-red-600"
-      }
-    } else {
-      if (textState === "open" || textState === "processing") {
-        return "bg-purple-500 text-white hover:bg-purple-600"
-      }
-      if (textState === "success") {
-        return "bg-green-500 text-white hover:bg-green-600"
-      }
-    }
-    return "bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground"
-  }
+  const visuals = React.useMemo(() => ({
+    mode,
+    voiceState,
+    textState,
+    hasExistingContent,
+  }), [mode, voiceState, textState, hasExistingContent])
 
   // Check if className contains flex-1 (for stretching)
   const isStretching = className?.includes('flex-1')
@@ -232,7 +114,7 @@ export const AIInputButton = React.forwardRef<
       className={cn(
         "relative rounded-md flex items-center justify-center transition-colors z-10",
         !isStretching && "h-6 w-6",
-        getButtonStyles(),
+        getButtonStyles(visuals),
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
@@ -282,7 +164,7 @@ export const AIInputButton = React.forwardRef<
         </span>
       )}
 
-      {getMainIcon()}
+      {getMainIcon(visuals)}
     </button>
   )
 
@@ -295,13 +177,13 @@ export const AIInputButton = React.forwardRef<
       className={cn(
         "relative rounded-md flex items-center justify-center transition-colors z-10",
         !isStretching && "h-6 w-6",
-        getButtonStyles(),
+        getButtonStyles(visuals),
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
       tabIndex={-1}
     >
-      {getMainIcon()}
+      {getMainIcon(visuals)}
     </button>
   )
 
@@ -374,7 +256,7 @@ export const AIInputButton = React.forwardRef<
         contentClassName="flex flex-col gap-1"
         content={
           <>
-            <p className="text-xs">{getTooltipText()}</p>
+            <p className="text-xs">{getTooltipText(visuals)}</p>
             <TextAction
               onClick={(e) => {
                 e.stopPropagation();
@@ -455,7 +337,7 @@ export const AIInputButton = React.forwardRef<
         </PopoverContent>
       </Popover>
       <TooltipContent side="top" sideOffset={5} className="flex flex-col gap-1">
-        <p className="text-xs">{getTooltipText()}</p>
+        <p className="text-xs">{getTooltipText(visuals)}</p>
         <TextAction
           onClick={(e) => {
             e.stopPropagation();

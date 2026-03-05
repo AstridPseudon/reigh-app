@@ -1,14 +1,14 @@
 import { GenerationRow } from '@/domains/generation/types';
 
+import { MediaDisplayWithCanvas } from '@/shared/components/MediaLightbox/components/MediaDisplayWithCanvas';
 import {
-  MediaDisplayWithCanvas,
   TopRightControls,
   BottomLeftControls,
   BottomRightControls,
-  EditModePanel,
-  FloatingToolControls,
-  AnnotationFloatingControls,
-} from '@/shared/components/MediaLightbox/components';
+} from '@/shared/components/MediaLightbox/components/ButtonGroups';
+import { EditModePanel } from '@/shared/components/MediaLightbox/components/EditModePanel';
+import { FloatingToolControls } from '@/shared/components/MediaLightbox/components/FloatingToolControls';
+import { AnnotationFloatingControls } from '@/shared/components/MediaLightbox/components/AnnotationFloatingControls';
 import { ImageEditProvider } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';

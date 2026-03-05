@@ -11,7 +11,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueVariantInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/variantSourceImages';
@@ -126,7 +126,7 @@ export function useLoadVariantImages({ currentSegmentImages }: UseLoadVariantIma
         if (signal.aborted) return;
 
         // Invalidate caches for this generation
-        await invalidateVariantChange(queryClient, {
+        await enqueueVariantInvalidation(queryClient, {
           generationId: pos.currentGenId,
           reason: 'load-variant-images',
         });

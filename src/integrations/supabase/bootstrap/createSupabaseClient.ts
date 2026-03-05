@@ -49,7 +49,7 @@ export function createSupabaseClient() {
     // Replace PostgrestClient.fetch to use the cached token.
     // PostgrestClient reads this.fetch on each from()/rpc() call, so the
     // replacement takes effect immediately without recreating any clients.
-    const dataFetch = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
+    const dataFetch = (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
       const headers = new Headers(init.headers ?? {});
       if (!headers.has('apikey')) headers.set('apikey', key);
       if (!headers.has('Authorization')) {

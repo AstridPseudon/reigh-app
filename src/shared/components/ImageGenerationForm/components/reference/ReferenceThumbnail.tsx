@@ -43,7 +43,7 @@ export const ReferenceThumbnail: React.FC<ReferenceThumbnailProps> = ({
     setIsLoaded(false);
   }, [imageUrl]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleReferenceTouchStart = (e: React.TouchEvent) => {
     setIsTouched(true);
     const touch = e.touches[0];
     if (touch) {
@@ -63,7 +63,7 @@ export const ReferenceThumbnail: React.FC<ReferenceThumbnailProps> = ({
     }
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleReferenceTouchEnd = (e: React.TouchEvent) => {
     if (!isGenerating && touchStartPos.current) {
       const target = e.target as HTMLElement;
       if (!target.closest("button")) {
@@ -83,9 +83,9 @@ export const ReferenceThumbnail: React.FC<ReferenceThumbnailProps> = ({
           : "border-border hover:border-purple-300 dark:hover:border-purple-600"
       )}
       onClick={() => !isGenerating && onSelect()}
-      onTouchStart={handleTouchStart}
+      onTouchStart={handleReferenceTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onTouchEnd={handleReferenceTouchEnd}
       onTouchCancel={() => {
         setIsTouched(false);
         touchStartPos.current = null;

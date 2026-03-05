@@ -1,7 +1,6 @@
-import React from 'react';
-import MediaLightbox from '@/shared/components/MediaLightbox';
-import { PreviewTogetherDialog, type PreviewSegment } from './components';
-import type { ShotImagesEditorModeModel } from './hooks';
+import MediaLightbox from '@/shared/components/MediaLightbox/MediaLightbox';
+import { PreviewTogetherDialog, type PreviewSegment } from './components/PreviewTogetherDialog';
+import type { ShotImagesEditorModeModel } from './hooks/useShotImagesEditorModel';
 import type { ShotImagesEditorResolvedProps } from './types';
 
 export function EditorOverlays(props: {

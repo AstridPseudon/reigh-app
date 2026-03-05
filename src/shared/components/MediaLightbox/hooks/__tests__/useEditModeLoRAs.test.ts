@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { useEditModeLoRAs } from '../useEditModeLoRAs';
+import { useEditModeLoras } from '../useEditModeLoras';
 
-describe('useEditModeLoRAs', () => {
+describe('useEditModeLoras', () => {
   it('exports expected members', () => {
-    expect(useEditModeLoRAs).toBeDefined();
+    expect(useEditModeLoras).toBeDefined();
   });
 
-  it('useEditModeLoRAs is a callable function', () => {
-    expect(typeof useEditModeLoRAs).toBe('function');
-    expect(useEditModeLoRAs.name).toBeDefined();
+  it('useEditModeLoras is a callable function', () => {
+    expect(typeof useEditModeLoras).toBe('function');
+    expect(useEditModeLoras.name).toBeDefined();
   });
 });

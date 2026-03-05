@@ -70,7 +70,7 @@ interface UseEditSettingsPersistenceReturn {
   setPanelMode: (mode: PanelMode) => void;
 
   // Computed LoRAs for task creation
-  editModeLoRAs: Array<{ url: string; strength: number }> | undefined;
+  editModeLoras: Array<{ url: string; strength: number }> | undefined;
 
   // Legacy compatibility
   isInSceneBoostEnabled: boolean;
@@ -82,7 +82,7 @@ interface UseEditSettingsPersistenceReturn {
   hasPersistedSettings: boolean;
 }
 
-// LoRA URL constants (moved from useEditModeLoRAs)
+// LoRA URL constants (moved from useEditModeLoras)
 const LORA_URLS = {
   'in-scene': 'https://huggingface.co/peteromallet/random_junk/resolve/main/in_scene_different_object_000010500.safetensors',
   'next-scene': 'https://huggingface.co/lovis93/next-scene-qwen-image-lora-2509/resolve/main/next-scene_lora-v2-3000.safetensors',
@@ -298,10 +298,10 @@ export function useEditSettingsPersistence({
     updateLastUsed({ panelMode: mode });
   }, [updateLastUsed]);
 
-  // Computed LoRAs based on mode (replaces useEditModeLoRAs logic)
+  // Computed LoRAs based on mode (replaces useEditModeLoras logic)
   const loraMode = effectiveSettings.loraMode;
   const customLoraUrl = effectiveSettings.customLoraUrl;
-  const editModeLoRAs = useMemo(() => {
+  const editModeLoras = useMemo(() => {
 
     switch (loraMode) {
       case 'in-scene':
@@ -370,7 +370,7 @@ export function useEditSettingsPersistence({
     setPanelMode,
 
     // Computed
-    editModeLoRAs,
+    editModeLoras,
 
     // Legacy
     isInSceneBoostEnabled,

@@ -129,7 +129,7 @@ interface UseShotActionsProps {
 /**
  * Hook to manage add-to-shot actions with retry logic
  */
-export function useShotActions(props: UseShotActionsProps) {
+export function useMediaGalleryItemShotActions(props: UseShotActionsProps) {
   const {
     imageId,
     generationId,

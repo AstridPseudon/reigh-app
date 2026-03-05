@@ -16,8 +16,6 @@ import { preloadImages } from './preloader';
 import {
   clearAllLoadedImages,
   clearLoadedImages,
-  hasLoadedImage,
-  setImageLoadStatus,
   getLoadTrackerStats,
 } from './tracker';
 import { PRIORITY } from './types';
@@ -189,59 +187,10 @@ class PreloadingService {
   }
 
   /**
-   * Check if an image has been loaded.
-   * Delegates to the tracker (single source of truth).
-   */
-  isImageLoaded(image: PreloadableImage): boolean {
-    if (!image.id) return false;
-    return hasLoadedImage(image as { id: string });
-  }
-
-  /**
-   * Mark an image as loaded (for images loaded by components, not preloader).
-   * Delegates to the tracker.
-   */
-  markImageLoaded(image: PreloadableImage): void {
-    if (image.id) {
-      setImageLoadStatus(image as { id: string }, true);
-    }
-  }
-
-  /**
-   * Get the shared preload queue (for advanced use cases).
-   */
-  getQueue(): PreloadQueue {
-    return this.queue;
-  }
-
-  /**
    * Get the current config.
    */
   getConfig(): PreloadConfig {
     return this.config;
-  }
-
-  /**
-   * Clear the preload queue (e.g., on page change).
-   */
-  clearQueue(): void {
-    this.queue.clear();
-  }
-
-  // ===========================================================================
-  // STATE ACCESS
-  // ===========================================================================
-
-  getCurrentProjectId(): string | null {
-    return this.state.currentProjectId;
-  }
-
-  isPaused(): boolean {
-    return this.state.isPaused;
-  }
-
-  isConnected(): boolean {
-    return this.state.isConnected;
   }
 
   // ===========================================================================

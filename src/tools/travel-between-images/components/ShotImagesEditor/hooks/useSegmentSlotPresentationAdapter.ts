@@ -3,7 +3,7 @@ import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import { isVideoAny } from '@/shared/lib/typeGuards';
 import { asNumber, asRecord, asString } from '@/shared/lib/tasks/taskParamParsers';
-import type { PairData } from '../../Timeline/TimelineContainer';
+import type { PairData } from '../../Timeline/TimelineContainer/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { SegmentSlotModeData } from '@/shared/components/MediaLightbox/types';
 import type {

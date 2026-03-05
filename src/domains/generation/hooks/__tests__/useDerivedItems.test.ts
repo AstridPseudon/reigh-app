@@ -15,7 +15,7 @@ vi.mock('@/shared/hooks/useSmartPolling', () => ({
   useSmartPollingConfig: () => ({ refetchInterval: false }),
 }));
 
-function createWrapper() {
+function createDerivedItemsWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
@@ -30,7 +30,7 @@ describe('domains/generation/useDerivedItems', () => {
 
   it('does not fetch when source id is null', () => {
     const { result } = renderHook(() => useDerivedItems(null), {
-      wrapper: createWrapper(),
+      wrapper: createDerivedItemsWrapper(),
     });
     expect(result.current.data).toBeUndefined();
     expect(fetchDerivedItemsFromRepositoryMock).not.toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe('domains/generation/useDerivedItems', () => {
     ]);
 
     const { result } = renderHook(() => useDerivedItems('gen-1'), {
-      wrapper: createWrapper(),
+      wrapper: createDerivedItemsWrapper(),
     });
 
     await waitFor(() => {

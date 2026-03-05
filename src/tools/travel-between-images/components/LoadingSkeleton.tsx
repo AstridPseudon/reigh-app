@@ -1,6 +1,6 @@
 import React from 'react';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { PageFadeIn } from '@/shared/components/transitions';
+import { PageFadeIn } from '@/shared/components/transitions/PageFadeIn';
 
 interface LoadingSkeletonProps {
   /** Type of skeleton to show */
@@ -150,4 +150,3 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
     </>
   );
 };
-

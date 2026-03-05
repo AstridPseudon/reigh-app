@@ -2,7 +2,10 @@ import React from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { FinalVideoSection } from '../FinalVideoSection';
 import { ShotSettingsProvider, ShotSettingsContextValue } from './ShotSettingsContext';
-import { HeaderSection, TimelineSection, ModalsSection, GenerationSection } from './sections';
+import { HeaderSection } from './sections/HeaderSection';
+import { TimelineSection } from './sections/TimelineSection';
+import { ModalsSection } from './sections/ModalsSection';
+import { GenerationSection } from './sections/GenerationSection';
 import { LoraModel } from '@/shared/components/LoraSelectorModal';
 
 export interface ShotEditorLayoutProps {

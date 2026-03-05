@@ -76,6 +76,14 @@ interface RateLimitRpcPayload {
 
 type RateLimitFailureReason = 'rpc_error' | 'runtime_error' | 'invalid_rpc_payload';
 
+interface CheckRateLimitInput {
+  supabaseAdmin: SupabaseAdminClient;
+  functionName: string;
+  identifier: string;
+  config: RateLimitConfig;
+  logPrefix?: string;
+}
+
 function failOpenRateLimit(
   now: Date,
   config: RateLimitConfig,
@@ -121,12 +129,15 @@ function parseRateLimitRpcPayload(data: unknown): RateLimitRpcPayload | null {
 }
 
 export async function checkRateLimit(
-  supabaseAdmin: SupabaseAdminClient,
-  functionName: string,
-  identifier: string,
-  config: RateLimitConfig,
-  logPrefix: string = "[RATE-LIMIT]"
+  input: CheckRateLimitInput,
 ): Promise<OperationResult<RateLimitResult>> {
+  const {
+    supabaseAdmin,
+    functionName,
+    identifier,
+    config,
+    logPrefix = "[RATE-LIMIT]",
+  } = input;
   const now = new Date();
   const key = `${functionName}:${identifier}`;
   
@@ -295,6 +306,18 @@ interface RateLimitLogger {
   flush: () => Promise<void>;
 }
 
+interface EnforceRateLimitInput {
+  supabaseAdmin: SupabaseAdminClient;
+  functionName: string;
+  userId: string;
+  config: RateLimitConfig;
+  logger: RateLimitLogger;
+  logPrefix: string;
+  responses?: {
+    serviceUnavailable?: () => Response;
+  };
+}
+
 /**
  * Full rate-limit enforcement: check → error response → fail_open logging.
  * Returns a Response to short-circuit (exceeded or service error), or null to proceed.
@@ -303,15 +326,24 @@ interface RateLimitLogger {
  *   Defaults to a generic 503 edge error.
  */
 export async function enforceRateLimit(
-  supabaseAdmin: SupabaseAdminClient,
-  functionName: string,
-  userId: string,
-  config: RateLimitConfig,
-  logger: RateLimitLogger,
-  logPrefix: string,
-  serviceUnavailableResponse?: () => Response,
+  input: EnforceRateLimitInput,
 ): Promise<Response | null> {
-  const result = await checkRateLimit(supabaseAdmin, functionName, userId, config, logPrefix);
+  const {
+    supabaseAdmin,
+    functionName,
+    userId,
+    config,
+    logger,
+    logPrefix,
+    responses,
+  } = input;
+  const result = await checkRateLimit({
+    supabaseAdmin,
+    functionName,
+    identifier: userId,
+    config,
+    logPrefix,
+  });
 
   // Rate limit exceeded — works for both ok (fail_closed) and !ok paths
   if (isRateLimitExceededFailure(result)) {
@@ -331,8 +363,8 @@ export async function enforceRateLimit(
       message: result.message,
     });
     await logger.flush();
-    return serviceUnavailableResponse
-      ? serviceUnavailableResponse()
+    return responses?.serviceUnavailable
+      ? responses.serviceUnavailable()
       : edgeErrorResponse(
           { errorCode: 'rate_limit_service_unavailable', message: 'Rate limit service unavailable', recoverable: true },
           503,

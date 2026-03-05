@@ -11,7 +11,7 @@ import { useIsMobile } from '@/shared/hooks/mobile';
 import { useCancelTask } from '@/shared/hooks/tasks/useTaskCancellation';
 import { useTaskType } from '@/shared/hooks/tasks/useTaskType';
 import { usePublicLoras } from '@/shared/hooks/useResources';
-import { getTaskDisplayName, taskSupportsProgress } from '@/shared/lib/taskConfig';
+import { taskSupportsProgress } from '@/shared/lib/taskConfig';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { parseTaskParamsForDisplay, extractShotId } from './utils/task-utils';
 import { useTaskContentType } from './hooks/useTaskContentType';

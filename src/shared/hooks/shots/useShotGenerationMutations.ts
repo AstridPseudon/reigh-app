@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/domains/generation/types';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import { invalidateGenerationsSync } from '@/shared/hooks/invalidation';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import {
   cancelShotsQueries,
@@ -418,7 +418,7 @@ export const usePositionExistingGenerationInShot = () => {
     },
 
     onSuccess: (data) => {
-      invalidateGenerationsSync(queryClient, data.shot_id, {
+      enqueueGenerationsInvalidation(queryClient, data.shot_id, {
         reason: 'add-image-to-shot',
         scope: 'all',
         includeShots: true,

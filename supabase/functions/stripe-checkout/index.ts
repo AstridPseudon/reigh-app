@@ -8,7 +8,6 @@ import { jsonResponse } from "../_shared/http.ts";
 import {
   createStripeClient,
   dollarsToCents,
-  handleAutoTopupConfigError,
   requireFrontendUrl,
   validateAutoTopupConfig,
   validateCreditPurchaseAmount,
@@ -35,6 +34,9 @@ import {
  * - 500 Internal Server Error
  */
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "stripe-checkout",
     logPrefix: "[STRIPE-CHECKOUT]",
@@ -60,8 +62,8 @@ serve(async (req) => {
   const autoTopupThreshold = body.autoTopupThreshold;
 
   const amountValidationError = validateCreditPurchaseAmount(amount);
-  if (amountValidationError) {
-    return jsonResponse({ error: amountValidationError }, 400);
+  if (!amountValidationError.ok) {
+    return jsonResponse({ error: amountValidationError.error.message }, 400);
   }
 
   const autoTopupValidationError = validateAutoTopupConfig({
@@ -69,8 +71,8 @@ serve(async (req) => {
     autoTopupAmount,
     autoTopupThreshold,
   });
-  if (autoTopupValidationError) {
-    return jsonResponse({ error: autoTopupValidationError }, 400);
+  if (!autoTopupValidationError.ok) {
+    return jsonResponse({ error: autoTopupValidationError.error.message }, 400);
   }
 
   if (!auth?.userId) {
@@ -78,16 +80,35 @@ serve(async (req) => {
   }
 
   // ─── 3. Rate limit check ──────────────────────────────────────────
-  const rateLimitDenied = await enforceRateLimit(
-    supabaseAdmin, 'stripe-checkout', auth.userId, RATE_LIMITS.expensive, logger, '[STRIPE-CHECKOUT]',
-    () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
-  );
+  const rateLimitDenied = await enforceRateLimit({
+    supabaseAdmin,
+    functionName: 'stripe-checkout',
+    userId: auth.userId,
+    config: RATE_LIMITS.expensive,
+    logger,
+    logPrefix: '[STRIPE-CHECKOUT]',
+    responses: {
+      serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
+    },
+  });
   if (rateLimitDenied) return rateLimitDenied;
 
   try {
     // ─── 5. Initialize Stripe and create checkout session ─────────────────────────
-    const frontendUrl = requireFrontendUrl();
-    const stripe = createStripeClient();
+    const frontendUrlResult = requireFrontendUrl();
+    if (!frontendUrlResult.ok) {
+      logger.error(frontendUrlResult.error.logMessage);
+      await logger.flush();
+      return jsonResponse({ error: frontendUrlResult.error.message }, 500);
+    }
+    const stripeResult = createStripeClient();
+    if (!stripeResult.ok) {
+      logger.error(stripeResult.error.logMessage);
+      await logger.flush();
+      return jsonResponse({ error: stripeResult.error.message }, 500);
+    }
+    const frontendUrl = frontendUrlResult.value;
+    const stripe = stripeResult.value;
 
     // Look up user email for Stripe checkout pre-fill
     const { data: userData } = await supabaseAdmin.from('users').select('email').eq('id', auth.userId).single();
@@ -146,9 +167,6 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    const configResponse = await handleAutoTopupConfigError(error, logger);
-    if (configResponse) return configResponse;
-
     logger.error('Error creating Stripe checkout session', {
       error: error instanceof Error ? error.message : String(error),
     });

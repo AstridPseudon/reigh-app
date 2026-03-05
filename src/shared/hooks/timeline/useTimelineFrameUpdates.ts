@@ -23,7 +23,7 @@ import {
 const TIMELINE_FRAME_LOG_PREFIX = '[TimelineFramePersist]';
 const log = import.meta.env.DEV ? (...args: Parameters<typeof console.log>) => console.log(...args) : () => {};
 
-function shortId(value: string | null | undefined): string | null {
+function shortTimelineFrameId(value: string | null | undefined): string | null {
   return value ? value.slice(0, 8) : null;
 }
 
@@ -106,7 +106,7 @@ export function useTimelineFrameUpdates({
           });
         }
 
-        await refetchTimelineFrameCaches(queryClient, shotId, projectId);
+        await refetchTimelineFrameCaches({ queryClient, shotId, projectId });
       },
       logQueuePhase,
     );
@@ -169,15 +169,20 @@ export function useTimelineFrameUpdates({
             ignoreTimeout: true,
           });
 
-          await refetchTimelineFrameCaches(queryClient, shotId, projectId, true);
+          await refetchTimelineFrameCaches({
+            queryClient,
+            shotId,
+            projectId,
+            includeLiveTimeline: true,
+          });
           log(`${TIMELINE_FRAME_LOG_PREFIX} batchExchange cache refetch triggered`, {
-            shotId: shortId(shotId),
+            shotId: shortTimelineFrameId(shotId),
             changedCount: canonicalUpdates.length,
             byShot: shotId,
           });
         } catch (error) {
           log(`${TIMELINE_FRAME_LOG_PREFIX} batchExchangePositions failed`, {
-            shotId: shortId(shotId),
+            shotId: shortTimelineFrameId(shotId),
             updateCount: updates.length,
             error,
           });
@@ -220,7 +225,7 @@ export function useTimelineFrameUpdates({
         });
 
         log(`${TIMELINE_FRAME_LOG_PREFIX} midpoint calc start`, {
-          shotId: shortId(shotId),
+          shotId: shortTimelineFrameId(shotId),
           draggedCount: draggedItemIds.length,
           allItemCount: allItems.length,
           newStartIndex,
@@ -245,7 +250,7 @@ export function useTimelineFrameUpdates({
         const afterDedupCount = normalizedUpdates.size;
 
         log(`${TIMELINE_FRAME_LOG_PREFIX} midpoint calc result`, {
-          shotId: shortId(shotId),
+          shotId: shortTimelineFrameId(shotId),
           rawUpdateCount: rawUpdates.length,
           afterDedupCount,
         });
@@ -264,17 +269,17 @@ export function useTimelineFrameUpdates({
         });
         if (changedUpdates.length === 0) {
           log(`${TIMELINE_FRAME_LOG_PREFIX} midpoint rpc skipped (no frame changes)`, {
-            shotId: shortId(shotId),
+            shotId: shortTimelineFrameId(shotId),
             candidateCount: rpcUpdates.length,
           });
           return;
         }
 
         log(`${TIMELINE_FRAME_LOG_PREFIX} midpoint persisting`, {
-          shotId: shortId(shotId),
+          shotId: shortTimelineFrameId(shotId),
           changedCount: changedUpdates.length,
           unchangedCount: rpcUpdates.length - changedUpdates.length,
-          updates: changedUpdates.map(u => `${shortId(u.shotGenerationId)}→${u.timelineFrame}`).join(', '),
+          updates: changedUpdates.map(u => `${shortTimelineFrameId(u.shotGenerationId)}→${u.timelineFrame}`).join(', '),
         });
 
         try {
@@ -293,7 +298,7 @@ export function useTimelineFrameUpdates({
           });
         } catch (error) {
           log(`${TIMELINE_FRAME_LOG_PREFIX} midpoint persist failed`, {
-            shotId: shortId(shotId),
+            shotId: shortTimelineFrameId(shotId),
             changedCount: changedUpdates.length,
             errorCode: (error as { code?: string }).code ?? null,
             errorMessage: (error as Error).message ?? null,
@@ -301,9 +306,14 @@ export function useTimelineFrameUpdates({
           throw error;
         }
 
-        await refetchTimelineFrameCaches(queryClient, shotId, projectId, true);
+        await refetchTimelineFrameCaches({
+          queryClient,
+          shotId,
+          projectId,
+          includeLiveTimeline: true,
+        });
         log(`${TIMELINE_FRAME_LOG_PREFIX} midpoint cache refetch triggered`, {
-          shotId: shortId(shotId),
+          shotId: shortTimelineFrameId(shotId),
           changedCount: changedUpdates.length,
           byShot: shotId,
         });

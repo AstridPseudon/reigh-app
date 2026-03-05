@@ -15,6 +15,9 @@ function generateToken(): string {
 const GENERATE_PAT_RATE_LIMIT = { maxRequests: 10, windowSeconds: 60 } as const;
 
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "generate-pat",
     logPrefix: "[GENERATE-PAT]",
@@ -38,10 +41,17 @@ serve(async (req) => {
 
   try {
     // Rate limit: max 10 PAT generations per minute per user
-    const rateLimitDenied = await enforceRateLimit(
-      supabaseAdmin, 'generate-pat', auth.userId, GENERATE_PAT_RATE_LIMIT, logger, '[GENERATE-PAT]',
-      () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
-    );
+    const rateLimitDenied = await enforceRateLimit({
+      supabaseAdmin,
+      functionName: 'generate-pat',
+      userId: auth.userId,
+      config: GENERATE_PAT_RATE_LIMIT,
+      logger,
+      logPrefix: '[GENERATE-PAT]',
+      responses: {
+        serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
+      },
+    });
     if (rateLimitDenied) return rateLimitDenied;
 
     const label = typeof body.label === 'string' && body.label.trim().length > 0

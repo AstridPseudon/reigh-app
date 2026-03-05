@@ -50,10 +50,3 @@ export function getProjectSelectionSnapshot(): ProjectSelectionSnapshot {
 export function getProjectSelectionFallbackId(): string | null {
   return snapshot.selectedProjectId ?? readPersistedProjectSelection();
 }
-
-function subscribeProjectSelection(listener: ProjectSelectionListener): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Video, Heart, Eye, Calendar } from 'lucide-react';
-import { PageFadeIn, FadeInSection } from '@/shared/components/transitions';
+import { PageFadeIn } from '@/shared/components/transitions/PageFadeIn';
+import { FadeInSection } from '@/shared/components/transitions/FadeInSection';
 import { artPieces } from './art/artPieces';
 import type { ArtPieceTone } from './art/artPieces';
 

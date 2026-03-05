@@ -11,7 +11,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { extractAndUploadThumbnailOnly } from '@/shared/lib/media/videoThumbnailGenerator';
-import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueVariantInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { TrimState, UseTrimSaveReturn } from '@/shared/types/videoTrim';
 
 interface UseTrimSaveProps {
@@ -200,7 +200,7 @@ export const useTrimSave = ({
       setSaveSuccess(true);
 
       // Invalidate caches using centralized function
-      await invalidateVariantChange(queryClient, {
+      await enqueueVariantInvalidation(queryClient, {
         generationId,
         reason: 'trim-save-variant-created',
       });

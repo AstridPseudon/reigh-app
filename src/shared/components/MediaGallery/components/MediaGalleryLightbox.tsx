@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import MediaLightbox from "@/shared/components/MediaLightbox/MediaLightbox";
 import TaskDetailsModal from '@/shared/components/TaskDetails/TaskDetailsModal';
 import { GenerationRow, Shot } from "@/domains/generation/types";
@@ -105,19 +105,14 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     setActiveLightboxIndex,
   } = session;
   
-  // Local shot selection is intentionally separate from parent gallery filters.
-  const [lightboxSelectedShotId, setLightboxSelectedShotId] = useState<string | undefined>(
-    selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined,
-  );
+  // Local shot override is intentionally separate from parent gallery filters.
+  const [lightboxShotOverrideId, setLightboxShotOverrideId] = useState<string | null>(null);
+  const selectedShotIdFromGallery = selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined;
 
   const effectiveAutoEnterEditMode = useMemo(() => {
     const fromMetadata = activeLightboxMedia?.metadata?.__autoEnterEditMode as boolean | undefined;
     return fromMetadata ?? autoEnterEditMode ?? false;
   }, [activeLightboxMedia?.metadata?.__autoEnterEditMode, autoEnterEditMode]);
-
-  useEffect(() => {
-    setLightboxSelectedShotId(selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined);
-  }, [selectedShotIdLocal]);
 
   const { hasNext, hasPrevious } = useLightboxNavigationState({
     activeLightboxMedia,
@@ -158,7 +153,8 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     return found;
   }, [filteredImages, activeLightboxMedia?.id]);
   
-  const effectiveShotIdForOverride = lightboxSelectedShotId || (selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined);
+  const selectedShotIdForLightbox = lightboxShotOverrideId ?? selectedShotIdFromGallery;
+  const effectiveShotIdForOverride = selectedShotIdForLightbox;
   
   const {
     positionedInSelectedShot,
@@ -185,16 +181,13 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     onClose,
   }), [inputImages, isLoadingTask, lightboxTaskMapping?.taskId, onClose, task, taskError]);
 
-  const selectedShotIdForLightbox = lightboxSelectedShotId
-    || (selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined);
-
   const handleLightboxClose = () => {
-    setLightboxSelectedShotId(selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined);
+    setLightboxShotOverrideId(null);
     onClose();
   };
 
   const handleLightboxShotChange = (shotId: string) => {
-    setLightboxSelectedShotId(shotId);
+    setLightboxShotOverrideId(shotId);
     onShotChange(shotId);
   };
 

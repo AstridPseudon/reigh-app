@@ -42,6 +42,99 @@ interface UseTimelineViewportControllerResult {
   dragStartDimensionsRef: RefObject<{ fullMin: number; fullMax: number; fullRange: number } | null>;
 }
 
+function resolveViewportCenterFrame(input: {
+  timelineRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<HTMLDivElement>;
+  fullMin: number;
+  fullRange: number;
+}): number | null {
+  const scrollContainer = input.timelineRef.current;
+  const timelineContainer = input.containerRef.current;
+  if (!scrollContainer || !timelineContainer) {
+    return null;
+  }
+
+  const viewportCenterPixel = scrollContainer.scrollLeft + (scrollContainer.clientWidth / 2);
+  const viewportCenterFraction = timelineContainer.scrollWidth > 0
+    ? viewportCenterPixel / timelineContainer.scrollWidth
+    : 0;
+  return input.fullMin + (viewportCenterFraction * input.fullRange);
+}
+
+function useDragJustEndedState(dragState: TimelineDragStateLike): RefObject<boolean> {
+  const dragJustEndedRef = useRef(false);
+  const dragEndTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!dragState.isDragging && dragState.activeId === null) {
+      dragJustEndedRef.current = true;
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+      dragEndTimeoutRef.current = setTimeout(() => {
+        dragJustEndedRef.current = false;
+      }, 500);
+    }
+    return () => {
+      if (dragEndTimeoutRef.current) {
+        clearTimeout(dragEndTimeoutRef.current);
+      }
+    };
+  }, [dragState.activeId, dragState.isDragging]);
+
+  return dragJustEndedRef as RefObject<boolean>;
+}
+
+function useZoomCenteringScroll(input: {
+  isZooming: boolean;
+  zoomLevel: number;
+  zoomCenter: number;
+  dragState: TimelineDragStateLike;
+  dragJustEndedRef: RefObject<boolean>;
+  timelineRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<HTMLDivElement>;
+  fullMin: number;
+  fullRange: number;
+}): void {
+  const {
+    isZooming,
+    zoomLevel,
+    zoomCenter,
+    dragState,
+    dragJustEndedRef,
+    timelineRef,
+    containerRef,
+    fullMin,
+    fullRange,
+  } = input;
+
+  useEffect(() => {
+    if (!isZooming || dragState.isDragging || dragJustEndedRef.current || zoomLevel <= 1) {
+      return;
+    }
+    if (!timelineRef.current || !containerRef.current) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (dragJustEndedRef.current) {
+        return;
+      }
+      const scrollContainer = timelineRef.current;
+      const timelineContainer = containerRef.current;
+      if (!scrollContainer || !timelineContainer) {
+        return;
+      }
+      const centerFraction = (zoomCenter - fullMin) / fullRange;
+      const centerPixelInZoomedTimeline = centerFraction * timelineContainer.scrollWidth;
+      const targetScroll = centerPixelInZoomedTimeline - (scrollContainer.clientWidth / 2);
+      scrollContainer.scrollTo({ left: Math.max(0, targetScroll), behavior: 'instant' });
+    }, 10);
+
+    return () => clearTimeout(timer);
+  }, [containerRef, dragState.isDragging, dragJustEndedRef, fullMin, fullRange, isZooming, timelineRef, zoomCenter, zoomLevel]);
+}
+
 export function useTimelineViewportController(
   input: UseTimelineViewportControllerInput,
 ): UseTimelineViewportControllerResult {
@@ -60,9 +153,8 @@ export function useTimelineViewportController(
     handleMouseMove,
     handleMouseUp,
   } = input;
-  const dragJustEndedRef = useRef(false);
-  const dragEndTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartDimensionsRef = useRef<{ fullMin: number; fullMax: number; fullRange: number } | null>(null);
+  const dragJustEndedRef = useDragJustEndedState(dragState);
 
   const trailingEffectiveEnd = useMemo(() => getTrailingEffectiveEnd({
     framePositions,
@@ -133,77 +225,44 @@ export function useTimelineViewportController(
   } = useZoom({ fullMin, fullMax, fullRange, containerRef: timelineRef });
 
   const handleZoomInToCenter = useCallback(() => {
-    const scrollContainer = timelineRef.current;
-    const timelineContainer = containerRef.current;
-    if (!scrollContainer || !timelineContainer) {
+    const viewportCenterFrame = resolveViewportCenterFrame({
+      timelineRef,
+      containerRef,
+      fullMin,
+      fullRange,
+    });
+    if (viewportCenterFrame === null) {
       handleZoomIn(fullMin);
       return;
     }
-    const viewportCenterPixel = scrollContainer.scrollLeft + (scrollContainer.clientWidth / 2);
-    const viewportCenterFraction = timelineContainer.scrollWidth > 0
-      ? viewportCenterPixel / timelineContainer.scrollWidth
-      : 0;
-    const viewportCenterFrame = fullMin + (viewportCenterFraction * fullRange);
     handleZoomIn(viewportCenterFrame);
   }, [containerRef, fullMin, fullRange, handleZoomIn, timelineRef]);
 
   const handleZoomOutFromCenter = useCallback(() => {
-    const scrollContainer = timelineRef.current;
-    const timelineContainer = containerRef.current;
-    if (!scrollContainer || !timelineContainer) {
+    const viewportCenterFrame = resolveViewportCenterFrame({
+      timelineRef,
+      containerRef,
+      fullMin,
+      fullRange,
+    });
+    if (viewportCenterFrame === null) {
       handleZoomOut(fullMin);
       return;
     }
-    const viewportCenterPixel = scrollContainer.scrollLeft + (scrollContainer.clientWidth / 2);
-    const viewportCenterFraction = timelineContainer.scrollWidth > 0
-      ? viewportCenterPixel / timelineContainer.scrollWidth
-      : 0;
-    const viewportCenterFrame = fullMin + (viewportCenterFraction * fullRange);
     handleZoomOut(viewportCenterFrame);
   }, [containerRef, fullMin, fullRange, handleZoomOut, timelineRef]);
 
-  useEffect(() => {
-    if (!dragState.isDragging && dragState.activeId === null) {
-      dragJustEndedRef.current = true;
-      if (dragEndTimeoutRef.current) {
-        clearTimeout(dragEndTimeoutRef.current);
-      }
-      dragEndTimeoutRef.current = setTimeout(() => {
-        dragJustEndedRef.current = false;
-      }, 500);
-    }
-    return () => {
-      if (dragEndTimeoutRef.current) {
-        clearTimeout(dragEndTimeoutRef.current);
-      }
-    };
-  }, [dragState.activeId, dragState.isDragging]);
-
-  useEffect(() => {
-    if (!isZooming || dragState.isDragging || dragJustEndedRef.current || zoomLevel <= 1) {
-      return;
-    }
-    if (!timelineRef.current || !containerRef.current) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      if (dragJustEndedRef.current) {
-        return;
-      }
-      const scrollContainer = timelineRef.current;
-      const timelineContainer = containerRef.current;
-      if (!scrollContainer || !timelineContainer) {
-        return;
-      }
-      const centerFraction = (zoomCenter - fullMin) / fullRange;
-      const centerPixelInZoomedTimeline = centerFraction * timelineContainer.scrollWidth;
-      const targetScroll = centerPixelInZoomedTimeline - (scrollContainer.clientWidth / 2);
-      scrollContainer.scrollTo({ left: Math.max(0, targetScroll), behavior: 'instant' });
-    }, 10);
-
-    return () => clearTimeout(timer);
-  }, [containerRef, dragState.isDragging, fullMin, fullRange, isZooming, timelineRef, zoomCenter, zoomLevel]);
+  useZoomCenteringScroll({
+    isZooming,
+    zoomLevel,
+    zoomCenter,
+    dragState,
+    dragJustEndedRef,
+    timelineRef,
+    containerRef,
+    fullMin,
+    fullRange,
+  });
 
   return {
     fullMin,

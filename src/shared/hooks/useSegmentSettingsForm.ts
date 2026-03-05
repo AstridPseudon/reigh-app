@@ -26,7 +26,7 @@
 
 import { useMemo, useRef, useCallback, useState } from 'react';
 import { useSegmentSettings, UseSegmentSettingsOptions } from './segments';
-import type { SegmentSettingsFormProps } from '@/shared/components/SegmentSettingsForm';
+import type { SegmentSettingsFormProps } from '@/shared/components/SegmentSettingsForm/types';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
 interface UseSegmentSettingsFormOptions extends UseSegmentSettingsOptions {

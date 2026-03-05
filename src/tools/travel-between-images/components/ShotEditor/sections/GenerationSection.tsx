@@ -15,7 +15,8 @@ import { ArrowLeftRight } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 
-import { BatchModeContent, JoinModeContent } from './generation';
+import { BatchModeContent } from './generation/BatchModeContent';
+import { JoinModeContent } from './generation/JoinModeContent';
 import { useShotImages, useGenerationMode, useJoinState } from '../ShotSettingsContext';
 
 export interface GenerationSectionProps {

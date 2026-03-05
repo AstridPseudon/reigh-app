@@ -26,12 +26,14 @@ import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travel
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { DragType } from '@/shared/lib/dnd/dragDrop';
 
-interface UseTimelineOrchestratorProps {
+interface TimelineOrchestratorCoreProps {
   shotId: string;
-  projectId?: string;
   images: GenerationRow[];
   framePositions: Map<string, number>;
   setFramePositions: (positions: Map<string, number>) => Promise<void>;
+}
+
+interface TimelineOrchestratorDropHandlers {
   onImageReorder: (orderedIds: string[], draggedItemId?: string) => void;
   onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (
@@ -40,12 +42,18 @@ interface UseTimelineOrchestratorProps {
     thumbUrl: string | undefined,
     targetFrame?: number,
   ) => Promise<void>;
+}
+
+interface TimelineOrchestratorInteractionProps {
   setIsDragInProgress: (dragging: boolean) => void;
   onImageDuplicate: (imageId: string, timeline_frame: number) => void;
   readOnly?: boolean;
   isUploadingImage?: boolean;
   maxFrameLimit?: number;
   hasExistingTrailingVideo?: boolean;
+}
+
+interface TimelineOrchestratorStructureVideoConfig {
   structureVideos?: StructureVideoConfigWithMetadata[];
   primaryStructureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth';
   primaryStructureVideoTreatment?: 'adjust' | 'clip';
@@ -61,6 +69,15 @@ interface UseTimelineOrchestratorProps {
     resourceId?: string,
   ) => void;
 }
+
+interface TimelineOrchestratorStructureVideoProps {
+  structureVideo?: TimelineOrchestratorStructureVideoConfig;
+}
+
+type UseTimelineOrchestratorProps = TimelineOrchestratorCoreProps &
+  TimelineOrchestratorDropHandlers &
+  TimelineOrchestratorInteractionProps &
+  TimelineOrchestratorStructureVideoProps;
 
 interface UseTimelineOrchestratorReturn {
   refs: {
@@ -166,15 +183,19 @@ export function useTimelineOrchestrator({
   readOnly = false,
   isUploadingImage = false,
   maxFrameLimit = 81,
-  structureVideos,
-  primaryStructureVideoType = 'flow',
-  primaryStructureVideoTreatment = 'adjust',
-  primaryStructureVideoMotionStrength = 1.0,
-  onAddStructureVideo,
-  onUpdateStructureVideo,
-  onPrimaryStructureVideoInputChange,
+  structureVideo,
   hasExistingTrailingVideo = false,
 }: UseTimelineOrchestratorProps): UseTimelineOrchestratorReturn {
+  const {
+    structureVideos,
+    primaryStructureVideoType = 'flow',
+    primaryStructureVideoTreatment = 'adjust',
+    primaryStructureVideoMotionStrength = 1.0,
+    onAddStructureVideo,
+    onUpdateStructureVideo,
+    onPrimaryStructureVideoInputChange,
+  } = structureVideo ?? {};
+
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isEndpointDraggingRef = useRef(false);

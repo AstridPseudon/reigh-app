@@ -45,10 +45,13 @@ interface StructureVideoFrameRange {
   videoOutputEnd?: number;
 }
 
-export interface SegmentSettingsFormProps {
+interface SegmentSettingsFormCoreProps {
   settings: SegmentSettings;
   onChange: (updates: Partial<SegmentSettings>) => void;
   onSubmit: () => Promise<void>;
+}
+
+interface SegmentSettingsFormDisplayProps {
   segmentIndex?: number;
   startImageUrl?: string;
   endImageUrl?: string;
@@ -62,6 +65,9 @@ export interface SegmentSettingsFormProps {
   maxFrames?: number;
   queryKeyPrefix?: string;
   onFrameCountChange?: (frames: number) => void;
+}
+
+interface SegmentSettingsFormDefaultsProps {
   onRestoreDefaults?: () => void;
   onSaveAsShotDefaults?: () => Promise<boolean>;
   onSaveFieldAsDefault?: (
@@ -71,15 +77,24 @@ export interface SegmentSettingsFormProps {
   hasOverride?: SegmentOverrideFlags;
   shotDefaults?: SegmentShotDefaults;
   isDirty?: boolean;
+}
+
+interface SegmentSettingsFormStructureVideoProps {
   structureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth' | null;
   structureVideoDefaults?: StructureVideoDefaults;
   structureVideoUrl?: string;
   structureVideoFrameRange?: StructureVideoFrameRange;
+}
+
+interface SegmentSettingsFormPromptEnhancementProps {
   enhancedPrompt?: string;
   basePromptForEnhancement?: string;
   onClearEnhancedPrompt?: () => Promise<boolean>;
   enhancePromptEnabled?: boolean;
   onEnhancePromptChange?: (enabled: boolean) => void;
+}
+
+interface SegmentSettingsFormTimelineProps {
   edgeExtendAmount?: 4 | 6;
   isTimelineMode?: boolean;
   onAddSegmentStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
@@ -91,5 +106,12 @@ export interface SegmentSettingsFormProps {
   endImageShotGenerationId?: string;
   onNavigateToImage?: (shotGenerationId: string) => void;
 }
+
+export type SegmentSettingsFormProps = SegmentSettingsFormCoreProps &
+  SegmentSettingsFormDisplayProps &
+  SegmentSettingsFormDefaultsProps &
+  SegmentSettingsFormStructureVideoProps &
+  SegmentSettingsFormPromptEnhancementProps &
+  SegmentSettingsFormTimelineProps;
 
 export type { SegmentSettings } from './segmentSettingsUtils';

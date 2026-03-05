@@ -1,5 +1,5 @@
 import type { MutableRefObject, RefObject } from 'react';
-import type { PairData } from '../../Timeline/TimelineContainer';
+import type { PairData } from '../../Timeline/TimelineContainer/types';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';

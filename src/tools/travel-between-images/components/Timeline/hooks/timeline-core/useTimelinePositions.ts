@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { type PendingUpdate } from './timelinePositionCalc';
 import { useTimelinePositionSync } from './timelinePositionSync';
 import { useTimelinePositionOperations } from './timelinePositionOperations';
@@ -14,7 +14,7 @@ export function useTimelinePositions({
   shotGenerations,
   onPositionsChange,
 }: UseTimelinePositionsProps): UseTimelinePositionsReturn {
-  const invalidateGenerations = useInvalidateGenerations();
+  const invalidateGenerations = useEnqueueGenerationsInvalidation();
 
   const [positions, setPositions] = useState<Map<string, number>>(new Map());
   const positionsRef = useRef<Map<string, number>>(new Map());

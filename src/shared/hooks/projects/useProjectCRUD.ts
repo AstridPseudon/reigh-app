@@ -49,12 +49,12 @@ export const determineProjectIdToSelect = (
 ): string | null => {
   if (!projects.length) return null;
 
-  const projectIds = new Set(projects.map(p => p.id));
+  const availableProjectIds = new Set(projects.map(p => p.id));
 
-  if (preferredId && projectIds.has(preferredId)) {
+  if (preferredId && availableProjectIds.has(preferredId)) {
     return preferredId;
   }
-  if (lastOpenedId && projectIds.has(lastOpenedId)) {
+  if (lastOpenedId && availableProjectIds.has(lastOpenedId)) {
     return lastOpenedId;
   }
   return projects[0].id;

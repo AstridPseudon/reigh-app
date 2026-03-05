@@ -11,7 +11,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { invalidateVariantChange } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { enqueueVariantInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import type { GenerationRow } from '@/domains/generation/types';
 
@@ -112,7 +112,7 @@ export function useMakeMainVariant({
 
       // Invalidate caches so all views update (timeline, shot editor, galleries, variants list).
       // Use selectedShotId if available (most likely current context), else fall back to shotId.
-      await invalidateVariantChange(queryClient, {
+      await enqueueVariantInvalidation(queryClient, {
         generationId: parentGenId,
         shotId: selectedShotId || shotId || undefined,
         reason: 'child-promoted-to-primary',

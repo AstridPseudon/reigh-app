@@ -18,7 +18,7 @@ function createRect(left: number, width: number): DOMRect {
   } as DOMRect;
 }
 
-function createVideoMock(initialPaused: boolean) {
+function createDragVideoMock(initialPaused: boolean) {
   const video = document.createElement('video');
   let paused = initialPaused;
 
@@ -62,7 +62,7 @@ function setupHook(options: {
   const selections: PortionSelection[] = options.selections ?? [{ id: 'sel-1', start: 2, end: 5 }];
   const onSelectionChange = vi.fn();
   const onSelectionClick = vi.fn();
-  const { video, pause, play } = createVideoMock(options.initialPaused ?? false);
+  const { video, pause, play } = createDragVideoMock(options.initialPaused ?? false);
   const videoRef = { current: video } as React.RefObject<HTMLVideoElement | null>;
   const trackRef = createTrackRef();
 

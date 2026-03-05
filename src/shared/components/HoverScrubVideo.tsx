@@ -228,7 +228,7 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
     }
   };
 
-  const handleLoadedMetadata = useCallback(() => {
+  const handleHoverScrubLoadedMetadata = useCallback(() => {
     // Let the hook handle duration and scrubber recalculation
     handleScrubLoadedMetadata();
 
@@ -370,7 +370,7 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
         poster={poster ? getDisplayUrl(poster) : undefined}
         preload={thumbnailMode ? 'none' : (isMobile ? 'metadata' : preloadProp)}
         controls={showNativeControls}
-        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedMetadata={handleHoverScrubLoadedMetadata}
         loop={loop}
         muted={muted}
         autoPlay={false}

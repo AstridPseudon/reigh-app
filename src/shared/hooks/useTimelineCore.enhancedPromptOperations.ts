@@ -4,10 +4,10 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type { GenerationRow } from '@/domains/generation/types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import type { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import type { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { TimelineCoreResult } from './useTimelineCore.types';
 
-type InvalidateGenerationsFn = ReturnType<typeof useInvalidateGenerations>;
+type InvalidateGenerationsFn = ReturnType<typeof useEnqueueGenerationsInvalidation>;
 
 type TimelineEnhancedPromptOperations = Pick<
   TimelineCoreResult,

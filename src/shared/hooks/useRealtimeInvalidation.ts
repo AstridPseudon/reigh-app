@@ -11,7 +11,7 @@ import { useEffect, useCallback } from 'react';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import { realtimeEventProcessor } from '@/shared/realtime/RealtimeEventProcessor';
 import { dataFreshnessManager } from '@/shared/realtime/DataFreshnessManager';
-import { invalidateGenerationsSync, invalidateAllShotGenerations } from '@/shared/hooks/invalidation';
+import { enqueueGenerationsInvalidation, invalidateAllShotGenerations } from '@/shared/hooks/invalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { preloadingService } from '@/shared/lib/preloading';
 import type {
@@ -137,7 +137,7 @@ function handleTasksUpdated(queryClient: QueryClient, event: TasksUpdatedEvent):
 
     if (completedShotIds.size > 0) {
       completedShotIds.forEach((shotId) => {
-        invalidateGenerationsSync(queryClient, shotId, {
+        enqueueGenerationsInvalidation(queryClient, shotId, {
           reason: 'task-complete',
           scope: 'all',
         });
@@ -274,17 +274,17 @@ function handleShotGenerationsChanged(
   event.affectedShotIds.forEach((shotId) => {
     if (event.allInserts) {
       // For INSERT-only, minimal invalidation (optimistic updates handle the rest)
-      invalidateGenerationsSync(queryClient, shotId, {
+      enqueueGenerationsInvalidation(queryClient, shotId, {
         reason: 'shot-generation-insert',
           scope: 'images',
       });
-      invalidateGenerationsSync(queryClient, shotId, {
+      enqueueGenerationsInvalidation(queryClient, shotId, {
         reason: 'shot-generation-insert',
         scope: 'counts',
       });
     } else {
       // For UPDATE/DELETE, full invalidation
-      invalidateGenerationsSync(queryClient, shotId, {
+      enqueueGenerationsInvalidation(queryClient, shotId, {
         reason: 'shot-generation-change',
         scope: 'all',
       });

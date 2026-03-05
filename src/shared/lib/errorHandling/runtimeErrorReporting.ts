@@ -22,10 +22,3 @@ export function normalizeAndReportError(
   const { context, logData, onError } = options;
   return reportError(error, { context, logData, onError });
 }
-
-function normalizeAndReportAndRethrow(
-  error: unknown,
-  options: RuntimeErrorReportOptions,
-): never {
-  throw normalizeAndReportError(error, options);
-}

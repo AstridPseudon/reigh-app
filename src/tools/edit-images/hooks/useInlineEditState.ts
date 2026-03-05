@@ -13,10 +13,9 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
-
 import { useUpscale } from '@/shared/components/MediaLightbox/hooks/useUpscale';
 import { useInpainting } from '@/shared/components/MediaLightbox/hooks/useInpainting';
-import { useEditModeLoRAs } from '@/shared/components/MediaLightbox/hooks/useEditModeLoRAs';
+import { useEditModeLoras } from '@/shared/components/MediaLightbox/hooks/useEditModeLoras';
 import { useSourceGeneration } from '@/shared/components/MediaLightbox/hooks/useSourceGeneration';
 import { useMagicEditMode } from '@/shared/components/MediaLightbox/hooks/useMagicEditMode';
 import { useStarToggle } from '@/shared/components/MediaLightbox/hooks/useStarToggle';
@@ -27,14 +26,9 @@ import { useEditSettingsSync } from '@/shared/components/MediaLightbox/hooks/per
 import type { EditMode as SettingsEditMode } from '@/shared/components/MediaLightbox/model/editSettingsTypes';
 import type { EditMode as InpaintingEditMode } from '@/shared/components/MediaLightbox/hooks/inpainting/types';
 import type { ImageEditMode, ImageEditState } from '@/shared/components/MediaLightbox/contexts/ImageEditContext';
-import { buildImageEditStateValue } from '@/shared/components/MediaLightbox/model/buildImageEditStateValue';
-import { downloadMedia } from '@/shared/components/MediaLightbox/utils';
+import { buildImageEditStateValue } from '@/tools/edit-images/model/buildImageEditStateValue';
+import { downloadMedia } from '@/shared/lib/media/downloadMedia';
 import { useVariants } from '@/shared/hooks/useVariants';
-
-// ============================================================================
-// useInlineEditState — all hook orchestration + persistence sync + memo
-// ============================================================================
-
 type InpaintingHookResult = ReturnType<typeof useInpainting>;
 type MagicEditHookResult = ReturnType<typeof useMagicEditMode>;
 type RepositionHookResult = ReturnType<typeof useRepositionMode>;
@@ -43,7 +37,6 @@ type StarToggleHookResult = ReturnType<typeof useStarToggle>;
 type SourceGenerationData = ReturnType<typeof useSourceGeneration>['sourceGenerationData'];
 type PublicLorasData = ReturnType<typeof usePublicLoras>['data'];
 type ImageEditValue = ImageEditState;
-
 function toInpaintingEditMode(
   mode: SettingsEditMode | ImageEditMode
 ): InpaintingEditMode {
@@ -52,35 +45,29 @@ function toInpaintingEditMode(
   }
   return 'text';
 }
-
 function resolveActualGenerationId(media: GenerationRow): string | null {
   const isShotGenerationRecord = media.shotImageEntryId === media.id ||
     media.shot_generation_id === media.id;
   return media.generation_id || (!isShotGenerationRecord ? media.id : null);
 }
-
 function useInlineEditEnvironment(media: GenerationRow) {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [createAsGeneration, setCreateAsGeneration] = useState(false);
-
   const isMobile = useIsMobile();
   const { selectedProjectId } = useProject();
   const { value: generationMethods } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
   const isCloudMode = generationMethods.inCloud;
   const isVideo = isVideoAny(media);
   const actualGenerationId = resolveActualGenerationId(media);
-
   const { effectiveImageUrl, isUpscaling, handleUpscale, setActiveVariant } = useUpscale({
     media,
     selectedProjectId,
     isVideo,
   });
-
-  const loraState = useEditModeLoRAs();
-
+  const loraState = useEditModeLoras();
   return {
     displayCanvasRef,
     maskCanvasRef,
@@ -101,32 +88,25 @@ function useInlineEditEnvironment(media: GenerationRow) {
     loraState,
   };
 }
-
 type InlineEditEnvironment = ReturnType<typeof useInlineEditEnvironment>;
-
 function useInlineEditPersistence(actualGenerationId: string | null, projectId: string | null | undefined) {
   const editSettings = useEditSettingsPersistence({
     generationId: actualGenerationId,
     projectId: projectId ?? null,
   });
-
   const variants = useVariants({
     generationId: actualGenerationId,
     enabled: true,
   });
-
   return { editSettings, variants };
 }
-
 type InlineEditPersistence = ReturnType<typeof useInlineEditPersistence>;
-
 function useInlineEditInpaintingAndMagic(
   media: GenerationRow,
   env: InlineEditEnvironment,
   persistence: InlineEditPersistence,
 ) {
   const handleExitInpaintModeRef = useRef<() => void>(() => {});
-
   const inpainting = useInpainting({
     media,
     selectedProjectId: env.selectedProjectId,
@@ -134,7 +114,7 @@ function useInlineEditInpaintingAndMagic(
     imageDimensions: env.imageDimensions,
     imageContainerRef: env.imageContainerRef,
     handleExitInpaintMode: () => handleExitInpaintModeRef.current(),
-    loras: env.loraState.editModeLoRAs,
+    loras: env.loraState.editModeLoras,
     toolTypeOverride: TOOL_IDS.EDIT_IMAGES,
     activeVariantId: persistence.variants.activeVariant?.id,
     activeVariantLocation: persistence.variants.activeVariant?.location,
@@ -143,7 +123,6 @@ function useInlineEditInpaintingAndMagic(
     qwenEditModel: persistence.editSettings.qwenEditModel,
     initialActive: true,
   });
-
   const magic = useMagicEditMode({
     media,
     selectedProjectId: env.selectedProjectId,
@@ -156,7 +135,7 @@ function useInlineEditInpaintingAndMagic(
     setInpaintPrompt: inpainting.setInpaintPrompt,
     inpaintNumGenerations: inpainting.inpaintNumGenerations,
     setInpaintNumGenerations: inpainting.setInpaintNumGenerations,
-    editModeLoRAs: env.loraState.editModeLoRAs,
+    editModeLoras: env.loraState.editModeLoras,
     sourceUrlForTasks: env.effectiveImageUrl,
     imageDimensions: env.imageDimensions,
     isInSceneBoostEnabled: env.loraState.isInSceneBoostEnabled,
@@ -168,15 +147,12 @@ function useInlineEditInpaintingAndMagic(
     qwenEditModel: persistence.editSettings.qwenEditModel,
     initialActive: true,
   });
-
   handleExitInpaintModeRef.current = () => {
     inpainting.setIsInpaintMode(false);
     magic.setIsMagicEditMode(false);
   };
-
   return { inpainting, magic };
 }
-
 function useInlineEditReposition(
   media: GenerationRow,
   env: InlineEditEnvironment,
@@ -188,7 +164,7 @@ function useInlineEditReposition(
     selectedProjectId: env.selectedProjectId,
     imageDimensions: env.imageDimensions,
     imageContainerRef: env.imageContainerRef,
-    loras: env.loraState.editModeLoRAs,
+    loras: env.loraState.editModeLoras,
     inpaintPrompt: inpainting.inpaintPrompt,
     inpaintNumGenerations: inpainting.inpaintNumGenerations,
     toolTypeOverride: TOOL_IDS.EDIT_IMAGES,
@@ -200,7 +176,6 @@ function useInlineEditReposition(
     activeVariantParams: persistence.variants.activeVariant?.params,
   });
 }
-
 function useInlineEditImg2Img(
   media: GenerationRow,
   env: InlineEditEnvironment,
@@ -233,7 +208,6 @@ function useInlineEditImg2Img(
     },
   });
 }
-
 function useInlineEditSettingsSync(
   actualGenerationId: string | null,
   editSettings: InlineEditPersistence['editSettings'],
@@ -257,7 +231,6 @@ function useInlineEditSettingsSync(
     setPersistedPrompt: editSettings.setPrompt,
   });
 }
-
 interface InlineEditStateModelsInput {
   env: InlineEditEnvironment;
   persistence: InlineEditPersistence;
@@ -268,10 +241,8 @@ interface InlineEditStateModelsInput {
   starToggle: StarToggleHookResult;
   handleDownload: () => Promise<void>;
 }
-
 function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
   const { env, persistence, inpainting, magic, reposition, img2img, starToggle, handleDownload } = input;
-
   const inpaintingState: InlineEditStateResult['inpaintingState'] = {
     isInpaintMode: inpainting.isInpaintMode,
     editMode: inpainting.editMode,
@@ -301,7 +272,6 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     isSpecialEditMode: magic.isSpecialEditMode,
     handleEnterMagicEditMode: magic.handleEnterMagicEditMode,
   };
-
   const transformState: InlineEditStateResult['transformState'] = {
     repositionTransform: reposition.transform,
     setScale: reposition.setScale,
@@ -311,7 +281,6 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     resetTransform: reposition.resetTransform,
     getTransformStyle: reposition.getTransformStyle,
   };
-
   const generationState: InlineEditStateResult['generationState'] = {
     localStarred: starToggle.localStarred,
     toggleStarMutation: starToggle.toggleStarMutation,
@@ -324,7 +293,6 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     handleGenerateImg2Img: img2img.handleGenerateImg2Img,
     img2imgLoraManager: img2img.loraManager,
   };
-
   const imageEditValue = buildImageEditStateValue({
     inpainting,
     magic,
@@ -344,7 +312,6 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     advancedSettings: persistence.editSettings.advancedSettings,
     setAdvancedSettings: persistence.editSettings.setAdvancedSettings,
   });
-
   return {
     inpaintingState,
     transformState,
@@ -352,7 +319,6 @@ function buildInlineEditStateModels(input: InlineEditStateModelsInput) {
     imageEditValue,
   };
 }
-
 export interface InlineEditStateResult {
   media: GenerationRow;
   canvasEnvironment: {
@@ -429,7 +395,6 @@ export interface InlineEditStateResult {
   availableLoras: PublicLorasData;
   imageEditValue: ImageEditValue;
 }
-
 export function useInlineEditState(
   media: GenerationRow,
   onNavigateToGeneration?: (generationId: string) => Promise<void>,
@@ -438,31 +403,24 @@ export function useInlineEditState(
   const persistence = useInlineEditPersistence(env.actualGenerationId, env.selectedProjectId);
   const activeVariant = persistence.variants.activeVariant;
   const effectiveImageUrl = activeVariant?.location || env.effectiveImageUrl;
-
   useEffect(() => {
     env.setUpscaleActiveVariant(activeVariant?.location, activeVariant?.id);
   }, [env, activeVariant?.location, activeVariant?.id]);
-
   const { data: availableLoras } = usePublicLoras();
   const { inpainting, magic } = useInlineEditInpaintingAndMagic(media, env, persistence);
   const reposition = useInlineEditReposition(media, env, inpainting, persistence);
   const img2img = useInlineEditImg2Img(media, env, persistence, availableLoras);
-
   useInlineEditSettingsSync(env.actualGenerationId, persistence.editSettings, inpainting);
-
   const { sourceGenerationData } = useSourceGeneration({
     media,
     onOpenExternalGeneration: onNavigateToGeneration
       ? async (id) => onNavigateToGeneration(id)
       : undefined,
   });
-
   const starToggle = useStarToggle({ media });
-
   const handleDownload = async () => {
     await downloadMedia(effectiveImageUrl, media.id, env.isVideo, media.contentType);
   };
-
   const {
     inpaintingState,
     transformState,
@@ -478,7 +436,6 @@ export function useInlineEditState(
     starToggle,
     handleDownload,
   });
-
   return {
     media,
     canvasEnvironment: {

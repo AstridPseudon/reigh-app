@@ -10,9 +10,56 @@
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { registerDebugGlobal } from '@/shared/runtime/debugRegistry';
 
+type QueryKeyLike = readonly unknown[];
 type RealtimeStatus = 'connected' | 'disconnected' | 'error';
 type PollingInterval = number | false; // false = no polling
-type QueryKeyLike = readonly unknown[];
+type FreshnessSubscriber = () => void;
+
+function serializeQueryKey(queryKey: QueryKeyLike): string {
+  return JSON.stringify(queryKey);
+}
+
+function markQueryKeysFresh(
+  lastEventTimes: Map<string, number>,
+  queryKeys: readonly QueryKeyLike[],
+  now: number,
+): void {
+  queryKeys.forEach((queryKey) => {
+    lastEventTimes.set(serializeQueryKey(queryKey), now);
+  });
+}
+
+function getLastEventTime(
+  lastEventTimes: Map<string, number>,
+  queryKey: QueryKeyLike,
+): number | undefined {
+  return lastEventTimes.get(serializeQueryKey(queryKey));
+}
+
+function isQueryFresh(
+  lastEventTimes: Map<string, number>,
+  queryKey: QueryKeyLike,
+  freshnessThreshold: number,
+  now: number,
+): boolean {
+  const lastEvent = getLastEventTime(lastEventTimes, queryKey);
+  if (!lastEvent) {
+    return false;
+  }
+  return now - lastEvent < freshnessThreshold;
+}
+
+function buildQueryAgeDiagnostics(
+  lastEventTimes: Map<string, number>,
+  now: number,
+  parseQueryKey: (rawKey: string) => unknown,
+): Array<{ query: unknown; ageMs: number; ageSec: number }> {
+  return Array.from(lastEventTimes.entries()).map(([key, time]) => ({
+    query: parseQueryKey(key),
+    ageMs: now - time,
+    ageSec: Math.round((now - time) / 1000),
+  }));
+}
 
 interface DataFreshnessState {
   realtimeStatus: RealtimeStatus;
@@ -30,7 +77,7 @@ class DataFreshnessManager {
     fetchFailures: new Map()
   };
 
-  private subscribers = new Set<() => void>();
+  private subscribers = new Set<FreshnessSubscriber>();
 
   // Circuit breaker settings
   private readonly CIRCUIT_BREAKER_THRESHOLD = 3; // failures before backing off
@@ -60,7 +107,7 @@ class DataFreshnessManager {
     if (previousStatus === status) {
       return; // Don't update state or notify subscribers for duplicates
     }
-    
+
     // Actual status transition - update state
     this.state.realtimeStatus = status;
     this.state.lastStatusChange = now;
@@ -74,11 +121,7 @@ class DataFreshnessManager {
    */
   onRealtimeEvent(_eventType: string, affectedQueries: readonly QueryKeyLike[]) {
     const now = Date.now();
-
-    affectedQueries.forEach(queryKey => {
-      const key = JSON.stringify(queryKey);
-      this.state.lastEventTimes.set(key, now);
-    });
+    markQueryKeysFresh(this.state.lastEventTimes, affectedQueries, now);
 
     // Notify subscribers that data freshness has changed
     this.notifySubscribers();
@@ -89,8 +132,8 @@ class DataFreshnessManager {
    * Returns false to disable polling when realtime is working well
    */
   getPollingInterval(queryKey: QueryKeyLike): PollingInterval {
-    const key = JSON.stringify(queryKey);
-    const lastEvent = this.state.lastEventTimes.get(key);
+    const key = serializeQueryKey(queryKey);
+    const lastEvent = getLastEventTime(this.state.lastEventTimes, queryKey);
     const now = Date.now();
     const timeSinceStatusChange = now - this.state.lastStatusChange;
 
@@ -103,10 +146,10 @@ class DataFreshnessManager {
 
       // If realtime has been stable for >30 seconds, trust it.
       // "No events" just means "nothing changed" — not "realtime is broken".
-      
+
       if (lastEvent) {
         const eventAge = now - lastEvent;
-        
+
         if (eventAge < 60000) { // Events within 1 minute
           return false; // Disable polling — realtime is working
         } else if (eventAge < 3 * 60 * 1000) { // Events within 3 minutes
@@ -161,7 +204,7 @@ class DataFreshnessManager {
    * Report a fetch failure for circuit breaker tracking
    */
   onFetchFailure(queryKey: QueryKeyLike, error: Error) {
-    const key = JSON.stringify(queryKey);
+    const key = serializeQueryKey(queryKey);
     const now = Date.now();
     const existing = this.state.fetchFailures.get(key);
 
@@ -238,7 +281,7 @@ class DataFreshnessManager {
    * Report a successful fetch (resets circuit breaker)
    */
   onFetchSuccess(queryKey: QueryKeyLike) {
-    const key = JSON.stringify(queryKey);
+    const key = serializeQueryKey(queryKey);
     const existing = this.state.fetchFailures.get(key);
 
     if (existing && existing.count > 0) {
@@ -281,15 +324,7 @@ class DataFreshnessManager {
    * Check if data for a query is considered fresh
    */
   isDataFresh(queryKey: QueryKeyLike, freshnessThreshold: number = 30000): boolean {
-    const key = JSON.stringify(queryKey);
-    const lastEvent = this.state.lastEventTimes.get(key);
-    
-    if (!lastEvent) {
-      return false; // No events recorded = not fresh
-    }
-    
-    const age = Date.now() - lastEvent;
-    return age < freshnessThreshold;
+    return isQueryFresh(this.state.lastEventTimes, queryKey, freshnessThreshold, Date.now());
   }
 
   /**
@@ -301,13 +336,7 @@ class DataFreshnessManager {
       realtimeStatus: this.state.realtimeStatus,
       timeSinceStatusChange: now - this.state.lastStatusChange,
       trackedQueries: this.state.lastEventTimes.size,
-      queryAges: Array.from(this.state.lastEventTimes.entries()).map(([key, time]) => {
-        return {
-          query: this.parseQueryKey(key),
-          ageMs: now - time,
-          ageSec: Math.round((now - time) / 1000)
-        };
-      }),
+      queryAges: buildQueryAgeDiagnostics(this.state.lastEventTimes, now, this.parseQueryKey),
       subscriberCount: this.subscribers.size,
       timestamp: now
     };
@@ -338,17 +367,13 @@ class DataFreshnessManager {
    */
   markQueriesFresh(queryKeys: readonly QueryKeyLike[]) {
     const now = Date.now();
-    queryKeys.forEach(queryKey => {
-      const key = JSON.stringify(queryKey);
-      this.state.lastEventTimes.set(key, now);
-    });
+    markQueryKeysFresh(this.state.lastEventTimes, queryKeys, now);
 
     this.notifySubscribers();
   }
 
   private notifySubscribers() {
-    // Notify all React components that polling intervals may have changed
-    this.subscribers.forEach(callback => {
+    this.subscribers.forEach((callback) => {
       try {
         callback();
       } catch (error) {
@@ -360,15 +385,14 @@ class DataFreshnessManager {
 
 // Singleton instance - single source of truth for the entire app
 export const dataFreshnessManager = new DataFreshnessManager();
-let cleanupDataFreshnessDebugGlobal: (() => void) | null = null;
 
 /** Dev-only helper for wiring debug globals during app bootstrap. */
 export function registerDataFreshnessManagerDebugGlobal(): void {
   if (!import.meta.env.DEV || typeof window === 'undefined') {
     return;
   }
-  cleanupDataFreshnessDebugGlobal?.();
-  cleanupDataFreshnessDebugGlobal = registerDebugGlobal(
+
+  registerDebugGlobal(
     '__DATA_FRESHNESS_MANAGER__',
     dataFreshnessManager,
     'DataFreshnessManager',

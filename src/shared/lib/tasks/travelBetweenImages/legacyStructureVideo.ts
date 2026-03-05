@@ -4,16 +4,9 @@ import { signalPastRemovalTargetUsage } from '@/shared/lib/governance/deprecatio
 import type { StructureVideoConfig } from './types';
 
 const legacyStructurePolicy = getDeprecationPolicy('travel_structure_legacy');
-const LEGACY_TRAVEL_STRUCTURE_OWNER = legacyStructurePolicy.owner;
-const LEGACY_TRAVEL_STRUCTURE_REMOVE_BY = legacyStructurePolicy.removeBy;
 
 /**
  * Compatibility shim for legacy travel-between-images payload fields.
- *
- * Sunset contract:
- * - Owner: see LEGACY_TRAVEL_STRUCTURE_OWNER
- * - Remove by: see LEGACY_TRAVEL_STRUCTURE_REMOVE_BY
- * - Removal gate: no callers emitting or parsing deprecated structure video fields.
  */
 
 /** Legacy read-shape for structure videos used only at adapter boundaries. */

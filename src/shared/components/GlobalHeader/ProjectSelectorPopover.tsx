@@ -47,7 +47,7 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
     isDesktop ? "w-[280px]" : "w-[calc(100vw-2rem)] max-w-[400px]"
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleProjectSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       const hasMatch = projects.some(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -98,7 +98,7 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
       <PopoverContent
         className={popoverContentClassName}
         align="start"
-        onKeyDown={handleKeyDown}
+        onKeyDown={handleProjectSearchKeyDown}
       >
         <Command variant="retro" className="rounded-sm">
           <CommandInput

@@ -37,7 +37,7 @@ export function useImageLightboxEditing(
     imageDimensions,
     imageContainerRef,
     editSettingsPersistence,
-    effectiveEditModeLoRAs,
+    effectiveEditModeLoras,
     availableLoras,
     variantFetchGenerationId,
   } = env;
@@ -69,7 +69,7 @@ export function useImageLightboxEditing(
     },
     settingsContext: editSettingsPersistence,
     loraContext: {
-      effectiveEditModeLoRAs,
+      effectiveEditModeLoras,
       availableLoras,
     },
   });

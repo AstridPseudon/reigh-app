@@ -6,6 +6,35 @@ import { SystemLogger } from "../_shared/systemLogger.ts";
 
 declare const Deno: { env: { get: (key: string) => string | undefined } };
 
+interface ValidationRule {
+  field: string;
+  value: string;
+  logData?: Record<string, unknown>;
+}
+
+async function respondValidationFailure(
+  logger: SystemLogger,
+  rule: ValidationRule,
+): Promise<Response> {
+  const message = `Missing required field: ${rule.field}`;
+  logger.error(message, rule.logData);
+  await logger.flush();
+  return new Response(message, { status: 400 });
+}
+
+async function validateRequiredFields(
+  logger: SystemLogger,
+  rules: ValidationRule[],
+): Promise<Response | null> {
+  for (const rule of rules) {
+    if (rule.value) {
+      continue;
+    }
+    return respondValidationFailure(logger, rule);
+  }
+  return null;
+}
+
 /**
  * Edge function: update-worker-model
  *
@@ -91,16 +120,12 @@ serve(async (req) => {
       ? instanceTypeRaw.trim()
       : "external";
 
-  if (!worker_id) {
-    logger.error("Missing required field: worker_id");
-    await logger.flush();
-    return new Response("Missing required field: worker_id", { status: 400 });
-  }
-
-  if (!current_model) {
-    logger.error("Missing required field: current_model", { worker_id });
-    await logger.flush();
-    return new Response("Missing required field: current_model", { status: 400 });
+  const validationFailure = await validateRequiredFields(logger, [
+    { field: "worker_id", value: worker_id },
+    { field: "current_model", value: current_model, logData: { worker_id } },
+  ]);
+  if (validationFailure) {
+    return validationFailure;
   }
 
   logger.info("Updating worker model", { worker_id, current_model });

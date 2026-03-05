@@ -7,7 +7,7 @@
 
 import React from 'react';
 import ShotImagesEditor from '../../ShotImagesEditor';
-import { ImageManagerSkeleton } from '../ui';
+import { ImageManagerSkeleton } from '../ui/Skeleton';
 import {
   useShotCore,
   useShotUI,

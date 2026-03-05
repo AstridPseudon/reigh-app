@@ -44,7 +44,7 @@ function createWrapper() {
   };
 }
 
-function createGenerationRow(overrides: Partial<GenerationRow> = {}): GenerationRow {
+function createSegmentOutputGenerationRow(overrides: Partial<GenerationRow> = {}): GenerationRow {
   return {
     id: `gen-${Math.random().toString(36).slice(2)}`,
     generation_id: overrides.generation_id || `gen-id-${Math.random().toString(36).slice(2)}`,
@@ -68,7 +68,7 @@ describe('useSegmentOutputsForShot', () => {
 
   describe('with preloaded data', () => {
     it('derives parent generations from preloaded data', () => {
-      const parentGen = createGenerationRow({
+      const parentGen = createSegmentOutputGenerationRow({
         id: 'sg-parent',
         generation_id: 'parent-gen-id',
         type: 'video',
@@ -76,7 +76,7 @@ describe('useSegmentOutputsForShot', () => {
         params: { orchestrator_details: { num_new_segments_to_generate: 2 } },
       });
 
-      const childGen = createGenerationRow({
+      const childGen = createSegmentOutputGenerationRow({
         id: 'sg-child',
         generation_id: 'child-gen-id',
         type: 'video',
@@ -103,7 +103,7 @@ describe('useSegmentOutputsForShot', () => {
     });
 
     it('excludes child generations from parent list', () => {
-      const parentGen = createGenerationRow({
+      const parentGen = createSegmentOutputGenerationRow({
         id: 'sg-parent',
         generation_id: 'parent-gen-id',
         type: 'video',
@@ -111,7 +111,7 @@ describe('useSegmentOutputsForShot', () => {
         params: { orchestrator_details: { num_new_segments_to_generate: 1 } },
       });
 
-      const childGen = createGenerationRow({
+      const childGen = createSegmentOutputGenerationRow({
         id: 'sg-child',
         generation_id: 'child-gen-id',
         type: 'video',
@@ -140,7 +140,7 @@ describe('useSegmentOutputsForShot', () => {
     });
 
     it('excludes non-video generations from parent list', () => {
-      const imageGen = createGenerationRow({
+      const imageGen = createSegmentOutputGenerationRow({
         id: 'sg-image',
         generation_id: 'image-gen-id',
         type: 'image',
@@ -166,7 +166,7 @@ describe('useSegmentOutputsForShot', () => {
     });
 
     it('sorts parent generations by created_at descending', () => {
-      const older = createGenerationRow({
+      const older = createSegmentOutputGenerationRow({
         id: 'sg-older',
         generation_id: 'older-gen-id',
         type: 'video',
@@ -175,7 +175,7 @@ describe('useSegmentOutputsForShot', () => {
         params: { orchestrator_details: {} },
       });
 
-      const newer = createGenerationRow({
+      const newer = createSegmentOutputGenerationRow({
         id: 'sg-newer',
         generation_id: 'newer-gen-id',
         type: 'video',
@@ -304,19 +304,19 @@ describe('useSegmentOutputsForShot', () => {
 
   describe('preloaded timeline data', () => {
     it('derives timeline data from preloaded generations', () => {
-      const gen1 = createGenerationRow({
+      const gen1 = createSegmentOutputGenerationRow({
         id: 'sg-1',
         generation_id: 'gen-1',
         timeline_frame: 0,
         type: 'image',
       });
-      const gen2 = createGenerationRow({
+      const gen2 = createSegmentOutputGenerationRow({
         id: 'sg-2',
         generation_id: 'gen-2',
         timeline_frame: 50,
         type: 'image',
       });
-      const unpositioned = createGenerationRow({
+      const unpositioned = createSegmentOutputGenerationRow({
         id: 'sg-3',
         generation_id: 'gen-3',
         timeline_frame: null,

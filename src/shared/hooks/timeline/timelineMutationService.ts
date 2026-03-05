@@ -14,12 +14,19 @@ function shortNullableId(value: string | null | undefined): string | null {
   return value ? value.slice(0, 8) : null;
 }
 
-export async function refetchTimelineFrameCaches(
-  queryClient: QueryClient,
-  shotId: string,
-  projectId?: string | null,
+interface RefetchTimelineFrameCachesInput {
+  queryClient: QueryClient;
+  shotId: string;
+  projectId?: string | null;
+  includeLiveTimeline?: boolean;
+}
+
+export async function refetchTimelineFrameCaches({
+  queryClient,
+  shotId,
+  projectId,
   includeLiveTimeline = false,
-) : Promise<void> {
+}: RefetchTimelineFrameCachesInput): Promise<void> {
   const refetchOperations: Array<Promise<unknown>> = [
     queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) }),
     queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) }),

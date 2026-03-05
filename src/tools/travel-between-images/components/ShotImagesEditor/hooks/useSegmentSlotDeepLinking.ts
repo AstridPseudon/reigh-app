@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { PairData } from '../../Timeline/TimelineContainer';
+import type { PairData } from '../../Timeline/TimelineContainer/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { SegmentSlotState, UseSegmentSlotModeResolvedProps } from './segmentSlotContracts';
 import { parseSegmentSlotLocationState } from './segmentSlotContracts';

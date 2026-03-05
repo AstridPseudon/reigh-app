@@ -6,7 +6,7 @@ import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
 import { type GalleryFilterState } from '@/shared/components/MediaGallery';
-import { useContainerWidth } from '@/shared/components/MediaGallery/hooks';
+import { useContainerWidth } from '@/shared/components/MediaGallery/hooks/useContainerWidth';
 import { calculateGalleryLayout } from '@/shared/components/MediaGallery/utils';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useGalleryPageState } from '@/features/gallery/hooks/useGalleryPageState';

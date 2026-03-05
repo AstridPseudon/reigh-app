@@ -94,14 +94,6 @@ function extractTaskParamString(
   return normalized.length > 0 ? normalized : null;
 }
 
-function extractTaskParamBoolean(
-  params: unknown,
-  paths: readonly TaskParamPath[],
-): boolean | null {
-  const value = extractTaskParamValue(params, paths);
-  return parseTaskParamBoolean(value);
-}
-
 function parseTaskParamBoolean(value: unknown): boolean | null {
   if (typeof value === 'boolean') {
     return value;

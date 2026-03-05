@@ -50,24 +50,25 @@ export const TaskDetailsSummaryAndParams: React.FC<TaskDetailsSummaryAndParamsPr
   const toggleButtonClass = isModal
     ? 'h-8 px-2'
     : 'h-7 px-2 flex items-center gap-x-1 text-muted-foreground hover:text-foreground';
+  const generationDetailsProps = {
+    task,
+    inputImages,
+    variant: detailsVariant,
+    isMobile,
+    showAllImages,
+    onShowAllImagesChange,
+    showFullPrompt,
+    onShowFullPromptChange,
+    showFullNegativePrompt,
+    onShowFullNegativePromptChange,
+    availableLoras,
+    showCopyButtons,
+  } as const;
 
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <GenerationDetails
-          task={task}
-          inputImages={inputImages}
-          variant={detailsVariant}
-          isMobile={isMobile}
-          showAllImages={showAllImages}
-          onShowAllImagesChange={onShowAllImagesChange}
-          showFullPrompt={showFullPrompt}
-          onShowFullPromptChange={onShowFullPromptChange}
-          showFullNegativePrompt={showFullNegativePrompt}
-          onShowFullNegativePromptChange={onShowFullNegativePromptChange}
-          availableLoras={availableLoras}
-          showCopyButtons={showCopyButtons}
-        />
+        <GenerationDetails {...generationDetailsProps} />
       </div>
 
       <div className="space-y-3">

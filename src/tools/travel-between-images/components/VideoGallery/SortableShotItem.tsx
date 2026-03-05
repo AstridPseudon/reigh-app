@@ -90,6 +90,17 @@ const SortableShotItem: React.FC<SortableShotItemProps> = ({
         transition,
         opacity: isDragging ? 0.5 : 1,
       };
+  const sharedShotDisplayProps = {
+    shot,
+    onSelectShot,
+    onDuplicateShot,
+    currentProjectId,
+    shouldLoadImages,
+    shotIndex,
+    projectAspectRatio,
+    dataTour,
+    finalVideo,
+  } as const;
 
   return (
     <div
@@ -105,18 +116,10 @@ const SortableShotItem: React.FC<SortableShotItemProps> = ({
       )}
     >
       <VideoShotDisplay
-        shot={shot}
-        onSelectShot={onSelectShot}
-        onDuplicateShot={onDuplicateShot}
-        currentProjectId={currentProjectId}
-        shouldLoadImages={shouldLoadImages}
-        shotIndex={shotIndex}
-        projectAspectRatio={projectAspectRatio}
+        {...sharedShotDisplayProps}
         isHighlighted={isHighlighted || isDropTarget}
         pendingUploads={pendingSkeletonCount}
         dropLoadingState={withPositionDropState}
-        dataTour={dataTour}
-        finalVideo={finalVideo}
       />
 
       {(isDropTarget || withoutPositionDropState !== 'idle') && (

@@ -46,7 +46,8 @@ import { ImageEditProvider } from './contexts/ImageEditContext';
 import type { WorkflowControlsBarProps } from './components/WorkflowControlsBar';
 import type { LightboxLayoutProps } from './components/layouts/types';
 
-import { handleLightboxDownload, invokeLightboxDelete } from './utils';
+import { handleLightboxDownload } from './utils/lightboxDownload';
+import { invokeLightboxDelete } from './utils/lightboxDelete';
 
 // Re-export grouped sub-interfaces for consumers that import from ImageLightbox
 export type {

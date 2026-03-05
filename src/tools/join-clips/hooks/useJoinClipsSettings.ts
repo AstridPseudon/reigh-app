@@ -1,4 +1,4 @@
-import { useAutoSaveSettings } from '@/shared/hooks/settings/useAutoSaveSettings';
+import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { joinClipsSettings, type JoinClipsSettings } from '@/shared/lib/joinClipsDefaults';
 

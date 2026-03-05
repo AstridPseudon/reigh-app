@@ -22,12 +22,15 @@ function resolveLightboxDeletingId(
   return null;
 }
 
-interface UseMediaGalleryItemPropsParams {
+interface UseMediaGalleryItemShotOptionsProps {
   simplifiedShotOptions: SimplifiedShotOption[];
   currentViewingShotId?: string;
   onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
   onAddToLastShot?: AddToShotHandler;
   onAddToLastShotWithoutPosition?: AddToShotHandler;
+}
+
+interface UseMediaGalleryItemFeaturesProps {
   showDelete: boolean;
   showDownload: boolean;
   showShare: boolean;
@@ -40,7 +43,9 @@ interface UseMediaGalleryItemPropsParams {
   onApplySettings?: (metadata: DisplayableMetadata | undefined) => void;
   onImageClick?: (image: GeneratedImageWithMetadata) => void;
   isDeleting?: string | boolean | null;
+}
 
+interface UseMediaGalleryItemShotWorkflowProps {
   selectedShotIdLocal: string;
   setSelectedShotIdLocal: (id: string) => void;
   onShotChange: (shotId: string) => void;
@@ -57,12 +62,16 @@ interface UseMediaGalleryItemPropsParams {
   setAddingToShotImageId: (id: string | null) => void;
   addingToShotWithoutPositionImageId: string | null;
   setAddingToShotWithoutPositionImageId: (id: string | null) => void;
+}
 
+interface UseMediaGalleryItemMobileProps {
   mobileActiveImageId: string | null;
   mobilePopoverOpenImageId: string | null;
   onMobileTap: (image: GeneratedImageWithMetadata) => void;
   setMobilePopoverOpenImageId: (id: string | null) => void;
+}
 
+interface UseMediaGalleryItemActionsProps {
   onOpenLightbox: (image: GeneratedImageWithMetadata, autoEnterEditMode?: boolean) => void;
   onDelete?: (id: string) => void;
   onDownloadImage: (
@@ -72,10 +81,19 @@ interface UseMediaGalleryItemPropsParams {
     isVideo?: boolean,
     originalContentType?: string,
   ) => void;
+}
 
+interface UseMediaGalleryItemLoadingProps {
   activeLightboxMediaId?: string;
   downloadingImageId: string | null;
 }
+
+type UseMediaGalleryItemPropsParams = UseMediaGalleryItemShotOptionsProps &
+  UseMediaGalleryItemFeaturesProps &
+  UseMediaGalleryItemShotWorkflowProps &
+  UseMediaGalleryItemMobileProps &
+  UseMediaGalleryItemActionsProps &
+  UseMediaGalleryItemLoadingProps;
 
 export function useMediaGalleryItemProps({
   simplifiedShotOptions,

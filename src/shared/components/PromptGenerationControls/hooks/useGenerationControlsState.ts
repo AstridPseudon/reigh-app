@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { temperatureOptions, type GenerationControlValues } from '@/shared/components/PromptGenerationControls';
+import { temperatureOptions, type GenerationControlValues } from '../constants';
 
 interface UseGenerationControlsStateParams {
   initialValues?: Partial<GenerationControlValues>;

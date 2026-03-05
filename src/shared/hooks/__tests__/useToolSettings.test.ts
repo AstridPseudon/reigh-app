@@ -194,7 +194,7 @@ vi.mock('@/shared/lib/toolSettingsService', async () => {
       settings: { prompt: 'default', seed: 1 },
       hasShotSettings: false,
     }),
-    getCachedUserId: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+    resolveAndCacheUserId: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
   };
 });
 
@@ -274,7 +274,7 @@ describe('useToolSettings hook', () => {
 
   it('throws auth_required for user-scope updates without an authenticated user', async () => {
     const toolSettingsService = await import('@/shared/lib/toolSettingsService');
-    vi.mocked(toolSettingsService.getCachedUserId).mockResolvedValueOnce({
+    vi.mocked(toolSettingsService.resolveAndCacheUserId).mockResolvedValueOnce({
       data: { user: null },
       error: null,
     });

@@ -80,7 +80,7 @@ vi.mock('@/shared/hooks/useShotImages', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
-  useInvalidateGenerations: () => vi.fn(),
+  useEnqueueGenerationsInvalidation: () => vi.fn(),
 }));
 
 vi.mock('@/shared/lib/typeGuards', () => ({

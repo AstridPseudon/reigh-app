@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { ShotImageManagerProps } from './types';
@@ -6,14 +6,14 @@ import { GRID_COLS_CLASSES } from './constants';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useTaskDetails } from './hooks/useTaskDetails';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';
-import { useVideoScrubbing } from '@/shared/hooks/useVideoScrubbing';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { GenerationRow } from '@/domains/generation/types';
-import { getPreviewDimensions } from '@/shared/lib/media/aspectRatios';
 import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { usePendingImageOpen } from '@/shared/hooks/usePendingImageOpen';
 import { useAdjacentSegmentsData } from './hooks/useAdjacentSegmentsData';
+import { useImageTickFeedback } from './hooks/useImageTickFeedback';
+import { useDesktopSegmentScrubbing } from './hooks/useDesktopSegmentScrubbing';
 import BatchDropZone from './components/BatchDropZone';
 import { DeleteConfirmationDialog } from './components/DeleteConfirmationDialog';
 import { ImageGrid } from './components/ImageGrid';
@@ -78,20 +78,12 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   navigateWithTransition,
   ...props
 }) => {
-  const [showTickForImageId, setShowTickForImageId] = useState<string | null>(null);
-  const [showTickForSecondaryImageId, setShowTickForSecondaryImageId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!showTickForImageId) return;
-    const timer = setTimeout(() => setShowTickForImageId(null), 3000);
-    return () => clearTimeout(timer);
-  }, [showTickForImageId]);
-
-  useEffect(() => {
-    if (!showTickForSecondaryImageId) return;
-    const timer = setTimeout(() => setShowTickForSecondaryImageId(null), 3000);
-    return () => clearTimeout(timer);
-  }, [showTickForSecondaryImageId]);
+  const {
+    showTickForImageId,
+    setShowTickForImageId,
+    showTickForSecondaryImageId,
+    setShowTickForSecondaryImageId,
+  } = useImageTickFeedback();
 
   // Fetch task details for current lightbox image
   // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
@@ -161,75 +153,21 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   // Shot navigation for "add without position" flow
   const { navigateToShot } = useShotNavigation();
 
-  // ===== SCRUBBING PREVIEW STATE =====
-  const [activeScrubbingIndex, setActiveScrubbingIndex] = useState<number | null>(null);
-  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
-  const previewVideoRef = useRef<HTMLVideoElement>(null);
-
-  // Video scrubbing hook - controls the preview video
-  const scrubbing = useVideoScrubbing({
-    enabled: !isMobile && activeScrubbingIndex !== null,
-    playOnStopScrubbing: true,
-    playDelay: 400,
-    resetOnLeave: true,
-    onHoverEnd: () => setActiveScrubbingIndex(null),
+  const {
+    activeScrubbingIndex,
+    activeSegmentSlot,
+    activeSegmentVideoUrl,
+    clampedPreviewX,
+    previewY,
+    previewDimensions,
+    previewVideoRef,
+    scrubbing,
+    handleScrubbingStart,
+  } = useDesktopSegmentScrubbing({
+    isMobile,
+    segmentSlots,
+    projectAspectRatio: props.projectAspectRatio,
   });
-  const handleScrubbingMouseEnter = scrubbing.containerProps.onMouseEnter;
-  const resetScrubbing = scrubbing.reset;
-  const setScrubbingVideoElement = scrubbing.setVideoElement;
-
-  // When active scrubbing index changes, manually trigger onMouseEnter
-  useEffect(() => {
-    if (activeScrubbingIndex !== null) {
-      handleScrubbingMouseEnter();
-    }
-  }, [activeScrubbingIndex, handleScrubbingMouseEnter]);
-
-  // Clear scrubbing preview on scroll
-  useEffect(() => {
-    if (activeScrubbingIndex === null) return;
-
-    const handleScroll = () => {
-      setActiveScrubbingIndex(null);
-      resetScrubbing();
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeScrubbingIndex, resetScrubbing]);
-
-  // Get the active segment's video URL
-  const activeSegmentSlot = activeScrubbingIndex !== null ? segmentSlots?.[activeScrubbingIndex] : null;
-  const activeSegmentVideoUrl = activeSegmentSlot?.type === 'child' ? activeSegmentSlot.child.location : null;
-
-  // Connect preview video to scrubbing hook when active segment changes
-  useEffect(() => {
-    if (previewVideoRef.current && activeScrubbingIndex !== null) {
-      setScrubbingVideoElement(previewVideoRef.current);
-    }
-  }, [activeScrubbingIndex, activeSegmentVideoUrl, setScrubbingVideoElement]);
-
-  // Handle scrubbing start - capture the segment's position for preview placement
-  const handleScrubbingStart = useCallback((index: number, segmentRect: DOMRect) => {
-    setActiveScrubbingIndex(index);
-    // Position preview centered above the hovered segment
-    setPreviewPosition({
-      x: segmentRect.left + segmentRect.width / 2,
-      y: segmentRect.top,
-    });
-  }, []);
-
-  // Calculate preview dimensions based on aspect ratio
-  const previewDimensions = useMemo(() => getPreviewDimensions(props.projectAspectRatio), [props.projectAspectRatio]);
-
-  // Calculate clamped preview position to keep it within viewport
-  const clampedPreviewX = useMemo(() => {
-    const padding = 16;
-    const halfWidth = previewDimensions.width / 2;
-    const minX = padding + halfWidth;
-    const maxX = (typeof window !== 'undefined' ? window.innerWidth : 1920) - padding - halfWidth;
-    return Math.max(minX, Math.min(maxX, previewPosition.x));
-  }, [previewPosition.x, previewDimensions.width]);
 
   return (
     <>
@@ -238,7 +176,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
         activeSegmentSlot={activeSegmentSlot ?? null}
         activeSegmentVideoUrl={activeSegmentVideoUrl}
         clampedPreviewX={clampedPreviewX}
-        previewY={previewPosition.y}
+        previewY={previewY}
         previewDimensions={previewDimensions}
         previewVideoRef={previewVideoRef}
         scrubbing={scrubbing}

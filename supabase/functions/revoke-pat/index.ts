@@ -4,6 +4,9 @@ import { jsonResponse } from "../_shared/http.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "revoke-pat",
     logPrefix: "[REVOKE-PAT]",

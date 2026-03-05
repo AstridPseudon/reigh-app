@@ -5,11 +5,11 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import type { GenerationRow } from '@/domains/generation/types';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import type { useInvalidateGenerations } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import type { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { readSegmentOverrides, writeSegmentOverrides } from '@/shared/lib/settingsMigration';
 import type { TimelineCoreResult } from './useTimelineCore.types';
 
-type InvalidateGenerationsFn = ReturnType<typeof useInvalidateGenerations>;
+type InvalidateGenerationsFn = ReturnType<typeof useEnqueueGenerationsInvalidation>;
 
 type TimelinePairOperations = Pick<
   TimelineCoreResult,

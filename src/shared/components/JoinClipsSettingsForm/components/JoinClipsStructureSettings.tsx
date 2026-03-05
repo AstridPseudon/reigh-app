@@ -3,7 +3,7 @@ import { ChevronDown, Info, RotateCcw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { SectionHeader } from '@/shared/components/ImageGenerationForm/components';
+import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Switch } from '@/shared/components/ui/switch';

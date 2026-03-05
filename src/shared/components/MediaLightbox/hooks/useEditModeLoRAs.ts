@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 
 export type LoraMode = 'none' | 'in-scene' | 'next-scene' | 'custom';
 
-interface UseEditModeLoRAsReturn {
+interface UseEditModeLorasReturn {
   // Mode selection for automatic LoRAs
   loraMode: LoraMode;
   setLoraMode: (mode: LoraMode) => void;
@@ -12,7 +12,7 @@ interface UseEditModeLoRAsReturn {
   setCustomLoraUrl: (url: string) => void;
   
   // The computed LoRAs based on mode
-  editModeLoRAs: Array<{ url: string; strength: number }> | undefined;
+  editModeLoras: Array<{ url: string; strength: number }> | undefined;
   
   // Legacy boolean support for backward compatibility
   isInSceneBoostEnabled: boolean;
@@ -24,7 +24,7 @@ interface UseEditModeLoRAsReturn {
  * Supports: In-Scene, Next Scene, Custom, or None
  * Used by both inpainting and magic edit modes
  */
-export const useEditModeLoRAs = (): UseEditModeLoRAsReturn => {
+export const useEditModeLoras = (): UseEditModeLorasReturn => {
   const [loraMode, setLoraMode] = useState<LoraMode>('none'); // Default to no preset LoRA
   const [customLoraUrl, setCustomLoraUrl] = useState<string>('');
 
@@ -35,7 +35,7 @@ export const useEditModeLoRAs = (): UseEditModeLoRAsReturn => {
   };
 
   // Build loras array based on selected mode
-  const editModeLoRAs = useMemo(() => {
+  const editModeLoras = useMemo(() => {
     switch (loraMode) {
       case 'in-scene':
         return [{
@@ -67,7 +67,7 @@ export const useEditModeLoRAs = (): UseEditModeLoRAsReturn => {
     customLoraUrl,
     setCustomLoraUrl,
     // Computed LoRAs
-    editModeLoRAs,
+    editModeLoras,
     // Legacy boolean support
     isInSceneBoostEnabled,
     setIsInSceneBoostEnabled,

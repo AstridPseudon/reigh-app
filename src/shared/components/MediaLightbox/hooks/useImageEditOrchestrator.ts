@@ -78,7 +78,7 @@ interface UseImageEditOrchestratorProps {
     img2imgPrompt: string;
     setImg2imgPrompt: (prompt: string) => void;
     img2imgPromptHasBeenSet: boolean;
-    editModeLoRAs: Array<{ url: string; strength: number }> | undefined;
+    editModeLoras: Array<{ url: string; strength: number }> | undefined;
     createAsGeneration: boolean;
     setCreateAsGeneration: (value: boolean) => void;
     advancedSettings: EditAdvancedSettings;
@@ -93,7 +93,7 @@ interface UseImageEditOrchestratorProps {
 
   // LoRA context
   loraContext: {
-    effectiveEditModeLoRAs: Array<{ url: string; strength: number }> | undefined;
+    effectiveEditModeLoras: Array<{ url: string; strength: number }> | undefined;
     availableLoras?: LoraModel[];
   };
 }
@@ -159,7 +159,7 @@ export function useImageEditOrchestrator({
     refetchVariants,
   } = variantContext;
   const {
-    effectiveEditModeLoRAs,
+    effectiveEditModeLoras,
     availableLoras,
   } = loraContext;
 
@@ -201,7 +201,7 @@ export function useImageEditOrchestrator({
     imageContainerRef,
     imageDimensions,
     handleExitInpaintMode: () => {},
-    loras: effectiveEditModeLoRAs,
+    loras: effectiveEditModeLoras,
     activeVariantId: activeVariant?.id,
     activeVariantLocation: activeVariant?.location,
     createAsGeneration,
@@ -262,7 +262,7 @@ export function useImageEditOrchestrator({
     setInpaintPrompt,
     inpaintNumGenerations,
     setInpaintNumGenerations,
-    editModeLoRAs: effectiveEditModeLoRAs,
+    editModeLoras: effectiveEditModeLoras,
     sourceUrlForTasks: effectiveImageUrl,
     imageDimensions,
     toolTypeOverride,
@@ -291,7 +291,7 @@ export function useImageEditOrchestrator({
     selectedProjectId,
     imageDimensions,
     imageContainerRef,
-    loras: effectiveEditModeLoRAs,
+    loras: effectiveEditModeLoras,
     inpaintPrompt,
     inpaintNumGenerations,
     toolTypeOverride,

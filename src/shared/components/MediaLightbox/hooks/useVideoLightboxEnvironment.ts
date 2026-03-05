@@ -5,7 +5,7 @@ import { useTaskStatusCounts } from '@/shared/hooks/tasks/useTaskStatusCounts';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useEditSettingsPersistence } from './useEditSettingsPersistence';
-import { extractDimensionsFromMedia } from '../utils';
+import { extractDimensionsFromMedia } from '../utils/dimensions';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { SegmentSlotModeData } from '../types';

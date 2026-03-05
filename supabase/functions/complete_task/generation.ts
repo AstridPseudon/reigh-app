@@ -10,7 +10,7 @@
  * - generation-parent.ts: Parent relationship helpers
  */
 
-import type { SupabaseClient } from '../_shared/supabaseClient.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { extractShotAndPosition, extractBasedOn } from './params.ts';
 import { findExistingGeneration, createVariant, linkGenerationToShot } from './generation-core.ts';
 import {

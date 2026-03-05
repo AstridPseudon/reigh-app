@@ -34,7 +34,11 @@ import { withEdgeRequest } from "../_shared/edgeHandler.ts";
  * - 403 Forbidden if token invalid or user not found
  * - 500 Internal Server Error
  */
-serve((req) => withEdgeRequest(req, {
+serve((req) => {
+  if (!req.headers.get("authorization")) {
+    return new Response("Authentication failed", { status: 401 });
+  }
+  return withEdgeRequest(req, {
   functionName: "claim-next-task",
   logPrefix: "[CLAIM-NEXT-TASK]",
   parseBody: "loose",
@@ -232,4 +236,5 @@ serve((req) => withEdgeRequest(req, {
       headers: { "Content-Type": "application/json" }
     });
   }
-}));
+});
+});

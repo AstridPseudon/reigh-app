@@ -7,7 +7,11 @@
 
 import React from 'react';
 import { ArrowLeftRight } from 'lucide-react';
-import { JoinClipsSettingsForm, DEFAULT_JOIN_CLIPS_PHASE_CONFIG, BUILTIN_JOIN_CLIPS_DEFAULT_ID } from '@/shared/components/JoinClipsSettingsForm';
+import {
+  JoinClipsSettingsForm,
+  DEFAULT_JOIN_CLIPS_PHASE_CONFIG,
+  BUILTIN_JOIN_CLIPS_DEFAULT_ID,
+} from '@/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm';
 import {
   useShotCore,
   useShotLoras,

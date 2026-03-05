@@ -15,7 +15,7 @@ export interface UseVideoFrameExtractionResult {
   canvasHeight: number;
 }
 
-export function useVideoFrameExtraction({
+export function useVideoPortionFrameExtraction({
   videoUrl,
   time,
   size = 'small',

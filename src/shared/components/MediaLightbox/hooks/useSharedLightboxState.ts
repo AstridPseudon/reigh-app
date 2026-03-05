@@ -2,20 +2,11 @@
  * useSharedLightboxState
  *
  * Shared state orchestrator for ImageLightbox and VideoLightbox.
- * Provides variant management, interaction state (star, references, lineage,
- * shots, source generation), and presentation state (navigation, layout,
- * button groups, effective media).
  */
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import type { RefObject } from 'react';
-import type { UseMutationResult } from '@tanstack/react-query';
-import type { GenerationRow, Shot } from '@/domains/generation/types';
-import type { DerivedItem } from '@/domains/generation/hooks/useDerivedItems';
+import type { GenerationRow } from '@/domains/generation/types';
 import type { GenerationVariant } from '@/shared/hooks/useVariants';
-import type { ShotOption, QuickCreateSuccess, LightboxDeleteHandler } from '../types';
-import type { SourceVariantData } from './useSourceGeneration';
-import type { useSwipeNavigation as UseSwipeNavigationType } from './useSwipeNavigation';
 import { useVariants } from '@/shared/hooks/useVariants';
 import { useVariantSelection } from './useVariantSelection';
 import { useVariantPromotion } from './useVariantPromotion';
@@ -31,220 +22,24 @@ import { useLightboxNavigation } from './useLightboxNavigation';
 import { useSwipeNavigation } from './useSwipeNavigation';
 import { useEffectiveMedia } from './useEffectiveMedia';
 import { useLayoutMode } from './useLayoutMode';
-import { invokeLightboxDelete } from '../utils';
+import { invokeLightboxDelete } from '../utils/lightboxDelete';
+import type {
+  InteractionState,
+  LightboxButtonGroupProps,
+  SharedLightboxButtonGroupProps,
+  SharedLightboxCoreProps,
+  SharedLightboxNavigationProps,
+  SharedLightboxShotProps,
+  UseSharedLightboxStateInput,
+  UseSharedLightboxStateReturn,
+  VariantsStateResult,
+} from './types';
 
-// ============================================================================
-// Types
-// ============================================================================
+export type { LightboxButtonGroupProps } from './types';
 
-/** Core media and project context */
-interface SharedLightboxCoreProps {
-  media: GenerationRow;
-  isVideo: boolean;
-  selectedProjectId: string | null;
-  isMobile: boolean;
-  isFormOnlyMode: boolean;
-  onClose: () => void;
-  readOnly?: boolean;
-  variantFetchGenerationId: string | null;
-  initialVariantId?: string;
-}
+// --- Variants state ---
 
-/** Navigation state and handlers */
-interface SharedLightboxNavigationProps {
-  showNavigation?: boolean;
-  hasNext?: boolean;
-  hasPrevious?: boolean;
-  handleSlotNavNext: () => void;
-  handleSlotNavPrev: () => void;
-  swipeDisabled: boolean;
-}
-
-/** Shot management callbacks and optimistic state */
-interface SharedLightboxShotProps {
-  shotId?: string;
-  selectedShotId?: string;
-  allShots?: ShotOption[];
-  onShotChange?: (shotId: string) => void;
-  onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
-  onNavigateToShot?: (shot: Shot, options?: { isNewlyCreated?: boolean }) => void;
-  onShowTick?: (imageId: string) => void;
-  onShowSecondaryTick?: (imageId: string) => void;
-  onOptimisticPositioned?: (mediaId: string, shotId: string) => void;
-  onOptimisticUnpositioned?: (mediaId: string, shotId: string) => void;
-  optimisticPositionedIds?: Set<string>;
-  optimisticUnpositionedIds?: Set<string>;
-  positionedInSelectedShot?: boolean;
-  associatedWithoutPositionInSelectedShot?: boolean;
-}
-
-/** Layout mode inputs (drives panel/edit mode visibility) */
-interface SharedLightboxLayoutProps {
-  showTaskDetails?: boolean;
-  isSpecialEditMode: boolean;
-  isInpaintMode: boolean;
-  isMagicEditMode: boolean;
-}
-
-/** Button group inputs (download, delete, star, upscale, edit mode) */
-interface SharedLightboxButtonGroupProps {
-  isCloudMode: boolean;
-  showDownload?: boolean;
-  isDownloading: boolean;
-  setIsDownloading: (v: boolean) => void;
-  onDelete?: LightboxDeleteHandler;
-  isDeleting?: string | null;
-  isUpscaling: boolean;
-  handleUpscale: () => void;
-}
-
-/** Effective media inputs (for computing display URLs/dimensions) */
-interface SharedLightboxMediaProps {
-  effectiveImageUrl: string;
-  imageDimensions: { width: number; height: number };
-  projectAspectRatio?: string;
-}
-
-interface UseSharedLightboxStateInput {
-  core: SharedLightboxCoreProps;
-  navigation: SharedLightboxNavigationProps;
-  shots: SharedLightboxShotProps;
-  layout: SharedLightboxLayoutProps;
-  actions: SharedLightboxButtonGroupProps;
-  media: SharedLightboxMediaProps;
-  starred?: boolean;
-  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
-}
-
-export interface LightboxButtonGroupProps {
-  topRight: {
-    showDownload: boolean;
-    handleDownload?: () => Promise<void>;
-    isDownloading: boolean;
-    onDelete?: LightboxDeleteHandler;
-    handleDelete?: () => Promise<void>;
-    isDeleting?: string | null;
-    onClose: () => void;
-  };
-  bottomLeft: {
-    isUpscaling: boolean;
-    handleUpscale: () => Promise<void>;
-    localStarred: boolean;
-    handleToggleStar: () => void;
-    toggleStarPending: boolean;
-  };
-  bottomRight: {
-    isAddingToReferences: boolean;
-    addToReferencesSuccess: boolean;
-    handleAddToReferences: () => Promise<void>;
-    handleAddToJoin?: () => void;
-    isAddingToJoin?: boolean;
-    addToJoinSuccess?: boolean;
-    onGoToJoin?: () => void;
-  };
-}
-
-interface UseSharedLightboxStateReturn {
-  variants: {
-    list: GenerationVariant[];
-    primaryVariant: GenerationVariant | null;
-    activeVariant: GenerationVariant | null;
-    isLoading: boolean;
-    setActiveVariantId: (id: string) => void;
-    refetch: () => void;
-    setPrimaryVariant: (id: string) => Promise<void>;
-    deleteVariant: (id: string) => Promise<void>;
-    isViewingNonPrimaryVariant: boolean;
-    promoteSuccess: boolean;
-    isPromoting: boolean;
-    handlePromoteToGeneration: (variantId: string) => Promise<void>;
-    handleAddVariantAsNewGenerationToShot: (
-      shotId: string,
-      variantId: string,
-      currentTimelineFrame?: number,
-    ) => Promise<boolean>;
-  };
-  intendedActiveVariantIdRef: RefObject<string | null>;
-  navigation: {
-    safeClose: () => void;
-    activateClickShield: () => void;
-    swipeNavigation: ReturnType<typeof UseSwipeNavigationType>;
-  };
-  star: {
-    localStarred: boolean;
-    setLocalStarred: (v: boolean) => void;
-    toggleStarMutation: UseMutationResult<void, Error, { id: string; starred: boolean; shotId?: string }>;
-    handleToggleStar: () => void;
-  };
-  references: {
-    isAddingToReferences: boolean;
-    addToReferencesSuccess: boolean;
-    handleAddToReferences: () => Promise<void>;
-    isAddingToJoin: boolean;
-    addToJoinSuccess: boolean;
-    handleAddToJoin: () => void;
-    handleGoToJoin: () => void;
-  };
-  lineage: {
-    derivedItems: DerivedItem[];
-    derivedGenerations: GenerationRow[];
-    derivedPage: number;
-    derivedTotalPages: number;
-    paginatedDerived: DerivedItem[];
-    setDerivedPage: (page: number) => void;
-  };
-  shots: {
-    isAlreadyPositionedInSelectedShot: boolean;
-    isAlreadyAssociatedWithoutPosition: boolean;
-    handleAddToShot: () => Promise<void>;
-    handleAddToShotWithoutPosition: () => Promise<void>;
-    isCreatingShot: boolean;
-    quickCreateSuccess: QuickCreateSuccess;
-    handleQuickCreateAndAdd: () => Promise<void>;
-    handleQuickCreateSuccess: () => void;
-  };
-  sourceGeneration: {
-    data: GenerationRow | null;
-    primaryVariant: SourceVariantData | null;
-  };
-  makeMainVariant: {
-    canMake: boolean;
-    canMakeFromChild: boolean;
-    canMakeFromVariant: boolean;
-    isMaking: boolean;
-    handle: () => Promise<void>;
-  };
-  effectiveMedia: {
-    videoUrl: string | undefined;
-    mediaUrl: string | undefined;
-    imageDimensions: { width: number; height: number };
-  };
-  layout: {
-    isTabletOrLarger: boolean;
-    isTouchLikeDevice: boolean;
-    shouldShowSidePanel: boolean;
-    isUnifiedEditMode: boolean;
-    isPortraitMode: boolean;
-  };
-  buttonGroupProps: LightboxButtonGroupProps;
-}
-
-// ============================================================================
-// Variants
-// ============================================================================
-
-interface VariantsStateResult {
-  section: UseSharedLightboxStateReturn['variants'];
-  intendedActiveVariantIdRef: RefObject<string | null>;
-  activeVariant: GenerationVariant | null;
-  primaryVariant: GenerationVariant | null;
-  isViewingNonPrimaryVariant: boolean;
-  setPrimaryVariant: (id: string) => Promise<void>;
-  refetchVariants: () => void;
-}
-
-export function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsStateResult {
+function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsStateResult {
   const {
     media,
     isFormOnlyMode,
@@ -319,9 +114,7 @@ export function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsS
   };
 }
 
-// ============================================================================
-// Interaction (star, references, lineage, shots, source, make-main-variant)
-// ============================================================================
+// --- Interaction state (star, references, lineage, shots, source generation, make-main-variant) ---
 
 function useLightboxShotActions(
   core: SharedLightboxCoreProps,
@@ -442,16 +235,7 @@ function useSharedMakeMainVariantState(params: {
   };
 }
 
-interface InteractionState {
-  star: UseSharedLightboxStateReturn['star'];
-  references: UseSharedLightboxStateReturn['references'];
-  lineage: UseSharedLightboxStateReturn['lineage'];
-  shots: UseSharedLightboxStateReturn['shots'];
-  sourceGeneration: UseSharedLightboxStateReturn['sourceGeneration'];
-  makeMainVariant: UseSharedLightboxStateReturn['makeMainVariant'];
-}
-
-function useSharedLightboxInteractionState(
+function useInteractionState(
   input: UseSharedLightboxStateInput,
   variantsState: VariantsStateResult,
 ): InteractionState {
@@ -525,9 +309,7 @@ function useSharedLightboxInteractionState(
   };
 }
 
-// ============================================================================
-// Presentation (navigation, layout, button groups, effective media)
-// ============================================================================
+// --- Presentation state (navigation, layout, effective media, button groups) ---
 
 function useLightboxNavigationModel(
   core: SharedLightboxCoreProps,
@@ -659,18 +441,11 @@ function useSharedButtonGroupState(params: {
   ]);
 }
 
-function useLightboxPanelModel(
+function usePresentationState(
   input: UseSharedLightboxStateInput,
   variantsState: VariantsStateResult,
   interactionState: InteractionState,
-): {
-  variants: UseSharedLightboxStateReturn['variants'];
-  intendedActiveVariantIdRef: UseSharedLightboxStateReturn['intendedActiveVariantIdRef'];
-  navigation: UseSharedLightboxStateReturn['navigation'];
-  effectiveMedia: UseSharedLightboxStateReturn['effectiveMedia'];
-  layout: UseSharedLightboxStateReturn['layout'];
-  buttonGroupProps: UseSharedLightboxStateReturn['buttonGroupProps'];
-} {
+) {
   const navigation = useLightboxNavigationModel(input.core, input.navigation);
   const { effectiveVideoUrl, effectiveMediaUrl, effectiveImageDimensions } = useEffectiveMedia({
     isVideo: input.core.isVideo,
@@ -722,14 +497,12 @@ function useLightboxPanelModel(
   };
 }
 
-// ============================================================================
-// Main orchestrator
-// ============================================================================
+// --- Main orchestrator ---
 
 export function useSharedLightboxState(input: UseSharedLightboxStateInput): UseSharedLightboxStateReturn {
   const variantsState = useSharedVariantsState(input.core);
-  const interactionState = useSharedLightboxInteractionState(input, variantsState);
-  const presentationState = useLightboxPanelModel(input, variantsState, interactionState);
+  const interactionState = useInteractionState(input, variantsState);
+  const presentationState = usePresentationState(input, variantsState, interactionState);
 
   return {
     variants: presentationState.variants,

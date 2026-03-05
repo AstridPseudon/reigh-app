@@ -32,7 +32,11 @@ import { isTimelineEligiblePositionedImage } from "../../../src/shared/lib/timel
  * - 500 Internal Server Error
  */
 
-serve((req) => withEdgeRequest(req, {
+serve((req) => {
+  if (!req.headers.get("authorization")) {
+    return new Response("Authentication failed", { status: 401 });
+  }
+  return withEdgeRequest(req, {
   functionName: "update-shot-pair-prompts",
   logPrefix: "[UPDATE-SHOT-PAIR-PROMPTS]",
   parseBody: "strict",
@@ -240,4 +244,5 @@ serve((req) => withEdgeRequest(req, {
     failed_count: failedCount,
     shot_id,
   }, 200);
-}));
+});
+});

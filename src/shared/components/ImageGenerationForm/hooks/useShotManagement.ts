@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
-import { useAutoSaveSettings } from '@/shared/hooks/settings/useAutoSaveSettings';
+import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import { useListShots } from '@/shared/hooks/shots';
 import { useShotCreation } from '@/shared/hooks/useShotCreation';
 import { useShotNavigation } from '@/shared/hooks/useShotNavigation';

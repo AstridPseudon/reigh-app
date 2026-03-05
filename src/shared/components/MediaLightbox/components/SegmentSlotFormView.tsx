@@ -11,7 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import { X } from 'lucide-react';
 import { toast } from '@/shared/components/ui/toast';
 import { useSegmentSettingsForm } from '@/shared/hooks/useSegmentSettingsForm';
-import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm';
+import { SegmentSettingsForm } from '@/shared/components/SegmentSettingsForm/SegmentSettingsForm';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import { submitSegmentTask, buildStructureVideoForTask } from './submitSegmentTask';
 import type { SegmentSlotModeData } from '../types';

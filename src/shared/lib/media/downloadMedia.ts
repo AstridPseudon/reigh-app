@@ -15,7 +15,7 @@ const isIOSPwa = (): boolean => {
   return isStandalone && isIOS;
 };
 
-const getFileExtension = (url: string, isVideo: boolean, contentType?: string): string => {
+const getDownloadMediaFileExtension = (url: string, isVideo: boolean, contentType?: string): string => {
   if (contentType) {
     const ext = contentType.split('/')[1]?.split(';')[0]?.trim();
     if (ext && ext !== 'octet-stream') {
@@ -57,7 +57,7 @@ export const downloadMedia = async (
   contentType?: string,
   prompt?: string,
 ): Promise<void> => {
-  const fileExt = getFileExtension(url, isVideo, contentType);
+  const fileExt = getDownloadMediaFileExtension(url, isVideo, contentType);
 
   const shortId = typeof mediaId === 'string' && mediaId.length > 8 ? mediaId.substring(0, 8) : mediaId;
   const filename = prompt && typeof prompt === 'string' && prompt.trim()

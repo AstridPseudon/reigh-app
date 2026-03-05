@@ -20,6 +20,9 @@ import { jsonResponse } from "../_shared/http.ts";
  * Returns 200 with: [{ segment_index, output_location }]
  */
 serve(async (req) => {
+  if (!req.headers.get("authorization")) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
+  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "get-completed-segments",
     logPrefix: "[GET-COMPLETED-SEGMENTS]",

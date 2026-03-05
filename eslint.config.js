@@ -4,6 +4,8 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import { strictLintDebtFiles } from "./eslint.strict-debt.js";
+import { supabaseFacadeAllowlist } from "./eslint.supabase-facade-allowlist.js";
+import { sharedLayerAllowlist } from "./eslint.shared-layer-allowlist.js";
 
 const strictRefreshFiles = [
   "src/app/**/*.{ts,tsx}",
@@ -121,6 +123,46 @@ export default tseslint.config(
         }],
       }]
     }
+  },
+  // Shared-layer dependency boundary:
+  // shared/ should not take direct dependencies on feature/domain layers.
+  // Existing legacy imports are temporarily tracked in a dedicated allowlist.
+  {
+    files: ["src/shared/**/*.{ts,tsx}"],
+    ignores: [
+      "src/shared/**/__tests__/**/*.{ts,tsx}",
+      "src/shared/**/*.test.ts",
+      "src/shared/**/*.test.tsx",
+      ...sharedLayerAllowlist,
+    ],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: ["@/features/*", "@/domains/*"],
+          message: "shared/ is a foundational layer. Move feature/domain-aware logic into features/domains (or app composition), and keep shared consuming boundary-neutral contracts.",
+        }],
+      }],
+    },
+  },
+  // Supabase facade boundary: block direct facade imports globally.
+  // Existing legacy callsites are temporarily tracked in a dedicated allowlist file.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/integrations/supabase/**/*.{ts,tsx}",
+      "src/**/__tests__/**/*.{ts,tsx}",
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      ...supabaseFacadeAllowlist,
+    ],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "@/integrations/supabase/client",
+          message: "Use integration repositories/gateways under '@/integrations/supabase/repositories/*'. If migration is temporarily blocked, add the file path to eslint.supabase-facade-allowlist.js with a cleanup task.",
+        }],
+      }],
+    },
   },
   // Supabase runtime boundary for high-churn modules.
   // These callsites should consume integration repositories/gateways, not the global client facade.
