@@ -11,7 +11,7 @@ const { mockSelect, mockInsert, mockUpdateDb, mockDeleteDb, mockGetUser } = vi.h
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getUser: mockGetUser,
     },
@@ -45,7 +45,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

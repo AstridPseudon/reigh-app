@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BatchModeContent } from './BatchModeContent';
 
 const batchSettingsFormSpy = vi.fn();
@@ -62,6 +63,14 @@ vi.mock('@/shared/components/ImageGenerationForm/components', () => ({
   SectionHeader: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
+vi.mock('@/shared/contexts/AIInputModeContext', () => ({
+  useAIInputMode: () => ({
+    mode: 'text',
+    setMode: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 vi.mock('../../../BatchSettingsForm', () => ({
   __esModule: true,
   default: (props: unknown) => {
@@ -92,7 +101,7 @@ vi.mock('../../../GenerateVideoCTA', () => ({
   },
 }));
 
-vi.mock('@/shared/components/JoinClipsSettingsForm', () => ({
+vi.mock('@/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm', () => ({
   JoinClipsSettingsForm: (props: unknown) => {
     joinClipsSettingsFormSpy(props);
     return <div data-testid="join-clips-settings-form" />;
@@ -239,6 +248,19 @@ vi.mock('@/tools/travel-between-images/providers', () => ({
   }),
 }));
 
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
+
+function renderWithProviders(ui: React.ReactElement) {
+  const Wrapper = createWrapper();
+  return render(ui, { wrapper: Wrapper });
+}
+
 describe('BatchModeContent', () => {
   beforeEach(() => {
     batchSettingsFormSpy.mockClear();
@@ -262,7 +284,7 @@ describe('BatchModeContent', () => {
   it('passes derived values to child sections and generate CTA', () => {
     stitchAfterGenerateMock = true;
 
-    render(<BatchModeContent swapButtonRef={{ current: null }} parentVariantName="Variant A" />);
+    renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} parentVariantName="Variant A" />);
 
     expect(screen.getByTestId('batch-settings-form')).toBeInTheDocument();
     expect(screen.getByTestId('motion-control')).toBeInTheDocument();
@@ -277,7 +299,7 @@ describe('BatchModeContent', () => {
   });
 
   it('updates stitch setting and supports swap action when enough images exist', () => {
-    render(<BatchModeContent swapButtonRef={{ current: null }} />);
+    renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} />);
 
     fireEvent.click(screen.getByTestId('stitch-after-generate'));
     expect(joinUpdateFieldMock).toHaveBeenCalledWith('stitchAfterGenerate', true);
@@ -292,7 +314,7 @@ describe('BatchModeContent', () => {
     structureVideoMotionStrengthMock = 1.2;
     structureVideoUni3cEndPercentMock = 0.4;
 
-    render(<BatchModeContent swapButtonRef={{ current: null }} />);
+    renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} />);
 
     expect(screen.getByText('Camera Guidance:')).toBeInTheDocument();
     const sliders = screen.getAllByTestId('slider');

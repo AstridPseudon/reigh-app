@@ -7,7 +7,7 @@ const mockUpdate = vi.fn();
 const mockInsert = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -23,7 +23,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({

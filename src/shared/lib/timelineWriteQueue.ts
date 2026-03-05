@@ -86,7 +86,7 @@ export function isTimelineWriteTimeoutError(error: unknown): error is TimelineWr
   );
 }
 
-async function runTimelineWriteWithTimeout<T>(
+export async function runTimelineWriteWithTimeout<T>(
   operation: string,
   task: (signal: AbortSignal) => Promise<T>,
   options?: TimelineWriteTimeoutOptions,

@@ -6,9 +6,9 @@ import React from 'react';
 // Mock supabase
 const mockFrom = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
-  },
+  }),
 }));
 
 vi.mock('@/shared/hooks/useToolSettings', () => ({
@@ -177,7 +177,6 @@ describe('useSegmentMutations', () => {
           id: 'shot-1',
           patch: { prompt: 'test value' },
         }),
-        undefined,
         'immediate'
       );
     });

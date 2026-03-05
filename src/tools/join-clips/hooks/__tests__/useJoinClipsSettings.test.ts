@@ -5,7 +5,7 @@ import React from 'react';
 
 const mockUseAutoSaveSettings = vi.fn();
 
-vi.mock('@/shared/hooks/settings/useAutoSaveSettings', () => ({
+vi.mock('@/shared/settings/hooks/useAutoSaveSettings', () => ({
   useAutoSaveSettings: (...args: unknown[]) => mockUseAutoSaveSettings(...args),
 }));
 

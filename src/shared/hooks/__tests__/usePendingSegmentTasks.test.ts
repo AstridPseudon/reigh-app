@@ -5,7 +5,7 @@ import { renderHookWithProviders } from '@/test/test-utils';
 const mockQueryResult = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -15,7 +15,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       })),
     })),
-  },
+  }),
 }));
 
 import { usePendingSegmentTasks } from '../usePendingSegmentTasks';

@@ -4,13 +4,13 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 const mockCreateSignedUrl = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     storage: {
       from: vi.fn().mockReturnValue({
         createSignedUrl: (...args: unknown[]) => mockCreateSignedUrl(...args),
       }),
     },
-  },
+  }),
 }));
 
 import { useVideoUrlCache } from '../useVideoUrlCache';

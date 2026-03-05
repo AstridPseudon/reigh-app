@@ -3,7 +3,6 @@ import {
   isTimelineWriteTimeoutError,
   isTimelineWriteActive,
   runSerializedTimelineWrite,
-  runTimelineWriteWithTimeout,
 } from '../timelineWriteQueue';
 
 describe('timelineWriteQueue', () => {
@@ -15,7 +14,8 @@ describe('timelineWriteQueue', () => {
     vi.useFakeTimers();
     const onTimeout = vi.fn();
 
-    const stalledWrite = runTimelineWriteWithTimeout(
+    const stalledWrite = runSerializedTimelineWrite(
+      'shot-stall-test',
       'save-frames',
       (signal) =>
         new Promise<void>((_, reject) => {
@@ -25,6 +25,7 @@ describe('timelineWriteQueue', () => {
             { once: true },
           );
       }),
+      undefined,
       { timeoutMs: 10, onTimeout },
     );
     const assertion = expect(stalledWrite).rejects.toSatisfy((error: unknown) => {
@@ -101,7 +102,9 @@ describe('timelineWriteQueue', () => {
     const first = runSerializedTimelineWrite(
       'shot-timeout',
       'hung-write',
-      async () => await new Promise<never>(() => {}),
+      async (signal) => await new Promise<never>((_, reject) => {
+        signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
+      }),
       undefined,
       { timeoutMs: 10 },
     );
@@ -159,12 +162,14 @@ describe('timelineWriteQueue', () => {
       { timeoutMs: 1000 },
     );
 
-    await vi.advanceTimersByTimeAsync(11);
-    await expect(first).rejects.toSatisfy((error: unknown) => (
+    const firstAssertion = expect(first).rejects.toSatisfy((error: unknown) => (
       isTimelineWriteTimeoutError(error)
       && error instanceof Error
       && error.message.includes('abortable-write')
     ));
+
+    await vi.advanceTimersByTimeAsync(11);
+    await firstAssertion;
 
     await vi.advanceTimersByTimeAsync(150);
     expect(sideEffectCommitted).toBe(false);

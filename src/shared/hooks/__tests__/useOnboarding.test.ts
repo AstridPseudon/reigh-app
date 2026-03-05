@@ -6,7 +6,7 @@ const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getUser: () => mockGetUser(),
     },
@@ -20,7 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         eq: vi.fn(() => mockUpdate()),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

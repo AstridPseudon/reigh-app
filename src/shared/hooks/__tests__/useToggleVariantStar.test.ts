@@ -4,13 +4,13 @@ import { renderHookWithProviders } from '@/test/test-utils';
 
 const mockUpdate = vi.fn().mockResolvedValue({ error: null });
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       update: vi.fn(() => ({
         eq: vi.fn(() => mockUpdate()),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

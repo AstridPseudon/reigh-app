@@ -1,4 +1,4 @@
-import { useOutputSelection } from '../hooks';
+import { useOutputSelection } from '../hooks/video/useOutputSelection';
 import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
 import { useDemoteOrphanedVariants } from '../../../hooks/workflow/useDemoteOrphanedVariants';
 import { useEnsureSelectedOutput } from '../hooks/video/useEnsureSelectedOutput';

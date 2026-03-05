@@ -15,12 +15,12 @@ const mockStorageRemove = vi.fn();
 const mockCreateSignedUrl = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
     storage: {
       from: (...args: unknown[]) => mockStorageFrom(...args),
     },
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

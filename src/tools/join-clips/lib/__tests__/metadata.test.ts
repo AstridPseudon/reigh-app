@@ -4,7 +4,7 @@ import { getClipsNeedingDuration, loadClipDuration } from '../clipManager/metada
 const mockExtractVideoMetadataFromUrl = vi.fn();
 const mockHandleError = vi.fn();
 
-vi.mock('@/shared/lib/videoUploader', () => ({
+vi.mock('@/shared/lib/media/videoUploader', () => ({
   extractVideoMetadataFromUrl: (...args: unknown[]) => mockExtractVideoMetadataFromUrl(...args),
 }));
 

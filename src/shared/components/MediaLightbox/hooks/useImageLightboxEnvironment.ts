@@ -8,7 +8,7 @@ import { useLoraManager } from '@/shared/hooks/useLoraManager';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { useUpscale } from './useUpscale';
-import { useEditSettingsPersistence } from './useEditSettingsPersistence';
+import { useEditSettingsPersistence } from './persistence/useEditSettingsPersistence';
 import { extractDimensionsFromMedia } from '../utils/dimensions';
 
 interface UseImageLightboxEnvironmentProps {

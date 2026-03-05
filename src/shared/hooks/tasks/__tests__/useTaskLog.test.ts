@@ -17,7 +17,7 @@ const mockSupabaseChain = () => {
 };
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => mockSupabaseChain()),
     auth: {
       getUser: vi.fn().mockResolvedValue({
@@ -25,7 +25,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         error: null,
       }),
     },
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/taskConfig', () => ({
@@ -79,9 +79,10 @@ describe('useTaskLog', () => {
   });
 
   it('returns empty tasks when user has no projects', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
+    const { getSupabaseClient } = await import('@/integrations/supabase/client');
+    const client = getSupabaseClient();
 
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
+    vi.mocked(client.from).mockImplementation((table: string) => {
       const chain = mockSupabaseChain();
       if (table === 'projects') {
         chain.select = vi.fn().mockReturnValue({
@@ -89,7 +90,7 @@ describe('useTaskLog', () => {
           eq: vi.fn().mockResolvedValue({ data: [], error: null }),
         });
       }
-      return chain as ReturnType<typeof supabase.from>;
+      return chain as ReturnType<typeof client.from>;
     });
 
     const { result } = renderHook(() => useTaskLog(), {

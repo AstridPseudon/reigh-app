@@ -10,7 +10,7 @@ const mockGetUser = vi.fn();
 const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
     storage: {
       from: vi.fn().mockReturnValue({
@@ -20,7 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
     auth: {
       getUser: () => mockGetUser(),
     },
-  },
+  }),
 }));
 
 vi.mock('../transforms', () => ({

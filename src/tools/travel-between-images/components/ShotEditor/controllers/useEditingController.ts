@@ -1,6 +1,11 @@
 import type React from 'react';
 import type { Shot } from '@/domains/generation/types';
-import { useAudio, useJoinSegmentsHandler, useJoinSegmentsSetup, useNameEditing, useStructureVideo, useStructureVideoHandlers } from '../hooks';
+import { useAudio } from '../hooks/video/useAudio';
+import { useJoinSegmentsHandler } from '../hooks/actions/useJoinSegmentsHandler';
+import { useJoinSegmentsSetup } from '../hooks/actions/useJoinSegmentsSetup';
+import { useNameEditing } from '../hooks/editor-state/useNameEditing';
+import { useStructureVideo } from '../hooks/video/useStructureVideo';
+import { useStructureVideoHandlers } from '../hooks/video/useStructureVideoHandlers';
 
 interface EditingControllerCore {
   selectedShotId: string;

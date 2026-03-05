@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { MutableRefObject } from 'react';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
-import { useImageManagement } from '../hooks';
-import type { useGenerationActions } from '../hooks';
+import { useImageManagement } from '../hooks/editor-state/useImageManagement';
+import type { useGenerationActions } from '../hooks/actions/useGenerationActions';
 
 interface UseImageManagementControllerParams {
   queryClient: QueryClient;

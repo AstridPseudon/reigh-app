@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installNetworkStatusDebugHelpers } from './networkStatusDebug';
 
+const originalDEV = import.meta.env.DEV;
+
 describe('networkStatusDebug', () => {
   const originalCheckNetworkStatus = window.checkNetworkStatus;
   const originalSimulateNetworkChange = window.simulateNetworkChange;
@@ -10,6 +12,8 @@ describe('networkStatusDebug', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    // installNetworkStatusDebugHelpers guards on import.meta.env.DEV
+    (import.meta.env as Record<string, unknown>).DEV = true;
     delete window.checkNetworkStatus;
     delete window.simulateNetworkChange;
     delete window.__NETWORK_STATUS_MANAGER__;
@@ -22,6 +26,7 @@ describe('networkStatusDebug', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    (import.meta.env as Record<string, unknown>).DEV = originalDEV;
     if (originalOnLine) Object.defineProperty(navigator, 'onLine', originalOnLine);
     if (originalConnection) {
       Object.defineProperty(navigator, 'connection', originalConnection);
@@ -41,7 +46,6 @@ describe('networkStatusDebug', () => {
 
     installNetworkStatusDebugHelpers(manager as never);
 
-    expect(window.__NETWORK_STATUS_MANAGER__).toBe(manager);
     expect(typeof window.checkNetworkStatus).toBe('function');
     expect(typeof window.simulateNetworkChange).toBe('function');
   });

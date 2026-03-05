@@ -45,7 +45,11 @@ describe('SegmentPreview', () => {
     fireEvent.click(screen.getByAltText('Segment 1'));
     expect(onClick).toHaveBeenCalledTimes(1);
 
+    // First click enters confirmation mode
     fireEvent.click(screen.getByRole('button', { name: /delete segment/i }));
+    expect(onDelete).not.toHaveBeenCalled();
+    // Second click confirms the deletion
+    fireEvent.click(screen.getByRole('button', { name: /click again to confirm/i }));
     expect(onDelete).toHaveBeenCalledWith('child-1');
   });
 

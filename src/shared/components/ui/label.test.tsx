@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Label } from './label';
+import { Label } from './primitives/label';
 
 describe('Label', () => {
   it('renders label text and forwards htmlFor', () => {

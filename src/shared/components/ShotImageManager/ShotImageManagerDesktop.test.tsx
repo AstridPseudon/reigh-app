@@ -54,12 +54,33 @@ vi.mock('./components/BatchDropZone', () => ({
   ),
 }));
 
-vi.mock('../MediaLightbox', () => ({
-  default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="media-lightbox">
-      <button data-testid="close-lightbox" onClick={onClose}>Close</button>
-    </div>
-  ),
+vi.mock('./components/DesktopLightboxOverlay', () => ({
+  DesktopLightboxOverlay: ({ lightbox, externalGens, managerProps, setLightboxSelectedShotId }: {
+    lightbox: { lightboxIndex: number | null; setLightboxIndex: (i: number | null) => void; setShouldAutoEnterInpaint: (v: boolean) => void; currentImages: unknown[] };
+    externalGens: { setDerivedNavContext: (v: null) => void; setTempDerivedGenerations: (v: unknown[]) => void };
+    managerProps: { selectedShotId?: string };
+    setLightboxSelectedShotId?: (id: string | undefined) => void;
+  }) =>
+    lightbox.lightboxIndex !== null ? (
+      <div data-testid="media-lightbox">
+        <button
+          data-testid="close-lightbox"
+          onClick={() => {
+            lightbox.setLightboxIndex(null);
+            lightbox.setShouldAutoEnterInpaint(false);
+            externalGens.setDerivedNavContext(null);
+            externalGens.setTempDerivedGenerations([]);
+            setLightboxSelectedShotId?.(managerProps.selectedShotId);
+          }}
+        >
+          Close
+        </button>
+      </div>
+    ) : null,
+}));
+
+vi.mock('./components/DesktopScrubbingPreview', () => ({
+  DesktopScrubbingPreview: () => null,
 }));
 
 vi.mock('@/shared/hooks/mobile', () => ({
@@ -107,7 +128,7 @@ vi.mock('@/shared/lib/mediaUrl', () => ({
   getDisplayUrl: (url: string) => url,
 }));
 
-vi.mock('@/shared/lib/mediaTypeHelpers', () => ({
+vi.mock('@/shared/lib/media/mediaTypeHelpers', () => ({
   getGenerationId: (image: { generation_id?: string; id?: string } | null) => image?.generation_id ?? image?.id ?? '',
 }));
 

@@ -10,7 +10,7 @@
 
 import { useMemo, useEffect } from 'react';
 import type { VideoEditState } from '../contexts/VideoEditContext';
-import type { VideoEnhanceSettings } from './editSettingsTypes';
+import type { VideoEnhanceSettings } from '../model/editSettingsTypes';
 
 // ============================================================================
 // Types

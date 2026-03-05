@@ -24,7 +24,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mocks.supabaseClient,
   getSupabaseClient: vi.fn(() => mocks.supabaseClient),
 }));
 
@@ -68,7 +67,8 @@ describe('uploadImageToStorage', () => {
   });
 
   it('throws when user is not authenticated', async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
+    const { getSupabaseClient } = await import('@/integrations/supabase/client');
+    const supabase = getSupabaseClient();
     vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
       data: { session: null },
     } as unknown);

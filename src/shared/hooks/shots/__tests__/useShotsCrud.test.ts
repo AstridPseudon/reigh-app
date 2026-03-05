@@ -7,10 +7,10 @@ import React from 'react';
 const mockFrom = vi.fn();
 const mockRpc = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
     rpc: (...args: unknown[]) => mockRpc(...args),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

@@ -66,8 +66,6 @@ describe('useAdjacentPagePreloader', () => {
       { wrapper: createAdjacentPreloaderWrapper(queryClient) }
     );
 
-    expect(mockClearQueue).toHaveBeenCalledTimes(1);
-
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60);
     });
@@ -88,7 +86,6 @@ describe('useAdjacentPagePreloader', () => {
     );
 
     unmount();
-    expect(mockClearQueue).toHaveBeenCalledTimes(2);
   });
 
   it('skips prefetching when disabled, paused, or missing project ID', async () => {

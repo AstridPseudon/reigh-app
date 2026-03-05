@@ -6,7 +6,7 @@ import type { GenerationRow } from '@/domains/generation/types';
 
 // Mock supabase
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -20,7 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         }),
       }),
     }),
-  },
+  }),
 }));
 
 vi.mock('@/shared/hooks/useSmartPolling', () => ({

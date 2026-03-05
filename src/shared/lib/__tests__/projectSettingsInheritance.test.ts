@@ -14,7 +14,7 @@ const { mockSupabase } = vi.hoisted(() => {
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase,
+  getSupabaseClient: () => mockSupabase,
 }));
 
 vi.mock('@/shared/lib/storageKeys', () => ({

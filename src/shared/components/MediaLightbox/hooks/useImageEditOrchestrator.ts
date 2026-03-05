@@ -12,7 +12,7 @@
 import { useMemo, useCallback } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { ImageEditState } from '../contexts/ImageEditContext';
-import type { EditAdvancedSettings, EditMode, LoraMode, QwenEditModel } from './editSettingsTypes';
+import type { EditAdvancedSettings, EditMode, LoraMode, QwenEditModel } from '../model/editSettingsTypes';
 import type { UseLoraManagerReturn } from '@/shared/hooks/useLoraManager';
 import type { LoraModel } from '@/shared/components/LoraSelectorModal';
 import type { EditMode as InpaintingEditMode } from './inpainting/types';
@@ -20,11 +20,11 @@ import type { EditMode as InpaintingEditMode } from './inpainting/types';
 import {
   useInpainting,
 } from './useInpainting';
-import { useEditSettingsSync } from './useEditSettingsSync';
+import { useEditSettingsSync } from './persistence/useEditSettingsSync';
 import { useMagicEditMode } from './useMagicEditMode';
 import { useRepositionMode } from './useRepositionMode';
 import { useImg2ImgMode } from './useImg2ImgMode';
-import { buildImageEditStateValue } from './buildImageEditStateValue';
+import { buildImageEditStateValue } from '@/tools/edit-images/model/buildImageEditStateValue';
 
 // ============================================================================
 // Props

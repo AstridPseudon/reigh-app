@@ -79,9 +79,11 @@ describe('GenerationsPaneGallery', () => {
     expect(mocks.MediaGallery).toHaveBeenCalledWith(
       expect.objectContaining({
         images: items,
-        offset: 12,
-        totalCount: 25,
-        itemsPerPage: 12,
+        pagination: expect.objectContaining({
+          offset: 12,
+          totalCount: 25,
+          itemsPerPage: 12,
+        }),
       }),
     );
   });

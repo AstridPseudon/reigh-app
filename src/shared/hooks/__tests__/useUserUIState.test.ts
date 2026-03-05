@@ -7,7 +7,7 @@ const { mockGetUser, mockSingle } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getUser: mockGetUser,
     },
@@ -18,7 +18,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/shared/hooks/useToolSettings', () => ({

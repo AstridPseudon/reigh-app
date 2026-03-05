@@ -9,7 +9,7 @@ import {
   type PanelMode,
   DEFAULT_LAST_USED,
   SYNCED_SETTING_KEYS
-} from './editSettingsTypes';
+} from '../model/editSettingsTypes';
 
 // Re-export types for backwards compatibility
 export type { LastUsedEditSettings, VideoEditSubMode, PanelMode };

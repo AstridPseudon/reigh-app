@@ -2,15 +2,13 @@ import { useMemo } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import { useLoadVariantImages } from '@/shared/hooks/useLoadVariantImages';
 import type { SegmentSlotModeData } from '../types';
-import {
-  useAdjustedTaskDetails,
-  useLightboxVariantBadges,
-  useLightboxVideoMode,
-  usePanelModeRestore,
-  useSharedLightboxState,
-  useVideoEditContextValue,
-  useVideoRegenerateMode,
-} from './index';
+import { useAdjustedTaskDetails } from './useAdjustedTaskDetails';
+import { useLightboxVariantBadges } from './useLightboxVariantBadges';
+import { useLightboxVideoMode } from './useLightboxVideoMode';
+import { usePanelModeRestore } from './usePanelModeRestore';
+import { useSharedLightboxState } from './useSharedLightboxState';
+import { useVideoEditContextValue } from './useVideoEditContextValue';
+import { useVideoRegenerateMode } from './useVideoRegenerateMode';
 import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './useVideoLightboxEnvironment';
 import type { VideoLightboxProps } from '../types';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {},
+  getSupabaseClient: () => ({}),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -13,7 +13,7 @@ vi.mock('@/shared/hooks/settings/useAutoSaveSettings', () => ({
 }));
 
 import { convertToHiresFixApiParams } from './useGenerationEditSettings';
-import type { EditAdvancedSettings } from './editSettingsTypes';
+import type { EditAdvancedSettings } from '../model/editSettingsTypes';
 
 const baseSettings: EditAdvancedSettings = {
   enabled: false,

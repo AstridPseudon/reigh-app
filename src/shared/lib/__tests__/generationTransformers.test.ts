@@ -2,13 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock Supabase client to avoid real DB calls
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         in: vi.fn(() => Promise.resolve({ data: [], error: null })),
       })),
     })),
-  },
+  }),
 }));
 
 import {

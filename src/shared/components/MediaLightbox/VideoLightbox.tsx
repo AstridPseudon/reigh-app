@@ -19,7 +19,7 @@ import type { VideoLightboxProps, VideoLightboxPropsWithMedia } from './types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { OverlayViewportConstraints } from '@/features/layout/contracts/overlayViewportConstraints';
 
-import { LightboxProviders } from './components';
+import { LightboxProviders } from './components/LightboxProviders';
 import { LightboxLayout } from './components/layouts/LightboxLayout';
 import { SegmentSlotFormView } from './components/SegmentSlotFormView';
 
@@ -33,7 +33,7 @@ import {
   useVideoLightboxEditing,
 } from './hooks/useVideoLightboxController';
 
-import { LightboxShell } from './components';
+import { LightboxShell } from './components/LightboxShell';
 import { VideoEditProvider } from './contexts/VideoEditContext';
 
 export type {

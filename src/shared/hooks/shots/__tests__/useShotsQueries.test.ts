@@ -31,7 +31,7 @@ const mockShotGenerations = [
 const mockNot = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn((table: string) => {
       if (table === 'shots') {
         return {
@@ -73,7 +73,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       };
     }),
-  },
+  }),
 }));
 
 vi.mock('../mappers', () => ({

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock supabase client (required by module import chain)
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({ data: [], error: null })),
       insert: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('@/integrations/supabase/client', () => ({
     rpc: vi.fn(),
     channel: vi.fn(() => ({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() })),
     auth: { getUser: vi.fn(() => ({ data: { user: { id: 'test' } } })) },
-  },
+  }),
 }));
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), loading: vi.fn(), dismiss: vi.fn() },

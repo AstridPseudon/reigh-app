@@ -16,7 +16,7 @@ const mockNot = vi.fn();
 const mockRpc = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: () => ({
       insert: (...a: unknown[]) => {
         mockInsert(...a);
@@ -40,7 +40,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       }),
     }),
     rpc: (...a: unknown[]) => mockRpc(...a),
-  },
+  }),
 }));
 
 vi.mock('@/shared/constants/supabaseErrors', () => ({

@@ -147,13 +147,13 @@ describe('derivePrompt', () => {
     })).toBe('prompt-1');
   });
 
-  it('prefers enhanced over base for non-segment orchestrated tasks', () => {
+  it('prefers base_prompt over enhanced for non-segment orchestrated tasks', () => {
     expect(derivePrompt({
       orchestrator_details: {
-        enhanced_prompts_expanded: ['enhanced'],
-        base_prompts_expanded: ['base'],
+        enhanced_prompt: 'enhanced',
+        base_prompt: 'base',
       },
-    })).toBe('enhanced');
+    })).toBe('base');
   });
 
   it('falls back through the priority chain for non-segment tasks', () => {

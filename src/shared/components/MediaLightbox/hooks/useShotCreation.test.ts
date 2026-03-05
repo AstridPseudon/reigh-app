@@ -11,7 +11,7 @@ vi.mock('@/shared/hooks/useQuickShotCreate', () => ({
   useQuickShotCreate: mockUseQuickShotCreate,
 }));
 
-vi.mock('@/shared/lib/mediaTypeHelpers', () => ({
+vi.mock('@/shared/lib/media/mediaTypeHelpers', () => ({
   getGenerationId: mockGetGenerationId,
 }));
 

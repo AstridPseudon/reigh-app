@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useUpdateShotImageOrder, useAddImageToShotWithoutPosition } from "@/shared/hooks/shots";
+import { useUpdateShotImageOrder, useAddImageToShot, useAddImageToShotWithoutPosition } from "@/shared/hooks/shots";
 import { useShotCreation } from "@/shared/hooks/useShotCreation";
 import { useIsMobile } from "@/shared/hooks/mobile";
 import { Shot } from '@/domains/generation/types';
@@ -12,16 +12,14 @@ import { useQueryClient } from '@tanstack/react-query';
 // Import modular components and hooks
 import { ShotEditorProps, GenerationsPaneSettings } from './state/types';
 import { useShotEditorState } from './state/useShotEditorState';
-import {
-  useGenerationActions,
-  useLoraSync,
-  useModeReadiness,
-  useShotActions,
-  useShotEditorSetup,
-  useShotEditorBridge,
-  useLastVideoGeneration,
-  useAspectAdjustedColumns,
-} from './hooks';
+import { useGenerationActions } from './hooks/actions/useGenerationActions';
+import { useLoraSync } from './hooks/editor-state/useLoraSync';
+import { useModeReadiness } from './hooks/video/useModeReadiness';
+import { useShotActions } from './hooks/actions/useShotActions';
+import { useShotEditorSetup } from './hooks/editor-state/useShotEditorSetup';
+import { useShotEditorBridge } from './hooks/editor-state/useShotEditorBridge';
+import { useLastVideoGeneration } from './hooks/video/useLastVideoGeneration';
+import { useAspectAdjustedColumns } from './hooks/editor-state/useAspectAdjustedColumns';
 // Direct context hooks (no more props fallback - context is always available)
 import {
   usePromptSettings,

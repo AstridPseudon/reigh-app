@@ -102,7 +102,7 @@ export const TaskGuidanceImages: React.FC<TaskGuidanceImagesProps> = ({
               {stepWindowValues.length === 2 && (
                 <div>
                   <span className="text-muted-foreground">Window: </span>
-                  {stepWindowValues[0]}->{stepWindowValues[1]}
+                  {stepWindowValues[0]}→{stepWindowValues[1]}
                 </div>
               )}
               {videoTreatment && <div className="text-muted-foreground capitalize">{videoTreatment}</div>}

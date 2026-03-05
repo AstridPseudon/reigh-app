@@ -19,7 +19,7 @@ import type { GenerationVariant } from '@/shared/hooks/useVariants';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { useVideoTrimming } from '@/shared/components/VideoTrimEditor/hooks/useVideoTrimming';
 import { useTrimSave } from '@/shared/components/VideoTrimEditor/hooks/useTrimSave';
-import { useVideoEditing } from './useVideoEditing';
+import { useVideoEditing } from './modes/useVideoEditing';
 import { useVideoEnhance, type VideoEnhanceSettings } from './useVideoEnhance';
 import { useVideoEditModeHandlers } from './useVideoEditModeHandlers';
 import type { TrimState } from '@/shared/types/videoTrim';

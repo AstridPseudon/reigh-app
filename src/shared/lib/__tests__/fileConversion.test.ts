@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dataURLtoFile } from './fileConversion';
+import { dataURLtoFile } from '../fileConversion';
 
 describe('dataURLtoFile', () => {
   it('converts a valid data URL to a File', () => {

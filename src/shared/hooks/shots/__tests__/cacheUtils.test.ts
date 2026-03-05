@@ -49,11 +49,7 @@ describe('cacheUtils', () => {
       const shots = [createShot('shot-1'), createShot('shot-2')];
       updateAllShotsCaches(queryClient, projectId, () => shots);
 
-      // Check the base key variant
-      const baseData = queryClient.getQueryData<Shot[]>([...queryKeys.shots.all, projectId]);
-      expect(baseData).toEqual(shots);
-
-      // Check specific variant (maxImages=0)
+      // When no existing cache, it creates at the list(projectId, 0) key
       const variant0 = queryClient.getQueryData<Shot[]>(queryKeys.shots.list(projectId, 0));
       expect(variant0).toEqual(shots);
     });

@@ -5,7 +5,7 @@ import {
   DEFAULT_ENHANCE_SETTINGS,
   DEFAULT_LAST_USED,
   SYNCED_SETTING_KEYS,
-} from './editSettingsTypes';
+} from '../model/editSettingsTypes';
 
 describe('editSettingsTypes', () => {
   it('keeps stable defaults for advanced and enhance settings', () => {

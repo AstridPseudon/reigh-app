@@ -344,7 +344,7 @@ describe('useJoinClipsGenerate', () => {
           context_frame_count: 15,
           gap_frame_count: 23,
           replace_mode: true,
-          tool_type: 'join-clips',
+          tool_type: 'join_clips',
         }),
       );
     });

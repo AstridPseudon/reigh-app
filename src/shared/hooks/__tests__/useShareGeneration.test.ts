@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 
 // Mock supabase
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getSession: vi.fn().mockResolvedValue({
         data: {
@@ -23,7 +23,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
       return chain;
     }),
-  },
+  }),
 }));
 
 vi.mock('@/shared/components/ui/toast', () => ({

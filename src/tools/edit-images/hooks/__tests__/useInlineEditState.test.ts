@@ -125,9 +125,15 @@ const mockUseImg2ImgMode = vi.fn().mockReturnValue({
   loraManager: { selectedLoras: [], setSelectedLoras: vi.fn() },
 });
 
-vi.mock('@/features/image-edit', () => ({
+vi.mock('@/shared/components/MediaLightbox/hooks/useUpscale', () => ({
   useUpscale: (...args: unknown[]) => mockUseUpscale(...args),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useInpainting', () => ({
   useInpainting: (...args: unknown[]) => mockUseInpainting(...args),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useEditModeLoras', () => ({
   useEditModeLoras: () => ({
     isInSceneBoostEnabled: false,
     setIsInSceneBoostEnabled: vi.fn(),
@@ -137,17 +143,35 @@ vi.mock('@/features/image-edit', () => ({
     setCustomLoraUrl: vi.fn(),
     editModeLoras: [],
   }),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useSourceGeneration', () => ({
   useSourceGeneration: () => ({
     sourceGenerationData: null,
   }),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useMagicEditMode', () => ({
   useMagicEditMode: (...args: unknown[]) => mockUseMagicEditMode(...args),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useStarToggle', () => ({
   useStarToggle: () => ({
     localStarred: false,
     toggleStarMutation: { isPending: false },
     handleToggleStar: vi.fn(),
   }),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useRepositionMode', () => ({
   useRepositionMode: (...args: unknown[]) => mockUseRepositionMode(...args),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/useImg2ImgMode', () => ({
   useImg2ImgMode: (...args: unknown[]) => mockUseImg2ImgMode(...args),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/persistence/useEditSettingsPersistence', () => ({
   useEditSettingsPersistence: () => ({
     editMode: null,
     setEditMode: vi.fn(),
@@ -165,7 +189,13 @@ vi.mock('@/features/image-edit', () => ({
     isReady: true,
     hasPersistedSettings: false,
   }),
+}));
+
+vi.mock('@/shared/components/MediaLightbox/hooks/persistence/useEditSettingsSync', () => ({
   useEditSettingsSync: vi.fn(),
+}));
+
+vi.mock('@/shared/lib/media/downloadMedia', () => ({
   downloadMedia: vi.fn(),
 }));
 
@@ -174,6 +204,24 @@ vi.mock('@/shared/hooks/useVariants', () => ({
     activeVariant: null,
     setActiveVariantId: vi.fn(),
     refetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/shared/contexts/CurrentShotContext', () => ({
+  useCurrentShot: () => ({ currentShotId: null, setCurrentShotId: vi.fn() }),
+}));
+
+vi.mock('@/shared/contexts/IncomingTasksContext', () => ({
+  useIncomingTasks: () => ({
+    addIncomingTask: vi.fn().mockReturnValue('incoming-1'),
+    removeIncomingTask: vi.fn(),
+    resolveTaskIds: vi.fn(),
+    cancelIncoming: vi.fn(),
+    cancelAllIncoming: vi.fn(),
+    wasCancelled: vi.fn(() => false),
+    acknowledgeCancellation: vi.fn(),
+    hasIncomingTasks: false,
+    incomingTasks: [],
   }),
 }));
 

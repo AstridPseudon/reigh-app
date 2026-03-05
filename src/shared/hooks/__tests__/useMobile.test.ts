@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { isMobileUA, useIsMobile, useIsTablet, useIsTouchDevice, useDeviceInfo } from '../useMobile';
+import { isMobileUA, useIsMobile, useIsTablet, useIsTouchDevice, useDeviceInfo } from '../mobile';
 
 // Store original globals
 const originalMatchMedia = window.matchMedia;

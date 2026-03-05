@@ -4,7 +4,7 @@ import { renderHookWithProviders } from '@/test/test-utils';
 
 const mockSelect = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -12,7 +12,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/types/tasks', () => ({

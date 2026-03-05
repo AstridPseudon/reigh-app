@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHookWithProviders } from '@/test/test-utils';
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getSession: vi.fn(() =>
         Promise.resolve({ data: { session: { user: { id: 'user-1' } } } })
@@ -52,7 +52,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       };
     }),
-  },
+  }),
 }));
 
 vi.mock('@/shared/hooks/useSmartPolling', () => ({

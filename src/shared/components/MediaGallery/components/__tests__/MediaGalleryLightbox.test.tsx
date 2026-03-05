@@ -95,9 +95,13 @@ describe('MediaGalleryLightbox', () => {
 
     renderLightbox({ activeLightboxMedia: active, filteredImages: filtered });
 
-    const props = mediaLightboxSpy.mock.calls[0]?.[0] as { starred?: boolean; initialEditActive?: boolean; media?: GeneratedImageWithMetadata };
-    expect(props.starred).toBe(true);
-    expect(props.initialEditActive).toBe(true);
+    const props = mediaLightboxSpy.mock.calls[0]?.[0] as {
+      actions?: { starred?: boolean };
+      features?: { initialEditActive?: boolean };
+      media?: GeneratedImageWithMetadata;
+    };
+    expect(props.actions?.starred).toBe(true);
+    expect(props.features?.initialEditActive).toBe(true);
     expect(props.media?.metadata).toEqual({ source: 'filtered' });
   });
 
@@ -110,8 +114,11 @@ describe('MediaGalleryLightbox', () => {
 
     renderLightbox({ activeLightboxMedia: active, filteredImages: [] });
 
-    const props = mediaLightboxSpy.mock.calls[0]?.[0] as { starred?: boolean; media?: GeneratedImageWithMetadata };
-    expect(props.starred).toBe(true);
+    const props = mediaLightboxSpy.mock.calls[0]?.[0] as {
+      actions?: { starred?: boolean };
+      media?: GeneratedImageWithMetadata;
+    };
+    expect(props.actions?.starred).toBe(true);
     expect(props.media?.metadata).toEqual({ source: 'active-only' });
   });
 });

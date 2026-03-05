@@ -207,6 +207,7 @@ describe('invokeWithTimeout', () => {
 
     const result = await promise;
     expect(result).toBeInstanceOf(Error);
-    expect(result.message).toContain('timed out');
+    // External abort re-throws the abort error (not a timeout error)
+    expect(result.message).toContain('aborted');
   });
 });

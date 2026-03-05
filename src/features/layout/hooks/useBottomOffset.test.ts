@@ -9,8 +9,8 @@ vi.mock('@/shared/contexts/PanesContext', () => ({
   usePanes: () => mockUsePanes(),
 }));
 
-vi.mock('@/features/lightbox/hooks/useLightboxOpen', () => ({
-  useLightboxOpen: () => mockUseLightboxOpen(),
+vi.mock('@/features/lightbox/state/lightboxOpenState', () => ({
+  useLightboxOpenState: () => mockUseLightboxOpen(),
 }));
 
 describe('useBottomOffset', () => {

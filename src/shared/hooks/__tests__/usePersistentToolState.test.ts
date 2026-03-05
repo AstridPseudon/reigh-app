@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 
 // Mock useAutoSaveSettings (adapter boundary used by usePersistentToolState)
-vi.mock('../settings/useAutoSaveSettings', () => ({
+vi.mock('@/shared/settings/hooks/useAutoSaveSettings', () => ({
   useAutoSaveSettings: vi.fn(() => ({
     settings: { generationMode: 'batch', steps: 6 },
     status: 'ready',
@@ -34,6 +36,14 @@ vi.mock('@/shared/lib/utils/deepEqual', () => ({
 
 import { usePersistentToolState } from '../usePersistentToolState';
 
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
+
 describe('usePersistentToolState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,7 +56,8 @@ describe('usePersistentToolState', () => {
         { projectId: 'proj-1' },
         {},
         { enabled: false }
-      )
+      ),
+      { wrapper: createWrapper() },
     );
 
     expect(result.current.ready).toBe(true);
@@ -61,7 +72,8 @@ describe('usePersistentToolState', () => {
         { projectId: 'proj-1' },
         {},
         { enabled: false }
-      )
+      ),
+      { wrapper: createWrapper() },
     );
 
     expect(typeof result.current.markAsInteracted).toBe('function');

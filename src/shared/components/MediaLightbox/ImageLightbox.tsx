@@ -40,7 +40,8 @@ import {
 } from './hooks/useImageLightboxEditing';
 import { ImageLightboxControlsPanel } from './components/ImageLightboxControlsPanel';
 
-import { LightboxShell, LightboxProviders } from './components';
+import { LightboxShell } from './components/LightboxShell';
+import { LightboxProviders } from './components/LightboxProviders';
 import { LightboxLayout } from './components/layouts/LightboxLayout';
 import { ImageEditProvider } from './contexts/ImageEditContext';
 import type { WorkflowControlsBarProps } from './components/WorkflowControlsBar';

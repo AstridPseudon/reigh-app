@@ -4,7 +4,7 @@ import { reportErrorBoundaryCatch, reportRecoverableError } from './recoverableE
 
 const normalizeAndPresentErrorMock = vi.fn();
 
-vi.mock('./handleError', () => ({
+vi.mock('./runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => normalizeAndPresentErrorMock(...args),
 }));
 

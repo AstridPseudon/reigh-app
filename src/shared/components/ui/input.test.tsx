@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+
+vi.mock('@/shared/contexts/AIInputModeContext', () => ({
+  useAIInputMode: () => ({ mode: 'text', setMode: vi.fn(), isLoading: false }),
+}));
+
 import { Input } from './input';
 
 describe('Input', () => {

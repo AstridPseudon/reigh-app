@@ -9,7 +9,7 @@ const { mockRpc, mockFrom } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     rpc: mockRpc,
     from: mockFrom,
     auth: {
@@ -24,7 +24,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         upload: vi.fn().mockResolvedValue({ error: null }),
       })),
     },
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

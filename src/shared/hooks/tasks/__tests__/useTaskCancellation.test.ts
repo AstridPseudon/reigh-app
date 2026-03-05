@@ -255,14 +255,18 @@ describe('useCancelAllPendingTasks', () => {
     const queryClient = createQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
+    // The source fetches all pending tasks in one query, then searches within
+    // those results for orchestrator subtasks (no second query).
     const pendingTasksChain = {
       select: vi.fn(),
       eq: vi.fn(),
       update: vi.fn(),
       in: vi.fn().mockResolvedValue({
         data: [
-          { id: 'orch-1', task_type: 'travel_orchestrator' },
-          { id: 'task-1', task_type: 'image-generation' },
+          { id: 'orch-1', task_type: 'travel_orchestrator', params: null },
+          { id: 'task-1', task_type: 'image-generation', params: null },
+          { id: 'sub-1', task_type: 'travel_video', params: { orchestrator_task_id_ref: 'orch-1' } },
+          { id: 'sub-2', task_type: 'travel_video', params: { orchestrator_task_id: 'orch-1' } },
         ],
         error: null,
       }),
@@ -271,24 +275,6 @@ describe('useCancelAllPendingTasks', () => {
     pendingTasksChain.select.mockReturnValue(pendingTasksChain);
     pendingTasksChain.eq.mockReturnValue(pendingTasksChain);
     pendingTasksChain.update.mockReturnValue(pendingTasksChain);
-
-    const allProjectTasksChain = {
-      select: vi.fn(),
-      eq: vi.fn(),
-      update: vi.fn(),
-      in: vi.fn().mockResolvedValue({
-        data: [
-          { id: 'sub-1', params: { orchestrator_task_id_ref: 'orch-1' } },
-          { id: 'sub-2', params: { orchestrator_task_id: 'orch-1' } },
-          { id: 'other', params: { orchestrator_task_id_ref: 'different' } },
-        ],
-        error: null,
-      }),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    } as MockChain;
-    allProjectTasksChain.select.mockReturnValue(allProjectTasksChain);
-    allProjectTasksChain.eq.mockReturnValue(allProjectTasksChain);
-    allProjectTasksChain.update.mockReturnValue(allProjectTasksChain);
 
     const cancelBatchChain = {
       select: vi.fn(),
@@ -303,7 +289,6 @@ describe('useCancelAllPendingTasks', () => {
 
     mockFrom
       .mockReturnValueOnce(pendingTasksChain)
-      .mockReturnValueOnce(allProjectTasksChain)
       .mockReturnValueOnce(cancelBatchChain);
 
     const { result } = renderHook(() => useCancelAllPendingTasks(), {

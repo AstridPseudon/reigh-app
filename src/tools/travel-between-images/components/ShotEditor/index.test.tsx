@@ -53,11 +53,44 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: () => ({
       select: () => ({ eq: () => ({ then: undefined }) }),
     }),
-  },
+  }),
+}));
+
+vi.mock('@/shared/contexts/ProjectContext', () => ({
+  useProject: () => ({
+    selectedProjectId: 'project-1',
+    projects: [{ id: 'project-1', aspectRatio: '16:9' }],
+  }),
+}));
+
+vi.mock('@/shared/contexts/IncomingTasksContext', () => ({
+  useIncomingTasks: () => ({
+    addIncomingTask: vi.fn().mockReturnValue('incoming-1'),
+    removeIncomingTask: vi.fn(),
+    resolveTaskIds: vi.fn(),
+    cancelIncoming: vi.fn(),
+    cancelAllIncoming: vi.fn(),
+    wasCancelled: vi.fn(() => false),
+    acknowledgeCancellation: vi.fn(),
+    hasIncomingTasks: false,
+    incomingTasks: [],
+  }),
+}));
+
+vi.mock('@/shared/contexts/ShotsContext', () => ({
+  useShots: () => ({
+    shots: [{ id: 'shot-1', name: 'Shot 1', position: 0, images: [] }],
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useShotImages: () => ({
+    images: [],
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/shared/hooks/segments', async (importOriginal) => {
@@ -154,159 +187,23 @@ vi.mock('@/tools/travel-between-images/providers', () => ({
   useVideoTravelSettings: () => ({ isLoading: false }),
 }));
 
-vi.mock('./hooks', () => ({
-  useShotEditorSetup: () => {
-    const shot = { id: 'shot-1', name: 'Shot 1', position: 0, images: [] };
-    return {
-      selectedShot: shot,
-      shots: [shot],
-      selectedProjectId: 'project-1',
-      projects: [{ id: 'project-1', aspectRatio: '16:9' }],
-      effectiveAspectRatio: '16:9',
-      allShotImages: [],
-      timelineImages: [],
-      unpositionedImages: [],
-      videoOutputs: [],
-      contextImages: [],
-      initialParentGenerations: [],
-      refs: {
-        selectedShotRef: { current: shot },
-        projectIdRef: { current: 'project-1' },
-        allShotImagesRef: { current: [] },
-        batchVideoFramesRef: { current: 61 },
-      },
-    };
-  },
-  useLoraSync: () => ({
-    loraManager: {
-      selectedLoras: [],
-      isLoraModalOpen: false,
-      setIsLoraModalOpen: vi.fn(),
-      handleAddLora: vi.fn(),
-      handleRemoveLora: vi.fn(),
-      handleLoraStrengthChange: vi.fn(),
-    },
+vi.mock('./useShotEditorController', () => ({
+  useShotEditorController: () => ({
+    hasSelectedShot: true,
+    layoutProps: {},
   }),
-  useStructureVideo: () => ({
-    structureVideoPath: null,
-    structureVideoMetadata: null,
-    structureVideoTreatment: 'adjust',
-    structureVideoMotionStrength: 1,
-    structureVideoType: 'flow',
-    structureVideoResourceId: null,
-    structureVideoUni3cEndPercent: 0.1,
-    isLoading: false,
-    structureVideos: [],
-    addStructureVideo: vi.fn(),
-    updateStructureVideo: vi.fn(),
-    removeStructureVideo: vi.fn(),
-    clearAllStructureVideos: vi.fn(),
-    setStructureVideos: vi.fn(),
-  }),
-  useStructureVideoHandlers: () => ({
-    handleUni3cEndPercentChange: vi.fn(),
-    handleStructureVideoMotionStrengthChange: vi.fn(),
-    handleStructureTypeChangeFromMotionControl: vi.fn(),
-    handleStructureVideoInputChange: vi.fn(),
-  }),
-  useAudio: () => ({
-    audioUrl: null,
-    audioMetadata: null,
-    handleAudioChange: vi.fn(),
-    isLoading: false,
-  }),
-  useJoinSegmentsSetup: () => ({
-    joinSettings: {},
-    joinPrompt: '',
-    joinNegativePrompt: '',
-    joinContextFrames: 0,
-    joinGapFrames: 0,
-    joinReplaceMode: false,
-    joinKeepBridgingImages: false,
-    joinEnhancePrompt: false,
-    joinModel: '',
-    joinNumInferenceSteps: 0,
-    joinGuidanceScale: 0,
-    joinSeed: 0,
-    joinMotionMode: 'basic',
-    joinPhaseConfig: undefined,
-    joinSelectedPhasePresetId: null,
-    joinRandomSeed: false,
-    joinPriority: 'normal',
-    joinUseInputVideoResolution: false,
-    joinUseInputVideoFps: false,
-    joinNoisedInputVideo: false,
-    joinLoopFirstClip: false,
-    generateMode: 'batch',
-    joinSelectedLoras: [],
-    stitchAfterGenerate: false,
-    setGenerateMode: vi.fn(),
-    toggleGenerateModePreserveScroll: vi.fn(),
-    joinSettingsForHook: {},
-    joinLoraManager: { selectedLoras: [] },
-  }),
-  useOutputSelection: () => ({
-    selectedOutputId: null,
-    setSelectedOutputId: vi.fn(),
-    isReady: true,
-  }),
-  useJoinSegmentsHandler: () => ({
-    isJoiningClips: false,
-    joinClipsSuccess: false,
-    joinValidationData: { canJoin: false },
-    handleJoinSegments: vi.fn(),
-    handleRestoreJoinDefaults: vi.fn(),
-  }),
-  useGenerationActions: () => ({
-    handleBatchImageDrop: vi.fn(async () => {}),
-  }),
-  useShotActions: () => ({
-    handleAddToShot: vi.fn(),
-  }),
-  useModeReadiness: vi.fn(),
-  useNameEditing: () => ({
-    handleNameClick: vi.fn(),
-    handleNameSave: vi.fn(),
-    handleNameCancel: vi.fn(),
-    handleNameKeyDown: vi.fn(),
-  }),
-  useApplySettingsHandler: () => vi.fn(),
-  useImageManagement: () => ({
-    isClearingFinalVideo: false,
-    handleDeleteFinalVideo: vi.fn(),
-    handleReorderImagesInShot: vi.fn(),
-    handlePendingPositionApplied: vi.fn(),
-  }),
-  useGenerateBatch: () => ({
-    handleGenerateBatch: vi.fn(async () => {}),
-    isSteerableMotionEnqueuing: false,
-    steerableMotionJustQueued: false,
-    isGenerationDisabled: false,
-  }),
-  useSteerableMotionHandlers: () => ({
-    handleRandomSeedChange: vi.fn(),
-    handleAcceleratedChange: vi.fn(),
-    handleStepsChange: vi.fn(),
-  }),
-  useLastVideoGeneration: () => null,
-  useAspectAdjustedColumns: () => ({
-    isPhone: false,
-    aspectAdjustedColumns: 3,
-  }),
-  useEnsureSelectedOutput: vi.fn(),
-  useShotEditorBridge: () => ({
-    handleSelectionChangeLocal: vi.fn(),
-    currentMotionSettings: {
-      textBeforePrompts: '',
-      textAfterPrompts: '',
-      basePrompt: '',
-      negativePrompt: '',
-      enhancePrompt: false,
-      durationFrames: 61,
-      selectedLoras: [],
-    },
-  }),
-  useShotSettingsValue: () => ({}),
+}));
+
+vi.mock('./ShotEditorLayout', () => ({
+  ShotEditorLayout: () => (
+    <div>
+      <div data-testid="header-section">header</div>
+      <div data-testid="final-video-section">final-video</div>
+      <div data-testid="timeline-section">timeline</div>
+      <div data-testid="generation-section">generation</div>
+      <div data-testid="modals-section">modals</div>
+    </div>
+  ),
 }));
 
 vi.mock('./state/useShotEditorState', () => ({

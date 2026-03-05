@@ -40,11 +40,11 @@ vi.mock('@/shared/components/ToolErrorBoundary', () => ({
   ToolErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getSession: getSessionMock,
     },
-  },
+  }),
 }));
 
 describe('routes module', () => {

@@ -6,7 +6,7 @@ const mockMaybeSingle = vi.fn();
 const mockUpdate = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -17,7 +17,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         eq: vi.fn(() => mockUpdate()),
       })),
     })),
-  },
+  }),
 }));
 
 vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({

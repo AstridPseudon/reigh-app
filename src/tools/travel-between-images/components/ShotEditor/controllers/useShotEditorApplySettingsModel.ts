@@ -1,5 +1,5 @@
 import { useAddImageToShot, useRemoveImageFromShot } from '@/shared/hooks/shots';
-import { useApplySettingsHandler } from '../hooks';
+import { useApplySettingsHandler } from '../hooks/actions/useApplySettingsHandler';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';

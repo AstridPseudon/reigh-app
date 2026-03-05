@@ -15,9 +15,9 @@ vi.mock('@/integrations/supabase/client', () => {
   };
 
   return {
-    supabase: {
+    getSupabaseClient: () => ({
       from: vi.fn(() => createSupabaseMockChain()),
-    },
+    }),
   };
 });
 

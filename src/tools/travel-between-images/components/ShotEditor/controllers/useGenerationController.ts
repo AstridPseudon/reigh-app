@@ -2,7 +2,8 @@ import { useCallback, useMemo } from 'react';
 import { useTimelineCore } from '@/shared/hooks/useTimelineCore';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { Shot } from '@/domains/generation/types';
-import { useGenerateBatch, useSteerableMotionHandlers } from '../hooks';
+import { useGenerateBatch } from '../hooks/actions/useGenerateBatch';
+import { useSteerableMotionHandlers } from '../hooks/actions/useSteerableMotionHandlers';
 import type { BatchGenerationRequest, StitchAfterGenerateConfig } from '../hooks/actions/useGenerateBatch';
 
 interface GenerationControllerCore {

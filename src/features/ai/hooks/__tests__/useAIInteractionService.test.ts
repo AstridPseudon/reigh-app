@@ -6,7 +6,7 @@ vi.mock('@/shared/lib/invokeWithTimeout', () => ({
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  reportRuntimeError: vi.fn(),
+  normalizeAndPresentError: vi.fn(),
 }));
 
 import { useAIInteractionService } from '../useAIInteractionService';

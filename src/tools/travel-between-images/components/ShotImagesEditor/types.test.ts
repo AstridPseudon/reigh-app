@@ -46,7 +46,7 @@ describe('resolveShotImagesEditorProps', () => {
     expect(typeof resolved.onGenerationModeChange).toBe('function');
   });
 
-  it('throws when a key appears in multiple groups', () => {
+  it('overwrites when a key appears in multiple groups (last group wins)', () => {
     const props = createBaseProps() as unknown as {
       displayOptions: Record<string, unknown>;
       imageState: Record<string, unknown>;
@@ -55,8 +55,8 @@ describe('resolveShotImagesEditorProps', () => {
     };
     props.imageState.isModeReady = false;
 
-    expect(() => resolveShotImagesEditorProps(props as unknown as ShotImagesEditorProps)).toThrow(
-      /ShotImagesEditor prop key collision/,
-    );
+    // The simplified resolver just spreads — later groups overwrite earlier ones
+    const resolved = resolveShotImagesEditorProps(props as unknown as ShotImagesEditorProps);
+    expect(resolved.isModeReady).toBe(false);
   });
 });

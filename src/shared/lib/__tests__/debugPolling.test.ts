@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { debugPolling } from './debugPolling';
+import { debugPolling } from '../debug/debugPolling';
 
 describe('debugPolling', () => {
   it('inspects React Query cache using provided query client API', () => {

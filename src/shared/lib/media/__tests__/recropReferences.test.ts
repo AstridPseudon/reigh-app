@@ -28,13 +28,13 @@ vi.mock('@/shared/media/clientThumbnailGenerator', () => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     auth: {
       getSession: vi.fn().mockResolvedValue({
         data: { session: { user: { id: 'user-123' } } },
       }),
     },
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({

@@ -16,7 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/shared/components/ui/tooltip';
-import { getInstallationCommand, getRunCommand, generateAIInstructions, safeCopy } from '../../commandUtils';
+import { getInstallationCommand, getRunCommand, generateAIInstructions, safeCopy } from '../../../commandUtils';
 import type { CommandConfig } from '../../../types';
 import { CommandPreview } from './CommandPreview';
 import { GenerationHelpPopover } from './GenerationHelpPopover';
@@ -157,7 +157,7 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
                 <SelectValue>{(v: string | null) => GPU_LABELS[v ?? ""] ?? v}</SelectValue>
               </SelectTrigger>
               <SelectContent variant="retro">
-                <SelectItem variant="retro" value="nvidia-30-40" label="NVIDIA <=40 series">NVIDIA <=40 series</SelectItem>
+                <SelectItem variant="retro" value="nvidia-30-40" label="NVIDIA ≤40 series">{"NVIDIA ≤40 series"}</SelectItem>
                 <SelectItem variant="retro" value="nvidia-50" label="NVIDIA 50 series">NVIDIA 50 series</SelectItem>
                 <SelectItem variant="retro" value="non-nvidia" label="Non-NVIDIA">Non-NVIDIA</SelectItem>
               </SelectContent>

@@ -6,9 +6,9 @@ import React from 'react';
 // Mock supabase
 const mockFrom = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
-  },
+  }),
 }));
 
 vi.mock('@/shared/components/ui/runtime/sonner', () => ({

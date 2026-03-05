@@ -3,9 +3,9 @@ import { renderHook } from '@testing-library/react';
 
 const mockRpc = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     rpc: (...args: unknown[]) => mockRpc(...args),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/taskCreation', () => ({

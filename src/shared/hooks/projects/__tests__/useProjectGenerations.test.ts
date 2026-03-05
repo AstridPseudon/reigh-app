@@ -7,6 +7,10 @@ import React from 'react';
 const mockRange = vi.fn();
 const mockOrder = vi.fn();
 
+const { mockSupabaseFrom } = vi.hoisted(() => ({
+  mockSupabaseFrom: vi.fn(),
+}));
+
 vi.mock('@/integrations/supabase/client', () => {
   const createChain = () => {
     const chain: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -24,10 +28,12 @@ vi.mock('@/integrations/supabase/client', () => {
     return chain;
   };
 
+  mockSupabaseFrom.mockImplementation(() => createChain());
+
   return {
-    supabase: {
-      from: vi.fn(() => createChain()),
-    },
+    getSupabaseClient: () => ({
+      from: mockSupabaseFrom,
+    }),
   };
 });
 
@@ -119,8 +125,7 @@ describe('useProjectGenerations', () => {
 
   it('fetches generations when projectId is provided', async () => {
     // Mock the count query to return 0
-    const { supabase } = await import('@/integrations/supabase/client');
-    vi.mocked(supabase.from).mockImplementation(() => {
+    mockSupabaseFrom.mockImplementation(() => {
       const chain: Record<string, ReturnType<typeof vi.fn>> = {};
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
@@ -129,7 +134,7 @@ describe('useProjectGenerations', () => {
       chain.range = vi.fn().mockResolvedValue({ data: [], error: null, count: 0 });
       // For head count query
       chain.single = vi.fn().mockResolvedValue({ data: null, error: null, count: 0 });
-      return chain as ReturnType<typeof supabase.from>;
+      return chain;
     });
 
     const { result } = renderHook(

@@ -90,9 +90,9 @@ vi.mock('@tanstack/react-query', () => ({
 
 const mockSupabaseUpdate = vi.fn(() => ({ in: vi.fn(() => Promise.resolve({ error: null })) }));
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: () => ({ update: mockSupabaseUpdate }),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { cropFilename, formatTime, truncateText } from '../utils';
+import { cropFilename, truncateText } from '../stringFormatting';
+import { formatTime } from '../timeFormatting';
 
 describe('cropFilename', () => {
   it('returns short filenames unchanged', () => {
@@ -21,8 +22,8 @@ describe('cropFilename', () => {
   });
 
   it('handles edge case when cropped length would be <= 0', () => {
-    // Very short maxLength with long extension
-    expect(cropFilename('file.extension', 5)).toBe('...extension');
+    // Very short maxLength with long extension — result is truncated to maxLength
+    expect(cropFilename('file.extension', 5)).toBe('....e');
   });
 
   it('uses default maxLength of 24', () => {

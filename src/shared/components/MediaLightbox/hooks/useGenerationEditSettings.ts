@@ -16,7 +16,7 @@ import {
   type GenerationEditSettings,
   type SyncedEditSettings,
   DEFAULT_EDIT_SETTINGS
-} from './editSettingsTypes';
+} from '../model/editSettingsTypes';
 
 // Re-export types for backwards compatibility
 export type { EditMode, QwenEditModel, EditAdvancedSettings, VideoEnhanceSettings };

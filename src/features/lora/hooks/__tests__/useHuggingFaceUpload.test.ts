@@ -8,7 +8,7 @@ const { mockUpload, mockGetUser, mockInvoke } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     storage: {
       from: vi.fn(() => ({
         upload: mockUpload,
@@ -20,7 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
     functions: {
       invoke: mockInvoke,
     },
-  },
+  }),
 }));
 
 vi.mock('uuid', () => ({

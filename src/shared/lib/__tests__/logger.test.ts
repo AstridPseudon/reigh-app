@@ -23,9 +23,9 @@ vi.stubGlobal('navigator', {
 
 // Mock the dynamic supabase import used by flushLogs
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     rpc: vi.fn().mockResolvedValue({ error: null }),
-  },
+  }),
 }));
 
 // Mock debugConfig used by reactProfilerOnRender

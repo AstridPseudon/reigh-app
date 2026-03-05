@@ -5,7 +5,7 @@ import React from 'react';
 
 // Mock supabase
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn().mockReturnValue({
       update: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -19,7 +19,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       }),
     }),
     rpc: vi.fn().mockResolvedValue({ error: null }),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/compat/errorHandler', () => ({

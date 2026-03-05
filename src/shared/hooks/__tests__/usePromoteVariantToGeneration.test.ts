@@ -6,7 +6,7 @@ const mockVariantSingle = vi.fn();
 const mockInsertSingle = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: vi.fn((table: string) => {
       if (table === 'generation_variants') {
         return {
@@ -25,7 +25,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         })),
       };
     }),
-  },
+  }),
 }));
 
 vi.mock('@/shared/lib/typeGuards', () => ({

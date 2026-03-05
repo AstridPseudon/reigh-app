@@ -31,12 +31,12 @@ function setupChain() {
 }
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+  getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
     auth: {
       getUser: () => mockGetUser(),
     },
-  },
+  }),
 }));
 
 vi.mock('@/shared/components/ui/runtime/sonner', () => ({
