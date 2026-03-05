@@ -39,7 +39,7 @@ export function useLightboxOpenState(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-export function __resetLightboxOpenStateForTests(): void {
+function __resetLightboxOpenStateForTests(): void {
   openCount = 0;
   notifyListeners();
 }

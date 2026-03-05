@@ -5,7 +5,7 @@
  */
 const PROJECT_SELECTION_STORAGE_KEY = 'lastSelectedProjectId';
 
-export interface ProjectSelectionSnapshot {
+interface ProjectSelectionSnapshot {
   selectedProjectId: string | null;
 }
 
@@ -51,7 +51,7 @@ export function getProjectSelectionFallbackId(): string | null {
   return snapshot.selectedProjectId ?? readPersistedProjectSelection();
 }
 
-export function subscribeProjectSelection(listener: ProjectSelectionListener): () => void {
+function subscribeProjectSelection(listener: ProjectSelectionListener): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);

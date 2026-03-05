@@ -1,7 +1,7 @@
 import { createMaskedEditTask } from './maskedEditTaskBuilder';
 import type { MaskedEditTaskParams } from './maskedEditTaskBuilder';
 
-export type CreateAnnotatedImageEditTaskParams = MaskedEditTaskParams;
+type CreateAnnotatedImageEditTaskParams = MaskedEditTaskParams;
 
 /**
  * Creates annotated image edit tasks

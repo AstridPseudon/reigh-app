@@ -17,7 +17,7 @@ import type { PreviewSegment } from './PreviewTogetherTypes';
 
 export type { PreviewSegment };
 
-export interface PreviewTogetherDialogProps {
+interface PreviewTogetherDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   previewableSegments: PreviewSegment[];

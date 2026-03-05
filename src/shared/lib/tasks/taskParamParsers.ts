@@ -34,7 +34,7 @@ export function asNumberArray(value: unknown): number[] | undefined {
   return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
 }
 
-export function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
+function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
   for (const value of values) {
     if (value !== undefined && value !== null) {
       return value;
@@ -63,7 +63,7 @@ export function resolveNumberCandidate(...values: unknown[]): number | undefined
   return undefined;
 }
 
-export function resolveBooleanCandidate(...values: unknown[]): boolean | undefined {
+function resolveBooleanCandidate(...values: unknown[]): boolean | undefined {
   for (const value of values) {
     const parsed = asBoolean(value);
     if (parsed !== undefined) {

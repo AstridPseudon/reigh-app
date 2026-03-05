@@ -16,12 +16,12 @@ const joinClipsCompatPolicy = getDeprecationPolicy('join_clips_compat');
 const JOIN_CLIPS_COMPAT_REMOVAL_TARGET = joinClipsCompatPolicy.removeBy;
 const JOIN_CLIPS_COMPAT_OWNER = joinClipsCompatPolicy.owner;
 
-export type JoinClipsCompatLegacySource =
+type JoinClipsCompatLegacySource =
   | 'legacy_clip_paths'
   | 'legacy_video_edit_mode'
   | 'legacy_video_edit_payload';
 
-export interface JoinClipsCompatUseEvent {
+interface JoinClipsCompatUseEvent {
   mode: CanonicalJoinClipsTaskInput['mode'];
   clip_source_kind: JoinClipsClipSource['kind'];
   legacy_sources: JoinClipsCompatLegacySource[];

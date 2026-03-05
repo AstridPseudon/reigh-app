@@ -12,7 +12,7 @@ type ProjectContextDebugInfo = {
 
 const projectDebugLog: ProjectContextDebugInfo[] = [];
 
-export function getProjectContextDebugLog(): ProjectContextDebugInfo[] {
+function getProjectContextDebugLog(): ProjectContextDebugInfo[] {
   return projectDebugLog;
 }
 

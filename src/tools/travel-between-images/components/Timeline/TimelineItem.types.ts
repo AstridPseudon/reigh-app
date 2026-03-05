@@ -1,13 +1,13 @@
 import type { GenerationRow } from '@/domains/generation/types';
 import type { MouseEvent } from 'react';
 
-export interface TimelineItemLayoutModel {
+interface TimelineItemLayoutModel {
   timelineWidth: number;
   fullMinFrames: number;
   fullRange: number;
 }
 
-export interface TimelineItemInteractionModel {
+interface TimelineItemInteractionModel {
   isDragging: boolean;
   isSwapTarget: boolean;
   dragOffset: { x: number; y: number } | null;
@@ -19,7 +19,7 @@ export interface TimelineItemInteractionModel {
   onPrefetch?: () => void;
 }
 
-export interface TimelineItemActionModel {
+interface TimelineItemActionModel {
   onDelete?: (imageId: string) => void;
   onDuplicate?: (imageId: string, timeline_frame: number) => void;
   onInpaintClick?: () => void;
@@ -27,13 +27,13 @@ export interface TimelineItemActionModel {
   duplicateSuccessImageId?: string;
 }
 
-export interface TimelineItemSelectionModel {
+interface TimelineItemSelectionModel {
   isSelected?: boolean;
   onSelectionClick?: (e: MouseEvent) => void;
   selectedCount?: number;
 }
 
-export interface TimelineItemPresentationModel {
+interface TimelineItemPresentationModel {
   shouldLoad?: boolean;
   projectAspectRatio?: string;
   readOnly?: boolean;

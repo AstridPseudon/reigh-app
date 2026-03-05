@@ -19,7 +19,7 @@ const CONTRACT_THEN_LEGACY: TravelPayloadSource[] = [
   ...LEGACY_SOURCES,
 ];
 
-export interface TravelContractData {
+interface TravelContractData {
   inputImages?: string[];
   prompt?: string;
   enhancedPrompt?: string;

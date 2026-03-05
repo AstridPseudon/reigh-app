@@ -41,7 +41,7 @@ export function useShotAdditionSelectionOptional(): ShotAdditionSelectionContext
   return useContext(ShotAdditionSelectionContext);
 }
 
-export function useShotAdditionSelection(): ShotAdditionSelectionContextValue {
+function useShotAdditionSelection(): ShotAdditionSelectionContextValue {
   const context = useShotAdditionSelectionOptional();
   if (!context) {
     throw new Error('useShotAdditionSelection must be used within ShotAdditionSelectionProvider');

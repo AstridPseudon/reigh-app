@@ -15,7 +15,7 @@ import type {
 import { useShotActionController } from "../hooks/useShotActionController";
 
 /** Shot selector dropdown state and options */
-export interface ShotSelectorState {
+interface ShotSelectorState {
   selectedShotId: string;
   simplifiedShotOptions: SimplifiedShotOption[];
   isShotSelectorOpen: boolean;
@@ -25,7 +25,7 @@ export interface ShotSelectorState {
 }
 
 /** Loading IDs, position flags, and visual status indicators */
-export interface ShotActionStatus {
+interface ShotActionStatus {
   isMobile: boolean;
   isVideoContent: boolean;
   addingToShotImageId: string | null;
@@ -38,7 +38,7 @@ export interface ShotActionStatus {
 }
 
 /** Quick-create shot state and callbacks */
-export interface ShotQuickCreateState {
+interface ShotQuickCreateState {
   quickCreateSuccess: {
     isSuccessful: boolean;
     shotId: string | null;
@@ -50,7 +50,7 @@ export interface ShotQuickCreateState {
 }
 
 /** Callback handlers for shot actions */
-export interface ShotActionCallbacks {
+interface ShotActionCallbacks {
   onCreateShot?: (name: string, files: File[]) => Promise<void>;
   onNavigateToShot: (shot: { id: string; name: string }) => void;
   onAddToShot: () => Promise<void>;

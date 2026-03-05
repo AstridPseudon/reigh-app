@@ -1,10 +1,10 @@
 export const TASK_FAMILY_CONTRACT_VERSION = 1 as const;
 
 export type SegmentRegenerationMode = 'segment_regen_from_pair' | 'segment_regen_from_order';
-export type GenerationRoutingMode = 'variant_child' | 'child_generation';
-export type JoinClipsMode = 'legacy_join' | 'multi_clip_join' | 'video_edit_join';
+type GenerationRoutingMode = 'variant_child' | 'child_generation';
+type JoinClipsMode = 'legacy_join' | 'multi_clip_join' | 'video_edit_join';
 
-export interface JoinClipsFamilyContract {
+interface JoinClipsFamilyContract {
   contract_version: typeof TASK_FAMILY_CONTRACT_VERSION;
   mode: JoinClipsMode;
   run_id: string;
@@ -13,7 +13,7 @@ export interface JoinClipsFamilyContract {
   has_audio: boolean;
 }
 
-export interface IndividualSegmentFamilyContract {
+interface IndividualSegmentFamilyContract {
   contract_version: typeof TASK_FAMILY_CONTRACT_VERSION;
   segment_regen_mode: SegmentRegenerationMode;
   generation_routing: GenerationRoutingMode;
@@ -22,7 +22,7 @@ export interface IndividualSegmentFamilyContract {
   has_pair_shot_generation_id: boolean;
 }
 
-export interface TravelBetweenImagesFamilyContract {
+interface TravelBetweenImagesFamilyContract {
   contract_version: typeof TASK_FAMILY_CONTRACT_VERSION;
   segment_regen_mode: SegmentRegenerationMode;
   image_count: number;

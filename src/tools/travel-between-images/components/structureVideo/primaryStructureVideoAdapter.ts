@@ -2,7 +2,7 @@ import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import { DEFAULT_STRUCTURE_VIDEO } from '@/shared/lib/tasks/travelBetweenImages';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
-export interface LegacyPrimaryStructureVideoFields {
+interface LegacyPrimaryStructureVideoFields {
   primaryStructureVideoPath?: string | null;
   primaryStructureVideoMetadata?: VideoMetadata | null;
   primaryStructureVideoTreatment?: 'adjust' | 'clip';
@@ -11,7 +11,7 @@ export interface LegacyPrimaryStructureVideoFields {
   primaryStructureVideoUni3cEndPercent?: number;
 }
 
-export interface ResolvedPrimaryStructureVideo {
+interface ResolvedPrimaryStructureVideo {
   path: string | null;
   metadata: VideoMetadata | null;
   treatment: 'adjust' | 'clip';

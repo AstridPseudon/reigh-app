@@ -1,7 +1,7 @@
 import type { GenerationRow } from '@/domains/generation/types';
 import type { SegmentOverrides } from '@/shared/types/segmentSettings';
 
-export interface PairPrompts {
+interface PairPrompts {
   prompt: string;
   negativePrompt: string;
 }

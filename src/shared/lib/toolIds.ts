@@ -9,8 +9,8 @@ export const TOOL_IDS = {
   TRAINING_DATA_HELPER: 'training-data-helper',
 } as const;
 
-export type ToolIdKey = keyof typeof TOOL_IDS;
-export type ToolId = (typeof TOOL_IDS)[ToolIdKey];
+type ToolIdKey = keyof typeof TOOL_IDS;
+type ToolId = (typeof TOOL_IDS)[ToolIdKey];
 
 const TOOL_ID_SET = new Set<ToolId>(Object.values(TOOL_IDS));
 

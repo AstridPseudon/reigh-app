@@ -9,7 +9,7 @@ export interface PendingUpdate {
   timestamp: number;
 }
 
-export interface PositionDelta {
+interface PositionDelta {
   id: string;
   oldPos: number | null;
   newPos: number;

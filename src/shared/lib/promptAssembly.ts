@@ -1,4 +1,4 @@
-export type PromptAssemblyPolicy = 'batch_comma' | 'legacy_batch_comma' | 'segment_space';
+type PromptAssemblyPolicy = 'batch_comma' | 'legacy_batch_comma' | 'segment_space';
 
 const POLICY_DELIMITER: Record<PromptAssemblyPolicy, string> = {
   batch_comma: ', ',

@@ -1,6 +1,6 @@
 export const ORCHESTRATION_CONTRACT_VERSION = 3 as const;
 
-export type GenerationRouting =
+type GenerationRouting =
   | 'orchestrator'
   | 'variant_source'
   | 'variant_child'
@@ -8,7 +8,7 @@ export type GenerationRouting =
   | 'child_generation'
   | 'standalone';
 
-export type SiblingLookupMode = 'run_id' | 'orchestrator_task_id';
+type SiblingLookupMode = 'run_id' | 'orchestrator_task_id';
 
 export type SegmentRegenerationMode = 'segment_regen_from_pair' | 'segment_regen_from_order';
 

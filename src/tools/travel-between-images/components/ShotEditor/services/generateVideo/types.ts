@@ -30,7 +30,7 @@ export interface GenerateVideoParams {
   stitchConfig?: StitchConfig;
 }
 
-export interface GenerateVideoSuccessValue {
+interface GenerateVideoSuccessValue {
   parentGenerationId?: string;
 }
 
@@ -73,12 +73,12 @@ export interface ModelPhaseSelection {
   useAdvancedMode: boolean;
 }
 
-export interface PairOverridesExtraction {
+interface PairOverridesExtraction {
   overrides: SegmentOverrides;
   enhancedPrompt: string | undefined;
 }
 
-export interface MotionParams {
+interface MotionParams {
   amountOfMotion: number;
   motionMode: MotionConfig['motion_mode'];
   useAdvancedMode: boolean;
@@ -95,7 +95,7 @@ export interface GenerationParams {
   textAfterPrompts: string | undefined;
 }
 
-export interface SeedParams {
+interface SeedParams {
   seed: number;
   randomSeed: boolean | undefined;
   turboMode: boolean | undefined;

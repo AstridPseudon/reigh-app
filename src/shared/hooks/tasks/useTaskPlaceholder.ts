@@ -16,7 +16,7 @@ import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 
-export interface TaskPlaceholderOptions {
+interface TaskPlaceholderOptions {
   taskType: string;
   label: string;
   expectedCount?: number;

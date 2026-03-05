@@ -17,7 +17,7 @@ function pluralize(n: number, singular: string, plural: string): string {
   return `${n} ${n === 1 ? singular : plural}`;
 }
 
-export interface FormatClockTimeOptions {
+interface FormatClockTimeOptions {
   showMilliseconds?: boolean;
   millisecondsDigits?: 1 | 2 | 3;
 }
@@ -47,7 +47,7 @@ export function formatTime(
 
 // ── precise duration from a Date ─────────────────────────────────────────
 
-export interface FormatRelativeDurationOptions {
+interface FormatRelativeDurationOptions {
   /** Include days in the output (default true). When false, hours keep accumulating. */
   includeDays?: boolean;
 }

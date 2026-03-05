@@ -19,7 +19,7 @@ interface PreloadGenerationTaskMappingsOptions {
   preloadFullTaskData?: boolean;
 }
 
-export interface GenerationWithTaskData extends GenerationRow {
+interface GenerationWithTaskData extends GenerationRow {
   taskId?: string | null;
   taskData?: Task | null;
   taskMappingStatus?: GenerationTaskMappingStatus;

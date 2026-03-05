@@ -97,7 +97,7 @@ interface ToolSettingsContext {
   shotId?: string;
 }
 
-export type ToolSettingsErrorCode =
+type ToolSettingsErrorCode =
   | 'auth_required'
   | 'cancelled'
   | 'network'
@@ -131,7 +131,7 @@ export class ToolSettingsError extends Error {
   }
 }
 
-export function isToolSettingsError(error: unknown): error is ToolSettingsError {
+function isToolSettingsError(error: unknown): error is ToolSettingsError {
   return error instanceof ToolSettingsError;
 }
 
@@ -183,7 +183,7 @@ function toOperationFailure(error: ToolSettingsError): OperationFailure {
   });
 }
 
-export function toToolSettingsErrorFromOperationFailure(failure: OperationFailure): ToolSettingsError {
+function toToolSettingsErrorFromOperationFailure(failure: OperationFailure): ToolSettingsError {
   const code = failure.errorCode as ToolSettingsErrorCode;
   const normalizedCode: ToolSettingsErrorCode = (
     code === 'auth_required'

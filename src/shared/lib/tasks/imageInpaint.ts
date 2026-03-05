@@ -1,7 +1,7 @@
 import { createMaskedEditTask } from './maskedEditTaskBuilder';
 import type { MaskedEditTaskParams } from './maskedEditTaskBuilder';
 
-export type CreateImageInpaintTaskParams = MaskedEditTaskParams;
+type CreateImageInpaintTaskParams = MaskedEditTaskParams;
 
 /**
  * Creates image inpainting tasks

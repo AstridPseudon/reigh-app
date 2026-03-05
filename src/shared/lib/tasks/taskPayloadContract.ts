@@ -5,7 +5,7 @@ import type { TaskViewContract } from './taskViewContract';
 
 export const TASK_PAYLOAD_CONTRACT_VERSION = 1 as const;
 
-export interface TaskPayloadContract<TOrchestratorDetails extends object, TFamilyContract extends object> {
+interface TaskPayloadContract<TOrchestratorDetails extends object, TFamilyContract extends object> {
   contract_version: typeof TASK_PAYLOAD_CONTRACT_VERSION;
   task_family: string;
   orchestrator_details: TOrchestratorDetails;
@@ -22,7 +22,7 @@ interface BuildTaskPayloadContractInput<TOrchestratorDetails extends object, TFa
   familyContract: TFamilyContract;
 }
 
-export interface ComposeTaskFamilyPayloadInput<
+interface ComposeTaskFamilyPayloadInput<
   TOrchestratorDetails extends object,
   TFamilyContract extends object,
 > {

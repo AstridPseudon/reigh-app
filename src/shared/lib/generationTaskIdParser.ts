@@ -1,6 +1,6 @@
-export type GenerationTaskIdParseStatus = 'ok' | 'invalid_tasks_shape';
+type GenerationTaskIdParseStatus = 'ok' | 'invalid_tasks_shape';
 
-export interface GenerationTaskIdParseResult {
+interface GenerationTaskIdParseResult {
   taskId: string | null;
   status: GenerationTaskIdParseStatus;
 }

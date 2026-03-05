@@ -13,7 +13,7 @@ import type { useMagicEditMode } from '../hooks/useMagicEditMode';
 import type { useRepositionMode } from '../hooks/useRepositionMode';
 import type { useImg2ImgMode } from '../hooks/useImg2ImgMode';
 
-export interface BuildImageEditStateParams {
+interface BuildImageEditStateParams {
   // Hook results (provide all canvas/status fields)
   inpainting: ReturnType<typeof useInpainting>;
   magic: ReturnType<typeof useMagicEditMode>;

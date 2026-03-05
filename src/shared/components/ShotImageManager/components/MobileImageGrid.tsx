@@ -54,7 +54,7 @@ interface MobileImageGridUploadModel {
   onUpload?: (files: File[]) => void;
 }
 
-export interface MobileImageGridProps {
+interface MobileImageGridProps {
   images: GenerationRow[];
   layout: MobileImageGridLayoutModel;
   selection: MobileImageGridSelectionModel;

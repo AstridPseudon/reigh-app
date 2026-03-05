@@ -2,13 +2,13 @@ import type { QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
 
-export interface GenerationStarOptimisticUpdateInput {
+interface GenerationStarOptimisticUpdateInput {
   generationId: string;
   starred: boolean;
   shotId?: string;
 }
 
-export interface GenerationStarOptimisticContext {
+interface GenerationStarOptimisticContext {
   previousGenerationsQueries: Map<readonly unknown[], unknown>;
   previousShotsQueries: Map<readonly unknown[], unknown>;
   previousAllShotGenerationsQueries: Map<readonly unknown[], unknown>;

@@ -95,7 +95,7 @@ function buildGuidanceFromVideos(
   return guidance;
 }
 
-export interface NormalizeStructureGuidanceInput {
+interface NormalizeStructureGuidanceInput {
   structureGuidance?: unknown;
   structureVideos?: unknown;
   structureVideoPath?: unknown;

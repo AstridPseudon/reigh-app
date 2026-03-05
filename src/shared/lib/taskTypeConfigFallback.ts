@@ -4,7 +4,7 @@
  */
 export const TASK_TYPE_CONFIG_FALLBACK_VERSION = 1;
 
-export interface TaskTypeConfigFallbackEntry {
+interface TaskTypeConfigFallbackEntry {
   isVisible: boolean;
   displayName?: string;
   supportsProgress?: boolean;

@@ -10,7 +10,7 @@ import {
  * Accepts runtime-style options for call-site compatibility, but intentionally
  * never triggers UI presentation side effects.
  */
-export interface RuntimeErrorReportOptions extends ErrorReportOptions {
+interface RuntimeErrorReportOptions extends ErrorReportOptions {
   toastTitle?: string;
   showToast?: boolean;
 }
@@ -23,7 +23,7 @@ export function normalizeAndReportError(
   return reportError(error, { context, logData, onError });
 }
 
-export function normalizeAndReportAndRethrow(
+function normalizeAndReportAndRethrow(
   error: unknown,
   options: RuntimeErrorReportOptions,
 ): never {

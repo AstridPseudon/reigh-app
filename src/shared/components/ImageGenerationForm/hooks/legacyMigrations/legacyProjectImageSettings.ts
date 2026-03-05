@@ -27,7 +27,7 @@ const LEGACY_PROJECT_IMAGE_SETTINGS_REMOVE_BY_MS = Date.parse(
 type LegacyProjectImageSettingsField =
   (typeof LEGACY_PROJECT_IMAGE_SETTINGS_FIELDS)[number];
 
-export interface LegacyProjectImageSettings extends Record<string, unknown> {
+interface LegacyProjectImageSettings extends Record<string, unknown> {
   selectedLorasByTextModel?: Record<TextToImageModel, ActiveLora[]>;
   selectedReferenceId?: string | null;
   styleReferenceImage?: string | null;

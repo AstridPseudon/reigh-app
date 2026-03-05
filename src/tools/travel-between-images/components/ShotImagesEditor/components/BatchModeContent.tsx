@@ -15,7 +15,7 @@ import type { GenerationRow, Shot } from '@/domains/generation/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { OperationResult } from '@/shared/lib/operationResult';
 
-export interface BatchModeBatchConfig {
+interface BatchModeBatchConfig {
   selectedShotId: string;
   projectId?: string;
   readOnly: boolean;
@@ -26,7 +26,7 @@ export interface BatchModeBatchConfig {
   projectAspectRatio?: string;
 }
 
-export interface BatchModeGenerationState {
+interface BatchModeGenerationState {
   images: GenerationRow[];
   pairPrompts: Record<string, { prompt: string; negativePrompt: string }>;
   defaultPrompt: string;
@@ -48,7 +48,7 @@ export interface BatchModeGenerationState {
   unpositionedGenerationsCount: number;
 }
 
-export interface BatchModeUIOptions {
+interface BatchModeUIOptions {
   onImageReorder: (orderedIds: string[]) => void;
   onImageDelete: (id: string) => void;
   onBatchImageDelete?: (ids: string[]) => void;

@@ -8,7 +8,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import type { GenerationRow } from '@/domains/generation/types';
 
-export interface UseDownloadImagesReturn {
+interface UseDownloadImagesReturn {
   /** Whether a download is currently in progress */
   isDownloadingImages: boolean;
   /** Handler to download all images as a zip file */

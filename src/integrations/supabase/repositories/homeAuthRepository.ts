@@ -19,7 +19,7 @@ export function subscribeToAuthStateChanges(
   return () => listener.subscription.unsubscribe();
 }
 
-export function rpcCreateReferralFromSession(sessionId: string, fingerprint: string) {
+function rpcCreateReferralFromSession(sessionId: string, fingerprint: string) {
   return getSupabaseClient().rpc('create_referral_from_session', {
     p_session_id: sessionId,
     p_fingerprint: fingerprint,

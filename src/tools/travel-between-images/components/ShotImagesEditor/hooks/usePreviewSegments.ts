@@ -8,7 +8,7 @@ import type { PreviewSegment } from '../types';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 
-export interface UsePreviewSegmentsReturn {
+interface UsePreviewSegmentsReturn {
   /** Whether the preview dialog is open */
   isPreviewTogetherOpen: boolean;
   /** Setter for preview dialog open state */

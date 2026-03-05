@@ -2,7 +2,7 @@ import { isAbortError } from '@/shared/lib/errorHandling/errorUtils';
 
 type TimelineWritePhase = 'queued' | 'start' | 'end';
 
-export interface TimelineWriteEventMeta {
+interface TimelineWriteEventMeta {
   shotId: string;
   operation: string;
   waitMs: number;
@@ -13,7 +13,7 @@ export interface TimelineWriteEventMeta {
   blockedByDurationMs?: number | null;
 }
 
-export type TimelineWriteEventHandler = (phase: TimelineWritePhase, meta: TimelineWriteEventMeta) => void;
+type TimelineWriteEventHandler = (phase: TimelineWritePhase, meta: TimelineWriteEventMeta) => void;
 
 interface TimelineWriteLoggerOptions {
   logPrefix: string;

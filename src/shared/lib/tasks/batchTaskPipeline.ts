@@ -1,6 +1,6 @@
 import { processBatchResults, type TaskCreationResult } from '../taskCreation';
 
-export interface BatchTaskPipelineConfig<TBatchParams, TSingleTaskParams> {
+interface BatchTaskPipelineConfig<TBatchParams, TSingleTaskParams> {
   batchParams: TBatchParams;
   validateBatchParams: (params: TBatchParams) => void;
   buildSingleTaskParams: (

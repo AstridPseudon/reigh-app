@@ -84,7 +84,7 @@ export async function persistSingleTimelineFrame({
   );
 }
 
-export interface CanonicalTimelineFrameUpdate {
+interface CanonicalTimelineFrameUpdate {
   shotGenerationId: string;
   generationId: string;
   newFrame: number;

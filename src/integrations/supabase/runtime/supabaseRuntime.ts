@@ -52,7 +52,7 @@ export function getSupabaseRuntimeClientResult(): SupabaseClientAccessResult {
   };
 }
 
-export function getSupabaseRuntimeClient(): SupabaseClientInstance {
+function getSupabaseRuntimeClient(): SupabaseClientInstance {
   const result = getSupabaseRuntimeClientResult();
   if (!result.ok) {
     throw result.error;

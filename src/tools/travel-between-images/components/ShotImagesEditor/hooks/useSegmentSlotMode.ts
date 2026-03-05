@@ -24,7 +24,7 @@ import {
   useSegmentSlotPresentationAdapter,
 } from './useSegmentSlotPresentationAdapter';
 
-export type UseSegmentSlotModeProps = UseSegmentSlotModeResolvedProps;
+type UseSegmentSlotModeProps = UseSegmentSlotModeResolvedProps;
 
 export function useSegmentSlotMode(props: UseSegmentSlotModeProps): UseSegmentSlotModeReturn {
   const location = useLocation();

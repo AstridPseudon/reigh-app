@@ -19,7 +19,7 @@ import {
 
 type TaskStatusCountsQuery = 'processing' | 'success' | 'failure';
 
-export interface TaskStatusCountsResult {
+interface TaskStatusCountsResult {
   processing: number;
   recentSuccesses: number;
   recentFailures: number;

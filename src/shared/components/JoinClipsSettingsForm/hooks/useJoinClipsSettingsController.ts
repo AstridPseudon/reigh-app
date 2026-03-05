@@ -15,7 +15,7 @@ interface UseJoinClipsSettingsControllerParams {
   setKeepBridgingImages?: (val: boolean) => void;
 }
 
-export interface JoinClipsSettingsController {
+interface JoinClipsSettingsController {
   maxGapFrames: number;
   maxContextFrames: number;
   minClipFramesRequired: number;

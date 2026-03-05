@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export interface UseTooltipInteractionPolicyOptions {
+interface UseTooltipInteractionPolicyOptions {
   isMobile: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;

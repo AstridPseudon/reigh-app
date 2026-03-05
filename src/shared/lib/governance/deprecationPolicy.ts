@@ -1,4 +1,4 @@
-export interface DeprecationBudgetPhase {
+interface DeprecationBudgetPhase {
   through: string;
   max: number;
 }
@@ -9,7 +9,7 @@ export interface DeprecationPolicy {
   importBudgetPhases: readonly DeprecationBudgetPhase[];
 }
 
-export type DeprecationPolicyId =
+type DeprecationPolicyId =
   | 'runtime_error_alias'
   | 'legacy_supabase_facade'
   | 'join_clips_compat'

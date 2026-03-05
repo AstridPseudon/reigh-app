@@ -38,7 +38,7 @@ import { invokeLightboxDelete } from '../utils';
 // ============================================================================
 
 /** Core media and project context */
-export interface SharedLightboxCoreProps {
+interface SharedLightboxCoreProps {
   media: GenerationRow;
   isVideo: boolean;
   selectedProjectId: string | null;
@@ -51,7 +51,7 @@ export interface SharedLightboxCoreProps {
 }
 
 /** Navigation state and handlers */
-export interface SharedLightboxNavigationProps {
+interface SharedLightboxNavigationProps {
   showNavigation?: boolean;
   hasNext?: boolean;
   hasPrevious?: boolean;
@@ -61,7 +61,7 @@ export interface SharedLightboxNavigationProps {
 }
 
 /** Shot management callbacks and optimistic state */
-export interface SharedLightboxShotProps {
+interface SharedLightboxShotProps {
   shotId?: string;
   selectedShotId?: string;
   allShots?: ShotOption[];
@@ -80,7 +80,7 @@ export interface SharedLightboxShotProps {
 }
 
 /** Layout mode inputs (drives panel/edit mode visibility) */
-export interface SharedLightboxLayoutProps {
+interface SharedLightboxLayoutProps {
   showTaskDetails?: boolean;
   isSpecialEditMode: boolean;
   isInpaintMode: boolean;
@@ -88,7 +88,7 @@ export interface SharedLightboxLayoutProps {
 }
 
 /** Button group inputs (download, delete, star, upscale, edit mode) */
-export interface SharedLightboxButtonGroupProps {
+interface SharedLightboxButtonGroupProps {
   isCloudMode: boolean;
   showDownload?: boolean;
   isDownloading: boolean;
@@ -100,13 +100,13 @@ export interface SharedLightboxButtonGroupProps {
 }
 
 /** Effective media inputs (for computing display URLs/dimensions) */
-export interface SharedLightboxMediaProps {
+interface SharedLightboxMediaProps {
   effectiveImageUrl: string;
   imageDimensions: { width: number; height: number };
   projectAspectRatio?: string;
 }
 
-export interface UseSharedLightboxStateInput {
+interface UseSharedLightboxStateInput {
   core: SharedLightboxCoreProps;
   navigation: SharedLightboxNavigationProps;
   shots: SharedLightboxShotProps;
@@ -145,7 +145,7 @@ export interface LightboxButtonGroupProps {
   };
 }
 
-export interface UseSharedLightboxStateReturn {
+interface UseSharedLightboxStateReturn {
   variants: {
     list: GenerationVariant[];
     primaryVariant: GenerationVariant | null;
@@ -323,7 +323,7 @@ export function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsS
 // Interaction (star, references, lineage, shots, source, make-main-variant)
 // ============================================================================
 
-export function useLightboxShotActions(
+function useLightboxShotActions(
   core: SharedLightboxCoreProps,
   shots: SharedLightboxShotProps,
 ): UseSharedLightboxStateReturn['shots'] {
@@ -451,7 +451,7 @@ interface InteractionState {
   makeMainVariant: UseSharedLightboxStateReturn['makeMainVariant'];
 }
 
-export function useSharedLightboxInteractionState(
+function useSharedLightboxInteractionState(
   input: UseSharedLightboxStateInput,
   variantsState: VariantsStateResult,
 ): InteractionState {
@@ -529,7 +529,7 @@ export function useSharedLightboxInteractionState(
 // Presentation (navigation, layout, button groups, effective media)
 // ============================================================================
 
-export function useLightboxNavigationModel(
+function useLightboxNavigationModel(
   core: SharedLightboxCoreProps,
   navigation: SharedLightboxNavigationProps,
 ) {
@@ -659,7 +659,7 @@ function useSharedButtonGroupState(params: {
   ]);
 }
 
-export function useLightboxPanelModel(
+function useLightboxPanelModel(
   input: UseSharedLightboxStateInput,
   variantsState: VariantsStateResult,
   interactionState: InteractionState,

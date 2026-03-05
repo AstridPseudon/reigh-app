@@ -21,7 +21,7 @@ export interface GenerationControlValues {
   showAdvanced: boolean;
 }
 
-export interface TemperatureOption {
+interface TemperatureOption {
   value: number;
   label: string;
   description: string;

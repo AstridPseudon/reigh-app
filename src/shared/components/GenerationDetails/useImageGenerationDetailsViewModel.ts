@@ -24,7 +24,7 @@ interface StyleReferenceViewModel {
   imageHeight: number;
 }
 
-export interface ImageGenerationDetailsViewModel {
+interface ImageGenerationDetailsViewModel {
   config: {
     textSize: string;
     fontWeight: string;

@@ -88,7 +88,7 @@ export interface ShotBatchSettings {
   [key: string]: unknown;
 }
 
-export type PhaseConfigRequest = Omit<PhaseConfig, 'mode'>;
+type PhaseConfigRequest = Omit<PhaseConfig, 'mode'>;
 
 // Strip mode field from phase config (backend determines mode from model)
 export function stripModeFromPhaseConfig(config: PhaseConfig): PhaseConfigRequest {

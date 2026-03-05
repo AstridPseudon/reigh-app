@@ -4,7 +4,7 @@ import { TOOL_IDS } from '@/shared/lib/toolIds';
  * Explicit mapping where tool IDs are intentionally valid settings IDs.
  * Keeping this mapping separate from tool identity avoids accidental coupling.
  */
-export const TOOL_SETTINGS_IDS = {
+const TOOL_SETTINGS_IDS = {
   TRAVEL_BETWEEN_IMAGES: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
   IMAGE_GENERATION: TOOL_IDS.IMAGE_GENERATION,
   JOIN_CLIPS: TOOL_IDS.JOIN_CLIPS,
@@ -40,7 +40,7 @@ export const SETTINGS_IDS = {
   EDIT_VIDEO_UI: 'edit-video-ui',
 } as const;
 
-export type SettingsId = (typeof SETTINGS_IDS)[keyof typeof SETTINGS_IDS];
+type SettingsId = (typeof SETTINGS_IDS)[keyof typeof SETTINGS_IDS];
 
 const SETTINGS_ID_SET = new Set<SettingsId>(Object.values(SETTINGS_IDS));
 

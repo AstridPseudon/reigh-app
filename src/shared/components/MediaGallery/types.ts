@@ -9,7 +9,7 @@ import type { AddToShotHandler } from '@/shared/types/imageHandlers';
  */
 type ColumnsPerRow = 'auto' | number;
 
-export interface MetadataLora {
+interface MetadataLora {
   id: string;
   name: string;
   path: string;

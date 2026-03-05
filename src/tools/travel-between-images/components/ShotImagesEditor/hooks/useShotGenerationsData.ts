@@ -18,7 +18,7 @@ interface GenerationWithBadges extends GenerationRow {
   unviewedVariantCount?: number;
 }
 
-export interface UseShotGenerationsDataReturn {
+interface UseShotGenerationsDataReturn {
   /** Shot generations (images) - either from preloaded or database */
   shotGenerations: GenerationRow[];
   /** Memoized shot generations to prevent reference changes */
@@ -53,7 +53,7 @@ export interface UseShotGenerationsDataReturn {
   hasEverHadData: boolean;
 }
 
-export interface UseShotGenerationsDataProps {
+interface UseShotGenerationsDataProps {
   /** Selected shot ID */
   selectedShotId: string;
   /** Project ID */

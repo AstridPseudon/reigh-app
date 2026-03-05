@@ -3,7 +3,7 @@ import type { PortionSelection } from '@/shared/components/VideoPortionTimeline'
 import type { LoraModel, UseLoraManagerReturn } from '@/shared/hooks/useLoraManager';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 
-export interface VideoPortionEditorSettingsProps {
+interface VideoPortionEditorSettingsProps {
   gapFrames: number;
   setGapFrames: (val: number) => void;
   contextFrames: number;
@@ -15,7 +15,7 @@ export interface VideoPortionEditorSettingsProps {
   setEnhancePrompt?: (val: boolean) => void;
 }
 
-export interface VideoPortionEditorSelectionProps {
+interface VideoPortionEditorSelectionProps {
   selections?: PortionSelection[];
   onUpdateSelectionSettings?: (
     id: string,
@@ -49,7 +49,7 @@ export interface VideoPortionEditorMotionProps {
   onPhasePresetRemove: () => void;
 }
 
-export interface VideoPortionEditorActionProps {
+interface VideoPortionEditorActionProps {
   onGenerate: () => void;
   isGenerating: boolean;
   generateSuccess: boolean;
@@ -57,7 +57,7 @@ export interface VideoPortionEditorActionProps {
   validationErrors?: string[];
 }
 
-export interface VideoPortionEditorStateOverrides {
+interface VideoPortionEditorStateOverrides {
   onClose?: () => void;
   hideHeader?: boolean;
 }

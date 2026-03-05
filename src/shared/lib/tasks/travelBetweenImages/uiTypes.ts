@@ -9,7 +9,7 @@ import type {
  * Editor-only guidance fields kept alongside each structure video while
  * request payloads remain canonicalized through structure_guidance.
  */
-export interface StructureVideoGuidanceUiFields {
+interface StructureVideoGuidanceUiFields {
   motion_strength?: number;
   structure_type?: 'uni3c' | 'flow' | 'canny' | 'depth';
   uni3c_start_percent?: number;

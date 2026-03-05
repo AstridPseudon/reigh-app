@@ -5,7 +5,7 @@ import type { PhaseConfig } from '../settings';
 
 export type GenerationTypeMode = 'i2v' | 'vace';
 
-export interface MotionControlModeProps {
+interface MotionControlModeProps {
   motionMode: 'basic' | 'advanced';
   onMotionModeChange: (mode: 'basic' | 'advanced') => void;
   generationTypeMode?: GenerationTypeMode;
@@ -13,7 +13,7 @@ export interface MotionControlModeProps {
   hasStructureVideo?: boolean;
 }
 
-export interface MotionControlLoraProps {
+interface MotionControlLoraProps {
   selectedLoras: ActiveLora[];
   availableLoras: LoraModel[];
   onAddLoraClick: () => void;
@@ -23,7 +23,7 @@ export interface MotionControlLoraProps {
   renderLoraHeaderActions?: () => React.ReactNode;
 }
 
-export interface MotionControlCurrentSettings {
+interface MotionControlCurrentSettings {
   textBeforePrompts?: string;
   textAfterPrompts?: string;
   basePrompt?: string;
@@ -34,7 +34,7 @@ export interface MotionControlCurrentSettings {
   selectedLoras?: Array<{ id: string; name: string; strength: number }>;
 }
 
-export interface MotionControlPresetProps {
+interface MotionControlPresetProps {
   selectedPhasePresetId?: string | null;
   onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
   onPhasePresetRemove: () => void;
@@ -42,7 +42,7 @@ export interface MotionControlPresetProps {
   featuredPresetIds?: string[];
 }
 
-export interface MotionControlAdvancedProps {
+interface MotionControlAdvancedProps {
   phaseConfig?: PhaseConfig;
   onPhaseConfigChange: (config: PhaseConfig) => void;
   onBlurSave?: () => void;
@@ -51,7 +51,7 @@ export interface MotionControlAdvancedProps {
   onRestoreDefaults?: () => void;
 }
 
-export interface MotionControlStateOverrides {
+interface MotionControlStateOverrides {
   turboMode?: boolean;
   settingsLoading?: boolean;
   smoothContinuations?: boolean;

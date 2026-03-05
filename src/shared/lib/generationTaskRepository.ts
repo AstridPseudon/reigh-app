@@ -40,14 +40,14 @@ export interface GenerationTaskMappingCacheEntry {
   queryError?: string;
 }
 
-export type GenerationProjectScopeStatus =
+type GenerationProjectScopeStatus =
   | 'ok'
   | 'query_failed'
   | 'missing_generation'
   | 'scope_mismatch'
   | 'missing_project_scope';
 
-export interface GenerationProjectScopeResolution {
+interface GenerationProjectScopeResolution {
   generationId: string;
   projectId: string | null;
   status: GenerationProjectScopeStatus;
@@ -62,7 +62,7 @@ export type VariantProjectScopeStatus =
   | 'scope_mismatch'
   | 'missing_project_scope';
 
-export interface VariantProjectScopeResolution {
+interface VariantProjectScopeResolution {
   variantId: string;
   generationId: string | null;
   projectId: string | null;
@@ -75,7 +75,7 @@ interface GenerationTaskRepositoryOptions {
   supabaseRegistry?: SupabaseClientRegistry;
 }
 
-export function normalizeScopedGenerationInput(
+function normalizeScopedGenerationInput(
   input: ScopedGenerationInput,
 ): { id: string; projectId?: string } {
   return typeof input === 'string' ? { id: input } : input;

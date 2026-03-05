@@ -71,7 +71,7 @@ interface UseVideoTravelTaskDataArgs {
   variant: TaskDetailsProps['variant'];
 }
 
-export interface VideoTravelTaskData {
+interface VideoTravelTaskData {
   isSegmentTask: boolean;
   isAdvancedMode: boolean;
   showPhaseContentInRightColumn: boolean;

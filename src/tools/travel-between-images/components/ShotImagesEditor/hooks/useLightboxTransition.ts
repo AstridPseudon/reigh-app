@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export interface UseLightboxTransitionReturn {
+interface UseLightboxTransitionReturn {
   /** Whether a transition is currently in progress */
   isLightboxTransitioning: boolean;
   /** Ref for the transition overlay element */

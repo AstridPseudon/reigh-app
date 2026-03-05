@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 
 type AutoSaveStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 
-export function cloneSettings<T>(data: T): T {
+function cloneSettings<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }
 

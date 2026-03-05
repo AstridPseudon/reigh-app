@@ -2,7 +2,7 @@ type NullFilterQuery<T> = {
   is: (column: string, value: unknown) => T;
 };
 
-export const ORCHESTRATOR_REFERENCE_NULL_FILTER_PATHS = [
+const ORCHESTRATOR_REFERENCE_NULL_FILTER_PATHS = [
   'params->orchestrator_task_id_ref',
   'params->orchestration_contract->orchestrator_task_id',
   'params->orchestration_contract->>orchestrator_task_id',

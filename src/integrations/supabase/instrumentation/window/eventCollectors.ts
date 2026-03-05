@@ -6,7 +6,7 @@ interface PhoenixMessage {
   payload?: Record<string, unknown>;
 }
 
-export interface WindowErrorCaptureInput {
+interface WindowErrorCaptureInput {
   message: unknown;
   source: unknown;
   lineno?: number;
@@ -14,7 +14,7 @@ export interface WindowErrorCaptureInput {
   error: Error | null;
 }
 
-export interface WindowErrorInfo {
+interface WindowErrorInfo {
   message: string;
   source: string;
   lineno?: number;
@@ -24,13 +24,13 @@ export interface WindowErrorInfo {
   userAgent: string;
 }
 
-export interface UnhandledRejectionInfo {
+interface UnhandledRejectionInfo {
   reason: unknown;
   promise: string;
   timestamp: number;
 }
 
-export interface PhoenixMessageInfo {
+interface PhoenixMessageInfo {
   event: string;
   topic?: string;
   ref?: string;

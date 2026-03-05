@@ -1,4 +1,4 @@
-export const TOUR_TARGETS = {
+const TOUR_TARGETS = {
   GENERATIONS_PANE_TAB: 'generations-pane-tab',
   GENERATIONS_LOCK: 'generations-lock',
   GALLERY_SECTION: 'gallery-section',
@@ -12,13 +12,13 @@ export const TOUR_TARGETS = {
   MEDIA_GALLERY_ITEM: 'media-gallery-item',
 } as const;
 
-export type TourTargetId = typeof TOUR_TARGETS[keyof typeof TOUR_TARGETS];
+type TourTargetId = typeof TOUR_TARGETS[keyof typeof TOUR_TARGETS];
 
 function tourTargetSelector(targetId: TourTargetId): string {
   return `[data-tour="${targetId}"]`;
 }
 
-export const TOUR_SELECTORS = {
+const TOUR_SELECTORS = {
   body: 'body',
   generationsPaneTab: tourTargetSelector(TOUR_TARGETS.GENERATIONS_PANE_TAB),
   generationsLock: tourTargetSelector(TOUR_TARGETS.GENERATIONS_LOCK),

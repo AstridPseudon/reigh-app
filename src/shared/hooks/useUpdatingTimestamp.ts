@@ -2,7 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { abbreviateRelativeTime, formatRelativeDuration } from '@/shared/lib/timeFormatting';
 import { useLiveRelativeTimestamp } from './useLiveRelativeTimestamp';
 
-export type RelativeTimestampPreset = 'default' | 'task' | 'processing' | 'completed';
+type RelativeTimestampPreset = 'default' | 'task' | 'processing' | 'completed';
 
 interface UseUpdatingTimestampOptions {
   date?: string | Date | null;

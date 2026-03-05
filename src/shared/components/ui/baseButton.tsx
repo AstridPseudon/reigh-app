@@ -26,7 +26,7 @@ export const BASE_BUTTON_SIZES = {
   icon: "h-10 w-10",
 } as const;
 
-export const baseButtonVariants = cva(
+const baseButtonVariants = cva(
   BASE_BUTTON_CLASSNAME,
   {
     variants: {
@@ -40,7 +40,7 @@ export const baseButtonVariants = cva(
   },
 );
 
-export interface BaseButtonProps
+interface BaseButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof baseButtonVariants> {
   asChild?: boolean;

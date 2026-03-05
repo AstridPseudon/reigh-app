@@ -4,8 +4,8 @@ import { signalPastRemovalTargetUsage } from '@/shared/lib/governance/deprecatio
 import type { StructureVideoConfig } from './types';
 
 const legacyStructurePolicy = getDeprecationPolicy('travel_structure_legacy');
-export const LEGACY_TRAVEL_STRUCTURE_OWNER = legacyStructurePolicy.owner;
-export const LEGACY_TRAVEL_STRUCTURE_REMOVE_BY = legacyStructurePolicy.removeBy;
+const LEGACY_TRAVEL_STRUCTURE_OWNER = legacyStructurePolicy.owner;
+const LEGACY_TRAVEL_STRUCTURE_REMOVE_BY = legacyStructurePolicy.removeBy;
 
 /**
  * Compatibility shim for legacy travel-between-images payload fields.
@@ -50,12 +50,12 @@ export type LegacyStructureVideoField = (typeof LEGACY_TRAVEL_STRUCTURE_VIDEO_FI
 
 type StructureVideoType = 'uni3c' | 'flow' | 'canny' | 'depth';
 
-export interface MigratedLegacyStructureVideo extends LegacyStructureVideoConfig {
+interface MigratedLegacyStructureVideo extends LegacyStructureVideoConfig {
   metadata?: VideoMetadata | null;
   resource_id?: string | null;
 }
 
-export interface LegacyStructureVideoMigrationOptions {
+interface LegacyStructureVideoMigrationOptions {
   defaultEndFrame: number;
   defaultVideoTreatment: 'adjust' | 'clip';
   defaultMotionStrength: number;
@@ -100,7 +100,7 @@ function hasLegacyField(
   );
 }
 
-export interface TravelStructureLegacyUsage {
+interface TravelStructureLegacyUsage {
   topLevelFields: LegacyTopLevelField[];
   structureVideoFields: LegacyStructureVideoField[];
 }

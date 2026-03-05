@@ -42,17 +42,17 @@ export interface GenerationPreviewInput {
   location?: string | null;
 }
 
-export interface AtomicCreateResult {
+interface AtomicCreateResult {
   shotId: string;
   shotName: string;
   shotGenerationId: string;
 }
 
-export interface CreateShotMutationResult {
+interface CreateShotMutationResult {
   shot?: Shot;
 }
 
-export interface ExternalDropResult {
+interface ExternalDropResult {
   shotId: string;
   generationIds?: string[];
 }
@@ -126,5 +126,5 @@ export interface CreateShotActionInput {
   handleExternalImageDropMutation: CreateShotWithFilesPathInput['uploadToShot'];
 }
 
-export type ShotGenerationPreview = GenerationPreviewInput;
+type ShotGenerationPreview = GenerationPreviewInput;
 export type ShotGenerationRow = GenerationRow;

@@ -45,7 +45,7 @@ interface VariantRecord {
 
 type LineageScopeFailureStatus = Exclude<VariantProjectScopeStatus, 'ok'>;
 
-export class LineageScopeError extends Error {
+class LineageScopeError extends Error {
   readonly status: LineageScopeFailureStatus;
   readonly variantId: string;
   readonly projectId: string;
@@ -67,7 +67,7 @@ export class LineageScopeError extends Error {
   }
 }
 
-export function isLineageScopeError(error: unknown): error is LineageScopeError {
+function isLineageScopeError(error: unknown): error is LineageScopeError {
   return error instanceof LineageScopeError;
 }
 

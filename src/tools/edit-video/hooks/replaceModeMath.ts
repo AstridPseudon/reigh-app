@@ -7,7 +7,7 @@ const FALLBACK_SELECTION_END_RATIO = 0.5;
 const NEW_SELECTION_WIDTH_RATIO = 0.1;
 const NEW_SELECTION_GAP_RATIO = 0.1;
 
-export interface ReplaceFrameRangeSelection {
+interface ReplaceFrameRangeSelection {
   start_frame: number;
   end_frame: number;
   start_time: number;
@@ -22,12 +22,12 @@ export function quantizeGapFrameCount(frameCount: number): number {
   return Math.max(1, n * 4 + 1);
 }
 
-export function quantizeGapFramesFromDuration(duration: number, fps: number): number {
+function quantizeGapFramesFromDuration(duration: number, fps: number): number {
   const frameCount = Math.round(duration * fps);
   return quantizeGapFrameCount(frameCount);
 }
 
-export function getMaxGapFramesForContext(contextFrameCount: number): number {
+function getMaxGapFramesForContext(contextFrameCount: number): number {
   return Math.max(1, 81 - (contextFrameCount * 2));
 }
 
@@ -112,7 +112,7 @@ export function selectionsToFrameRanges(
   });
 }
 
-export function getMinKeeperFrames(totalFrames: number, frameRanges: ReplaceFrameRangeSelection[]): number {
+function getMinKeeperFrames(totalFrames: number, frameRanges: ReplaceFrameRangeSelection[]): number {
   const sortedPortions = [...frameRanges].sort((a, b) => a.start_frame - b.start_frame);
   let minKeeperFrames = totalFrames;
 

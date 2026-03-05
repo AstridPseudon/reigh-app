@@ -19,14 +19,14 @@ export type AutoSaveStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 /**
  * Custom load/save functions for non-React-Query persistence.
  */
-export interface CustomLoadSave<T> {
+interface CustomLoadSave<T> {
   load: (entityId: string) => Promise<T | null>;
   save: (entityId: string, data: T) => Promise<void>;
   entityId: string | null;
   onFlush?: (entityId: string, data: T) => void;
 }
 
-export interface UseAutoSaveSettingsOptions<T> {
+interface UseAutoSaveSettingsOptions<T> {
   toolId?: string;
   shotId?: string | null;
   projectId?: string | null;
@@ -41,7 +41,7 @@ export interface UseAutoSaveSettingsOptions<T> {
   customLoadSave?: CustomLoadSave<T>;
 }
 
-export interface UseAutoSaveSettingsReturn<T> {
+interface UseAutoSaveSettingsReturn<T> {
   settings: T;
   status: AutoSaveStatus;
   entityId: string | null;

@@ -1,6 +1,6 @@
 import type { AppError } from './errors';
 
-export type RuntimeErrorPresenter = (appError: AppError, toastTitle?: string) => boolean;
+type RuntimeErrorPresenter = (appError: AppError, toastTitle?: string) => boolean;
 
 let presenter: RuntimeErrorPresenter | null = null;
 

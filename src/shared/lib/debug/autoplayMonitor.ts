@@ -94,7 +94,7 @@ const logVideoStateChanges = (current: VideoState[], previous: VideoState[]) => 
   
 };
 
-export const startAutoplayMonitoring = () => {
+const startAutoplayMonitoring = () => {
   if (monitoringActive || !import.meta.env.DEV) return;
   
   monitoringActive = true;

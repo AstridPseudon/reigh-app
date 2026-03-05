@@ -16,7 +16,7 @@ import type { PathLoraConfig } from '@/shared/types/lora';
  * Shared by single and batch image generation validation.
  * @throws TaskValidationError if any LoRA is invalid
  */
-export function validateLoras(loras: PathLoraConfig[] | undefined): void {
+function validateLoras(loras: PathLoraConfig[] | undefined): void {
   try {
     validateLoraConfigs(loras, {
       pathField: 'path',

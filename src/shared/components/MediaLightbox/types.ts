@@ -3,7 +3,7 @@ import type { Task } from '@/types/database';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 
 export type { ShotOption };
-export type LightboxMaybePromise<T> = T | Promise<T>;
+type LightboxMaybePromise<T> = T | Promise<T>;
 export type LightboxDeleteHandler = (id: string) => LightboxMaybePromise<void>;
 export type TaskDetailsStatus = 'ok' | 'missing' | 'error';
 

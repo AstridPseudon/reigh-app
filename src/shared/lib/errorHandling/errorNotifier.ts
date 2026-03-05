@@ -1,13 +1,13 @@
 import type { AppError } from './errors';
 
-export interface ErrorNotificationPayload {
+interface ErrorNotificationPayload {
   appError: AppError;
   title: string;
   description: string;
 }
 
-export type ErrorNotifier = (payload: ErrorNotificationPayload) => void;
-export type ErrorNotifierState = 'configured' | 'unconfigured';
+type ErrorNotifier = (payload: ErrorNotificationPayload) => void;
+type ErrorNotifierState = 'configured' | 'unconfigured';
 
 interface ErrorNotifierRegistration {
   notifier: ErrorNotifier;
@@ -36,7 +36,7 @@ export function resetErrorNotifierForTests(): void {
   registration = null;
 }
 
-export function isErrorNotifierConfigured(): boolean {
+function isErrorNotifierConfigured(): boolean {
   return registration !== null;
 }
 

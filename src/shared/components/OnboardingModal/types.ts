@@ -8,7 +8,7 @@ export interface OnboardingStepProps {
   onClose: () => void;
 }
 
-export type OnboardingStepComponent = React.ComponentType<OnboardingStepProps>;
+type OnboardingStepComponent = React.ComponentType<OnboardingStepProps>;
 
 export interface OnboardingStepDefinition {
   id: number;

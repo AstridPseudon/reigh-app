@@ -15,7 +15,7 @@ import {
   useJoinState,
 } from '../../ShotSettingsContext';
 
-export interface JoinModeContentProps {
+interface JoinModeContentProps {
   // Refs - must be passed from parent for DOM positioning
   joinSegmentsSectionRef: React.RefObject<HTMLDivElement>;
   swapButtonRef: React.RefObject<HTMLButtonElement>;

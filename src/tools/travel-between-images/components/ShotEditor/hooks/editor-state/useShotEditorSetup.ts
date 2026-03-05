@@ -17,14 +17,14 @@ import { useShotImages } from '@/shared/hooks/useShotImages';
 import { Shot, GenerationRow } from '@/domains/generation/types';
 import type { Project } from '@/types/project';
 
-export interface UseShotEditorSetupProps {
+interface UseShotEditorSetupProps {
   selectedShotId: string;
   projectId: string;
   optimisticShotData?: Shot;
   batchVideoFrames: number;
 }
 
-export interface UseShotEditorSetupReturn {
+interface UseShotEditorSetupReturn {
   // Shot resolution
   selectedShot: Shot | undefined;
   foundShot: Shot | undefined;

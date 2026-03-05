@@ -55,7 +55,7 @@ interface GenerationsPaneInteractionModel {
   isInteractionDisabled: boolean;
 }
 
-export interface GenerationsPaneControlsProps {
+interface GenerationsPaneControlsProps {
   filters: GenerationsPaneFiltersModel;
   pagination: GenerationsPanePaginationModel;
   interaction: GenerationsPaneInteractionModel;

@@ -7,7 +7,7 @@
 const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov'] as const;
 const VIDEO_TYPES = new Set(['video', 'video_travel_output']);
 
-export interface TimelineEligibilityInput {
+interface TimelineEligibilityInput {
   timeline_frame?: number | null;
   type?: string | null;
   location?: string | null;

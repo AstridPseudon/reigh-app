@@ -10,7 +10,7 @@ import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travel
 // Main Component Props
 // =============================================================================
 
-export interface ShotImagesEditorDisplayOptions {
+interface ShotImagesEditorDisplayOptions {
   /** Controls whether internal UI should render the skeleton */
   isModeReady: boolean;
   /** Optional error text shown at the top of the card */
@@ -41,7 +41,7 @@ export interface ShotImagesEditorDisplayOptions {
   onSelectedOutputChange?: (id: string | null) => void;
 }
 
-export interface ShotImagesEditorImageState {
+interface ShotImagesEditorImageState {
   /** Selected shot id */
   selectedShotId: string;
   /** Optional preloaded images (for read-only/share views) - bypasses database queries */
@@ -92,7 +92,7 @@ export interface ShotImagesEditorImageState {
   audioMetadata?: { duration: number; name?: string } | null;
 }
 
-export interface ShotImagesEditorEditActions {
+interface ShotImagesEditorEditActions {
   /** Reordering callback – receives ordered ids and optionally the dragged item ID */
   onImageReorder: (orderedIds: string[], draggedItemId?: string) => void;
   /** Timeline frame positions change */
@@ -149,7 +149,7 @@ export interface ShotImagesEditorEditActions {
   onTrailingDurationChange?: (durationFrames: number | undefined) => void;
 }
 
-export interface ShotImagesEditorShotWorkflow {
+interface ShotImagesEditorShotWorkflow {
   /** Shot management for external generation viewing */
   allShots?: Shot[];
   onShotChange?: (shotId: string) => void;

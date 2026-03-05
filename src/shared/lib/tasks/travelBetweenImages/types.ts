@@ -4,7 +4,7 @@ import type { PathLoraConfig } from '@/shared/types/lora';
 /**
  * Unified structure guidance contract for vace/uni3c.
  */
-export interface StructureGuidanceConfig {
+interface StructureGuidanceConfig {
   /** Target system for guidance. */
   target: 'vace' | 'uni3c';
 
@@ -60,7 +60,7 @@ export interface StructureVideoConfig {
   source_end_frame?: number | null;
 }
 
-export interface VideoMotionApiParams {
+interface VideoMotionApiParams {
   amount_of_motion?: number;
   motion_mode?: 'basic' | 'presets' | 'advanced';
   advanced_mode?: boolean;
@@ -68,7 +68,7 @@ export interface VideoMotionApiParams {
   selected_phase_preset_id?: string | null;
 }
 
-export interface VideoModelApiParams {
+interface VideoModelApiParams {
   model_name?: string;
   model_type?: 'i2v' | 'vace';
   seed?: number;
@@ -78,7 +78,7 @@ export interface VideoModelApiParams {
   debug?: boolean;
 }
 
-export interface VideoPromptApiParams {
+interface VideoPromptApiParams {
   base_prompt?: string;
   base_prompts?: string[];
   negative_prompts?: string[];

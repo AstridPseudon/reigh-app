@@ -34,7 +34,7 @@ export interface PaginatedTasksResponse {
   totalPages: number;
 }
 
-export const EMPTY_PAGINATED_TASKS_RESPONSE: PaginatedTasksResponse = {
+const EMPTY_PAGINATED_TASKS_RESPONSE: PaginatedTasksResponse = {
   tasks: [],
   total: 0,
   hasMore: false,

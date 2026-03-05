@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export interface PhaseConfigModals {
+interface PhaseConfigModals {
   activePhaseForLoraSelection: number | null;
   isLoraModalOpen: boolean;
   openLoraModal: (phaseIdx: number) => void;

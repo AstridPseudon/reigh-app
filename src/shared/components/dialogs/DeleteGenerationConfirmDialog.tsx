@@ -1,7 +1,7 @@
 import { ConfirmDialog } from './ConfirmDialog';
 import type { DeleteGenerationConfirmContract } from '@/domains/generation/contracts/deleteGenerationConfirm';
 
-export type DeleteGenerationConfirmDialogProps = DeleteGenerationConfirmContract;
+type DeleteGenerationConfirmDialogProps = DeleteGenerationConfirmContract;
 
 export function DeleteGenerationConfirmDialog({
   open,

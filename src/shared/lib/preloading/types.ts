@@ -37,7 +37,7 @@ export interface PreloadingServiceState {
   isPaused: boolean;
 }
 
-export type PreloadingEventType =
+type PreloadingEventType =
   | 'project-changed'
   | 'generations-deleted'
   | 'connection-changed'

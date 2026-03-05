@@ -1,4 +1,4 @@
-export interface OnboardingStepColors {
+interface OnboardingStepColors {
   bg: string;
   icon: string;
 }

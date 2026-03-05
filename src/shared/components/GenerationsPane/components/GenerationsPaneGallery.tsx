@@ -36,7 +36,7 @@ interface GenerationsPaneGalleryModel {
   onCreateShot: NonNullable<MediaGalleryProps['onCreateShot']>;
 }
 
-export interface GenerationsPaneGalleryProps {
+interface GenerationsPaneGalleryProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   projectAspectRatio?: string;
   layout: GenerationsPaneLayoutModel;

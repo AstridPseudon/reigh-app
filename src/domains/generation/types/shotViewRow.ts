@@ -1,7 +1,7 @@
 import type { GenerationRow } from './generationViewRow';
 import type { PersistedShotRow } from './shot';
 
-export interface ShotViewModel {
+interface ShotViewModel {
   images?: GenerationRow[];
   imageCount?: number;
   positionedImageCount?: number;

@@ -1,4 +1,4 @@
-export type PayloadRecord = Record<string, unknown>;
+type PayloadRecord = Record<string, unknown>;
 
 interface TaskLineageFields {
   shotId?: string;

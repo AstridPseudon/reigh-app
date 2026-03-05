@@ -50,7 +50,7 @@ interface JoinClipsPerJoinSettings {
 /**
  * Frame-accurate portion selection for video editing.
  */
-export interface PortionToRegenerate {
+interface PortionToRegenerate {
   start_frame: number;
   end_frame: number;
   start_time_seconds: number;

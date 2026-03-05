@@ -1,8 +1,8 @@
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
-export type TaskParamPath = readonly string[];
+type TaskParamPath = readonly string[];
 
-export const TASK_PARAM_CONTRACT_PATHS = {
+const TASK_PARAM_CONTRACT_PATHS = {
   orchestratorTaskId: [
     ['orchestration_contract', 'orchestrator_task_id'],
     ['orchestrator_task_id_ref'],
@@ -69,7 +69,7 @@ export function resolveByPrecedence<T>(...candidates: Array<T | null | undefined
   return undefined;
 }
 
-export function extractTaskParamValue(
+function extractTaskParamValue(
   params: unknown,
   paths: readonly TaskParamPath[],
 ): unknown {
@@ -82,7 +82,7 @@ export function extractTaskParamValue(
   return undefined;
 }
 
-export function extractTaskParamString(
+function extractTaskParamString(
   params: unknown,
   paths: readonly TaskParamPath[],
 ): string | null {
@@ -94,7 +94,7 @@ export function extractTaskParamString(
   return normalized.length > 0 ? normalized : null;
 }
 
-export function extractTaskParamBoolean(
+function extractTaskParamBoolean(
   params: unknown,
   paths: readonly TaskParamPath[],
 ): boolean | null {

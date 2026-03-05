@@ -3,6 +3,6 @@ import {
   type RuntimeErrorOptions,
 } from '@/shared/lib/errorHandling/runtimeError';
 
-export function handleAndRethrow(error: unknown, options: RuntimeErrorOptions): never {
+function handleAndRethrow(error: unknown, options: RuntimeErrorOptions): never {
   return normalizeAndPresentAndRethrow(error, options);
 }

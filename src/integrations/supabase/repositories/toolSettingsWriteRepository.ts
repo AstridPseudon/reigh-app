@@ -1,7 +1,7 @@
 import { getSupabaseClient } from '@/integrations/supabase/client';
 
-export type SettingsScopeIdentifier = 'user' | 'project' | 'shot';
-export type SettingsScopeTableName = 'users' | 'projects' | 'shots';
+type SettingsScopeIdentifier = 'user' | 'project' | 'shot';
+type SettingsScopeTableName = 'users' | 'projects' | 'shots';
 
 export function resolveSettingsScopeTable(scope: SettingsScopeIdentifier): SettingsScopeTableName {
   switch (scope) {

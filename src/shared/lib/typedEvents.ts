@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-export interface AppCustomEvents {
+interface AppCustomEvents {
   // --- UI / navigation ---
   openSettings: { tab?: string };
   'app:scrollToTop': { behavior?: ScrollBehavior };

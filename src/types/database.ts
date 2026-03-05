@@ -36,7 +36,7 @@ export interface Project {
 }
 
 /** Raw DB row shape for shots table. App code should use Shot from @/types/shot instead. */
-export interface DbShot {
+interface DbShot {
   id: string;
   name: string;
   project_id: string;

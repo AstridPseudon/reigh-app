@@ -23,7 +23,7 @@ interface UseTasksPaneControllerInput {
   cancelAllIncoming: () => void;
 }
 
-export interface UseTasksPaneControllerResult {
+interface UseTasksPaneControllerResult {
   selectedFilter: FilterGroup;
   selectedTaskType: string | null;
   projectScope: string;

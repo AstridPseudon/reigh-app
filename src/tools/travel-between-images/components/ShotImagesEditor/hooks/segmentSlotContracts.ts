@@ -59,7 +59,7 @@ export interface SegmentSlotState {
   setPendingImageVariantId: (value: string | null) => void;
 }
 
-export interface SegmentSlotLocationState {
+interface SegmentSlotLocationState {
   openImageGenerationId?: string;
   openImageVariantId?: string;
   openSegmentSlot?: string;
@@ -96,6 +96,6 @@ export function parseSegmentSlotLocationState(
   };
 }
 
-export type SegmentSlotModeDataBuilder = (
+type SegmentSlotModeDataBuilder = (
   frameCountDebounceRef: MutableRefObject<NodeJS.Timeout | null>,
 ) => SegmentSlotModeData | null;

@@ -1,6 +1,6 @@
 export type OperationFailurePolicy = 'fail_closed' | 'fail_open' | 'degrade' | 'best_effort';
 
-export interface OperationSuccess<T> {
+interface OperationSuccess<T> {
   ok: true;
   value: T;
   policy: OperationFailurePolicy;
