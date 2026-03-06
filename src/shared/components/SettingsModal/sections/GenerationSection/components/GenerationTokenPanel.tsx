@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import { Terminal, ChevronDown } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import {
@@ -29,43 +28,64 @@ import {
   SHELL_LABELS,
 } from '../data/generationLabels';
 
-interface GenerationTokenPanelProps {
-  isMobile: boolean;
-  generatedToken: string | null;
-  getActiveToken: () => { token: string; created_at: string } | undefined;
+interface GenerationTokenPanelConfig {
   computerType: string;
-  setComputerType: (value: string) => void;
   gpuType: string;
-  setGpuType: (value: string) => void;
   memoryProfile: string;
-  setMemoryProfile: (value: string) => void;
   windowsShell: string;
-  setWindowsShell: (value: string) => void;
   showDebugLogs: boolean;
-  setShowDebugLogs: (value: boolean) => void;
+}
+
+interface GenerationTokenPanelState {
+  generatedToken: string | null;
   activeInstallTab: string;
+}
+
+interface GenerationTokenPanelActions {
+  getActiveToken: () => { token: string; created_at: string } | undefined;
+  setComputerType: (value: string) => void;
+  setGpuType: (value: string) => void;
+  setMemoryProfile: (value: string) => void;
+  setWindowsShell: (value: string) => void;
+  setShowDebugLogs: (value: boolean) => void;
   setActiveInstallTab: (value: string) => void;
   updateGenerationMethodsWithNotification: (patch: { onComputer?: boolean; inCloud?: boolean }) => void;
 }
 
+interface GenerationTokenPanelProps {
+  isMobile: boolean;
+  config: GenerationTokenPanelConfig;
+  state: GenerationTokenPanelState;
+  actions: GenerationTokenPanelActions;
+}
+
 export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
   isMobile,
-  generatedToken,
-  getActiveToken,
-  computerType,
-  setComputerType,
-  gpuType,
-  setGpuType,
-  memoryProfile,
-  setMemoryProfile,
-  windowsShell,
-  setWindowsShell,
-  showDebugLogs,
-  setShowDebugLogs,
-  activeInstallTab,
-  setActiveInstallTab,
-  updateGenerationMethodsWithNotification,
+  config,
+  state,
+  actions,
 }) => {
+  const {
+    computerType,
+    gpuType,
+    memoryProfile,
+    windowsShell,
+    showDebugLogs,
+  } = config;
+  const {
+    generatedToken,
+    activeInstallTab,
+  } = state;
+  const {
+    getActiveToken,
+    setComputerType,
+    setGpuType,
+    setMemoryProfile,
+    setWindowsShell,
+    setShowDebugLogs,
+    setActiveInstallTab,
+    updateGenerationMethodsWithNotification,
+  } = actions;
   const {
     copiedInstallCommand,
     copiedRunCommand,

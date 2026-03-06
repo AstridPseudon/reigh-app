@@ -142,21 +142,27 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
             ) : (
               <GenerationTokenPanel
                 isMobile={isMobile}
-                generatedToken={generatedToken}
-                getActiveToken={getActiveToken}
-                computerType={computerType}
-                setComputerType={setComputerType}
-                gpuType={gpuType}
-                setGpuType={setGpuType}
-                memoryProfile={memoryProfile}
-                setMemoryProfile={setMemoryProfile}
-                windowsShell={windowsShell}
-                setWindowsShell={setWindowsShell}
-                showDebugLogs={showDebugLogs}
-                setShowDebugLogs={setShowDebugLogs}
-                activeInstallTab={activeInstallTab}
-                setActiveInstallTab={setActiveInstallTab}
-                updateGenerationMethodsWithNotification={updateGenerationMethodsWithNotification}
+                config={{
+                  computerType,
+                  gpuType,
+                  memoryProfile,
+                  windowsShell,
+                  showDebugLogs,
+                }}
+                state={{
+                  generatedToken,
+                  activeInstallTab,
+                }}
+                actions={{
+                  getActiveToken,
+                  setComputerType,
+                  setGpuType,
+                  setMemoryProfile,
+                  setWindowsShell,
+                  setShowDebugLogs,
+                  setActiveInstallTab,
+                  updateGenerationMethodsWithNotification,
+                }}
               />
             )}
           </div>
