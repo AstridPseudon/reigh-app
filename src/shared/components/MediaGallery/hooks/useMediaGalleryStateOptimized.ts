@@ -2,7 +2,8 @@ import {
   useReducer,
   useRef,
   useEffect,
-  useMemo
+  useMemo,
+  type Dispatch,
 } from 'react';
 import type { GeneratedImageWithMetadata } from '../types';
 
@@ -40,30 +41,42 @@ interface MediaGalleryState {
   backfillSkeletonCount: number;
 }
 
+type SettableMediaGalleryFields = {
+  activeLightboxMedia: MediaGalleryState['activeLightboxMedia'];
+  autoEnterEditMode: MediaGalleryState['autoEnterEditMode'];
+  selectedImageForDetails: MediaGalleryState['selectedImageForDetails'];
+  showTaskDetailsModal: MediaGalleryState['showTaskDetailsModal'];
+  pendingLightboxTarget: MediaGalleryState['pendingLightboxTarget'];
+  selectedShotIdLocal: MediaGalleryState['selectedShotIdLocal'];
+  showTickForImageId: MediaGalleryState['showTickForImageId'];
+  showTickForSecondaryImageId: MediaGalleryState['showTickForSecondaryImageId'];
+  addingToShotImageId: MediaGalleryState['addingToShotImageId'];
+  addingToShotWithoutPositionImageId: MediaGalleryState['addingToShotWithoutPositionImageId'];
+  downloadingImageId: MediaGalleryState['downloadingImageId'];
+  isDownloadingStarred: MediaGalleryState['isDownloadingStarred'];
+  mobileActiveImageId: MediaGalleryState['mobileActiveImageId'];
+  mobilePopoverOpenImageId: MediaGalleryState['mobilePopoverOpenImageId'];
+  isBackfillLoading: MediaGalleryState['isBackfillLoading'];
+  backfillSkeletonCount: MediaGalleryState['backfillSkeletonCount'];
+};
+
+type SetFieldAction = {
+  [Field in keyof SettableMediaGalleryFields]: {
+    type: 'SET_FIELD';
+    field: Field;
+    payload: SettableMediaGalleryFields[Field];
+  };
+}[keyof SettableMediaGalleryFields];
+
 // Action types for the reducer
 type MediaGalleryStateAction =
-  | { type: 'SET_LIGHTBOX_MEDIA'; payload: GeneratedImageWithMetadata | null }
-  | { type: 'SET_AUTO_ENTER_EDIT_MODE'; payload: boolean }
-  | { type: 'SET_SELECTED_IMAGE_FOR_DETAILS'; payload: GeneratedImageWithMetadata | null }
-  | { type: 'SET_SHOW_TASK_DETAILS_MODAL'; payload: boolean }
-  | { type: 'SET_PENDING_LIGHTBOX_TARGET'; payload: 'first' | 'last' | null }
+  | SetFieldAction
   | { type: 'MARK_OPTIMISTIC_UNPOSITIONED'; payload: { mediaId: string; shotId: string } }
   | { type: 'MARK_OPTIMISTIC_POSITIONED'; payload: { mediaId: string; shotId: string } }
   | { type: 'MARK_OPTIMISTIC_DELETED'; payload: string }
   | { type: 'MARK_OPTIMISTIC_DELETED_WITH_BACKFILL'; payload: string } // Combined action for atomic update
   | { type: 'REMOVE_OPTIMISTIC_DELETED'; payload: string }
   | { type: 'RECONCILE_OPTIMISTIC_STATE'; payload: Set<string> }
-  | { type: 'SET_SELECTED_SHOT_ID_LOCAL'; payload: string }
-  | { type: 'SET_SHOW_TICK_FOR_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_SHOW_TICK_FOR_SECONDARY_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_ADDING_TO_SHOT_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_ADDING_TO_SHOT_WITHOUT_POSITION_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_DOWNLOADING_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_DOWNLOADING_STARRED'; payload: boolean }
-  | { type: 'SET_MOBILE_ACTIVE_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_MOBILE_POPOVER_OPEN_IMAGE_ID'; payload: string | null }
-  | { type: 'SET_BACKFILL_LOADING'; payload: boolean }
-  | { type: 'SET_BACKFILL_SKELETON_COUNT'; payload: number }
   | { type: 'RESET_UI_STATE' };
 
 // Initial state factory
@@ -110,20 +123,11 @@ const mediaGalleryStateReducer = (
   action: MediaGalleryStateAction
 ): MediaGalleryState => {
   switch (action.type) {
-    case 'SET_LIGHTBOX_MEDIA':
-      return { ...state, activeLightboxMedia: action.payload };
-      
-    case 'SET_AUTO_ENTER_EDIT_MODE':
-      return { ...state, autoEnterEditMode: action.payload };
-      
-    case 'SET_SELECTED_IMAGE_FOR_DETAILS':
-      return { ...state, selectedImageForDetails: action.payload };
-      
-    case 'SET_SHOW_TASK_DETAILS_MODAL':
-      return { ...state, showTaskDetailsModal: action.payload };
-      
-    case 'SET_PENDING_LIGHTBOX_TARGET':
-      return { ...state, pendingLightboxTarget: action.payload };
+    case 'SET_FIELD':
+      return {
+        ...state,
+        [action.field]: action.payload,
+      };
       
     case 'MARK_OPTIMISTIC_UNPOSITIONED': {
       // Store composite key: mediaId:shotId
@@ -211,39 +215,6 @@ const mediaGalleryStateReducer = (
       };
     }
     
-    case 'SET_SELECTED_SHOT_ID_LOCAL':
-      return { ...state, selectedShotIdLocal: action.payload };
-      
-    case 'SET_SHOW_TICK_FOR_IMAGE_ID':
-      return { ...state, showTickForImageId: action.payload };
-      
-    case 'SET_SHOW_TICK_FOR_SECONDARY_IMAGE_ID':
-      return { ...state, showTickForSecondaryImageId: action.payload };
-      
-    case 'SET_ADDING_TO_SHOT_IMAGE_ID':
-      return { ...state, addingToShotImageId: action.payload };
-      
-    case 'SET_ADDING_TO_SHOT_WITHOUT_POSITION_IMAGE_ID':
-      return { ...state, addingToShotWithoutPositionImageId: action.payload };
-      
-    case 'SET_DOWNLOADING_IMAGE_ID':
-      return { ...state, downloadingImageId: action.payload };
-      
-    case 'SET_DOWNLOADING_STARRED':
-      return { ...state, isDownloadingStarred: action.payload };
-      
-    case 'SET_MOBILE_ACTIVE_IMAGE_ID':
-      return { ...state, mobileActiveImageId: action.payload };
-      
-    case 'SET_MOBILE_POPOVER_OPEN_IMAGE_ID':
-      return { ...state, mobilePopoverOpenImageId: action.payload };
-      
-    case 'SET_BACKFILL_LOADING':
-      return { ...state, isBackfillLoading: action.payload };
-      
-    case 'SET_BACKFILL_SKELETON_COUNT':
-      return { ...state, backfillSkeletonCount: action.payload };
-
     case 'RESET_UI_STATE':
       return {
         ...state,
@@ -260,6 +231,17 @@ const mediaGalleryStateReducer = (
     default:
       return state;
   }
+};
+
+const createFieldSetter = <Field extends keyof SettableMediaGalleryFields>(
+  dispatch: Dispatch<MediaGalleryStateAction>,
+  field: Field
+) => (value: SettableMediaGalleryFields[Field]) => {
+  dispatch({
+    type: 'SET_FIELD',
+    field,
+    payload: value,
+  });
 };
 
 interface UseMediaGalleryStateOptimizedProps {
@@ -331,18 +313,11 @@ export const useMediaGalleryStateOptimized = ({
   
   // Memoized action creators to prevent unnecessary re-renders
   const actions = useMemo(() => ({
-    setActiveLightboxMedia: (media: GeneratedImageWithMetadata | null) => {
-      dispatch({ type: 'SET_LIGHTBOX_MEDIA', payload: media });
-    },
-    setAutoEnterEditMode: (value: boolean) =>
-      dispatch({ type: 'SET_AUTO_ENTER_EDIT_MODE', payload: value }),
-    setSelectedImageForDetails: (image: GeneratedImageWithMetadata | null) =>
-      dispatch({ type: 'SET_SELECTED_IMAGE_FOR_DETAILS', payload: image }),
-    setShowTaskDetailsModal: (show: boolean) =>
-      dispatch({ type: 'SET_SHOW_TASK_DETAILS_MODAL', payload: show }),
-    setPendingLightboxTarget: (target: 'first' | 'last' | null) => {
-      dispatch({ type: 'SET_PENDING_LIGHTBOX_TARGET', payload: target });
-    },
+    setActiveLightboxMedia: createFieldSetter(dispatch, 'activeLightboxMedia'),
+    setAutoEnterEditMode: createFieldSetter(dispatch, 'autoEnterEditMode'),
+    setSelectedImageForDetails: createFieldSetter(dispatch, 'selectedImageForDetails'),
+    setShowTaskDetailsModal: createFieldSetter(dispatch, 'showTaskDetailsModal'),
+    setPendingLightboxTarget: createFieldSetter(dispatch, 'pendingLightboxTarget'),
     markOptimisticUnpositioned: (imageId: string, shotId: string) => 
       dispatch({ type: 'MARK_OPTIMISTIC_UNPOSITIONED', payload: { mediaId: imageId, shotId } }),
     markOptimisticPositioned: (imageId: string, shotId: string) => 
@@ -353,28 +328,17 @@ export const useMediaGalleryStateOptimized = ({
       dispatch({ type: 'MARK_OPTIMISTIC_DELETED_WITH_BACKFILL', payload: imageId }),
     removeOptimisticDeleted: (imageId: string) => 
       dispatch({ type: 'REMOVE_OPTIMISTIC_DELETED', payload: imageId }),
-    setSelectedShotIdLocal: (id: string) => 
-      dispatch({ type: 'SET_SELECTED_SHOT_ID_LOCAL', payload: id }),
-    setShowTickForImageId: (id: string | null) => 
-      dispatch({ type: 'SET_SHOW_TICK_FOR_IMAGE_ID', payload: id }),
-    setShowTickForSecondaryImageId: (id: string | null) => 
-      dispatch({ type: 'SET_SHOW_TICK_FOR_SECONDARY_IMAGE_ID', payload: id }),
-    setAddingToShotImageId: (id: string | null) => 
-      dispatch({ type: 'SET_ADDING_TO_SHOT_IMAGE_ID', payload: id }),
-    setAddingToShotWithoutPositionImageId: (id: string | null) => 
-      dispatch({ type: 'SET_ADDING_TO_SHOT_WITHOUT_POSITION_IMAGE_ID', payload: id }),
-    setDownloadingImageId: (id: string | null) => 
-      dispatch({ type: 'SET_DOWNLOADING_IMAGE_ID', payload: id }),
-    setIsDownloadingStarred: (downloading: boolean) => 
-      dispatch({ type: 'SET_DOWNLOADING_STARRED', payload: downloading }),
-    setMobileActiveImageId: (id: string | null) => 
-      dispatch({ type: 'SET_MOBILE_ACTIVE_IMAGE_ID', payload: id }),
-    setMobilePopoverOpenImageId: (id: string | null) => 
-      dispatch({ type: 'SET_MOBILE_POPOVER_OPEN_IMAGE_ID', payload: id }),
-    setIsBackfillLoading: (loading: boolean) => 
-      dispatch({ type: 'SET_BACKFILL_LOADING', payload: loading }),
-    setBackfillSkeletonCount: (count: number) =>
-      dispatch({ type: 'SET_BACKFILL_SKELETON_COUNT', payload: count }),
+    setSelectedShotIdLocal: createFieldSetter(dispatch, 'selectedShotIdLocal'),
+    setShowTickForImageId: createFieldSetter(dispatch, 'showTickForImageId'),
+    setShowTickForSecondaryImageId: createFieldSetter(dispatch, 'showTickForSecondaryImageId'),
+    setAddingToShotImageId: createFieldSetter(dispatch, 'addingToShotImageId'),
+    setAddingToShotWithoutPositionImageId: createFieldSetter(dispatch, 'addingToShotWithoutPositionImageId'),
+    setDownloadingImageId: createFieldSetter(dispatch, 'downloadingImageId'),
+    setIsDownloadingStarred: createFieldSetter(dispatch, 'isDownloadingStarred'),
+    setMobileActiveImageId: createFieldSetter(dispatch, 'mobileActiveImageId'),
+    setMobilePopoverOpenImageId: createFieldSetter(dispatch, 'mobilePopoverOpenImageId'),
+    setIsBackfillLoading: createFieldSetter(dispatch, 'isBackfillLoading'),
+    setBackfillSkeletonCount: createFieldSetter(dispatch, 'backfillSkeletonCount'),
     resetUIState: () =>
       dispatch({ type: 'RESET_UI_STATE' }),
   }), []);

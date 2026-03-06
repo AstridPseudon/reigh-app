@@ -12,7 +12,9 @@ import { UI_Z_LAYERS } from '@/shared/lib/uiLayers';
 type GenerationsPaneController = ReturnType<typeof useGenerationsPaneController>;
 
 function GenerationsPaneBackdrop({ controller }: { controller: GenerationsPaneController }) {
-  if (!controller.showBackdrop) {
+  const { pane } = controller;
+
+  if (!pane.showBackdrop) {
     return null;
   }
 
@@ -23,12 +25,12 @@ function GenerationsPaneBackdrop({ controller }: { controller: GenerationsPaneCo
       onTouchStart={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        controller.closePane();
+        pane.closePane();
       }}
       onPointerDown={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        controller.closePane();
+        pane.closePane();
       }}
       aria-hidden="true"
     />
@@ -36,32 +38,34 @@ function GenerationsPaneBackdrop({ controller }: { controller: GenerationsPaneCo
 }
 
 function GenerationsPaneTab({ controller }: { controller: GenerationsPaneController }) {
-  if (controller.isOnImageGenerationPage) {
+  const { pane, navigation, modal } = controller;
+
+  if (pane.isOnImageGenerationPage) {
     return null;
   }
 
   return (
     <PaneControlTab
       side="bottom"
-      isLocked={controller.isLocked}
-      isOpen={controller.paneIsOpen}
-      toggleLock={controller.toggleLock}
-      openPane={controller.openPane}
-      paneDimension={controller.generationsPaneHeight}
+      isLocked={pane.isLocked}
+      isOpen={pane.paneIsOpen}
+      toggleLock={pane.toggleLock}
+      openPane={pane.openPane}
+      paneDimension={pane.generationsPaneHeight}
       horizontalOffset={
-        (controller.isShotsPaneLocked ? controller.shotsPaneWidth : 0) -
-        (controller.isTasksPaneLocked ? controller.tasksPaneWidth : 0)
+        (pane.isShotsPaneLocked ? pane.shotsPaneWidth : 0) -
+        (pane.isTasksPaneLocked ? pane.tasksPaneWidth : 0)
       }
-      handlePaneEnter={controller.handlePaneEnter}
-      handlePaneLeave={controller.handlePaneLeave}
+      handlePaneEnter={pane.handlePaneEnter}
+      handlePaneLeave={pane.handlePaneLeave}
       thirdButton={{
-        onClick: controller.handleNavigateToImageGeneration,
+        onClick: navigation.handleNavigateToImageGeneration,
         ariaLabel: 'Go to Image Generation tool',
         tooltip: 'Go to Image Generation tool',
         content: <ExternalLink className="h-4 w-4" />,
       }}
       fourthButton={{
-        onClick: () => controller.setIsGenerationModalOpen(true),
+        onClick: () => modal.setIsGenerationModalOpen(true),
         ariaLabel: 'Generate new image',
         tooltip: 'Generate new image',
         content: <Sparkles className="h-4 w-4" />,
@@ -69,7 +73,7 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
       customIcon={<Sparkles className="h-4 w-4" />}
       paneTooltip="Generate new image"
       allowMobileLock
-      customOpenAction={() => controller.setIsGenerationModalOpen(true)}
+      customOpenAction={() => modal.setIsGenerationModalOpen(true)}
       dataTour="generations-pane-tab"
       dataTourLock="generations-lock"
       dataTourFourthButton="generations-sparkles"
@@ -78,90 +82,92 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
 }
 
 function GenerationsPaneSurface({ controller }: { controller: GenerationsPaneController }) {
+  const { pane, filters, gallery, layout } = controller;
+
   return (
     <div
-      {...controller.paneProps}
+      {...pane.paneProps}
       data-testid="generations-pane"
       style={{
-        height: `${controller.generationsPaneHeight}px`,
-        left: controller.isShotsPaneLocked ? `${controller.shotsPaneWidth}px` : 0,
-        right: controller.isTasksPaneLocked ? `${controller.tasksPaneWidth}px` : 0,
+        height: `${pane.generationsPaneHeight}px`,
+        left: pane.isShotsPaneLocked ? `${pane.shotsPaneWidth}px` : 0,
+        right: pane.isTasksPaneLocked ? `${pane.tasksPaneWidth}px` : 0,
         zIndex: UI_Z_LAYERS.GENERATIONS_PANE,
       }}
       className={cn(
         'fixed bottom-0 bg-zinc-900/95 border-t border-zinc-700 shadow-xl transform transition-all duration-300 ease-smooth flex flex-col pointer-events-auto',
-        controller.transformClass,
+        pane.transformClass,
       )}
     >
       <div
         className={cn(
           'flex flex-col h-full',
-          controller.isPointerEventsEnabled ? 'pointer-events-auto' : 'pointer-events-none',
+          pane.isPointerEventsEnabled ? 'pointer-events-auto' : 'pointer-events-none',
         )}
       >
         <GenerationsPaneControls
           filters={{
-            shots: controller.shotsForFilter,
-            selectedShotFilter: controller.selectedShotFilter,
-            onSelectedShotFilterChange: controller.setSelectedShotFilter,
-            excludePositioned: controller.excludePositioned,
-            onExcludePositionedChange: controller.setExcludePositioned,
-            isMobile: controller.isMobile,
-            shotFilterContentRef: controller.shotFilterContentRef,
-            mediaTypeFilterContentRef: controller.mediaTypeContentRef,
-            shotFilterOpen: controller.shotFilterOpen,
-            onShotFilterOpenChange: controller.setShotFilterOpen,
-            mediaTypeFilter: controller.mediaTypeFilter,
-            onMediaTypeFilterChange: controller.setMediaTypeFilter,
-            mediaTypeFilterOpen: controller.mediaTypeFilterOpen,
-            onMediaTypeFilterOpenChange: controller.setMediaTypeFilterOpen,
-            searchTerm: controller.searchTerm,
-            onSearchTermChange: controller.setSearchTerm,
-            isSearchOpen: controller.isSearchOpen,
-            onSearchOpenChange: controller.setIsSearchOpen,
-            searchInputRef: controller.searchInputRef,
-            starredOnly: controller.starredOnly,
-            onStarredOnlyChange: controller.setStarredOnly,
-            currentShotId: controller.currentShotId,
-            isSpecialFilterSelected: controller.isSpecialFilterSelected,
+            shots: filters.shotsForFilter,
+            selectedShotFilter: filters.selectedShotFilter,
+            onSelectedShotFilterChange: filters.setSelectedShotFilter,
+            excludePositioned: filters.excludePositioned,
+            onExcludePositionedChange: filters.setExcludePositioned,
+            isMobile: layout.isMobile,
+            shotFilterContentRef: filters.shotFilterContentRef,
+            mediaTypeFilterContentRef: filters.mediaTypeContentRef,
+            shotFilterOpen: filters.shotFilterOpen,
+            onShotFilterOpenChange: filters.setShotFilterOpen,
+            mediaTypeFilter: filters.mediaTypeFilter,
+            onMediaTypeFilterChange: filters.setMediaTypeFilter,
+            mediaTypeFilterOpen: filters.mediaTypeFilterOpen,
+            onMediaTypeFilterOpenChange: filters.setMediaTypeFilterOpen,
+            searchTerm: filters.searchTerm,
+            onSearchTermChange: filters.setSearchTerm,
+            isSearchOpen: filters.isSearchOpen,
+            onSearchOpenChange: filters.setIsSearchOpen,
+            searchInputRef: filters.searchInputRef,
+            starredOnly: filters.starredOnly,
+            onStarredOnlyChange: filters.setStarredOnly,
+            currentShotId: filters.currentShotId,
+            isSpecialFilterSelected: filters.isSpecialFilterSelected,
           }}
           pagination={{
-            totalCount: controller.totalCount,
-            perPage: controller.paneLayout.itemsPerPage,
-            page: controller.page,
-            onPageChange: controller.handleServerPageChange,
+            totalCount: gallery.totalCount,
+            perPage: layout.paneLayout.itemsPerPage,
+            page: gallery.page,
+            onPageChange: gallery.handleServerPageChange,
           }}
-          interaction={{ isInteractionDisabled: controller.isInteractionDisabled }}
+          interaction={{ isInteractionDisabled: pane.isInteractionDisabled }}
         />
 
         <GenerationsPaneGallery
-          containerRef={controller.galleryContainerRef}
-          projectAspectRatio={controller.projectAspectRatio}
+          containerRef={layout.galleryContainerRef}
+          projectAspectRatio={layout.projectAspectRatio}
           layout={{
-            columns: controller.paneLayout.columns,
-            itemsPerPage: controller.paneLayout.itemsPerPage,
+            columns: layout.paneLayout.columns,
+            itemsPerPage: layout.paneLayout.itemsPerPage,
           }}
           loading={{
-            isLoading: controller.isLoading,
-            expectedItemCount: controller.expectedItemCount,
+            isLoading: gallery.isLoading,
+            expectedItemCount: gallery.expectedItemCount,
           }}
-          pagination={{ page: controller.page, totalCount: controller.totalCount }}
-          error={controller.error}
+          pagination={{ page: gallery.page, totalCount: gallery.totalCount }}
+          error={gallery.error}
           gallery={{
-            items: controller.paginatedData.items,
-            onDelete: controller.handleDeleteGeneration,
-            onToggleStar: controller.handleToggleStar,
-            isDeleting: controller.isDeleting,
-            allShots: controller.shotsData || [],
-            lastShotId: controller.lastAffectedShotId || undefined,
-            filters: controller.galleryFilters,
-            onFiltersChange: controller.handleGalleryFiltersChange,
-            onAddToShot: controller.handleAddToShot,
-            onAddToShotWithoutPosition: controller.handleAddToShotWithoutPosition,
-            onServerPageChange: controller.handleServerPageChange,
-            generationFilters: controller.generationFilters,
-            currentViewingShotId: controller.currentShotId || undefined,
-            onCreateShot: controller.handleCreateShot,
+            items: gallery.paginatedData.items,
+            onDelete: gallery.handleDeleteGeneration,
+            onToggleStar: gallery.handleToggleStar,
+            isDeleting: gallery.isDeleting,
+            allShots: gallery.shotsData || [],
+            lastShotId: gallery.lastAffectedShotId || undefined,
+            filters: filters.galleryFilters,
+            onFiltersChange: filters.handleGalleryFiltersChange,
+            onAddToShot: gallery.handleAddToShot,
+            onAddToShotWithoutPosition: gallery.handleAddToShotWithoutPosition,
+            onServerPageChange: gallery.handleServerPageChange,
+            generationFilters: filters.generationFilters,
+            currentViewingShotId: filters.currentShotId || undefined,
+            onCreateShot: gallery.handleCreateShot,
           }}
         />
       </div>
@@ -179,12 +185,12 @@ const GenerationsPaneComponent: React.FC = () => {
       <GenerationsPaneSurface controller={controller} />
 
       <ImageGenerationModal
-        isOpen={controller.isGenerationModalOpen}
-        onClose={() => controller.setIsGenerationModalOpen(false)}
-        initialShotId={controller.currentShotId}
+        isOpen={controller.modal.isGenerationModalOpen}
+        onClose={() => controller.modal.setIsGenerationModalOpen(false)}
+        initialShotId={controller.filters.currentShotId}
       />
 
-      <DeleteGenerationConfirmDialog {...controller.confirmDialogProps} />
+      <DeleteGenerationConfirmDialog {...controller.gallery.confirmDialogProps} />
     </>
   );
 };

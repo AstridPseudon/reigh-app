@@ -1,4 +1,13 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,100 +35,41 @@ import { useAppEventListener } from '@/shared/lib/typedEvents';
 // Fallback rows for pane (smaller than full page galleries)
 const PANE_ROWS = 2;
 
-export const useGenerationsPaneController = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+type MediaTypeFilter = 'all' | 'image' | 'video';
+type BooleanStateSetter = Dispatch<SetStateAction<boolean>>;
+type GalleryPageState = ReturnType<typeof useGalleryPageState>;
+type SelectedProjectId = ReturnType<typeof useProjectSelectionContext>['selectedProjectId'];
+type ProjectAspectRatio = ReturnType<typeof useProjectCrudContext>['projects'][number]['aspectRatio'];
+
+interface GenerationDataParams {
+  itemsPerPage: number;
+  mediaTypeFilter: MediaTypeFilter;
+  shouldEnableDataLoading: boolean;
+  selectedProjectId: SelectedProjectId;
+}
+
+const useGenerationData = ({
+  itemsPerPage,
+  mediaTypeFilter,
+  shouldEnableDataLoading,
+  selectedProjectId,
+}: GenerationDataParams) => {
   const queryClient = useQueryClient();
-  const {
-    isGenerationsPaneLocked,
-    setIsGenerationsPaneLocked,
-    isGenerationsPaneOpen,
-    setIsGenerationsPaneOpen,
-    generationsPaneHeight,
-    isShotsPaneLocked,
-    shotsPaneWidth,
-    isTasksPaneLocked,
-    tasksPaneWidth,
-  } = usePanes();
+  const { createShot } = useShotCreation();
+  const { shots: contextShots } = useShots();
 
-  const isOnImageGenerationPage = location.pathname === TOOL_ROUTES.IMAGE_GENERATION;
-
-  const { selectedProjectId } = useProjectSelectionContext();
-  const { projects } = useProjectCrudContext();
-  const currentProject = projects.find((p) => p.id === selectedProjectId);
-  const projectAspectRatio = currentProject?.aspectRatio;
-  const shouldEnableDataLoading = isGenerationsPaneOpen;
-
-  const isMobile = useIsMobile();
-  const [galleryContainerRef, containerWidth] = useContainerWidth();
-
-  const paneLayout = useMemo(() => {
-    const layout = calculateGalleryLayout(
-      projectAspectRatio,
-      isMobile,
-      containerWidth,
-      undefined,
-      true,
-    );
-    return {
-      ...layout,
-      itemsPerPage: layout.columns * PANE_ROWS,
-    };
-  }, [projectAspectRatio, isMobile, containerWidth]);
-
-  const generationsPerPage = paneLayout.itemsPerPage;
-  const { currentShotId } = useCurrentShot();
-
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('image');
-  const [shotFilterOpen, setShotFilterOpen] = useState(false);
-  const [mediaTypeFilterOpen, setMediaTypeFilterOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
-
-  const handleOpenModal = useCallback(() => setIsGenerationModalOpen(true), []);
-  const handleCloseModal = useCallback(() => setIsGenerationModalOpen(false), []);
-  useAppEventListener('openGenerationModal', handleOpenModal);
-  useAppEventListener('closeGenerationModal', handleCloseModal);
-
-  const {
-    shotsData,
-    paginatedData,
-    lastAffectedShotId,
-    totalCount,
-    selectedShotFilter,
-    excludePositioned,
-    page,
-    isLoading,
-    error,
-    isDeleting,
-    starredOnly,
-    searchTerm,
-    setSelectedShotFilter,
-    setExcludePositioned,
-    setStarredOnly,
-    setSearchTerm,
-    handleServerPageChange,
-    handleDeleteGeneration,
-    handleToggleStar,
-    handleAddToShot,
-    handleAddToShotWithoutPosition,
-    expectedItemCount,
-    confirmDialogProps,
-  } = useGalleryPageState({
-    itemsPerPage: generationsPerPage,
+  const galleryPageState = useGalleryPageState({
+    itemsPerPage,
     mediaType: mediaTypeFilter,
     enableDataLoading: shouldEnableDataLoading,
   });
 
-  const { shots: contextShots } = useShots();
-  const shotsForFilter = (shotsData && shotsData.length > 0)
-    ? shotsData
+  const shotsForFilter = (galleryPageState.shotsData && galleryPageState.shotsData.length > 0)
+    ? galleryPageState.shotsData
     : (contextShots || []);
 
-  const { createShot } = useShotCreation();
   const handleCreateShot = useCallback(async (shotName: string, files: File[]): Promise<void> => {
-    const result = await createShot({
+    await createShot({
       name: shotName,
       files: files.length > 0 ? files : undefined,
       dispatchSkeletonEvents: files.length > 0,
@@ -129,13 +79,47 @@ export const useGenerationsPaneController = () => {
         }
       },
     });
-
-    if (!result) {
-      return;
-    }
   }, [createShot, queryClient, selectedProjectId]);
 
-  useRenderLogger('GenerationsPane', { page, totalItems: totalCount });
+  return {
+    ...galleryPageState,
+    handleCreateShot,
+    shotsForFilter,
+  };
+};
+
+interface GenerationFiltersParams {
+  mediaTypeFilter: MediaTypeFilter;
+  setMediaTypeFilter: Dispatch<SetStateAction<MediaTypeFilter>>;
+  selectedShotFilter: GalleryPageState['selectedShotFilter'];
+  excludePositioned: GalleryPageState['excludePositioned'];
+  starredOnly: GalleryPageState['starredOnly'];
+  searchTerm: GalleryPageState['searchTerm'];
+  setSelectedShotFilter: GalleryPageState['setSelectedShotFilter'];
+  setExcludePositioned: GalleryPageState['setExcludePositioned'];
+  setStarredOnly: GalleryPageState['setStarredOnly'];
+  setSearchTerm: GalleryPageState['setSearchTerm'];
+}
+
+const useGenerationFilters = ({
+  mediaTypeFilter,
+  setMediaTypeFilter,
+  selectedShotFilter,
+  excludePositioned,
+  starredOnly,
+  searchTerm,
+  setSelectedShotFilter,
+  setExcludePositioned,
+  setStarredOnly,
+  setSearchTerm,
+}: GenerationFiltersParams) => {
+  const [shotFilterOpen, setShotFilterOpen] = useState(false);
+  const [mediaTypeFilterOpen, setMediaTypeFilterOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const shotFilterContentRef = useRef<HTMLDivElement>(null);
+  const mediaTypeContentRef = useRef<HTMLDivElement>(null);
 
   const generationFilters = useStableObject(() => ({
     mediaType: mediaTypeFilter,
@@ -161,9 +145,53 @@ export const useGenerationsPaneController = () => {
     setMediaTypeFilter(newFilters.mediaType);
   }, [setSelectedShotFilter, setExcludePositioned, setSearchTerm, setStarredOnly, setMediaTypeFilter]);
 
-  const shotFilterContentRef = useRef<HTMLDivElement>(null);
-  const mediaTypeContentRef = useRef<HTMLDivElement>(null);
+  return {
+    excludePositioned,
+    galleryFilters,
+    generationFilters,
+    handleGalleryFiltersChange,
+    isSearchOpen,
+    mediaTypeContentRef,
+    mediaTypeFilter,
+    mediaTypeFilterOpen,
+    searchInputRef,
+    searchTerm,
+    selectedShotFilter,
+    setExcludePositioned,
+    setIsSearchOpen,
+    setMediaTypeFilter,
+    setMediaTypeFilterOpen,
+    setSelectedShotFilter,
+    setShotFilterOpen,
+    setStarredOnly,
+    setSearchTerm,
+    shotFilterContentRef,
+    shotFilterOpen,
+    starredOnly,
+  };
+};
 
+interface PaneLifecycleParams {
+  isGenerationsPaneLocked: boolean;
+  setIsGenerationsPaneLocked: BooleanStateSetter;
+  setIsGenerationsPaneOpen: BooleanStateSetter;
+  isOnImageGenerationPage: boolean;
+  shotFilterContentRef: RefObject<HTMLDivElement | null>;
+  mediaTypeContentRef: RefObject<HTMLDivElement | null>;
+  setShotFilterOpen: BooleanStateSetter;
+  setMediaTypeFilterOpen: BooleanStateSetter;
+}
+
+const usePaneLifecycle = ({
+  isGenerationsPaneLocked,
+  setIsGenerationsPaneLocked,
+  setIsGenerationsPaneOpen,
+  isOnImageGenerationPage,
+  shotFilterContentRef,
+  mediaTypeContentRef,
+  setShotFilterOpen,
+  setMediaTypeFilterOpen,
+}: PaneLifecycleParams) => {
   const {
     isLocked,
     isOpen,
@@ -178,7 +206,7 @@ export const useGenerationsPaneController = () => {
   } = useSlidingPane({
     side: 'bottom',
     isLocked: isGenerationsPaneLocked,
-    onToggleLock: () => setIsGenerationsPaneLocked(!isGenerationsPaneLocked),
+    onToggleLock: () => setIsGenerationsPaneLocked((locked) => !locked),
     additionalRefs: [shotFilterContentRef, mediaTypeContentRef],
   });
   const paneIsOpen = Boolean(isOpen);
@@ -186,7 +214,7 @@ export const useGenerationsPaneController = () => {
   const handlePaneOpenStart = useCallback(() => {
     setShotFilterOpen(false);
     setMediaTypeFilterOpen(false);
-  }, [setShotFilterOpen, setMediaTypeFilterOpen]);
+  }, [setMediaTypeFilterOpen, setShotFilterOpen]);
 
   const { isPointerEventsEnabled, isInteractionDisabled } = usePaneInteractionLifecycle({
     isOpen: paneIsOpen,
@@ -204,80 +232,171 @@ export const useGenerationsPaneController = () => {
   }, [paneIsOpen, setIsGenerationsPaneOpen]);
 
   useEffect(() => {
-    if ((isOnImageGenerationPage) && (paneIsOpen || isLocked)) {
+    if (isOnImageGenerationPage && (paneIsOpen || isLocked)) {
       setIsGenerationsPaneLocked(false);
     }
   }, [isOnImageGenerationPage, paneIsOpen, isLocked, setIsGenerationsPaneLocked]);
+
+  return {
+    closePane,
+    handlePaneEnter,
+    handlePaneLeave,
+    isInteractionDisabled,
+    isLocked,
+    isPointerEventsEnabled,
+    openPane,
+    paneIsOpen,
+    paneProps,
+    showBackdrop,
+    toggleLock,
+    transformClass,
+  };
+};
+
+const usePaneLayout = (projectAspectRatio: ProjectAspectRatio | undefined) => {
+  const isMobile = useIsMobile();
+  const [galleryContainerRef, containerWidth] = useContainerWidth();
+
+  const paneLayout = useMemo(() => {
+    const layout = calculateGalleryLayout(
+      projectAspectRatio,
+      isMobile,
+      containerWidth,
+      undefined,
+      true,
+    );
+    return {
+      ...layout,
+      itemsPerPage: layout.columns * PANE_ROWS,
+    };
+  }, [projectAspectRatio, isMobile, containerWidth]);
+
+  return {
+    galleryContainerRef,
+    isMobile,
+    paneLayout,
+  };
+};
+
+export const useGenerationsPaneController = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    isGenerationsPaneLocked,
+    setIsGenerationsPaneLocked,
+    isGenerationsPaneOpen,
+    setIsGenerationsPaneOpen,
+    generationsPaneHeight,
+    isShotsPaneLocked,
+    shotsPaneWidth,
+    isTasksPaneLocked,
+    tasksPaneWidth,
+  } = usePanes();
+  const { selectedProjectId } = useProjectSelectionContext();
+  const { projects } = useProjectCrudContext();
+  const { currentShotId } = useCurrentShot();
+
+  const isOnImageGenerationPage = location.pathname === TOOL_ROUTES.IMAGE_GENERATION;
+  const currentProject = projects.find((project) => project.id === selectedProjectId);
+  const projectAspectRatio = currentProject?.aspectRatio;
+  const shouldEnableDataLoading = isGenerationsPaneOpen;
+
+  const { galleryContainerRef, isMobile, paneLayout } = usePaneLayout(projectAspectRatio);
+
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaTypeFilter>('image');
+  const generationData = useGenerationData({
+    itemsPerPage: paneLayout.itemsPerPage,
+    mediaTypeFilter,
+    shouldEnableDataLoading,
+    selectedProjectId,
+  });
+
+  const filters = useGenerationFilters({
+    mediaTypeFilter,
+    setMediaTypeFilter,
+    selectedShotFilter: generationData.selectedShotFilter,
+    excludePositioned: generationData.excludePositioned,
+    starredOnly: generationData.starredOnly,
+    searchTerm: generationData.searchTerm,
+    setSelectedShotFilter: generationData.setSelectedShotFilter,
+    setExcludePositioned: generationData.setExcludePositioned,
+    setStarredOnly: generationData.setStarredOnly,
+    setSearchTerm: generationData.setSearchTerm,
+  });
+
+  const pane = usePaneLifecycle({
+    isGenerationsPaneLocked,
+    setIsGenerationsPaneLocked,
+    setIsGenerationsPaneOpen,
+    isOnImageGenerationPage,
+    shotFilterContentRef: filters.shotFilterContentRef,
+    mediaTypeContentRef: filters.mediaTypeContentRef,
+    setShotFilterOpen: filters.setShotFilterOpen,
+    setMediaTypeFilterOpen: filters.setMediaTypeFilterOpen,
+  });
+
+  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
+  const handleOpenModal = useCallback(() => setIsGenerationModalOpen(true), []);
+  const handleCloseModal = useCallback(() => setIsGenerationModalOpen(false), []);
+  useAppEventListener('openGenerationModal', handleOpenModal);
+  useAppEventListener('closeGenerationModal', handleCloseModal);
 
   const handleNavigateToImageGeneration = useCallback(() => {
     setIsGenerationsPaneLocked(false);
     navigate(TOOL_ROUTES.IMAGE_GENERATION);
   }, [navigate, setIsGenerationsPaneLocked]);
 
+  useRenderLogger('GenerationsPane', {
+    page: generationData.page,
+    totalItems: generationData.totalCount,
+  });
+
   return {
-    closePane,
-    confirmDialogProps,
-    currentShotId,
-    error,
-    excludePositioned,
-    galleryContainerRef,
-    galleryFilters,
-    generationFilters,
-    generationsPaneHeight,
-    handleAddToShot,
-    handleAddToShotWithoutPosition,
-    handleCreateShot,
-    handleDeleteGeneration,
-    handleGalleryFiltersChange,
-    handleNavigateToImageGeneration,
-    handlePaneEnter,
-    handlePaneLeave,
-    handleServerPageChange,
-    handleToggleStar,
-    isDeleting,
-    isGenerationModalOpen,
-    isInteractionDisabled,
-    isLocked,
-    isLoading,
-    isOnImageGenerationPage,
-    isPointerEventsEnabled,
-    isSearchOpen,
-    isShotsPaneLocked,
-    isSpecialFilterSelected: isSpecialFilter(selectedShotFilter),
-    isTasksPaneLocked,
-    lastAffectedShotId,
-    mediaTypeContentRef,
-    mediaTypeFilter,
-    mediaTypeFilterOpen,
-    openPane,
-    page,
-    paginatedData,
-    paneIsOpen,
-    paneLayout,
-    paneProps,
-    projectAspectRatio,
-    searchInputRef,
-    searchTerm,
-    selectedShotFilter,
-    setExcludePositioned,
-    setIsGenerationModalOpen,
-    setIsSearchOpen,
-    setMediaTypeFilter,
-    setMediaTypeFilterOpen,
-    setSelectedShotFilter,
-    setShotFilterOpen,
-    setStarredOnly,
-    setSearchTerm,
-    shotFilterContentRef,
-    shotFilterOpen,
-    shotsForFilter,
-    shotsPaneWidth,
-    showBackdrop,
-    starredOnly,
-    tasksPaneWidth,
-    toggleLock,
-    totalCount,
-    transformClass,
-    expectedItemCount,
+    pane: {
+      ...pane,
+      generationsPaneHeight,
+      isOnImageGenerationPage,
+      isShotsPaneLocked,
+      isTasksPaneLocked,
+      shotsPaneWidth,
+      tasksPaneWidth,
+    },
+    filters: {
+      ...filters,
+      currentShotId,
+      isSpecialFilterSelected: isSpecialFilter(filters.selectedShotFilter),
+      shotsForFilter: generationData.shotsForFilter,
+    },
+    gallery: {
+      confirmDialogProps: generationData.confirmDialogProps,
+      error: generationData.error,
+      expectedItemCount: generationData.expectedItemCount,
+      handleAddToShot: generationData.handleAddToShot,
+      handleAddToShotWithoutPosition: generationData.handleAddToShotWithoutPosition,
+      handleCreateShot: generationData.handleCreateShot,
+      handleDeleteGeneration: generationData.handleDeleteGeneration,
+      handleServerPageChange: generationData.handleServerPageChange,
+      handleToggleStar: generationData.handleToggleStar,
+      isDeleting: generationData.isDeleting,
+      isLoading: generationData.isLoading,
+      lastAffectedShotId: generationData.lastAffectedShotId,
+      page: generationData.page,
+      paginatedData: generationData.paginatedData,
+      shotsData: generationData.shotsData,
+      totalCount: generationData.totalCount,
+    },
+    layout: {
+      galleryContainerRef,
+      isMobile,
+      paneLayout,
+      projectAspectRatio,
+    },
+    modal: {
+      isGenerationModalOpen,
+      setIsGenerationModalOpen,
+    },
+    navigation: {
+      handleNavigateToImageGeneration,
+    },
   };
 };
