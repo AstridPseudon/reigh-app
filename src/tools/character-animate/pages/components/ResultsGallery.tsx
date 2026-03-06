@@ -64,7 +64,7 @@ export function ResultsGallery(props: ResultsGalleryProps) {
           defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
           currentToolTypeName="Animate Characters"
           columnsPerRow={3}
-          itemsPerPage={isMobile ? 20 : 12}
+          pagination={{ itemsPerPage: isMobile ? 20 : 12 }}
           config={{
             reducedSpacing: true,
             hidePagination: data.items.length <= (isMobile ? 20 : 12),

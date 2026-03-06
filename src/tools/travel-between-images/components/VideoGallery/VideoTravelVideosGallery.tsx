@@ -149,10 +149,13 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
           currentToolType={TOOL_IDS.TRAVEL_BETWEEN_IMAGES}
           currentToolTypeName="Travel Between Images"
           // Pagination props
-          totalCount={videosData?.total}
-          serverPage={videoPage}
-          onServerPageChange={(page) => setVideoPage(page)}
-          itemsPerPage={itemsPerPage}
+          pagination={{
+            totalCount: videosData?.total,
+            serverPage: videoPage,
+            onServerPageChange: (page) => setVideoPage(page),
+            itemsPerPage,
+            enableAdjacentPagePreloading: preloading?.enableAdjacentPagePreloading ?? true,
+          }}
           // Consolidated filter props
           filters={videoFilters}
           onFiltersChange={setVideoFilters}
@@ -162,7 +165,6 @@ export const VideoTravelVideosGallery: React.FC<VideoTravelVideosGalleryProps> =
           isDeleting={deletion?.isDeleting}
           // Preloading props
           generationFilters={preloading?.generationFilters}
-          enableAdjacentPagePreloading={preloading?.enableAdjacentPagePreloading ?? true}
           config={{
             showShotFilter: true,
             showShare: false,

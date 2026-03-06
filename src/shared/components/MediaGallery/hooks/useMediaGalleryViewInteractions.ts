@@ -1,4 +1,5 @@
-import { useMediaGalleryInteractionController } from './useMediaGalleryInteractionController';
+import { useMediaGalleryHandlers } from './useMediaGalleryHandlers';
+import { useMobileInteractions } from './useMobileInteractions';
 import { useMediaGalleryItemProps } from './useMediaGalleryItemProps';
 
 interface UseMediaGalleryViewInteractionsParams {
@@ -62,27 +63,26 @@ export function useMediaGalleryViewInteractions(params: UseMediaGalleryViewInter
     downloadingImageId,
   } = params;
 
-  const { galleryHandlers, mobileInteractions } = useMediaGalleryInteractionController({
-    handlers: {
-      allShots,
-      simplifiedShotOptions,
-      navigateToShot,
-      closeLightbox: actionsHook.handleCloseLightbox,
-      formAssociatedShotId,
-      onSwitchToAssociatedShot,
-      setShotFilter: filtersHook.setShotFilter,
-      activeLightboxMedia: stateHook.state.activeLightboxMedia,
-      setSelectedImageForDetails: stateHook.setSelectedImageForDetails,
-      setShowTaskDetailsModal: stateHook.setShowTaskDetailsModal,
-      setActiveLightboxMedia: stateHook.setActiveLightboxMedia,
-    },
-    mobile: {
-      isMobile,
-      setMobileActiveImageId: stateHook.setMobileActiveImageId,
-      mobilePopoverOpenImageId: stateHook.state.mobilePopoverOpenImageId,
-      setMobilePopoverOpenImageId: stateHook.setMobilePopoverOpenImageId,
-      onOpenLightbox: actionsHook.handleOpenLightbox,
-    },
+  const galleryHandlers = useMediaGalleryHandlers({
+    allShots,
+    simplifiedShotOptions,
+    navigateToShot,
+    closeLightbox: actionsHook.handleCloseLightbox,
+    formAssociatedShotId,
+    onSwitchToAssociatedShot,
+    setShotFilter: filtersHook.setShotFilter,
+    activeLightboxMedia: stateHook.state.activeLightboxMedia,
+    setSelectedImageForDetails: stateHook.setSelectedImageForDetails,
+    setShowTaskDetailsModal: stateHook.setShowTaskDetailsModal,
+    setActiveLightboxMedia: stateHook.setActiveLightboxMedia,
+  });
+
+  const mobileInteractions = useMobileInteractions({
+    isMobile,
+    setMobileActiveImageId: stateHook.setMobileActiveImageId,
+    mobilePopoverOpenImageId: stateHook.state.mobilePopoverOpenImageId,
+    setMobilePopoverOpenImageId: stateHook.setMobilePopoverOpenImageId,
+    onOpenLightbox: actionsHook.handleOpenLightbox,
   });
 
   const {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDeleteGenerationAction } from '@/domains/generation/hooks/useDeleteGenerationAction';
-import type { DeleteGenerationConfirmContract } from '@/domains/generation/contracts/deleteGenerationConfirm';
+import type { DeleteGenerationConfirmContract } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
 
 interface UseDeleteGenerationWithConfirmOptions {
   projectId: string | null | undefined;

@@ -59,7 +59,7 @@ export function JoinClipsResults({
           currentToolType={TOOL_IDS.JOIN_CLIPS}
           defaultFilters={{ mediaType: 'video', toolTypeFilter: true, shotFilter: 'all' }}
           columnsPerRow={3}
-          itemsPerPage={isMobile ? 20 : 12}
+          pagination={{ itemsPerPage: isMobile ? 20 : 12 }}
           config={{
             reducedSpacing: true,
             hidePagination: videosData.items.length <= (isMobile ? 20 : 12),

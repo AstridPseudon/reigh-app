@@ -1,14 +1,18 @@
 import { ConfirmDialog } from './ConfirmDialog';
-import type { DeleteGenerationConfirmContract } from '@/domains/generation/contracts/deleteGenerationConfirm';
 
-type DeleteGenerationConfirmDialogProps = DeleteGenerationConfirmContract;
+export interface DeleteGenerationConfirmContract {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void | Promise<void>;
+  isConfirming?: boolean;
+}
 
 export function DeleteGenerationConfirmDialog({
   open,
   onOpenChange,
   onConfirm,
   isConfirming,
-}: DeleteGenerationConfirmDialogProps) {
+}: DeleteGenerationConfirmContract) {
   return (
     <ConfirmDialog
       open={open}
