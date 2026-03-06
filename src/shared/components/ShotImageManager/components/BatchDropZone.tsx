@@ -443,4 +443,4 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
   );
 };
 
-export default BatchDropZone;
+export { BatchDropZone };

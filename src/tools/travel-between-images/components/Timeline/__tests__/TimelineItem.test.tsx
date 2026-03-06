@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import TimelineItem from '../TimelineItem';
+import { TimelineItem } from '../TimelineItem';
 
 describe('TimelineItem', () => {
   it('exports a memo-wrapped component', () => {

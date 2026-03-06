@@ -226,4 +226,6 @@ const TrailingEndpoint: React.FC<TrailingEndpointProps> = ({
   );
 };
 
-export default React.memo(TrailingEndpoint);
+const MemoizedTrailingEndpoint = React.memo(TrailingEndpoint);
+
+export { MemoizedTrailingEndpoint as TrailingEndpoint };

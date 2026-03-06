@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { LoraSelectorModal, LoraModel } from '@/domains/lora/components/LoraSelectorModal';
-import SettingsModal from '@/shared/components/SettingsModal/SettingsModal';
+import { SettingsModal } from '@/shared/components/SettingsModal/SettingsModal';
 import { useShotSettingsContext } from '../ShotSettingsContext';
 
 interface ModalsSectionProps {

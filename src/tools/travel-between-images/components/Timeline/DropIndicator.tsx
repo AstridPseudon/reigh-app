@@ -56,4 +56,4 @@ const DropIndicator: React.FC<DropIndicatorProps> = ({
   );
 };
 
-export default DropIndicator; 
+export { DropIndicator };

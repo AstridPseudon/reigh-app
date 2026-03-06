@@ -3,7 +3,7 @@ import { Sparkles, ExternalLink } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
-import PaneControlTab from '../PaneControlTab';
+import { PaneControlTab } from '../PaneControlTab';
 import { GenerationsPaneControls } from './components/GenerationsPaneControls';
 import { GenerationsPaneGallery } from './components/GenerationsPaneGallery';
 import { useGenerationsPaneController } from './hooks/useGenerationsPaneController';

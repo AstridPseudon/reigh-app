@@ -6,7 +6,7 @@ import { Pencil, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { presetQueryKeys } from '@/shared/lib/queryKeys/presets';
-import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 import type { PresetMetadata, PresetSampleGeneration } from '@/shared/types/presetMetadata';
 import type { PhaseConfig } from '../settings';
 

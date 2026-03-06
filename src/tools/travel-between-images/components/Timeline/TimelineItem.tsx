@@ -286,4 +286,6 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   );
 };
 
-export default React.memo(TimelineItem);
+const MemoizedTimelineItem = React.memo(TimelineItem);
+
+export { MemoizedTimelineItem as TimelineItem };

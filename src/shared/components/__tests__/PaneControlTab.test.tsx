@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import PaneControlTab from '../PaneControlTab';
+import { PaneControlTab } from '../PaneControlTab';
 
 describe('PaneControlTab', () => {
   it('exports expected members', () => {

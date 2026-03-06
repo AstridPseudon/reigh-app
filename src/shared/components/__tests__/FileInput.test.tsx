@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import FileInput from '../FileInput';
+import { FileInput } from '../FileInput';
 
 describe('FileInput', () => {
   it('renders label and accepted types copy', () => {

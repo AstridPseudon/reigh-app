@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { PairData } from '@/shared/types/pairData';
-import TrailingEndpoint from '../../TrailingEndpoint';
+import { TrailingEndpoint } from '../../TrailingEndpoint';
 import { sortPositionEntries } from '../../utils/timeline-utils';
 
 interface TrailingEndpointLayerProps {

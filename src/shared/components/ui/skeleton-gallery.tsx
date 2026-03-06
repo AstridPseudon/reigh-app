@@ -32,7 +32,7 @@ interface SkeletonGalleryProps {
  * A reusable skeleton loading component for gallery layouts.
  * Provides consistent skeleton styling across different tools and pages.
  */
-export function SkeletonGallery({
+function SkeletonGalleryComponent({
   count = 20,
   columns = { base: 2, sm: 3, md: 4, lg: 5, xl: 6 },
   fixedColumns,
@@ -160,4 +160,4 @@ export function SkeletonGallery({
   );
 }
 
-export default React.memo(SkeletonGallery); 
+export const SkeletonGallery = React.memo(SkeletonGalleryComponent);

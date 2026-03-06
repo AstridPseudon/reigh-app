@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { usePanes } from '@/shared/contexts/PanesContext';
-import PaneControlTab from '../PaneControlTab';
+import { PaneControlTab } from '../PaneControlTab';
 import { useBottomOffset } from '@/shared/hooks/layout/useBottomOffset';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useDarkMode } from '@/shared/hooks/core/useDarkMode';

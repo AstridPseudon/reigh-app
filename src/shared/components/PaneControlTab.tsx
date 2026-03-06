@@ -362,4 +362,4 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
   return content;
 };
 
-export default PaneControlTab;
+export { PaneControlTab };

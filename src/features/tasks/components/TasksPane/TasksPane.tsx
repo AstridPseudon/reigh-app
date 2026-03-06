@@ -7,7 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { Loader2 } from 'lucide-react';
 import { usePanes } from '@/shared/contexts/PanesContext';
-import PaneControlTab from '@/shared/components/PaneControlTab';
+import { PaneControlTab } from '@/shared/components/PaneControlTab';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { TasksPaneProcessingWarning } from '@/shared/components/ProcessingWarnings';

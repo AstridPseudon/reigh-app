@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import DropIndicator from '../DropIndicator';
+import { DropIndicator } from '../DropIndicator';
 
 describe('DropIndicator', () => {
   it('exports expected members', () => {

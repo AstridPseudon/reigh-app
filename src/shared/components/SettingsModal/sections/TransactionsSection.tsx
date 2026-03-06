@@ -9,4 +9,4 @@ const TransactionsSection: React.FC = () => {
   );
 };
 
-export default TransactionsSection;
+export { TransactionsSection };

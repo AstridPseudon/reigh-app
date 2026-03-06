@@ -93,4 +93,4 @@ const TimelineRuler: React.FC<TimelineRulerProps> = ({
   );
 };
 
-export default TimelineRuler; 
+export { TimelineRuler };

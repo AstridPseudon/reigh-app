@@ -172,4 +172,4 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
   );
 };
 
-export default GenerationSection;
+export { GenerationSection };

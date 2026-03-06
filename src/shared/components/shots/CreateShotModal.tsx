@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Checkbox } from '@/shared/components/ui/checkbox';
-import FileInput from '@/shared/components/FileInput';
+import { FileInput } from '@/shared/components/FileInput';
 import { parseRatio } from '@/shared/lib/media/aspectRatios';
 import { cropImageToProjectAspectRatio } from '@/shared/lib/media/imageCropper';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
@@ -188,4 +188,4 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
   );
 };
 
-export default CreateShotModal; 
+export { CreateShotModal };

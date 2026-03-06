@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import TimelineRuler from '../TimelineRuler';
+import { TimelineRuler } from '../TimelineRuler';
 
 describe('TimelineRuler', () => {
   it('exports expected members', () => {

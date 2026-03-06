@@ -1,6 +1,6 @@
 import React from 'react';
 import { useIsMobile } from '@/shared/hooks/mobile';
-import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 
 interface MediaPreviewProps {
   url: string;

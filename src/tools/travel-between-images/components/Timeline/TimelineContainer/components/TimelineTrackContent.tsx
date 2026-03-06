@@ -1,5 +1,5 @@
 import React from 'react';
-import TimelineRuler from '../../TimelineRuler';
+import { TimelineRuler } from '../../TimelineRuler';
 import { TimelineTrack } from './TimelineTrack';
 import { TimelineTrackPrelude } from './TimelineTrackPrelude';
 import { DragLayer } from './DragLayer';

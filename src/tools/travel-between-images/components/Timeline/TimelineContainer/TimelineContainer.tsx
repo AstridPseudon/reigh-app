@@ -461,4 +461,6 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   );
 };
 
-export default React.memo(TimelineContainer);
+const MemoizedTimelineContainer = React.memo(TimelineContainer);
+
+export { MemoizedTimelineContainer as TimelineContainer };

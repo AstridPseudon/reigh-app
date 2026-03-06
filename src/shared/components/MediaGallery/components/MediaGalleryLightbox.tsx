@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import MediaLightbox from "@/domains/media-lightbox/MediaLightbox";
-import TaskDetailsModal from '@/shared/components/TaskDetails/TaskDetailsModal';
+import { TaskDetailsModal } from '@/shared/components/TaskDetails/TaskDetailsModal';
 import { GenerationRow, Shot } from "@/domains/generation/types";
 import { Task } from "@/types/tasks";
 import type { GeneratedImageWithMetadata } from '../types';

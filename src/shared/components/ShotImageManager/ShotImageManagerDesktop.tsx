@@ -14,7 +14,7 @@ import { usePendingImageOpen } from '@/shared/hooks/usePendingImageOpen';
 import { useAdjacentSegmentsData } from './hooks/useAdjacentSegmentsData';
 import { useImageTickFeedback } from './hooks/useImageTickFeedback';
 import { useDesktopSegmentScrubbing } from './hooks/useDesktopSegmentScrubbing';
-import BatchDropZone from './components/BatchDropZone';
+import { BatchDropZone } from './components/BatchDropZone';
 import { DeleteConfirmationDialog } from './components/DeleteConfirmationDialog';
 import { ImageGrid } from './components/ImageGrid';
 import { SelectionActionBar } from './components/SelectionActionBar';

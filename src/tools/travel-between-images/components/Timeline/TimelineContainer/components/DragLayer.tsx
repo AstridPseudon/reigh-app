@@ -1,5 +1,5 @@
 import React from 'react';
-import DropIndicator from '../../DropIndicator';
+import { DropIndicator } from '../../DropIndicator';
 import { PendingFrameMarker } from './PendingFrameMarker';
 import { TimelineSkeletonItem } from './TimelineSkeletonItem';
 

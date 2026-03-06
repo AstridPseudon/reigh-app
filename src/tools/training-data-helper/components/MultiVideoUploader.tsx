@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Progress } from '@/shared/components/ui/progress';
 import { Video, Upload, Trash2, Clock, FileText, Scissors, Play, Zap } from 'lucide-react';
-import FileInput from '@/shared/components/FileInput';
+import { FileInput } from '@/shared/components/FileInput';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { cropFilename } from '@/shared/lib/stringFormatting';
 import { generateUUID } from '@/shared/lib/taskCreation';

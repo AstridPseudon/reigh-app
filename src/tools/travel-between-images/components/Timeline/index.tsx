@@ -19,7 +19,7 @@ import { useTimelineDomainService } from "./hooks/timeline-core/useTimelineDomai
 import { quantizeGap } from '@/shared/lib/media/videoUtils';
 import { useTimelineLightboxOrchestrator } from "./hooks/useTimelineLightboxOrchestrator";
 
-import TimelineContainer from "./TimelineContainer/TimelineContainer";
+import { TimelineContainer } from "./TimelineContainer/TimelineContainer";
 import { useEmptyStateDrop } from "./hooks/drag/useEmptyStateDrop";
 
 interface TimelineCoreAdapter {
@@ -430,4 +430,6 @@ const Timeline: React.FC<TimelineProps> = ({
   );
 };
 
-export default React.memo(Timeline);
+const MemoizedTimeline = React.memo(Timeline);
+
+export { MemoizedTimeline as Timeline };

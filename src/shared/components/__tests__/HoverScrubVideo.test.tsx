@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import HoverScrubVideo from '../HoverScrubVideo';
+import { HoverScrubVideo } from '../HoverScrubVideo';
 
 const {
   handleErrorMock,

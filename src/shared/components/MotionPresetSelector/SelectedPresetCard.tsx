@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { Button } from '@/shared/components/ui/button';
 import { Settings, X } from 'lucide-react';
-import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 import type { SelectedPresetCardProps, PresetMetadata } from './types';
 
 // Helper to check if an ID is a built-in preset (not in database)

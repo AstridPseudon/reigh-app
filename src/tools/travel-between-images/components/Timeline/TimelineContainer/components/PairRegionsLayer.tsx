@@ -1,7 +1,7 @@
 import React from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { PairData } from '@/shared/types/pairData';
-import PairRegion from '../../PairRegion';
+import { PairRegion } from '../../PairRegion';
 import { TIMELINE_PADDING_OFFSET } from '../../constants';
 import { sortPositionEntries } from '../../utils/timeline-utils';
 

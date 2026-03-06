@@ -1,6 +1,6 @@
 import React from 'react';
 import { GenerationRow } from '@/domains/generation/types';
-import TimelineItem from '../../TimelineItem';
+import { TimelineItem } from '../../TimelineItem';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 
 interface TimelineItemsLayerProps {

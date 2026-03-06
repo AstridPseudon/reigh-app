@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import TrailingEndpoint from '../TrailingEndpoint';
+import { TrailingEndpoint } from '../TrailingEndpoint';
 
 describe('TrailingEndpoint', () => {
   it('exports a memo-wrapped component', () => {

@@ -5,7 +5,7 @@ import { ToolsPane } from '@/shared/components/ToolsPane/ToolsPane';
 import { GenerationsPane } from '@/shared/components/GenerationsPane/GenerationsPane';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { ReighLoading } from '@/shared/components/ReighLoading';
-import SettingsModal from '@/shared/components/SettingsModal/SettingsModal';
+import { SettingsModal } from '@/shared/components/SettingsModal/SettingsModal';
 import { OnboardingModal } from '@/shared/components/OnboardingModal';
 import { ChunkLoadErrorBoundary } from '@/shared/runtime/ChunkLoadErrorBoundary';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';

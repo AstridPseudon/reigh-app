@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 import { Image as ImageIcon, Loader2, Lock, Globe, Video } from 'lucide-react';
 import { Resource, StyleReferenceMetadata, StructureVideoMetadata } from '@/shared/hooks/useResources';
 import type { ResourceBrowserData } from '@/shared/hooks/resources/useResourceBrowserData';

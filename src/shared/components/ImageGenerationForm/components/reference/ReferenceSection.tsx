@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Images } from "lucide-react";
-import FileInput from "@/shared/components/FileInput";
+import { FileInput } from "@/shared/components/FileInput";
 import { ResourceBrowserModalBase } from "@/shared/components/resources/ResourceBrowserModalBase";
 import { ReferenceGrid } from "./ReferenceGrid";
 import { ReferencePreview } from "./ReferencePreview";

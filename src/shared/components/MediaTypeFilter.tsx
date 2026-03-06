@@ -20,7 +20,7 @@ interface MediaTypeFilterProps {
   contentRef?: RefObject<HTMLDivElement>;
 }
 
-export const MediaTypeFilter: React.FC<MediaTypeFilterProps> = ({
+const MediaTypeFilterComponent: React.FC<MediaTypeFilterProps> = ({
   value,
   onChange,
   darkSurface,
@@ -68,4 +68,4 @@ export const MediaTypeFilter: React.FC<MediaTypeFilterProps> = ({
   );
 };
 
-export default React.memo(MediaTypeFilter);
+export const MediaTypeFilter = React.memo(MediaTypeFilterComponent);

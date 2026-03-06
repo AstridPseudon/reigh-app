@@ -256,4 +256,4 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
   );
 };
 
-export default TaskDetailsModal;
+export { TaskDetailsModal };

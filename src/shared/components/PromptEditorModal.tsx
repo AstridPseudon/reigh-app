@@ -198,4 +198,4 @@ const PromptEditorModal: React.FC<PromptEditorModalProps> = React.memo(({
   );
 });
 
-export default PromptEditorModal;
+export { PromptEditorModal };

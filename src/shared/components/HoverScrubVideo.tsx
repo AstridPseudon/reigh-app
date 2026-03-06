@@ -431,4 +431,4 @@ const HoverScrubVideo: React.FC<HoverScrubVideoProps> = ({
   );
 };
 
-export default HoverScrubVideo;
+export { HoverScrubVideo };

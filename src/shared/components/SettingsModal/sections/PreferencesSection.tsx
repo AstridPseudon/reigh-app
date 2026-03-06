@@ -187,4 +187,4 @@ const PreferencesSection: React.FC<PreferencesSectionProps> = ({
   );
 };
 
-export default PreferencesSection;
+export { PreferencesSection };

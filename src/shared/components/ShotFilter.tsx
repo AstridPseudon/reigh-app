@@ -27,7 +27,7 @@ interface ShotFilterProps {
   contentRef?: RefObject<HTMLDivElement>;
 }
 
-export const ShotFilter: React.FC<ShotFilterProps> = ({
+const ShotFilterComponent: React.FC<ShotFilterProps> = ({
   shots,
   selectedShotId,
   onShotChange,
@@ -127,4 +127,4 @@ export const ShotFilter: React.FC<ShotFilterProps> = ({
   );
 };
 
-export default React.memo(ShotFilter);
+export const ShotFilter = React.memo(ShotFilterComponent);

@@ -225,4 +225,6 @@ const PairRegion: React.FC<PairRegionProps> = ({
   );
 };
 
-export default React.memo(PairRegion);
+const MemoizedPairRegion = React.memo(PairRegion);
+
+export { MemoizedPairRegion as PairRegion };

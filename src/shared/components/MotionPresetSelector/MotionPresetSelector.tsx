@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { Info, Library, Settings, Pencil } from 'lucide-react';
-import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 import { PhaseConfigVertical } from '@/shared/components/PhaseConfigSelectorModal/PhaseConfigVertical';
 import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal/PhaseConfigSelectorModal';
 import { PhaseConfig } from '@/shared/types/phaseConfig';

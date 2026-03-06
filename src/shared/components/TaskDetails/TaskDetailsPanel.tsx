@@ -247,4 +247,4 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
   );
 };
 
-export default TaskDetailsPanel;
+export { TaskDetailsPanel };

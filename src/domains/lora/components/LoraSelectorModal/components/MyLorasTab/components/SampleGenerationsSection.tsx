@@ -2,8 +2,8 @@ import React from 'react';
 import { Label } from "@/shared/components/ui/primitives/label";
 import { Button } from "@/shared/components/ui/button";
 
-import FileInput from "@/shared/components/FileInput";
-import HoverScrubVideo from '@/shared/components/HoverScrubVideo';
+import { FileInput } from "@/shared/components/FileInput";
+import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 
 import type { Resource } from '@/shared/hooks/useResources';
 import { LoraModel } from '../../../types';

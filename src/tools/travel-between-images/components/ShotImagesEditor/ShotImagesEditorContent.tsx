@@ -5,7 +5,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Video } from 'lucide-react';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { BatchModeContent } from './components/BatchModeContent';
-import Timeline from '../Timeline';
+import { Timeline } from '../Timeline';
 import { TimelineMediaProvider, type TimelineMediaContextValue } from '../Timeline/TimelineMediaContext';
 import type {
   ShotImagesEditorDataModel,

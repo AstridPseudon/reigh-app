@@ -1,5 +1,5 @@
 import React from "react";
-import HoverScrubVideo from "@/shared/components/HoverScrubVideo";
+import { HoverScrubVideo } from "@/shared/components/HoverScrubVideo";
 import type { GeneratedImageWithMetadata } from "../../MediaGallery/types";
 
 interface VideoContentProps {
