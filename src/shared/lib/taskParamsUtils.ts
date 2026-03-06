@@ -6,6 +6,12 @@
  */
 import { buildTaskPayloadSnapshot } from './tasks/taskPayloadSnapshot';
 import { createTravelPayloadReader, type TravelPayloadSource } from './tasks/travelPayloadReader';
+import {
+  asRecord,
+  asString,
+  asStringArray,
+  firstString as pickFirstString,
+} from './jsonNarrowing';
 
 /**
  * Parse task params, handling both string and object formats
@@ -356,20 +362,6 @@ function deriveTravelPrompt(params: Record<string, unknown>): string | null {
   );
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function asString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
-
-function asStringArray(value: unknown): string[] | null {
-  if (!Array.isArray(value)) return null;
-  return value.filter((item): item is string => typeof item === 'string');
-}
-
 function toIntegerOrNull(value: unknown): number | null {
   const numeric = toFiniteNumber(value);
   if (numeric === null || !Number.isInteger(numeric)) return null;
@@ -379,12 +371,4 @@ function toIntegerOrNull(value: unknown): number | null {
 function toFiniteNumber(value: unknown): number | null {
   const numeric = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(numeric) ? numeric : null;
-}
-
-function pickFirstString(...values: unknown[]): string | null {
-  for (const value of values) {
-    const text = asString(value);
-    if (text) return text;
-  }
-  return null;
 }

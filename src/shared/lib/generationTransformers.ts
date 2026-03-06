@@ -29,6 +29,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { expandShotData } from '@/shared/lib/shotData';
 import { parseGenerationTaskId } from '@/shared/lib/generationTaskIdParser';
 import { filterUuidStrings } from '@/shared/lib/uuid';
+import { asRecord, asString, firstString } from '@/shared/lib/jsonNarrowing';
 
 /**
  * Result type for calculateDerivedCounts
@@ -203,16 +204,15 @@ interface TransformOptions {
 function extractPrompt(params: Record<string, unknown> | null | undefined): string {
   if (!params) return 'No prompt';
 
-  const originalParams = params.originalParams as Record<string, unknown> | undefined;
-  const orchestratorDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
-  const metadataBlock = params.metadata as Record<string, unknown> | undefined;
+  const originalParams = asRecord(params.originalParams);
+  const orchestratorDetails = asRecord(originalParams?.orchestrator_details);
+  const metadataBlock = asRecord(params.metadata);
 
-  return (
-    (orchestratorDetails?.prompt as string) ||
-    (params.prompt as string) ||
-    (metadataBlock?.prompt as string) ||
-    'No prompt'
-  );
+  return firstString(
+    orchestratorDetails?.prompt,
+    params.prompt,
+    metadataBlock?.prompt,
+  ) ?? 'No prompt';
 }
 
 /**
@@ -226,16 +226,17 @@ function extractThumbnailUrl(item: RawGeneration, mainUrl: string): string {
   
   // If no thumbnail in database, check params for travel-between-images videos
   if (!thumbnailUrl && isToolId(toolType) && toolType === TOOL_IDS.TRAVEL_BETWEEN_IMAGES) {
-    const originalParams = item.params?.originalParams as Record<string, unknown> | undefined;
-    const orchestratorDetails = originalParams?.orchestrator_details as Record<string, unknown> | undefined;
-    const fullPayload = item.params?.full_orchestrator_payload as Record<string, unknown> | undefined;
-    const originalFullPayload = originalParams?.full_orchestrator_payload as Record<string, unknown> | undefined;
+    const originalParams = asRecord(item.params?.originalParams);
+    const orchestratorDetails = asRecord(originalParams?.orchestrator_details);
+    const fullPayload = asRecord(item.params?.full_orchestrator_payload);
+    const originalFullPayload = asRecord(originalParams?.full_orchestrator_payload);
 
-    thumbnailUrl =
-      (item.params?.thumbnailUrl as string) ||
-      (orchestratorDetails?.thumbnail_url as string) ||
-      (fullPayload?.thumbnail_url as string) ||
-      (originalFullPayload?.thumbnail_url as string);
+    thumbnailUrl = firstString(
+      item.params?.thumbnailUrl,
+      orchestratorDetails?.thumbnail_url,
+      fullPayload?.thumbnail_url,
+      originalFullPayload?.thumbnail_url,
+    ) ?? undefined;
   }
   
   // Final fallback to main URL
@@ -310,7 +311,7 @@ export function transformGeneration(
     based_on: item.based_on, // Top level for easy access
     position: null, // Will be set if shot context provided
     timeline_frame: null, // Will be set if shot context provided
-    name: item.name || (item.params?.name as string | undefined) || undefined,
+    name: item.name ?? asString(item.params?.name) ?? undefined,
     derivedCount: item.derivedCount || 0, // Number of generations/variants based on this one
     hasUnviewedVariants: item.hasUnviewedVariants || false, // For NEW badge display
     unviewedVariantCount: item.unviewedVariantCount || 0, // Count for tooltip
@@ -321,7 +322,7 @@ export function transformGeneration(
   };
 
   // Normalize JSONB shot_data into a flat association list.
-  const shotGenerations = expandShotData(item.shot_data as Record<string, unknown> | null | undefined);
+  const shotGenerations = expandShotData(asRecord(item.shot_data));
   
   // If shot context is provided via options, use it
   if (options.shotImageEntryId || options.timeline_frame !== undefined) {
@@ -407,7 +408,7 @@ export function transformForTimeline(
     type: genData.type ?? undefined,
     createdAt: genData.created_at,
     timeline_frame: shotGen.timeline_frame ?? undefined,
-    metadata: (shotGen.metadata as GenerationMetadata | undefined) ?? undefined,
+    metadata: (asRecord(shotGen.metadata) as GenerationMetadata | null) ?? undefined,
     starred: genData.starred ?? false,
     based_on: genData.based_on ?? undefined,
     derivedCount: genData.derivedCount ?? 0,
@@ -439,8 +440,8 @@ export function transformVariant(
   options?: { toolType?: string }
 ): GeneratedImageWithMetadata {
   const isVideo = isVideoUrl(variant.location);
-  const variantParams = (variant.params ?? {}) as Record<string, unknown>;
-  const storedContentType = variantParams.content_type as string | undefined;
+  const variantParams = asRecord(variant.params) ?? {};
+  const storedContentType = asString(variantParams.content_type) ?? undefined;
 
   let contentType: string | undefined;
   if (storedContentType === 'video' || isVideo) {
@@ -458,13 +459,13 @@ export function transformVariant(
     createdAt: variant.created_at,
     starred: false, // Variants don't have starred flag
     metadata: {
-      prompt: variantParams.prompt as string | undefined,
+      prompt: asString(variantParams.prompt) ?? undefined,
       variant_type: variant.variant_type,
       name: variant.name,
       generation_id: variant.generation_id,
-      tool_type: (variantParams.tool_type as string) || options?.toolType,
-      created_from: variantParams.created_from as string | undefined,
-      source_task_id: variantParams.source_task_id as string | undefined,
+      tool_type: asString(variantParams.tool_type) ?? options?.toolType,
+      created_from: asString(variantParams.created_from) ?? undefined,
+      source_task_id: asString(variantParams.source_task_id) ?? undefined,
       content_type: storedContentType,
     },
     shot_id: undefined,

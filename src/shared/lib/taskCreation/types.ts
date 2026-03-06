@@ -1,4 +1,5 @@
 import { ValidationError } from '@/shared/lib/errorHandling/errors';
+import type { TaskParams, TaskType } from '@/types/database';
 
 export const DEFAULT_ASPECT_RATIO = '1:1';
 
@@ -9,8 +10,8 @@ export interface ProjectResolutionResult {
 
 export interface BaseTaskParams {
   project_id: string;
-  task_type: string;
-  params: Record<string, unknown>;
+  task_type: TaskType;
+  params: TaskParams;
 }
 
 /**

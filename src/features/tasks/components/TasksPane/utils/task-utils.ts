@@ -1,37 +1,19 @@
 import { Task } from '@/types/tasks';
 import { TASK_NAME_ABBREVIATIONS } from '../constants';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-
-type JsonObject = Record<string, unknown>;
-
-function asRecord(value: unknown): JsonObject | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as JsonObject;
-}
-
-function asString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
-
-function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((item): item is string => {
-    return typeof item === 'string' && item.length > 0;
-  });
-}
+import {
+  asRecord,
+  asString,
+  asStringArray,
+  firstString as firstNonEmptyString,
+} from '@/shared/lib/jsonNarrowing';
 
 function firstString(...values: unknown[]): string | null {
-  for (const value of values) {
-    const stringValue = asString(value);
-    if (stringValue) {
-      return stringValue;
-    }
-  }
-  return null;
+  return firstNonEmptyString(...values);
+}
+
+function toNonEmptyStringArray(value: unknown): string[] {
+  return (asStringArray(value) ?? []).filter((item) => item.length > 0);
 }
 
 export const deriveTaskInputImages = (task: Task | null): string[] => {
@@ -43,11 +25,11 @@ export const deriveTaskInputImages = (task: Task | null): string[] => {
 
   if (task.taskType === 'individual_travel_segment') {
     const segmentParams = asRecord(params.individual_segment_params);
-    const segmentImages = asStringArray(segmentParams?.input_image_paths_resolved);
+    const segmentImages = toNonEmptyStringArray(segmentParams?.input_image_paths_resolved);
     if (segmentImages.length > 0) {
       return segmentImages;
     }
-    return asStringArray(params.input_image_paths_resolved);
+    return toNonEmptyStringArray(params.input_image_paths_resolved);
   }
 
   const inputImages: string[] = [];
@@ -66,16 +48,16 @@ export const deriveTaskInputImages = (task: Task | null): string[] => {
     }
   }
 
-  inputImages.push(...asStringArray(params.images));
-  inputImages.push(...asStringArray(params.input_images));
+  inputImages.push(...toNonEmptyStringArray(params.images));
+  inputImages.push(...toNonEmptyStringArray(params.input_images));
 
   const orchestratorPayload = asRecord(params.full_orchestrator_payload);
-  inputImages.push(...asStringArray(orchestratorPayload?.input_image_paths_resolved));
+  inputImages.push(...toNonEmptyStringArray(orchestratorPayload?.input_image_paths_resolved));
 
   const orchestratorDetails = asRecord(params.orchestrator_details);
-  inputImages.push(...asStringArray(orchestratorDetails?.input_image_paths_resolved));
+  inputImages.push(...toNonEmptyStringArray(orchestratorDetails?.input_image_paths_resolved));
 
-  inputImages.push(...asStringArray(params.input_image_paths_resolved));
+  inputImages.push(...toNonEmptyStringArray(params.input_image_paths_resolved));
   return inputImages;
 };
 
@@ -137,7 +119,7 @@ export const extractPairShotGenerationId = (task: Task): string | null => {
   const params = asRecord(task.params) ?? {};
   const segmentParams = asRecord(params.individual_segment_params);
   const orchestratorDetails = asRecord(params.orchestrator_details);
-  const pairIds = asStringArray(orchestratorDetails?.pair_shot_generation_ids);
+  const pairIds = toNonEmptyStringArray(orchestratorDetails?.pair_shot_generation_ids);
   const segmentIndex = typeof params.segment_index === 'number'
     ? params.segment_index
     : Number(params.segment_index ?? 0);

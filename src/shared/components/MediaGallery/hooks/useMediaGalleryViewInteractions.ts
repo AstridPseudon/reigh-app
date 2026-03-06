@@ -1,20 +1,73 @@
 import { useMediaGalleryHandlers } from './useMediaGalleryHandlers';
 import { useMobileInteractions } from './useMobileInteractions';
 import { useMediaGalleryItemProps } from './useMediaGalleryItemProps';
+import type {
+  DisplayableMetadata,
+  GeneratedImageWithMetadata,
+  NavigableShot,
+  SimplifiedShotOption,
+} from '../types';
+import type { AddToShotHandler } from '@/shared/types/imageHandlers';
+
+interface MediaGalleryViewActionsHook {
+  handleCloseLightbox: () => void;
+  handleOpenLightbox: (image: GeneratedImageWithMetadata, autoEnterEditMode?: boolean) => void;
+  handleShotChange: (shotId: string) => void;
+  handleShowTick: (imageId: string) => void;
+  handleShowSecondaryTick: (imageId: string) => void;
+  handleOptimisticDelete: (imageId: string) => Promise<void>;
+  handleDownloadImage: (
+    rawUrl: string,
+    filename: string,
+    imageId?: string,
+    isVideo?: boolean,
+    originalContentType?: string,
+  ) => Promise<void>;
+}
+
+interface MediaGalleryViewFiltersHook {
+  setShotFilter: (value: string) => void;
+}
+
+interface MediaGalleryViewStateHook {
+  state: {
+    activeLightboxMedia: GeneratedImageWithMetadata | null;
+    mobilePopoverOpenImageId: string | null;
+    selectedShotIdLocal: string;
+    showTickForImageId: string | null;
+    showTickForSecondaryImageId: string | null;
+    optimisticUnpositionedIds: Set<string>;
+    optimisticPositionedIds: Set<string>;
+    optimisticDeletedIds: Set<string>;
+    addingToShotImageId: string | null;
+    addingToShotWithoutPositionImageId: string | null;
+    mobileActiveImageId: string | null;
+  };
+  setSelectedImageForDetails: (image: GeneratedImageWithMetadata | null) => void;
+  setShowTaskDetailsModal: (show: boolean) => void;
+  setActiveLightboxMedia: (media: GeneratedImageWithMetadata | null) => void;
+  setMobileActiveImageId: (id: string | null) => void;
+  setMobilePopoverOpenImageId: (id: string | null) => void;
+  setSelectedShotIdLocal: (id: string) => void;
+  markOptimisticUnpositioned: (mediaId: string, shotId: string) => void;
+  markOptimisticPositioned: (mediaId: string, shotId: string) => void;
+  setAddingToShotImageId: (id: string | null) => void;
+  setAddingToShotWithoutPositionImageId: (id: string | null) => void;
+}
 
 interface UseMediaGalleryViewInteractionsParams {
-  allShots: any[];
-  simplifiedShotOptions: any[];
-  navigateToShot: (...args: any[]) => void;
-  actionsHook: any;
+  allShots: NavigableShot[];
+  simplifiedShotOptions: SimplifiedShotOption[];
+  navigateToShot: (shot: NavigableShot) => void;
+  actionsHook: MediaGalleryViewActionsHook;
   formAssociatedShotId?: string;
   onSwitchToAssociatedShot?: ((shotId: string) => void) | undefined;
-  filtersHook: any;
-  stateHook: any;
+  filtersHook: MediaGalleryViewFiltersHook;
+  stateHook: MediaGalleryViewStateHook;
   isMobile: boolean;
-  onCreateShot?: ((...args: any[]) => Promise<any>) | undefined;
-  onAddToLastShot?: ((...args: any[]) => Promise<boolean>) | undefined;
-  onAddToLastShotWithoutPosition?: ((...args: any[]) => Promise<boolean>) | undefined;
+  onCreateShot?: ((shotName: string, files: File[]) => Promise<void>) | undefined;
+  onAddToLastShot?: AddToShotHandler | undefined;
+  onAddToLastShotWithoutPosition?: AddToShotHandler | undefined;
   showDelete: boolean;
   showDownload: boolean;
   showShare: boolean;
@@ -23,10 +76,10 @@ interface UseMediaGalleryViewInteractionsParams {
   showAddToShot: boolean;
   enableSingleClick: boolean;
   videosAsThumbnails: boolean;
-  onToggleStar?: ((...args: any[]) => Promise<void>) | undefined;
-  onApplySettings?: ((...args: any[]) => Promise<void> | void) | undefined;
-  onImageClick?: ((...args: any[]) => void) | undefined;
-  isDeleting?: string | null;
+  onToggleStar?: ((id: string, starred: boolean) => void) | undefined;
+  onApplySettings?: ((metadata: DisplayableMetadata | undefined) => Promise<void> | void) | undefined;
+  onImageClick?: ((image: GeneratedImageWithMetadata) => void) | undefined;
+  isDeleting?: string | boolean | null;
   currentViewingShotId?: string;
   activeLightboxMediaId?: string;
   downloadingImageId?: string | null;
