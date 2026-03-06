@@ -34,8 +34,8 @@ export async function fetchParentGenerations(
   return ((data || []) as unknown as RawGenerationDbRow[]).map(transformToGenerationRow);
 }
 
-export function buildChildrenQueryKey(selectedParentId: string): string[] {
-  return [...segmentQueryKeys.children(selectedParentId)] as string[];
+export function buildChildrenQueryKey(selectedParentId: string) {
+  return segmentQueryKeys.children(selectedParentId);
 }
 
 export async function fetchChildGenerations(selectedParentId: string): Promise<GenerationRow[]> {

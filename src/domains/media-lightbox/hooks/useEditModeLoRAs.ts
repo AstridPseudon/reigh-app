@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { EDIT_MODE_LORA_URLS } from '@/domains/lora/lib/loraUtils';
 
 export type LoraMode = 'none' | 'in-scene' | 'next-scene' | 'custom';
 
@@ -39,12 +40,12 @@ export const useEditModeLoras = (): UseEditModeLorasReturn => {
     switch (loraMode) {
       case 'in-scene':
         return [{
-          url: 'https://huggingface.co/peteromallet/random_junk/resolve/main/in_scene_different_object_000010500.safetensors',
+          url: EDIT_MODE_LORA_URLS['in-scene'],
           strength: 1.0
         }];
       case 'next-scene':
         return [{
-          url: 'https://huggingface.co/lovis93/next-scene-qwen-image-lora-2509/resolve/main/next-scene_lora-v2-3000.safetensors',
+          url: EDIT_MODE_LORA_URLS['next-scene'],
           strength: 1.0
         }];
       case 'custom':
@@ -73,4 +74,3 @@ export const useEditModeLoras = (): UseEditModeLorasReturn => {
     setIsInSceneBoostEnabled,
   };
 };
-

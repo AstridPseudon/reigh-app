@@ -17,6 +17,7 @@ import {
   DEFAULT_ADVANCED_SETTINGS,
   DEFAULT_ENHANCE_SETTINGS,
 } from '../../model/editSettingsTypes';
+import { EDIT_MODE_LORA_URLS } from '@/domains/lora/lib/loraUtils';
 
 interface UseEditSettingsPersistenceProps {
   generationId: string | null;
@@ -81,12 +82,6 @@ interface UseEditSettingsPersistenceReturn {
   isReady: boolean; // True when initialization is complete
   hasPersistedSettings: boolean;
 }
-
-// LoRA URL constants (moved from useEditModeLoras)
-const LORA_URLS = {
-  'in-scene': 'https://huggingface.co/peteromallet/random_junk/resolve/main/in_scene_different_object_000010500.safetensors',
-  'next-scene': 'https://huggingface.co/lovis93/next-scene-qwen-image-lora-2509/resolve/main/next-scene_lora-v2-3000.safetensors',
-} as const;
 
 /**
  * Unified edit settings persistence hook
@@ -305,9 +300,9 @@ export function useEditSettingsPersistence({
 
     switch (loraMode) {
       case 'in-scene':
-        return [{ url: LORA_URLS['in-scene'], strength: 1.0 }];
+        return [{ url: EDIT_MODE_LORA_URLS['in-scene'], strength: 1.0 }];
       case 'next-scene':
-        return [{ url: LORA_URLS['next-scene'], strength: 1.0 }];
+        return [{ url: EDIT_MODE_LORA_URLS['next-scene'], strength: 1.0 }];
       case 'custom':
         return customLoraUrl.trim()
           ? [{ url: customLoraUrl.trim(), strength: 1.0 }]

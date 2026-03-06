@@ -19,6 +19,12 @@ export interface LoraDisplayModel {
   [key: string]: unknown;
 }
 
+// Preset edit-mode LoRA URLs used in media lightbox edit hooks.
+export const EDIT_MODE_LORA_URLS = {
+  "in-scene": "https://huggingface.co/peteromallet/random_junk/resolve/main/in_scene_different_object_000010500.safetensors",
+  "next-scene": "https://huggingface.co/lovis93/next-scene-qwen-image-lora-2509/resolve/main/next-scene_lora-v2-3000.safetensors",
+} as const;
+
 // Pre-defined LoRA options for quick selection
 export const PREDEFINED_LORAS = [
   {

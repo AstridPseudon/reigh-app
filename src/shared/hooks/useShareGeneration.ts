@@ -72,14 +72,15 @@ export function useShareGeneration(
   shotId?: string | null,
   options?: UseShareGenerationOptions
 ): UseShareGenerationResult {
-  const [shareSlug, setShareSlug] = useState<string | null>(options?.initialShareSlug ?? null);
+  const { initialShareSlug, onShareCreated } = options ?? {};
+  const [shareSlug, setShareSlug] = useState<string | null>(initialShareSlug ?? null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   // Reset share state when shot/generation changes
   useEffect(() => {
-    setShareSlug(options?.initialShareSlug ?? null);
+    setShareSlug(initialShareSlug ?? null);
     setShareCopied(false);
-  }, [generationId, shotId, options?.initialShareSlug]);
+  }, [generationId, shotId, initialShareSlug]);
 
   // Generate a short, URL-friendly random string
   const generateShareSlug = (length: number = 10): string => {
@@ -370,7 +371,7 @@ export function useShareGeneration(
 
       // Notify caller of newly created share
       if (generationId) {
-        options?.onShareCreated?.(generationId, newSlug);
+        onShareCreated?.(generationId, newSlug);
       }
 
       // Copy to clipboard
@@ -398,7 +399,7 @@ export function useShareGeneration(
     } finally {
       setIsCreatingShare(false);
     }
-  }, [shareSlug, generationId, taskId, shotId, toast, options]);
+  }, [shareSlug, generationId, taskId, shotId, toast, onShareCreated]);
 
   return {
     handleShare,

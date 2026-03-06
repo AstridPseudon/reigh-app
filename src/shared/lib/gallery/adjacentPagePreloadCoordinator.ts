@@ -16,6 +16,12 @@ interface PaginatedResponse {
   items?: Array<{ id?: string; url?: string; thumbUrl?: string }>;
 }
 
+type AdjacentPreloadErrorHandler = (
+  context: string,
+  error: unknown,
+  logData: Record<string, unknown>,
+) => void;
+
 interface AdjacentPreloadContext {
   queryClient: QueryClient;
   projectId: string;
@@ -26,20 +32,16 @@ interface AdjacentPreloadContext {
   filters?: GenerationFilters;
   filtersString: string | null;
   keepRange?: number;
-  onError: (context: string, error: unknown, logData: Record<string, unknown>) => void;
+  onError?: AdjacentPreloadErrorHandler;
 }
 
-interface ScheduleAdjacentGenerationPagePreloadOptions {
-  queryClient: QueryClient;
-  projectId: string;
-  currentPage: number;
-  totalPages: number | null;
-  hasMorePages: boolean;
-  itemsPerPage: number;
-  filters?: GenerationFilters;
-  filtersString: string | null;
-  keepRange?: number;
-}
+const defaultOnError: AdjacentPreloadErrorHandler = (context, error, logData) => {
+  normalizeAndPresentError(error, {
+    context,
+    showToast: false,
+    logData,
+  });
+};
 
 function extractLoadedImageIds(data: unknown): Array<{ id: string }> {
   if (!data || typeof data !== 'object') {
@@ -99,7 +101,8 @@ export function scheduleAdjacentGenerationPagePreload({
   filters,
   filtersString,
   keepRange = 2,
-}: ScheduleAdjacentGenerationPagePreloadOptions): () => void {
+  onError = defaultOnError,
+}: AdjacentPreloadContext): () => void {
   const config = preloadingService.getConfig();
 
   const timer = setTimeout(async () => {
@@ -113,13 +116,7 @@ export function scheduleAdjacentGenerationPagePreload({
       filters,
       filtersString,
       keepRange,
-      onError: (context, error, logData) => {
-        normalizeAndPresentError(error, {
-          context,
-          showToast: false,
-          logData,
-        });
-      },
+      onError,
     });
   }, config.debounceMs);
 
@@ -140,7 +137,7 @@ async function prefetchPage(
     itemsPerPage,
     filters,
     filtersString,
-    onError,
+    onError = defaultOnError,
   } = context;
 
   try {
