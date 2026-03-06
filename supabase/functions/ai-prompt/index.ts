@@ -1,6 +1,5 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Groq from "npm:groq-sdk@0.26.0";
 import {
   checkRateLimit,
@@ -8,7 +7,7 @@ import {
   rateLimitFailureResponse,
   RATE_LIMITS,
 } from "../_shared/rateLimit.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
 import {
   buildEditPromptMessages,
@@ -30,18 +29,23 @@ if (!openaiApiKey) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return jsonResponse({ ok: true });
-  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "ai-prompt",
+    logPrefix: "[AI-PROMPT]",
+    parseBody: "strict",
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
+  }
 
-  // Authenticate using shared auth helper (supports JWT + PAT)
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
-  const auth = await authenticateRequest(req, supabaseAdmin, "[AI-PROMPT]", { allowJwtUserAuth: true });
-  if (!auth.success || !auth.userId) {
-    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
+  const { supabaseAdmin, auth, body } = bootstrap.value;
+  if (!auth?.userId) {
+    return jsonResponse({ error: "Authentication failed" }, 401);
   }
 
   // Rate limit by user ID (this is an expensive AI endpoint)
@@ -57,13 +61,6 @@ serve(async (req) => {
       return rateLimitFailureResponse(rateLimitResult, RATE_LIMITS.expensive);
     }
     return jsonResponse({ error: 'Rate limit service unavailable' }, 503);
-  }
-
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON payload" }, 400);
   }
 
   const task = body.task as string | undefined;

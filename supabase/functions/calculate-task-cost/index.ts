@@ -1,14 +1,13 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
-import { SystemLogger } from "../_shared/systemLogger.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import {
   getSubTaskOrchestratorId,
   lookupCompletedSubTasksForOrchestrator,
   SubTaskLookupError,
   type CompletedSubTaskRow,
 } from "../_shared/billing.ts";
-import { authenticateRequest, verifyTaskOwnership } from "../_shared/auth.ts";
+import { verifyTaskOwnership } from "../_shared/auth.ts";
 import {
   calculateTaskCost,
   errorResponse,
@@ -16,67 +15,25 @@ import {
   parseTaskCostParams,
   parseTaskWithProject,
 } from "./costHelpers.ts";
-
-declare const Deno: { env: { get: (key: string) => string | undefined } };
-
 export const __internal = {
   parseTaskCostParams,
 };
 
 serve(async (req) => {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-  if (!supabaseUrl || !serviceKey) {
-    console.error("[CALCULATE-TASK-COST] Missing required environment variables");
-    return errorResponse('server_configuration_error', 'Server configuration error', 500);
-  }
-
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "calculate-task-cost",
+    logPrefix: "[CALCULATE-TASK-COST]",
+    parseBody: "strict",
     auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+      required: true,
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
   });
-
-  // Create logger (task_id will be set after parsing body)
-  const logger = new SystemLogger(supabaseAdmin, 'calculate-task-cost');
-
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return jsonResponse({ ok: true });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  if (req.method !== 'POST') {
-    logger.warn("Method not allowed", { method: req.method });
-    await logger.flush();
-    return errorResponse('method_not_allowed', 'Method not allowed', 405);
-  }
-
-  // Authenticated endpoint: service-role or owner-verified user token.
-  const auth = await authenticateRequest(req, supabaseAdmin, "[CALCULATE-TASK-COST]");
-  if (!auth.success) {
-    logger.warn(auth.error || "Authentication failed");
-    await logger.flush();
-    return errorResponse('authentication_failed', auth.error || "Authentication failed", auth.statusCode || 401);
-  }
-
-  let requestBody: Record<string, unknown>;
-  try {
-    const parsed = await req.json();
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      logger.warn("Invalid JSON body shape");
-      await logger.flush();
-      return errorResponse('invalid_json', 'Request body must be a JSON object', 400);
-    }
-    requestBody = parsed as Record<string, unknown>;
-  } catch (jsonError) {
-    logger.warn("Invalid JSON body", {
-      error: jsonError instanceof Error ? jsonError.message : String(jsonError),
-    });
-    await logger.flush();
-    return errorResponse('invalid_json', 'Request body must be valid JSON', 400);
-  }
+  const { supabaseAdmin, logger, auth, body: requestBody } = bootstrap.value;
 
   try {
     const task_id = typeof requestBody.task_id === 'string' ? requestBody.task_id : undefined;
@@ -87,8 +44,8 @@ serve(async (req) => {
       return errorResponse('missing_task_id', 'task_id is required', 400);
     }
 
-    if (!auth.isServiceRole) {
-      if (!auth.userId) {
+    if (!auth?.isServiceRole) {
+      if (!auth?.userId) {
         logger.warn("Missing authenticated user id for non-service request");
         await logger.flush();
         return errorResponse('authentication_failed', 'Authentication failed', 401);

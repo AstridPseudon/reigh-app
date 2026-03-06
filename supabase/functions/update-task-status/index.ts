@@ -1,8 +1,5 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
-
-import { authenticateRequest } from '../_shared/auth.ts';
-import { SystemLogger } from '../_shared/systemLogger.ts';
+import { bootstrapEdgeHandler } from '../_shared/edgeHandler.ts';
 
 import { handleCascadingTaskFailure } from './cascade.ts';
 import { handleOrchestratorCancellationBilling } from './cancellationBilling.ts';
@@ -14,6 +11,19 @@ import { fetchCurrentTaskStatus, updateTaskByRole } from './taskUpdates.ts';
 declare const Deno: { env: { get: (key: string) => string | undefined } };
 
 serve(async (req) => {
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: 'update-task-status',
+    logPrefix: '[UPDATE-TASK-STATUS]',
+    method: 'POST',
+    parseBody: 'none',
+    auth: {
+      required: true,
+    },
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
+  }
+
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
 
@@ -22,14 +32,7 @@ serve(async (req) => {
     return new Response('Server configuration error', { status: 500 });
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const logger = new SystemLogger(supabaseAdmin, 'update-task-status');
-
-  if (req.method !== 'POST') {
-    logger.warn('Method not allowed', { method: req.method });
-    await logger.flush();
-    return new Response('Method not allowed', { status: 405 });
-  }
+  const { supabaseAdmin, logger, auth } = bootstrap.value;
 
   const parseResult = await parseAndValidateRequest(req, logger);
   if (!parseResult.ok) {
@@ -43,15 +46,8 @@ serve(async (req) => {
     status: requestBody.status,
   });
 
-  const auth = await authenticateRequest(req, supabaseAdmin, '[UPDATE-TASK-STATUS]');
-  if (!auth.success) {
-    logger.error('Authentication failed', { error: auth.error });
-    await logger.flush();
-    return new Response(auth.error || 'Authentication failed', { status: auth.statusCode || 403 });
-  }
-
-  const isServiceRole = auth.isServiceRole;
-  const callerId = auth.userId;
+  const isServiceRole = auth?.isServiceRole === true;
+  const callerId = auth?.userId ?? null;
 
   try {
     const currentTaskResult = await fetchCurrentTaskStatus(supabaseAdmin, requestBody.task_id);

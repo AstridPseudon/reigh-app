@@ -89,28 +89,30 @@ export async function authenticateRequest(
     };
   }
 
-  // 2) If JWT user auth is enabled, try to decode JWT and extract user ID
+  // 2) If JWT user auth is enabled, verify JWT and extract user ID
   if (options.allowJwtUserAuth) {
     try {
-      const parts = token.split(".");
-      if (parts.length === 3) {
-        const payloadB64 = parts[1];
-        const padded = payloadB64 + "=".repeat((4 - payloadB64.length % 4) % 4);
-        const payload = JSON.parse(atob(padded));
+      const { data, error } = await supabaseAdmin.auth.getUser(token);
+      const user = data?.user;
+      if (!error && user) {
+        const roleCandidate = typeof user.role === "string"
+          ? user.role
+          : typeof user.app_metadata?.role === "string"
+            ? user.app_metadata.role
+            : null;
 
-        // Check if this is a regular user JWT (not service role)
-        const role = payload.role || payload.app_metadata?.role;
-        if (!["service_role", "supabase_admin"].includes(role) && payload.sub) {
+        // Reject service/admin-role JWTs from user-auth path.
+        if (!["service_role", "supabase_admin"].includes(roleCandidate ?? "") && user.id) {
           return {
             isServiceRole: false,
-            userId: payload.sub,
+            userId: user.id,
             success: true,
             isJwtAuth: true
           };
         }
       }
     } catch {
-      // Not a valid JWT - continue to PAT lookup
+      // Invalid or unverifiable JWT - continue to PAT lookup
     }
   }
 

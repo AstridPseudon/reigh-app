@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts"
 import { storagePaths, generateThumbnailFilename, MEDIA_BUCKET } from '../_shared/storagePaths.ts'
-import { SystemLogger } from "../_shared/systemLogger.ts"
-import { authenticateRequest } from "../_shared/auth.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,44 +35,33 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', {
-      status: 405,
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "generate-thumbnail",
+    logPrefix: "[GENERATE-THUMBNAIL]",
+    method: "POST",
+    parseBody: "strict",
+    corsPreflight: false,
+    auth: {
+      required: true,
+      requireServiceRole: true,
+    },
+  })
+  if (!bootstrap.ok) {
+    return bootstrap.response
+  }
+
+  const { supabaseAdmin: supabase, logger, body } = bootstrap.value
+  const generation_id = typeof body.generation_id === 'string' ? body.generation_id : ''
+  const main_image_url = typeof body.main_image_url === 'string' ? body.main_image_url : ''
+  const user_id = typeof body.user_id === 'string' ? body.user_id : ''
+  if (!generation_id || !main_image_url || !user_id) {
+    return new Response('Missing required fields: generation_id, main_image_url, user_id', {
+      status: 400,
       headers: corsHeaders
     })
   }
 
-  // Initialize Supabase client and logger early so logger is available in catch
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
-  const logger = new SystemLogger(supabase, 'generate-thumbnail')
-
-  const auth = await authenticateRequest(req, supabase, "[GENERATE-THUMBNAIL]")
-  if (!auth.success) {
-    return new Response(JSON.stringify({ error: auth.error || "Authentication failed" }), {
-      status: auth.statusCode || 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
-  if (!auth.isServiceRole) {
-    return new Response(JSON.stringify({ error: "Unauthorized - service role required" }), {
-      status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
-
   try {
-    // Parse request body
-    const { generation_id, main_image_url, user_id } = await req.json()
-
-    if (!generation_id || !main_image_url || !user_id) {
-      return new Response('Missing required fields: generation_id, main_image_url, user_id', {
-        status: 400,
-        headers: corsHeaders
-      })
-    }
-
     logger.info('Processing thumbnail', { generation_id })
 
     // Fetch the main image
@@ -168,8 +155,9 @@ serve(async (req) => {
       },
     )
 
-  } catch (error) {
-    logger.error('Thumbnail generation error', { error: error.message })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    logger.error('Thumbnail generation error', { error: message })
 
     // FALLBACK: If thumbnail generation fails, store main URL as both main and thumbnail
     logger.info('Using main URL as fallback', { generation_id })
@@ -181,14 +169,15 @@ serve(async (req) => {
         .eq('id', generation_id)
 
       logger.info('Stored main URL as fallback', { generation_id })
-    } catch (fallbackError) {
-      logger.error('Fallback update failed', { error: fallbackError.message })
+    } catch (fallbackError: unknown) {
+      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+      logger.error('Fallback update failed', { error: fallbackMessage })
     }
 
     await logger.flush()
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error',
+        error: message || 'Internal server error',
         success: false,
         fallback: true,
         message: 'Thumbnail generation failed, using main image as thumbnail'

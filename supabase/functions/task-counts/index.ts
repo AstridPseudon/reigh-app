@@ -1,10 +1,6 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { authenticateRequest } from "../_shared/auth.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-
-declare const Deno: { env: { get: (key: string) => string | undefined } };
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 type RunType = 'gpu' | 'api';
 
@@ -80,49 +76,27 @@ function parseDebug(body: unknown): boolean {
  * - 500 Internal Server Error
  */
 serve(async (req) => {
-  // Only accept POST requests
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "task-counts",
+    logPrefix: "[TASK-COUNTS]",
+    parseBody: "loose",
+    auth: {
+      required: true,
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-
-  if (!serviceKey || !supabaseUrl) {
-    return new Response("Server configuration error", { status: 500 });
-  }
-
-  // Create admin client for database operations
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const logger = new SystemLogger(supabaseAdmin, 'task-counts');
-
-  // Parse request body
-  let requestBody: unknown = {};
-  try {
-    const bodyText = await req.text();
-    if (bodyText) {
-      requestBody = JSON.parse(bodyText);
-    }
-  } catch {
-    logger.debug("No valid JSON body provided, using defaults");
-  }
-
+  const { supabaseAdmin, logger, auth, body: requestBody } = bootstrap.value;
   const requestedRunType = parseRunType(requestBody); // 'gpu', 'api', or null (no filtering)
   const debug = parseDebug(requestBody); // Enable verbose logging
 
   const startTime = Date.now();
 
-  // Authenticate using shared auth module
-  const auth = await authenticateRequest(req, supabaseAdmin, "[TASK-COUNTS]");
-
-  if (!auth.success) {
-    logger.error("Authentication failed", { error: auth.error });
-    await logger.flush();
-    return new Response(auth.error || "Authentication failed", { status: auth.statusCode || 403 });
-  }
-
-  const isServiceRole = auth.isServiceRole;
-  const callerId = auth.userId;
+  const isServiceRole = auth?.isServiceRole === true;
+  const callerId = auth?.userId;
   const appliedRunType = isServiceRole ? requestedRunType : null;
 
   if (debug) {
@@ -485,9 +459,10 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" }
       });
     }
-  } catch (error) {
-    logger.error("Unexpected error", { error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Unexpected error", { error: message });
     await logger.flush();
-    return new Response(`Internal server error: ${error.message}`, { status: 500 });
+    return new Response(`Internal server error: ${message}`, { status: 500 });
   }
 });

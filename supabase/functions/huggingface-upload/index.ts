@@ -1,10 +1,8 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 // @ts-expect-error - HuggingFace Hub package typings are not fully compatible in edge runtime context
 import { whoAmI, createRepo, uploadFile } from "https://esm.sh/@huggingface/hub@0.18.2";
-import { authenticateRequest } from "../_shared/auth.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 declare const Deno: { env: { get: (key: string) => string | undefined } };
 
@@ -164,28 +162,32 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-
   if (req.method !== "POST") {
     return createResponse({ error: "Method not allowed" }, 405);
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !serviceKey) {
-    console.error("[HF-UPLOAD] Missing required environment variables");
-    return createResponse({ error: "Server configuration error" }, 500);
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "huggingface-upload",
+    logPrefix: "[HF-UPLOAD]",
+    method: "POST",
+    parseBody: "none",
+    corsPreflight: false,
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  // Create admin client and logger early
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const logger = new SystemLogger(supabaseAdmin, 'huggingface-upload');
+  const { supabaseAdmin, logger, auth } = bootstrap.value;
 
   try {
     // 1. Authenticate user
-    const auth = await authenticateRequest(req, supabaseAdmin, "[HF-UPLOAD]", { allowJwtUserAuth: true });
-    if (!auth.success || !auth.userId) {
-      return createResponse({ error: auth.error || "Unauthorized" }, auth.statusCode || 401);
+    if (!auth?.userId) {
+      return createResponse({ error: "Unauthorized" }, 401);
     }
 
     const userId = auth.userId;
@@ -277,8 +279,9 @@ serve(async (req) => {
       });
       logger.info('Repository created', { repoId });
     } catch (repoError: unknown) {
-      if (!repoError.message?.toLowerCase().includes("already exists")) {
-        logger.error('Repo creation error', { error: repoError.message });
+      const repoErrorMessage = repoError instanceof Error ? repoError.message : String(repoError);
+      if (!repoErrorMessage.toLowerCase().includes("already exists")) {
+        logger.error('Repo creation error', { error: repoErrorMessage });
         throw repoError;
       }
       logger.info('Repository already exists', { repoId });
@@ -369,7 +372,8 @@ serve(async (req) => {
         uploadedVideoPaths.push(targetPath);
         logger.info('Video uploaded', { targetPath });
       } catch (videoUploadError: unknown) {
-        logger.error('Video upload error', { error: videoUploadError.message });
+        const message = videoUploadError instanceof Error ? videoUploadError.message : String(videoUploadError);
+        logger.error('Video upload error', { error: message });
         // Continue with other videos
       }
     }
@@ -423,10 +427,11 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    logger.error('Unexpected error', { error: error.message });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Unexpected error', { error: message });
     await logger.flush();
     return createResponse({
-      error: error.message || "An unexpected error occurred",
+      error: message || "An unexpected error occurred",
     }, 500);
   }
 });

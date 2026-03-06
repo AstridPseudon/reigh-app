@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,45 +36,32 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return jsonResponse({ ok: true });
   }
-
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  // ─── 1. Parse body ──────────────────────────────────────────────
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "trigger-auto-topup",
+    logPrefix: "[TRIGGER-AUTO-TOPUP]",
+    method: "POST",
+    parseBody: "strict",
+    corsPreflight: false,
+    auth: {
+      required: true,
+      requireServiceRole: true,
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
-  
-  const { userId } = body;
 
-  // ─── 2. Verify service role authentication ──────────────────────
+  const { supabaseAdmin, logger, body } = bootstrap.value;
+  const userId = typeof body.userId === "string" ? body.userId : undefined;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("Missing required environment variables");
     return jsonResponse({ error: "Server configuration error" }, 500);
-  }
-
-  // ─── 3. Create Supabase admin client ────────────────────────────
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-
-  const logger = new SystemLogger(supabaseAdmin, 'trigger-auto-topup');
-
-  const auth = await authenticateRequest(req, supabaseAdmin, "[TRIGGER-AUTO-TOPUP]");
-  if (!auth.success) {
-    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
-  }
-  if (!auth.isServiceRole) {
-    return jsonResponse({ error: "Unauthorized - service role required" }, 403);
   }
 
   try {
@@ -196,13 +181,14 @@ serve(async (req) => {
           logger.error('Auto-top-up failed', { user_id: user.id, error: processResult.error });
         }
 
-      } catch (error) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         results.push({
           userId: user.id,
           status: 'error',
-          error: error.message,
+          error: message,
         });
-        logger.error('Error processing auto-top-up for user', { user_id: user.id, error: error.message });
+        logger.error('Error processing auto-top-up for user', { user_id: user.id, error: message });
       }
     }
 
@@ -233,8 +219,9 @@ serve(async (req) => {
       results: results,
     });
 
-  } catch (error) {
-    logger.error('Error in trigger-auto-topup', { error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Error in trigger-auto-topup', { error: message });
     await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);
   }

@@ -1,7 +1,5 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
-import { authenticateRequest } from "../_shared/auth.ts"
-import { SystemLogger } from "../_shared/systemLogger.ts"
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts"
 import { checkRateLimit, isRateLimitExceededFailure, rateLimitFailureResponse } from "../_shared/rateLimit.ts"
 
 const corsHeaders = {
@@ -15,20 +13,28 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Create admin client and logger early so logger is available in catch
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-  const logger = new SystemLogger(supabaseAdmin, 'delete-project')
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: 'delete-project',
+    logPrefix: '[DELETE-PROJECT]',
+    method: 'POST',
+    corsPreflight: false,
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  })
+  if (!bootstrap.ok) {
+    return bootstrap.response
+  }
+
+  const { supabaseAdmin, logger, auth } = bootstrap.value
 
   try {
-
-    const auth = await authenticateRequest(req, supabaseAdmin, "[DELETE-PROJECT]", { allowJwtUserAuth: true })
-    if (!auth.success || !auth.userId) {
+    if (!auth?.userId) {
       return new Response(
-        JSON.stringify({ error: auth.error || 'Unauthorized' }),
-        { status: auth.statusCode || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -102,11 +108,12 @@ serve(async (req) => {
       JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (err) {
-    logger.error('Unexpected error', { error: err.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    logger.error('Unexpected error', { error: message })
     await logger.flush()
     return new Response(
-      JSON.stringify({ error: err.message || 'Unexpected error' }),
+      JSON.stringify({ error: message || 'Unexpected error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

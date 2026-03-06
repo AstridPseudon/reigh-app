@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { authenticateRequest } from "../_shared/auth.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 /**
  * Edge function: grant-credits
@@ -35,23 +33,23 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", {
-      status: 405,
-      headers: corsHeaders,
-    });
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "grant-credits",
+    logPrefix: "[GRANT-CREDITS]",
+    method: "POST",
+    parseBody: "strict",
+    corsPreflight: false,
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  // ─── 1. Parse body ──────────────────────────────────────────────
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response("Invalid JSON body", {
-      status: 400,
-      headers: corsHeaders,
-    });
-  }
+  const { supabaseAdmin: adminClient, logger, auth, body } = bootstrap.value;
 
   const { userId, amount, description, isWelcomeBonus = false } = body;
   if (!userId || !amount || typeof amount !== 'number' || amount <= 0) {
@@ -61,33 +59,8 @@ serve(async (req) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("Missing required environment variables");
-    return new Response("Server configuration error", {
-      status: 500,
-      headers: corsHeaders,
-    });
-  }
-
-  // Admin client (service role) for unrestricted queries
-  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-  const logger = new SystemLogger(adminClient, 'grant-credits');
-
-  // ─── 2. Authenticate request using shared auth module ───────────
-  const auth = await authenticateRequest(req, adminClient, "[GRANT-CREDITS]", { allowJwtUserAuth: true });
-
-  if (!auth.success) {
-    return new Response(auth.error || "Authentication failed", {
-      status: auth.statusCode || 401,
-      headers: corsHeaders,
-    });
-  }
-
-  const isServiceRole = auth.isServiceRole;
-  const currentUserId = auth.userId;
+  const isServiceRole = auth?.isServiceRole === true;
+  const currentUserId = auth?.userId;
 
   // For welcome bonus, allow authenticated users; for admin grants, require service role
   if (!isWelcomeBonus && !isServiceRole) {
@@ -248,10 +221,11 @@ serve(async (req) => {
       },
     });
 
-  } catch (error) {
-    logger.error("Unexpected error", { error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Unexpected error", { error: message });
     await logger.flush();
-    return new Response(`Internal server error: ${error.message}`, {
+    return new Response(`Internal server error: ${message}`, {
       status: 500,
       headers: corsHeaders,
     });

@@ -1,11 +1,9 @@
 /* eslint-disable */
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import Groq from "npm:groq-sdk@0.26.0";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
 
 const apiKey = Deno.env.get("GROQ_API_KEY");
 if (!apiKey) {
@@ -15,24 +13,23 @@ const groq = new Groq({ apiKey });
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return jsonResponse({ ok: true });
-  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
-
-  // Verify user authentication
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !serviceKey) {
-    console.error("[ai-voice-prompt] Missing required environment variables");
-    return jsonResponse({ error: "Server configuration error" }, 500);
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "ai-voice-prompt",
+    logPrefix: "[AI-VOICE-PROMPT]",
+    method: "POST",
+    corsPreflight: false,
+    parseBody: "none",
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const logger = new SystemLogger(supabaseAdmin, 'ai-voice-prompt');
-
-  const auth = await authenticateRequest(req, supabaseAdmin, "[AI-VOICE-PROMPT]", { allowJwtUserAuth: true });
-  if (!auth.success) {
-    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
-  }
+  const { logger } = bootstrap.value;
 
   try {
     // Handle multipart form data for audio upload OR JSON for text instructions

@@ -1,10 +1,7 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { authenticateRequest } from "../_shared/auth.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-
-declare const Deno: { env: { get: (key: string) => string | undefined } };
+import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts";
+import type { SystemLogger } from "../_shared/systemLogger.ts";
 
 interface ValidationRule {
   field: string;
@@ -58,55 +55,20 @@ async function validateRequiredFields(
  * - 500 Internal Server Error
  */
 serve(async (req) => {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-
-  if (!serviceKey || !supabaseUrl) {
-    console.error("[UPDATE-WORKER-MODEL] Missing required environment variables");
-    return new Response("Server configuration error", { status: 500 });
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "update-worker-model",
+    logPrefix: "[UPDATE-WORKER-MODEL]",
+    parseBody: "strict",
+    auth: {
+      required: true,
+      requireServiceRole: true,
+    },
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  // Create admin client for database operations
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-
-  // Create logger
-  const logger = new SystemLogger(supabaseAdmin, 'update-worker-model');
-
-  // Only accept POST requests
-  if (req.method !== "POST") {
-    logger.warn("Method not allowed", { method: req.method });
-    await logger.flush();
-    return new Response("Method not allowed", { status: 405 });
-  }
-
-  // Authenticate using shared auth module
-  const auth = await authenticateRequest(req, supabaseAdmin, "[UPDATE-WORKER-MODEL]");
-
-  if (!auth.success) {
-    logger.error("Authentication failed", { error: auth.error });
-    await logger.flush();
-    return new Response(auth.error || "Authentication failed", { status: auth.statusCode || 403 });
-  }
-
-  // This endpoint only allows service role access
-  if (!auth.isServiceRole) {
-    logger.error("Service role required");
-    await logger.flush();
-    return new Response("Service role authentication required", { status: 403 });
-  }
-
-  // Parse request body
-  let requestBody: unknown = {};
-  try {
-    const bodyText = await req.text();
-    if (bodyText) {
-      requestBody = JSON.parse(bodyText);
-    }
-  } catch {
-    logger.error("Invalid JSON body");
-    await logger.flush();
-    return new Response("Invalid JSON body", { status: 400 });
-  }
+  const { supabaseAdmin, logger, body: requestBody } = bootstrap.value;
 
   // Validate required fields
   const workerIdRaw = requestBody?.worker_id;
@@ -201,8 +163,9 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    logger.critical("Unexpected error", { worker_id, error: error?.message });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.critical("Unexpected error", { worker_id, error: message });
     await logger.flush();
-    return new Response(`Internal server error: ${error?.message}`, { status: 500 });
+    return new Response(`Internal server error: ${message}`, { status: 500 });
   }
 });

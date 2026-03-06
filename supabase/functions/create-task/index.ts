@@ -1,14 +1,10 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { authenticateRequest } from "../_shared/auth.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import {
   enforceRateLimit,
   RATE_LIMITS,
 } from "../_shared/rateLimit.ts";
 import { buildTaskInsertObject, getErrorMessage, parseCreateTaskBody } from "./request.ts";
-
-declare const Deno: { env: { get: (key: string) => string | undefined } };
 
 function createCorsResponse(body: string, status: number = 200) {
   return new Response(body, {
@@ -21,17 +17,6 @@ function createCorsResponse(body: string, status: number = 200) {
 }
 
 serve(async (req) => {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-
-  if (!serviceKey || !supabaseUrl) {
-    console.error("[CREATE-TASK] Missing required environment variables");
-    return createCorsResponse("Server configuration error", 500);
-  }
-
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const logger = new SystemLogger(supabaseAdmin, "create-task");
-
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
@@ -42,20 +27,23 @@ serve(async (req) => {
     });
   }
 
-  if (req.method !== "POST") {
-    logger.warn("Method not allowed", { method: req.method });
-    await logger.flush();
-    return createCorsResponse("Method not allowed", 405);
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "create-task",
+    logPrefix: "[CREATE-TASK]",
+    method: "POST",
+    parseBody: "strict",
+    corsPreflight: false,
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  let rawBody: unknown;
-  try {
-    rawBody = await req.json();
-  } catch {
-    logger.error("Invalid JSON body");
-    await logger.flush();
-    return createCorsResponse("Invalid JSON body", 400);
-  }
+  const { supabaseAdmin, logger, auth, body: rawBody } = bootstrap.value;
 
   const parsedBody = parseCreateTaskBody(rawBody);
   if (!parsedBody.ok) {
@@ -78,20 +66,12 @@ serve(async (req) => {
     client_provided_id: !!requestBody.task_id,
   });
 
-  const auth = await authenticateRequest(req, supabaseAdmin, "[CREATE-TASK]", { allowJwtUserAuth: true });
-
-  if (!auth.success) {
-    logger.error("Authentication failed", { error: auth.error });
-    await logger.flush();
-    return createCorsResponse(auth.error || "Authentication failed", auth.statusCode || 403);
-  }
-
-  const isServiceRole = auth.isServiceRole;
-  const callerId = auth.userId;
+  const isServiceRole = auth?.isServiceRole === true;
+  const callerId = auth?.userId ?? null;
 
   if (isServiceRole) {
     logger.debug("Authenticated via service-role key");
-  } else if (auth.isJwtAuth) {
+  } else if (auth?.isJwtAuth) {
     logger.debug("Authenticated via JWT", { user_id: callerId });
   } else {
     logger.debug("Authenticated via PAT", { user_id: callerId });

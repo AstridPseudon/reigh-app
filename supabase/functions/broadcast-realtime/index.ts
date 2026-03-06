@@ -1,78 +1,42 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { withEdgeRequest } from "../_shared/edgeHandler.ts";
+import { jsonResponse } from "../_shared/http.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+serve((req) => {
+  return withEdgeRequest(
+    req,
+    {
+      functionName: "broadcast-realtime",
+      logPrefix: "[BROADCAST-REALTIME]",
+      parseBody: "strict",
+      auth: {
+        required: true,
+        requireServiceRole: true,
+      },
+    },
+    async ({ supabaseAdmin, logger, body }) => {
+      const channel = typeof body.channel === "string" ? body.channel : "";
+      const event = typeof body.event === "string" ? body.event : "";
+      const payload = body.payload;
 
-serve(async (req) => {
-  try {
-    // Only accept POST requests
-    if (req.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
-    }
+      if (!channel || !event || !payload) {
+        return jsonResponse({ error: "Missing required fields: channel, event, payload" }, 400);
+      }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const logger = new SystemLogger(supabase, 'broadcast-realtime');
-
-    // Service-role only endpoint
-    const auth = await authenticateRequest(req, supabase, "[BROADCAST-REALTIME]");
-    if (!auth.success) {
-      return new Response(JSON.stringify({ error: auth.error || "Authentication failed" }), {
-        status: auth.statusCode || 401,
-        headers: { "Content-Type": "application/json" }
+      const broadcastChannel = supabaseAdmin.channel(channel);
+      const result = await broadcastChannel.send({
+        type: "broadcast",
+        event,
+        payload,
       });
-    }
-    if (!auth.isServiceRole) {
-      return new Response(JSON.stringify({ error: "Unauthorized - service role required" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" }
-      });
-    }
 
-    // Parse the request body
-    const { channel, event, payload } = await req.json();
+      if (result === "ok") {
+        logger.info("Successfully broadcast", { channel });
+        return jsonResponse({ success: true }, 200);
+      }
 
-    if (!channel || !event || !payload) {
-      return new Response("Missing required fields: channel, event, payload", { 
-        status: 400 
-      });
-    }
-
-    // Create a channel and send the broadcast
-    const broadcastChannel = supabase.channel(channel);
-    
-    // Send the broadcast message
-    const result = await broadcastChannel.send({
-      type: 'broadcast',
-      event: event,
-      payload: payload
-    });
-
-    // Check if broadcast was successful
-    if (result === 'ok') {
-      logger.info('Successfully broadcast', { channel });
-      await logger.flush();
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { "Content-Type": "application/json" },
-        status: 200
-      });
-    } else {
-      logger.error('Broadcast failed', { channel, result });
-      await logger.flush();
-      return new Response(JSON.stringify({ error: 'Broadcast failed', result }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      });
-    }
-
-  } catch (error: unknown) {
-    console.error("[BroadcastRealtime] Error:", error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
+      logger.error("Broadcast failed", { channel, result });
+      return jsonResponse({ error: "Broadcast failed", result }, 500);
+    },
+  );
 });

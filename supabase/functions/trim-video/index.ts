@@ -25,8 +25,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { storagePaths, MEDIA_BUCKET } from '../_shared/storagePaths.ts';
-import { SystemLogger } from "../_shared/systemLogger.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 declare const Deno: {
   env: {
@@ -247,24 +246,28 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { 
-      status: 405, 
-      headers: corsHeaders 
-    });
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "trim-video",
+    logPrefix: "[TRIM-VIDEO]",
+    method: "POST",
+    parseBody: "strict",
+    corsPreflight: false,
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
   const startProcessTime = Date.now();
-
-  // Initialize Supabase client and logger early so logger is available in catch
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  const logger = new SystemLogger(supabase, 'trim-video');
+  const { supabaseAdmin: supabase, logger, auth, body } = bootstrap.value;
 
   try {
     // Parse request
-    const body: TrimRequest = await req.json();
+    const requestBody = body as Partial<TrimRequest>;
     const {
       video_url,
       start_time,
@@ -273,7 +276,7 @@ serve(async (req) => {
       user_id,
       variant_id,
       test_mode = false,
-    } = body;
+    } = requestBody;
 
     logger.info('Starting video trim request', {
       video_url: video_url?.substring(0, 80),
@@ -328,14 +331,7 @@ serve(async (req) => {
       );
     }
 
-    const auth = await authenticateRequest(req, supabase, "[TRIM-VIDEO]", { allowJwtUserAuth: true });
-    if (!auth.success) {
-      return new Response(
-        JSON.stringify({ error: auth.error || 'Authentication failed', success: false }),
-        { status: auth.statusCode || 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    if (!auth.isServiceRole && auth.userId !== user_id) {
+    if (!auth?.isServiceRole && auth?.userId !== user_id) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: user_id mismatch', success: false }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -412,14 +408,15 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     const processingTime = Date.now() - startProcessTime;
-    logger.error('Error during video trim', { processingTime, error: error instanceof Error ? error.message : 'Unknown error' });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Error during video trim', { processingTime, error: message });
     await logger.flush();
 
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error',
+        error: message || 'Internal server error',
         success: false,
         processing_time_ms: processingTime,
       }),

@@ -1,10 +1,8 @@
 /* eslint-disable */
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 /** Stripe event shape (minimal — covers what this webhook uses) */
 interface StripeEvent {
@@ -77,24 +75,26 @@ serve(async (req) => {
     return jsonResponse({ ok: true });
   }
 
-  if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "stripe-webhook",
+    logPrefix: "[stripe-webhook]",
+    method: "POST",
+    parseBody: "none",
+    corsPreflight: false,
+    auth: {
+      required: false,
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  // Create Supabase admin client and logger early
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  );
-  const logger = new SystemLogger(supabaseAdmin, 'stripe-webhook');
-  const authResult = await authenticateRequest(req, supabaseAdmin, '[stripe-webhook]');
-  const hasServiceRoleAuth = authResult.success && authResult.isServiceRole;
+  const { supabaseAdmin, logger } = bootstrap.value;
+  const authHeader = req.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const hasServiceRoleAuth = !!serviceRoleKey && !!bearerToken && bearerToken === serviceRoleKey;
   const hasStripeSignatureAuth = Boolean(req.headers.get('stripe-signature'));
 
   // Accept either service-role authorization (internal calls) or Stripe signature auth.

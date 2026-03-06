@@ -1,55 +1,35 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { authenticateRequest } from "../_shared/auth.ts";
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
 
 serve(async (req) => {
-  // CORS pre-flight
-  if (req.method === "OPTIONS") {
-    return jsonResponse({ ok: true });
-  }
-
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
-  // Initialize Supabase admin client
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    {
-      auth: {
-        persistSession: false,
-      },
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "tasks-list",
+    logPrefix: "[TASKS-LIST]",
+    parseBody: "strict",
+    auth: {
+      required: true,
+      options: { allowJwtUserAuth: true },
     },
-  );
-  const logger = new SystemLogger(supabaseAdmin, 'tasks-list');
-
-  // Authenticate the request
-  const auth = await authenticateRequest(req, supabaseAdmin, "[TASKS-LIST]", { allowJwtUserAuth: true });
-
-  if (!auth.success) {
-    return jsonResponse({ error: auth.error || "Authentication failed" }, auth.statusCode || 401);
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  // Parse body
-  let body: { projectId?: string; status?: string[] };
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON payload" }, 400);
-  }
-
-  const { projectId, status: statusFilter = [] } = body;
+  const { supabaseAdmin, logger, auth, body } = bootstrap.value;
+  const projectId = typeof body.projectId === "string" ? body.projectId : "";
+  const statusFilter = Array.isArray(body.status)
+    ? body.status.filter((value): value is string => typeof value === "string")
+    : [];
 
   if (!projectId) {
     return jsonResponse({ error: "projectId is required" }, 400);
   }
 
   // For non-service-role requests, verify the user owns the project
-  if (!auth.isServiceRole && auth.userId) {
+  if (!auth?.isServiceRole && auth?.userId) {
     const { data: project, error: projectError } = await supabaseAdmin
       .from("projects")
       .select("user_id")

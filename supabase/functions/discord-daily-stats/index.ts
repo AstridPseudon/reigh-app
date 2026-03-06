@@ -1,10 +1,6 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-import { authenticateRequest } from "../_shared/auth.ts";
-
-declare const Deno: { env: { get: (key: string) => string | undefined } };
+import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
 const LOG_PREFIX = "[DISCORD-DAILY-STATS]";
 
@@ -23,37 +19,28 @@ interface DayBucket {
 }
 
 serve(async (req) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "discord-daily-stats",
+    logPrefix: LOG_PREFIX,
+    method: "POST",
+    parseBody: "none",
+    auth: {
+      required: true,
+      requireServiceRole: true,
+    },
+    ...NO_SESSION_RUNTIME_OPTIONS,
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const discordWebhookUrl = Deno.env.get("DISCORD_STATS_WEBHOOK_URL");
-
-  if (!serviceKey || !supabaseUrl) {
-    return new Response("Missing required environment variables", { status: 500 });
-  }
 
   if (!discordWebhookUrl) {
     return new Response("DISCORD_STATS_WEBHOOK_URL not configured", { status: 500 });
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const logger = new SystemLogger(supabaseAdmin, "discord-daily-stats");
-
-  // Authenticate: service-role only
-  const auth = await authenticateRequest(req, supabaseAdmin, LOG_PREFIX);
-  if (!auth.success) {
-    logger.error(auth.error || "Authentication failed");
-    await logger.flush();
-    return new Response(auth.error || "Unauthorized", { status: auth.statusCode || 401 });
-  }
-  if (!auth.isServiceRole) {
-    logger.error("Unauthorized request");
-    await logger.flush();
-    return new Response("Unauthorized", { status: 403 });
-  }
+  const { supabaseAdmin, logger } = bootstrap.value;
 
   try {
     logger.info("Starting daily stats collection");
@@ -242,10 +229,11 @@ serve(async (req) => {
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    logger.error("Failed to generate/send daily stats", { error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to generate/send daily stats", { error: message });
     await logger.flush();
-    return new Response(`Error: ${error.message}`, { status: 500 });
+    return new Response(`Error: ${message}`, { status: 500 });
   }
 });
 

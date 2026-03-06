@@ -1,10 +1,6 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { authenticateRequest } from "../_shared/auth.ts";
-import { SystemLogger } from "../_shared/systemLogger.ts";
-
-declare const Deno: { env: { get: (key: string) => string | undefined } };
+import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts";
 
 /**
  * Edge function: get-predecessor-output
@@ -28,63 +24,41 @@ declare const Deno: { env: { get: (key: string) => string | undefined } };
  * - 500 Internal Server Error
  */
 serve(async (req) => {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-
-  if (!serviceKey || !supabaseUrl) {
-    console.error("[GET-PREDECESSOR-OUTPUT] Missing required environment variables");
-    return new Response("Server configuration error", { status: 500 });
+  const bootstrap = await bootstrapEdgeHandler(req, {
+    functionName: "get-predecessor-output",
+    logPrefix: "[GET-PREDECESSOR-OUTPUT]",
+    parseBody: "strict",
+    auth: {
+      required: true,
+    },
+  });
+  if (!bootstrap.ok) {
+    return bootstrap.response;
   }
 
-  // Create admin client for database operations
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const { supabaseAdmin, logger, auth, body } = bootstrap.value;
 
-  // Create logger
-  const logger = new SystemLogger(supabaseAdmin, 'get-predecessor-output');
-
-  if (req.method !== "POST") {
-    logger.warn("Method not allowed", { method: req.method });
-    await logger.flush();
-    return new Response("Method not allowed", { status: 405 });
-  }
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    logger.error("Invalid JSON body");
-    await logger.flush();
-    return new Response("Invalid JSON body", { status: 400 });
-  }
-
-  const { task_id } = body;
-  if (!task_id) {
+  const taskId = typeof body.task_id === "string" || typeof body.task_id === "number"
+    ? String(body.task_id)
+    : "";
+  if (!taskId) {
     logger.error("Missing task_id");
     await logger.flush();
     return new Response("task_id is required", { status: 400 });
   }
 
   // Set task_id for all subsequent logs
-  logger.setDefaultTaskId(task_id);
+  logger.setDefaultTaskId(taskId);
 
-  // Authenticate using shared auth module
-  const auth = await authenticateRequest(req, supabaseAdmin, "[GET-PREDECESSOR-OUTPUT]");
-
-  if (!auth.success) {
-    logger.error("Authentication failed", { error: auth.error });
-    await logger.flush();
-    return new Response(auth.error || "Authentication failed", { status: auth.statusCode || 403 });
-  }
-
-  const isServiceRole = auth.isServiceRole;
-  const callerId = auth.userId;
+  const isServiceRole = auth?.isServiceRole === true;
+  const callerId = auth?.userId ?? null;
 
   try {
     // Get the task info first
     const { data: taskData, error: taskError } = await supabaseAdmin
       .from("tasks")
       .select("id, dependant_on, project_id")
-      .eq("id", task_id)
+      .eq("id", taskId)
       .single();
 
     if (taskError) {
@@ -199,8 +173,9 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    logger.critical("Unexpected error", { error: error?.message });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.critical("Unexpected error", { error: message });
     await logger.flush();
-    return new Response(`Internal error: ${error?.message}`, { status: 500 });
+    return new Response(`Internal error: ${message}`, { status: 500 });
   }
 });

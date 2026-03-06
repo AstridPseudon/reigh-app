@@ -44,6 +44,11 @@ describe('get-predecessor-output edge entrypoint', () => {
     vi.resetModules();
     __resetServeHandler();
     __resetCreateClientImpl();
+    authenticateRequestMock.mockResolvedValue({
+      success: true,
+      isServiceRole: true,
+      userId: null,
+    });
     vi.stubGlobal('Deno', {
       env: {
         get: (key: string) => {
