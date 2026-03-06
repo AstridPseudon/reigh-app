@@ -40,11 +40,12 @@ describe('get-task-output edge entrypoint', () => {
     const response = await handler(
       new Request('https://edge.test/get-task-output', {
         method: 'POST',
+        headers: { authorization: 'Bearer service-role-key' },
         body: JSON.stringify({}),
       }),
     );
 
-    expect(response.status).toBe(401);
-    expect(await response.text()).toContain('authentication_failed');
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain('task_id is required');
   });
 });
