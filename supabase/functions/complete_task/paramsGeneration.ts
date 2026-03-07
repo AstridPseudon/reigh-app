@@ -1,6 +1,6 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { findSourceGenerationByImageUrl } from './generation-core.ts';
-import { extractBasedOn } from './paramsExtractors.ts';
+import { extractBasedOnParam } from '../../../src/shared/lib/tasks/taskParamContract.ts';
 
 /**
  * Resolve based_on generation ID from params.
@@ -15,7 +15,7 @@ export async function resolveBasedOn(
     ? params as Record<string, unknown>
     : {};
 
-  let basedOnGenerationId: string | null = extractBasedOn(record);
+  let basedOnGenerationId: string | null = extractBasedOnParam(record);
 
   if (basedOnGenerationId) {
     const { data: basedOnGen, error: basedOnError } = await supabase

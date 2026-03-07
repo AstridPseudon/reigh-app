@@ -5,12 +5,32 @@
  * extraction + generation helpers from focused modules.
  */
 
-export {
-  extractBasedOn,
-  extractOrchestratorRunId,
-  extractOrchestratorTaskId,
-  extractShotAndPosition,
-} from './paramsExtractors.ts';
+import { extractOrchestratorRef } from '../_shared/billing.ts';
+import {
+  extractAddInPositionParam,
+  extractBasedOnParam,
+  extractRunIdParam,
+  extractShotIdParam,
+} from '../../../src/shared/lib/tasks/taskParamContract.ts';
+
+export function extractOrchestratorTaskId(params: unknown, _logTag: string = 'OrchestratorExtract'): string | null {
+  return extractOrchestratorRef(params);
+}
+
+export function extractOrchestratorRunId(params: unknown, _logTag: string = 'OrchestratorExtract'): string | null {
+  return extractRunIdParam(params);
+}
+
+export function extractBasedOn(params: unknown): string | null {
+  return extractBasedOnParam(params);
+}
+
+export function extractShotAndPosition(params: unknown): { shotId?: string, addInPosition: boolean } {
+  const shotId = extractShotIdParam(params) || undefined;
+  const addInPosition = extractAddInPositionParam(params);
+  return { shotId, addInPosition };
+}
+
 export {
   buildGenerationParams,
   resolveBasedOn,
