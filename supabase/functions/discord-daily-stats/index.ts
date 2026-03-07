@@ -1,6 +1,7 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 
 const LOG_PREFIX = "[DISCORD-DAILY-STATS]";
 
@@ -230,7 +231,7 @@ serve(async (req) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.error("Failed to generate/send daily stats", { error: message });
     await logger.flush();
     return new Response(`Error: ${message}`, { status: 500 });

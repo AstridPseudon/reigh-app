@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts";
 import type { SystemLogger } from "../_shared/systemLogger.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 
 interface ValidationRule {
   field: string;
@@ -163,7 +164,7 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.critical("Unexpected error", { worker_id, error: message });
     await logger.flush();
     return new Response(`Internal server error: ${message}`, { status: 500 });

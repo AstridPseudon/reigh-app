@@ -6,9 +6,6 @@ export { completeTaskHandler };
 
 if ((import.meta as unknown as { main?: boolean }).main) {
   serve((req) => {
-    if (!req.headers.get("authorization")) {
-      return new Response("Authentication failed", { status: 401 });
-    }
     return completeTaskHandler(req);
   });
 }

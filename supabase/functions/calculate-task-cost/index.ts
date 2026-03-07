@@ -1,6 +1,7 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import {
   getSubTaskOrchestratorId,
   lookupCompletedSubTasksForOrchestrator,
@@ -381,7 +382,7 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = toErrorMessage(error);
     const errorStack = error instanceof Error ? error.stack?.substring(0, 500) : undefined;
     logger.critical("Unexpected error", { error: errorMessage, stack: errorStack });
     await logger.flush();

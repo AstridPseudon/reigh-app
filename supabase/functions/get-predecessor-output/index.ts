@@ -1,6 +1,8 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
+import { authorizeTaskActor } from "../_shared/taskActorPolicy.ts";
 
 /**
  * Edge function: get-predecessor-output
@@ -50,14 +52,35 @@ serve(async (req) => {
   // Set task_id for all subsequent logs
   logger.setDefaultTaskId(taskId);
 
-  const isServiceRole = auth?.isServiceRole === true;
-  const callerId = auth?.userId ?? null;
+  if (!auth) {
+    logger.error("Authentication failed");
+    await logger.flush();
+    return new Response("Authentication failed", { status: 401 });
+  }
+
+  const actor = await authorizeTaskActor({
+    supabaseAdmin,
+    taskId,
+    auth,
+    logPrefix: "[GET-PREDECESSOR-OUTPUT]",
+  });
+  if (!actor.ok) {
+    logger.error("Task access denied", {
+      task_id: taskId,
+      error: actor.error,
+      status_code: actor.statusCode,
+    });
+    await logger.flush();
+    return new Response(actor.error, { status: actor.statusCode });
+  }
+
+  const isServiceRole = actor.value.isServiceRole;
 
   try {
     // Get the task info first
     const { data: taskData, error: taskError } = await supabaseAdmin
       .from("tasks")
-      .select("id, dependant_on, project_id")
+      .select("id, dependant_on")
       .eq("id", taskId)
       .single();
 
@@ -65,34 +88,6 @@ serve(async (req) => {
       logger.error("Task lookup error", { error: taskError.message });
       await logger.flush();
       return new Response("Task not found", { status: 404 });
-    }
-
-    // Check authorization if not service role
-    if (!isServiceRole && callerId) {
-      logger.debug("Verifying task ownership", { user_id: callerId });
-
-      const { data: projectData, error: projectError } = await supabaseAdmin
-        .from("projects")
-        .select("user_id")
-        .eq("id", taskData.project_id)
-        .single();
-
-      if (projectError) {
-        logger.error("Project lookup error", { error: projectError.message });
-        await logger.flush();
-        return new Response("Project not found", { status: 404 });
-      }
-
-      if (projectData.user_id !== callerId) {
-        logger.error("Access denied - user doesn't own project", {
-          user_id: callerId,
-          project_owner: projectData.user_id
-        });
-        await logger.flush();
-        return new Response("Forbidden: Task does not belong to user", { status: 403 });
-      }
-
-      logger.debug("Task ownership verified");
     }
 
     // Return the dependency info
@@ -173,7 +168,7 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.critical("Unexpected error", { error: message });
     await logger.flush();
     return new Response(`Internal error: ${message}`, { status: 500 });

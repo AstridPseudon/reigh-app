@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   enforceRateLimit,
@@ -34,9 +35,18 @@ import {
  * - 500 Internal Server Error
  */
 serve(async (req) => {
-  if (!req.headers.get("authorization")) {
-    return jsonResponse({ error: "Authentication failed" }, 401);
+  if (req.method === "POST") {
+    const previewBody = await req.clone().json().catch(() => null);
+    if (previewBody && typeof previewBody === "object" && !Array.isArray(previewBody)) {
+      const previewAmountValidationError = validateCreditPurchaseAmount(
+        (previewBody as Record<string, unknown>).amount,
+      );
+      if (!previewAmountValidationError.ok) {
+        return jsonResponse({ error: previewAmountValidationError.error.message }, 400);
+      }
+    }
   }
+
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "stripe-checkout",
     logPrefix: "[STRIPE-CHECKOUT]",
@@ -168,11 +178,11 @@ serve(async (req) => {
 
   } catch (error) {
     logger.error('Error creating Stripe checkout session', {
-      error: error instanceof Error ? error.message : String(error),
+      error: toErrorMessage(error),
     });
     await logger.flush();
     return jsonResponse({
-      error: `Internal server error: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Internal server error: ${toErrorMessage(error)}`,
     }, 500);
   }
 }); 

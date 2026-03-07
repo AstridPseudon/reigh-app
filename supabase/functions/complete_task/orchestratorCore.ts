@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { extractOrchestratorTaskId, extractOrchestratorRunId } from './params.ts';
 import { triggerCostCalculation } from './billing.ts';
@@ -9,6 +10,16 @@ import { isFailureStatus } from '../_shared/taskStatusSemantics.ts';
 import { assertCompletionAuthContext, type CompletionAuthContext } from './authContext.ts';
 import { buildBillingOutcome, buildBillingReconciliation, classifyBillingOutcome, evaluateSegmentCompletionGate, resolveExpectedSegmentCount, summarizeSegmentCompletion, type BillingPolicyDecision } from './orchestratorPolicy.ts';
 export { evaluateSegmentCompletionGate } from './orchestratorPolicy.ts';
+
+const TASK_STATUS = {
+  COMPLETE: 'Complete',
+  FAILED: 'Failed',
+  QUEUED: 'Queued',
+  IN_PROGRESS: 'In Progress',
+} as const;
+
+const TASK_PROCESSING_STATUSES = [TASK_STATUS.QUEUED, TASK_STATUS.IN_PROGRESS] as const;
+
 interface SegmentTask {
   id: string;
   status: string;
@@ -141,7 +152,7 @@ export async function checkOrchestratorCompletion(
         message: `[OrchestratorComplete] Error fetching orchestrator task ${orchestratorTaskId}`,
         metadata: {
           orchestrator_task_id: orchestratorTaskId,
-          fetch_error: orchError instanceof Error ? orchError.message : String(orchError),
+          fetch_error: toErrorMessage(orchError),
         },
         cause: orchError,
       });
@@ -149,7 +160,7 @@ export async function checkOrchestratorCompletion(
     if (!orchestratorTask) {
       return;
     }
-    if (orchestratorTask.status === 'Complete') {
+    if (orchestratorTask.status === TASK_STATUS.COMPLETE) {
       return;
     }
     if (config.isFinalStep) {
@@ -338,10 +349,10 @@ async function checkFinalStitchStatus(
   if (finalStepTasks.some((task) => isFailureStatus(task.status))) {
     return 'failed';
   }
-  if (finalStepTasks.some((task) => task.status === 'Complete')) {
+  if (finalStepTasks.some((task) => task.status === TASK_STATUS.COMPLETE)) {
     return 'complete';
   }
-  if (finalStepTasks.some((task) => task.status === 'Queued' || task.status === 'In Progress')) {
+  if (finalStepTasks.some((task) => task.status === TASK_STATUS.QUEUED || task.status === TASK_STATUS.IN_PROGRESS)) {
     return 'pending';
   }
   return 'unknown';
@@ -363,12 +374,12 @@ async function markOrchestratorFailed(
   const { data: updatedRows, error: updateOrchError } = await supabase
     .from("tasks")
     .update({
-      status: "Failed",
+      status: TASK_STATUS.FAILED,
       error_message: errorMessage ?? `${failedSegments} of ${totalSegments} segments failed`,
       generation_processed_at: new Date().toISOString()
     })
     .eq("id", orchestratorTaskId)
-    .in("status", ["Queued", "In Progress"])
+    .in("status", [...TASK_PROCESSING_STATUSES])
     .select('id');
   if (updateOrchError) {
     throw new CompletionError({
@@ -433,7 +444,7 @@ async function markOrchestratorComplete(
     }
   }
   const updateData: Record<string, unknown> = {
-    status: "Complete",
+    status: TASK_STATUS.COMPLETE,
     generation_started_at: earliestStartTime || new Date().toISOString(),
     generation_processed_at: new Date().toISOString()
   };
@@ -444,7 +455,7 @@ async function markOrchestratorComplete(
     .from("tasks")
     .update(updateData)
     .eq("id", orchestratorTaskId)
-    .in("status", ["Queued", "In Progress"])
+    .in("status", [...TASK_PROCESSING_STATUSES])
     .select('id');
   if (updateOrchError) {
     throw new CompletionError({

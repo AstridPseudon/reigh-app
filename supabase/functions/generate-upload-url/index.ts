@@ -23,9 +23,6 @@ interface UploadUrlResponse {
 }
 
 serve((req) => {
-  if (!req.headers.get("authorization")) {
-    return new Response("Authentication failed", { status: 401 });
-  }
   return withEdgeRequest<GenerateUploadUrlBody>(req, {
   functionName: "generate-upload-url",
   logPrefix: "[GENERATE-UPLOAD-URL]",

@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { bootstrapEdgeHandler } from '../_shared/edgeHandler.ts';
 
@@ -150,7 +151,7 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.critical('Unexpected error', { task_id: requestBody.task_id, error: message });
     await logger.flush();
     return new Response(`Internal server error: ${message}`, { status: 500 });

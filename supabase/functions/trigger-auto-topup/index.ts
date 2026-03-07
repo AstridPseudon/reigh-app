@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 
@@ -182,7 +183,7 @@ serve(async (req) => {
         }
 
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = toErrorMessage(error);
         results.push({
           userId: user.id,
           status: 'error',
@@ -220,7 +221,7 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.error('Error in trigger-auto-topup', { error: message });
     await logger.flush();
     return jsonResponse({ error: 'Internal server error' }, 500);

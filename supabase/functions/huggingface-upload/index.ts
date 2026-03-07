@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // @ts-expect-error - HuggingFace Hub package typings are not fully compatible in edge runtime context
 import { whoAmI, createRepo, uploadFile } from "https://esm.sh/@huggingface/hub@0.18.2";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 
 declare const Deno: { env: { get: (key: string) => string | undefined } };
 
@@ -279,7 +280,7 @@ serve(async (req) => {
       });
       logger.info('Repository created', { repoId });
     } catch (repoError: unknown) {
-      const repoErrorMessage = repoError instanceof Error ? repoError.message : String(repoError);
+      const repoErrorMessage = toErrorMessage(repoError);
       if (!repoErrorMessage.toLowerCase().includes("already exists")) {
         logger.error('Repo creation error', { error: repoErrorMessage });
         throw repoError;
@@ -372,7 +373,7 @@ serve(async (req) => {
         uploadedVideoPaths.push(targetPath);
         logger.info('Video uploaded', { targetPath });
       } catch (videoUploadError: unknown) {
-        const message = videoUploadError instanceof Error ? videoUploadError.message : String(videoUploadError);
+        const message = toErrorMessage(videoUploadError);
         logger.error('Video upload error', { error: message });
         // Continue with other videos
       }
@@ -427,7 +428,7 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.error('Unexpected error', { error: message });
     await logger.flush();
     return createResponse({

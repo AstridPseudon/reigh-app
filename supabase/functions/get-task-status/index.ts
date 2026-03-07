@@ -13,9 +13,6 @@ import { authorizeTaskActor } from "../_shared/taskActorPolicy.ts";
  * - User token: can only fetch tasks from their own projects
  */
 serve((req) => {
-  if (!req.headers.get("authorization")) {
-    return new Response("Authentication failed", { status: 401 });
-  }
 
   return withEdgeRequest(req, {
     functionName: "get-task-status",

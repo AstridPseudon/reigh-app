@@ -5,11 +5,19 @@ import Groq from "npm:groq-sdk@0.26.0";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
 
-const apiKey = Deno.env.get("GROQ_API_KEY");
-if (!apiKey) {
-  console.error("[ai-voice-prompt] Missing Groq provider configuration");
+let groqClient: Groq | null = null;
+
+function getGroqClient(): Groq {
+  if (groqClient) {
+    return groqClient;
+  }
+  const apiKey = Deno.env.get("GROQ_API_KEY");
+  if (!apiKey) {
+    throw new Error("[ai-voice-prompt] Missing Groq provider configuration");
+  }
+  groqClient = new Groq({ apiKey });
+  return groqClient;
 }
-const groq = new Groq({ apiKey });
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return jsonResponse({ ok: true });
@@ -32,6 +40,8 @@ serve(async (req) => {
   const { logger } = bootstrap.value;
 
   try {
+    const groq = getGroqClient();
+
     // Handle multipart form data for audio upload OR JSON for text instructions
     const contentType = req.headers.get("content-type") || "";
     

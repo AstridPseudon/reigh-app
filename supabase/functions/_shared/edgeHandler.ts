@@ -14,6 +14,7 @@ import {
   type InitEdgeRuntimeOptions,
 } from './edgeRequest.ts';
 import { jsonResponse } from './http.ts';
+import { toErrorMessage } from './errorMessage.ts';
 
 type BodyParseMode = 'none' | 'strict' | 'loose';
 type ErrorResponseFormat = 'json' | 'text';
@@ -244,13 +245,6 @@ export async function bootstrapEdgeHandler<TBody extends Record<string, unknown>
       auth,
     },
   };
-}
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
 }
 
 /**

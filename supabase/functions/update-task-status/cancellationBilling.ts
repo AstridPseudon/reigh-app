@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 import { buildSubTaskFilter, getSubTaskOrchestratorId, triggerCostCalculation } from '../_shared/billing.ts';
@@ -104,7 +105,7 @@ export async function handleOrchestratorCancellationBilling(
       });
     }
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = toErrorMessage(error);
     logger.error('Error in orchestrator cancellation billing', { error: message });
   }
 }

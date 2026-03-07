@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 
 /**
  * Edge Function: get-completed-segments
@@ -20,9 +21,6 @@ import { jsonResponse } from "../_shared/http.ts";
  * Returns 200 with: [{ segment_index, output_location }]
  */
 serve(async (req) => {
-  if (!req.headers.get("authorization")) {
-    return jsonResponse({ error: "Authentication failed" }, 401);
-  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "get-completed-segments",
     logPrefix: "[GET-COMPLETED-SEGMENTS]",
@@ -141,7 +139,7 @@ serve(async (req) => {
     return jsonResponse(results, 200);
 
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = toErrorMessage(e);
     logger.critical("Unexpected error", { error: message });
     await logger.flush();
     return jsonResponse({ error: message }, 500);

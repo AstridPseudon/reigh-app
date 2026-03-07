@@ -15,9 +15,6 @@ function generateToken(): string {
 const GENERATE_PAT_RATE_LIMIT = { maxRequests: 10, windowSeconds: 60 } as const;
 
 serve(async (req) => {
-  if (!req.headers.get("authorization")) {
-    return jsonResponse({ error: "Authentication failed" }, 401);
-  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "generate-pat",
     logPrefix: "[GENERATE-PAT]",

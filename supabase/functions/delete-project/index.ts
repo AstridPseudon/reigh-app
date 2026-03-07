@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts"
 import { checkRateLimit, isRateLimitExceededFailure, rateLimitFailureResponse } from "../_shared/rateLimit.ts"
@@ -109,7 +110,7 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = toErrorMessage(err)
     logger.error('Unexpected error', { error: message })
     await logger.flush()
     return new Response(

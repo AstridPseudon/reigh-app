@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { edgeErrorResponse } from "../_shared/edgeRequest.ts";
 
@@ -133,7 +134,7 @@ export async function fetchTaskContext(
   if (error || !task) {
     logger?.error('Failed to fetch task context', {
       task_id: taskId,
-      fetch_error: error instanceof Error ? error.message : String(error),
+      fetch_error: toErrorMessage(error),
     });
     return null;
   }

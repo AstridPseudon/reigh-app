@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { bootstrapEdgeHandler } from "../_shared/edgeHandler.ts"
 import { storagePaths, generateThumbnailFilename, MEDIA_BUCKET } from '../_shared/storagePaths.ts'
@@ -156,7 +157,7 @@ serve(async (req) => {
     )
 
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = toErrorMessage(error)
     logger.error('Thumbnail generation error', { error: message })
 
     // FALLBACK: If thumbnail generation fails, store main URL as both main and thumbnail
@@ -170,7 +171,7 @@ serve(async (req) => {
 
       logger.info('Stored main URL as fallback', { generation_id })
     } catch (fallbackError: unknown) {
-      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+      const fallbackMessage = toErrorMessage(fallbackError)
       logger.error('Fallback update failed', { error: fallbackMessage })
     }
 

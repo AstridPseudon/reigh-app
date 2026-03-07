@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { buildOrchestratorRefOrFilter } from "../_shared/orchestratorReference.ts";
 import { withEdgeRequest } from "../_shared/edgeHandler.ts";
+import { authorizeTaskActor } from "../_shared/taskActorPolicy.ts";
 
 /**
  * Edge function: get-orchestrator-children
@@ -24,19 +25,16 @@ import { withEdgeRequest } from "../_shared/edgeHandler.ts";
  * - 500 Internal Server Error
  */
 serve((req) => {
-  if (!req.headers.get("authorization")) {
-    return new Response("Authentication failed", { status: 401 });
-  }
   return withEdgeRequest(req, {
-  functionName: "get-orchestrator-children",
-  logPrefix: "[GET-ORCHESTRATOR-CHILDREN]",
-  parseBody: "strict",
-  errorResponseFormat: "text",
-  auth: {
-    required: true,
-  },
-}, async ({ supabaseAdmin, logger, body: requestBody, auth }) => {
-  if (!auth || (!auth.userId && !auth.isServiceRole)) {
+    functionName: "get-orchestrator-children",
+    logPrefix: "[GET-ORCHESTRATOR-CHILDREN]",
+    parseBody: "strict",
+    errorResponseFormat: "text",
+    auth: {
+      required: true,
+    },
+  }, async ({ supabaseAdmin, logger, body: requestBody, auth }) => {
+  if (!auth) {
     return new Response("Authentication failed", { status: 401 });
   }
 
@@ -51,8 +49,21 @@ serve((req) => {
   // Set orchestrator task_id for logs
   logger.setDefaultTaskId(orchestratorTaskId);
 
-  const isServiceRole = auth!.isServiceRole;
-  const callerId = auth!.userId;
+  const actor = await authorizeTaskActor({
+    supabaseAdmin,
+    taskId: orchestratorTaskId,
+    auth,
+    logPrefix: "[GET-ORCHESTRATOR-CHILDREN]",
+  });
+  if (!actor.ok) {
+    logger.error("Task access denied", {
+      task_id: orchestratorTaskId,
+      error: actor.error,
+      status_code: actor.statusCode,
+    });
+    return new Response(actor.error, { status: actor.statusCode });
+  }
+  const isServiceRole = actor.value.isServiceRole;
 
   // Query child tasks by orchestration contract + legacy orchestrator reference fields.
   const { data: tasks, error: tasksError } = await supabaseAdmin
@@ -79,32 +90,9 @@ serve((req) => {
     });
   }
 
-  // If user token (not service role), verify ownership of all tasks
-  if (!isServiceRole && callerId) {
-    // Get unique project IDs from the tasks
-    const projectIds = [...new Set(tasks.map(t => t.project_id))];
-
-    // Check if user owns all the projects
-    const { data: projects, error: projectError } = await supabaseAdmin
-      .from("projects")
-      .select("id, user_id")
-      .in("id", projectIds);
-
-    if (projectError) {
-      logger.error("Error checking project ownership", { error: projectError.message });
-      return new Response("Error verifying access", { status: 500 });
-    }
-
-    // Verify user owns all projects
-    for (const project of projects || []) {
-      if (project.user_id !== callerId) {
-        logger.error("Access denied - user doesn't own project", {
-          user_id: callerId,
-          project_id: project.id
-        });
-        return new Response("Access denied - you don't own these tasks' project", { status: 403 });
-      }
-    }
+  // Service role may access all tasks; user tokens are pre-authorized via taskActorPolicy above.
+  if (!isServiceRole) {
+    logger.debug("Caller access verified by taskActorPolicy", { task_id: orchestratorTaskId });
   }
 
   // Remove project_id from response (not needed by caller)

@@ -5,6 +5,7 @@ import {
   RATE_LIMITS,
 } from "../_shared/rateLimit.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { resolveTaskStorageActor } from "../_shared/taskActorPolicy.ts";
 
 // Import from refactored modules
@@ -194,12 +195,12 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
     } catch (validationError) {
       logger.warn("Validation follow-up failed; continuing completion flow", {
         task_id: taskIdString,
-        error: validationError instanceof Error ? validationError.message : String(validationError),
+        error: toErrorMessage(validationError),
       });
       completionFollowUpIssues.push({
         step: 'validation',
         code: 'validation_follow_up_failed',
-        message: validationError instanceof Error ? validationError.message : String(validationError),
+        message: toErrorMessage(validationError),
       });
       // Continue anyway - don't fail task completion due to validation errors
     }
@@ -234,7 +235,7 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
           });
         }
       } catch (genErr: unknown) {
-        const msg = genErr instanceof Error ? genErr.message : String(genErr);
+        const msg = toErrorMessage(genErr);
         logger.error("Generation creation failed", { error: msg });
         await markTaskFailed(supabaseAdmin, taskIdString, `Generation creation failed: ${msg}`);
         await logger.flush();
@@ -250,7 +251,7 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
     }).eq("id", taskIdString).eq("status", "In Progress");
 
     if (dbError) {
-      const dbMsg = dbError instanceof Error ? dbError.message : String(dbError);
+      const dbMsg = toErrorMessage(dbError);
       logger.error("Database update failed", {
         task_id: taskIdString,
         error: dbMsg,
@@ -278,12 +279,12 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
     } catch (orchErr) {
       logger.warn("Orchestrator completion follow-up failed", {
         task_id: taskIdString,
-        error: orchErr instanceof Error ? orchErr.message : String(orchErr),
+        error: toErrorMessage(orchErr),
       });
       completionFollowUpIssues.push({
         step: 'orchestrator_completion',
         code: 'orchestrator_follow_up_failed',
-        message: orchErr instanceof Error ? orchErr.message : String(orchErr),
+        message: toErrorMessage(orchErr),
       });
     }
 
@@ -356,7 +357,7 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
     return jsonResponse(responseData, 200);
 
   } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
+    const errMsg = toErrorMessage(error);
     logger.critical("Unexpected error", {
       task_id: taskIdString,
       error: errMsg,

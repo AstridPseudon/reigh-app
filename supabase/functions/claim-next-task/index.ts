@@ -35,9 +35,6 @@ import { withEdgeRequest } from "../_shared/edgeHandler.ts";
  * - 500 Internal Server Error
  */
 serve((req) => {
-  if (!req.headers.get("authorization")) {
-    return new Response("Authentication failed", { status: 401 });
-  }
   return withEdgeRequest(req, {
   functionName: "claim-next-task",
   logPrefix: "[CLAIM-NEXT-TASK]",

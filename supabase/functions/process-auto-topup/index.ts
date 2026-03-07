@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
@@ -21,9 +22,6 @@ import {
  * - 500 Internal Server Error
  */
 serve(async (req) => {
-  if (!req.headers.get("authorization")) {
-    return jsonResponse({ error: "Authentication failed" }, 401);
-  }
   const bootstrap = await bootstrapEdgeHandler(req, {
     functionName: "process-auto-topup",
     logPrefix: "[PROCESS-AUTO-TOPUP]",
@@ -229,7 +227,7 @@ serve(async (req) => {
     }
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = toErrorMessage(error);
     const stripeErrorType = (error as { type?: string } | null)?.type;
     logger.error('Error in process-auto-topup', { error: errorMessage });
 

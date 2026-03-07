@@ -1,3 +1,4 @@
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 /**
  * Billing utilities for complete_task
  *
@@ -59,7 +60,7 @@ export async function triggerCostCalculationIfNotSubTask(
     return operationFailure(costErr, {
       policy: 'degrade',
       errorCode: 'cost_calculation_precheck_error',
-      message: costErr instanceof Error ? costErr.message : String(costErr),
+      message: toErrorMessage(costErr),
       recoverable: true,
       cause: costErr,
     });

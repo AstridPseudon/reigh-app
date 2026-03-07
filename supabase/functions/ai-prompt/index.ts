@@ -9,6 +9,7 @@ import {
 } from "../_shared/rateLimit.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
+import { toErrorMessage } from "../_shared/errorMessage.ts";
 import {
   buildEditPromptMessages,
   buildEnhanceSegmentUserPrompt,
@@ -16,16 +17,26 @@ import {
   ENHANCE_SEGMENT_SYSTEM_PROMPT,
 } from "./templates.ts";
 
-const apiKey = Deno.env.get("GROQ_API_KEY");
-if (!apiKey) {
-  console.error("[ai-prompt] Missing Groq provider configuration");
-}
-const groq = new Groq({ apiKey });
+let groqClient: Groq | null = null;
 
-// OpenAI API for segment prompt enhancement
-const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-if (!openaiApiKey) {
-  console.error("[ai-prompt] Missing OpenAI provider configuration");
+function getGroqClient(): Groq {
+  if (groqClient) {
+    return groqClient;
+  }
+  const apiKey = Deno.env.get("GROQ_API_KEY");
+  if (!apiKey) {
+    throw new Error("[ai-prompt] Missing Groq provider configuration");
+  }
+  groqClient = new Groq({ apiKey });
+  return groqClient;
+}
+
+function getOpenAIApiKey(): string {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    throw new Error("[ai-prompt] Missing OpenAI provider configuration");
+  }
+  return apiKey;
 }
 
 serve(async (req) => {
@@ -69,6 +80,7 @@ serve(async (req) => {
   try {
     switch (task) {
       case "generate_prompts": {
+        const groq = getGroqClient();
         const overallPromptText = String(body.overallPromptText ?? "");
         const rulesToRememberText = String(body.rulesToRememberText ?? "");
         const numberToGenerate = Number(body.numberToGenerate ?? 3);
@@ -107,6 +119,7 @@ serve(async (req) => {
         return jsonResponse({ prompts, usage: resp.usage });
       }
       case "edit_prompt": {
+        const groq = getGroqClient();
         const originalPromptText = String(body.originalPromptText ?? "");
         const editInstructions = String(body.editInstructions ?? "");
         if (!originalPromptText || !editInstructions) return jsonResponse({ error: "originalPromptText and editInstructions required" }, 400);
@@ -128,6 +141,7 @@ serve(async (req) => {
         return jsonResponse({ success: true, newText, usage: resp.usage });
       }
       case "generate_summary": {
+        const groq = getGroqClient();
         const promptText = String(body.promptText ?? "");
         if (!promptText) return jsonResponse({ error: "promptText required" }, 400);
         const resp = await groq.chat.completions.create({
@@ -154,9 +168,7 @@ Summary:` }],
           return jsonResponse({ error: "prompt is required" }, 400);
         }
 
-        if (!openaiApiKey) {
-          return jsonResponse({ error: "OpenAI API key not configured" }, 500);
-        }
+        const openaiApiKey = getOpenAIApiKey();
 
         const systemMsg = ENHANCE_SEGMENT_SYSTEM_PROMPT;
         const userMsg = buildEnhanceSegmentUserPrompt(prompt);
@@ -193,7 +205,7 @@ Summary:` }],
             usage: data.usage,
           });
         } catch (fetchError: unknown) {
-          const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+          const message = toErrorMessage(fetchError);
           console.error(`[ai-prompt] OpenAI fetch error:`, message);
           return jsonResponse({ error: "Failed to call OpenAI API", details: message }, 500);
         }
@@ -202,7 +214,7 @@ Summary:` }],
         return jsonResponse({ error: `Unknown task: ${task}` }, 400);
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = toErrorMessage(err);
     console.error(`[ai-prompt] Error handling task ${task}:`, message);
     return jsonResponse({ error: "Internal server error", details: message }, 500);
   }
