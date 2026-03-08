@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
 import { GenerationRow, PairLoraConfig, PairMotionSettings } from '@/domains/generation/types';
 import { ShotBatchItemDesktop } from '../ShotBatchItemDesktop';
+import type { ShotSegmentProps } from '../types';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { DEFAULT_BATCH_VIDEO_FRAMES } from '../constants';
 import { AddImagesCard } from './AddImagesCard';
 import { PairPromptIndicator } from './PairPromptIndicator';
 import { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
-import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { UseVideoScrubbingReturn } from '@/shared/hooks/useVideoScrubbing';
 import type { PairData } from '@/shared/types/pairData';
@@ -61,17 +61,10 @@ interface ImageGridPairPromptProps {
   }>;
 }
 
-interface ImageGridSegmentVideoProps {
-  // Segment video output props
-  segmentSlots?: SegmentSlot[];
-  onSegmentClick?: (slotIndex: number) => void;
-  /** Check if a pair_shot_generation_id has a pending task */
-  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
-  /** Delete a segment video */
-  onSegmentDelete?: (generationId: string) => void;
-  /** ID of segment currently being deleted */
-  deletingSegmentId?: string | null;
-}
+type ImageGridSegmentVideoProps = Pick<
+  ShotSegmentProps,
+  'segmentSlots' | 'onSegmentClick' | 'hasPendingTask' | 'onSegmentDelete' | 'deletingSegmentId'
+>;
 
 interface ImageGridScrubbingProps {
   // Scrubbing preview props

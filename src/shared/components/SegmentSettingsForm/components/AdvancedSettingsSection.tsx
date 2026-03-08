@@ -23,7 +23,12 @@ import { PromptFieldsSection } from './PromptFieldsSection';
 import { NegativePromptField } from './NegativePromptField';
 import { AdvancedSettingsLoraModal } from './AdvancedSettingsLoraModal';
 import type { useStructureVideoUpload } from '../hooks/useStructureVideoUpload';
-import type { SegmentSettings, SegmentSettingsFormProps } from '../types';
+import type {
+  SegmentSettings,
+  SegmentSettingsFormProps,
+  SegmentTimelineStructureVideoProps,
+  StructureVideoDragHandlers,
+} from '../types';
 
 interface AdvancedSettingsSectionProps {
   // Settings
@@ -43,18 +48,10 @@ interface AdvancedSettingsSectionProps {
     url?: SegmentSettingsFormProps['structureVideoUrl'];
     frameRange?: SegmentSettingsFormProps['structureVideoFrameRange'];
     defaults?: SegmentSettingsFormProps['structureVideoDefaults'];
-    isTimelineMode?: boolean;
-    onAddSegmentStructureVideo?: SegmentSettingsFormProps['onAddSegmentStructureVideo'];
-    onRemoveSegmentStructureVideo?: SegmentSettingsFormProps['onRemoveSegmentStructureVideo'];
-  };
+  } & SegmentTimelineStructureVideoProps;
   videoInteraction: {
     videoUpload: ReturnType<typeof useStructureVideoUpload>;
-    isDraggingVideo: boolean;
-    onDragOver: (e: React.DragEvent) => void;
-    onDragEnter: (e: React.DragEvent) => void;
-    onDragLeave: (e: React.DragEvent) => void;
-    onDrop: (e: React.DragEvent) => void;
-  };
+  } & StructureVideoDragHandlers;
 }
 
 export const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = ({

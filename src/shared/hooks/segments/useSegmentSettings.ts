@@ -31,6 +31,10 @@ import { useShotVideoSettings } from './useShotVideoSettings';
 import { useSegmentMutations } from './useSegmentMutations';
 import { readSegmentOverrides } from '@/shared/lib/settingsMigration';
 import type { SegmentSettings, ShotBatchSettings } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
+import type {
+  SegmentOverrideFlags,
+  SegmentShotDefaults,
+} from '@/shared/components/SegmentSettingsForm/types';
 import type { PairMetadata } from '@/shared/components/SegmentSettingsForm/segmentSettingsMigration';
 import type { ShotVideoSettings } from '@/shared/lib/settingsMigration';
 
@@ -80,33 +84,10 @@ export interface UseSegmentSettingsOptions {
 }
 
 /** Tracks which fields have pair-level overrides */
-interface FieldOverrides {
-  prompt: boolean;
-  negativePrompt: boolean;
-  textBeforePrompts: boolean;
-  textAfterPrompts: boolean;
-  motionMode: boolean;
-  amountOfMotion: boolean;
-  phaseConfig: boolean;
-  loras: boolean;
-  selectedPhasePresetId: boolean;
-  structureMotionStrength: boolean;
-  structureTreatment: boolean;
-  structureUni3cEndPercent: boolean;
-}
+type FieldOverrides = SegmentOverrideFlags;
 
 /** Shot-level default values (for showing as placeholder) */
-interface ShotDefaults {
-  prompt: string;
-  negativePrompt: string;
-  motionMode: 'basic' | 'advanced';
-  amountOfMotion: number;
-  phaseConfig?: import('@/shared/types/phaseConfig').PhaseConfig;
-  loras: import('@/shared/types/segmentSettings').LoraConfig[];
-  selectedPhasePresetId: string | null;
-  textBeforePrompts: string;
-  textAfterPrompts: string;
-}
+type ShotDefaults = SegmentShotDefaults;
 
 interface UseSegmentSettingsReturn {
   /** Current settings (merged from all sources + user edits) */

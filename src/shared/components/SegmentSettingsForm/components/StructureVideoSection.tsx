@@ -21,9 +21,18 @@ import { FieldDefaultControls } from './FieldDefaultControls';
 import { StructureVideoPreview } from './StructureVideoPreview';
 import { VideoPreviewSkeleton } from './VideoPreviewSkeleton';
 import type { useStructureVideoUpload } from '../hooks/useStructureVideoUpload';
-import type { SegmentSettings } from '../types';
+import type {
+  SegmentDefaultFieldProps,
+  SegmentSettingsChangeProps,
+  SegmentTimelineStructureVideoProps,
+  StructureVideoDragHandlers,
+} from '../types';
 
-interface StructureVideoSectionProps {
+interface StructureVideoSectionProps
+  extends SegmentDefaultFieldProps,
+    SegmentSettingsChangeProps,
+    SegmentTimelineStructureVideoProps,
+    StructureVideoDragHandlers {
   // Structure video context
   structureVideoType?: 'uni3c' | 'flow' | 'canny' | 'depth' | null;
   structureVideoUrl?: string;
@@ -41,29 +50,8 @@ interface StructureVideoSectionProps {
     uni3cEndPercent: number;
   };
 
-  // Settings
-  settings: SegmentSettings;
-  onChange: (updates: Partial<SegmentSettings>) => void;
-
-  // Timeline mode
-  isTimelineMode?: boolean;
-  onAddSegmentStructureVideo?: (video: unknown) => void;
-  onRemoveSegmentStructureVideo?: () => void;
-
   // Video upload hook return
   videoUpload: ReturnType<typeof useStructureVideoUpload>;
-
-  // Drag state
-  isDraggingVideo: boolean;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragEnter: (e: React.DragEvent) => void;
-  onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
-
-  // Default controls
-  onSaveFieldAsDefault?: (field: keyof SegmentSettings, value: SegmentSettings[keyof SegmentSettings]) => Promise<boolean>;
-  handleSaveFieldAsDefault: (field: keyof SegmentSettings, value: SegmentSettings[keyof SegmentSettings]) => Promise<void>;
-  savingField: string | null;
 }
 
 export const StructureVideoSection: React.FC<StructureVideoSectionProps> = ({

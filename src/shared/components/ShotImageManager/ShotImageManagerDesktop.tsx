@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
-import { ShotImageManagerProps } from './types';
+import type { ShotImageManagerProps, ShotLightboxSelectionProps } from './types';
 import { GRID_COLS_CLASSES } from './constants';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useTaskDetails } from './hooks/useTaskDetails';
 import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
-import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { GenerationRow } from '@/domains/generation/types';
 import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
@@ -28,7 +27,7 @@ import type { useBatchOperations } from './hooks/useBatchOperations';
 import type { useOptimisticOrder } from './hooks/useOptimisticOrder';
 import type { useExternalGenerations } from './hooks/useExternalGenerations';
 
-interface ShotImageManagerDesktopProps extends ShotImageManagerProps {
+interface ShotImageManagerDesktopProps extends ShotImageManagerProps, ShotLightboxSelectionProps {
   selection: ReturnType<typeof useSelection>;
   dragAndDrop: ReturnType<typeof useDragAndDrop>;
   lightbox: ReturnType<typeof useLightbox>;
@@ -36,25 +35,6 @@ interface ShotImageManagerDesktopProps extends ShotImageManagerProps {
   optimistic: ReturnType<typeof useOptimisticOrder>;
   externalGens: ReturnType<typeof useExternalGenerations>;
   getFramePosition: (index: number) => number | undefined;
-  lightboxSelectedShotId?: string;
-  setLightboxSelectedShotId?: (shotId: string | undefined) => void;
-  // Segment video output props
-  segmentSlots?: SegmentSlot[];
-  onSegmentClick?: (slotIndex: number) => void;
-  /** Check if a pair_shot_generation_id has a pending task */
-  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
-  /** Delete a segment video */
-  onSegmentDelete?: (generationId: string) => void;
-  /** ID of segment currently being deleted */
-  deletingSegmentId?: string | null;
-  /** Request to open lightbox for specific image (from segment constituent navigation) */
-  pendingImageToOpen?: string | null;
-  /** Variant ID to auto-select when opening from pendingImageToOpen */
-  pendingImageVariantId?: string | null;
-  /** Callback to clear the pending image request after handling */
-  onClearPendingImageToOpen?: () => void;
-  /** Helper to navigate with transition overlay (prevents flash when component type changes) */
-  navigateWithTransition?: (doNavigation: () => void) => void;
 }
 
 export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = ({

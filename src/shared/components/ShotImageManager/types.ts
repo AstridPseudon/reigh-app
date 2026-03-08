@@ -83,7 +83,7 @@ interface ShotPairPromptProps {
 }
 
 /** Segment video output props */
-interface ShotSegmentProps {
+export interface ShotSegmentProps {
   segmentSlots?: SegmentSlot[];
   onSegmentClick?: (slotIndex: number) => void;
   /** Check if a pair_shot_generation_id has a pending task */
@@ -123,6 +123,11 @@ export interface ShotImageManagerProps extends
 export interface DerivedNavContext {
   sourceGenerationId: string;
   derivedGenerationIds: string[];
+}
+
+export interface ShotLightboxSelectionProps {
+  lightboxSelectedShotId?: string;
+  setLightboxSelectedShotId?: (shotId: string | undefined) => void;
 }
 
 /**

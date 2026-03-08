@@ -1,6 +1,7 @@
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { PresetMetadata, PresetSampleGeneration } from '@/shared/types/presetMetadata';
 import type { ActiveLora } from '@/domains/lora/types/lora';
+import type { CurrentSettings } from '@/shared/components/PhaseConfigSelectorModal/types';
 import type { PhaseConfig } from '../settings';
 
 export type GenerationTypeMode = 'i2v' | 'vace';
@@ -23,22 +24,11 @@ interface MotionControlLoraProps {
   renderLoraHeaderActions?: () => React.ReactNode;
 }
 
-interface MotionControlCurrentSettings {
-  textBeforePrompts?: string;
-  textAfterPrompts?: string;
-  basePrompt?: string;
-  negativePrompt?: string;
-  enhancePrompt?: boolean;
-  durationFrames?: number;
-  lastGeneratedVideoUrl?: string;
-  selectedLoras?: Array<{ id: string; name: string; strength: number }>;
-}
-
 interface MotionControlPresetProps {
   selectedPhasePresetId?: string | null;
   onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
   onPhasePresetRemove: () => void;
-  currentSettings: MotionControlCurrentSettings;
+  currentSettings: CurrentSettings;
   featuredPresetIds?: string[];
 }
 

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ShotImageManagerProps } from './types';
+import type { ShotImageManagerProps, ShotLightboxSelectionProps } from './types';
 import { ShotImageManagerMobile } from './ShotImageManagerMobile';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';
 import { useTaskDetails } from './hooks/useTaskDetails';
-import type { SegmentSlot } from '@/shared/hooks/segments';
 import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { useAdjacentSegmentsData } from './hooks/useAdjacentSegmentsData';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
@@ -17,28 +16,13 @@ import type { useMobileGestures } from './hooks/useMobileGestures';
 import type { useOptimisticOrder } from './hooks/useOptimisticOrder';
 import type { useExternalGenerations } from './hooks/useExternalGenerations';
 
-interface ShotImageManagerMobileWrapperProps extends ShotImageManagerProps {
+interface ShotImageManagerMobileWrapperProps extends ShotImageManagerProps, ShotLightboxSelectionProps {
   selection: ReturnType<typeof useSelection>;
   lightbox: ReturnType<typeof useLightbox>;
   batchOps: ReturnType<typeof useBatchOperations>;
   mobileGestures: ReturnType<typeof useMobileGestures>;
   optimistic: ReturnType<typeof useOptimisticOrder>;
   externalGens: ReturnType<typeof useExternalGenerations>;
-  lightboxSelectedShotId?: string;
-  setLightboxSelectedShotId?: (shotId: string | undefined) => void;
-  // Segment video output props
-  segmentSlots?: SegmentSlot[];
-  onSegmentClick?: (slotIndex: number) => void;
-  /** Check if a pair_shot_generation_id has a pending task */
-  hasPendingTask?: (pairShotGenerationId: string | null | undefined) => boolean;
-  /** Request to open lightbox for specific image (from segment constituent navigation) */
-  pendingImageToOpen?: string | null;
-  /** Variant ID to auto-select when opening from pendingImageToOpen */
-  pendingImageVariantId?: string | null;
-  /** Callback to clear the pending image request after handling */
-  onClearPendingImageToOpen?: () => void;
-  /** Helper to navigate with transition overlay (prevents flash when component type changes) */
-  navigateWithTransition?: (doNavigation: () => void) => void;
 }
 
 export const ShotImageManagerMobileWrapper: React.FC<ShotImageManagerMobileWrapperProps> = ({

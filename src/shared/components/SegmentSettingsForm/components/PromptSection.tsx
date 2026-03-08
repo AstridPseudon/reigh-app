@@ -14,23 +14,19 @@ import { Switch } from '@/shared/components/ui/switch';
 import { FieldDefaultControls } from './FieldDefaultControls';
 import { EnhancedPromptBadge } from './EnhancedPromptBadge';
 import type { usePromptFieldState } from '@/shared/hooks/usePromptFieldState';
-import type { SegmentSettings } from '../types';
+import type {
+  SegmentDefaultFieldProps,
+  SegmentSettingsChangeProps,
+} from '../types';
 
-interface PromptSectionProps {
+interface PromptSectionProps extends SegmentDefaultFieldProps, SegmentSettingsChangeProps {
   promptField: ReturnType<typeof usePromptFieldState>;
   isRegeneration: boolean;
-  settings: SegmentSettings;
-  onChange: (updates: Partial<SegmentSettings>) => void;
 
   // Enhanced prompt
   basePromptForEnhancement?: string;
   enhancePromptEnabled?: boolean;
   onEnhancePromptChange?: (enabled: boolean) => void;
-
-  // Default controls
-  onSaveFieldAsDefault?: (field: keyof SegmentSettings, value: SegmentSettings[keyof SegmentSettings]) => Promise<boolean>;
-  handleSaveFieldAsDefault: (field: keyof SegmentSettings, value: SegmentSettings[keyof SegmentSettings]) => Promise<void>;
-  savingField: string | null;
 }
 
 export const PromptSection: React.FC<PromptSectionProps> = ({

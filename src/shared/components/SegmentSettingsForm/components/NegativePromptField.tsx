@@ -1,18 +1,5 @@
 import { DefaultableTextarea } from '@/shared/components/DefaultableTextarea';
-import type { SegmentSettings, SegmentSettingsFormProps } from '../types';
-
-interface NegativePromptFieldProps {
-  settings: SegmentSettings;
-  onChange: (updates: Partial<SegmentSettings>) => void;
-  shotDefaults?: SegmentSettingsFormProps['shotDefaults'];
-  hasOverride?: SegmentSettingsFormProps['hasOverride'];
-  onSaveFieldAsDefault?: SegmentSettingsFormProps['onSaveFieldAsDefault'];
-  handleSaveFieldAsDefault: (
-    field: keyof SegmentSettings,
-    value: SegmentSettings[keyof SegmentSettings]
-  ) => Promise<void>;
-  savingField: string | null;
-}
+import type { SegmentFieldSectionProps } from '../types';
 
 export function NegativePromptField({
   settings,
@@ -22,7 +9,7 @@ export function NegativePromptField({
   onSaveFieldAsDefault,
   handleSaveFieldAsDefault,
   savingField,
-}: NegativePromptFieldProps) {
+}: SegmentFieldSectionProps) {
   return (
     <DefaultableTextarea
       label="Negative Prompt:"

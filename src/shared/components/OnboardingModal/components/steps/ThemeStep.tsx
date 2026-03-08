@@ -1,6 +1,5 @@
-import { ChevronRight, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
-import { Button } from '@/shared/components/ui/button';
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -8,6 +7,7 @@ import {
 import { useDarkMode } from '@/shared/hooks/core/useDarkMode';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { getStepColors } from '@/shared/components/OnboardingModal/lib/onboardingColors';
+import { OnboardingStepWithContinue } from '@/shared/components/OnboardingModal/components/OnboardingStepWithContinue';
 import type { OnboardingStepProps } from '@/shared/components/OnboardingModal/types';
 
 export function ThemeStep({ onNext }: OnboardingStepProps) {
@@ -21,7 +21,7 @@ export function ThemeStep({ onNext }: OnboardingStepProps) {
   };
 
   return (
-    <>
+    <OnboardingStepWithContinue onNext={onNext}>
       <DialogHeader className="text-center space-y-4 mb-6">
         <div className={`mx-auto w-16 h-16 ${colors.bg} rounded-full flex items-center justify-center`}>
           {darkMode ? (
@@ -56,12 +56,6 @@ export function ThemeStep({ onNext }: OnboardingStepProps) {
         </div>
       </div>
 
-      <div className="flex justify-center pt-5 pb-2">
-        <Button variant="retro" size="retro-sm" onClick={onNext} className="w-full sm:w-auto">
-          Continue
-          <ChevronRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
-    </>
+    </OnboardingStepWithContinue>
   );
 }

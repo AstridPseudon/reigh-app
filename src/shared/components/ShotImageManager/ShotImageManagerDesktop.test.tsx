@@ -49,7 +49,7 @@ vi.mock('../ImageDragPreview', () => ({
 }));
 
 vi.mock('./components/BatchDropZone', () => ({
-  default: ({ children }: { children: (isFileDragOver: boolean, dropTargetIndex: number | null) => React.ReactNode }) => (
+  BatchDropZone: ({ children }: { children: (isFileDragOver: boolean, dropTargetIndex: number | null) => React.ReactNode }) => (
     <div data-testid="batch-drop-zone">{children(false, null)}</div>
   ),
 }));
