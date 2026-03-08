@@ -16,6 +16,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { useLastAffectedShot } from '@/shared/hooks/shots/useLastAffectedShot';
 import { Shot } from '@/domains/generation/types';
 import { unifiedGenerationQueryKeys } from '@/shared/lib/queryKeys/unified';
+import { deriveTargetShotInfo, type TargetShotInfo } from '@/shared/hooks/shots/targetShotInfo';
 
 interface UseVideoTravelAddToShotParams {
   /** Current project ID */
@@ -46,10 +47,7 @@ interface UseVideoTravelAddToShotParams {
 
 interface UseVideoTravelAddToShotReturn {
   /** Info about the target shot for the "Add to Shot" button */
-  targetShotInfo: {
-    targetShotIdForButton: string | undefined;
-    targetShotNameForButtonTooltip: string;
-  };
+  targetShotInfo: TargetShotInfo;
   /** Handle adding a video/image to target shot WITH position */
   handleAddVideoToTargetShot: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   /** Handle adding a video/image to target shot WITHOUT position */
@@ -69,14 +67,10 @@ export const useVideoTravelAddToShot = ({
   const { lastAffectedShotId, setLastAffectedShotId } = useLastAffectedShot();
   
   // Compute target shot info - memoized to prevent unnecessary recalculations
-  const targetShotInfo = useMemo(() => {
-    const targetShotIdForButton = lastAffectedShotId || (shots && shots.length > 0 ? shots[0].id : undefined);
-    const targetShotNameForButtonTooltip = targetShotIdForButton 
-      ? (shots?.find(shot => shot.id === targetShotIdForButton)?.name || 'Selected Shot')
-      : (shots && shots.length > 0 ? shots[0].name : 'Last Shot');
-    
-    return { targetShotIdForButton, targetShotNameForButtonTooltip };
-  }, [lastAffectedShotId, shots]);
+  const targetShotInfo = useMemo(
+    () => deriveTargetShotInfo(lastAffectedShotId, shots),
+    [lastAffectedShotId, shots]
+  );
   
   // Shared implementation for adding to shot (with or without position)
   const addToTargetShot = useCallback(async (

@@ -9,6 +9,7 @@ import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDe
 import { useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { deriveTargetShotInfo } from '@/shared/hooks/shots/targetShotInfo';
 
 interface UseImageGenActionsParams {
   projectId: string | null;
@@ -39,14 +40,10 @@ export function useImageGenActions({
   const { createShot } = useShotCreation();
   const { shots } = useShots();
 
-  const targetShotInfo = useMemo(() => {
-    const targetShotIdForButton = lastAffectedShotId || (shots && shots.length > 0 ? shots[0].id : undefined);
-    const targetShotNameForButtonTooltip = targetShotIdForButton
-      ? (shots?.find(shot => shot.id === targetShotIdForButton)?.name || 'Selected Shot')
-      : (shots && shots.length > 0 ? shots[0].name : 'Last Shot');
-
-    return { targetShotIdForButton, targetShotNameForButtonTooltip };
-  }, [lastAffectedShotId, shots]);
+  const targetShotInfo = useMemo(
+    () => deriveTargetShotInfo(lastAffectedShotId, shots),
+    [lastAffectedShotId, shots]
+  );
 
   const validShots = useMemo(() => shots || [], [shots]);
 

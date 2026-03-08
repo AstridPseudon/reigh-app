@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { createCanonicalJoinClipsTask } from '@/shared/lib/tasks/joinClips';
-import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
+import { resolveAspectRatioResolutionTuple } from '@/shared/lib/video/resolveAspectRatioResolutionTuple';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
@@ -109,17 +109,7 @@ export function useJoinClipsGenerate({
             path: lora.path,
             strength: lora.strength,
           }));
-
-          let resolutionTuple: [number, number] | undefined;
-          if (projectAspectRatio) {
-            const resolutionStr = ASPECT_RATIO_TO_RESOLUTION[projectAspectRatio];
-            if (resolutionStr) {
-              const [width, height] = resolutionStr.split('x').map(Number);
-              if (width && height) {
-                resolutionTuple = [width, height];
-              }
-            }
-          }
+          const resolutionTuple = resolveAspectRatioResolutionTuple(projectAspectRatio);
 
           const taskParams = {
             project_id: selectedProjectId,

@@ -11,9 +11,12 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useEditVideoSettings } from '@/shared/settings/hooks/useEditVideoSettings';
 import { useLoraManager } from '@/domains/lora/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
-import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
+import { resolveAspectRatioResolutionTuple } from '@/shared/lib/video/resolveAspectRatioResolutionTuple';
 import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/shared/lib/queryKeys';
+import {
+  flashSuccessForDuration,
+  invalidateTaskAndProjectQueries,
+} from '@/shared/lib/tasks/taskMutationFeedback';
 import { generateUUID, generateRunId, createTask } from '@/shared/lib/taskCreation';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
@@ -276,17 +279,7 @@ export function useReplaceMode({
             path: lora.path,
             strength: lora.strength,
           }));
-
-          let resolutionTuple: [number, number] | undefined;
-          if (projectAspectRatio) {
-            const resolutionStr = ASPECT_RATIO_TO_RESOLUTION[projectAspectRatio];
-            if (resolutionStr) {
-              const [width, height] = resolutionStr.split('x').map(Number);
-              if (width && height) {
-                resolutionTuple = [width, height];
-              }
-            }
-          }
+          const resolutionTuple = resolveAspectRatioResolutionTuple(projectAspectRatio);
 
           const baseConfig = savedPhaseConfig || DEFAULT_VACE_PHASE_CONFIG;
           const phaseConfig = motionMode === 'advanced'
@@ -353,11 +346,8 @@ export function useReplaceMode({
           });
         },
         onSuccess: () => {
-          setShowSuccessState(true);
-          setTimeout(() => setShowSuccessState(false), 1500);
-
-          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-          queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
+          flashSuccessForDuration(setShowSuccessState, 1500);
+          invalidateTaskAndProjectQueries(queryClient, selectedProjectId);
         },
       });
     } finally {
