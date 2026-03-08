@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { GenerationRow } from '@/domains/generation/types';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
+import { compareByCreatedAtDesc } from '@/shared/lib/sorting/createdAtSort';
 import {
   extractExpectedSegmentData,
   isSegmentGeneration,
@@ -73,11 +74,7 @@ function derivePreloadedParentGenerations(
     return isVideo && isNotChild && (hasOrchestratorDetails || hasChildren);
   });
 
-  parents.sort((a, b) => {
-    const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
-    const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
-    return dateB - dateA;
-  });
+  parents.sort(compareByCreatedAtDesc);
 
   return parents;
 }

@@ -20,6 +20,7 @@ import {
   selectUnpositionedImages,
   selectVideoOutputs,
 } from '@/shared/lib/shotImageSelectors';
+import { compareByCreatedAtDesc } from '@/shared/lib/sorting/createdAtSort';
 import type { Project } from '@/types/project';
 
 interface UseShotEditorSetupProps {
@@ -186,12 +187,7 @@ export function useShotEditorSetup({
         const params = v.params as Record<string, unknown> | null;
         return params?.orchestrator_details != null;
       })
-      .sort((a, b) => {
-        // Sort by created_at descending (most recent first)
-        const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
-        const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
-        return dateB - dateA;
-      });
+      .sort(compareByCreatedAtDesc);
   }, [videoOutputs]);
 
   // Refs for stable access inside callbacks (avoid callback recreation on data changes)
