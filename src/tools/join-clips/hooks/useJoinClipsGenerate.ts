@@ -1,12 +1,15 @@
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/shared/lib/queryKeys';
 import { createCanonicalJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
+import {
+  flashSuccessForDuration,
+  invalidateTaskAndProjectQueries,
+} from '@/shared/lib/tasks/taskMutationFeedback';
 import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID, VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import type { VideoClip, TransitionPrompt } from '../types';
 import type { useJoinClipsSettings } from './useJoinClipsSettings';
@@ -157,12 +160,9 @@ export function useJoinClipsGenerate({
           return createCanonicalJoinClipsTask(taskParams);
         },
         onSuccess: () => {
-          setShowSuccessState(true);
-          setTimeout(() => setShowSuccessState(false), 1500);
+          flashSuccessForDuration(setShowSuccessState, 1500);
           setVideosViewJustEnabled(true);
-
-          queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-          queryClient.invalidateQueries({ queryKey: queryKeys.unified.projectPrefix(selectedProjectId) });
+          invalidateTaskAndProjectQueries(queryClient, selectedProjectId);
         },
       });
     } finally {
