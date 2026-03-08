@@ -4,7 +4,6 @@ interface OperationSuccess<T> {
   ok: true;
   value: T;
   policy: OperationFailurePolicy;
-  recoverable: false;
 }
 
 export interface OperationFailure {
@@ -64,7 +63,6 @@ export function operationSuccess<T>(value: T, options?: OperationSuccessOptions)
     ok: true,
     value,
     policy: options?.policy ?? 'best_effort',
-    recoverable: false,
   };
 }
 

@@ -3,6 +3,7 @@ import { TASK_NAME_ABBREVIATIONS } from '../constants';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import {
   asRecord,
+  asString,
   asStringArray,
   firstString as firstNonEmptyString,
 } from '@/shared/lib/jsonNarrowing';

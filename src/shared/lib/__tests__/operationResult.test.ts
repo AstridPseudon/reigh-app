@@ -13,7 +13,6 @@ describe('operationResult', () => {
       ok: true,
       value: { ok: true },
       policy: 'best_effort',
-      recoverable: false,
     });
   });
 
