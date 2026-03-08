@@ -1,4 +1,5 @@
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { toObjectRecord } from '@/shared/lib/jsonRecord';
 
 type TaskParamPath = readonly string[];
 
@@ -42,16 +43,10 @@ const TASK_PARAM_CONTRACT_PATHS = {
   ] as const satisfies readonly TaskParamPath[],
 } as const;
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
 function resolvePathValue(params: unknown, path: TaskParamPath): unknown {
   let value: unknown = params;
   for (const segment of path) {
-    const record = asRecord(value);
+    const record = toObjectRecord(value);
     if (!record || !(segment in record)) {
       return undefined;
     }
