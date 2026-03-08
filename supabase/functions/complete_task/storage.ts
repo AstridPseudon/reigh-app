@@ -168,7 +168,7 @@ function generateThumbnail(
         return data.publicUrl;
       }
     } catch {
-      // Transform URL generation is best-effort; fall back to the main image URL below.
+      return mainImageUrl;
     }
   }
 
@@ -229,5 +229,6 @@ export async function cleanupFile(
     await supabase.storage.from(MEDIA_BUCKET).remove([objectPath]);
   } catch (error) {
     console.warn(`[Storage] Failed to cleanup file:`, error);
+    return;
   }
 }

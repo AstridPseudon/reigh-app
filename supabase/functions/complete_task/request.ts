@@ -167,6 +167,8 @@ function parseBase64Request(body: CompleteTaskRequestBody): ParseResult {
     } catch (error) {
       console.warn("[RequestParser] Thumbnail base64 decode error:", error);
       // Continue without thumbnail - non-fatal
+      thumbnailBuffer = undefined;
+      thumbnailFilename = undefined;
     }
   }
 

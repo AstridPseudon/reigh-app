@@ -213,5 +213,6 @@ export async function linkGenerationToShot(
     }
   } catch (error) {
     console.warn(`[ShotLink] Exception linking generation to shot:`, error);
+    return;
   }
 }
