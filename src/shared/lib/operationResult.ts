@@ -58,25 +58,46 @@ interface OperationFailureOptions {
   cause?: unknown;
 }
 
+const DEFAULT_FAILURE_POLICY: OperationFailurePolicy = 'best_effort';
+
+function normalizeOperationError(error: unknown, fallbackMessage?: string): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  if (fallbackMessage) {
+    return new Error(fallbackMessage);
+  }
+
+  return new Error(String(error));
+}
+
 export function operationSuccess<T>(value: T, options?: OperationSuccessOptions): OperationSuccess<T> {
+  const policy = options?.policy ?? DEFAULT_FAILURE_POLICY;
   return {
     ok: true,
     value,
-    policy: options?.policy ?? 'best_effort',
+    policy,
   };
 }
 
 export function operationFailure(error: unknown, options?: OperationFailureOptions): OperationFailure {
-  const normalizedError = error instanceof Error ? error : new Error(String(error));
-  return {
+  const normalizedError = normalizeOperationError(error, options?.message);
+  const failureMessage = options?.message ?? normalizedError.message;
+  const failure: OperationFailure = {
     ok: false,
     error: normalizedError,
-    message: options?.message ?? normalizedError.message,
+    message: failureMessage,
     recoverable: options?.recoverable ?? true,
-    policy: options?.policy ?? 'best_effort',
+    policy: options?.policy ?? DEFAULT_FAILURE_POLICY,
     errorCode: options?.errorCode ?? 'operation_failed',
-    ...(options?.cause !== undefined ? { cause: options.cause } : {}),
   };
+
+  if (options?.cause !== undefined) {
+    failure.cause = options.cause;
+  }
+
+  return failure;
 }
 
 /**
