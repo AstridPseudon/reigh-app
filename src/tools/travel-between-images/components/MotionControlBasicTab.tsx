@@ -1,11 +1,12 @@
 import React from 'react';
-import { Info, Library, Settings } from 'lucide-react';
+import { Info, Settings } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Switch } from '@/shared/components/ui/switch';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 import { ActiveLoRAsDisplay } from '@/shared/components/lora/ActiveLoRAsDisplay';
+import { MotionPresetSectionHeader } from '@/shared/components/MotionPresetSelector/MotionPresetSectionHeader';
 import { SelectedPresetCard } from './SelectedPresetCard';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { PresetSampleGeneration } from '@/shared/types/presetMetadata';
@@ -68,34 +69,16 @@ export const MotionControlBasicTab: React.FC<MotionControlBasicTabProps> = ({
       <div className="space-y-3">
         {isSelectedPresetKnown ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium">Motion Preset:</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground cursor-help hover:text-foreground transition-colors">
-                      <Info className="h-4 w-4" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Select a motion preset to control how your video moves.
-                      <br />
-                      Model type (I2V/VACE) is auto-determined by structure video.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenPresetModal}
-                className="gap-1 text-xs h-7"
-              >
-                <Library className="h-3.5 w-3.5" />
-                Browse Presets
-              </Button>
-            </div>
+            <MotionPresetSectionHeader
+              tooltipContent={(
+                <>
+                  Select a motion preset to control how your video moves.
+                  <br />
+                  Model type (I2V/VACE) is auto-determined by structure video.
+                </>
+              )}
+              onBrowsePresets={onOpenPresetModal}
+            />
 
             <div className="flex flex-wrap gap-2">
               {allPresets.map((preset) => {

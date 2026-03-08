@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
+import { captureTouchStartPoint, isTouchTapWithinThreshold } from '@/shared/lib/touch/touchGestureUtils';
 
 interface UseItemInteractionParams {
   image: GeneratedImageWithMetadata;
@@ -21,10 +22,7 @@ export function useItemInteraction({
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouchStart = useCallback((event: React.TouchEvent) => {
-    touchStartPosRef.current = {
-      x: event.touches[0].clientX,
-      y: event.touches[0].clientY,
-    };
+    captureTouchStartPoint(touchStartPosRef, event);
   }, []);
 
   const handleInteraction = useCallback((event: React.TouchEvent | React.MouseEvent) => {
@@ -39,16 +37,12 @@ export function useItemInteraction({
     }
 
     if (event.type === 'touchend') {
-      if (!touchStartPosRef.current) {
-        return;
-      }
-
-      const touch = (event as React.TouchEvent).changedTouches[0];
-      const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
-      const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
-      touchStartPosRef.current = null;
-
-      if (deltaX > 10 || deltaY > 10) {
+      const isTap = isTouchTapWithinThreshold(
+        touchStartPosRef,
+        event as React.TouchEvent,
+        10,
+      );
+      if (!isTap) {
         return;
       }
     }

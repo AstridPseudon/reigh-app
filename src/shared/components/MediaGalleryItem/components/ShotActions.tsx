@@ -1,5 +1,5 @@
 import React from "react";
-import { PlusCircle, Check, Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import {
   Tooltip,
@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import { ShotSelector } from "@/shared/components/ShotSelector";
+import { ShotPrimaryActionButton } from '@/shared/components/shots/ShotPrimaryActionButton';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type {
   GeneratedImageWithMetadata,
@@ -156,44 +157,21 @@ export const ShotActions: React.FC<ShotActionsProps> = ({
 
       {!isVideoContent && (
         <div className="relative">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className={`h-7 w-7 p-0 rounded-full bg-black/50 hover:bg-black/70 text-white ${
-                  showTickForImageId === image.id
-                    ? 'bg-emerald-500 hover:bg-emerald-600'
-                    : isAlreadyPositionedInSelectedShot
-                      ? 'bg-black/40 hover:bg-black/60 text-white'
-                      : ''
-                }`}
-                onClick={handleAddToShotIntent}
-                disabled={!selectedShotId || addingToShotImageId === image.id}
-                aria-label={
-                  isAlreadyPositionedInSelectedShot ? `Jump to ${currentTargetShotName}` :
-                  showTickForImageId === image.id ? `Jump to ${currentTargetShotName}` :
-                  (currentTargetShotName ? `Add to '${currentTargetShotName}' at final position` : "Add to selected shot")
-                }
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                {addingToShotImageId === image.id ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                ) : showTickForImageId === image.id ? (
-                  <Check className="h-4 w-4" />
-                ) : isAlreadyPositionedInSelectedShot ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <PlusCircle className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {isAlreadyPositionedInSelectedShot ? `Jump to ${currentTargetShotName || 'shot'}` :
-              showTickForImageId === image.id ? `Jump to ${currentTargetShotName || 'shot'}` :
-              (selectedShotId && currentTargetShotName ? `Add to '${currentTargetShotName}' at final position` : "Select a shot then click to add")}
-            </TooltipContent>
-          </Tooltip>
+          <ShotPrimaryActionButton
+            selectedShotId={selectedShotId}
+            currentTargetShotName={currentTargetShotName}
+            isLoading={addingToShotImageId === image.id}
+            showTick={showTickForImageId === image.id}
+            isAlreadyPositionedInSelectedShot={isAlreadyPositionedInSelectedShot}
+            onClick={handleAddToShotIntent}
+            className={`h-7 w-7 p-0 rounded-full bg-black/50 hover:bg-black/70 text-white ${
+              showTickForImageId === image.id
+                ? 'bg-emerald-500 hover:bg-emerald-600'
+                : isAlreadyPositionedInSelectedShot
+                  ? 'bg-black/40 hover:bg-black/60 text-white'
+                  : ''
+            }`}
+          />
 
           {/* Add without position button - visibility now memoized for performance */}
           {shouldShowAddWithoutPositionButton && (

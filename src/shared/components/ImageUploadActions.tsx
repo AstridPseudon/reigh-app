@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
+import { handleImageFileInputChange } from '@/shared/lib/handleImageFileInputChange';
 
 interface ImageUploadActionsProps {
   /** Callback when files are selected via the file input */
@@ -35,13 +36,9 @@ export const ImageUploadActions: React.FC<ImageUploadActionsProps> = ({
         type="file"
         accept="image/*"
         multiple
-        onChange={(e) => {
-          const files = Array.from(e.target.files || []);
-          if (files.length > 0) {
-            onImageUpload(files);
-            e.target.value = ''; // Reset input
-          }
-        }}
+        onChange={(e) => handleImageFileInputChange(e, (files) => {
+          void onImageUpload(files);
+        })}
         className="hidden"
         id={inputId}
         disabled={isUploadingImage}
@@ -81,4 +78,3 @@ export const ImageUploadActions: React.FC<ImageUploadActionsProps> = ({
     </>
   );
 };
-

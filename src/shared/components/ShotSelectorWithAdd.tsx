@@ -1,11 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { PlusCircle, Check } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from "@/shared/components/ui/tooltip";
+import { ShotPrimaryActionButton } from '@/shared/components/shots/ShotPrimaryActionButton';
 import { ShotSelector, ShotOption } from "@/shared/components/ShotSelector";
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useShotNavigation } from "@/shared/hooks/shots/useShotNavigation";
@@ -182,43 +176,21 @@ export const ShotSelectorWithAdd: React.FC<ShotSelectorWithAddProps> = ({
         }}
       />
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn(
-              "h-7 w-7 p-0 rounded-full bg-black/50 hover:bg-black/70 text-white",
-              showTick && 'bg-green-500 hover:bg-green-600 !text-white',
-              isAlreadyPositionedInSelectedShot && !showTick && 'bg-gray-500/60 hover:bg-gray-600/70 !text-white',
-              buttonClassName
-            )}
-            onClick={handleAddClick}
-            disabled={!selectedShotId || isAdding}
-            aria-label={
-              isAlreadyPositionedInSelectedShot ? `Jump to ${currentTargetShotName}` :
-              showTick ? `Jump to ${currentTargetShotName}` : 
-              (currentTargetShotName ? `Add to '${currentTargetShotName}' at final position` : "Add to selected shot")
-            }
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {isAdding ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-            ) : showTick ? (
-              <Check className="h-4 w-4" />
-            ) : isAlreadyPositionedInSelectedShot ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <PlusCircle className="h-4 w-4" />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="z-[100001]">
-          {isAlreadyPositionedInSelectedShot ? `Jump to ${currentTargetShotName || 'shot'}` :
-          showTick ? `Jump to ${currentTargetShotName || 'shot'}` :
-          (selectedShotId && currentTargetShotName ? `Add to '${currentTargetShotName}' at final position` : "Select a shot then click to add")}
-        </TooltipContent>
-      </Tooltip>
+      <ShotPrimaryActionButton
+        selectedShotId={selectedShotId}
+        currentTargetShotName={currentTargetShotName}
+        isLoading={isAdding}
+        showTick={showTick}
+        isAlreadyPositionedInSelectedShot={isAlreadyPositionedInSelectedShot}
+        onClick={handleAddClick}
+        className={cn(
+          "h-7 w-7 p-0 rounded-full bg-black/50 hover:bg-black/70 text-white",
+          showTick && 'bg-green-500 hover:bg-green-600 !text-white',
+          isAlreadyPositionedInSelectedShot && !showTick && 'bg-gray-500/60 hover:bg-gray-600/70 !text-white',
+          buttonClassName
+        )}
+        tooltipClassName="z-[100001]"
+      />
     </div>
   );
 };

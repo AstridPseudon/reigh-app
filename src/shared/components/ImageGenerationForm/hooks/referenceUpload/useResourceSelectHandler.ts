@@ -3,14 +3,12 @@ import type { QueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { updateSettingsCache } from '@/shared/hooks/settings/useToolSettings';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { toOperationResultError } from '@/shared/lib/operationResult';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
-import { runOptimisticCacheUpdate } from './optimisticCacheUpdate';
 import {
   createReferencePointer,
-  persistReferenceSelection,
 } from './referenceDomainService';
+import { persistOptimisticReferenceSelection } from './persistOptimisticReferenceSelection';
 import type { Resource } from '@/shared/hooks/useResources';
 import type {
   ProjectImageSettings,
@@ -135,26 +133,20 @@ export function useResourceSelectHandler(
         inThisSceneStrength,
       });
 
-      const optimisticUpdateResult = runOptimisticCacheUpdate(() => {
-        applyNewPointerSelection({
-          queryClient,
-          selectedProjectId,
-          effectiveShotId,
-          newPointer,
-        });
-      }, 'useReferenceUpload.handleResourceSelect.optimisticUpdate');
-      if (!optimisticUpdateResult.ok) {
-        throw toOperationResultError(optimisticUpdateResult);
-      }
-
-      const persistResult = await persistReferenceSelection({
+      await persistOptimisticReferenceSelection({
         queryClient,
         selectedProjectId,
+        optimisticContext: 'useReferenceUpload.handleResourceSelect.optimisticUpdate',
+        applyOptimisticUpdate: () => {
+          applyNewPointerSelection({
+            queryClient,
+            selectedProjectId,
+            effectiveShotId,
+            newPointer,
+          });
+        },
         updateProjectImageSettings,
       });
-      if (!persistResult.ok) {
-        throw toOperationResultError(persistResult);
-      }
 
       markAsInteracted();
     } catch (error) {

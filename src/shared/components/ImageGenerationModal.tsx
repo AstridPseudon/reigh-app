@@ -5,7 +5,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { Button } from '@/shared/components/ui/button';
 import { useExtraLargeModal } from '@/shared/hooks/useModal';
 import { ImageGenerationForm } from '@/shared/components/ImageGenerationForm';
 import { createBatchImageGenerationTasks, BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
@@ -16,8 +15,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLinkTooltipButton } from '@/shared/components/ui/ExternalLinkTooltipButton';
 import { useNavigate } from 'react-router-dom';
 import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
 
@@ -99,18 +97,11 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
         <DialogHeader className={modal.headerClass}>
           <div className="flex items-center gap-2">
             <DialogTitle className="text-xl font-light">Generate Images</DialogTitle>
-            <TooltipProvider delayDuration={500}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={handleNavigateToTool} className="h-7 w-7">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Open Tool</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <ExternalLinkTooltipButton
+              onClick={handleNavigateToTool}
+              tooltipLabel="Open Tool"
+              delayDuration={500}
+            />
           </div>
         </DialogHeader>
 

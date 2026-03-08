@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useTemporaryVisibility } from '../../../hooks/video/useTemporaryVisibility';
 import { useClickOutside } from '../../../hooks/useClickOutside';
+import { captureTouchStartPoint, isTouchTapWithinThreshold } from '@/shared/lib/touch/touchGestureUtils';
 
 const SCROLL_THRESHOLD = 10;
 const DOUBLE_TAP_DELAY = 300;
@@ -257,20 +258,13 @@ export function useTabletEndpointSelection(
   // Touch start handler for resize handle endpoints
   const handleEndpointTouchStart = useCallback((_endpoint: 'left' | 'right', e: React.TouchEvent) => {
     if (!enabled) return;
-    const touch = e.touches[0];
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    captureTouchStartPoint(touchStartPosRef, e);
   }, [enabled]);
 
   // Touch end handler for resize handle endpoints
   const handleEndpointTouchEnd = useCallback((_endpoint: 'left' | 'right', e: React.TouchEvent) => {
-    if (!enabled || !touchStartPosRef.current) return;
-
-    const touch = e.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
-    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
-    touchStartPosRef.current = null;
-
-    if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) return;
+    if (!enabled) return;
+    if (!isTouchTapWithinThreshold(touchStartPosRef, e, SCROLL_THRESHOLD)) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -296,20 +290,12 @@ export function useTabletEndpointSelection(
   // Track touch start for tap detection on strip body
   const handleStripTouchStart = useCallback((e: React.TouchEvent) => {
     if (!enabled) return;
-    const touch = e.touches[0];
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    captureTouchStartPoint(touchStartPosRef, e);
   }, [enabled]);
 
   // Touch end handler for strip body - dispatches to tap-to-place, double-tap, or single-tap
   const handleStripTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartPosRef.current) return;
-
-    const touch = e.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
-    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
-    touchStartPosRef.current = null;
-
-    if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) return;
+    if (!isTouchTapWithinThreshold(touchStartPosRef, e, SCROLL_THRESHOLD)) return;
 
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('[data-resize-handle]')) return;

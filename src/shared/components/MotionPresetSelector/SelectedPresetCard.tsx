@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { Button } from '@/shared/components/ui/button';
 import { Settings, X } from 'lucide-react';
 import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { fetchPresetResourceById } from '@/integrations/supabase/repositories/presetResourcesRepository';
 import type { SelectedPresetCardProps, PresetMetadata } from './types';
 
 // Helper to check if an ID is a built-in preset (not in database)
@@ -28,15 +28,7 @@ export const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
   // Fetch preset details from database
   const { data: preset, isLoading } = useQuery({
     queryKey: [queryKeyPrefix, 'preset', presetId],
-    queryFn: async () => {
-      const { data, error } = await supabase().from('resources')
-        .select('*')
-        .eq('id', presetId)
-        .single();
-
-      if (error) throw error;
-      return data as unknown as { id: string; metadata: PresetMetadata };
-    },
+    queryFn: () => fetchPresetResourceById<PresetMetadata>(presetId),
     enabled: shouldFetch,
   });
 

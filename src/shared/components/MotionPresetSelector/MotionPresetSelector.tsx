@@ -1,13 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { Info, Library, Settings, Pencil } from 'lucide-react';
+import { Settings, Pencil } from 'lucide-react';
 import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
 import { PhaseConfigVertical } from '@/shared/components/PhaseConfigSelectorModal/PhaseConfigVertical';
 import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal/PhaseConfigSelectorModal';
 import { PhaseConfig } from '@/shared/types/phaseConfig';
+import { MotionPresetSectionHeader } from './MotionPresetSectionHeader';
 import { SelectedPresetCard } from './SelectedPresetCard';
 import { useMotionPresets } from './useMotionPresets';
 import type { MotionPresetSelectorProps, Preset, MotionMode, PresetMetadata } from './types';
@@ -179,31 +178,11 @@ export const MotionPresetSelector: React.FC<MotionPresetSelectorProps> = ({
         <TabsContent value="basic" className="mt-0 space-y-4">
           {/* Preset Selection Section */}
           <div className="space-y-3">
-            {/* Header with label and Browse button */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium">Motion Preset:</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground cursor-help hover:text-foreground transition-colors">
-                      <Info className="h-4 w-4" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="whitespace-pre-line">{presetTooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsPresetModalOpen(true)}
-                className="gap-1 text-xs h-7"
-              >
-                <Library className="h-3.5 w-3.5" />
-                Browse Presets
-              </Button>
-            </div>
+            <MotionPresetSectionHeader
+              tooltipContent={presetTooltip}
+              tooltipContentClassName="whitespace-pre-line"
+              onBrowsePresets={() => setIsPresetModalOpen(true)}
+            />
 
             {/* Preset chips - show if no selection or selection is a known preset */}
             {shouldShowPresetChips ? (

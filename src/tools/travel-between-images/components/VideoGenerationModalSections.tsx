@@ -1,8 +1,6 @@
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { Button } from '@/shared/components/ui/button';
+import { ExternalLinkTooltipButton } from '@/shared/components/ui/ExternalLinkTooltipButton';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { BatchSettingsForm } from '@/tools/travel-between-images/components/BatchSettingsForm';
 import { MotionControl } from '@/tools/travel-between-images/components/MotionControl';
@@ -35,16 +33,10 @@ export function VideoGenerationModalHeader({
         <span className="text-xl font-light">
           Generate Video - <span className="preserve-case">{shotName || 'Unnamed Shot'}</span>
         </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={onNavigateToShot} className="h-7 w-7">
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Open Shot Editor</p>
-          </TooltipContent>
-        </Tooltip>
+        <ExternalLinkTooltipButton
+          onClick={onNavigateToShot}
+          tooltipLabel="Open Shot Editor"
+        />
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">

@@ -55,7 +55,7 @@ vi.mock('@/shared/components/ui/skeleton', () => ({
 }));
 
 vi.mock('@/tools/travel-between-images/components/BatchSettingsForm', () => ({
-  default: (props: unknown) => mocks.batchSettingsForm(props),
+  BatchSettingsForm: (props: unknown) => mocks.batchSettingsForm(props),
 }));
 
 vi.mock('@/tools/travel-between-images/components/MotionControl', () => ({

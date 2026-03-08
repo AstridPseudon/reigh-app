@@ -8,13 +8,12 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { toOperationResultError } from '@/shared/lib/operationResult';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
-import { runOptimisticCacheUpdate } from './optimisticCacheUpdate';
 import {
   buildStyleReferenceMetadata,
-  persistReferenceSelection,
   resolveReferenceThumbnailUrl,
   uploadAndProcessReference,
 } from './referenceDomainService';
+import { persistOptimisticReferenceSelection } from './persistOptimisticReferenceSelection';
 import type {
   HydratedReferenceImage,
   ProjectImageSettings,
@@ -155,27 +154,21 @@ export function useStyleReferenceUploadHandler(
         createdAt: new Date().toISOString(),
       };
 
-      const optimisticUpdateResult = runOptimisticCacheUpdate(() => {
-        applyOptimisticUploadUpdate({
-          queryClient,
-          selectedProjectId,
-          effectiveShotId,
-          newPointer,
-          resource,
-        });
-      }, 'useReferenceUpload.handleStyleReferenceUpload.optimisticUpdate');
-      if (!optimisticUpdateResult.ok) {
-        throw toOperationResultError(optimisticUpdateResult);
-      }
-
-      const persistResult = await persistReferenceSelection({
+      await persistOptimisticReferenceSelection({
         queryClient,
         selectedProjectId,
+        optimisticContext: 'useReferenceUpload.handleStyleReferenceUpload.optimisticUpdate',
+        applyOptimisticUpdate: () => {
+          applyOptimisticUploadUpdate({
+            queryClient,
+            selectedProjectId,
+            effectiveShotId,
+            newPointer,
+            resource,
+          });
+        },
         updateProjectImageSettings,
       });
-      if (!persistResult.ok) {
-        throw toOperationResultError(persistResult);
-      }
 
       markAsInteracted();
       setStyleReferenceOverride(originalUploadedUrl);

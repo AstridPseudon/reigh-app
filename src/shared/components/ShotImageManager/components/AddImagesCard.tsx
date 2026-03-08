@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { getAspectRatioStyle } from '../utils/image-utils';
+import { handleImageFileInputChange } from '@/shared/lib/handleImageFileInputChange';
 
 interface AddImagesCardProps {
   projectAspectRatio?: string;
@@ -21,13 +22,9 @@ export const AddImagesCard: React.FC<AddImagesCardProps> = ({
         type="file"
         accept="image/*"
         multiple
-        onChange={(e) => {
-          const files = Array.from(e.target.files || []);
-          if (files.length > 0) {
-            onImageUpload(files);
-            e.target.value = ''; // Reset input
-          }
-        }}
+        onChange={(e) => handleImageFileInputChange(e, (files) => {
+          void onImageUpload(files);
+        })}
         className="hidden"
         id="grid-image-upload"
         disabled={isUploadingImage}
@@ -51,4 +48,3 @@ export const AddImagesCard: React.FC<AddImagesCardProps> = ({
     </div>
   );
 };
-
