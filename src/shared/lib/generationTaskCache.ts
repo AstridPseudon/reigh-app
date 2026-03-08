@@ -4,7 +4,7 @@ import type { GenerationRow } from '@/domains/generation/types';
 import { Task } from '@/types/tasks';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
+import { resolveTaskProjectScope } from '@/shared/lib/tasks/resolveTaskProjectScope';
 import { isTaskDbRow, mapTaskDbRowToTask } from '@/shared/lib/taskRowMapper';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import {
@@ -27,17 +27,6 @@ interface GenerationWithTaskData extends GenerationRow {
   taskMappingError?: string;
 }
 
-function resolveTaskScopeProjectId(projectId: string | null): string | null {
-  if (projectId && projectId.trim().length > 0) {
-    return projectId;
-  }
-  const selectedProjectId = getProjectSelectionFallbackId();
-  if (selectedProjectId && selectedProjectId.trim().length > 0) {
-    return selectedProjectId;
-  }
-  return null;
-}
-
 /**
  * Preload task mappings for a batch of generations in the background.
  */
@@ -48,7 +37,7 @@ export async function preloadGenerationTaskMappings(
   options: PreloadGenerationTaskMappingsOptions = {},
 ) {
   const supabase = getSupabaseClient();
-  const effectiveProjectId = resolveTaskScopeProjectId(projectId);
+  const effectiveProjectId = resolveTaskProjectScope(projectId);
   const {
     batchSize = 5,
     delayBetweenBatches = 200,
@@ -116,7 +105,7 @@ export function mergeGenerationsWithTaskData(
   queryClient: QueryClient,
   projectId: string | null,
 ): GenerationWithTaskData[] {
-  const effectiveProjectId = resolveTaskScopeProjectId(projectId);
+  const effectiveProjectId = resolveTaskProjectScope(projectId);
 
   return generations.map((generation) => {
     const generationId = getGenerationId(generation);
