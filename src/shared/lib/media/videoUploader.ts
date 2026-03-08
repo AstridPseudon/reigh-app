@@ -7,6 +7,10 @@ import {
   MEDIA_BUCKET,
 } from '../storagePaths';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import {
+  attachUploadProgressListener,
+  createUploadXhrLifecycle,
+} from './uploadXhrLifecycle';
 export type { VideoMetadata } from './videoMetadata';
 export { extractVideoMetadata, extractVideoMetadataFromUrl } from './videoMetadata';
 
@@ -108,17 +112,10 @@ function formatFinalUploadError(lastError: Error | null, fileName: string, fileS
 function executeVideoUploadRequest(options: UploadRequestOptions): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    let lastProgressTime = Date.now();
-    let stallCheckInterval: ReturnType<typeof setInterval> | null = null;
-    let overallTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (stallCheckInterval) clearInterval(stallCheckInterval);
-      if (overallTimeout) clearTimeout(overallTimeout);
-    };
+    const lifecycle = createUploadXhrLifecycle();
 
     const rejectAndAbort = (error: Error) => {
-      cleanup();
+      lifecycle.cleanup();
       xhr.abort();
       reject(error);
     };
@@ -127,29 +124,22 @@ function executeVideoUploadRequest(options: UploadRequestOptions): Promise<void>
       rejectAndAbort(new Error('Upload cancelled'));
     };
 
-    overallTimeout = setTimeout(() => {
+    lifecycle.overallTimeout = setTimeout(() => {
       rejectAndAbort(new Error(`Upload timed out after ${options.timeoutMs}ms`));
     }, options.timeoutMs);
 
-    stallCheckInterval = setInterval(() => {
-      const timeSinceLastProgress = Date.now() - lastProgressTime;
+    lifecycle.stallCheckInterval = setInterval(() => {
+      const timeSinceLastProgress = lifecycle.millisecondsSinceProgress();
       if (timeSinceLastProgress > STALL_TIMEOUT_MS) {
         rejectAndAbort(new Error(`Upload stalled - no progress for ${STALL_TIMEOUT_MS}ms`));
       }
     }, 10000);
 
     options.signal?.addEventListener('abort', abortHandler);
-
-    xhr.upload.addEventListener('progress', (event) => {
-      lastProgressTime = Date.now();
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        options.onProgress?.(percentComplete);
-      }
-    });
+    attachUploadProgressListener(xhr, options.onProgress, lifecycle.markProgress);
 
     xhr.addEventListener('load', () => {
-      cleanup();
+      lifecycle.cleanup();
       options.signal?.removeEventListener('abort', abortHandler);
       if (xhr.status >= 200 && xhr.status < 300) {
         options.onProgress?.(100);
@@ -160,13 +150,13 @@ function executeVideoUploadRequest(options: UploadRequestOptions): Promise<void>
     });
 
     xhr.addEventListener('error', () => {
-      cleanup();
+      lifecycle.cleanup();
       options.signal?.removeEventListener('abort', abortHandler);
       reject(new Error('Network error during upload'));
     });
 
     xhr.addEventListener('abort', () => {
-      cleanup();
+      lifecycle.cleanup();
       options.signal?.removeEventListener('abort', abortHandler);
       reject(new Error('Upload aborted'));
     });

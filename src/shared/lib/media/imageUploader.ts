@@ -2,6 +2,10 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { getSupabaseUrl } from '@/integrations/supabase/config/env';
 import { storagePaths, getFileExtension, generateUniqueFilename, MEDIA_BUCKET } from '../storagePaths';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import {
+  attachUploadProgressListener,
+  createUploadXhrLifecycle,
+} from './uploadXhrLifecycle';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -92,21 +96,10 @@ async function uploadFileWithXhr(input: {
 
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    let lastProgressTime = Date.now();
-    let stallCheckInterval: ReturnType<typeof setInterval> | null = null;
-    let overallTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (stallCheckInterval) {
-        clearInterval(stallCheckInterval);
-      }
-      if (overallTimeout) {
-        clearTimeout(overallTimeout);
-      }
-    };
+    const lifecycle = createUploadXhrLifecycle();
 
     const fail = (error: Error) => {
-      cleanup();
+      lifecycle.cleanup();
       signal?.removeEventListener('abort', abortHandler);
       reject(error);
     };
@@ -116,13 +109,13 @@ async function uploadFileWithXhr(input: {
       fail(new Error('Upload cancelled'));
     };
 
-    overallTimeout = setTimeout(() => {
+    lifecycle.overallTimeout = setTimeout(() => {
       xhr.abort();
       fail(new Error(`Upload timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
-    stallCheckInterval = setInterval(() => {
-      const timeSinceLastProgress = Date.now() - lastProgressTime;
+    lifecycle.stallCheckInterval = setInterval(() => {
+      const timeSinceLastProgress = lifecycle.millisecondsSinceProgress();
       if (timeSinceLastProgress > STALL_TIMEOUT_MS) {
         xhr.abort();
         fail(new Error(`Upload stalled - no progress for ${STALL_TIMEOUT_MS}ms`));
@@ -130,17 +123,10 @@ async function uploadFileWithXhr(input: {
     }, 5000);
 
     signal?.addEventListener('abort', abortHandler);
-
-    xhr.upload.addEventListener('progress', (event) => {
-      lastProgressTime = Date.now();
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        onProgress?.(percentComplete);
-      }
-    });
+    attachUploadProgressListener(xhr, onProgress, lifecycle.markProgress);
 
     xhr.addEventListener('load', () => {
-      cleanup();
+      lifecycle.cleanup();
       signal?.removeEventListener('abort', abortHandler);
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress?.(100);
