@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Mock errorHandler to avoid pulling in toast/Supabase dependencies
 import {

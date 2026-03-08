@@ -202,7 +202,7 @@ function copyUnknownExtras(
   }
 }
 
-function toGenerationMetadata(value: unknown): GenerationMetadata | null {
+export function toGenerationMetadata(value: unknown): GenerationMetadata | null {
   if (!isMetadataRecord(value)) {
     return null;
   }
@@ -250,3 +250,6 @@ function toGenerationMetadata(value: unknown): GenerationMetadata | null {
 
   return metadata;
 }
+
+export const parseGenerationMetadata = (value: unknown): GenerationMetadata | null =>
+  toGenerationMetadata(value);

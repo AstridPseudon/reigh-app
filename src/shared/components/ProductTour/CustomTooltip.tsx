@@ -1,4 +1,3 @@
-import React from 'react';
 import type { TooltipRenderProps } from 'react-joyride';
 import {
   ChevronRight,
