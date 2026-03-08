@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { ActiveLoRAsDisplay } from '@/shared/components/lora/ActiveLoRAsDisplay';
+import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLorasForModal';
 import { LoraSelectorModal } from '@/domains/lora/components/LoraSelectorModal';
 import { useLoraManager, UseLoraManagerOptions, UseLoraManagerReturn, LoraModel } from '@/domains/lora/hooks/useLoraManager';
 
@@ -57,15 +58,7 @@ export const LoraManager: React.FC<LoraManagerProps> = ({
         onAddLora={loraManager.handleAddLora}
         onRemoveLora={loraManager.handleRemoveLora}
         onUpdateLoraStrength={loraManager.handleLoraStrengthChange}
-        selectedLoras={loraManager.selectedLoras.map(lora => {
-          const fullLora = availableLoras.find(l => l['Model ID'] === lora.id);
-          return {
-            ...fullLora,
-            "Model ID": lora.id,
-            Name: lora.name,
-            strength: lora.strength,
-          } as LoraModel & { strength: number };
-        })}
+        selectedLoras={mapSelectedLorasForModal(loraManager.selectedLoras, availableLoras)}
         lora_type="Wan 2.1 14b"
       />
     </div>

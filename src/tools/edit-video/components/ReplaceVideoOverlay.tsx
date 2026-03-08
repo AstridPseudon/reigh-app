@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { SEGMENT_OVERLAY_COLORS } from '@/shared/lib/segmentColors';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
+import { getRegenerationZoneInfo } from '@/shared/lib/video/regenerationZoneInfo';
 
 /**
  * Renders the replace-mode-specific video overlay (segment info badge + delete button).
@@ -19,14 +20,7 @@ export function ReplaceVideoOverlay({
 }) {
   // Check if current time is in a regeneration zone and which segment
   const regenerationZoneInfo = useMemo(() => {
-    const sortedSelections = [...selections].sort((a, b) => a.start - b.start);
-    for (let i = 0; i < sortedSelections.length; i++) {
-      const selection = sortedSelections[i];
-      if (currentVideoTime >= selection.start && currentVideoTime <= selection.end) {
-        return { inZone: true, segmentIndex: i };
-      }
-    }
-    return { inZone: false, segmentIndex: -1 };
+    return getRegenerationZoneInfo(currentVideoTime, selections);
   }, [currentVideoTime, selections]);
 
   return (
@@ -44,10 +38,8 @@ export function ReplaceVideoOverlay({
       {regenerationZoneInfo.inZone && selections.length > 1 && (
         <button
           onClick={() => {
-            const sortedSelections = [...selections].sort((a, b) => a.start - b.start);
-            const selectionToDelete = sortedSelections[regenerationZoneInfo.segmentIndex];
-            if (selectionToDelete) {
-              onRemoveSelection(selectionToDelete.id);
+            if (regenerationZoneInfo.selection?.id) {
+              onRemoveSelection(regenerationZoneInfo.selection.id);
             }
           }}
           className="ml-1 p-0.5 rounded hover:bg-white/20 text-white/50 hover:text-white transition-colors"

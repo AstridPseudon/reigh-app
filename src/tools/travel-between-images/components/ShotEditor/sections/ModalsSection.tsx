@@ -7,6 +7,7 @@
 import React from 'react';
 import { LoraSelectorModal } from '@/domains/lora/components/LoraSelectorModal';
 import type { LoraModel } from '@/domains/lora/types/lora';
+import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLorasForModal';
 import { SettingsModal } from '@/shared/components/SettingsModal/SettingsModal';
 import { useShotSettingsContext } from '../ShotSettingsContext';
 
@@ -50,15 +51,7 @@ export const ModalsSection: React.FC<ModalsSectionProps> = ({
         onAddLora={onAddLora}
         onRemoveLora={onRemoveLora}
         onUpdateLoraStrength={onUpdateLoraStrength}
-        selectedLoras={selectedLoras.map(lora => {
-          const fullLora = availableLoras.find(l => l['Model ID'] === lora.id);
-          return {
-            ...fullLora,
-            "Model ID": lora.id,
-            Name: lora.name,
-            strength: lora.strength,
-          } as LoraModel & { strength: number };
-        })}
+        selectedLoras={mapSelectedLorasForModal(selectedLoras, availableLoras)}
         lora_type="Wan 2.1 14b"
       />
 

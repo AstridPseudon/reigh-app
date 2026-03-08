@@ -9,11 +9,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Play, Pause, Trash2 } from 'lucide-react';
-import { MultiPortionTimeline } from '@/shared/components/VideoPortionTimeline';
+import { MultiPortionTimeline, type PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { formatTime } from '@/shared/lib/timeFormatting';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { SEGMENT_OVERLAY_COLORS } from '@/shared/lib/segmentColors';
 import { safePlay } from '@/shared/lib/media/safePlay';
+import { getRegenerationZoneInfo } from '@/shared/lib/video/regenerationZoneInfo';
 
 interface VideoEditModeDisplayProps {
   /** Reference to the video element */
@@ -32,12 +33,7 @@ interface VideoEditModeDisplayProps {
   onLoadedMetadata: (duration: number) => void;
 
   /** Selections for the timeline */
-  selections: Array<{
-    id: string;
-    start: number;
-    end: number;
-    prompt?: string;
-  }>;
+  selections: PortionSelection[];
 
   /** Currently active selection ID */
   activeSelectionId: string | null;
@@ -97,14 +93,7 @@ export const VideoEditModeDisplay: React.FC<VideoEditModeDisplayProps> = ({
 
   // Check if current time is in a regeneration zone and which segment
   const regenerationZoneInfo = useMemo(() => {
-    const sortedSelections = [...selections].sort((a, b) => a.start - b.start);
-    for (let i = 0; i < sortedSelections.length; i++) {
-      const selection = sortedSelections[i];
-      if (currentVideoTime >= selection.start && currentVideoTime <= selection.end) {
-        return { inZone: true, segmentIndex: i, selectionId: selection.id };
-      }
-    }
-    return { inZone: false, segmentIndex: -1, selectionId: null };
+    return getRegenerationZoneInfo(currentVideoTime, selections);
   }, [currentVideoTime, selections]);
 
   const handleEditVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -202,9 +191,9 @@ export const VideoEditModeDisplay: React.FC<VideoEditModeDisplayProps> = ({
             {regenerationZoneInfo.inZone ? `segment ${regenerationZoneInfo.segmentIndex + 1}` : 'keep'}
           </span>
           {/* Delete button - only show when in a segment and there's more than 1 */}
-          {regenerationZoneInfo.inZone && selections.length > 1 && regenerationZoneInfo.selectionId && (
+          {regenerationZoneInfo.inZone && selections.length > 1 && regenerationZoneInfo.selection?.id && (
             <button
-              onClick={() => onRemoveSelection(regenerationZoneInfo.selectionId!)}
+              onClick={() => onRemoveSelection(regenerationZoneInfo.selection!.id)}
               className="ml-1 p-0.5 rounded hover:bg-white/20 text-white/50 hover:text-white transition-colors"
             >
               <Trash2 className="w-3 h-3" />
