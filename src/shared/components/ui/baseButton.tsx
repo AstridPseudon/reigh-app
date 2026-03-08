@@ -1,7 +1,6 @@
 import * as React from "react";
-import { Slot } from "@/shared/components/ui/Slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/shared/components/ui/contracts/cn";
+import { ButtonPrimitive } from "@/shared/components/ui/buttonPrimitive";
 
 /** @uiContract Theme-agnostic base button primitive. */
 export const BASE_BUTTON_CLASSNAME =
@@ -48,10 +47,10 @@ interface BaseButtonProps
 
 export const BaseButton = React.forwardRef<HTMLButtonElement, BaseButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
     return (
-      <Comp
-        className={cn(baseButtonVariants({ variant, size, className }))}
+      <ButtonPrimitive
+        className={baseButtonVariants({ variant, size, className })}
+        asChild={asChild}
         ref={ref}
         {...props}
       />
@@ -59,4 +58,3 @@ export const BaseButton = React.forwardRef<HTMLButtonElement, BaseButtonProps>(
   },
 );
 BaseButton.displayName = "BaseButton";
-

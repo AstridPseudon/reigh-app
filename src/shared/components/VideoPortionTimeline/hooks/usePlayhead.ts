@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { registerWindowDragListeners } from './windowDragListeners';
 
 interface UsePlayheadOptions {
   duration: number;
@@ -80,19 +81,7 @@ export function usePlayhead({ duration, videoRef, scrubberRef }: UsePlayheadOpti
       }
     };
 
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleEnd);
-    window.addEventListener('touchcancel', handleEnd);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-      window.removeEventListener('touchcancel', handleEnd);
-    };
+    return registerWindowDragListeners(handleMove, handleEnd);
   }, [isDraggingPlayhead, handleScrubberInteraction, videoRef]);
 
   return {

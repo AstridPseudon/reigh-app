@@ -10,6 +10,7 @@ import { toast } from '@/shared/components/ui/runtime/sonner';
 import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
+import { toJsonObject } from '@/shared/lib/json/toJsonObject';
 
 /** Maximum offset to try when resolving timeline frame collisions */
 const MAX_FRAME_COLLISION_OFFSET = 1000;
@@ -85,13 +86,6 @@ function resolveTimelineCollision(
   }
 
   return newTimelineFrame;
-}
-
-function toJsonObject(value: unknown): Record<string, Json | undefined> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, Json | undefined>;
-  }
-  return {};
 }
 
 async function fetchSourceGenerationData(generationId: string): Promise<SourceGenerationData> {

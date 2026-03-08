@@ -1,13 +1,12 @@
 import * as React from "react";
-import { Slot } from "@/shared/components/ui/Slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from '@/shared/components/ui/contracts/cn';
 import {
   BASE_BUTTON_CLASSNAME,
   BASE_BUTTON_SIZES,
   BASE_BUTTON_VARIANTS,
 } from "@/shared/components/ui/baseButton";
 import { APP_BUTTON_SIZES, APP_BUTTON_VARIANTS } from "@/shared/components/ui/buttonThemeVariants";
+import { ButtonPrimitive } from "@/shared/components/ui/buttonPrimitive";
 
 /** App-facing themed button contract. */
 const buttonVariants = cva(
@@ -38,10 +37,10 @@ interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <ButtonPrimitive
+        className={buttonVariants({ variant, size, className })}
+        asChild={asChild}
         ref={ref}
         {...props}
       />

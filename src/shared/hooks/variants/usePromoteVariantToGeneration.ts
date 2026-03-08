@@ -16,6 +16,7 @@ import type { Json } from '@/integrations/supabase/jsonTypes';
 import { hasVideoExtension } from '@/shared/lib/typeGuards';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
+import { toJsonObject } from '@/shared/lib/json/toJsonObject';
 
 interface PromoteVariantParams {
   /** ID of the variant to promote */
@@ -32,13 +33,6 @@ interface PromotedGeneration {
   project_id: string;
   based_on: string;
   params: Record<string, Json | undefined>;
-}
-
-function toJsonObject(value: unknown): Record<string, Json | undefined> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, Json | undefined>;
-  }
-  return {};
 }
 
 /**

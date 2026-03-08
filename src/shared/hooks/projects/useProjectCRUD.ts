@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/jsonTypes';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { Project } from '@/types/project';
 import { UserPreferences } from '@/shared/settings/userPreferences';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { fetchInheritableProjectSettings, buildShotSettingsForNewProject } from '@/shared/lib/projectSettingsInheritance';
+import { toJsonObject } from '@/shared/lib/json/toJsonObject';
 import {
   createDefaultShotWithRollback,
   ensureUserRecordExists,
@@ -34,13 +34,6 @@ const sortProjectsByCreatedAt = (projects: Project[]): Project[] => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 };
-
-function toJsonObject(value: unknown): Record<string, Json | undefined> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, Json | undefined>;
-  }
-  return {};
-}
 
 export const determineProjectIdToSelect = (
   projects: Project[],
