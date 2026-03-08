@@ -1,11 +1,14 @@
 import React, { useCallback, useMemo } from 'react';
 import { CollapsibleSection } from '@/shared/components/ui/collapsible-section';
 import { SliderWithValue } from '@/shared/components/ui/slider-with-value';
-import { Switch } from '@/shared/components/ui/switch';
-import { RotateCcw } from 'lucide-react';
 import { HiresFixConfig, DEFAULT_HIRES_FIX_CONFIG, ResolutionMode } from '../types';
 import { AspectRatioSelector } from '@/shared/components/GenerationControls/AspectRatioSelector';
 import { AspectRatioVisualizer } from '@/shared/components/GenerationControls/AspectRatioVisualizer';
+import { ResetHeaderAction } from '@/shared/components/GenerationControls/ResetHeaderAction';
+import {
+  TwoPassPhase1Settings,
+  TwoPassPhase2Settings,
+} from '@/shared/components/GenerationControls/TwoPassGenerationPhaseSettings';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
 import { ToggleGroup, ToggleGroupItem } from '@/shared/components/ui/toggle-group';
 
@@ -87,24 +90,7 @@ export const GenerationSettingsSection: React.FC<GenerationSettingsSectionProps>
   }
 
   const headerAction = (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={(e) => {
-        e.preventDefault();
-        if (!disabled) handleResetDefaults();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          if (!disabled) handleResetDefaults();
-        }
-      }}
-      className={`inline-flex items-center text-xs text-muted-foreground hover:text-foreground h-7 px-2 rounded cursor-pointer ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
-    >
-      <RotateCcw className="w-3 h-3 mr-1" />
-      Reset
-    </div>
+    <ResetHeaderAction disabled={disabled} onReset={handleResetDefaults} />
   );
 
   return (
@@ -179,93 +165,28 @@ export const GenerationSettingsSection: React.FC<GenerationSettingsSectionProps>
         {/* Phase 1 & 2: Only shown for local generation */}
         {isLocalGeneration && (
           <>
-            {/* Phase 1: Base Generation */}
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide">Phase 1</span>
-                <span className="text-xs text-muted-foreground">Base Generation</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <SliderWithValue
-                  label="Steps"
-                  value={hiresFixConfig.base_steps ?? 8}
-                  onChange={(v) => updateField('base_steps', Math.round(v))}
-                  min={1}
-                  max={16}
-                  step={1}
-                  disabled={disabled}
-                  numberInputClassName="w-20"
-                />
-                <SliderWithValue
-                  label="Lightning LoRA"
-                  value={hiresFixConfig.lightning_lora_strength_phase_1 ?? 0.9}
-                  onChange={(v) => updateField('lightning_lora_strength_phase_1', v)}
-                  min={0}
-                  max={1.0}
-                  step={0.01}
-                  disabled={disabled}
-                  numberInputClassName="w-20"
-                />
-              </div>
-            </div>
-
-            {/* Phase 2: Hires Refinement */}
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide">Phase 2</span>
-                  <span className="text-xs text-muted-foreground">Hires Refinement</span>
-                </div>
-                <Switch
-                  size="sm"
-                  checked={isEnabled}
-                  onCheckedChange={(checked) => updateField('enabled', checked)}
-                  disabled={disabled}
-                />
-              </div>
-              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${!isEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                <SliderWithValue
-                  label="Steps"
-                  value={hiresFixConfig.hires_steps ?? 8}
-                  onChange={(v) => updateField('hires_steps', Math.round(v))}
-                  min={1}
-                  max={16}
-                  step={1}
-                  disabled={disabled || !isEnabled}
-                  numberInputClassName="w-20"
-                />
-                <SliderWithValue
-                  label="Upscale Factor"
-                  value={hiresFixConfig.hires_scale ?? 1.1}
-                  onChange={(v) => updateField('hires_scale', v)}
-                  min={1.0}
-                  max={4.0}
-                  step={0.1}
-                  disabled={disabled || !isEnabled}
-                  numberInputClassName="w-20"
-                />
-                <SliderWithValue
-                  label="Denoise"
-                  value={hiresFixConfig.hires_denoise ?? 0.55}
-                  onChange={(v) => updateField('hires_denoise', v)}
-                  min={0.1}
-                  max={1.0}
-                  step={0.05}
-                  disabled={disabled || !isEnabled}
-                  numberInputClassName="w-20"
-                />
-                <SliderWithValue
-                  label="Lightning LoRA"
-                  value={hiresFixConfig.lightning_lora_strength_phase_2 ?? 0.5}
-                  onChange={(v) => updateField('lightning_lora_strength_phase_2', v)}
-                  min={0}
-                  max={1.0}
-                  step={0.01}
-                  disabled={disabled || !isEnabled}
-                  numberInputClassName="w-20"
-                />
-              </div>
-            </div>
+            <TwoPassPhase1Settings
+              baseSteps={hiresFixConfig.base_steps ?? 8}
+              lightningStrength={hiresFixConfig.lightning_lora_strength_phase_1 ?? 0.9}
+              onBaseStepsChange={(value) => updateField('base_steps', value)}
+              onLightningStrengthChange={(value) => updateField('lightning_lora_strength_phase_1', value)}
+              disabled={disabled}
+            />
+            <TwoPassPhase2Settings
+              hiresSteps={hiresFixConfig.hires_steps ?? 8}
+              hiresScale={hiresFixConfig.hires_scale ?? 1.1}
+              hiresDenoise={hiresFixConfig.hires_denoise ?? 0.55}
+              lightningStrength={hiresFixConfig.lightning_lora_strength_phase_2 ?? 0.5}
+              onHiresStepsChange={(value) => updateField('hires_steps', value)}
+              onHiresScaleChange={(value) => updateField('hires_scale', value)}
+              onHiresDenoiseChange={(value) => updateField('hires_denoise', value)}
+              onLightningStrengthChange={(value) => updateField('lightning_lora_strength_phase_2', value)}
+              disabled={disabled}
+              maxUpscale={4.0}
+              enabled={isEnabled}
+              showEnableToggle
+              onEnabledChange={(checked) => updateField('enabled', checked)}
+            />
           </>
         )}
       </div>
