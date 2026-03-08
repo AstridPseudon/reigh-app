@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Shot } from '@/domains/generation/types';
+import { compareByCreatedAtAsc, compareByCreatedAtDesc } from '@/shared/lib/sorting/createdAtSort';
 
 type ShotSortMode = 'ordered' | 'newest' | 'oldest';
 
@@ -41,17 +42,9 @@ export function useNavigationState({
     if (!shots) return shots;
 
     if (shotSortMode === 'newest') {
-      return [...shots].sort((a, b) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateB - dateA; // Newest first
-      });
+      return [...shots].sort(compareByCreatedAtDesc);
     } else if (shotSortMode === 'oldest') {
-      return [...shots].sort((a, b) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateA - dateB; // Oldest first
-      });
+      return [...shots].sort(compareByCreatedAtAsc);
     } else {
       // 'ordered' mode - sort by persisted shot position
       return [...shots].sort((a, b) => (a.position || 0) - (b.position || 0));

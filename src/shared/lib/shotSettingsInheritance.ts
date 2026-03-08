@@ -4,6 +4,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { toObjectRecord } from '@/shared/lib/jsonRecord';
+import { compareByCreatedAtDesc } from '@/shared/lib/sorting/createdAtSort';
 
 /**
  * Standardized settings inheritance for new shots
@@ -97,11 +98,7 @@ async function getInheritedSettings(
   // 2. If not found, fall back to latest created shot from DB
   if ((!mainSettings || !joinSegmentsSettings) && shots && shots.length > 0) {
     
-    const sortedShots = [...shots].sort((a, b) => {
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
+    const sortedShots = [...shots].sort(compareByCreatedAtDesc);
     
     const latestShot = sortedShots[0];
     
