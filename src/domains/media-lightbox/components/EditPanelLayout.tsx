@@ -6,15 +6,13 @@
  */
 
 import React, { useRef } from 'react';
-import { Button } from '@/shared/components/ui/button';
-import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
-import { VariantBadge } from '@/shared/components/VariantBadge';
 import { useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
 import { VariantSelector } from '@/shared/components/VariantSelector';
 import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
 import { useCopyToClipboard } from '@/shared/hooks/clipboard/useCopyToClipboard';
+import { PanelCloseButton, PanelHeaderMeta } from './PanelHeaderControls';
 
 interface EditPanelLayoutProps {
   /** Layout variant */
@@ -108,17 +106,12 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
           </div>
 
           {/* Close button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className={cn("p-0 hover:bg-muted flex-shrink-0", isMobile ? "h-7 w-7" : "h-8 w-8")}
-          >
-            <X className={cn(isMobile ? "h-3.5 w-3.5" : "h-4 w-4")} />
-          </Button>
+          <PanelCloseButton
+            isMobile={isMobile}
+            onClose={onClose}
+            stopPropagation
+            className="flex-shrink-0"
+          />
         </div>
       ) : (
         /* Full header for MediaLightbox: ID copy, variants link, pending badge, Info/Edit toggle, close */
@@ -126,49 +119,17 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
           "flex items-center justify-between border-b border-border bg-background flex-shrink-0",
           isMobile ? "px-3 py-2 gap-2" : "p-4 gap-3"
         )}>
-          {/* Left side - copy id + variants link */}
-          <div className="flex items-center gap-2">
-            {taskId && (
-              <button
-                onClick={handleCopyId}
-                className={cn(
-                  "px-2 py-1 text-xs rounded transition-colors touch-manipulation",
-                  idCopied
-                    ? "text-green-400 bg-green-400/10"
-                    : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700"
-                )}
-              >
-                {idCopied ? 'copied' : 'id'}
-              </button>
-            )}
-            {hasVariants && (
-              <button
-                onClick={() => variantsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors touch-manipulation"
-              >
-                <span>{variants.length} variants</span>
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </button>
-            )}
-            {pendingTaskCount > 0 ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 text-xs rounded bg-primary/10 text-primary">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>{pendingTaskCount} pending</span>
-              </div>
-            ) : variants && variants.length > 1 && unviewedVariantCount > 0 ? (
-              <VariantBadge
-                variant="inline"
-                derivedCount={variants.length}
-                unviewedVariantCount={unviewedVariantCount}
-                hasUnviewedVariants={true}
-                tooltipSide="bottom"
-                onMarkAllViewed={onMarkAllViewed}
-                onClick={() => variantsSectionRef?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              />
-            ) : null}
-          </div>
+          <PanelHeaderMeta
+            taskId={taskId}
+            idCopied={idCopied}
+            onCopyId={handleCopyId}
+            hasVariants={Boolean(hasVariants)}
+            variants={variants ?? []}
+            pendingTaskCount={pendingTaskCount}
+            unviewedVariantCount={unviewedVariantCount}
+            onMarkAllViewed={onMarkAllViewed}
+            variantsSectionRef={variantsSectionRef}
+          />
 
           {/* Right side - toggles and close button */}
           <div className="flex items-center gap-3">
@@ -185,17 +146,11 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
                 <SegmentedControlItem value="edit">Edit</SegmentedControlItem>
               </SegmentedControl>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className={cn("p-0 hover:bg-muted", isMobile ? "h-7 w-7" : "h-8 w-8")}
-            >
-              <X className={cn(isMobile ? "h-3.5 w-3.5" : "h-4 w-4")} />
-            </Button>
+            <PanelCloseButton
+              isMobile={isMobile}
+              onClose={onClose}
+              stopPropagation
+            />
           </div>
         </div>
       )}

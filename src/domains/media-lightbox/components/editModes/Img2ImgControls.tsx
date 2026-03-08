@@ -11,6 +11,7 @@ import { CheckCircle, Loader2, Plus, Wand2 } from 'lucide-react';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { ActiveLoRAsDisplay } from '@/shared/components/lora/ActiveLoRAsDisplay';
+import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLorasForModal';
 import { LoraSelectorModal } from '@/domains/lora/components/LoraSelectorModal';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { UseLoraManagerReturn } from '@/domains/lora/hooks/useLoraManager';
@@ -185,15 +186,7 @@ export const Img2ImgControls: React.FC<Img2ImgControlsProps> = ({
             onAddLora={img2imgLoraManager.handleAddLora}
             onRemoveLora={img2imgLoraManager.handleRemoveLora}
             onUpdateLoraStrength={img2imgLoraManager.handleLoraStrengthChange}
-            selectedLoras={img2imgLoraManager.selectedLoras.map(lora => {
-              const fullLora = availableLoras.find(l => l['Model ID'] === lora.id);
-              return {
-                ...fullLora,
-                "Model ID": lora.id,
-                Name: lora.name,
-                strength: lora.strength,
-              } as LoraModel & { strength: number };
-            })}
+            selectedLoras={mapSelectedLorasForModal(img2imgLoraManager.selectedLoras, availableLoras)}
             lora_type="z-image"
           />
         </Suspense>

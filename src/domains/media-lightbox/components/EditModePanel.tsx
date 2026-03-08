@@ -8,8 +8,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { XCircle, Layers, Plus } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { ActiveLoRAsDisplay } from '@/shared/components/lora/ActiveLoRAsDisplay';
+import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLorasForModal';
 import { LoraSelectorModal } from '@/domains/lora/components/LoraSelectorModal';
-import type { LoraModel } from '@/domains/lora/types/lora';
 import { EditAdvancedSettings } from './EditAdvancedSettings';
 import { EditPanelLayout } from './EditPanelLayout';
 import { ImageUpscaleForm } from './ImageUpscaleForm';
@@ -469,15 +469,7 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             onAddLora={editLoraManager.handleAddLora}
             onRemoveLora={editLoraManager.handleRemoveLora}
             onUpdateLoraStrength={editLoraManager.handleLoraStrengthChange}
-            selectedLoras={editLoraManager.selectedLoras.map(lora => {
-              const fullLora = availableLoras.find(l => l['Model ID'] === lora.id);
-              return {
-                ...fullLora,
-                "Model ID": lora.id,
-                Name: lora.name,
-                strength: lora.strength,
-              } as LoraModel & { strength: number };
-            })}
+            selectedLoras={mapSelectedLorasForModal(editLoraManager.selectedLoras, availableLoras)}
             lora_type="Qwen Edit"
           />
         </Suspense>
