@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { DerivedNavContext } from '@/shared/components/ShotImageManager/types';
+import { navigateDerivedStep } from '@/shared/lib/navigation/derivedNavigation';
 
 interface UseDerivedNavigationProps {
   derivedNavContext: DerivedNavContext | null;
@@ -38,29 +39,27 @@ export function useDerivedNavigation({
   goPrev,
 }: UseDerivedNavigationProps) {
   const wrappedGoNext = useCallback(() => {
-    if (derivedNavContext && lightboxIndex !== null) {
-      const currentId = currentImages[lightboxIndex]?.id;
-      const currentDerivedIndex = derivedNavContext.derivedGenerationIds.indexOf(currentId);
-      
-      if (currentDerivedIndex !== -1 && currentDerivedIndex < derivedNavContext.derivedGenerationIds.length - 1) {
-        const nextId = derivedNavContext.derivedGenerationIds[currentDerivedIndex + 1];
-        handleOpenExternalGeneration(nextId, derivedNavContext.derivedGenerationIds);
-      }
-    } else {
+    const handledDerivedStep = navigateDerivedStep({
+      derivedNavContext,
+      lightboxIndex,
+      currentImages,
+      direction: 'next',
+      handleOpenExternalGeneration,
+    });
+    if (!handledDerivedStep) {
       goNext();
     }
   }, [derivedNavContext, lightboxIndex, currentImages, handleOpenExternalGeneration, goNext]);
   
   const wrappedGoPrev = useCallback(() => {
-    if (derivedNavContext && lightboxIndex !== null) {
-      const currentId = currentImages[lightboxIndex]?.id;
-      const currentDerivedIndex = derivedNavContext.derivedGenerationIds.indexOf(currentId);
-      
-      if (currentDerivedIndex !== -1 && currentDerivedIndex > 0) {
-        const prevId = derivedNavContext.derivedGenerationIds[currentDerivedIndex - 1];
-        handleOpenExternalGeneration(prevId, derivedNavContext.derivedGenerationIds);
-      }
-    } else {
+    const handledDerivedStep = navigateDerivedStep({
+      derivedNavContext,
+      lightboxIndex,
+      currentImages,
+      direction: 'prev',
+      handleOpenExternalGeneration,
+    });
+    if (!handledDerivedStep) {
       goPrev();
     }
   }, [derivedNavContext, lightboxIndex, currentImages, handleOpenExternalGeneration, goPrev]);

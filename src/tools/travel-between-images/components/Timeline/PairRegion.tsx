@@ -1,7 +1,7 @@
 import React from "react";
-import { MessageSquare, X } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/shared/components/ui/tooltip";
-import { Button } from "@/shared/components/ui/button";
+import { PairPromptTooltipContent } from '@/shared/components/ShotImageManager/components/PairPromptTooltipContent';
 import { framesToSeconds } from '@/shared/lib/media/videoUtils';
 
 interface PairRegionProps {
@@ -161,44 +161,14 @@ const PairRegion: React.FC<PairRegionProps> = ({
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs">
-              <div className="space-y-2">
-                <div>
-                  <span className="font-medium">Prompt:</span>
-                  <p className="text-sm">
-                    {pairPrompt && pairPrompt.trim() ? pairPrompt.trim() : '[default]'}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-medium">Negative:</span>
-                  <p className="text-sm">
-                    {pairNegativePrompt && pairNegativePrompt.trim() ? pairNegativePrompt.trim() : '[default]'}
-                  </p>
-                </div>
-                {enhancedPrompt && enhancedPrompt.trim() && (
-                  <div className="pt-1 border-t border-border/50">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-medium">Enhanced Prompt:</span>
-                      {onClearEnhancedPrompt && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onClearEnhancedPrompt(index);
-                          }}
-                          className="h-5 w-5 p-0 hover:bg-destructive/10 hover:text-destructive"
-                          title="Clear enhanced prompt"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-sm">
-                      {enhancedPrompt.trim()}
-                    </p>
-                  </div>
-                )}
-              </div>
+              <PairPromptTooltipContent
+                pairPrompt={pairPrompt}
+                pairNegativePrompt={pairNegativePrompt}
+                enhancedPrompt={enhancedPrompt}
+                onClearEnhancedPrompt={
+                  onClearEnhancedPrompt ? () => onClearEnhancedPrompt(index) : undefined
+                }
+              />
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

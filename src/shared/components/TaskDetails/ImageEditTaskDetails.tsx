@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { TaskDetailsProps, getVariantConfig } from '@/shared/types/taskDetailsTypes';
 import { extractLoras } from '@/shared/lib/taskParamsUtils';
 import { normalizeTaskDetailsPayload } from '@/shared/components/TaskDetails/hooks/normalizeTaskDetailsPayload';
-import { TaskPromptDetails } from './components/TaskPromptDetails';
+import { TaskDetailsField } from '@/shared/components/TaskDetails/components/TaskDetailsField';
+import { TaskDetailsImageBlock } from '@/shared/components/TaskDetails/components/TaskDetailsImageBlock';
 
 /**
  * Task details for image editing tasks (img2img, inpaint, magic edit, etc.)
@@ -28,52 +29,41 @@ export const ImageEditTaskDetails: React.FC<TaskDetailsProps> = ({
     <div className={`p-3 bg-muted/30 rounded-lg border space-y-3 ${variant === 'panel' ? '' : variant === 'modal' && isMobile ? 'w-full' : 'w-[300px]'}`}>
       {/* Input Image */}
       {effectiveInputImages.length > 0 && (
-        <div className="space-y-2">
-          <p className={`${config.textSize} font-medium text-muted-foreground`}>
-            Input Image
-          </p>
-          <div className="relative group" style={{ width: '120px' }}>
-            <img
-              src={effectiveInputImages[0]}
-              alt="Input image"
-              className="w-full object-cover rounded border shadow-sm"
-            />
-          </div>
-        </div>
+        <TaskDetailsImageBlock
+          config={config}
+          label="Input Image"
+          imageUrl={effectiveInputImages[0]}
+          alt="Input image"
+          containerStyle={{ width: '120px' }}
+        />
       )}
 
+      {/* Prompt (if provided) */}
       {prompt && (
-        <TaskPromptDetails
+        <TaskDetailsField
           config={config}
-          prompt={prompt}
-          enhancePrompt={undefined}
-          negativePrompt={undefined}
-          showFullPrompt={false}
-          showFullNegativePrompt={false}
-          showCopyButtons={false}
-          copiedPrompt={false}
-          onCopyPrompt={() => {}}
+          label="Prompt"
+          value={prompt.length > config.promptLength ? prompt.slice(0, config.promptLength) + '...' : prompt}
+          valueClassName="break-words whitespace-pre-wrap leading-relaxed preserve-case"
         />
       )}
 
       {/* Qwen Edit Model (if specified) */}
       {qwenEditModel && (
-        <div className="space-y-1">
-          <p className={`${config.textSize} font-medium text-muted-foreground`}>Model</p>
-          <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
-            {qwenEditModel}
-          </p>
-        </div>
+        <TaskDetailsField
+          config={config}
+          label="Model"
+          value={qwenEditModel}
+        />
       )}
 
       {/* Img2Img Strength */}
       {isImg2Img && typeof strength === 'number' && (
-        <div className="space-y-1">
-          <p className={`${config.textSize} font-medium text-muted-foreground`}>Strength</p>
-          <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
-            {strength.toFixed(2)}
-          </p>
-        </div>
+        <TaskDetailsField
+          config={config}
+          label="Strength"
+          value={strength.toFixed(2)}
+        />
       )}
 
       {/* LoRAs */}

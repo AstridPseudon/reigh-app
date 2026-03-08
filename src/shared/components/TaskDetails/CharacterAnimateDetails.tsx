@@ -4,6 +4,8 @@ import {
   normalizeTaskDetailsPayload,
   pickTaskDetailsString,
 } from '@/shared/components/TaskDetails/hooks/normalizeTaskDetailsPayload';
+import { TaskDetailsField } from '@/shared/components/TaskDetails/components/TaskDetailsField';
+import { TaskDetailsImageBlock } from '@/shared/components/TaskDetails/components/TaskDetailsImageBlock';
 
 /**
  * Task details for character animation tasks
@@ -40,18 +42,14 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Character Image */}
       {characterImageUrl && (
-        <div className="space-y-2">
-          <p className={`${config.textSize} font-medium text-muted-foreground`}>
-            {mode === 'animate' ? '✨ Character to animate' : '✨ Character to insert'}
-          </p>
-          <div className={`relative group flex-shrink-0 ${isMobile ? 'w-20' : 'w-40'}`}>
-            <img
-              src={characterImageUrl}
-              alt="Character"
-              className="w-full object-cover rounded border shadow-sm transition-transform group-hover:scale-105"
-            />
-          </div>
-        </div>
+        <TaskDetailsImageBlock
+          config={config}
+          label={mode === 'animate' ? '✨ Character to animate' : '✨ Character to insert'}
+          imageUrl={characterImageUrl}
+          alt="Character"
+          containerClassName={`flex-shrink-0 ${isMobile ? 'w-20' : 'w-40'}`}
+          imageClassName="transition-transform group-hover:scale-105"
+        />
       )}
 
       {/* Motion Video */}
@@ -105,22 +103,21 @@ export const CharacterAnimateDetails: React.FC<TaskDetailsProps> = ({
 
       {/* Prompt */}
       {prompt && (
-        <div className="space-y-1">
-          <p className={`${config.textSize} font-medium text-muted-foreground`}>Prompt</p>
-          <p className={`${config.textSize} ${config.fontWeight} text-foreground break-words whitespace-pre-wrap leading-relaxed preserve-case`}>
-            {prompt}
-          </p>
-        </div>
+        <TaskDetailsField
+          config={config}
+          label="Prompt"
+          value={prompt}
+          valueClassName="break-words whitespace-pre-wrap leading-relaxed preserve-case"
+        />
       )}
 
       {/* Resolution */}
       {resolution && (
-        <div className="space-y-1">
-          <p className={`${config.textSize} font-medium text-muted-foreground`}>Resolution</p>
-          <p className={`${config.textSize} ${config.fontWeight} text-foreground`}>
-            {resolution}
-          </p>
-        </div>
+        <TaskDetailsField
+          config={config}
+          label="Resolution"
+          value={resolution}
+        />
       )}
     </div>
   );

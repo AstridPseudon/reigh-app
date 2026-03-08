@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { DerivedNavContext } from '../types';
+import { navigateDerivedStep } from '@/shared/lib/navigation/derivedNavigation';
 
 interface UseLightboxProps {
   images: GenerationRow[];
@@ -41,38 +42,34 @@ export function useLightbox({
   // Handle next navigation
   const handleNext = useCallback(() => {
     if (lightboxIndex === null) return;
-    
-    if (derivedNavContext) {
-      const currentId = currentImages[lightboxIndex]?.id;
-      const currentDerivedIndex = derivedNavContext.derivedGenerationIds.indexOf(currentId);
-      
-      if (currentDerivedIndex !== -1 && currentDerivedIndex < derivedNavContext.derivedGenerationIds.length - 1) {
-        const nextId = derivedNavContext.derivedGenerationIds[currentDerivedIndex + 1];
-        handleOpenExternalGeneration(nextId, derivedNavContext.derivedGenerationIds);
-      }
-    } else {
-      if (lightboxIndex < currentImages.length - 1) {
-        setLightboxIndex(lightboxIndex + 1);
-      }
+
+    const handledDerivedStep = navigateDerivedStep({
+      derivedNavContext,
+      lightboxIndex,
+      currentImages,
+      direction: 'next',
+      handleOpenExternalGeneration,
+    });
+
+    if (!handledDerivedStep && lightboxIndex < currentImages.length - 1) {
+      setLightboxIndex(lightboxIndex + 1);
     }
   }, [lightboxIndex, currentImages, derivedNavContext, handleOpenExternalGeneration]);
   
   // Handle previous navigation
   const handlePrevious = useCallback(() => {
     if (lightboxIndex === null) return;
-    
-    if (derivedNavContext) {
-      const currentId = currentImages[lightboxIndex]?.id;
-      const currentDerivedIndex = derivedNavContext.derivedGenerationIds.indexOf(currentId);
-      
-      if (currentDerivedIndex !== -1 && currentDerivedIndex > 0) {
-        const prevId = derivedNavContext.derivedGenerationIds[currentDerivedIndex - 1];
-        handleOpenExternalGeneration(prevId, derivedNavContext.derivedGenerationIds);
-      }
-    } else {
-      if (lightboxIndex > 0) {
-        setLightboxIndex(lightboxIndex - 1);
-      }
+
+    const handledDerivedStep = navigateDerivedStep({
+      derivedNavContext,
+      lightboxIndex,
+      currentImages,
+      direction: 'prev',
+      handleOpenExternalGeneration,
+    });
+
+    if (!handledDerivedStep && lightboxIndex > 0) {
+      setLightboxIndex(lightboxIndex - 1);
     }
   }, [lightboxIndex, currentImages, derivedNavContext, handleOpenExternalGeneration]);
   
