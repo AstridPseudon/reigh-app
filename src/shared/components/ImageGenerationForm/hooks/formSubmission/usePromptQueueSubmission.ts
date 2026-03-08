@@ -2,8 +2,9 @@ import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import type { FormSubmissionEffects, GetTaskParams } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
-import { toPromptEntries, truncateLabel } from './promptSubmissionTransforms';
+import { toPromptEntries } from './promptSubmissionTransforms';
 import type { SubmissionRuntimeContext } from './submissionContext';
+import { queuePromptGenerationTask } from './queuePromptGenerationTask';
 
 interface UsePromptQueueSubmissionInput {
   context: SubmissionRuntimeContext;
@@ -33,22 +34,15 @@ export function usePromptQueueSubmission(
   } = context;
 
   const queueExisting = useCallback(() => {
-    const taskParams = getTaskParams(prompts, { imagesPerPromptOverride: promptMultiplier });
-    if (!taskParams) {
-      return;
-    }
-
-    const firstPrompt = prompts.find((prompt) => prompt.fullPrompt.trim())?.fullPrompt || 'Generating...';
-
-    queueIncomingTask({
-      label: truncateLabel(firstPrompt),
+    queuePromptGenerationTask({
+      prompts,
       expectedCount: actionablePromptsCount * promptMultiplier,
       context: 'useFormSubmission.queueExisting',
       toastTitle: 'Failed to create tasks. Please try again.',
-      execute: async () => {
-        const result = await onGenerate(taskParams);
-        return result || undefined;
-      },
+      getTaskParams,
+      onGenerate,
+      queueIncomingTask,
+      imagesPerPromptOverride: promptMultiplier,
     });
   }, [
     actionablePromptsCount,

@@ -1,25 +1,27 @@
 import { useCallback, useMemo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { PromptEntry, PromptMode } from '../../types';
-import type { PromptRoutingResult, ShotPromptSettingsContract } from './types';
+import type { PromptManagementInput, PromptRoutingResult } from './types';
 import { usePromptTextRouting } from './usePromptTextRouting';
 
-interface PromptRoutingInput {
-  associatedShotId: string | null;
+type PromptRoutingInput = Pick<
+  PromptManagementInput,
+  | 'associatedShotId'
+  | 'shotPromptSettings'
+  | 'noShotPrompts'
+  | 'setNoShotPrompts'
+  | 'noShotMasterPrompt'
+  | 'setNoShotMasterPrompt'
+  | 'promptMode'
+  | 'setPromptMode'
+  | 'beforeEachPromptText'
+  | 'setBeforeEachPromptText'
+  | 'afterEachPromptText'
+  | 'setAfterEachPromptText'
+  | 'markAsInteracted'
+> & {
   isShotSettingsReady: boolean;
-  shotPromptSettings: ShotPromptSettingsContract;
-  noShotPrompts: PromptEntry[];
-  setNoShotPrompts: Dispatch<SetStateAction<PromptEntry[]>>;
-  noShotMasterPrompt: string;
-  setNoShotMasterPrompt: Dispatch<SetStateAction<string>>;
-  promptMode: PromptMode;
-  setPromptMode: Dispatch<SetStateAction<PromptMode>>;
-  beforeEachPromptText: string;
-  setBeforeEachPromptText: Dispatch<SetStateAction<string>>;
-  afterEachPromptText: string;
-  setAfterEachPromptText: Dispatch<SetStateAction<string>>;
-  markAsInteracted: () => void;
-}
+};
 
 export function usePromptRouting(input: PromptRoutingInput): PromptRoutingResult {
   const {

@@ -20,6 +20,16 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
   onPromptModeChange,
 }) => {
   const controller = usePromptsSectionController();
+  const masterPromptTextareaProps = {
+    className: 'min-h-[100px] resize-none',
+    rows: 4,
+    clearable: true,
+    voiceInput: true,
+    voiceContext:
+      'This is a master prompt for AI image generation. The user describes what they want to generate, and AI will create multiple prompt variations from this description. Focus on capturing the visual concept, style, and key elements they want.',
+    voiceExample:
+      'Different images of a woman going about her day - waking up in the morning light, having coffee at a cafe, walking through a busy city street, reading in a park, cooking dinner at home. Warm, cinematic lighting with a nostalgic film photography aesthetic.',
+  } as const;
   
   return (
     <div className="space-y-4">
@@ -68,13 +78,8 @@ export const PromptsSection: React.FC<PromptsSectionProps> = ({
               onChange={controller.onMasterPromptTextChange}
               placeholder="Describe what you want to generate..."
               disabled={controller.isGenerating || !controller.ready}
-              className="min-h-[100px] resize-none"
-              rows={4}
-              clearable
+              {...masterPromptTextareaProps}
               onClear={controller.onClearMasterPromptText}
-              voiceInput
-              voiceContext="This is a master prompt for AI image generation. The user describes what they want to generate, and AI will create multiple prompt variations from this description. Focus on capturing the visual concept, style, and key elements they want."
-              voiceExample="Different images of a woman going about her day - waking up in the morning light, having coffee at a cafe, walking through a busy city street, reading in a park, cooking dinner at home. Warm, cinematic lighting with a nostalgic film photography aesthetic."
               onVoiceResult={controller.onMasterVoiceResult}
             />
           </div>

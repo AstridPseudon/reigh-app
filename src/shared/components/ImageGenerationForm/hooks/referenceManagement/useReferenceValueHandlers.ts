@@ -1,16 +1,20 @@
 import { useCallback } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import type { ReferenceActionHandlersOutput } from './types';
+import type {
+  ReferenceActionHandlersOutput,
+  ReferenceActionStateSetters,
+} from './types';
 
-interface UseReferenceValueHandlersInput {
+interface UseReferenceValueHandlersInput extends Pick<
+  ReferenceActionStateSetters,
+  | 'setStyleReferenceStrength'
+  | 'setSubjectStrength'
+  | 'setSubjectDescription'
+  | 'setInThisScene'
+  | 'setInThisSceneStrength'
+  | 'setStyleBoostTerms'
+  | 'setIsEditingSubjectDescription'
+> {
   selectedReferenceId: string | null;
-  setStyleReferenceStrength: Dispatch<SetStateAction<number>>;
-  setSubjectStrength: Dispatch<SetStateAction<number>>;
-  setSubjectDescription: Dispatch<SetStateAction<string>>;
-  setInThisScene: Dispatch<SetStateAction<boolean>>;
-  setInThisSceneStrength: Dispatch<SetStateAction<number>>;
-  setStyleBoostTerms: Dispatch<SetStateAction<string>>;
-  setIsEditingSubjectDescription: Dispatch<SetStateAction<boolean>>;
   handleUpdateReference: ReferenceActionHandlersOutput['handleUpdateReference'];
 }
 

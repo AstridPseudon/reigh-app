@@ -4,6 +4,7 @@ import { StyleReferenceMetadata } from '@/shared/hooks/useResources';
 import type { HydratedReferenceImage } from '@/shared/types/referenceHydration';
 import type { ReferenceImage } from '@/shared/types/referenceImage';
 import { useProjectIdentityContext } from '@/shared/contexts/ProjectContext';
+import { hydrateLegacyReference } from './referenceManagement/legacyReferenceMapping';
 
 /**
  * Hook to hydrate reference pointers with full data from resources table
@@ -65,26 +66,7 @@ export const useHydratedReferences = (
 
         if (isLegacy) {
           hasLegacyReferences = true;
-          // Return legacy data as-is for now (migration will handle)
-          return {
-            id: pointer.id,
-            resourceId: '', // Will be set during migration
-            name: pointer.name || 'Reference',
-            styleReferenceImage: pointer.styleReferenceImage || '',
-            styleReferenceImageOriginal: pointer.styleReferenceImageOriginal || '',
-            thumbnailUrl: pointer.thumbnailUrl || null,
-            styleReferenceStrength: pointer.styleReferenceStrength ?? 1.1,
-            subjectStrength: pointer.subjectStrength ?? 0.0,
-            subjectDescription: pointer.subjectDescription || '',
-            inThisScene: pointer.inThisScene ?? false,
-            inThisSceneStrength: pointer.inThisSceneStrength ?? 1.0,
-            referenceMode: pointer.referenceMode || 'style',
-            styleBoostTerms: pointer.styleBoostTerms || '',
-            createdAt: pointer.createdAt || new Date().toISOString(),
-            updatedAt: pointer.updatedAt || new Date().toISOString(),
-            isPublic: false, // Legacy references default to private
-            isOwner: true, // Legacy references are always owned by current user
-          } as HydratedReferenceImage;
+          return hydrateLegacyReference(pointer);
         }
 
         // Find the resource for this pointer in ALL available resources

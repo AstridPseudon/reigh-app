@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 import type { FormSubmissionEffects, FormSubmissionFormState, GetTaskParams } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
-import { sanitizePrompts, truncateLabel } from './promptSubmissionTransforms';
+import { sanitizePrompts } from './promptSubmissionTransforms';
 import type { SubmissionRuntimeContext } from './submissionContext';
 import { useAutomatedPromptSubmission } from './useAutomatedPromptSubmission';
 import { usePromptQueueSubmission } from './usePromptQueueSubmission';
+import { queuePromptGenerationTask } from './queuePromptGenerationTask';
 
 interface SubmissionOrchestratorEffects {
   automatedSubmitButton: FormSubmissionEffects['automatedSubmitButton'];
@@ -69,22 +70,14 @@ export function useSubmissionOrchestrator(
       return;
     }
 
-    const taskParams = getTaskParams(prompts);
-    if (!taskParams) {
-      return;
-    }
-
-    const firstPrompt = prompts.find((prompt) => prompt.fullPrompt.trim())?.fullPrompt || 'Generating...';
-
-    queueIncomingTask({
-      label: truncateLabel(firstPrompt),
+    queuePromptGenerationTask({
+      prompts,
       expectedCount: actionablePromptsCount * state.imagesPerPrompt,
       context: 'useFormSubmission.submitManaged',
       toastTitle: 'Failed to create tasks. Please try again.',
-      execute: async () => {
-        const result = await onGenerate(taskParams);
-        return result || undefined;
-      },
+      getTaskParams,
+      onGenerate,
+      queueIncomingTask,
     });
   }, [
     actionablePromptsCount,

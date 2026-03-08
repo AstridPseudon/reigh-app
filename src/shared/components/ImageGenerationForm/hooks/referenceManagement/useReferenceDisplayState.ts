@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { HydratedReferenceImage, ReferenceMode } from '../../types';
+import type { ReferenceActionStateSetters } from './types';
 
-interface ReferenceDisplayStateInput {
+interface ReferenceDisplayStateInput extends Pick<
+  ReferenceActionStateSetters,
+  | 'setReferenceMode'
+  | 'setStyleReferenceStrength'
+  | 'setSubjectStrength'
+  | 'setSubjectDescription'
+  | 'setInThisScene'
+  | 'setInThisSceneStrength'
+  | 'setStyleBoostTerms'
+> {
   selectedReference: HydratedReferenceImage | null;
   selectedReferenceId: string | null;
   styleReferenceOverride: string | null | undefined;
   setStyleReferenceOverride: Dispatch<SetStateAction<string | null | undefined>>;
-  setReferenceMode: Dispatch<SetStateAction<ReferenceMode>>;
-  setStyleReferenceStrength: Dispatch<SetStateAction<number>>;
-  setSubjectStrength: Dispatch<SetStateAction<number>>;
-  setSubjectDescription: Dispatch<SetStateAction<string>>;
-  setInThisScene: Dispatch<SetStateAction<boolean>>;
-  setInThisSceneStrength: Dispatch<SetStateAction<number>>;
-  setStyleBoostTerms: Dispatch<SetStateAction<string>>;
 }
 
 interface ReferenceDisplayStateOutput {

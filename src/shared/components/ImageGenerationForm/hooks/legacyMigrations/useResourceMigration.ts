@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { useCreateResource, type StyleReferenceMetadata } from '@/shared/hooks/useResources';
+import { useCreateResource } from '@/shared/hooks/useResources';
 import type { ReferenceImage } from '../../types';
 import type { LegacyMigrationsInput } from './types';
+import { buildLegacyReferenceMetadata } from '../referenceManagement/legacyReferenceMapping';
 
 type ResourceMigrationInput = Pick<
   LegacyMigrationsInput,
@@ -86,27 +87,12 @@ export function useResourceMigration(input: ResourceMigrationInput): void {
           }
 
           const now = new Date().toISOString();
-          const metadata: StyleReferenceMetadata = {
-            name: pointer.name || 'Reference',
-            styleReferenceImage: pointer.styleReferenceImage,
-            styleReferenceImageOriginal:
-              pointer.styleReferenceImageOriginal || pointer.styleReferenceImage,
-            thumbnailUrl: pointer.thumbnailUrl || null,
-            styleReferenceStrength: pointer.styleReferenceStrength ?? 1.1,
-            subjectStrength: pointer.subjectStrength ?? 0.0,
-            subjectDescription: pointer.subjectDescription || '',
-            inThisScene: pointer.inThisScene ?? false,
-            inThisSceneStrength: pointer.inThisSceneStrength ?? 1.0,
-            referenceMode: pointer.referenceMode || 'style',
-            styleBoostTerms: pointer.styleBoostTerms || '',
-            is_public: privacyDefaults.resourcesPublic,
-            created_by: {
-              is_you: true,
-              username: user.email || 'user',
-            },
-            createdAt: pointer.createdAt || now,
-            updatedAt: pointer.updatedAt || now,
-          };
+          const metadata = buildLegacyReferenceMetadata({
+            pointer,
+            resourcesPublic: privacyDefaults.resourcesPublic,
+            username: user.email || 'user',
+            now,
+          });
 
           const resource = await createStyleReference.mutateAsync({
             type: 'style-reference',
