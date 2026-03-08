@@ -7,32 +7,21 @@ import { useReferenceValueHandlers } from './useReferenceValueHandlers';
 export function useReferenceActionHandlers(
   input: ReferenceActionHandlersInput
 ): ReferenceActionHandlersOutput {
+  const { identity, referenceState, stateSetters, mutations } = input;
   const {
-    selectedReferenceId,
-    selectedReferenceIdByShot,
-    effectiveShotId,
-    referencePointers,
-    selectedProjectId,
-    associatedShotId,
-    shotPromptSettings,
-    updateProjectImageSettings,
-    markAsInteracted,
-    isLocalGenerationEnabled,
-    styleReferenceStrength,
-    subjectStrength,
-    setStyleReferenceStrength,
-    setSubjectStrength,
-    setSubjectDescription,
-    setInThisScene,
-    setInThisSceneStrength,
-    setStyleBoostTerms,
-    setReferenceMode,
-    setIsEditingSubjectDescription,
-    setHiresFixConfig,
-    pendingReferenceModeUpdate,
-    queryClient,
-    handleDeleteReference,
-  } = input;
+    selectedReferenceId, selectedReferenceIdByShot, effectiveShotId,
+    referencePointers, selectedProjectId, associatedShotId, shotPromptSettings,
+  } = identity;
+  const { isLocalGenerationEnabled, styleReferenceStrength, subjectStrength } = referenceState;
+  const {
+    setStyleReferenceStrength, setSubjectStrength, setSubjectDescription,
+    setInThisScene, setInThisSceneStrength, setStyleBoostTerms,
+    setReferenceMode, setIsEditingSubjectDescription, setHiresFixConfig,
+  } = stateSetters;
+  const {
+    updateProjectImageSettings, markAsInteracted,
+    pendingReferenceModeUpdate, queryClient, handleDeleteReference,
+  } = mutations;
 
   const handleUpdateReference = useReferenceUpdater({
     referencePointers,

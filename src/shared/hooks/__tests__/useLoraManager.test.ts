@@ -24,7 +24,7 @@ vi.mock('@/shared/components/LoraHeaderActions', () => ({
 }));
 
 import { useLoraManager } from '@/domains/lora/hooks/useLoraManager';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 
 const createMockLora = (id: string, name: string = 'Test LoRA'): LoraModel =>
   ({

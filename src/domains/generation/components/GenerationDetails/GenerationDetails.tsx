@@ -21,7 +21,7 @@ import { VideoEnhanceDetails } from '@/shared/components/TaskDetails/VideoEnhanc
 import { isJoinClipsTaskType, isCharacterAnimateTaskType, isTravelTaskType } from '@/shared/lib/taskTypeUtils';
 import { ImageGenerationDetails } from '@/domains/generation/components/GenerationDetails/ImageGenerationDetails';
 import { Task } from '@/types/tasks';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { DisplayableMetadata } from '@/shared/components/MediaGallery/types';
 
 // Types

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('@/shared/contexts/ProjectContext', () => ({ useProject: vi.fn(() => ({ selectedProjectId: 'test' })) }));
-import TaskList from '../TaskList';
+import { TaskList } from '../TaskList';
 
 describe('TaskList', () => {
   it('exports a component', () => {

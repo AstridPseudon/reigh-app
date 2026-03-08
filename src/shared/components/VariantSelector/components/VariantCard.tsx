@@ -15,7 +15,7 @@ import { cn } from '@/shared/components/ui/contracts/cn';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/shared/components/ui/hover-card';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
 import { getVariantIcon, getVariantLabel, isNewVariant, getTimeAgo, hasLoadableSettings } from '../variantPresentation';
 import { hasDifferentSourceImages, type CurrentSegmentImagesData } from '../variantSourceImages';

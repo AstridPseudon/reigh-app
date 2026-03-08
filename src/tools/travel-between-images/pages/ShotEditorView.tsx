@@ -20,7 +20,7 @@ import { useProjectVideoCountsCache } from '@/shared/hooks/projects/useProjectVi
 import { useProjectGenerationModesCache } from '@/shared/hooks/projects/useProjectGenerationModesCache';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useVideoGalleryPreloader } from '@/shared/hooks/gallery/useVideoGalleryPreloader';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import { ShotSettingsEditor } from '../components/ShotEditor';
 import { VideoTravelSettingsProvider, useVideoTravelSettings } from '../providers';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';

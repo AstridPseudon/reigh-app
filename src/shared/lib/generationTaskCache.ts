@@ -6,6 +6,7 @@ import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
 import { isTaskDbRow, mapTaskDbRowToTask } from '@/shared/lib/taskRowMapper';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import {
   getPrimaryTaskMappingsForGenerations,
   toGenerationTaskMappingCacheEntry,
@@ -118,7 +119,7 @@ export function mergeGenerationsWithTaskData(
   const effectiveProjectId = resolveTaskScopeProjectId(projectId);
 
   return generations.map((generation) => {
-    const generationId = generation.generation_id ?? generation.id;
+    const generationId = getGenerationId(generation);
     const cachedMapping = queryClient.getQueryData<GenerationTaskMappingCacheEntry>(
       taskQueryKeys.generationMapping(generationId),
     );

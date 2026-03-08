@@ -53,8 +53,8 @@ interface UseMagicEditModeReturn {
   setMagicEditNumImages: (value: number) => void;
   isCreatingMagicEditTasks: boolean;
   magicEditTasksCreated: boolean;
-  inpaintPanelPosition: 'left' | 'right';
-  setInpaintPanelPosition: (value: 'left' | 'right') => void;
+  toolPanelPosition: 'top' | 'bottom';
+  setToolPanelPosition: (value: 'top' | 'bottom') => void;
   handleEnterMagicEditMode: () => void;
   handleExitMagicEditMode: () => void;
   handleUnifiedGenerate: () => Promise<void>;
@@ -97,7 +97,7 @@ export const useMagicEditMode = ({
   const [magicEditNumImages, setMagicEditNumImages] = useState(4);
   const [isCreatingMagicEditTasks, setIsCreatingMagicEditTasks] = useState(false);
   const [magicEditTasksCreated, setMagicEditTasksCreated] = useState(false);
-  const [inpaintPanelPosition, setInpaintPanelPosition] = useState<'left' | 'right'>('right');
+  const [toolPanelPosition, setToolPanelPosition] = useState<'top' | 'bottom'>('bottom');
 
   const { currentShotId } = useCurrentShot();
   const run = useTaskPlaceholder();
@@ -273,8 +273,8 @@ export const useMagicEditMode = ({
     setMagicEditNumImages,
     isCreatingMagicEditTasks,
     magicEditTasksCreated,
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
+    toolPanelPosition,
+    setToolPanelPosition,
     handleEnterMagicEditMode,
     handleExitMagicEditMode,
     handleUnifiedGenerate,

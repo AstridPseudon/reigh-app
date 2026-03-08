@@ -5,7 +5,7 @@ vi.mock('react-router-dom', async () => {
 });
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn(), loading: vi.fn(), dismiss: vi.fn() } }));
 vi.mock('@/shared/contexts/ProjectContext', () => ({ useProject: vi.fn(() => ({ selectedProjectId: 'test' })) }));
-import TaskItem from '../TaskItem';
+import { TaskItem } from '../TaskItem';
 
 describe('TaskItem', () => {
   it('exports a component', () => {

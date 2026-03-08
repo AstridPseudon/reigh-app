@@ -13,7 +13,7 @@ import { useAIInteractionService } from '@/shared/hooks/ai/useAIInteractionServi
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { ActiveLora } from '@/domains/lora/types/lora';
 import { useGenerationSource } from './useGenerationSource';
 import { usePromptManagement } from './usePromptManagement';
@@ -333,32 +333,38 @@ export function useImageGenForm({
     handleUseExistingPrompts,
     handleNewPromptsLikeExisting,
   } = useFormSubmission({
-    selectedProjectId: selectedProjectId ?? undefined,
-    prompts,
-    imagesPerPrompt,
-    promptMultiplier,
-    associatedShotId,
-    currentBeforePromptText,
-    currentAfterPromptText,
-    styleBoostTerms,
-    isLocalGenerationEnabled,
-    hiresFixConfig,
-    effectivePromptMode,
-    masterPromptText,
-    actionablePromptsCount,
-    generationSourceRef,
-    selectedTextModelRef,
-    styleReferenceImageGeneration,
-    styleReferenceStrength,
-    subjectStrength,
-    effectiveSubjectDescription,
-    inThisScene,
-    inThisSceneStrength,
-    referenceMode,
-    aiGeneratePrompts,
-    onGenerate,
-    setPrompts,
-    automatedSubmitButton,
+    formState: {
+      selectedProjectId: selectedProjectId ?? undefined,
+      prompts,
+      imagesPerPrompt,
+      promptMultiplier,
+      associatedShotId,
+      currentBeforePromptText,
+      currentAfterPromptText,
+      styleBoostTerms,
+      isLocalGenerationEnabled,
+      hiresFixConfig,
+      effectivePromptMode,
+      masterPromptText,
+      actionablePromptsCount,
+    },
+    promptConfig: {
+      generationSourceRef,
+      selectedTextModelRef,
+      styleReferenceImageGeneration,
+      styleReferenceStrength,
+      subjectStrength,
+      effectiveSubjectDescription,
+      inThisScene,
+      inThisSceneStrength,
+      referenceMode,
+    },
+    effects: {
+      aiGeneratePrompts,
+      onGenerate,
+      setPrompts,
+      automatedSubmitButton,
+    },
   });
 
   // ============================================================================

@@ -17,7 +17,7 @@ import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
 import { VideoTravelSettings } from '../../settings';
 import { Shot } from '@/domains/generation/types';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 
 interface ProjectUISettings {
   acceleratedMode?: boolean;

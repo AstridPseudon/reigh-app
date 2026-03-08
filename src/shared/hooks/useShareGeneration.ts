@@ -3,6 +3,15 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { isNotFoundError, isUniqueViolationError } from '@/shared/constants/supabaseErrors';
+import type { Json } from '@/integrations/supabase/types';
+
+/** Narrow a Json value to a record, returning null if not an object */
+function asJsonRecord(value: Json | undefined | null): Record<string, Json | undefined> | null {
+  if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  return null;
+}
 
 interface UseShareGenerationResult {
   handleShare: (e: React.MouseEvent | React.TouchEvent) => Promise<void>;
@@ -18,44 +27,41 @@ interface UseShareGenerationOptions {
   onShareCreated?: (generationId: string, slug: string) => void;
 }
 
-function asNullableString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
-
 /**
  * Sanitize task data before caching in shared_generations
  * Removes potentially sensitive fields from params
  */
-function sanitizeTaskDataForSharing(taskData: Record<string, unknown> | null): Record<string, unknown> | null {
+function sanitizeTaskDataForSharing(taskData: Record<string, Json | undefined> | null): Record<string, Json | undefined> | null {
   if (!taskData) return null;
-  
+
   const sanitized = { ...taskData };
 
-  const redactDeep = (value: unknown, depth: number = 0): unknown => {
+  const redactDeep = (value: Json | undefined, depth: number = 0): Json | undefined => {
     if (depth > 6) return null;
     if (value == null) return value;
-    if (Array.isArray(value)) return value.map((v) => redactDeep(v, depth + 1));
-    if (typeof value !== 'object') return value;
-
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      // Strip any obviously sensitive keys
-      if (/(api[_-]?key|token|secret|password|service_role|authorization|stripe)/i.test(k)) {
-        continue;
+    if (Array.isArray(value)) return value.map((v) => redactDeep(v, depth + 1)) as Json[];
+    if (typeof value === 'object') {
+      const out: Record<string, Json | undefined> = {};
+      for (const [k, v] of Object.entries(value)) {
+        // Strip any obviously sensitive keys
+        if (/(api[_-]?key|token|secret|password|service_role|authorization|stripe)/i.test(k)) {
+          continue;
+        }
+        out[k] = redactDeep(v, depth + 1);
       }
-      out[k] = redactDeep(v, depth + 1);
+      return out;
     }
-    return out;
+    return value;
   };
-  
+
   // Remove or sanitize sensitive fields from params
   if (sanitized.params) {
     sanitized.params = redactDeep(sanitized.params);
   }
-  
+
   // Remove fields that shouldn't be exposed
   delete sanitized.error_message; // Could contain internal details
-  
+
   return sanitized;
 }
 
@@ -116,8 +122,8 @@ async function fetchExistingShareSlug(
 }
 
 interface ShareCachedDataResult {
-  generationData: Record<string, unknown>;
-  augmentedTaskData: Record<string, unknown> | null;
+  generationData: Record<string, Json | undefined>;
+  augmentedTaskData: Record<string, Json | undefined> | null;
 }
 
 async function fetchShareCachedData(
@@ -134,16 +140,16 @@ async function fetchShareCachedData(
     throw generationResult.error ?? new Error('Failed to load generation data');
   }
 
-  let taskResultData: Record<string, unknown> | null = null;
+  let taskResultData: Record<string, Json | undefined> | null = null;
   if (taskId) {
     const { data } = await supabase().from('tasks')
       .select('id, task_type, params, status, created_at')
       .eq('id', taskId)
       .single();
-    taskResultData = data as Record<string, unknown> | null;
+    taskResultData = data;
   }
 
-  let augmentedTaskData: Record<string, unknown> | null = taskResultData;
+  let augmentedTaskData: Record<string, Json | undefined> | null = taskResultData;
 
   if (shotId) {
     try {
@@ -166,7 +172,8 @@ async function fetchShareCachedData(
         .order('timeline_frame', { ascending: true });
 
       if (!shotError && !genError && shotData && shotGenerations) {
-        const travelSettings = (shotData.settings as Record<string, unknown> | undefined)?.travel_between_images as Record<string, unknown> || {};
+        const settingsRecord = asJsonRecord(shotData.settings);
+        const travelSettings = asJsonRecord(settingsRecord?.travel_between_images) ?? {};
         const generationMode = travelSettings.generationMode || 'batch';
 
         const images = shotGenerations
@@ -203,7 +210,7 @@ async function fetchShareCachedData(
   }
 
   return {
-    generationData: generationResult.data as Record<string, unknown>,
+    generationData: generationResult.data,
     augmentedTaskData,
   };
 }
@@ -213,8 +220,8 @@ interface InsertShareWithRetryArgs {
   taskId: string | null | undefined;
   shotId?: string | null;
   userId: string;
-  generationData: Record<string, unknown>;
-  augmentedTaskData: Record<string, unknown> | null;
+  generationData: Record<string, Json | undefined>;
+  augmentedTaskData: Record<string, Json | undefined> | null;
   generateShareSlug: (length?: number) => string;
 }
 
@@ -237,16 +244,16 @@ async function insertShareWithRetry({
 
   while (attempts < maxAttempts) {
     const candidateSlug = generateShareSlug(10);
-    const creator = (creatorRow as Record<string, unknown> | null) ?? null;
+    const creator = creatorRow ?? null;
     const normalizedTaskId = typeof taskId === 'string' && taskId.length > 0 ? taskId : null;
     const sharedGenerationInsert = {
       share_slug: candidateSlug,
       ...(normalizedTaskId ? { task_id: normalizedTaskId } : {}),
       generation_id: generationId,
       creator_id: userId,
-      creator_username: asNullableString(creator?.username),
-      creator_name: asNullableString(creator?.name),
-      creator_avatar_url: asNullableString(creator?.avatar_url),
+      creator_username: creator?.username ?? null,
+      creator_name: creator?.name ?? null,
+      creator_avatar_url: creator?.avatar_url ?? null,
       cached_generation_data: generationData,
       cached_task_data: sanitizeTaskDataForSharing(augmentedTaskData),
       shot_id: shotId || null,

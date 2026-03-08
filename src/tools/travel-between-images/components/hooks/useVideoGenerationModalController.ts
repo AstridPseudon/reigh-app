@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import type { Shot } from '@/domains/generation/types';
 import type { ActiveLora } from '@/domains/lora/types/lora';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
 import { useShotSettings } from '../../hooks/settings/useShotSettings';

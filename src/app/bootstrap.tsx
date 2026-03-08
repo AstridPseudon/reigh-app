@@ -1,4 +1,5 @@
 import { initializeLoggerRuntime, reactProfilerOnRender } from '@/shared/lib/logger';
+import { registerDebugGlobals } from '@/shared/lib/debug/debugConfig';
 
 import { createRoot } from 'react-dom/client';
 import { Profiler } from 'react';
@@ -66,6 +67,11 @@ export function initializeAppEnvironment(): void {
   // Initialize autoplay monitoring in development (after console suppression check)
   if (shouldLoadAutoplayMonitor(env)) {
     import('@/shared/lib/debug/autoplayMonitor');
+  }
+
+  // Attach debugConfig to window for console access in dev
+  if (shouldLoadDevDebugTools(env)) {
+    registerDebugGlobals();
   }
 
   // Debug tooling is intentionally loaded only for local dev runtime, never test/prod.

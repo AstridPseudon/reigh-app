@@ -1,4 +1,4 @@
-import type { GeneratedPromptResult, UseFormSubmissionProps } from './types';
+import type { FormSubmissionFormState, GeneratedPromptResult } from './types';
 import { truncateText } from '@/shared/lib/stringFormatting';
 import { toShortPrompt } from '../../lib/promptUtils';
 
@@ -14,7 +14,7 @@ export function toPromptEntries(results: GeneratedPromptResult[]) {
   }));
 }
 
-export function sanitizePrompts(updatedPrompts: UseFormSubmissionProps['prompts']) {
+export function sanitizePrompts(updatedPrompts: FormSubmissionFormState['prompts']) {
   const seenIds = new Set<string>();
 
   return updatedPrompts.map((original) => {

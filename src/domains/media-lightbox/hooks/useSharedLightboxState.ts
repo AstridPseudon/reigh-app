@@ -5,8 +5,6 @@
  */
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import type { GenerationRow } from '@/domains/generation/types';
-import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
 import { useVariants } from '@/shared/hooks/variants/useVariants';
 import { useVariantSelection } from './useVariantSelection';
 import { useVariantPromotion } from './useVariantPromotion';
@@ -24,29 +22,20 @@ import { useEffectiveMedia } from './useEffectiveMedia';
 import { useLayoutMode } from './useLayoutMode';
 import { invokeLightboxDelete } from '../utils/lightboxDelete';
 import type {
-  InteractionState,
   LightboxButtonGroupProps,
-  SharedLightboxButtonGroupProps,
-  SharedLightboxCoreProps,
-  SharedLightboxNavigationProps,
-  SharedLightboxShotProps,
   UseSharedLightboxStateInput,
   UseSharedLightboxStateReturn,
-  VariantsStateResult,
 } from './types';
 
 export type { LightboxButtonGroupProps } from './types';
 
-// --- Variants state ---
+export function useSharedLightboxState(input: UseSharedLightboxStateInput): UseSharedLightboxStateReturn {
+  const { core, navigation: navInput, shots: shotsInput, layout: layoutInput, actions, media: mediaInput } = input;
+  const { media, isVideo, selectedProjectId, isMobile, isFormOnlyMode, onClose, readOnly } = core;
+  const shotWorkflow = shotsInput.shotWorkflow;
 
-function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsStateResult {
-  const {
-    media,
-    isFormOnlyMode,
-    variantFetchGenerationId,
-    initialVariantId,
-    selectedProjectId,
-  } = core;
+  // --- Variants ---
+
   const {
     variants,
     primaryVariant,
@@ -57,26 +46,23 @@ function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsStateRes
     setPrimaryVariant,
     deleteVariant,
   } = useVariants({
-    generationId: variantFetchGenerationId,
+    generationId: core.variantFetchGenerationId,
     enabled: !isFormOnlyMode,
   });
+
   const { setActiveVariantId: baseSetActiveVariantId, isViewingNonPrimaryVariant } = useVariantSelection({
     media,
-    viewedGenerationId: variantFetchGenerationId,
+    viewedGenerationId: core.variantFetchGenerationId,
     rawSetActiveVariantId,
     activeVariant,
     variants,
-    initialVariantId,
+    initialVariantId: core.initialVariantId,
   });
+
   const intendedActiveVariantIdRef = useRef<string | null>(activeVariant?.id || null);
-  const {
-    promoteSuccess,
-    isPromoting,
-    handlePromoteToGeneration,
-    handleAddVariantAsNewGenerationToShot,
-  } = useVariantPromotion({
-    selectedProjectId,
-  });
+
+  const { promoteSuccess, isPromoting, handlePromoteToGeneration, handleAddVariantAsNewGenerationToShot } =
+    useVariantPromotion({ selectedProjectId });
 
   useEffect(() => {
     if (activeVariant?.id && activeVariant.id !== intendedActiveVariantIdRef.current) {
@@ -84,44 +70,33 @@ function useSharedVariantsState(core: SharedLightboxCoreProps): VariantsStateRes
     }
   }, [activeVariant?.id]);
 
-  const setActiveVariantId = useCallback((variantId: string) => {
-    intendedActiveVariantIdRef.current = variantId;
-    baseSetActiveVariantId(variantId);
-  }, [baseSetActiveVariantId]);
-
-  return {
-    section: {
-      list: variants || [],
-      primaryVariant,
-      activeVariant,
-      isLoading: isLoadingVariants,
-      setActiveVariantId,
-      refetch: refetchVariants,
-      setPrimaryVariant,
-      deleteVariant,
-      isViewingNonPrimaryVariant,
-      promoteSuccess,
-      isPromoting,
-      handlePromoteToGeneration,
-      handleAddVariantAsNewGenerationToShot,
+  const setActiveVariantId = useCallback(
+    (variantId: string) => {
+      intendedActiveVariantIdRef.current = variantId;
+      baseSetActiveVariantId(variantId);
     },
-    intendedActiveVariantIdRef,
-    activeVariant,
-    primaryVariant,
-    isViewingNonPrimaryVariant,
-    setPrimaryVariant,
-    refetchVariants,
-  };
-}
+    [baseSetActiveVariantId],
+  );
 
-// --- Interaction state (star, references, lineage, shots, source generation, make-main-variant) ---
+  // --- Star, references, join clips ---
 
-function useLightboxShotActions(
-  core: SharedLightboxCoreProps,
-  shots: SharedLightboxShotProps,
-): UseSharedLightboxStateReturn['shots'] {
-  const { media, selectedProjectId, onClose } = core;
-  const shotWorkflow = shots.shotWorkflow;
+  const star = useStarToggle({ media, starred: input.starred, shotId: shotsInput.shotId });
+
+  const referencesState = useReferences({
+    media,
+    selectedProjectId,
+    isVideo,
+    selectedShotId: shotWorkflow?.selectedShotId,
+  });
+
+  const joinState = useJoinClips({ media, isVideo, selectedProjectId });
+
+  // --- Lineage ---
+
+  const lineageState = useGenerationLineage({ media, enabled: !isFormOnlyMode });
+
+  // --- Shots ---
+
   const {
     allShots,
     onNavigateToShot,
@@ -138,12 +113,8 @@ function useLightboxShotActions(
     onOptimisticPositioned,
     onOptimisticUnpositioned,
   } = shotWorkflow ?? {};
-  const {
-    isCreatingShot,
-    quickCreateSuccess,
-    handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
-  } = useShotCreation({
+
+  const { isCreatingShot, quickCreateSuccess, handleQuickCreateAndAdd, handleQuickCreateSuccess } = useShotCreation({
     media,
     selectedProjectId,
     allShots: allShots || [],
@@ -151,9 +122,12 @@ function useLightboxShotActions(
     onClose,
     onShotChange,
   });
-  const computedPositionedInSelectedShot = useMemo(() => (
-    typeof positionedInSelectedShot === 'boolean' ? positionedInSelectedShot : undefined
-  ), [positionedInSelectedShot]);
+
+  const computedPositionedInSelectedShot = useMemo(
+    () => (typeof positionedInSelectedShot === 'boolean' ? positionedInSelectedShot : undefined),
+    [positionedInSelectedShot],
+  );
+
   const {
     isAlreadyPositionedInSelectedShot,
     isAlreadyAssociatedWithoutPosition,
@@ -177,43 +151,17 @@ function useLightboxShotActions(
     onOptimisticUnpositioned,
   });
 
-  return {
-    isAlreadyPositionedInSelectedShot,
-    isAlreadyAssociatedWithoutPosition,
-    handleAddToShot,
-    handleAddToShotWithoutPosition,
-    isCreatingShot,
-    quickCreateSuccess,
-    handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
-  };
-}
+  // --- Source generation & make-main-variant ---
 
-function useSharedMakeMainVariantState(params: {
-  media: GenerationRow;
-  sourceGenerationData: GenerationRow | null;
-  isViewingNonPrimaryVariant: boolean;
-  activeVariant: GenerationVariant | null;
-  setPrimaryVariant: (id: string) => Promise<void>;
-  refetchVariants: () => void;
-  shotId?: string;
-  selectedShotId?: string;
-  onClose: () => void;
-}): UseSharedLightboxStateReturn['makeMainVariant'] {
-  const {
+  const { sourceGenerationData, sourcePrimaryVariant } = useSourceGeneration({
     media,
-    sourceGenerationData,
-    isViewingNonPrimaryVariant,
-    activeVariant,
-    setPrimaryVariant,
-    refetchVariants,
-    shotId,
-    selectedShotId,
-    onClose,
-  } = params;
+    onOpenExternalGeneration: input.onOpenExternalGeneration,
+  });
+
   const canMakeMainVariantFromChild = !!sourceGenerationData && !!media.location;
   const canMakeMainVariantFromVariant = isViewingNonPrimaryVariant && !!activeVariant?.location;
   const canMakeMainVariant = canMakeMainVariantFromChild || canMakeMainVariantFromVariant;
+
   const { isMakingMainVariant, handleMakeMainVariant } = useMakeMainVariant({
     media,
     sourceGenerationData,
@@ -222,62 +170,136 @@ function useSharedMakeMainVariantState(params: {
     activeVariant,
     setPrimaryVariant,
     refetchVariants,
-    shotId,
-    selectedShotId,
+    shotId: shotsInput.shotId,
+    selectedShotId: shotWorkflow?.selectedShotId,
     onClose,
   });
 
-  return {
-    canMake: canMakeMainVariant,
-    canMakeFromChild: canMakeMainVariantFromChild,
-    canMakeFromVariant: canMakeMainVariantFromVariant,
-    isMaking: isMakingMainVariant,
-    handle: handleMakeMainVariant,
-  };
-}
+  // --- Navigation ---
 
-function useInteractionState(
-  input: UseSharedLightboxStateInput,
-  variantsState: VariantsStateResult,
-): InteractionState {
-  const star = useStarToggle({
-    media: input.core.media,
-    starred: input.starred,
-    shotId: input.shots.shotId,
-  });
-  const referencesState = useReferences({
-    media: input.core.media,
-    selectedProjectId: input.core.selectedProjectId,
-    isVideo: input.core.isVideo,
-    selectedShotId: input.shots.shotWorkflow?.selectedShotId,
-  });
-  const joinState = useJoinClips({
-    media: input.core.media,
-    isVideo: input.core.isVideo,
-    selectedProjectId: input.core.selectedProjectId,
-  });
-  const lineageState = useGenerationLineage({
-    media: input.core.media,
-    enabled: !input.core.isFormOnlyMode,
-  });
-  const shots = useLightboxShotActions(input.core, input.shots);
-  const { sourceGenerationData, sourcePrimaryVariant } = useSourceGeneration({
-    media: input.core.media,
-    onOpenExternalGeneration: input.onOpenExternalGeneration,
-  });
-  const makeMainVariant = useSharedMakeMainVariantState({
-    media: input.core.media,
-    sourceGenerationData,
-    isViewingNonPrimaryVariant: variantsState.isViewingNonPrimaryVariant,
-    activeVariant: variantsState.activeVariant,
-    setPrimaryVariant: variantsState.setPrimaryVariant,
-    refetchVariants: variantsState.refetchVariants,
-    shotId: input.shots.shotId,
-    selectedShotId: input.shots.shotWorkflow?.selectedShotId,
-    onClose: input.core.onClose,
+  const { hasNext = false, hasPrevious = false, handleSlotNavNext, handleSlotNavPrev, swipeDisabled, showNavigation } = navInput;
+
+  const { safeClose, activateClickShield } = useLightboxNavigation({
+    onNext: handleSlotNavNext,
+    onPrevious: handleSlotNavPrev,
+    onClose,
   });
 
+  const swipeNavigation = useSwipeNavigation({
+    onSwipeLeft: () => {
+      if (hasNext) handleSlotNavNext();
+    },
+    onSwipeRight: () => {
+      if (hasPrevious) handleSlotNavPrev();
+    },
+    disabled: swipeDisabled || readOnly || !showNavigation,
+    hasNext,
+    hasPrevious,
+    threshold: 50,
+    velocityThreshold: 0.3,
+  });
+
+  // --- Effective media & layout ---
+
+  const { effectiveVideoUrl, effectiveMediaUrl, effectiveImageDimensions } = useEffectiveMedia({
+    isVideo,
+    activeVariant,
+    effectiveImageUrl: mediaInput.effectiveImageUrl,
+    imageDimensions: mediaInput.imageDimensions,
+    projectAspectRatio: mediaInput.projectAspectRatio,
+  });
+
+  const layout = useLayoutMode({
+    isMobile,
+    showTaskDetails: layoutInput.showTaskDetails ?? false,
+    isSpecialEditMode: layoutInput.isSpecialEditMode,
+    isVideo,
+    isInpaintMode: layoutInput.isInpaintMode ?? false,
+    isMagicEditMode: layoutInput.isMagicEditMode ?? false,
+  });
+
+  // --- Button group ---
+
+  const { showDownload, isDownloading, onDelete, isDeleting, isUpscaling, handleUpscale } = actions;
+
+  const handleDelete = useCallback(async () => {
+    if (!onDelete) return;
+    await invokeLightboxDelete(onDelete, media.id, 'MediaLightbox.delete');
+  }, [onDelete, media.id]);
+
+  const buttonGroupProps = useMemo<LightboxButtonGroupProps>(
+    () => ({
+      topRight: {
+        showDownload: !!showDownload,
+        isDownloading,
+        onDelete,
+        handleDelete,
+        isDeleting,
+        onClose,
+      },
+      bottomLeft: {
+        isUpscaling,
+        handleUpscale,
+        localStarred: star.localStarred,
+        handleToggleStar: star.handleToggleStar,
+        toggleStarPending: star.toggleStarMutation.isPending,
+      },
+      bottomRight: {
+        isAddingToReferences: referencesState.isAddingToReferences,
+        addToReferencesSuccess: referencesState.addToReferencesSuccess,
+        handleAddToReferences: referencesState.handleAddToReferences,
+        handleAddToJoin: joinState.handleAddToJoin,
+        isAddingToJoin: joinState.isAddingToJoin,
+        addToJoinSuccess: joinState.addToJoinSuccess,
+        onGoToJoin: joinState.handleGoToJoin,
+      },
+    }),
+    [
+      showDownload,
+      isDownloading,
+      onDelete,
+      handleDelete,
+      isDeleting,
+      onClose,
+      isUpscaling,
+      handleUpscale,
+      star.localStarred,
+      star.handleToggleStar,
+      star.toggleStarMutation.isPending,
+      referencesState.isAddingToReferences,
+      referencesState.addToReferencesSuccess,
+      referencesState.handleAddToReferences,
+      joinState.handleAddToJoin,
+      joinState.isAddingToJoin,
+      joinState.addToJoinSuccess,
+      joinState.handleGoToJoin,
+    ],
+  );
+
+  // --- Return ---
+
   return {
+    variants: {
+      list: variants || [],
+      primaryVariant,
+      activeVariant,
+      isLoading: isLoadingVariants,
+      setActiveVariantId,
+      refetch: refetchVariants,
+      setPrimaryVariant,
+      deleteVariant,
+      isViewingNonPrimaryVariant,
+      promoteSuccess,
+      isPromoting,
+      handlePromoteToGeneration,
+      handleAddVariantAsNewGenerationToShot,
+    },
+    intendedActiveVariantIdRef,
+    navigation: {
+      safeClose,
+      activateClickShield,
+      swipeNavigation,
+    },
     star: {
       localStarred: star.localStarred,
       setLocalStarred: star.setLocalStarred,
@@ -301,185 +323,27 @@ function useInteractionState(
       paginatedDerived: lineageState.paginatedDerived || [],
       setDerivedPage: lineageState.setDerivedPage,
     },
-    shots,
+    shots: {
+      isAlreadyPositionedInSelectedShot,
+      isAlreadyAssociatedWithoutPosition,
+      handleAddToShot,
+      handleAddToShotWithoutPosition,
+      isCreatingShot,
+      quickCreateSuccess,
+      handleQuickCreateAndAdd,
+      handleQuickCreateSuccess,
+    },
     sourceGeneration: {
       data: sourceGenerationData,
       primaryVariant: sourcePrimaryVariant,
     },
-    makeMainVariant,
-  };
-}
-
-// --- Presentation state (navigation, layout, effective media, button groups) ---
-
-function useLightboxNavigationModel(
-  core: SharedLightboxCoreProps,
-  navigation: SharedLightboxNavigationProps,
-) {
-  const { onClose, readOnly } = core;
-  const {
-    hasNext = false,
-    hasPrevious = false,
-    handleSlotNavNext,
-    handleSlotNavPrev,
-    swipeDisabled,
-    showNavigation,
-  } = navigation;
-  const { safeClose, activateClickShield } = useLightboxNavigation({
-    onNext: handleSlotNavNext,
-    onPrevious: handleSlotNavPrev,
-    onClose,
-  });
-  const swipeNavigation = useSwipeNavigation({
-    onSwipeLeft: () => {
-      if (hasNext) handleSlotNavNext();
+    makeMainVariant: {
+      canMake: canMakeMainVariant,
+      canMakeFromChild: canMakeMainVariantFromChild,
+      canMakeFromVariant: canMakeMainVariantFromVariant,
+      isMaking: isMakingMainVariant,
+      handle: handleMakeMainVariant,
     },
-    onSwipeRight: () => {
-      if (hasPrevious) handleSlotNavPrev();
-    },
-    disabled: swipeDisabled || readOnly || !showNavigation,
-    hasNext,
-    hasPrevious,
-    threshold: 50,
-    velocityThreshold: 0.3,
-  });
-
-  return {
-    safeClose,
-    activateClickShield,
-    swipeNavigation,
-  };
-}
-
-function useSharedButtonGroupState(params: {
-  core: SharedLightboxCoreProps;
-  actions: SharedLightboxButtonGroupProps;
-  localStarred: boolean;
-  handleToggleStar: () => void;
-  toggleStarPending: boolean;
-  isAddingToReferences: boolean;
-  addToReferencesSuccess: boolean;
-  handleAddToReferences: () => Promise<void>;
-  handleAddToJoin: () => void;
-  isAddingToJoin: boolean;
-  addToJoinSuccess: boolean;
-  handleGoToJoin: () => void;
-}) {
-  const {
-    core,
-    actions,
-    localStarred,
-    handleToggleStar,
-    toggleStarPending,
-    isAddingToReferences,
-    addToReferencesSuccess,
-    handleAddToReferences,
-    handleAddToJoin,
-    isAddingToJoin,
-    addToJoinSuccess,
-    handleGoToJoin,
-  } = params;
-  const { media, onClose } = core;
-  const {
-    showDownload,
-    isDownloading,
-    onDelete,
-    isDeleting,
-    isUpscaling,
-    handleUpscale,
-  } = actions;
-  const handleDelete = useCallback(async () => {
-    if (!onDelete) return;
-    await invokeLightboxDelete(onDelete, media.id, 'MediaLightbox.delete');
-  }, [onDelete, media.id]);
-
-  return useMemo<LightboxButtonGroupProps>(() => ({
-    topRight: {
-      showDownload: !!showDownload,
-      isDownloading,
-      onDelete,
-      handleDelete,
-      isDeleting,
-      onClose,
-    },
-    bottomLeft: {
-      isUpscaling,
-      handleUpscale,
-      localStarred,
-      handleToggleStar,
-      toggleStarPending,
-    },
-    bottomRight: {
-      isAddingToReferences,
-      addToReferencesSuccess,
-      handleAddToReferences,
-      handleAddToJoin,
-      isAddingToJoin,
-      addToJoinSuccess,
-      onGoToJoin: handleGoToJoin,
-    },
-  }), [
-    showDownload,
-    isDownloading,
-    onDelete,
-    handleDelete,
-    isDeleting,
-    onClose,
-    isUpscaling,
-    handleUpscale,
-    localStarred,
-    handleToggleStar,
-    toggleStarPending,
-    isAddingToReferences,
-    addToReferencesSuccess,
-    handleAddToReferences,
-    handleAddToJoin,
-    isAddingToJoin,
-    addToJoinSuccess,
-    handleGoToJoin,
-  ]);
-}
-
-function usePresentationState(
-  input: UseSharedLightboxStateInput,
-  variantsState: VariantsStateResult,
-  interactionState: InteractionState,
-) {
-  const navigation = useLightboxNavigationModel(input.core, input.navigation);
-  const { effectiveVideoUrl, effectiveMediaUrl, effectiveImageDimensions } = useEffectiveMedia({
-    isVideo: input.core.isVideo,
-    activeVariant: variantsState.activeVariant,
-    effectiveImageUrl: input.media.effectiveImageUrl,
-    imageDimensions: input.media.imageDimensions,
-    projectAspectRatio: input.media.projectAspectRatio,
-  });
-  const layout = useLayoutMode({
-    isMobile: input.core.isMobile,
-    showTaskDetails: input.layout.showTaskDetails ?? false,
-    isSpecialEditMode: input.layout.isSpecialEditMode,
-    isVideo: input.core.isVideo,
-    isInpaintMode: input.layout.isInpaintMode ?? false,
-    isMagicEditMode: input.layout.isMagicEditMode ?? false,
-  });
-  const buttonGroupProps = useSharedButtonGroupState({
-    core: input.core,
-    actions: input.actions,
-    localStarred: interactionState.star.localStarred,
-    handleToggleStar: interactionState.star.handleToggleStar,
-    toggleStarPending: interactionState.star.toggleStarMutation.isPending,
-    isAddingToReferences: interactionState.references.isAddingToReferences,
-    addToReferencesSuccess: interactionState.references.addToReferencesSuccess,
-    handleAddToReferences: interactionState.references.handleAddToReferences,
-    handleAddToJoin: interactionState.references.handleAddToJoin,
-    isAddingToJoin: interactionState.references.isAddingToJoin,
-    addToJoinSuccess: interactionState.references.addToJoinSuccess,
-    handleGoToJoin: interactionState.references.handleGoToJoin,
-  });
-
-  return {
-    variants: variantsState.section,
-    intendedActiveVariantIdRef: variantsState.intendedActiveVariantIdRef,
-    navigation,
     effectiveMedia: {
       videoUrl: effectiveVideoUrl,
       mediaUrl: effectiveMediaUrl,
@@ -493,28 +357,5 @@ function usePresentationState(
       isPortraitMode: layout.isPortraitMode,
     },
     buttonGroupProps,
-  };
-}
-
-// --- Main orchestrator ---
-
-export function useSharedLightboxState(input: UseSharedLightboxStateInput): UseSharedLightboxStateReturn {
-  const variantsState = useSharedVariantsState(input.core);
-  const interactionState = useInteractionState(input, variantsState);
-  const presentationState = usePresentationState(input, variantsState, interactionState);
-
-  return {
-    variants: presentationState.variants,
-    intendedActiveVariantIdRef: presentationState.intendedActiveVariantIdRef,
-    navigation: presentationState.navigation,
-    star: interactionState.star,
-    references: interactionState.references,
-    lineage: interactionState.lineage,
-    shots: interactionState.shots,
-    sourceGeneration: interactionState.sourceGeneration,
-    makeMainVariant: interactionState.makeMainVariant,
-    effectiveMedia: presentationState.effectiveMedia,
-    layout: presentationState.layout,
-    buttonGroupProps: presentationState.buttonGroupProps,
   };
 }

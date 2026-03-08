@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { GetTaskParams, UseFormSubmissionProps } from './types';
+import type { FormSubmissionEffects, FormSubmissionFormState, GetTaskParams } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
 import { sanitizePrompts, truncateLabel } from './promptSubmissionTransforms';
 import type { SubmissionRuntimeContext } from './submissionContext';
@@ -7,10 +7,10 @@ import { useAutomatedPromptSubmission } from './useAutomatedPromptSubmission';
 import { usePromptQueueSubmission } from './usePromptQueueSubmission';
 
 interface SubmissionOrchestratorEffects {
-  automatedSubmitButton: UseFormSubmissionProps['automatedSubmitButton'];
-  aiGeneratePrompts: UseFormSubmissionProps['aiGeneratePrompts'];
-  onGenerate: UseFormSubmissionProps['onGenerate'];
-  setPrompts: UseFormSubmissionProps['setPrompts'];
+  automatedSubmitButton: FormSubmissionEffects['automatedSubmitButton'];
+  aiGeneratePrompts: FormSubmissionEffects['aiGeneratePrompts'];
+  onGenerate: FormSubmissionEffects['onGenerate'];
+  setPrompts: FormSubmissionEffects['setPrompts'];
   getTaskParams: GetTaskParams;
   runIncomingTask: RunIncomingTask;
 }
@@ -25,7 +25,7 @@ export interface SubmissionOrchestratorCommands {
   submitAutomated: () => void;
   queueExisting: () => void;
   queueLikeExisting: () => void;
-  generateAndSubmit: (updatedPrompts: UseFormSubmissionProps['prompts']) => void;
+  generateAndSubmit: (updatedPrompts: FormSubmissionFormState['prompts']) => void;
 }
 
 export function useSubmissionOrchestrator(
@@ -51,7 +51,7 @@ export function useSubmissionOrchestrator(
     runIncomingTask(options);
   }, [automatedSubmitButton, runIncomingTask]);
 
-  const generateAndSubmit = useCallback((updatedPrompts: UseFormSubmissionProps['prompts']) => {
+  const generateAndSubmit = useCallback((updatedPrompts: FormSubmissionFormState['prompts']) => {
     const sanitizedPrompts = sanitizePrompts(updatedPrompts);
     setPrompts(sanitizedPrompts);
 

@@ -2,7 +2,7 @@ import type { AppError } from './errors';
 import { normalizeAppError } from '@/shared/lib/errorHandling/errorNormalization';
 import { logAppError } from '@/shared/lib/errorHandling/errorPresentation';
 
-interface NormalizeAndLogOptions {
+export interface NormalizeAndLogOptions {
   context: string;
   logData?: Record<string, unknown>;
 }

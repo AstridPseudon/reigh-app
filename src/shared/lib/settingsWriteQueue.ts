@@ -165,6 +165,13 @@ export function enqueueSettingsWrite(
   write: QueuedWrite,
   mode: 'debounced' | 'immediate' = 'debounced'
 ): Promise<unknown> {
+  if (!writeFunction) {
+    throw new Error(
+      '[SettingsWriteQueue] enqueueSettingsWrite called before setSettingsWriteFunction. ' +
+      'Ensure app initialization calls setSettingsWriteFunction first.'
+    );
+  }
+
   const key = targetKey(write);
 
   return new Promise((resolve, reject) => {

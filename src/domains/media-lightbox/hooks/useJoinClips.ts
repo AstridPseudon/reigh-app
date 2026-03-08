@@ -56,7 +56,11 @@ export function useJoinClips({
       const thumbnailUrl = media.thumbUrl || media.thumbnail_url;
 
       if (!videoUrl) {
-        console.error('[JoinClipsDebug] No video URL found on media object!', media);
+        normalizeAndPresentError(new Error('No video URL found on media object'), {
+          context: 'useJoinClips',
+          showToast: false,
+          logData: { mediaId: media.id, isVideo },
+        });
         setIsAddingToJoin(false);
         return;
       }

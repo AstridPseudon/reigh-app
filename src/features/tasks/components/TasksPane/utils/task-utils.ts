@@ -3,10 +3,10 @@ import { TASK_NAME_ABBREVIATIONS } from '../constants';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import {
   asRecord,
-  asString,
   asStringArray,
   firstString as firstNonEmptyString,
 } from '@/shared/lib/jsonNarrowing';
+import { deriveInputImages } from '@/shared/lib/taskParamsUtils';
 
 function firstString(...values: unknown[]): string | null {
   return firstNonEmptyString(...values);
@@ -20,45 +20,8 @@ export const deriveTaskInputImages = (task: Task | null): string[] => {
   if (!task?.params) {
     return [];
   }
-
   const params = asRecord(task.params) ?? {};
-
-  if (task.taskType === 'individual_travel_segment') {
-    const segmentParams = asRecord(params.individual_segment_params);
-    const segmentImages = toNonEmptyStringArray(segmentParams?.input_image_paths_resolved);
-    if (segmentImages.length > 0) {
-      return segmentImages;
-    }
-    return toNonEmptyStringArray(params.input_image_paths_resolved);
-  }
-
-  const inputImages: string[] = [];
-
-  const stringFields = [
-    params.input_image,
-    params.image,
-    params.init_image,
-    params.control_image,
-  ];
-
-  for (const value of stringFields) {
-    const image = asString(value);
-    if (image) {
-      inputImages.push(image);
-    }
-  }
-
-  inputImages.push(...toNonEmptyStringArray(params.images));
-  inputImages.push(...toNonEmptyStringArray(params.input_images));
-
-  const orchestratorPayload = asRecord(params.full_orchestrator_payload);
-  inputImages.push(...toNonEmptyStringArray(orchestratorPayload?.input_image_paths_resolved));
-
-  const orchestratorDetails = asRecord(params.orchestrator_details);
-  inputImages.push(...toNonEmptyStringArray(orchestratorDetails?.input_image_paths_resolved));
-
-  inputImages.push(...toNonEmptyStringArray(params.input_image_paths_resolved));
-  return inputImages;
+  return deriveInputImages(params);
 };
 
 export const getAbbreviatedTaskName = (fullName: string): string => {

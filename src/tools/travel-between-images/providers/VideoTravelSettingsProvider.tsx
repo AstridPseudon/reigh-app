@@ -32,7 +32,7 @@ import { Shot } from '@/domains/generation/types';
 import { useShotSettings, UseShotSettingsReturn } from '../hooks/settings/useShotSettings';
 import { useVideoTravelSettingsHandlers, VideoTravelSettingsHandlers } from '../hooks/settings/useVideoTravelSettingsHandlers';
 import { VideoTravelSettings, PhaseConfig } from '../settings';
-import { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 
 // =============================================================================
 // CONTEXT TYPES

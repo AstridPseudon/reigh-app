@@ -2,10 +2,10 @@ import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings
 import {
   editVideoSettings,
   type EditVideoSettings,
-} from '@/shared/settings/config/editVideoDefaults';
+} from '@/tools/edit-video/settings/editVideoDefaults';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 
-export type { EditVideoSettings } from '@/shared/settings/config/editVideoDefaults';
+export type { EditVideoSettings } from '@/tools/edit-video/settings/editVideoDefaults';
 
 export function useEditVideoSettings(projectId: string | null | undefined) {
   return useAutoSaveSettings<EditVideoSettings>({

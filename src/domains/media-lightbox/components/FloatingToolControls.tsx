@@ -39,8 +39,8 @@ export const FloatingToolControls: React.FC<FloatingToolControlsProps> = ({
     brushStrokes,
     handleUndo,
     handleClearMask,
-    inpaintPanelPosition,
-    setInpaintPanelPosition,
+    toolPanelPosition,
+    setToolPanelPosition,
     repositionTransform,
     setScale: onRepositionScaleChange,
     setRotation: onRepositionRotationChange,
@@ -52,11 +52,9 @@ export const FloatingToolControls: React.FC<FloatingToolControlsProps> = ({
   const isTablet = variant === 'tablet';
   const isMobile = useIsMobile();
 
-  // Map panel position (context uses 'left'/'right', this component uses 'top'/'bottom')
-  // Note: The context stores 'left'/'right' but we display as 'top'/'bottom' for the floating panel
-  const panelPosition = inpaintPanelPosition === 'left' ? 'top' : 'bottom';
+  const panelPosition = toolPanelPosition;
   const onSetPanelPosition = (position: 'top' | 'bottom') => {
-    setInpaintPanelPosition(position === 'top' ? 'left' : 'right');
+    setToolPanelPosition(position);
   };
 
   // Variant-specific styling - widened for 5 mode buttons

@@ -8,7 +8,7 @@
  */
 
 import { useCallback } from 'react';
-import { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { ActiveLora } from '@/domains/lora/types/lora';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { SettingsScope } from '@/shared/hooks/settings/useToolSettings';

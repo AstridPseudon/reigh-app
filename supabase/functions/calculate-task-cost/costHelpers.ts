@@ -62,7 +62,7 @@ export function parseTaskCostParams(value: unknown): TaskCostParams {
 
   const result = asObjectRecord(record.result);
   if (result) {
-    parsed.result = result as VideoEnhanceResult;
+    parsed.result = result as VideoEnhanceMetrics;
   }
 
   for (const [key, rawValue] of Object.entries(record)) {
@@ -206,10 +206,6 @@ interface VideoEnhanceMetrics {
   output_frames?: number;
 }
 
-interface VideoEnhanceResult extends VideoEnhanceMetrics {
-  result?: VideoEnhanceMetrics;
-}
-
 interface VideoEnhanceBreakdown {
   interpolation?: { compute_seconds: number; cost_per_second: number; cost: number };
   upscale?: { output_width: number; output_height: number; output_frames: number; megapixels: number; cost_per_megapixel: number; cost: number };
@@ -217,12 +213,12 @@ interface VideoEnhanceBreakdown {
 
 // Special cost calculation for video_enhance task
 // Combines FILM (time-based) and FlashVSR (megapixel-based) pricing
-function calculateVideoEnhanceCost(taskParams: VideoEnhanceResult): { cost: number; breakdown: VideoEnhanceBreakdown } {
+function calculateVideoEnhanceCost(taskParams: TaskCostParams): { cost: number; breakdown: VideoEnhanceBreakdown } {
   let totalCost = 0;
   const breakdown: VideoEnhanceBreakdown = {};
 
   // Get result data from task params (worker should populate this)
-  const result = taskParams?.result || taskParams;
+  const result = taskParams.result ?? (taskParams as VideoEnhanceMetrics);
 
   // FILM interpolation cost: $0.0013 per compute second
   if (result?.interpolation_compute_seconds && result.interpolation_compute_seconds > 0) {
@@ -266,7 +262,7 @@ interface TaskCostParams {
   resolution?: string;
   frame_count?: number;
   model_type?: string;
-  result?: VideoEnhanceResult;
+  result?: VideoEnhanceMetrics;
   [key: string]: unknown;
 }
 

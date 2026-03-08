@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import BatchSettingsForm from '../BatchSettingsForm';
+import { BatchSettingsForm } from '../BatchSettingsForm';
 
 describe('BatchSettingsForm', () => {
   it('exports expected members', () => {

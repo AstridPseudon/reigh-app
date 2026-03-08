@@ -11,8 +11,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Progress } from '@/shared/components/ui/progress';
 import { useLineageChain } from '@/shared/hooks/variants/useLineageChain';
 import { useProject } from '@/shared/contexts/ProjectContext';
-import { GIFEncoder, quantize, applyPalette } from 'gifenc';
-
 interface CreateGifProgress {
   stage: 'loading' | 'encoding' | 'complete';
   current: number;
@@ -74,6 +72,7 @@ async function createLineageGif(
     throw new Error('Could not get canvas context');
   }
 
+  const { GIFEncoder, quantize, applyPalette } = await import('gifenc');
   const gif = GIFEncoder();
   onProgress?.({ stage: 'encoding', current: 0, total: images.length, message: 'Encoding frames...' });
 

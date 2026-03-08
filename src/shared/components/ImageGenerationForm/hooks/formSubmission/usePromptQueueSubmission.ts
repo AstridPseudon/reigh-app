@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import type { GetTaskParams, UseFormSubmissionProps } from './types';
+import type { FormSubmissionEffects, GetTaskParams } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
 import { toPromptEntries, truncateLabel } from './promptSubmissionTransforms';
 import type { SubmissionRuntimeContext } from './submissionContext';
@@ -8,9 +8,9 @@ import type { SubmissionRuntimeContext } from './submissionContext';
 interface UsePromptQueueSubmissionInput {
   context: SubmissionRuntimeContext;
   getTaskParams: GetTaskParams;
-  aiGeneratePrompts: UseFormSubmissionProps['aiGeneratePrompts'];
-  onGenerate: UseFormSubmissionProps['onGenerate'];
-  setPrompts: UseFormSubmissionProps['setPrompts'];
+  aiGeneratePrompts: FormSubmissionEffects['aiGeneratePrompts'];
+  onGenerate: FormSubmissionEffects['onGenerate'];
+  setPrompts: FormSubmissionEffects['setPrompts'];
   queueIncomingTask: (options: Parameters<RunIncomingTask>[0]) => void;
 }
 

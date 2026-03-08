@@ -9,7 +9,7 @@ import { XCircle, Layers, Plus } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { ActiveLoRAsDisplay } from '@/shared/components/lora/ActiveLoRAsDisplay';
 import { LoraSelectorModal } from '@/domains/lora/components/LoraSelectorModal';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import { EditAdvancedSettings } from './EditAdvancedSettings';
 import { EditPanelLayout } from './EditPanelLayout';
 import { ImageUpscaleForm } from './ImageUpscaleForm';

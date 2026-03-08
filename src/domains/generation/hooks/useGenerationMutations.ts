@@ -271,85 +271,89 @@ async function toggleGenerationStar(params: ScopedGenerationInput & { starred: b
 // ===== Mutation Hooks =====
 
 /**
- * Shared delete mutation factory for generations and variants.
- * @internal
+ * Delete a generation with project-scoped verification.
  */
-function useDeleteFromTable(table: 'generations' | 'generation_variants', entityLabel: string) {
-  return useMutation({
-    mutationFn: async (input: ScopedGenerationInput | ScopedVariantInput) => {
-      const projectId = ensureProjectScope(
-        input.projectId,
-        `useGenerationMutations.useDeleteFromTable.${table}.projectScope`,
-      );
+async function deleteGenerationScoped(input: ScopedGenerationInput): Promise<void> {
+  const projectId = ensureProjectScope(
+    input.projectId,
+    'useGenerationMutations.deleteGeneration.projectScope',
+  );
 
-      if (table === 'generations') {
-        await verifyGenerationScope(
-          input.id,
-          projectId,
-          `useGenerationMutations.useDeleteFromTable.${table}.scopeValidation`,
-        );
+  await verifyGenerationScope(
+    input.id,
+    projectId,
+    'useGenerationMutations.deleteGeneration.scopeValidation',
+  );
 
-        const { data, error } = await deleteGenerationByScope({
-          id: input.id,
-          projectId,
-        });
-
-        if (error) {
-          normalizeAndPresentAndRethrow(error, {
-            context: `useGenerationMutations.useDeleteFromTable.${table}`,
-            showToast: false,
-            logData: { id: input.id, projectId, entityLabel },
-          });
-        }
-
-        if (!data || data.length === 0) {
-          normalizeAndPresentAndRethrow(new Error('No rows deleted while enforcing generation scope'), {
-            context: `useGenerationMutations.useDeleteFromTable.${table}.noRows`,
-            showToast: false,
-            logData: { id: input.id, projectId, entityLabel },
-          });
-        }
-
-        return;
-      }
-
-      const variantScope = await verifyVariantScope(
-        input.id,
-        projectId,
-        `useGenerationMutations.useDeleteFromTable.${table}.scopeValidation`,
-      );
-      const { data, error } = await deleteGenerationVariantByScope({
-        id: input.id,
-        generationId: variantScope.generationId,
-      });
-
-      if (error) {
-        normalizeAndPresentAndRethrow(error, {
-          context: `useGenerationMutations.useDeleteFromTable.${table}`,
-          showToast: false,
-          logData: { id: input.id, projectId, entityLabel, generationId: variantScope.generationId },
-        });
-      }
-
-      if (!data || data.length === 0) {
-        normalizeAndPresentAndRethrow(new Error('No rows deleted while enforcing variant scope'), {
-          context: `useGenerationMutations.useDeleteFromTable.${table}.noRows`,
-          showToast: false,
-          logData: { id: input.id, projectId, entityLabel, generationId: variantScope.generationId },
-        });
-      }
-    },
-    onError: (error: Error) => {
-      normalizeAndPresentError(error, {
-        context: `useDelete${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)}`,
-        toastTitle: `Failed to delete ${entityLabel}`,
-      });
-    },
+  const { data, error } = await deleteGenerationByScope({
+    id: input.id,
+    projectId,
   });
+
+  if (error) {
+    normalizeAndPresentAndRethrow(error, {
+      context: 'useGenerationMutations.deleteGeneration',
+      showToast: false,
+      logData: { id: input.id, projectId },
+    });
+  }
+
+  if (!data || data.length === 0) {
+    normalizeAndPresentAndRethrow(new Error('No rows deleted while enforcing generation scope'), {
+      context: 'useGenerationMutations.deleteGeneration.noRows',
+      showToast: false,
+      logData: { id: input.id, projectId },
+    });
+  }
+}
+
+/**
+ * Delete a variant with project-scoped verification via its parent generation.
+ */
+async function deleteVariantScoped(input: ScopedVariantInput): Promise<void> {
+  const projectId = ensureProjectScope(
+    input.projectId,
+    'useGenerationMutations.deleteVariant.projectScope',
+  );
+
+  const variantScope = await verifyVariantScope(
+    input.id,
+    projectId,
+    'useGenerationMutations.deleteVariant.scopeValidation',
+  );
+
+  const { data, error } = await deleteGenerationVariantByScope({
+    id: input.id,
+    generationId: variantScope.generationId,
+  });
+
+  if (error) {
+    normalizeAndPresentAndRethrow(error, {
+      context: 'useGenerationMutations.deleteVariant',
+      showToast: false,
+      logData: { id: input.id, projectId, generationId: variantScope.generationId },
+    });
+  }
+
+  if (!data || data.length === 0) {
+    normalizeAndPresentAndRethrow(new Error('No rows deleted while enforcing variant scope'), {
+      context: 'useGenerationMutations.deleteVariant.noRows',
+      showToast: false,
+      logData: { id: input.id, projectId, generationId: variantScope.generationId },
+    });
+  }
 }
 
 export function useDeleteGeneration() {
-  return useDeleteFromTable('generations', 'generation');
+  return useMutation({
+    mutationFn: deleteGenerationScoped,
+    onError: (error: Error) => {
+      normalizeAndPresentError(error, {
+        context: 'useDeleteGeneration',
+        toastTitle: 'Failed to delete generation',
+      });
+    },
+  });
 }
 
 /**
@@ -357,7 +361,15 @@ export function useDeleteGeneration() {
  * Use this for edit tools (edit-images, edit-video, character-animate) that create variants.
  */
 export function useDeleteVariant() {
-  return useDeleteFromTable('generation_variants', 'variant');
+  return useMutation({
+    mutationFn: deleteVariantScoped,
+    onError: (error: Error) => {
+      normalizeAndPresentError(error, {
+        context: 'useDeleteVariant',
+        toastTitle: 'Failed to delete variant',
+      });
+    },
+  });
 }
 
 export function useUpdateGenerationLocation() {

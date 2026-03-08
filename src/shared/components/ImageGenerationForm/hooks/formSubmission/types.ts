@@ -30,9 +30,8 @@ export interface FormStateSnapshot {
   hiresFixConfig: HiresFixConfig;
 }
 
-export interface UseFormSubmissionProps {
+export interface FormSubmissionFormState {
   selectedProjectId: string | undefined;
-
   prompts: PromptEntry[];
   imagesPerPrompt: number;
   promptMultiplier: number;
@@ -45,28 +44,35 @@ export interface UseFormSubmissionProps {
   effectivePromptMode: PromptMode;
   masterPromptText: string;
   actionablePromptsCount: number;
+}
 
+export interface FormSubmissionPromptConfig {
   generationSourceRef: MutableRefObject<GenerationSource>;
   selectedTextModelRef: MutableRefObject<TextToImageModel>;
   styleReferenceImageGeneration: string | null;
-
   styleReferenceStrength: number;
   subjectStrength: number;
   effectiveSubjectDescription: string;
   inThisScene: boolean;
   inThisSceneStrength: number;
   referenceMode: ReferenceMode;
+}
 
+export interface FormSubmissionEffects {
   aiGeneratePrompts: (params: GeneratePromptsParams) => Promise<AIPromptItem[]>;
-
   onGenerate: (params: BatchImageGenerationTaskParams) => Promise<string[] | void> | string[] | void;
   setPrompts: (prompts: PromptEntry[] | ((prev: PromptEntry[]) => PromptEntry[])) => void;
-
   automatedSubmitButton: {
     trigger: () => void;
     isSubmitting: boolean;
     isSuccess: boolean;
   };
+}
+
+export interface UseFormSubmissionProps {
+  formState: FormSubmissionFormState;
+  promptConfig: FormSubmissionPromptConfig;
+  effects: FormSubmissionEffects;
 }
 
 export interface UseFormSubmissionReturn {

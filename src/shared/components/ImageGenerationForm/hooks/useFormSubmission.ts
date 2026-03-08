@@ -22,34 +22,19 @@ export type {
 } from './formSubmission/types';
 
 export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmissionReturn {
+  const { formState, promptConfig, effects } = props;
   const {
-    selectedProjectId,
-    prompts,
-    imagesPerPrompt,
-    promptMultiplier,
-    associatedShotId,
-    currentBeforePromptText,
-    currentAfterPromptText,
-    styleBoostTerms,
-    isLocalGenerationEnabled,
-    hiresFixConfig,
-    effectivePromptMode,
-    masterPromptText,
-    actionablePromptsCount,
-    generationSourceRef,
-    selectedTextModelRef,
-    styleReferenceImageGeneration,
-    styleReferenceStrength,
-    subjectStrength,
-    effectiveSubjectDescription,
-    inThisScene,
-    inThisSceneStrength,
-    referenceMode,
-    aiGeneratePrompts,
-    onGenerate,
-    setPrompts,
-    automatedSubmitButton,
-  } = props;
+    selectedProjectId, prompts, imagesPerPrompt, promptMultiplier,
+    associatedShotId, currentBeforePromptText, currentAfterPromptText,
+    styleBoostTerms, isLocalGenerationEnabled, hiresFixConfig,
+    effectivePromptMode, masterPromptText, actionablePromptsCount,
+  } = formState;
+  const {
+    generationSourceRef, selectedTextModelRef, styleReferenceImageGeneration,
+    styleReferenceStrength, subjectStrength, effectiveSubjectDescription,
+    inThisScene, inThisSceneStrength, referenceMode,
+  } = promptConfig;
+  const { aiGeneratePrompts, onGenerate, setPrompts, automatedSubmitButton } = effects;
 
   const formStateRef = useRef<FormStateSnapshot>();
   useEffect(() => {

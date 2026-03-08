@@ -87,18 +87,9 @@ export interface ReferenceManagementOutput {
   handleInThisSceneStrengthChange: (value: number) => Promise<void>;
   handleStyleBoostTermsChange: (value: string) => Promise<void>;
   handleReferenceModeChange: (mode: ReferenceMode) => Promise<void>;
-
-  setStyleReferenceStrength: Dispatch<SetStateAction<number>>;
-  setSubjectStrength: Dispatch<SetStateAction<number>>;
-  setSubjectDescription: Dispatch<SetStateAction<string>>;
-  setInThisScene: Dispatch<SetStateAction<boolean>>;
-  setInThisSceneStrength: Dispatch<SetStateAction<number>>;
-  setReferenceMode: Dispatch<SetStateAction<ReferenceMode>>;
-  setStyleBoostTerms: Dispatch<SetStateAction<string>>;
-  setStyleReferenceOverride: Dispatch<SetStateAction<string | null | undefined>>;
 }
 
-export interface ReferenceActionHandlersInput {
+export interface ReferenceActionIdentity {
   selectedReferenceId: string | null;
   selectedReferenceIdByShot: Record<string, string | null>;
   effectiveShotId: string;
@@ -106,14 +97,15 @@ export interface ReferenceActionHandlersInput {
   selectedProjectId: string | undefined;
   associatedShotId: string | null;
   shotPromptSettings?: { updateField: <T>(field: string, value: T) => void };
-  updateProjectImageSettings: (
-    scope: 'project' | 'shot',
-    updates: Partial<ProjectImageSettings>
-  ) => Promise<void>;
-  markAsInteracted: () => void;
+}
+
+export interface ReferenceActionReferenceState {
   isLocalGenerationEnabled: boolean;
   styleReferenceStrength: number;
   subjectStrength: number;
+}
+
+export interface ReferenceActionStateSetters {
   setStyleReferenceStrength: Dispatch<SetStateAction<number>>;
   setSubjectStrength: Dispatch<SetStateAction<number>>;
   setSubjectDescription: Dispatch<SetStateAction<string>>;
@@ -123,9 +115,24 @@ export interface ReferenceActionHandlersInput {
   setReferenceMode: Dispatch<SetStateAction<ReferenceMode>>;
   setIsEditingSubjectDescription: Dispatch<SetStateAction<boolean>>;
   setHiresFixConfig?: Dispatch<SetStateAction<Partial<HiresFixConfig>>>;
+}
+
+export interface ReferenceActionMutations {
+  updateProjectImageSettings: (
+    scope: 'project' | 'shot',
+    updates: Partial<ProjectImageSettings>
+  ) => Promise<void>;
+  markAsInteracted: () => void;
   pendingReferenceModeUpdate: MutableRefObject<ReferenceMode | null>;
   queryClient: QueryClient;
   handleDeleteReference: (referenceId: string) => Promise<void>;
+}
+
+export interface ReferenceActionHandlersInput {
+  identity: ReferenceActionIdentity;
+  referenceState: ReferenceActionReferenceState;
+  stateSetters: ReferenceActionStateSetters;
+  mutations: ReferenceActionMutations;
 }
 
 export interface ReferenceActionHandlersOutput {

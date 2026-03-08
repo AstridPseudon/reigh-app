@@ -14,38 +14,9 @@ import {
   getSourceTaskIdLegacyCompatible,
   hasOrchestratorDetails,
 } from '@/shared/lib/taskIdHelpers';
+import { deriveInputImages } from '@/shared/lib/taskParamsUtils';
 import type { TaskDetailsData } from '../types';
 import type { Task } from '@/types/tasks';
-
-// Helper to derive input images from task params
-function deriveInputImages(params: Record<string, unknown>): string[] {
-  const images: string[] = [];
-
-  // Check various param locations for input images
-  const orchestratorDetails = params.orchestrator_details as Record<string, unknown> | undefined;
-
-  // Direct input_images array
-  if (Array.isArray(params.input_images)) {
-    images.push(...params.input_images.filter((img): img is string => typeof img === 'string'));
-  }
-
-  // Orchestrator details input_images
-  if (orchestratorDetails && Array.isArray(orchestratorDetails.input_images)) {
-    images.push(...orchestratorDetails.input_images.filter((img): img is string => typeof img === 'string'));
-  }
-
-  // Start/end image URLs
-  if (typeof params.start_image_url === 'string') images.push(params.start_image_url);
-  if (typeof params.end_image_url === 'string') images.push(params.end_image_url);
-
-  // Orchestrator start/end
-  if (orchestratorDetails) {
-    if (typeof orchestratorDetails.start_image_url === 'string') images.push(orchestratorDetails.start_image_url);
-    if (typeof orchestratorDetails.end_image_url === 'string') images.push(orchestratorDetails.end_image_url);
-  }
-
-  return [...new Set(images)]; // Dedupe
-}
 
 interface UseAdjustedTaskDetailsProps {
   projectId?: string | null;

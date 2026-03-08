@@ -9,7 +9,7 @@ import React from 'react';
 import { X, Star, Download, Image, Check } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { Button } from '@/shared/components/ui/button';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
 import { getVariantLabel, hasLoadableSettings } from '../variantPresentation';
 import { hasDifferentSourceImages, type CurrentSegmentImagesData } from '../variantSourceImages';

@@ -373,23 +373,18 @@ const ToolsPaneComponent: React.FC = () => {
         />
       )}
       <PaneControlTab
-        side="left"
-        isLocked={isLocked}
-        isOpen={!!isOpen}
-        toggleLock={toggleLock}
-        openPane={openPane}
-        paneDimension={shotsPaneWidth}
-        bottomOffset={useBottomOffset()}
-        handlePaneEnter={handlePaneEnter}
-        handlePaneLeave={handlePaneLeave}
-        paneIcon="tools"
-        paneTooltip="See all tools"
-        thirdButton={currentTool ? {
-          onClick: openPane,
-          ariaLabel: `Current tool: ${currentTool.name}`,
-          content: <currentTool.icon className="h-4 w-4" />,
-          tooltip: `Current tool: ${currentTool.name}`
-        } : undefined}
+        position={{ side: "left", paneDimension: shotsPaneWidth, bottomOffset: useBottomOffset() }}
+        state={{ isLocked, isOpen: !!isOpen }}
+        handlers={{ toggleLock, openPane, handlePaneEnter, handlePaneLeave }}
+        display={{ paneIcon: "tools", paneTooltip: "See all tools" }}
+        actions={{
+          thirdButton: currentTool ? {
+            onClick: openPane,
+            ariaLabel: `Current tool: ${currentTool.name}`,
+            content: <currentTool.icon className="h-4 w-4" />,
+            tooltip: `Current tool: ${currentTool.name}`,
+          } : undefined,
+        }}
         dataTour="tools-pane-tab"
       />
       <ToolsPaneDrawer

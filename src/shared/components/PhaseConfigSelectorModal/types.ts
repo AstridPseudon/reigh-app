@@ -1,6 +1,6 @@
 import type { Resource, PhaseConfigMetadata } from '@/shared/hooks/useResources';
 import type { PhaseConfig, PhaseSettings } from '@/shared/types/phaseConfig';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { PresetMetadata } from '@/shared/types/presetMetadata';
 
 export type SortOption = 'default' | 'newest' | 'oldest' | 'mostUsed' | 'name';

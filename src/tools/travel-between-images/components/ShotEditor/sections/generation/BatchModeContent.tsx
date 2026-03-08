@@ -39,7 +39,7 @@ import {
   useDimensions,
 } from '../../ShotSettingsContext';
 
-import BatchSettingsForm from '../../../BatchSettingsForm';
+import { BatchSettingsForm } from '../../../BatchSettingsForm';
 import { MotionControl } from '../../../MotionControl';
 import { GenerateVideoCTA } from '../../../GenerateVideoCTA';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';

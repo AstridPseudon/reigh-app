@@ -63,6 +63,10 @@
 | `/src/app` | App bootstrap & routing | `main.tsx` → `App.tsx` → `routes.tsx` → `Layout.tsx` |
 | `/src/pages` | Top-level pages | `HomePage`, `ShotsPage`, `ArtPage`, `SharePage`, `NotFoundPage`, payment pages |
 | `/src/tools` | Feature modules | Each tool: `pages/`, `components/`, `hooks/`, `settings.ts` |
+| `/src/domains` | Domain-specific logic (billing, lora, media-lightbox, generation) | Business logic not tied to a single tool |
+| `/src/features` | Feature slices (tasks, shots, gallery, settings, etc.) | UI + hooks organized by product feature |
+| `/src/integrations` | Third-party integrations | Supabase client, auth, realtime, instrumentation |
+| `/src/types` | Shared TypeScript types | `database.ts`, `tasks.ts`, `ai.ts`, `env.ts` |
 | `/src/shared` | Shared code | `components/ui/` (shadcn), `hooks/`, `contexts/`, `lib/` |
 | `/supabase/functions` | Edge Functions | Task processing, payments, AI integration |
 | `/supabase/migrations` | DB migrations | Schema changes (use `db push --linked`) |

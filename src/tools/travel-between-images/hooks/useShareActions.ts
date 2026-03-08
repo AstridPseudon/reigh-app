@@ -32,8 +32,19 @@ export function useShareActions(shareSlug: string): UseShareActionsReturn {
   const [showProjectSelector, setShowProjectSelector] = useState(false);
 
   const checkAuth = useCallback(async () => {
-    const { data: { session } } = await supabase().auth.getSession();
-    setIsAuthenticated(!!session);
+    try {
+      const { data: { session }, error } = await supabase().auth.getSession();
+      if (error) {
+        throw error;
+      }
+      setIsAuthenticated(!!session);
+    } catch (error) {
+      setIsAuthenticated(false);
+      normalizeAndPresentError(error, {
+        context: 'useShareActions.checkAuth',
+        showToast: false,
+      });
+    }
   }, []);
 
   const handleCopyToAccount = useCallback(() => {

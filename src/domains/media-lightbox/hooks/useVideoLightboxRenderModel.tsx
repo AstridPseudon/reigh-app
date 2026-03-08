@@ -10,8 +10,7 @@ import type {
 } from './useVideoLightboxController';
 import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './useVideoLightboxEnvironment';
 import { useVideoLightboxActions } from './useVideoLightboxActions';
-import { buildVideoLightboxLayoutState } from './useVideoLightboxLayoutState';
-import { useVideoEditPanelModel } from './useVideoEditPanelModel';
+import { buildVideoLightboxLayoutState } from '../model/buildVideoLightboxLayoutState';
 import { useVideoInfoPanelModel } from './useVideoInfoPanelModel';
 import { useVideoWorkflowBarModel } from './useVideoWorkflowBarModel';
 
@@ -178,13 +177,67 @@ export function useVideoLightboxRenderModel(
   const panelTaskId = editModel.adjustedTaskDetailsData?.taskId
     || media.source_task_id
     || null;
-  const videoEditPanelModel = useVideoEditPanelModel({
-    panelVariant,
+  const videoEditPanelModel = useMemo(() => ({
+    variant: panelVariant,
+    isCloudMode: env.isCloudMode,
+    trim: {
+      trimState: editModel.videoMode.trimState,
+      onStartTrimChange: editModel.videoMode.setStartTrim,
+      onEndTrimChange: editModel.videoMode.setEndTrim,
+      onResetTrim: editModel.videoMode.resetTrim,
+      trimmedDuration: editModel.videoMode.trimmedDuration,
+      hasTrimChanges: editModel.videoMode.hasTrimChanges,
+      onSaveTrim: editModel.videoMode.saveTrimmedVideo,
+      isSavingTrim: editModel.videoMode.isSavingTrim,
+      trimSaveProgress: editModel.videoMode.trimSaveProgress,
+      trimSaveError: editModel.videoMode.trimSaveError,
+      trimSaveSuccess: editModel.videoMode.trimSaveSuccess,
+      videoUrl: sharedState.effectiveMedia.videoUrl ?? '',
+      trimCurrentTime: editModel.videoMode.trimCurrentTime,
+      trimVideoRef: editModel.videoMode.trimVideoRef,
+    },
+    replace: {
+      videoEditing: editModel.videoMode.videoEditing,
+      projectId: env.selectedProjectId ?? undefined,
+    },
+    regenerateFormProps: editModel.regenerateFormProps,
+    enhance: {
+      settings: editModel.videoMode.videoEnhance.settings,
+      onUpdateSetting: editModel.videoMode.videoEnhance.updateSetting,
+      onGenerate: editModel.videoMode.videoEnhance.handleGenerate,
+      isGenerating: editModel.videoMode.videoEnhance.isGenerating,
+      generateSuccess: editModel.videoMode.videoEnhance.generateSuccess,
+      canSubmit: editModel.videoMode.videoEnhance.canSubmit,
+    },
+    taskId: panelTaskId,
+  }), [
+    editModel.regenerateFormProps,
+    editModel.videoMode.hasTrimChanges,
+    editModel.videoMode.isSavingTrim,
+    editModel.videoMode.resetTrim,
+    editModel.videoMode.saveTrimmedVideo,
+    editModel.videoMode.setEndTrim,
+    editModel.videoMode.setStartTrim,
+    editModel.videoMode.trimCurrentTime,
+    editModel.videoMode.trimSaveError,
+    editModel.videoMode.trimSaveProgress,
+    editModel.videoMode.trimSaveSuccess,
+    editModel.videoMode.trimState,
+    editModel.videoMode.trimVideoRef,
+    editModel.videoMode.trimmedDuration,
+    editModel.videoMode.videoEditing,
+    editModel.videoMode.videoEnhance.canSubmit,
+    editModel.videoMode.videoEnhance.generateSuccess,
+    editModel.videoMode.videoEnhance.handleGenerate,
+    editModel.videoMode.videoEnhance.isGenerating,
+    editModel.videoMode.videoEnhance.settings,
+    editModel.videoMode.videoEnhance.updateSetting,
+    env.isCloudMode,
+    env.selectedProjectId,
     panelTaskId,
-    env,
-    sharedState,
-    editModel,
-  });
+    panelVariant,
+    sharedState.effectiveMedia.videoUrl,
+  ]);
   const videoInfoPanelModel = useVideoInfoPanelModel({
     props,
     panelVariant,

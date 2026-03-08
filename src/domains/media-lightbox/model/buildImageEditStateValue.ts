@@ -107,8 +107,8 @@ export function buildImageEditStateValue(p: BuildImageEditStateParams): ImageEdi
     isSaving: reposition.isGeneratingReposition || reposition.isSavingAsVariant,
 
     // Panel UI
-    inpaintPanelPosition: magic.inpaintPanelPosition,
-    setInpaintPanelPosition: magic.setInpaintPanelPosition,
+    toolPanelPosition: magic.toolPanelPosition,
+    setToolPanelPosition: magic.setToolPanelPosition,
 
     // Inpaint form
     inpaintPrompt: inpainting.inpaintPrompt,

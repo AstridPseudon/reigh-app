@@ -1,5 +1,8 @@
 /**
  * LightboxLayout - Unified layout for all lightbox configurations.
+ *
+ * Sub-components call context hooks directly instead of receiving a bundled model object.
+ * Layout-derived values (computed from props + context) use the small useLightboxLayoutComputed hook.
  */
 
 import React from 'react';
@@ -34,13 +37,9 @@ import { VideoEditModeDisplay } from '../VideoEditModeDisplay';
 import { VideoTrimModeDisplay } from '../VideoTrimModeDisplay';
 import { WorkflowControlsBar } from '../WorkflowControlsBar';
 
-function useLightboxLayoutModel(props: LightboxLayoutProps) {
+/** Derives layout flags from props + core context. Used by components that need layout-aware rendering. */
+function useLightboxLayoutComputed(props: Pick<LightboxLayoutProps, 'showPanel' | 'shouldShowSidePanel'>) {
   const core = useLightboxCoreSafe();
-  const mediaState = useLightboxMediaSafe();
-  const variantsState = useLightboxVariantsSafe();
-  const navigation = useLightboxNavigationSafe();
-  const imageEdit = useImageEditCanvasSafe();
-  const videoEdit = useVideoEditSafe();
 
   const isSidePanelLayout = props.showPanel && props.shouldShowSidePanel;
   const isStackedLayout = props.showPanel && !props.shouldShowSidePanel;
@@ -59,31 +58,24 @@ function useLightboxLayoutModel(props: LightboxLayoutProps) {
     : 'absolute top-4 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col items-center gap-2';
 
   return {
-    props,
-    contexts: {
-      core,
-      mediaState,
-      variantsState,
-      navigation,
-      imageEdit,
-      videoEdit,
-    },
-    layout: {
-      isSidePanelLayout,
-      isStackedLayout,
-      floatingToolVariant,
-      mediaDisplayVariant,
-      mediaDisplayContainerClassName,
-      mediaDisplayDebugContext,
-      topCenterClassName,
-    },
+    isSidePanelLayout,
+    isStackedLayout,
+    floatingToolVariant,
+    mediaDisplayVariant,
+    mediaDisplayContainerClassName,
+    mediaDisplayDebugContext,
+    topCenterClassName,
   };
 }
 
-type LightboxLayoutModel = ReturnType<typeof useLightboxLayoutModel>;
-
-function MediaContent({ model }: { model: LightboxLayoutModel }) {
-  const { mediaState, variantsState, videoEdit } = model.contexts;
+function MediaContent({ layout, effectiveTasksPaneOpen, effectiveTasksPaneWidth }: {
+  layout: ReturnType<typeof useLightboxLayoutComputed>;
+  effectiveTasksPaneOpen: boolean;
+  effectiveTasksPaneWidth: number;
+}) {
+  const mediaState = useLightboxMediaSafe();
+  const variantsState = useLightboxVariantsSafe();
+  const videoEdit = useVideoEditSafe();
 
   if (mediaState.isVideo && videoEdit.isVideoEditModeActive && videoEdit.videoEditing) {
     return (
@@ -128,51 +120,66 @@ function MediaContent({ model }: { model: LightboxLayoutModel }) {
           videoEdit.setVideoDuration(video.duration);
         }
       }}
-      variant={model.layout.mediaDisplayVariant}
-      containerClassName={model.layout.mediaDisplayContainerClassName}
-      tasksPaneWidth={model.layout.isSidePanelLayout && model.props.effectiveTasksPaneOpen ? model.props.effectiveTasksPaneWidth : 0}
-      debugContext={model.layout.mediaDisplayDebugContext}
+      variant={layout.mediaDisplayVariant}
+      containerClassName={layout.mediaDisplayContainerClassName}
+      tasksPaneWidth={layout.isSidePanelLayout && effectiveTasksPaneOpen ? effectiveTasksPaneWidth : 0}
+      debugContext={layout.mediaDisplayDebugContext}
       imageDimensions={mediaState.effectiveImageDimensions}
     />
   );
 }
 
-function TopCenterOverlay({ model, className }: { model: LightboxLayoutModel; className: string }) {
+function TopCenterOverlay({ className, adjacentSegments, segmentSlotMode }: {
+  className: string;
+  adjacentSegments?: LightboxLayoutProps['adjacentSegments'];
+  segmentSlotMode?: LightboxLayoutProps['segmentSlotMode'];
+}) {
+  const core = useLightboxCoreSafe();
+  const mediaState = useLightboxMediaSafe();
+  const variantsState = useLightboxVariantsSafe();
+
   return (
     <div className={className}>
-      {model.props.adjacentSegments && !model.contexts.mediaState.isVideo && (
-        <AdjacentSegmentNavigation adjacentSegments={model.props.adjacentSegments} />
+      {adjacentSegments && !mediaState.isVideo && (
+        <AdjacentSegmentNavigation adjacentSegments={adjacentSegments} />
       )}
-      {model.contexts.mediaState.isVideo && model.props.segmentSlotMode?.adjacentVideoThumbnails && model.props.segmentSlotMode?.onOpenPreviewDialog && (
+      {mediaState.isVideo && segmentSlotMode?.adjacentVideoThumbnails && segmentSlotMode?.onOpenPreviewDialog && (
         <PreviewSequencePill
-          adjacentVideoThumbnails={model.props.segmentSlotMode.adjacentVideoThumbnails}
-          onOpenPreviewDialog={model.props.segmentSlotMode.onOpenPreviewDialog}
+          adjacentVideoThumbnails={segmentSlotMode.adjacentVideoThumbnails}
+          onOpenPreviewDialog={segmentSlotMode.onOpenPreviewDialog}
         />
       )}
       <VariantOverlayBadge
-        activeVariant={model.contexts.variantsState.activeVariant ?? undefined}
-        variants={model.contexts.variantsState.variants}
-        readOnly={model.contexts.core.readOnly}
-        isMakingMainVariant={model.contexts.variantsState.isMakingMainVariant}
-        canMakeMainVariant={model.contexts.variantsState.canMakeMainVariant}
-        onMakeMainVariant={model.contexts.variantsState.handleMakeMainVariant}
+        activeVariant={variantsState.activeVariant ?? undefined}
+        variants={variantsState.variants}
+        readOnly={core.readOnly}
+        isMakingMainVariant={variantsState.isMakingMainVariant}
+        canMakeMainVariant={variantsState.canMakeMainVariant}
+        onMakeMainVariant={variantsState.handleMakeMainVariant}
       />
     </div>
   );
 }
 
-function OverlayElements({ model, topCenterClassName, showFloatingTools }: {
-  model: LightboxLayoutModel;
+function OverlayElements({ topCenterClassName, showFloatingTools, props }: {
   topCenterClassName: string;
   showFloatingTools: boolean;
+  props: LightboxLayoutProps;
 }) {
-  const { core, mediaState, variantsState } = model.contexts;
-  const { props } = model;
+  const core = useLightboxCoreSafe();
+  const mediaState = useLightboxMediaSafe();
+  const variantsState = useLightboxVariantsSafe();
+  const imageEdit = useImageEditCanvasSafe();
+  const floatingToolVariant: 'mobile' | 'tablet' = core.isMobile ? 'mobile' : 'tablet';
   const buttonGroups = props.buttonGroups;
 
   return (
     <>
-      <TopCenterOverlay model={model} className={topCenterClassName} />
+      <TopCenterOverlay
+        className={topCenterClassName}
+        adjacentSegments={props.adjacentSegments}
+        segmentSlotMode={props.segmentSlotMode}
+      />
 
       <NewImageOverlayButton
         isVideo={mediaState.isVideo}
@@ -185,8 +192,8 @@ function OverlayElements({ model, topCenterClassName, showFloatingTools }: {
         onPromote={variantsState.handlePromoteToGeneration}
       />
 
-      {showFloatingTools && model.contexts.imageEdit.isSpecialEditMode && (
-        <FloatingToolControls variant={model.layout.floatingToolVariant} />
+      {showFloatingTools && imageEdit.isSpecialEditMode && (
+        <FloatingToolControls variant={floatingToolVariant} />
       )}
 
       <BottomLeftControls {...buttonGroups.bottomLeft} />
@@ -209,8 +216,10 @@ function OverlayElements({ model, topCenterClassName, showFloatingTools }: {
   );
 }
 
-function CompactEditControls({ model }: { model: LightboxLayoutModel }) {
-  const { core, imageEdit } = model.contexts;
+function CompactEditControls() {
+  const core = useLightboxCoreSafe();
+  const imageEdit = useImageEditCanvasSafe();
+
   if (core.readOnly || !imageEdit.isSpecialEditMode || imageEdit.editMode === 'text') return null;
 
   return (
@@ -289,9 +298,14 @@ function CompactEditControls({ model }: { model: LightboxLayoutModel }) {
   );
 }
 
-function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
-  const isDesktopPanel = model.layout.isSidePanelLayout;
-  const showAnnotationControls = model.contexts.imageEdit.isSpecialEditMode && model.contexts.imageEdit.editMode === 'annotate';
+function PanelLayoutView({ props }: { props: LightboxLayoutProps }) {
+  const core = useLightboxCoreSafe();
+  const navigation = useLightboxNavigationSafe();
+  const imageEdit = useImageEditCanvasSafe();
+  const layout = useLightboxLayoutComputed(props);
+
+  const isDesktopPanel = layout.isSidePanelLayout;
+  const showAnnotationControls = imageEdit.isSpecialEditMode && imageEdit.editMode === 'annotate';
 
   return (
     <div
@@ -306,51 +320,55 @@ function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
           ? { width: '60%' }
           : {
               height: '50%',
-              transform: model.contexts.navigation.swipeNavigation.isSwiping
-                ? `translateX(${model.contexts.navigation.swipeNavigation.swipeOffset}px)`
+              transform: navigation.swipeNavigation.isSwiping
+                ? `translateX(${navigation.swipeNavigation.swipeOffset}px)`
                 : undefined,
-              transition: model.contexts.navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
+              transition: navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
             }}
         onClick={(event) => event.stopPropagation()}
-        {...(!isDesktopPanel ? model.contexts.navigation.swipeNavigation.swipeHandlers : {})}
+        {...(!isDesktopPanel ? navigation.swipeNavigation.swipeHandlers : {})}
       >
         {isDesktopPanel && (
           <NavigationArrows
-            showNavigation={model.contexts.navigation.showNavigation}
-            readOnly={model.contexts.core.readOnly}
-            onPrevious={model.contexts.navigation.handleSlotNavPrev}
-            onNext={model.contexts.navigation.handleSlotNavNext}
-            hasPrevious={model.contexts.navigation.hasPrevious}
-            hasNext={model.contexts.navigation.hasNext}
+            showNavigation={navigation.showNavigation}
+            readOnly={core.readOnly}
+            onPrevious={navigation.handleSlotNavPrev}
+            onNext={navigation.handleSlotNavNext}
+            hasPrevious={navigation.hasPrevious}
+            hasNext={navigation.hasNext}
             variant="desktop"
           />
         )}
 
-        <MediaContent model={model} />
+        <MediaContent
+          layout={layout}
+          effectiveTasksPaneOpen={props.effectiveTasksPaneOpen}
+          effectiveTasksPaneWidth={props.effectiveTasksPaneWidth}
+        />
         {showAnnotationControls && (
           <AnnotationFloatingControls
-            selectedShapeId={model.contexts.imageEdit.selectedShapeId}
-            isAnnotateMode={model.contexts.imageEdit.isAnnotateMode}
-            brushStrokes={model.contexts.imageEdit.brushStrokes}
-            getDeleteButtonPosition={model.contexts.imageEdit.getDeleteButtonPosition}
-            onToggleFreeForm={model.contexts.imageEdit.handleToggleFreeForm}
-            onDeleteSelected={model.contexts.imageEdit.handleDeleteSelected}
+            selectedShapeId={imageEdit.selectedShapeId}
+            isAnnotateMode={imageEdit.isAnnotateMode}
+            brushStrokes={imageEdit.brushStrokes}
+            getDeleteButtonPosition={imageEdit.getDeleteButtonPosition}
+            onToggleFreeForm={imageEdit.handleToggleFreeForm}
+            onDeleteSelected={imageEdit.handleDeleteSelected}
             positionStrategy="fixed"
             freeFormActiveClassName="bg-purple-600 hover:bg-purple-700 text-white"
             freeFormInactiveClassName="bg-gray-700 hover:bg-gray-600 text-white"
             deleteButtonClassName="bg-red-600 hover:bg-red-700 text-white"
           />
         )}
-        <OverlayElements model={model} topCenterClassName={model.layout.topCenterClassName} showFloatingTools={true} />
+        <OverlayElements props={props} topCenterClassName={layout.topCenterClassName} showFloatingTools={true} />
 
         {!isDesktopPanel && (
           <NavigationArrows
-            showNavigation={model.contexts.navigation.showNavigation}
-            readOnly={model.contexts.core.readOnly}
-            onPrevious={model.contexts.navigation.handleSlotNavPrev}
-            onNext={model.contexts.navigation.handleSlotNavNext}
-            hasPrevious={model.contexts.navigation.hasPrevious}
-            hasNext={model.contexts.navigation.hasNext}
+            showNavigation={navigation.showNavigation}
+            readOnly={core.readOnly}
+            onPrevious={navigation.handleSlotNavPrev}
+            onNext={navigation.handleSlotNavNext}
+            hasPrevious={navigation.hasPrevious}
+            hasNext={navigation.hasNext}
             variant="mobile"
           />
         )}
@@ -361,14 +379,19 @@ function PanelLayoutView({ model }: { model: LightboxLayoutModel }) {
         className={cn('bg-background overflow-hidden relative z-[60] overscroll-none', isDesktopPanel ? 'border-l border-border h-full' : 'border-t border-border overflow-y-auto')}
         style={isDesktopPanel ? { width: '40%' } : { height: '50%' }}
       >
-        {model.props.controlsPanelContent}
+        {props.controlsPanelContent}
       </div>
     </div>
   );
 }
 
-function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
-  const showAnnotationControls = model.contexts.imageEdit.isSpecialEditMode && model.contexts.imageEdit.editMode === 'annotate';
+function CenteredLayoutView({ props }: { props: LightboxLayoutProps }) {
+  const core = useLightboxCoreSafe();
+  const navigation = useLightboxNavigationSafe();
+  const imageEdit = useImageEditCanvasSafe();
+  const layout = useLightboxLayoutComputed(props);
+
+  const showAnnotationControls = imageEdit.isSpecialEditMode && imageEdit.editMode === 'annotate';
 
   return (
     <div
@@ -380,29 +403,33 @@ function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
         data-lightbox-bg
         className={cn(
           'relative flex items-center justify-center max-w-full my-auto',
-          model.contexts.core.isMobile && model.contexts.imageEdit.isInpaintMode && 'pointer-events-auto',
+          core.isMobile && imageEdit.isInpaintMode && 'pointer-events-auto',
           'touch-none'
         )}
         style={{
           height: 'calc(100vh - 220px)',
           maxHeight: 'calc(100vh - 220px)',
-          transform: model.contexts.navigation.swipeNavigation.isSwiping
-            ? `translateX(${model.contexts.navigation.swipeNavigation.swipeOffset}px)`
+          transform: navigation.swipeNavigation.isSwiping
+            ? `translateX(${navigation.swipeNavigation.swipeOffset}px)`
             : undefined,
-          transition: model.contexts.navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
+          transition: navigation.swipeNavigation.isSwiping ? 'none' : 'transform 0.2s ease-out',
         }}
         onClick={(event) => event.stopPropagation()}
-        {...model.contexts.navigation.swipeNavigation.swipeHandlers}
+        {...navigation.swipeNavigation.swipeHandlers}
       >
-        <MediaContent model={model} />
+        <MediaContent
+          layout={layout}
+          effectiveTasksPaneOpen={props.effectiveTasksPaneOpen}
+          effectiveTasksPaneWidth={props.effectiveTasksPaneWidth}
+        />
         {showAnnotationControls && (
           <AnnotationFloatingControls
-            selectedShapeId={model.contexts.imageEdit.selectedShapeId}
-            isAnnotateMode={model.contexts.imageEdit.isAnnotateMode}
-            brushStrokes={model.contexts.imageEdit.brushStrokes}
-            getDeleteButtonPosition={model.contexts.imageEdit.getDeleteButtonPosition}
-            onToggleFreeForm={model.contexts.imageEdit.handleToggleFreeForm}
-            onDeleteSelected={model.contexts.imageEdit.handleDeleteSelected}
+            selectedShapeId={imageEdit.selectedShapeId}
+            isAnnotateMode={imageEdit.isAnnotateMode}
+            brushStrokes={imageEdit.brushStrokes}
+            getDeleteButtonPosition={imageEdit.getDeleteButtonPosition}
+            onToggleFreeForm={imageEdit.handleToggleFreeForm}
+            onDeleteSelected={imageEdit.handleDeleteSelected}
             positionStrategy="fixed"
             freeFormActiveClassName="bg-purple-600 hover:bg-purple-700 text-white"
             freeFormInactiveClassName="bg-gray-700 hover:bg-gray-600 text-white"
@@ -410,19 +437,19 @@ function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
           />
         )}
         <OverlayElements
-          model={model}
+          props={props}
           topCenterClassName="absolute top-4 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col items-center gap-2"
           showFloatingTools={false}
         />
-        <CompactEditControls model={model} />
+        <CompactEditControls />
 
         <NavigationArrows
-          showNavigation={model.contexts.navigation.showNavigation}
-          readOnly={model.contexts.core.readOnly}
-          onPrevious={model.contexts.navigation.handleSlotNavPrev}
-          onNext={model.contexts.navigation.handleSlotNavNext}
-          hasPrevious={model.contexts.navigation.hasPrevious}
-          hasNext={model.contexts.navigation.hasNext}
+          showNavigation={navigation.showNavigation}
+          readOnly={core.readOnly}
+          onPrevious={navigation.handleSlotNavPrev}
+          onNext={navigation.handleSlotNavNext}
+          hasPrevious={navigation.hasPrevious}
+          hasNext={navigation.hasNext}
           variant="mobile"
         />
       </div>
@@ -432,8 +459,7 @@ function CenteredLayoutView({ model }: { model: LightboxLayoutModel }) {
 }
 
 export const LightboxLayout: React.FC<LightboxLayoutProps> = (props) => {
-  const model = useLightboxLayoutModel(props);
   return props.showPanel
-    ? <PanelLayoutView model={model} />
-    : <CenteredLayoutView model={model} />;
+    ? <PanelLayoutView props={props} />
+    : <CenteredLayoutView props={props} />;
 };

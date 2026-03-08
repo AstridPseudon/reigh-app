@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import type { UseFormSubmissionProps } from './types';
+import type { FormSubmissionEffects, FormSubmissionPromptConfig } from './types';
 import type { RunIncomingTask } from './useIncomingTaskRunner';
 import { toPromptEntries, truncateLabel } from './promptSubmissionTransforms';
 import { buildSubmissionTaskParams } from './submissionTaskPlan';
@@ -8,14 +8,14 @@ import type { SubmissionRuntimeContext } from './submissionContext';
 
 interface UseAutomatedPromptSubmissionInput {
   context: SubmissionRuntimeContext;
-  aiGeneratePrompts: UseFormSubmissionProps['aiGeneratePrompts'];
-  onGenerate: UseFormSubmissionProps['onGenerate'];
-  setPrompts: UseFormSubmissionProps['setPrompts'];
+  aiGeneratePrompts: FormSubmissionEffects['aiGeneratePrompts'];
+  onGenerate: FormSubmissionEffects['onGenerate'];
+  setPrompts: FormSubmissionEffects['setPrompts'];
   queueIncomingTask: (options: Parameters<RunIncomingTask>[0]) => void;
 }
 
 function hasStyleReferenceError(
-  generationSource: UseFormSubmissionProps['generationSourceRef']['current'],
+  generationSource: FormSubmissionPromptConfig['generationSourceRef']['current'],
   styleReferenceImageGeneration: string | null,
 ): boolean {
   return generationSource === 'by-reference' && !styleReferenceImageGeneration;

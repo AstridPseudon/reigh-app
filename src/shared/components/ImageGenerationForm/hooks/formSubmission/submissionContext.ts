@@ -1,28 +1,20 @@
 import type { MutableRefObject } from 'react';
-import type { FormStateSnapshot, UseFormSubmissionProps } from './types';
+import type { FormStateSnapshot, FormSubmissionFormState, FormSubmissionPromptConfig } from './types';
 
 export interface SubmissionRuntimeContext {
-  prompts: UseFormSubmissionProps['prompts'];
-  promptMultiplier: UseFormSubmissionProps['promptMultiplier'];
-  imagesPerPrompt: UseFormSubmissionProps['imagesPerPrompt'];
-  actionablePromptsCount: UseFormSubmissionProps['actionablePromptsCount'];
-  styleReferenceImageGeneration: UseFormSubmissionProps['styleReferenceImageGeneration'];
-  generationSourceRef: UseFormSubmissionProps['generationSourceRef'];
-  selectedTextModelRef: UseFormSubmissionProps['selectedTextModelRef'];
+  prompts: FormSubmissionFormState['prompts'];
+  promptMultiplier: FormSubmissionFormState['promptMultiplier'];
+  imagesPerPrompt: FormSubmissionFormState['imagesPerPrompt'];
+  actionablePromptsCount: FormSubmissionFormState['actionablePromptsCount'];
+  styleReferenceImageGeneration: FormSubmissionPromptConfig['styleReferenceImageGeneration'];
+  generationSourceRef: FormSubmissionPromptConfig['generationSourceRef'];
+  selectedTextModelRef: FormSubmissionPromptConfig['selectedTextModelRef'];
   formStateRef: MutableRefObject<FormStateSnapshot | undefined>;
 }
 
 export function buildSubmissionRuntimeContext(
-  props: Pick<
-    UseFormSubmissionProps,
-    | 'prompts'
-    | 'promptMultiplier'
-    | 'imagesPerPrompt'
-    | 'actionablePromptsCount'
-    | 'styleReferenceImageGeneration'
-    | 'generationSourceRef'
-    | 'selectedTextModelRef'
-  >,
+  props: Pick<FormSubmissionFormState, 'prompts' | 'promptMultiplier' | 'imagesPerPrompt' | 'actionablePromptsCount'>
+    & Pick<FormSubmissionPromptConfig, 'styleReferenceImageGeneration' | 'generationSourceRef' | 'selectedTextModelRef'>,
   formStateRef: MutableRefObject<FormStateSnapshot | undefined>,
 ): SubmissionRuntimeContext {
   return {

@@ -84,7 +84,7 @@ export function useReplaceInShot({
       onClose();
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useReplaceInShot', showToast: false });
-      throw error;
+      return;
     }
   }, [onClose]);
 

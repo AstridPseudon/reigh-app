@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildVideoLightboxLayoutState } from './useVideoLightboxLayoutState';
+import { buildVideoLightboxLayoutState } from './buildVideoLightboxLayoutState';
 
 function makeInput(overrides: Partial<Parameters<typeof buildVideoLightboxLayoutState>[0]> = {}) {
   return {

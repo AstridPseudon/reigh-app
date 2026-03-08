@@ -8,7 +8,7 @@ import { cn } from '@/shared/components/ui/contracts/cn';
 import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/domains/generation/types';
 import { GenerationDetails } from '@/domains/generation/components/GenerationDetails';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import { getTaskVariantId } from '../utils/getTaskVariantId';
 
 interface TaskItemTooltipProps {

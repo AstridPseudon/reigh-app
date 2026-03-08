@@ -43,45 +43,18 @@ function SkeletonGalleryComponent({
   projectAspectRatio
 }: SkeletonGalleryProps) {
   
+  const colsLookup: Record<number, string> = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5', 6: 'grid-cols-6' };
+  const prefixedCols = (prefix: string, n?: number) => n ? `${prefix}${colsLookup[n] ?? ''}` : undefined;
+
   const gridCols = cn(
     'grid',
     gapClasses,
-    columns.base === 1 && 'grid-cols-1',
-    columns.base === 2 && 'grid-cols-2',
-    columns.base === 3 && 'grid-cols-3',
-    columns.base === 4 && 'grid-cols-4',
-    columns.base === 5 && 'grid-cols-5',
-    columns.base === 6 && 'grid-cols-6',
-    columns.sm && columns.sm === 1 && 'sm:grid-cols-1',
-    columns.sm && columns.sm === 2 && 'sm:grid-cols-2', 
-    columns.sm && columns.sm === 3 && 'sm:grid-cols-3',
-    columns.sm && columns.sm === 4 && 'sm:grid-cols-4',
-    columns.sm && columns.sm === 5 && 'sm:grid-cols-5',
-    columns.sm && columns.sm === 6 && 'sm:grid-cols-6',
-    columns.md && columns.md === 1 && 'md:grid-cols-1',
-    columns.md && columns.md === 2 && 'md:grid-cols-2',
-    columns.md && columns.md === 3 && 'md:grid-cols-3', 
-    columns.md && columns.md === 4 && 'md:grid-cols-4',
-    columns.md && columns.md === 5 && 'md:grid-cols-5',
-    columns.md && columns.md === 6 && 'md:grid-cols-6',
-    columns.lg && columns.lg === 1 && 'lg:grid-cols-1',
-    columns.lg && columns.lg === 2 && 'lg:grid-cols-2',
-    columns.lg && columns.lg === 3 && 'lg:grid-cols-3',
-    columns.lg && columns.lg === 4 && 'lg:grid-cols-4', 
-    columns.lg && columns.lg === 5 && 'lg:grid-cols-5',
-    columns.lg && columns.lg === 6 && 'lg:grid-cols-6',
-    columns.xl && columns.xl === 1 && 'xl:grid-cols-1',
-    columns.xl && columns.xl === 2 && 'xl:grid-cols-2',
-    columns.xl && columns.xl === 3 && 'xl:grid-cols-3',
-    columns.xl && columns.xl === 4 && 'xl:grid-cols-4',
-    columns.xl && columns.xl === 5 && 'xl:grid-cols-5', 
-    columns.xl && columns.xl === 6 && 'xl:grid-cols-6',
-    columns['2xl'] && columns['2xl'] === 1 && '2xl:grid-cols-1',
-    columns['2xl'] && columns['2xl'] === 2 && '2xl:grid-cols-2',
-    columns['2xl'] && columns['2xl'] === 3 && '2xl:grid-cols-3',
-    columns['2xl'] && columns['2xl'] === 4 && '2xl:grid-cols-4',
-    columns['2xl'] && columns['2xl'] === 5 && '2xl:grid-cols-5',
-    columns['2xl'] && columns['2xl'] === 6 && '2xl:grid-cols-6'
+    columns.base && colsLookup[columns.base],
+    prefixedCols('sm:', columns.sm),
+    prefixedCols('md:', columns.md),
+    prefixedCols('lg:', columns.lg),
+    prefixedCols('xl:', columns.xl),
+    prefixedCols('2xl:', columns['2xl']),
   );
 
   const skeletonBg = darkSurface ? 'bg-zinc-700/60' : 'bg-muted';

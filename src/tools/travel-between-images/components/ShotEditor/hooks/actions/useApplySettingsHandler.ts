@@ -8,11 +8,10 @@
  */
 
 import { useCallback, useRef, useEffect } from 'react';
-import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ApplySettingsService from '../../services/applySettingsService';
 import { GenerationRow, Shot } from '@/domains/generation/types';
-import { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { SteerableMotionSettings } from '@/shared/types/steerableMotion';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
@@ -173,7 +172,12 @@ async function applySettingsFromTask(
 ) {
   const taskData = await fetchTaskData(taskId);
   if (!taskData) {
-    console.error('[ApplySettings] Task not found');
+    normalizeAndPresentError(new Error('Task not found'), {
+      context: 'useApplySettingsHandler',
+      toastTitle: 'Failed to apply settings from task',
+      showToast: false,
+      logData: { taskId },
+    });
     return;
   }
 
@@ -234,7 +238,11 @@ export function useApplySettingsHandler(handlerState: ApplySettingsHandlerState)
     const latestHandlerState = handlerStateRef.current;
     const hasMissingIds = latestHandlerState.simpleFilteredImages.some(img => !img.id);
     if (hasMissingIds && replaceImages) {
-      toast.error('Loading shot data... please try again in a moment.');
+      normalizeAndPresentError(new Error('Loading shot data... please try again in a moment.'), {
+        context: 'useApplySettingsHandler',
+        toastTitle: 'Loading shot data',
+        showToast: true,
+      });
       return;
     }
 

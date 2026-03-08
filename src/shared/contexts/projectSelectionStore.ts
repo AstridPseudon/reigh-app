@@ -24,9 +24,14 @@ function readPersistedProjectSelection(): string | null {
   }
 }
 
-let snapshot: ProjectSelectionSnapshot = {
-  selectedProjectId: readPersistedProjectSelection(),
-};
+let snapshot: ProjectSelectionSnapshot | null = null;
+
+function ensureSnapshot(): ProjectSelectionSnapshot {
+  if (!snapshot) {
+    snapshot = { selectedProjectId: readPersistedProjectSelection() };
+  }
+  return snapshot;
+}
 
 const listeners = new Set<ProjectSelectionListener>();
 
@@ -34,19 +39,20 @@ export function setProjectSelectionSnapshot(next: ProjectSelectionSnapshot): voi
   const normalized: ProjectSelectionSnapshot = {
     selectedProjectId: next.selectedProjectId ?? null,
   };
-  if (snapshot.selectedProjectId === normalized.selectedProjectId) {
+  const current = ensureSnapshot();
+  if (current.selectedProjectId === normalized.selectedProjectId) {
     return;
   }
   snapshot = normalized;
   for (const listener of listeners) {
-    listener(snapshot);
+    listener(normalized);
   }
 }
 
 export function getProjectSelectionSnapshot(): ProjectSelectionSnapshot {
-  return snapshot;
+  return ensureSnapshot();
 }
 
 export function getProjectSelectionFallbackId(): string | null {
-  return snapshot.selectedProjectId ?? readPersistedProjectSelection();
+  return ensureSnapshot().selectedProjectId ?? readPersistedProjectSelection();
 }

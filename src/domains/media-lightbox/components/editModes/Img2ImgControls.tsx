@@ -11,7 +11,8 @@ import { CheckCircle, Loader2, Plus, Wand2 } from 'lucide-react';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { ActiveLoRAsDisplay } from '@/shared/components/lora/ActiveLoRAsDisplay';
-import { LoraSelectorModal, LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import { LoraSelectorModal } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { UseLoraManagerReturn } from '@/domains/lora/hooks/useLoraManager';
 
 interface Img2ImgControlsProps {

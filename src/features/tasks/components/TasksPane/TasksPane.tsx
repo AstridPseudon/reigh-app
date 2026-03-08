@@ -157,25 +157,19 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
       )}
       
       <PaneControlTab
-        side="right"
-        isLocked={isLocked}
-        isOpen={!!isOpen}
-        toggleLock={toggleLock}
-        openPane={openPane}
-        paneDimension={tasksPaneWidth}
-        bottomOffset={useBottomOffset()}
-        handlePaneEnter={handlePaneEnter}
-        handlePaneLeave={handlePaneLeave}
-        thirdButton={{
-          onClick: openPane,
-          ariaLabel: `Open Tasks pane (${cancellableTaskCount} active tasks)`,
-          content: <span className="text-xs font-light">{cancellableTaskCount}</span>,
-          tooltip: `${cancellableTaskCount} active task${cancellableTaskCount === 1 ? '' : 's'}`
+        position={{ side: "right", paneDimension: tasksPaneWidth, bottomOffset: useBottomOffset() }}
+        state={{ isLocked, isOpen: !!isOpen }}
+        handlers={{ toggleLock, openPane, handlePaneEnter, handlePaneLeave }}
+        display={{ paneIcon: "tasks", paneTooltip: "View all tasks", allowMobileLock: true }}
+        actions={{
+          thirdButton: {
+            onClick: openPane,
+            ariaLabel: `Open Tasks pane (${cancellableTaskCount} active tasks)`,
+            content: <span className="text-xs font-light">{cancellableTaskCount}</span>,
+            tooltip: `${cancellableTaskCount} active task${cancellableTaskCount === 1 ? '' : 's'}`,
+          },
         }}
-        paneIcon="tasks"
-        paneTooltip="View all tasks"
         dataTour="tasks-pane-tab"
-        allowMobileLock={true}
       />
       
       <div

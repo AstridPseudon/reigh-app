@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { Shot, GenerationRow } from '@/domains/generation/types';
 import type { Project } from '@/types/project';
-import { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import { ShotEditorState } from './state/types';
 import { ShotEditorActions } from './state/useShotEditorState';

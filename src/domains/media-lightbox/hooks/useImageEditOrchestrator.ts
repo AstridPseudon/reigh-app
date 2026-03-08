@@ -14,7 +14,7 @@ import type { GenerationRow } from '@/domains/generation/types';
 import type { ImageEditState } from '../contexts/ImageEditContext';
 import type { EditAdvancedSettings, EditMode, LoraMode, QwenEditModel } from '../model/editSettingsTypes';
 import type { UseLoraManagerReturn } from '@/domains/lora/hooks/useLoraManager';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { EditMode as InpaintingEditMode } from './inpainting/types';
 
 import {

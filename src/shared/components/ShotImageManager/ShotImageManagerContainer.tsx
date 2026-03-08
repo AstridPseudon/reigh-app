@@ -285,6 +285,51 @@ function useShotImageManagerContainerState(
   };
 }
 
+function SegmentLightboxModal({
+  segmentLightbox,
+  selectedParentId,
+  shotId,
+  readOnly,
+}: {
+  segmentLightbox: SegmentLightboxState;
+  selectedParentId: string | null;
+  shotId: string | undefined;
+  readOnly: boolean | undefined;
+}) {
+  if (!segmentLightbox.currentSegmentMedia) return null;
+
+  return (
+    <MediaLightbox
+      media={segmentLightbox.currentSegmentMedia}
+      parentGenerationIdOverride={selectedParentId || undefined}
+      onClose={segmentLightbox.closeSegmentLightbox}
+      navigation={{
+        onNext: segmentLightbox.handleSegmentLightboxNext,
+        onPrevious: segmentLightbox.handleSegmentLightboxPrev,
+        showNavigation: true,
+        hasNext: segmentLightbox.segmentChildSlotIndices.length > 1,
+        hasPrevious: segmentLightbox.segmentChildSlotIndices.length > 1,
+      }}
+      features={{
+        showImageEditTools: false,
+        showDownload: true,
+        showTaskDetails: true,
+      }}
+      actions={{
+        starred: segmentLightbox.currentSegmentMedia.starred ?? false,
+      }}
+      shotId={shotId}
+      readOnly={readOnly}
+      videoProps={{
+        fetchVariantsForSelf: true,
+        currentSegmentImages: {
+          startShotGenerationId: segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
+        },
+      }}
+    />
+  );
+}
+
 /**
  * Main container component for ShotImageManager
  *
@@ -329,36 +374,12 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
           deletingSegmentId={props.deletingSegmentId}
         />
 
-        {state.segments.segmentLightbox.currentSegmentMedia && (
-          <MediaLightbox
-            media={state.segments.segmentLightbox.currentSegmentMedia}
-            parentGenerationIdOverride={state.segments.selectedParentId || undefined}
-            onClose={state.segments.segmentLightbox.closeSegmentLightbox}
-            navigation={{
-              onNext: state.segments.segmentLightbox.handleSegmentLightboxNext,
-              onPrevious: state.segments.segmentLightbox.handleSegmentLightboxPrev,
-              showNavigation: true,
-              hasNext: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
-              hasPrevious: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
-            }}
-            features={{
-              showImageEditTools: false,
-              showDownload: true,
-              showTaskDetails: true,
-            }}
-            actions={{
-              starred: state.segments.segmentLightbox.currentSegmentMedia.starred ?? false,
-            }}
-            shotId={props.shotId}
-            readOnly={props.readOnly}
-            videoProps={{
-              fetchVariantsForSelf: true,
-              currentSegmentImages: {
-                startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
-              },
-            }}
-          />
-        )}
+        <SegmentLightboxModal
+          segmentLightbox={state.segments.segmentLightbox}
+          selectedParentId={state.segments.selectedParentId}
+          shotId={props.shotId}
+          readOnly={props.readOnly}
+        />
       </>
     );
   }
@@ -383,36 +404,12 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
         deletingSegmentId={props.deletingSegmentId}
       />
 
-      {state.segments.segmentLightbox.currentSegmentMedia && (
-        <MediaLightbox
-          media={state.segments.segmentLightbox.currentSegmentMedia}
-          parentGenerationIdOverride={state.segments.selectedParentId || undefined}
-          onClose={state.segments.segmentLightbox.closeSegmentLightbox}
-          navigation={{
-            onNext: state.segments.segmentLightbox.handleSegmentLightboxNext,
-            onPrevious: state.segments.segmentLightbox.handleSegmentLightboxPrev,
-            showNavigation: true,
-            hasNext: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
-            hasPrevious: state.segments.segmentLightbox.segmentChildSlotIndices.length > 1,
-          }}
-          features={{
-            showImageEditTools: false,
-            showDownload: true,
-            showTaskDetails: true,
-          }}
-          actions={{
-            starred: state.segments.segmentLightbox.currentSegmentMedia.starred ?? false,
-          }}
-          shotId={props.shotId}
-          readOnly={props.readOnly}
-          videoProps={{
-            fetchVariantsForSelf: true,
-            currentSegmentImages: {
-              startShotGenerationId: state.segments.segmentLightbox.currentSegmentSlot?.pairShotGenerationId,
-            },
-          }}
-        />
-      )}
+      <SegmentLightboxModal
+        segmentLightbox={state.segments.segmentLightbox}
+        selectedParentId={state.segments.selectedParentId}
+        shotId={props.shotId}
+        readOnly={props.readOnly}
+      />
     </>
   );
 };

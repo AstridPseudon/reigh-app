@@ -9,19 +9,16 @@ export const useStableSkeletonVisibility = (
   const lastLoadingStateRef = useRef<boolean>(false);
   
   useEffect(() => {
-    // Only update skeleton state if loading state actually changed
     if (isLoading !== lastLoadingStateRef.current) {
       lastLoadingStateRef.current = isLoading;
       
       if (isLoading) {
-        // Immediately show the skeleton when entering loading
         if (hideTimeoutRef.current) {
           window.clearTimeout(hideTimeoutRef.current);
           hideTimeoutRef.current = null;
         }
         setShowStableSkeleton(true);
       } else {
-        // Delay hiding slightly to prevent rapid toggle flicker
         hideTimeoutRef.current = window.setTimeout(() => {
           setShowStableSkeleton(false);
           hideTimeoutRef.current = null;

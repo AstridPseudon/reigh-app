@@ -3,16 +3,13 @@ import { useEffect, useRef, useCallback, RefObject } from 'react';
 type EventType = 'click' | 'mousedown' | 'touchstart';
 
 interface UseClickOutsideOptions {
-  /** Event type(s) to listen for (default: ['mousedown']) */
   events?: EventType[];
-  /** Whether the hook is enabled (default: true) */
   enabled?: boolean;
-  /** Delay before attaching listeners (ms) - prevents catching the click that opened the element */
   delay?: number;
-  /** Use capture phase for event listeners */
   capture?: boolean;
 }
 
+/** Listen for outside clicks and invoke `callback` when they occur. Example: `const ref = useClickOutside(() => setOpen(false));` */
 export function useClickOutside<T extends HTMLElement = HTMLDivElement>(
   callback: () => void,
   options: UseClickOutsideOptions = {},
@@ -29,7 +26,6 @@ export function useClickOutside<T extends HTMLElement = HTMLDivElement>(
   const ref = existingRef || internalRef;
   const callbackRef = useRef(callback);
 
-  // Keep callback ref up to date
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
@@ -55,7 +51,6 @@ export function useClickOutside<T extends HTMLElement = HTMLDivElement>(
       });
     };
 
-    // Delay subscription to avoid catching the event that triggered this state
     const timeoutId = delay > 0 ? setTimeout(subscribe, delay) : null;
     if (!timeoutId) subscribe();
 

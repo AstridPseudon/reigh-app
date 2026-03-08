@@ -46,34 +46,40 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
 
   return (
     <PaneControlTab
-      side="bottom"
-      isLocked={pane.isLocked}
-      isOpen={pane.paneIsOpen}
-      toggleLock={pane.toggleLock}
-      openPane={pane.openPane}
-      paneDimension={pane.generationsPaneHeight}
-      horizontalOffset={
-        (pane.isShotsPaneLocked ? pane.shotsPaneWidth : 0) -
-        (pane.isTasksPaneLocked ? pane.tasksPaneWidth : 0)
-      }
-      handlePaneEnter={pane.handlePaneEnter}
-      handlePaneLeave={pane.handlePaneLeave}
-      thirdButton={{
-        onClick: navigation.handleNavigateToImageGeneration,
-        ariaLabel: 'Go to Image Generation tool',
-        tooltip: 'Go to Image Generation tool',
-        content: <ExternalLink className="h-4 w-4" />,
+      position={{
+        side: "bottom",
+        paneDimension: pane.generationsPaneHeight,
+        horizontalOffset:
+          (pane.isShotsPaneLocked ? pane.shotsPaneWidth : 0) -
+          (pane.isTasksPaneLocked ? pane.tasksPaneWidth : 0),
       }}
-      fourthButton={{
-        onClick: () => modal.setIsGenerationModalOpen(true),
-        ariaLabel: 'Generate new image',
-        tooltip: 'Generate new image',
-        content: <Sparkles className="h-4 w-4" />,
+      state={{ isLocked: pane.isLocked, isOpen: pane.paneIsOpen }}
+      handlers={{
+        toggleLock: pane.toggleLock,
+        openPane: pane.openPane,
+        handlePaneEnter: pane.handlePaneEnter,
+        handlePaneLeave: pane.handlePaneLeave,
+        customOpenAction: () => modal.setIsGenerationModalOpen(true),
       }}
-      customIcon={<Sparkles className="h-4 w-4" />}
-      paneTooltip="Generate new image"
-      allowMobileLock
-      customOpenAction={() => modal.setIsGenerationModalOpen(true)}
+      display={{
+        customIcon: <Sparkles className="h-4 w-4" />,
+        paneTooltip: "Generate new image",
+        allowMobileLock: true,
+      }}
+      actions={{
+        thirdButton: {
+          onClick: navigation.handleNavigateToImageGeneration,
+          ariaLabel: 'Go to Image Generation tool',
+          tooltip: 'Go to Image Generation tool',
+          content: <ExternalLink className="h-4 w-4" />,
+        },
+        fourthButton: {
+          onClick: () => modal.setIsGenerationModalOpen(true),
+          ariaLabel: 'Generate new image',
+          tooltip: 'Generate new image',
+          content: <Sparkles className="h-4 w-4" />,
+        },
+      }}
       dataTour="generations-pane-tab"
       dataTourLock="generations-lock"
       dataTourFourthButton="generations-sparkles"

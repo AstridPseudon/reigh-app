@@ -25,7 +25,6 @@ export function useTemporaryVisibility(duration = 2000) {
     clearPendingTimeout();
   }, [clearPendingTimeout]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => clearPendingTimeout();
   }, [clearPendingTimeout]);

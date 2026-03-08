@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import IncomingTaskItem from '../IncomingTaskItem';
+import { IncomingTaskItem } from '../IncomingTaskItem';
 
 describe('IncomingTaskItem', () => {
   it('exports expected members', () => {

@@ -74,30 +74,38 @@ export function useReferenceManagement(
   });
 
   const handlers = useReferenceActionHandlers({
-    selectedReferenceId,
-    selectedReferenceIdByShot,
-    effectiveShotId,
-    referencePointers,
-    selectedProjectId,
-    associatedShotId,
-    shotPromptSettings,
-    updateProjectImageSettings,
-    markAsInteracted,
-    isLocalGenerationEnabled,
-    styleReferenceStrength: state.styleReferenceStrength,
-    subjectStrength: state.subjectStrength,
-    setStyleReferenceStrength: state.setStyleReferenceStrength,
-    setSubjectStrength: state.setSubjectStrength,
-    setSubjectDescription: state.setSubjectDescription,
-    setInThisScene: state.setInThisScene,
-    setInThisSceneStrength: state.setInThisSceneStrength,
-    setStyleBoostTerms: state.setStyleBoostTerms,
-    setReferenceMode: state.setReferenceMode,
-    setIsEditingSubjectDescription: state.setIsEditingSubjectDescription,
-    setHiresFixConfig,
-    pendingReferenceModeUpdate: displayState.pendingReferenceModeUpdate,
-    queryClient,
-    handleDeleteReference: upload.handleDeleteReference,
+    identity: {
+      selectedReferenceId,
+      selectedReferenceIdByShot,
+      effectiveShotId,
+      referencePointers,
+      selectedProjectId,
+      associatedShotId,
+      shotPromptSettings,
+    },
+    referenceState: {
+      isLocalGenerationEnabled,
+      styleReferenceStrength: state.styleReferenceStrength,
+      subjectStrength: state.subjectStrength,
+    },
+    stateSetters: {
+      setStyleReferenceStrength: state.setStyleReferenceStrength,
+      setSubjectStrength: state.setSubjectStrength,
+      setSubjectDescription: state.setSubjectDescription,
+      setInThisScene: state.setInThisScene,
+      setInThisSceneStrength: state.setInThisSceneStrength,
+      setStyleBoostTerms: state.setStyleBoostTerms,
+      setReferenceMode: state.setReferenceMode,
+      setIsEditingSubjectDescription: state.setIsEditingSubjectDescription,
+      setHiresFixConfig,
+    },
+    mutations: {
+      updateProjectImageSettings,
+      markAsInteracted,
+      pendingReferenceModeUpdate: displayState.pendingReferenceModeUpdate,
+      queryClient,
+      handleDeleteReference: upload.handleDeleteReference,
+    },
   });
 
   return {
@@ -132,14 +140,5 @@ export function useReferenceManagement(
     handleInThisSceneStrengthChange: handlers.handleInThisSceneStrengthChange,
     handleStyleBoostTermsChange: handlers.handleStyleBoostTermsChange,
     handleReferenceModeChange: handlers.handleReferenceModeChange,
-
-    setStyleReferenceStrength: state.setStyleReferenceStrength,
-    setSubjectStrength: state.setSubjectStrength,
-    setSubjectDescription: state.setSubjectDescription,
-    setInThisScene: state.setInThisScene,
-    setInThisSceneStrength: state.setInThisSceneStrength,
-    setReferenceMode: state.setReferenceMode,
-    setStyleBoostTerms: state.setStyleBoostTerms,
-    setStyleReferenceOverride: upload.setStyleReferenceOverride,
   };
 }

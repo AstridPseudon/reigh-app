@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import type { FormEvent } from 'react';
-import type { UseFormSubmissionProps } from './types';
+import type { FormSubmissionFormState } from './types';
 import type { SubmissionOrchestratorCommands } from './useSubmissionOrchestrator';
 
 interface UseSubmitHandlerInput {
-  effectivePromptMode: UseFormSubmissionProps['effectivePromptMode'];
+  effectivePromptMode: FormSubmissionFormState['effectivePromptMode'];
   commands: Pick<SubmissionOrchestratorCommands, 'submitAutomated' | 'submitManaged'>;
 }
 

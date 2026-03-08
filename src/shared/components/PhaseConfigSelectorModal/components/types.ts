@@ -6,7 +6,7 @@ import type {
   useDeleteResource,
   useUpdateResource,
 } from '@/shared/hooks/useResources';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { CurrentSettings, ModelTypeFilter } from '../types';
 

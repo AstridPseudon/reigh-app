@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { UseFormSubmissionProps } from './types';
+import type { FormSubmissionFormState } from './types';
 import type { SubmissionOrchestratorCommands } from './useSubmissionOrchestrator';
 
 interface UsePromptQueueHandlersInput {
@@ -10,7 +10,7 @@ interface UsePromptQueueHandlersInput {
 }
 
 interface PromptQueueHandlers {
-  handleGenerateAndQueue: (updatedPrompts: UseFormSubmissionProps['prompts']) => void;
+  handleGenerateAndQueue: (updatedPrompts: FormSubmissionFormState['prompts']) => void;
   handleUseExistingPrompts: () => Promise<void>;
   handleNewPromptsLikeExisting: () => Promise<void>;
 }
@@ -18,7 +18,7 @@ interface PromptQueueHandlers {
 export function usePromptQueueHandlers(input: UsePromptQueueHandlersInput): PromptQueueHandlers {
   const { commands } = input;
 
-  const handleGenerateAndQueue = useCallback((updatedPrompts: UseFormSubmissionProps['prompts']) => {
+  const handleGenerateAndQueue = useCallback((updatedPrompts: FormSubmissionFormState['prompts']) => {
     commands.generateAndSubmit(updatedPrompts);
   }, [commands]);
 

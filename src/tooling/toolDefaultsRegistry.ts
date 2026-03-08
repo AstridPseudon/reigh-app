@@ -3,7 +3,7 @@ import { imageGenerationSettings } from '@/tools/image-generation/settings';
 import { characterAnimateSettings } from '@/tools/character-animate/settings';
 import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
 import { editImagesSettings } from '@/tools/edit-images/settings';
-import { editVideoSettings } from '@/shared/settings/config/editVideoDefaults';
+import { editVideoSettings } from '@/tools/edit-video/settings/editVideoDefaults';
 import { trainingDataHelperSettings } from '@/tools/training-data-helper/settings';
 import { userPreferencesSettings } from '@/shared/settings/userPreferences';
 

@@ -15,6 +15,65 @@ import {
   getTooltipText,
 } from "@/shared/components/ui/ai-input-button.visuals"
 
+interface PopoverFormContentProps {
+  inputRef: React.RefObject<HTMLTextAreaElement | null>
+  inputValue: string
+  setInputValue: (value: string) => void
+  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
+  handleTextSubmit: () => void
+  textState: string
+  showDesktopHint?: boolean
+}
+
+function PopoverFormContent({ inputRef, inputValue, setInputValue, handleKeyDown, handleTextSubmit, textState, showDesktopHint }: PopoverFormContentProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-xs text-muted-foreground">
+        Describe what you want:
+      </div>
+      <div className="relative">
+        <textarea
+          ref={inputRef}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Your prompt creation/edit instructions..."
+          disabled={textState === "processing"}
+          className={cn(
+            "w-full min-h-[60px] max-h-[120px] rounded-md border border-input bg-background px-3 py-2 pr-8 text-base lg:text-sm preserve-case",
+            "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "resize-none",
+            textState === "processing" && "opacity-50"
+          )}
+          rows={2}
+        />
+        <button
+          type="button"
+          onClick={handleTextSubmit}
+          disabled={!inputValue.trim() || textState === "processing"}
+          className={cn(
+            "absolute bottom-3 right-2 h-5 w-5 rounded flex items-center justify-center transition-colors",
+            inputValue.trim() && textState !== "processing"
+              ? "bg-purple-500 text-white hover:bg-purple-600"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          )}
+        >
+          {textState === "processing" ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Send className="h-3 w-3" />
+          )}
+        </button>
+      </div>
+      {showDesktopHint && (
+        <div className="text-[10px] text-muted-foreground/70">
+          Press Enter to submit, Shift+Enter for new line
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface AIInputButtonProps {
   onResult: (result: { transcription: string; prompt?: string }) => void
   onError?: (error: string) => void
@@ -204,45 +263,14 @@ export const AIInputButton = React.forwardRef<
           sideOffset={8}
           className="w-72 p-2"
         >
-          <div className="flex flex-col gap-1.5">
-            <div className="text-xs text-muted-foreground">
-              Describe what you want:
-            </div>
-            <div className="relative">
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Your prompt creation/edit instructions..."
-                disabled={textState === "processing"}
-                className={cn(
-                  "w-full min-h-[60px] max-h-[120px] rounded-md border border-input bg-background px-3 py-2 pr-8 text-base preserve-case",
-                  "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  "resize-none",
-                  textState === "processing" && "opacity-50"
-                )}
-                rows={2}
-              />
-              <button
-                type="button"
-                onClick={handleTextSubmit}
-                disabled={!inputValue.trim() || textState === "processing"}
-                className={cn(
-                  "absolute bottom-3 right-2 h-5 w-5 rounded flex items-center justify-center transition-colors",
-                  inputValue.trim() && textState !== "processing"
-                    ? "bg-purple-500 text-white hover:bg-purple-600"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
-                )}
-              >
-                {textState === "processing" ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Send className="h-3 w-3" />
-                )}
-              </button>
-            </div>
-          </div>
+          <PopoverFormContent
+            inputRef={inputRef}
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            handleKeyDown={handleKeyDown}
+            handleTextSubmit={handleTextSubmit}
+            textState={textState}
+          />
         </PopoverContent>
       </Popover>
     )
@@ -290,50 +318,15 @@ export const AIInputButton = React.forwardRef<
           sideOffset={8}
           className="w-72 p-2"
         >
-          <div className="flex flex-col gap-1.5">
-            <div className="text-xs text-muted-foreground">
-              Describe what you want:
-            </div>
-            <div className="relative">
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Your prompt creation/edit instructions..."
-                disabled={textState === "processing"}
-                className={cn(
-                  "w-full min-h-[60px] max-h-[120px] rounded-md border border-input bg-background px-3 py-2 pr-8 text-base lg:text-sm preserve-case",
-                  "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  "resize-none",
-                  textState === "processing" && "opacity-50"
-                )}
-                rows={2}
-              />
-              <button
-                type="button"
-                onClick={handleTextSubmit}
-                disabled={!inputValue.trim() || textState === "processing"}
-                className={cn(
-                  "absolute bottom-3 right-2 h-5 w-5 rounded flex items-center justify-center transition-colors",
-                  inputValue.trim() && textState !== "processing"
-                    ? "bg-purple-500 text-white hover:bg-purple-600"
-                    : "bg-muted text-muted-foreground cursor-not-allowed"
-                )}
-              >
-                {textState === "processing" ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Send className="h-3 w-3" />
-                )}
-              </button>
-            </div>
-            {!isMobile && (
-              <div className="text-[10px] text-muted-foreground/70">
-                Press Enter to submit, Shift+Enter for new line
-              </div>
-            )}
-          </div>
+          <PopoverFormContent
+            inputRef={inputRef}
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            handleKeyDown={handleKeyDown}
+            handleTextSubmit={handleTextSubmit}
+            textState={textState}
+            showDesktopHint={!isMobile}
+          />
         </PopoverContent>
       </Popover>
       <TooltipContent side="top" sideOffset={5} className="flex flex-col gap-1">

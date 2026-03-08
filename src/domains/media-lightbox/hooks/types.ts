@@ -187,21 +187,3 @@ export interface UseSharedLightboxStateReturn {
   buttonGroupProps: LightboxButtonGroupProps;
 }
 
-export interface VariantsStateResult {
-  section: UseSharedLightboxStateReturn['variants'];
-  intendedActiveVariantIdRef: RefObject<string | null>;
-  activeVariant: GenerationVariant | null;
-  primaryVariant: GenerationVariant | null;
-  isViewingNonPrimaryVariant: boolean;
-  setPrimaryVariant: (id: string) => Promise<void>;
-  refetchVariants: () => void;
-}
-
-export interface InteractionState {
-  star: UseSharedLightboxStateReturn['star'];
-  references: UseSharedLightboxStateReturn['references'];
-  lineage: UseSharedLightboxStateReturn['lineage'];
-  shots: UseSharedLightboxStateReturn['shots'];
-  sourceGeneration: UseSharedLightboxStateReturn['sourceGeneration'];
-  makeMainVariant: UseSharedLightboxStateReturn['makeMainVariant'];
-}

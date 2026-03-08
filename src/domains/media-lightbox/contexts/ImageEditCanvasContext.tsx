@@ -42,8 +42,8 @@ interface ImageEditBrushState {
   brushStrokes: BrushStroke[];
   handleUndo: () => void;
   handleClearMask: () => void;
-  inpaintPanelPosition: 'left' | 'right';
-  setInpaintPanelPosition: (pos: 'left' | 'right') => void;
+  toolPanelPosition: 'top' | 'bottom';
+  setToolPanelPosition: (pos: 'top' | 'bottom') => void;
 }
 
 interface ImageEditAnnotationState {
@@ -123,8 +123,8 @@ const EMPTY_CANVAS: ImageEditCanvasState = {
   brushStrokes: [],
   handleUndo: () => {},
   handleClearMask: () => {},
-  inpaintPanelPosition: 'right',
-  setInpaintPanelPosition: () => {},
+  toolPanelPosition: 'bottom',
+  setToolPanelPosition: () => {},
 
   // Annotation tool
   isAnnotateMode: false,

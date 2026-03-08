@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { GenerationDetails } from '@/domains/generation/components/GenerationDetails';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import { getSourceTaskIdLegacyCompatible } from '@/shared/lib/taskIdHelpers';
 import { useGetTask } from '@/shared/hooks/tasks/useTasks';
 import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';

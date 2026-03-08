@@ -9,7 +9,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { CurrentSegmentImagesData } from '../variantSourceImages';
 import { VariantCard } from './VariantCard';
 

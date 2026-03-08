@@ -85,8 +85,8 @@ const mockUseInpainting = vi.fn().mockReturnValue({
 const mockUseMagicEditMode = vi.fn().mockReturnValue({
   isCreatingMagicEditTasks: false,
   magicEditTasksCreated: false,
-  inpaintPanelPosition: 'right',
-  setInpaintPanelPosition: vi.fn(),
+  toolPanelPosition: 'right',
+  setToolPanelPosition: vi.fn(),
   handleEnterMagicEditMode: vi.fn(),
   handleExitMagicEditMode: vi.fn(),
   handleUnifiedGenerate: vi.fn(),
@@ -346,8 +346,8 @@ describe('useInlineEditState', () => {
     mockUseMagicEditMode.mockReturnValue({
       isCreatingMagicEditTasks: false,
       magicEditTasksCreated: false,
-      inpaintPanelPosition: 'right',
-      setInpaintPanelPosition: vi.fn(),
+      toolPanelPosition: 'right',
+      setToolPanelPosition: vi.fn(),
       handleEnterMagicEditMode: mockEnterMagicEdit,
       handleExitMagicEditMode: vi.fn(),
       handleUnifiedGenerate: vi.fn(),
@@ -412,7 +412,7 @@ describe('useInlineEditState', () => {
     expect(editValue).toBeDefined();
     expect(editValue.isInpaintMode).toBe(false);
     expect(editValue.brushSize).toBe(20);
-    expect(editValue.inpaintPanelPosition).toBe('right');
+    expect(editValue.toolPanelPosition).toBe('right');
     expect(typeof editValue.setIsInpaintMode).toBe('function');
     expect(typeof editValue.handleEnterInpaintMode).toBe('function');
   });

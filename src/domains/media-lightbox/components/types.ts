@@ -1,4 +1,4 @@
-import type { LoraModel } from '@/domains/lora/components/LoraSelectorModal';
+import type { LoraModel } from '@/domains/lora/types/lora';
 import type { UseLoraManagerReturn } from '@/domains/lora/hooks/useLoraManager';
 import type { EditAdvancedSettings as EditAdvancedSettingsType } from '../hooks/useGenerationEditSettings';
 import type { LightboxCoreState, LightboxVariantState } from '../contexts/LightboxStateContext';

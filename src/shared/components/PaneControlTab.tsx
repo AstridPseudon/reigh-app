@@ -16,34 +16,49 @@ type PaneIconType = 'chevron' | 'tools' | 'gallery' | 'tasks';
 // Button types that can appear in the control
 type ButtonType = 'third' | 'fourth' | 'lock' | 'unlock' | 'open';
 
-interface PaneControlTabProps {
+interface PaneControlPosition {
   side: PaneSide;
-  isLocked: boolean;
-  isOpen: boolean;
-  toggleLock: (force?: boolean) => void;
-  openPane: () => void;
   paneDimension: number;
   bottomOffset?: number;
   horizontalOffset?: number;
+}
+
+interface PaneControlState {
+  isLocked: boolean;
+  isOpen: boolean;
+}
+
+interface PaneControlHandlers {
+  toggleLock: (force?: boolean) => void;
+  openPane: () => void;
   handlePaneEnter: () => void;
   handlePaneLeave: () => void;
-  thirdButton?: {
-    onClick: () => void;
-    ariaLabel: string;
-    content?: React.ReactNode;
-    tooltip?: string;
-  };
-  fourthButton?: {
-    onClick: () => void;
-    ariaLabel: string;
-    content?: React.ReactNode;
-    tooltip?: string;
-  };
+  customOpenAction?: () => void;
+}
+
+interface PaneControlDisplay {
   paneIcon?: PaneIconType;
   customIcon?: React.ReactNode;
   paneTooltip?: string;
   allowMobileLock?: boolean;
-  customOpenAction?: () => void;
+}
+
+interface PaneControlAction {
+  onClick: () => void;
+  ariaLabel: string;
+  content?: React.ReactNode;
+  tooltip?: string;
+}
+
+interface PaneControlTabProps {
+  position: PaneControlPosition;
+  state: PaneControlState;
+  handlers: PaneControlHandlers;
+  display?: PaneControlDisplay;
+  actions?: {
+    thirdButton?: PaneControlAction;
+    fourthButton?: PaneControlAction;
+  };
   dataTour?: string;
   dataTourLock?: string;
   dataTourFourthButton?: string;
@@ -73,27 +88,17 @@ const TooltipButton: React.FC<{
 };
 
 const PaneControlTab: React.FC<PaneControlTabProps> = ({
-  side,
-  isLocked,
-  isOpen,
-  toggleLock,
-  openPane,
-  paneDimension,
-  bottomOffset = 0,
-  handlePaneEnter,
-  handlePaneLeave,
-  thirdButton,
-  fourthButton,
-  horizontalOffset = 0,
-  paneIcon = 'chevron',
-  customIcon,
-  paneTooltip,
-  allowMobileLock = false,
-  customOpenAction,
+  position: { side, paneDimension, bottomOffset = 0, horizontalOffset = 0 },
+  state: { isLocked, isOpen },
+  handlers: { toggleLock, openPane, handlePaneEnter, handlePaneLeave, customOpenAction },
+  display: { paneIcon = 'chevron', customIcon, paneTooltip, allowMobileLock = false } = {},
+  actions,
   dataTour,
   dataTourLock,
   dataTourFourthButton,
 }) => {
+  const thirdButton = actions?.thirdButton;
+  const fourthButton = actions?.fourthButton;
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const handleOpen = customOpenAction ?? openPane;
