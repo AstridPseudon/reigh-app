@@ -25,7 +25,7 @@ interface UseTimelineViewportControllerInput {
   handleMouseUp: (event: MouseEvent) => void;
 }
 
-interface UseTimelineViewportControllerResult {
+export interface TimelineViewportControllerResult {
   fullMin: number;
   fullMax: number;
   fullRange: number;
@@ -137,7 +137,7 @@ function useZoomCenteringScroll(input: {
 
 export function useTimelineViewportController(
   input: UseTimelineViewportControllerInput,
-): UseTimelineViewportControllerResult {
+): TimelineViewportControllerResult {
   const {
     framePositions,
     pendingDropFrame,

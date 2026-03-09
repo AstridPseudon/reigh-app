@@ -3,8 +3,8 @@
  */
 
 import type { GenerationRow, Shot } from '@/domains/generation/types';
-import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
 
 // =============================================================================
 // Main Component Props
@@ -66,14 +66,7 @@ interface ShotImagesEditorEditActions {
   onOpenUnpositionedPane: () => void;
   onImageUpload: (files: File[]) => Promise<void>;
 
-  onPrimaryStructureVideoInputChange?: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string,
-  ) => void;
+  onPrimaryStructureVideoInputChange?: OnPrimaryStructureVideoInputChange;
   onUni3cEndPercentChange?: (value: number) => void;
 
   onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;

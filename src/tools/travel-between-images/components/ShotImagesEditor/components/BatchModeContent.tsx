@@ -5,10 +5,10 @@
 
 import React from 'react';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
-import { Button } from '@/shared/components/ui/button';
 import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager/ShotImageManagerContainer';
 import { BatchGuidanceVideo } from '../../BatchGuidanceVideo';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
+import { UnpositionedGenerationsBanner } from './UnpositionedGenerationsBanner';
 import type { PairData } from '../../Timeline/TimelineContainer/types';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
@@ -216,16 +216,10 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
 
       {/* Unpositioned generations helper */}
       {unpositionedGenerationsCount > 0 && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-dashed">
-            <div className="text-sm text-muted-foreground">
-              {unpositionedGenerationsCount} unpositioned generation{unpositionedGenerationsCount !== 1 ? 's' : ''}
-            </div>
-            <Button variant="outline" size="sm" onClick={onOpenUnpositionedPane} className="text-xs">
-              View & Position
-            </Button>
-          </div>
-        </div>
+        <UnpositionedGenerationsBanner
+          count={unpositionedGenerationsCount}
+          onOpen={onOpenUnpositionedPane}
+        />
       )}
 
       {/* Batch mode structure video */}

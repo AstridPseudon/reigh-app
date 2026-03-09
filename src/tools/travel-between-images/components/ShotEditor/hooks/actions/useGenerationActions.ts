@@ -4,18 +4,21 @@ import { ShotEditorState } from '../../state/types';
 import { useDeleteActions } from './useDeleteActions';
 import { useDuplicateAction } from './useDuplicateAction';
 import { useDropActions } from './useDropActions';
+import type { ShotEditorActions } from '../../state/useShotEditorState';
+
+type GenerationActionSet = Pick<
+  ShotEditorActions,
+  | 'setUploadingImage'
+  | 'setFileInputKey'
+  | 'setDeletingVideoId'
+  | 'setDuplicatingImageId'
+  | 'setDuplicateSuccessImageId'
+  | 'setPendingFramePositions'
+>;
 
 interface UseGenerationActionsProps {
   state: ShotEditorState;
-  actions: {
-    setUploadingImage: (value: boolean) => void;
-    setFileInputKey: (value: number) => void;
-    setDeletingVideoId: (value: string | null) => void;
-    setDuplicatingImageId: (value: string | null) => void;
-    setDuplicateSuccessImageId: (value: string | null) => void;
-    setPendingFramePositions: (value: Map<string, number>) => void;
-    // REMOVED: setLocalOrderedShotImages - no longer needed with two-phase loading
-  };
+  actions: GenerationActionSet;
   selectedShot: Shot;
   projectId: string;
   batchVideoFrames: number;

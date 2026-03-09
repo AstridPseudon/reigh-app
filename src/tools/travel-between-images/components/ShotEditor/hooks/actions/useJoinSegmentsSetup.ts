@@ -11,9 +11,10 @@
  */
 
 import { useMemo, useCallback, useRef, useState } from 'react';
-import { useJoinSegmentsSettings, JoinSegmentsSettings } from '../../../../hooks/settings/useJoinSegmentsSettings';
+import { useJoinSegmentsSettings } from '../../../../hooks/settings/useJoinSegmentsSettings';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { LoraModel } from '@/domains/lora/types/lora';
+import type { JoinSettingsForTask } from './joinSegments.types';
 
 interface SelectedLora {
   id: string;
@@ -30,26 +31,6 @@ interface UseJoinSegmentsSetupOptions {
   selectedShotId: string;
   projectId: string;
   swapButtonRef: React.RefObject<HTMLButtonElement>;
-}
-
-interface JoinSettingsForHook {
-  prompt: string;
-  negativePrompt: string;
-  contextFrameCount: number;
-  gapFrameCount: number;
-  replaceMode: boolean;
-  keepBridgingImages: boolean;
-  enhancePrompt: boolean;
-  model: string;
-  numInferenceSteps: number;
-  guidanceScale: number;
-  seed: number;
-  motionMode: 'basic' | 'advanced';
-  phaseConfig: PhaseConfig | undefined;
-  selectedPhasePresetId: string | null;
-  randomSeed: boolean;
-  updateField: (field: keyof JoinSegmentsSettings, value: JoinSegmentsSettings[keyof JoinSegmentsSettings]) => void;
-  updateFields: (fields: Partial<JoinSegmentsSettings>) => void;
 }
 
 interface JoinLoraManager {
@@ -99,7 +80,7 @@ interface UseJoinSegmentsSetupReturn {
   toggleGenerateModePreserveScroll: (newMode: 'batch' | 'join') => void;
 
   // Derived values for hooks
-  joinSettingsForHook: JoinSettingsForHook;
+  joinSettingsForHook: JoinSettingsForTask;
   joinLoraManager: JoinLoraManager;
 }
 
@@ -179,7 +160,7 @@ export function useJoinSegmentsSetup({
   }, [setGenerateMode, swapButtonRef]);
 
   // Join settings object in the format expected by useJoinSegmentsHandler
-  const joinSettingsForHook = useMemo((): JoinSettingsForHook => ({
+  const joinSettingsForHook = useMemo((): JoinSettingsForTask => ({
     prompt: joinPrompt,
     negativePrompt: joinNegativePrompt,
     contextFrameCount: joinContextFrames,

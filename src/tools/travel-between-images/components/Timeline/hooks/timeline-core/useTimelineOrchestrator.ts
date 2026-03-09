@@ -17,7 +17,10 @@ import { useComputedTimelineData } from './useComputedTimelineData';
 import { useTimelineUiState } from './useTimelineUiState';
 import { useEndpointDrag } from '../drag/useEndpointDrag';
 import { useTapToMove } from '../drag/useTapToMove';
-import { useTimelineViewportController } from './useTimelineViewportController';
+import {
+  useTimelineViewportController,
+  type TimelineViewportControllerResult,
+} from './useTimelineViewportController';
 import { useUnifiedDrop } from '../drag/useUnifiedDrop';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { PairData } from '../../TimelineContainer/types';
@@ -82,18 +85,7 @@ interface UseTimelineOrchestratorReturn {
     timelineRef: RefObject<HTMLDivElement>;
     containerRef: RefObject<HTMLDivElement>;
   };
-  viewport: {
-    fullMin: number;
-    fullMax: number;
-    fullRange: number;
-    containerWidth: number;
-    zoomLevel: number;
-    handleZoomInToCenter: () => void;
-    handleZoomOutFromCenter: () => void;
-    handleZoomReset: () => void;
-    handleZoomToStart: () => void;
-    handleTimelineDoubleClick: (e: ReactMouseEvent<HTMLDivElement>, containerRef: RefObject<HTMLDivElement>) => void;
-  };
+  viewport: Omit<TimelineViewportControllerResult, 'dragStartDimensionsRef'>;
   drag: {
     state: { isDragging: boolean; activeId: string | null };
     dragOffset: { x: number; y: number } | null;

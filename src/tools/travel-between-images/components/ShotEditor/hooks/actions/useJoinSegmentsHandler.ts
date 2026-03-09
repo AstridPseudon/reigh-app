@@ -19,36 +19,7 @@ import { scaleJoinFrameCountsToShortestClip } from '@/shared/lib/joinClipsFrameS
 import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID } from '@/shared/lib/vaceDefaults';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import type { SegmentSlot } from '@/shared/hooks/segments/useSegmentOutputsForShot';
-import type { PhaseConfig } from '@/shared/types/phaseConfig';
-
-interface JoinLoraManager {
-  selectedLoras: Array<{
-    id: string;
-    path: string;
-    strength: number;
-    name?: string;
-  }>;
-}
-
-interface JoinSettings {
-  prompt: string;
-  negativePrompt: string;
-  contextFrameCount: number;
-  gapFrameCount: number;
-  replaceMode: boolean;
-  keepBridgingImages: boolean;
-  enhancePrompt: boolean;
-  model: string;
-  numInferenceSteps: number;
-  guidanceScale: number;
-  seed: number;
-  motionMode: 'basic' | 'advanced';
-  phaseConfig?: PhaseConfig;
-  selectedPhasePresetId?: string | null;
-  randomSeed: boolean;
-  updateField: (field: string, value: unknown) => void;
-  updateFields: (fields: Record<string, unknown>) => void;
-}
+import type { JoinLoraManagerForTask, JoinSettingsForTask } from './joinSegments.types';
 
 interface UseJoinSegmentsHandlerProps {
   projectId?: string;
@@ -58,8 +29,8 @@ interface UseJoinSegmentsHandlerProps {
   audioUrl?: string | null;
   joinSegmentSlots: SegmentSlot[];
   joinSelectedParent?: GenerationRow | null;
-  joinLoraManager: JoinLoraManager;
-  joinSettings: JoinSettings;
+  joinLoraManager: JoinLoraManagerForTask;
+  joinSettings: JoinSettingsForTask;
 }
 
 interface JoinValidationData {

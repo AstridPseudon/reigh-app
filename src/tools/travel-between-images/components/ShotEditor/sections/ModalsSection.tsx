@@ -10,6 +10,7 @@ import type { LoraModel } from '@/domains/lora/types/lora';
 import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLorasForModal';
 import { SettingsModal } from '@/shared/components/SettingsModal/SettingsModal';
 import { useShotSettingsContext } from '../ShotSettingsContext';
+import type { ModalSelectedLora } from '../types/modalLora';
 
 interface ModalsSectionProps {
   // LoRA modal
@@ -18,12 +19,7 @@ interface ModalsSectionProps {
   onAddLora: (lora: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
   onRemoveLora: (loraId: string) => void;
   onUpdateLoraStrength: (loraId: string, strength: number) => void;
-  selectedLoras: Array<{
-    id: string;
-    name: string;
-    strength: number;
-    path?: string;
-  }>;
+  selectedLoras: ModalSelectedLora[];
 
   // Settings modal
   isSettingsModalOpen: boolean;

@@ -4,7 +4,7 @@ import { ExternalLinkTooltipButton } from '@/shared/components/ui/ExternalLinkTo
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { BatchSettingsForm } from '@/tools/travel-between-images/components/BatchSettingsForm';
 import { MotionControl } from '@/tools/travel-between-images/components/MotionControl';
-import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
+import { PanelSectionHeader } from '@/tools/travel-between-images/components/shared/PanelSectionHeader';
 import { DEFAULT_PHASE_CONFIG, type VideoTravelSettings } from '@/tools/travel-between-images/settings';
 import type { ActiveLora, LoraModel } from '@/domains/lora/types/lora';
 import type { Project } from '@/types/project';
@@ -156,9 +156,7 @@ export function VideoGenerationModalFormContent({
     <div className="space-y-6 pb-4">
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-1/2">
-          <div className="mb-4">
-            <SectionHeader title="Settings" theme="orange" />
-          </div>
+          <PanelSectionHeader title="Settings" theme="orange" />
           <BatchSettingsForm
             batchVideoPrompt={settings.prompt || ''}
             onBatchVideoPromptChange={(v) => updateField('prompt', v)}
@@ -208,9 +206,7 @@ export function VideoGenerationModalFormContent({
         </div>
 
         <div className="lg:w-1/2">
-          <div className="mb-4">
-            <SectionHeader title="Motion" theme="purple" />
-          </div>
+          <PanelSectionHeader title="Motion" theme="purple" />
           <MotionControl
             mode={{
               motionMode: (settings.motionMode || 'basic') as 'basic' | 'advanced',

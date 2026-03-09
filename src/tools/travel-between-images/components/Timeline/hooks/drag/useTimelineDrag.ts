@@ -5,6 +5,7 @@ import { log } from "@/shared/lib/logger";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import { createSessionId } from "@/shared/lib/sessionId";
 import { TIMELINE_PADDING_OFFSET } from "../../constants";
+import { resolveSinglePositionConflict } from "./positionConflict";
 
 interface DragState {
   isDragging: boolean;
@@ -193,33 +194,11 @@ export const useTimelineDrag = ({
       return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition, isPreview);
     }
 
-    // Single item drag
-    const newPositions = new Map(framePositions);
-
-    // Check for position conflict
-    const conflictingItem = [...framePositions.entries()].find(
-      ([id, pos]) => id !== dragState.activeId && pos === finalPosition
+    const { positions: newPositions } = resolveSinglePositionConflict(
+      framePositions,
+      dragState.activeId,
+      finalPosition,
     );
-
-    if (conflictingItem) {
-      if (finalPosition === 0) {
-        // Dropping at position 0: displace existing item to midpoint
-        const sortedItems = [...framePositions.entries()]
-          .filter(([id]) => id !== dragState.activeId && id !== conflictingItem[0])
-          .sort((a, b) => a[1] - b[1]);
-        const nextItem = sortedItems.find(([_, pos]) => pos > 0);
-        const nextItemPos = nextItem ? nextItem[1] : 50;
-        const midpoint = Math.floor(nextItemPos / 2);
-        newPositions.set(conflictingItem[0], midpoint);
-        newPositions.set(dragState.activeId, 0);
-      } else {
-        // Insert at +1 frame from target
-        newPositions.set(dragState.activeId, finalPosition + 1);
-      }
-    } else {
-      // No conflict - move to target (frame 0 constraint handled by shrinkOversizedGaps)
-      newPositions.set(dragState.activeId, finalPosition);
-    }
 
     return applyFluidTimeline(newPositions, dragState.activeId, finalPosition, dragState.activeId, fullMin, fullMax, isPreview);
   }, [
@@ -281,7 +260,7 @@ export const useTimelineDrag = ({
       hasMovedPastThreshold: false,
     });
 
-  }, [framePositions, dragState.isDragging, setIsDragInProgress, selectedIds]);
+  }, [framePositions, dragState.isDragging, setIsDragInProgress]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!dragState.isDragging) return;
@@ -312,7 +291,7 @@ export const useTimelineDrag = ({
     const push = e.metaKey || e.ctrlKey || e.altKey;
     if (!push) pushBaselineDeltaRef.current = null;
     pushModRef.current = push;
-  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.hasMovedPastThreshold, dragState.activeId, onDragStart]);
+  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.hasMovedPastThreshold, onDragStart]);
 
   const handleMouseUp = useCallback((e: MouseEvent) => {
     if (!dragState.isDragging || !dragState.activeId) return;

@@ -42,12 +42,11 @@ import {
 import { BatchSettingsForm } from '../../../BatchSettingsForm';
 import { MotionControl } from '../../../MotionControl';
 import { GenerateVideoCTA } from '../../../GenerateVideoCTA';
-import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
+import { PanelSectionHeader } from '@/tools/travel-between-images/components/shared/PanelSectionHeader';
 import {
   JoinClipsSettingsForm,
-  DEFAULT_JOIN_CLIPS_PHASE_CONFIG,
-  BUILTIN_JOIN_CLIPS_DEFAULT_ID,
 } from '@/shared/components/JoinClipsSettingsForm/JoinClipsSettingsForm';
+import { buildJoinClipsFormProps } from './joinClipsFormProps';
 
 interface BatchModeContentProps {
   // Refs - must be passed from parent for DOM positioning
@@ -95,30 +94,19 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
   const advancedMode = motionSettings.motionMode === 'advanced';
   const stitchAfterGenerate = joinState.joinSettings.settings.stitchAfterGenerate ?? false;
   const effectiveGenerationMode = generationModeSettings.generationMode;
-
-  // Extract join settings for stitch form
-  const {
-    prompt: joinPrompt,
-    negativePrompt: joinNegativePrompt,
-    contextFrameCount: joinContextFrames,
-    gapFrameCount: joinGapFrames,
-    replaceMode: joinReplaceMode,
-    keepBridgingImages: joinKeepBridgingImages,
-    enhancePrompt: joinEnhancePrompt,
-    motionMode: joinMotionMode,
-    phaseConfig: joinPhaseConfig,
-    selectedPhasePresetId: joinSelectedPhasePresetId,
-    randomSeed: joinRandomSeed,
-  } = joinState.joinSettings.settings;
+  const joinStitchFormProps = buildJoinClipsFormProps({
+    joinState,
+    availableLoras,
+    projectId,
+    loraPersistenceKey: 'join-clips-shot-editor-stitch',
+  });
 
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column: Main Settings */}
         <div className="lg:w-1/2 order-2 lg:order-1">
-          <div className="mb-4">
-            <SectionHeader title="Settings" theme="orange" />
-          </div>
+          <PanelSectionHeader title="Settings" theme="orange" />
           <BatchSettingsForm
             batchVideoPrompt={promptSettings.prompt}
             onBatchVideoPromptChange={generationHandlers.handleBatchVideoPromptChangeWithClear}
@@ -170,9 +158,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
 
         {/* Right Column: Motion Control */}
         <div className="lg:w-1/2 order-1 lg:order-2">
-          <div className="mb-4">
-            <SectionHeader title="Motion" theme="purple" />
-          </div>
+          <PanelSectionHeader title="Motion" theme="purple" />
 
           {/* Camera Guidance - shown only when structure video is present */}
           {structureVideo.structureVideoPath && (
@@ -310,45 +296,8 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
                   </div>
                   <CollapsibleContent className="mt-4 pt-4 border-t">
                     <JoinClipsSettingsForm
-                      clipSettings={{
-                        gapFrames: joinGapFrames,
-                        setGapFrames: (val) => joinState.joinSettings.updateField('gapFrameCount', val),
-                        contextFrames: joinContextFrames,
-                        setContextFrames: (val) => joinState.joinSettings.updateField('contextFrameCount', val),
-                        replaceMode: joinReplaceMode,
-                        setReplaceMode: (val) => joinState.joinSettings.updateField('replaceMode', val),
-                        keepBridgingImages: joinKeepBridgingImages,
-                        setKeepBridgingImages: (val) => joinState.joinSettings.updateField('keepBridgingImages', val),
-                        prompt: joinPrompt,
-                        setPrompt: (val) => joinState.joinSettings.updateField('prompt', val),
-                        negativePrompt: joinNegativePrompt,
-                        setNegativePrompt: (val) => joinState.joinSettings.updateField('negativePrompt', val),
-                        enhancePrompt: joinEnhancePrompt,
-                        setEnhancePrompt: (val) => joinState.joinSettings.updateField('enhancePrompt', val),
-                        shortestClipFrames: joinState.joinValidationData.shortestClipFrames,
-                      }}
-                      motionConfig={{
-                        availableLoras,
-                        projectId,
-                        loraPersistenceKey: 'join-clips-shot-editor-stitch',
-                        loraManager: joinState.joinLoraManager,
-                        motionMode: joinMotionMode,
-                        onMotionModeChange: (mode) => joinState.joinSettings.updateField('motionMode', mode),
-                        phaseConfig: joinPhaseConfig ?? DEFAULT_JOIN_CLIPS_PHASE_CONFIG,
-                        onPhaseConfigChange: (config) => joinState.joinSettings.updateField('phaseConfig', config),
-                        randomSeed: joinRandomSeed,
-                        onRandomSeedChange: (val) => joinState.joinSettings.updateField('randomSeed', val),
-                        selectedPhasePresetId: joinSelectedPhasePresetId ?? BUILTIN_JOIN_CLIPS_DEFAULT_ID,
-                        onPhasePresetSelect: (presetId, config) => {
-                          joinState.joinSettings.updateFields({
-                            selectedPhasePresetId: presetId,
-                            phaseConfig: config,
-                          });
-                        },
-                        onPhasePresetRemove: () => {
-                          joinState.joinSettings.updateField('selectedPhasePresetId', null);
-                        },
-                      }}
+                      clipSettings={joinStitchFormProps.clipSettings}
+                      motionConfig={joinStitchFormProps.motionConfig}
                       uiState={{
                         onGenerate: () => {},
                         isGenerating: false,

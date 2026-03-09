@@ -3,7 +3,7 @@ import { Shot, GenerationRow } from '@/domains/generation/types';
 import type { Project } from '@/types/project';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
-import { ShotEditorState } from './state/types';
+import type { ShotEditorDimensionProps, ShotEditorState } from './state/types';
 import { ShotEditorActions } from './state/useShotEditorState';
 import { LoraManagerReturn } from './hooks/editor-state/useLoraSync';
 import type { UseStructureVideoReturn } from './hooks/video/useStructureVideo';
@@ -125,14 +125,7 @@ export interface JoinState {
   handleRestoreJoinDefaults: () => void;
 }
 
-export interface DimensionState {
-  dimensionSource?: 'project' | 'firstImage' | 'custom';
-  onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
-  customWidth?: number;
-  onCustomWidthChange?: (width?: number) => void;
-  customHeight?: number;
-  onCustomHeightChange?: (height?: number) => void;
-}
+export type DimensionState = ShotEditorDimensionProps;
 
 export interface ShotSettingsContextValue {
   selectedShot: Shot;

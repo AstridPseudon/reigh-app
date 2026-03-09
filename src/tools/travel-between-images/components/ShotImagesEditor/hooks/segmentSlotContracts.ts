@@ -1,9 +1,9 @@
-import type { MutableRefObject, RefObject } from 'react';
+import type { RefObject } from 'react';
 import type { PairData } from '../../Timeline/TimelineContainer/types';
-import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { SegmentSlotModeData } from '@/domains/media-lightbox/types';
+import type { StructureVideoCollectionHandlers } from '@/tools/travel-between-images/types/mediaHandlers';
 
 export type SegmentSlotGenerationMode = 'batch' | 'timeline' | 'by-pair';
 
@@ -18,11 +18,11 @@ export interface UseSegmentSlotModeResolvedProps {
   defaultPrompt: string;
   defaultNegativePrompt: string;
   resolvedProjectResolution?: string;
-  structureVideos?: StructureVideoConfigWithMetadata[];
-  onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
-  onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-  onRemoveStructureVideo?: (index: number) => void;
-  onSetStructureVideos?: (videos: StructureVideoConfigWithMetadata[]) => void;
+  structureVideos?: StructureVideoCollectionHandlers['structureVideos'];
+  onAddStructureVideo?: StructureVideoCollectionHandlers['onAddStructureVideo'];
+  onUpdateStructureVideo?: StructureVideoCollectionHandlers['onUpdateStructureVideo'];
+  onRemoveStructureVideo?: StructureVideoCollectionHandlers['onRemoveStructureVideo'];
+  onSetStructureVideos?: StructureVideoCollectionHandlers['onSetStructureVideos'];
   maxFrameLimit: number;
   loadPositions: (options?: { silent?: boolean; reason?: string }) => Promise<void>;
   navigateWithTransition: (doNavigation: () => void) => void;
@@ -95,7 +95,3 @@ export function parseSegmentSlotLocationState(
     fromShotClick: record.fromShotClick === true,
   };
 }
-
-type SegmentSlotModeDataBuilder = (
-  frameCountDebounceRef: MutableRefObject<NodeJS.Timeout | null>,
-) => SegmentSlotModeData | null;

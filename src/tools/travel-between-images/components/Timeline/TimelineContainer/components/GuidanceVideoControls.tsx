@@ -6,11 +6,12 @@ import { useCreateResource, StructureVideoMetadata } from '@/shared/hooks/useRes
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { calculateNewVideoPlacement } from '../../utils/timeline-utils';
 import type { PrimaryStructureVideo, StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
-import { extractVideoMetadata, uploadVideoToStorage, type VideoMetadata } from '@/shared/lib/media/videoUploader';
+import { extractVideoMetadata, uploadVideoToStorage } from '@/shared/lib/media/videoUploader';
+import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
-interface GuidanceVideoControlsProps {
+export interface GuidanceVideoControlsProps {
   shotId: string;
   projectId?: string;
   readOnly?: boolean;
@@ -20,14 +21,7 @@ interface GuidanceVideoControlsProps {
   fullMax: number;
   onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
   onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-  onPrimaryStructureVideoInputChange?: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string
-  ) => void;
+  onPrimaryStructureVideoInputChange?: OnPrimaryStructureVideoInputChange;
   onShowVideoBrowser: () => void;
   isUploadingStructureVideo: boolean;
   setIsUploadingStructureVideo: (value: boolean) => void;

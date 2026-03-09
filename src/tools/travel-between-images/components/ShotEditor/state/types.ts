@@ -17,7 +17,7 @@ interface ShotEditorCallbackProps {
   onBack: () => void;
 }
 
-interface ShotEditorDimensionProps {
+export interface ShotEditorDimensionProps {
   dimensionSource?: 'project' | 'firstImage' | 'custom';
   onDimensionSourceChange?: (source: 'project' | 'firstImage' | 'custom') => void;
   customWidth?: number;

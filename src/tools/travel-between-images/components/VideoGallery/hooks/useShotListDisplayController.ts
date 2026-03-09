@@ -16,15 +16,12 @@ import { toast } from '@/shared/components/ui/runtime/sonner';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import { usePendingNewShotDrop } from './usePendingNewShotDrop';
 import type { Shot } from '@/domains/generation/types';
-import type { GenerationDropData } from '@/shared/lib/dnd/dragDrop';
+import type { NewShotDropHandlers } from './newShotDrop.types';
 
-interface UseShotListDisplayControllerParams {
+interface UseShotListDisplayControllerParams extends NewShotDropHandlers {
   projectId: string;
   shots?: Shot[];
   sortMode: 'ordered' | 'newest' | 'oldest';
-  onGenerationDropForNewShot?: (data: GenerationDropData) => Promise<void>;
-  onFilesDropForNewShot?: (files: File[]) => Promise<void>;
-  onSkeletonSetupReady?: (setup: (imageCount: number) => void, clear: () => void) => void;
 }
 
 export function useShotListDisplayController({

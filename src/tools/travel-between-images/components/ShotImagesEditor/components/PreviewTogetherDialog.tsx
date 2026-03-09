@@ -14,6 +14,7 @@ import { PreviewTogetherStage } from './PreviewTogetherStage';
 import { PreviewTogetherThumbnails } from './PreviewTogetherThumbnails';
 import { usePreviewTogetherPlayback } from './hooks/usePreviewTogetherPlayback';
 import type { PreviewSegment } from './PreviewTogetherTypes';
+import { getProjectAspectRatioStyle } from '@/tools/travel-between-images/components/shared/aspectRatio';
 
 export type { PreviewSegment };
 
@@ -26,19 +27,6 @@ interface PreviewTogetherDialogProps {
   onOpenInLightbox?: (segmentIndex: number) => void;
   /** When set, open the dialog starting at this pair index instead of 0 */
   initialPairIndex?: number | null;
-}
-
-function getPreviewAspectStyle(projectAspectRatio?: string): { aspectRatio: string } {
-  if (!projectAspectRatio) {
-    return { aspectRatio: '16/9' };
-  }
-
-  const [width, height] = projectAspectRatio.split(':').map(Number);
-  if (width && height) {
-    return { aspectRatio: `${width}/${height}` };
-  }
-
-  return { aspectRatio: '16/9' };
 }
 
 export function PreviewTogetherDialog({
@@ -105,7 +93,7 @@ export function PreviewTogetherDialog({
             <PreviewTogetherStage
               currentSegment={currentSegment}
               previewableSegments={previewableSegments}
-              previewAspectStyle={getPreviewAspectStyle(projectAspectRatio)}
+              previewAspectStyle={getProjectAspectRatioStyle(projectAspectRatio)}
               isPreviewVideoLoading={isPreviewVideoLoading}
               activeVideoSlot={activeVideoSlot}
               previewVideoRef={previewVideoRef}

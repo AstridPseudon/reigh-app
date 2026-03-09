@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { toast } from "@/shared/components/ui/runtime/sonner";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import { pixelToFrame } from "../../utils/timeline-utils";
 import { TIMELINE_PADDING_OFFSET } from "../../constants";
@@ -9,6 +8,7 @@ import {
   type DragType, 
   type GenerationDropData
 } from "@/shared/lib/dnd/dragDrop";
+import { filterValidTimelineImageFiles } from "./imageDropValidation";
 
 // Re-export for backward compatibility
 export type { DragType, GenerationDropData };
@@ -128,14 +128,7 @@ export const useUnifiedDrop = ({
         return;
       }
 
-      const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      const validFiles = files.filter(file => {
-        if (validImageTypes.includes(file.type)) {
-          return true;
-        }
-        toast.error(`Invalid file type for ${file.name}. Only JPEG, PNG, and WebP are supported.`);
-        return false;
-      });
+      const validFiles = filterValidTimelineImageFiles(files);
 
       if (validFiles.length === 0) {
         return;
@@ -180,4 +173,3 @@ export const useUnifiedDrop = ({
     handleDrop,
   };
 };
-

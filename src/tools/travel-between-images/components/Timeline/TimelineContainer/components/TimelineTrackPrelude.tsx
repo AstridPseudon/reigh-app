@@ -2,8 +2,7 @@ import React from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { SegmentSlot } from '@/shared/hooks/segments';
 import { PairData } from '@/shared/types/pairData';
-import { VideoMetadata } from '@/shared/lib/media/videoUploader';
-import { PrimaryStructureVideo, StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { TimelineMediaContextValue } from '../../TimelineMediaContext';
 import { AudioStrip } from '../../AudioStrip';
 import { GuidanceVideoStrip } from '../../GuidanceVideoStrip';
 import { GuidanceVideoUploader } from '../../GuidanceVideoUploader';
@@ -50,22 +49,17 @@ interface TimelineTrackPreludeProps {
     onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
     videoOutputs?: GenerationRow[];
   };
-  guidance: {
-    structureVideos?: StructureVideoConfigWithMetadata[];
-    isStructureVideoLoading?: boolean;
-    cachedHasStructureVideo?: boolean;
-    onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
-    onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-    onRemoveStructureVideo?: (index: number) => void;
-    primaryStructureVideo: PrimaryStructureVideo;
-    onPrimaryStructureVideoInputChange?: (
-      videoPath: string | null,
-      metadata: VideoMetadata | null,
-      treatment: 'adjust' | 'clip',
-      motionStrength: number,
-      structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-      resourceId?: string,
-    ) => void;
+  guidance: Pick<
+    TimelineMediaContextValue,
+    | 'structureVideos'
+    | 'isStructureVideoLoading'
+    | 'cachedHasStructureVideo'
+    | 'onAddStructureVideo'
+    | 'onUpdateStructureVideo'
+    | 'onRemoveStructureVideo'
+    | 'primaryStructureVideo'
+    | 'onPrimaryStructureVideoInputChange'
+  > & {
     isUploadingStructureVideo: boolean;
     setIsUploadingStructureVideo: (value: boolean) => void;
   };

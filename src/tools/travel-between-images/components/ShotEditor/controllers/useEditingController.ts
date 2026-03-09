@@ -113,40 +113,16 @@ export function useEditingController({
   });
 
   // Join segments setup
-  const {
-    joinSettings,
-    joinPrompt,
-    joinNegativePrompt,
-    joinContextFrames,
-    joinGapFrames,
-    joinReplaceMode,
-    joinKeepBridgingImages,
-    joinEnhancePrompt,
-    joinModel,
-    joinNumInferenceSteps,
-    joinGuidanceScale,
-    joinSeed,
-    joinMotionMode,
-    joinPhaseConfig,
-    joinSelectedPhasePresetId,
-    joinRandomSeed,
-    joinPriority,
-    joinUseInputVideoResolution,
-    joinUseInputVideoFps,
-    joinNoisedInputVideo,
-    joinLoopFirstClip,
-    generateMode,
-    joinSelectedLoras,
-    stitchAfterGenerate,
-    setGenerateMode,
-    toggleGenerateModePreserveScroll,
-    joinSettingsForHook,
-    joinLoraManager,
-  } = useJoinSegmentsSetup({
+  const joinSetup = useJoinSegmentsSetup({
     selectedShotId: core.selectedShotId,
     projectId: core.projectId,
     swapButtonRef: core.swapButtonRef,
   });
+
+  const {
+    joinSettingsForHook,
+    joinLoraManager,
+  } = joinSetup;
 
   // Join segments handler
   const {
@@ -202,33 +178,7 @@ export function useEditingController({
   };
 
   const joinWorkflow = {
-    joinSettings,
-    joinPrompt,
-    joinNegativePrompt,
-    joinContextFrames,
-    joinGapFrames,
-    joinReplaceMode,
-    joinKeepBridgingImages,
-    joinEnhancePrompt,
-    joinModel,
-    joinNumInferenceSteps,
-    joinGuidanceScale,
-    joinSeed,
-    joinMotionMode,
-    joinPhaseConfig,
-    joinSelectedPhasePresetId,
-    joinRandomSeed,
-    joinPriority,
-    joinUseInputVideoResolution,
-    joinUseInputVideoFps,
-    joinNoisedInputVideo,
-    joinLoopFirstClip,
-    generateMode,
-    joinSelectedLoras,
-    stitchAfterGenerate,
-    setGenerateMode,
-    toggleGenerateModePreserveScroll,
-    joinLoraManager,
+    ...joinSetup,
     isJoiningClips,
     joinClipsSuccess,
     joinValidationData,

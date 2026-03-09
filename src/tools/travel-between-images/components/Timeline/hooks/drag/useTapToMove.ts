@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { applyFluidTimeline, applyFluidTimelineMulti } from '../../utils/timeline-utils';
 import { TIMELINE_PADDING_OFFSET } from '../../constants';
+import { resolveSinglePositionConflict } from './positionConflict';
 
 interface UseTapToMoveProps {
   enableTapToMove: boolean;
@@ -37,29 +38,13 @@ export function useTapToMove({
     const originalPos = framePositions.get(imageId) ?? 0;
     if (targetFrame === originalPos) return;
 
-    const newPositions = new Map(framePositions);
-    const conflictingItem = [...framePositions.entries()].find(
-      ([id, pos]) => id !== imageId && pos === targetFrame
+    const { positions: newPositions, hadConflict } = resolveSinglePositionConflict(
+      framePositions,
+      imageId,
+      targetFrame,
     );
 
-    if (conflictingItem) {
-      if (targetFrame === 0) {
-        const sortedItems = [...framePositions.entries()]
-          .filter(([id]) => id !== imageId && id !== conflictingItem[0])
-          .sort((a, b) => a[1] - b[1]);
-        const nextItem = sortedItems.find(([_, pos]) => pos > 0);
-        const nextItemPos = nextItem ? nextItem[1] : 50;
-        const midpoint = Math.floor(nextItemPos / 2);
-        newPositions.set(conflictingItem[0], midpoint);
-        newPositions.set(imageId, 0);
-      } else {
-        newPositions.set(imageId, targetFrame + 1);
-      }
-    } else {
-      newPositions.set(imageId, targetFrame);
-    }
-
-    if (originalPos === 0 && targetFrame !== 0 && !conflictingItem) {
+    if (originalPos === 0 && targetFrame !== 0 && !hadConflict) {
       const nearest = [...framePositions.entries()]
         .filter(([id]) => id !== imageId)
         .sort((a, b) => a[1] - b[1])[0];

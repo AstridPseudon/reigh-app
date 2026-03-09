@@ -8,6 +8,7 @@ import { TimelineSection } from './sections/TimelineSection';
 import { ModalsSection } from './sections/ModalsSection';
 import { GenerationSection } from './sections/GenerationSection';
 import type { LoraModel } from '@/domains/lora/types/lora';
+import type { ModalSelectedLora } from './types/modalLora';
 
 export interface ShotEditorLayoutProps {
   contextValue: ShotSettingsContextValue;
@@ -70,7 +71,7 @@ export interface ShotEditorLayoutProps {
     onAddLora: (lora: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
     onRemoveLora: (loraId: string) => void;
     onUpdateLoraStrength: (loraId: string, strength: number) => void;
-    selectedLoras: Array<{ id: string; name: string; strength: number; path?: string }>;
+    selectedLoras: ModalSelectedLora[];
     isSettingsModalOpen: boolean;
     onSettingsModalOpenChange: (open: boolean) => void;
   };

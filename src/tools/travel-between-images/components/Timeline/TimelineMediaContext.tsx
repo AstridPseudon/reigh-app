@@ -4,33 +4,19 @@
  */
 
 import { createContext, useContext } from 'react';
-import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
-import type { PrimaryStructureVideo, StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { PrimaryStructureVideo } from '@/shared/lib/tasks/travelBetweenImages';
+import type {
+  OnAudioChange,
+  OnPrimaryStructureVideoInputChange,
+  StructureVideoCollectionHandlers,
+} from '@/tools/travel-between-images/types/mediaHandlers';
 
-export interface TimelineMediaContextValue {
+export interface TimelineMediaContextValue extends StructureVideoCollectionHandlers {
   primaryStructureVideo: PrimaryStructureVideo;
-  onPrimaryStructureVideoInputChange?: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string
-  ) => void;
-  // Structure video — canonical multi-video contract
-  structureVideos?: StructureVideoConfigWithMetadata[];
-  isStructureVideoLoading?: boolean;
-  cachedHasStructureVideo?: boolean;
-  onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
-  onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-  onRemoveStructureVideo?: (index: number) => void;
-  // Audio
+  onPrimaryStructureVideoInputChange?: OnPrimaryStructureVideoInputChange;
   audioUrl?: string | null;
   audioMetadata?: { duration: number; name?: string } | null;
-  onAudioChange?: (
-    audioUrl: string | null,
-    metadata: { duration: number; name?: string } | null
-  ) => void;
+  onAudioChange?: OnAudioChange;
 }
 
 const TimelineMediaContext = createContext<TimelineMediaContextValue | null>(null);

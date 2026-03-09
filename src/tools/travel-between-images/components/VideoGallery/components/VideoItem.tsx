@@ -16,6 +16,7 @@ import { determineVideoPhase, createLoadingSummary } from '../utils/video-loadin
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import { useTaskFromUnifiedCache } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { useShareGeneration } from '@/shared/hooks/useShareGeneration';
+import { getProjectAspectRatioStyle } from '@/tools/travel-between-images/components/shared/aspectRatio';
 
 interface VideoItemProps {
   video: GenerationRow;
@@ -186,19 +187,10 @@ export const VideoItem = React.memo<VideoItemProps>(({
   // ASPECT RATIO CALCULATION - Dynamic aspect ratio based on project settings
   // ===============================================================================
 
-  // Calculate aspect ratio for video container based on project dimensions
-  const aspectRatioStyle = React.useMemo(() => {
-    if (!projectAspectRatio) {
-      return { aspectRatio: '16/9' }; // Default to 16:9 if no project aspect ratio
-    }
-
-    const [width, height] = projectAspectRatio.split(':').map(Number);
-    if (width && height) {
-      return { aspectRatio: `${width}/${height}` };
-    }
-
-    return { aspectRatio: '16/9' }; // Fallback to 16:9
-  }, [projectAspectRatio]);
+  const aspectRatioStyle = React.useMemo(
+    () => getProjectAspectRatioStyle(projectAspectRatio),
+    [projectAspectRatio],
+  );
 
   // ===============================================================================
   // GRID LAYOUT CALCULATION - Dynamic grid based on project aspect ratio

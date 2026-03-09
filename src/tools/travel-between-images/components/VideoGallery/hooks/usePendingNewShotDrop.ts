@@ -5,20 +5,17 @@ import {
   getDragType,
   getGenerationDropData,
   isFileDrag,
-  type GenerationDropData,
   type DragType,
 } from '@/shared/lib/dnd/dragDrop';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { useAppEventListener } from '@/shared/lib/typedEvents';
 import type { Shot } from '@/domains/generation/types';
 import type { PendingSkeletonShot } from '@/tools/travel-between-images/components/VideoGallery/components/ShotListDisplayStates';
+import type { NewShotDropHandlers } from './newShotDrop.types';
 
-interface UsePendingNewShotDropParams {
+interface UsePendingNewShotDropParams extends NewShotDropHandlers {
   currentShotIds: string[];
   shots: Shot[] | undefined;
-  onGenerationDropForNewShot?: (data: GenerationDropData) => Promise<void>;
-  onFilesDropForNewShot?: (files: File[]) => Promise<void>;
-  onSkeletonSetupReady?: (setup: (imageCount: number) => void, clear: () => void) => void;
 }
 
 interface UsePendingNewShotDropResult {
@@ -52,7 +49,6 @@ export function usePendingNewShotDrop({
   const pendingNewShotCountRef = useRef(0);
   const baselineShotIdsRef = useRef<Set<string> | null>(null);
   const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentShotIdsKey = useMemo(() => currentShotIds.join('|'), [currentShotIds]);
 
   const clearPendingNewShot = useCallback(() => {
     pendingNewShotCountRef.current = 0;
@@ -102,7 +98,7 @@ export function usePendingNewShotDrop({
     setNewlyCreatedShotBaselineNonVideoCount(existingNonVideoCount);
 
     clearPendingNewShot();
-  }, [currentShotIds, currentShotIdsKey, shots, clearPendingNewShot]);
+  }, [currentShotIds, shots, clearPendingNewShot]);
 
   const pendingSkeletonShot = useMemo(() => {
     if (!baselineShotIdsRef.current) return null;
@@ -110,7 +106,7 @@ export function usePendingNewShotDrop({
     const newShotAlreadyInData = currentShotIds.some((id) => !baseline.has(id));
     if (newShotAlreadyInData) return null;
     return { imageCount: pendingNewShotCountRef.current };
-  }, [currentShotIds, currentShotIdsKey]);
+  }, [currentShotIds]);
 
   useEffect(() => {
     if (onSkeletonSetupReady) {

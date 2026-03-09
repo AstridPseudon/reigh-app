@@ -1,10 +1,10 @@
 import React from 'react';
 import { CardContent } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { Video } from 'lucide-react';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { BatchModeContent } from './components/BatchModeContent';
+import { UnpositionedGenerationsBanner } from './components/UnpositionedGenerationsBanner';
 import { Timeline } from '../Timeline';
 import { TimelineMediaProvider, type TimelineMediaContextValue } from '../Timeline/TimelineMediaContext';
 import type {
@@ -181,16 +181,10 @@ function TimelineModeContent(props: {
       </TimelineMediaProvider>
 
       {unpositionedGenerationsCount > 0 && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-dashed">
-            <div className="text-sm text-muted-foreground">
-              {unpositionedGenerationsCount} unpositioned generation{unpositionedGenerationsCount !== 1 ? 's' : ''}
-            </div>
-            <Button variant="outline" size="sm" onClick={onOpenUnpositionedPane} className="text-xs">
-              View & Position
-            </Button>
-          </div>
-        </div>
+        <UnpositionedGenerationsBanner
+          count={unpositionedGenerationsCount}
+          onOpen={onOpenUnpositionedPane}
+        />
       )}
     </>
   );

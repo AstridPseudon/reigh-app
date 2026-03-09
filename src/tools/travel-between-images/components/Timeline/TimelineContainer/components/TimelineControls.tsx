@@ -1,10 +1,8 @@
 import React from 'react';
 import { AddAudioButton } from './AddAudioButton';
-import { GuidanceVideoControls } from './GuidanceVideoControls';
-import { TimelineBottomControls } from './TimelineBottomControls';
+import { GuidanceVideoControls, type GuidanceVideoControlsProps } from './GuidanceVideoControls';
+import { TimelineBottomControls, type TimelineBottomControlsProps } from './TimelineBottomControls';
 import { ZoomControls } from './ZoomControls';
-import type { PrimaryStructureVideo, StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
-import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 
 interface TimelineControlsProps {
   timeline: {
@@ -21,18 +19,11 @@ interface TimelineControlsProps {
     onAudioChange?: (audioUrl: string | null, metadata: { duration: number; name?: string } | null) => void;
   };
   guidance: {
-    primaryStructureVideo: PrimaryStructureVideo;
-    structureVideos?: StructureVideoConfigWithMetadata[];
-    onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
-    onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-    onPrimaryStructureVideoInputChange?: (
-      videoPath: string | null,
-      metadata: VideoMetadata | null,
-      treatment: 'adjust' | 'clip',
-      motionStrength: number,
-      structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-      resourceId?: string,
-    ) => void;
+    primaryStructureVideo: GuidanceVideoControlsProps['primaryStructureVideo'];
+    structureVideos?: GuidanceVideoControlsProps['structureVideos'];
+    onAddStructureVideo?: GuidanceVideoControlsProps['onAddStructureVideo'];
+    onUpdateStructureVideo?: GuidanceVideoControlsProps['onUpdateStructureVideo'];
+    onPrimaryStructureVideoInputChange?: GuidanceVideoControlsProps['onPrimaryStructureVideoInputChange'];
     onShowVideoBrowser: () => void;
     isUploadingStructureVideo: boolean;
     setIsUploadingStructureVideo: (uploading: boolean) => void;
@@ -44,14 +35,14 @@ interface TimelineControlsProps {
     onZoomToStart: () => void;
   };
   bottom: {
-    resetGap: number;
-    setResetGap: (value: number) => void;
-    maxGap: number;
-    onReset: () => void;
-    onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
-    isUploadingImage: boolean;
-    uploadProgress: number;
-    pushMode: boolean;
+    resetGap: TimelineBottomControlsProps['resetGap'];
+    setResetGap: TimelineBottomControlsProps['setResetGap'];
+    maxGap: TimelineBottomControlsProps['maxGap'];
+    onReset: TimelineBottomControlsProps['onReset'];
+    onFileDrop?: TimelineBottomControlsProps['onFileDrop'];
+    isUploadingImage: TimelineBottomControlsProps['isUploadingImage'];
+    uploadProgress: TimelineBottomControlsProps['uploadProgress'];
+    pushMode: TimelineBottomControlsProps['pushMode'];
   };
 }
 
