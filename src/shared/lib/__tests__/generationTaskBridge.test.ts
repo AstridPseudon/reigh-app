@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  mockGetPrimaryTaskIdForGeneration,
+  mockGetPrimaryTaskMappingForGeneration,
   mockHandleError,
 } = vi.hoisted(() => {
-  const mockGetPrimaryTaskIdForGeneration = vi.fn();
+  const mockGetPrimaryTaskMappingForGeneration = vi.fn();
   const mockHandleError = vi.fn();
   return {
-    mockGetPrimaryTaskIdForGeneration,
+    mockGetPrimaryTaskMappingForGeneration,
     mockHandleError,
   };
 });
@@ -17,28 +17,28 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('@/shared/lib/generationTaskRepository', () => ({
-  getPrimaryTaskIdForGeneration: (...args: unknown[]) => mockGetPrimaryTaskIdForGeneration(...args),
+  getPrimaryTaskIdForGeneration: (...args: unknown[]) => mockGetPrimaryTaskMappingForGeneration(...args),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => mockHandleError(...args),
 }));
 
-import { useGetPrimaryTaskIdForGeneration } from '../../hooks/tasks/usePrimaryTaskMapping';
+import { useResolveGenerationTaskMapping } from '../../hooks/tasks/usePrimaryTaskMapping';
 
-describe('generationTaskBridge', () => {
+describe('generationTaskMapping resolver', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('preserves repository status semantics from the mutation function', async () => {
-    mockGetPrimaryTaskIdForGeneration.mockResolvedValue({
+    mockGetPrimaryTaskMappingForGeneration.mockResolvedValue({
       generationId: 'gen-1',
       taskId: null,
       status: 'scope_mismatch',
     });
 
-    const mutation = useGetPrimaryTaskIdForGeneration() as {
+    const mutation = useResolveGenerationTaskMapping() as {
       mutationFn: (id: string) => Promise<{
         generationId: string;
         taskId: string | null;
@@ -51,12 +51,12 @@ describe('generationTaskBridge', () => {
       taskId: null,
       status: 'scope_mismatch',
     });
-    expect(mockGetPrimaryTaskIdForGeneration).toHaveBeenCalledWith('gen-1');
+    expect(mockGetPrimaryTaskMappingForGeneration).toHaveBeenCalledWith('gen-1');
     expect(mockHandleError).not.toHaveBeenCalled();
   });
 
   it('routes unexpected mutation errors through the shared error handler', () => {
-    const mutation = useGetPrimaryTaskIdForGeneration() as {
+    const mutation = useResolveGenerationTaskMapping() as {
       onError: (error: Error) => void;
     };
 
@@ -65,8 +65,8 @@ describe('generationTaskBridge', () => {
 
     expect(mockHandleError).toHaveBeenCalledWith(
       error,
-      expect.objectContaining({ context: 'GenerationTaskBridge', showToast: false }),
+      expect.objectContaining({ context: 'GenerationTaskMapping', showToast: false }),
     );
-    expect(mockGetPrimaryTaskIdForGeneration).not.toHaveBeenCalled();
+    expect(mockGetPrimaryTaskMappingForGeneration).not.toHaveBeenCalled();
   });
 });

@@ -1,74 +1,19 @@
 /**
- * useTaskPrefetch.ts
+ * Utilities for prefetching generation-linked task data.
  *
- * Utilities for prefetching task data for generations.
- * Used for hover prefetch in galleries and lightboxes.
- *
- * These hooks use immutable caching since generation→task mapping never changes once created.
+ * The canonical generation -> task mapping query lives in
+ * `useGenerationTaskMapping.ts`; this module only handles best-effort prefetch.
  */
 
 import { useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { mapDbTaskToTask } from './useTasks';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { isUuid } from '@/shared/lib/uuid';
-import { parseGenerationTaskId } from '@/shared/lib/generationTaskIdParser';
 import type { GenerationTaskMappingCacheEntry } from '@/shared/lib/generationTaskRepository';
 import { resolveTaskProjectScope } from '@/shared/lib/tasks/resolveTaskProjectScope';
-
-/**
- * Hook for getting task data from cache for a generation.
- * Uses immutable caching since generation→task mapping never changes once created.
- *
- * @param generationId - The generation ID to get task data for
- * @returns Query result with { taskId: string | null }
- */
-export function useTaskFromUnifiedCache(generationId: string) {
-  const hasPersistedGenerationId = isUuid(generationId);
-  const result = useQuery<GenerationTaskMappingCacheEntry>({
-    queryKey: taskQueryKeys.generationMapping(generationId),
-    queryFn: async (): Promise<GenerationTaskMappingCacheEntry> => {
-      if (!hasPersistedGenerationId) {
-        return { taskId: null, status: 'not_loaded' };
-      }
-      // Fetch task ID from generations table
-      // Note: React Query won't call this if data is cached (staleTime: Infinity)
-      const { data, error } = await supabase().from('generations')
-        .select('tasks')
-        .eq('id', generationId)
-        .maybeSingle();
-
-      if (error) {
-        return {
-          taskId: null,
-          status: 'query_failed',
-          queryError: error.message,
-        };
-      }
-
-      // Return null taskId if generation doesn't exist or has no tasks
-      if (!data) {
-        return { taskId: null, status: 'missing_generation' };
-      }
-
-      const parsed = parseGenerationTaskId(data.tasks);
-      return {
-        taskId: parsed.taskId,
-        status: parsed.status,
-      };
-    },
-    // Generation→task mapping is immutable - cache aggressively
-    staleTime: Infinity,
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    enabled: hasPersistedGenerationId,
-  });
-
-  return result;
-}
+import { prefetchGenerationTaskMapping } from './useGenerationTaskMapping';
 
 /**
  * Hook to prefetch task data for a generation on hover.
@@ -92,33 +37,7 @@ export function usePrefetchTaskData() {
     } else {
       // Not cached - fetch the task ID mapping
       try {
-        const result = await queryClient.fetchQuery({
-          queryKey: taskQueryKeys.generationMapping(generationId),
-          queryFn: async (): Promise<GenerationTaskMappingCacheEntry> => {
-            const { data, error } = await supabase().from('generations')
-              .select('tasks')
-              .eq('id', generationId)
-              .maybeSingle();
-
-            if (error) {
-              return {
-                taskId: null,
-                status: 'query_failed',
-                queryError: error.message,
-              };
-            }
-            if (!data) {
-              return { taskId: null, status: 'missing_generation' };
-            }
-
-            const parsed = parseGenerationTaskId(data.tasks);
-            return {
-              taskId: parsed.taskId,
-              status: parsed.status,
-            };
-          },
-          staleTime: Infinity,
-        });
+        const result = await prefetchGenerationTaskMapping(queryClient, generationId);
         taskId = result?.taskId ?? null;
       } catch {
         return;

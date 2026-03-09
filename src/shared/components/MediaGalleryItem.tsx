@@ -24,7 +24,8 @@ import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { useShotNavigation } from "@/shared/hooks/shots/useShotNavigation";
 import { useLastAffectedShot } from "@/shared/hooks/shots/useLastAffectedShot";
 import { useQuickShotCreate } from "@/shared/hooks/useQuickShotCreate";
-import { useTaskFromUnifiedCache, usePrefetchTaskData } from "@/shared/hooks/tasks/useTaskPrefetch";
+import { usePrefetchTaskData } from "@/shared/hooks/tasks/useTaskPrefetch";
+import { useGenerationTaskMapping } from "@/shared/hooks/tasks/useGenerationTaskMapping";
 import { useTaskType } from "@/shared/hooks/tasks/useTaskType";
 import { useGetTask } from "@/shared/hooks/tasks/useTasks";
 import { useShareGeneration } from "@/shared/hooks/useShareGeneration";
@@ -112,7 +113,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   const actualGenerationId = getGenerationId(image);
   const generationIdForActions = actualGenerationId || image.id;
   const { selectedProjectId } = useProjectSelectionContext();
-  const { data: taskIdMapping } = useTaskFromUnifiedCache(actualGenerationId ?? '');
+  const { data: taskIdMapping } = useGenerationTaskMapping(actualGenerationId ?? '');
   const taskIdFromCache = typeof taskIdMapping?.taskId === 'string' ? taskIdMapping.taskId : null;
   const taskId: string | null = taskIdFromMetadata || taskIdFromCache;
   const { data: taskData } = useGetTask(taskId ?? '', selectedProjectId ?? null);

@@ -14,7 +14,7 @@ import { VideoItemActions } from './VideoItemActions';
 import { videoItemPropsAreEqual } from './VideoItemMemo';
 import { determineVideoPhase, createLoadingSummary } from '../utils/video-loading-utils';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
-import { useTaskFromUnifiedCache } from '@/shared/hooks/tasks/useTaskPrefetch';
+import { useGenerationTaskMapping } from '@/shared/hooks/tasks/useGenerationTaskMapping';
 import { useShareGeneration } from '@/shared/hooks/useShareGeneration';
 import { getProjectAspectRatioStyle } from '@/tools/travel-between-images/components/shared/aspectRatio';
 
@@ -73,7 +73,7 @@ export const VideoItem = React.memo<VideoItemProps>(({
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const TOUCH_MOVE_THRESHOLD = 10; // px - movement beyond this = drag, not tap
   // Get task mapping for this video to enable Apply Settings button
-  const { data: taskMapping } = useTaskFromUnifiedCache(video.id || '');
+  const { data: taskMapping } = useGenerationTaskMapping(video.id || '');
 
   // Share functionality (delegated to shared hook)
   const { handleShare, isCreatingShare, shareCopied, shareSlug } = useShareGeneration(

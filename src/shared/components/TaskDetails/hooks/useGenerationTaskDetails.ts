@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { useTaskFromUnifiedCache } from "@/shared/hooks/tasks/useTaskPrefetch";
+import { useGenerationTaskMapping } from "@/shared/hooks/tasks/useGenerationTaskMapping";
 import { useGetTask } from "@/shared/hooks/tasks/useTasks";
 import { deriveInputImages, parseTaskParams } from "@/shared/lib/taskParamsUtils";
-import { useGetPrimaryTaskIdForGeneration } from "@/shared/hooks/tasks/usePrimaryTaskMapping";
+import { useResolveGenerationTaskMapping } from "@/shared/hooks/tasks/usePrimaryTaskMapping";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import type { Task } from "@/types/tasks";
 import type { TaskDetailsData as LightboxTaskDetailsData } from "@/domains/media-lightbox/types";
 import type { TaskDetailsStatus } from "@/domains/media-lightbox/types";
-import type { GenerationTaskMappingStatus } from "@/shared/lib/generationTaskRepository";
+import type {
+  GenerationTaskMappingCacheEntry,
+  GenerationTaskMappingStatus,
+} from "@/shared/lib/generationTaskRepository";
 
 interface UseGenerationTaskDetailsOptions {
   generationId: string | null;
@@ -18,16 +21,10 @@ interface UseGenerationTaskDetailsOptions {
   onClose?: () => void;
 }
 
-interface GenerationTaskMapping {
-  taskId: string | null;
-  status: GenerationTaskMappingStatus;
-  queryError?: string;
-}
-
 interface UseGenerationTaskDetailsResult {
   taskDetailsData: LightboxTaskDetailsData | null;
   taskDetailsStatus: TaskDetailsStatus;
-  taskMapping: GenerationTaskMapping | undefined;
+  taskMapping: GenerationTaskMappingCacheEntry | undefined;
   taskId: string | null;
   task: Task | undefined;
   inputImages: string[];
@@ -54,17 +51,9 @@ export function useGenerationTaskDetails({
     setMappingResolutionError(null);
   }, [activeGenerationId]);
 
-  const { data: taskMappingRaw, isLoading: isLoadingMapping } = useTaskFromUnifiedCache(activeGenerationId || "");
-  const taskMapping = useMemo<GenerationTaskMapping | undefined>(() => {
-    if (!taskMappingRaw) return undefined;
-    return {
-      taskId: typeof taskMappingRaw.taskId === "string" ? taskMappingRaw.taskId : null,
-      status: taskMappingRaw.status,
-      queryError: taskMappingRaw.queryError,
-    };
-  }, [taskMappingRaw]);
+  const { data: taskMapping, isLoading: isLoadingMapping } = useGenerationTaskMapping(activeGenerationId || "");
 
-  const primaryTaskLookup = useGetPrimaryTaskIdForGeneration();
+  const primaryTaskLookup = useResolveGenerationTaskMapping();
   const shouldResolveOnDemand = (
     Boolean(activeGenerationId)
     && resolveMappingOnDemand

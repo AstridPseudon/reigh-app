@@ -46,7 +46,7 @@ vi.mock('@/shared/lib/generationTaskRepository', () => ({
 import {
   preloadGenerationTaskMappings,
   mergeGenerationsWithTaskData,
-} from '../generationTaskCache';
+} from '../../hooks/tasks/generationTaskCache';
 
 describe('preloadGenerationTaskMappings', () => {
   const PROJECT_ID = 'project-1';

@@ -10,15 +10,15 @@ function getPrimaryTaskMapping(generationId: string): Promise<GenerationTaskMapp
 }
 
 /**
- * Canonical generation -> task mapping hook.
+ * Canonical on-demand generation -> task mapping resolver.
  * Preserves repository status semantics (`ok`, `not_loaded`, `missing_generation`, `scope_mismatch`,
  * `invalid_tasks_shape`, `query_failed`) so callers can branch explicitly.
  */
-export function useGetPrimaryTaskIdForGeneration() {
+export function useResolveGenerationTaskMapping() {
   return useMutation<GenerationTaskMapping, Error, string>({
     mutationFn: getPrimaryTaskMapping,
     onError: (error: Error) => {
-      normalizeAndPresentError(error, { context: 'GenerationTaskBridge', showToast: false });
+      normalizeAndPresentError(error, { context: 'GenerationTaskMapping', showToast: false });
     },
   });
 }

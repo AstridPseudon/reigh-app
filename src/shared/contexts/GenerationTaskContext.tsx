@@ -5,18 +5,17 @@ import type { Task } from '@/types/tasks';
 import {
   preloadGenerationTaskMappings,
   mergeGenerationsWithTaskData,
-} from '@/shared/lib/generationTaskCache';
+} from '@/shared/hooks/tasks/generationTaskCache';
 import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
 
 // ================================================================
 // GENERATION-TASK INTEGRATION CONTEXT
 // ================================================================
-// This context provides a centralized way for components to work with
-// both generation and task data seamlessly. It handles background
-// preloading and cache management automatically.
+// This context provides the canonical generation -> task mapping preloader plus
+// generation/task cache merging helpers used by media surfaces.
 
 interface GenerationTaskContextValue {
-  // Methods for working with generation-task relationships
+  // Methods for working with generation-task mappings
   preloadTaskMappings: (generationIds: string[]) => Promise<void>;
   enhanceWithTaskData: (generations: GenerationRow[]) => (GenerationRow & { taskId?: string | null; taskData?: Task | null })[];
   

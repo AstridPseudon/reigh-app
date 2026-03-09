@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   useShotNavigation: vi.fn(),
   useLastAffectedShot: vi.fn(),
   useQuickShotCreate: vi.fn(),
-  useTaskFromUnifiedCache: vi.fn(),
+  useGenerationTaskMapping: vi.fn(),
   usePrefetchTaskData: vi.fn(),
   useTaskType: vi.fn(),
   useGetTask: vi.fn(),
@@ -89,8 +89,10 @@ vi.mock('@/shared/hooks/shots/useLastAffectedShot', () => ({
 vi.mock('@/shared/hooks/useQuickShotCreate', () => ({
   useQuickShotCreate: (...args: unknown[]) => mocks.useQuickShotCreate(...args),
 }));
+vi.mock('@/shared/hooks/tasks/useGenerationTaskMapping', () => ({
+  useGenerationTaskMapping: (...args: unknown[]) => mocks.useGenerationTaskMapping(...args),
+}));
 vi.mock('@/shared/hooks/tasks/useTaskPrefetch', () => ({
-  useTaskFromUnifiedCache: (...args: unknown[]) => mocks.useTaskFromUnifiedCache(...args),
   usePrefetchTaskData: (...args: unknown[]) => mocks.usePrefetchTaskData(...args),
 }));
 vi.mock('@/shared/hooks/tasks/useTaskType', () => ({
@@ -239,7 +241,7 @@ describe('MediaGalleryItem', () => {
       handleInteraction: vi.fn(),
     });
     mocks.useProjectSelectionContext.mockReturnValue({ selectedProjectId: 'project-1' });
-    mocks.useTaskFromUnifiedCache.mockReturnValue({ data: null });
+    mocks.useGenerationTaskMapping.mockReturnValue({ data: null });
     mocks.usePrefetchTaskData.mockReturnValue(vi.fn());
     mocks.useGetTask.mockReturnValue({ data: null });
     mocks.useTaskType.mockReturnValue({ data: null });

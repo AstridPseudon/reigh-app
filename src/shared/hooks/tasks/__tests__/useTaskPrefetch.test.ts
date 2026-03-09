@@ -22,25 +22,26 @@ vi.mock('../useTasks', () => ({
   mapDbTaskToTask: vi.fn((data: unknown) => ({ ...data as object, _mapped: true })),
 }));
 
-import { useTaskFromUnifiedCache, usePrefetchTaskData, usePrefetchTaskById } from '../useTaskPrefetch';
+import { useGenerationTaskMapping } from '../useGenerationTaskMapping';
+import { usePrefetchTaskData, usePrefetchTaskById } from '../useTaskPrefetch';
 
 const GENERATION_ID = '11111111-1111-4111-8111-111111111111';
 const MISSING_GENERATION_ID = '22222222-2222-4222-8222-222222222222';
 const PROJECT_ID = '44444444-4444-4444-8444-444444444444';
 
-describe('useTaskFromUnifiedCache', () => {
+describe('useGenerationTaskMapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockMaybeSingle.mockResolvedValue({ data: { tasks: ['task-1'] }, error: null });
   });
 
   it('is disabled when generationId is empty', () => {
-    const { result } = renderHookWithProviders(() => useTaskFromUnifiedCache(''));
+    const { result } = renderHookWithProviders(() => useGenerationTaskMapping(''));
     expect(result.current.isFetching).toBe(false);
   });
 
   it('returns taskId from generation data', async () => {
-    const { result } = renderHookWithProviders(() => useTaskFromUnifiedCache(GENERATION_ID));
+    const { result } = renderHookWithProviders(() => useGenerationTaskMapping(GENERATION_ID));
 
     await vi.waitFor(() => {
       expect(result.current.data).toEqual({ taskId: 'task-1', status: 'ok' });
@@ -50,7 +51,7 @@ describe('useTaskFromUnifiedCache', () => {
   it('returns null taskId when generation has no tasks', async () => {
     mockMaybeSingle.mockResolvedValue({ data: { tasks: [] }, error: null });
 
-    const { result } = renderHookWithProviders(() => useTaskFromUnifiedCache(GENERATION_ID));
+    const { result } = renderHookWithProviders(() => useGenerationTaskMapping(GENERATION_ID));
 
     await vi.waitFor(() => {
       expect(result.current.data).toEqual({ taskId: null, status: 'ok' });
@@ -60,7 +61,7 @@ describe('useTaskFromUnifiedCache', () => {
   it('returns null taskId when generation not found', async () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
-    const { result } = renderHookWithProviders(() => useTaskFromUnifiedCache(MISSING_GENERATION_ID));
+    const { result } = renderHookWithProviders(() => useGenerationTaskMapping(MISSING_GENERATION_ID));
 
     await vi.waitFor(() => {
       expect(result.current.data).toEqual({ taskId: null, status: 'missing_generation' });
@@ -68,7 +69,7 @@ describe('useTaskFromUnifiedCache', () => {
   });
 
   it('does not query for non-UUID optimistic generation IDs', () => {
-    renderHookWithProviders(() => useTaskFromUnifiedCache('temp-upload-123'));
+    renderHookWithProviders(() => useGenerationTaskMapping('temp-upload-123'));
     expect(mockMaybeSingle).not.toHaveBeenCalled();
   });
 });

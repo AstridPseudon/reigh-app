@@ -13,8 +13,8 @@ interface UseTaskDetailsProps {
 
 interface UseTaskDetailsReturn {
   taskDetailsData: LightboxTaskDetailsData | null;
-  /** The task mapping (generationId → taskId) */
-  taskMapping: { taskId: string | null } | undefined;
+  /** The cached generation -> task mapping entry. */
+  taskMapping: { taskId: string | null; status?: string; queryError?: string } | undefined;
   /** The raw task data */
   task: Task | undefined;
   /** Loading state for just the task data (not mapping) */
@@ -25,7 +25,7 @@ interface UseTaskDetailsReturn {
 
 /**
  * Hook to fetch and manage task details for a generation.
- * Combines two queries: generation→taskId mapping and taskId→task data.
+ * Combines the canonical generation -> task mapping query with taskId -> task data.
  * Both queries use aggressive caching (staleTime: Infinity) for performance.
  */
 export function useTaskDetails({

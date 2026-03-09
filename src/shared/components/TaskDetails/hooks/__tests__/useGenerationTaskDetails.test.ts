@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { waitFor } from '@testing-library/react';
 import { renderHookWithProviders } from '@/test/test-utils';
 
-const mockUseTaskFromUnifiedCache = vi.fn();
+const mockUseGenerationTaskMapping = vi.fn();
 const mockUseGetTask = vi.fn();
 const mockMutateAsync = vi.fn();
 const mockNormalizeAndPresentError = vi.fn();
@@ -11,8 +11,8 @@ const mockPrimaryTaskLookup = {
   isPending: false,
 };
 
-vi.mock('@/shared/hooks/tasks/useTaskPrefetch', () => ({
-  useTaskFromUnifiedCache: (...args: unknown[]) => mockUseTaskFromUnifiedCache(...args),
+vi.mock('@/shared/hooks/tasks/useGenerationTaskMapping', () => ({
+  useGenerationTaskMapping: (...args: unknown[]) => mockUseGenerationTaskMapping(...args),
 }));
 
 vi.mock('@/shared/hooks/tasks/useTasks', () => ({
@@ -20,7 +20,7 @@ vi.mock('@/shared/hooks/tasks/useTasks', () => ({
 }));
 
 vi.mock('@/shared/hooks/tasks/usePrimaryTaskMapping', () => ({
-  useGetPrimaryTaskIdForGeneration: () => mockPrimaryTaskLookup,
+  useResolveGenerationTaskMapping: () => mockPrimaryTaskLookup,
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
@@ -33,7 +33,7 @@ describe('useGenerationTaskDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrimaryTaskLookup.isPending = false;
-    mockUseTaskFromUnifiedCache.mockReturnValue({
+    mockUseGenerationTaskMapping.mockReturnValue({
       data: { taskId: 'task-1', status: 'ok' },
       isLoading: false,
     });
@@ -86,7 +86,7 @@ describe('useGenerationTaskDetails', () => {
   });
 
   it('does not trigger fallback mapping when cache status is query_failed', async () => {
-    mockUseTaskFromUnifiedCache.mockReturnValue({
+    mockUseGenerationTaskMapping.mockReturnValue({
       data: { taskId: null, status: 'query_failed', queryError: 'RPC failed' },
       isLoading: false,
     });
@@ -106,12 +106,12 @@ describe('useGenerationTaskDetails', () => {
   });
 
   it('uses fallback mapping when cache has no task id', async () => {
-    mockUseTaskFromUnifiedCache.mockReturnValue({
+    mockUseGenerationTaskMapping.mockReturnValue({
       data: { taskId: null, status: 'not_loaded' },
       isLoading: false,
     });
     mockMutateAsync.mockImplementation(async () => {
-      mockUseTaskFromUnifiedCache.mockReturnValue({
+      mockUseGenerationTaskMapping.mockReturnValue({
         data: { taskId: 'fallback-task', status: 'ok' },
         isLoading: false,
       });

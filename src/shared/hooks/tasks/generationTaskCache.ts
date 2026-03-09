@@ -27,9 +27,7 @@ interface GenerationWithTaskData extends GenerationRow {
   taskMappingError?: string;
 }
 
-/**
- * Preload task mappings for a batch of generations in the background.
- */
+/** Preload cached generation -> task mappings for a batch of generations. */
 export async function preloadGenerationTaskMappings(
   queryClient: QueryClient,
   generationIds: string[],
