@@ -3,18 +3,7 @@ import { useRef, useCallback, useMemo } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { QUERY_PRESETS, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
-import {
-  callUpdateToolSettingsAtomicRpc,
-  resolveSettingsScopeTable,
-  selectSettingsForScope,
-} from '@/shared/lib/toolSettingsWriteRepository';
-import {
-  enqueueSettingsWrite,
-  setSettingsWriteFunction,
-  type QueuedWrite
-} from '@/shared/lib/settingsWriteQueue';
 import { deepMerge } from '@/shared/lib/utils/deepEqual';
-import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import {
   classifyToolSettingsError,
   fetchToolSettingsSupabaseOrThrow,
@@ -23,191 +12,13 @@ import {
   type SettingsFetchResult,
 } from '@/shared/lib/toolSettingsService';
 import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
+import {
+  updateToolSettingsSupabase,
+  type SettingsScope,
+} from '@/shared/lib/toolSettingsWriteService';
 
-export type SettingsScope = 'user' | 'project' | 'shot';
-type SettingsWriteMode = 'debounced' | 'immediate';
-
-interface UpdateToolSettingsParams {
-  scope: SettingsScope;
-  id: string;
-  toolId: string;
-  patch: unknown;
-}
-
-interface AbortSignalCapable<T> {
-  abortSignal?: (signal: AbortSignal) => T;
-}
-
-function isAbortSignal(value: unknown): value is AbortSignal {
-  return !!value
-    && typeof value === 'object'
-    && 'aborted' in value
-    && typeof (value as AbortSignal).addEventListener === 'function';
-}
-
-function maybeAttachAbortSignal<T>(query: T, signal?: AbortSignal): T {
-  if (!signal) return query;
-
-  const candidate = query as T & AbortSignalCapable<T>;
-  if (typeof candidate.abortSignal === 'function') {
-    return candidate.abortSignal(signal);
-  }
-
-  return query;
-}
-
-function throwIfAborted(signal?: AbortSignal): void {
-  if (signal?.aborted) {
-    throw new ToolSettingsError('cancelled', 'Request was cancelled', {
-      recoverable: true,
-      cause: signal.reason,
-    });
-  }
-}
-
-/**
- * Raw write function - performs the actual DB update.
- * Used internally by the settings write queue.
- *
- * @internal Use updateToolSettingsSupabase (queued) for normal usage
- */
-async function fetchSettingsForScope(
-  scope: SettingsScope,
-  id: string,
-  signal?: AbortSignal,
-) {
-  throwIfAborted(signal);
-
-  return maybeAttachAbortSignal(selectSettingsForScope(scope, id), signal);
-}
-
-async function rawUpdateToolSettings(write: QueuedWrite): Promise<Record<string, unknown>> {
-  const { scope, entityId: id, toolId, patch, signal } = write;
-
-  try {
-    if (scope !== 'user' && scope !== 'project' && scope !== 'shot') {
-      throw new ToolSettingsError(
-        'invalid_scope_identifier',
-        `Invalid scope: ${scope}`,
-      );
-    }
-
-    const tableName = resolveSettingsScopeTable(scope);
-
-    // For patch updates, we need to fetch current settings to merge
-    // This is necessary because the caller provides a partial update
-    // TODO: In the future, consider passing full settings to eliminate this fetch
-    const { data: currentEntity, error: fetchError } = await fetchSettingsForScope(scope, id, signal);
-
-    if (fetchError) {
-      const errorMessage = fetchError.message || '';
-      if (errorMessage.includes('ERR_INSUFFICIENT_RESOURCES') ||
-          errorMessage.includes('Failed to fetch') ||
-          fetchError.code === 'ERR_INSUFFICIENT_RESOURCES') {
-        throw new ToolSettingsError(
-          'network',
-          `Network exhaustion: ${errorMessage}`,
-          { recoverable: true, cause: fetchError },
-        );
-      }
-      throw new ToolSettingsError(
-        'scope_fetch_failed',
-        `Failed to fetch current ${scope} settings: ${errorMessage}`,
-        { recoverable: true, cause: fetchError },
-      );
-    }
-
-    // Merge patch with current tool settings
-    const currentSettings = (currentEntity?.settings as Record<string, unknown>) ?? {};
-    const currentToolSettings = (currentSettings[toolId] as Record<string, unknown>) ?? {};
-    const updatedToolSettings = deepMerge({}, currentToolSettings, patch);
-
-    // Use atomic PostgreSQL function to update settings
-    // This is much faster than update() because it happens in a single DB operation
-    throwIfAborted(signal);
-    const { error: rpcError } = await maybeAttachAbortSignal(
-      callUpdateToolSettingsAtomicRpc(
-        tableName,
-        id,
-        toolId,
-        updatedToolSettings,
-      ),
-      signal,
-    );
-
-    if (rpcError) {
-      throw new ToolSettingsError(
-        'scope_fetch_failed',
-        `Failed to update ${scope} settings: ${rpcError.message}`,
-        { recoverable: true, cause: rpcError },
-      );
-    }
-
-    // CRITICAL: Return the full merged settings, not just the patch
-    // This ensures the cache gets the exact same data that was saved to the DB
-    // Prevents data loss when cache is stale (e.g., multiple tabs, concurrent edits)
-    return updatedToolSettings;
-
-  } catch (error: unknown) {
-    // Handle abort errors silently to reduce noise during task cancellation
-    if (isCancellationError(error)) {
-      throw new ToolSettingsError('cancelled', 'Request was cancelled', {
-        recoverable: true,
-        cause: error,
-      });
-    }
-
-    console.error('[rawUpdateToolSettings] Error:', error);
-    throw error;
-  }
-}
-
-// Initialize the queue with our raw write function
-setSettingsWriteFunction(rawUpdateToolSettings);
-
-/**
- * Update tool settings using the global write queue.
- *
- * This is the main entry point for settings updates. It:
- * - Debounces rapid updates (300ms window)
- * - Coalesces multiple writes to the same target
- * - Serializes writes globally to prevent network exhaustion
- *
- * @param params - The update parameters
- * @param signal - Optional AbortSignal (legacy second-arg position) for cancellation
- * @param mode - 'debounced' (default) or 'immediate' for flush-on-unmount
- * @returns The full merged settings after update
- */
-function isSettingsWriteMode(value: unknown): value is SettingsWriteMode {
-  return value === 'debounced' || value === 'immediate';
-}
-
-export function updateToolSettingsSupabase(
-  params: UpdateToolSettingsParams,
-  mode?: SettingsWriteMode,
-): Promise<Record<string, unknown>>;
-export function updateToolSettingsSupabase(
-  params: UpdateToolSettingsParams,
-  signal?: AbortSignal,
-  mode?: SettingsWriteMode,
-): Promise<Record<string, unknown>>;
-export function updateToolSettingsSupabase(
-  params: UpdateToolSettingsParams,
-  signalOrMode?: AbortSignal | SettingsWriteMode,
-  maybeMode: SettingsWriteMode = 'debounced',
-): Promise<Record<string, unknown>> {
-  const { scope, id, toolId, patch } = params;
-  const signal = isAbortSignal(signalOrMode) ? signalOrMode : undefined;
-  const mode = isSettingsWriteMode(signalOrMode) ? signalOrMode : maybeMode;
-
-  return enqueueSettingsWrite({
-    scope,
-    entityId: id,
-    toolId,
-    patch: patch as Record<string, unknown>,
-    ...(signal ? { signal } : {}),
-  }, mode) as Promise<Record<string, unknown>>;
-}
+export { updateToolSettingsSupabase } from '@/shared/lib/toolSettingsWriteService';
+export type { SettingsScope } from '@/shared/lib/toolSettingsWriteService';
 
 // ============================================================================
 // Cache format helpers

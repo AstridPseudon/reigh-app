@@ -20,8 +20,6 @@ import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { AppProviders } from '@/app/providers/AppProviders';
 import { useAppDndOverlay } from '@/app/hooks/useAppDndOverlay';
 import { useAppExternalDrop } from '@/app/hooks/useAppExternalDrop';
-import { getNetworkStatusManager } from '@/shared/services/network/networkStatusManager';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 const AppInternalContent: React.FC = () => {
   const { selectedProjectId } = useProjectSelectionContext();
@@ -73,21 +71,9 @@ const AppInternalContent: React.FC = () => {
 };
 
 export function App() {
-  React.useEffect(() => {
-    try {
-      getNetworkStatusManager();
-    } catch (error) {
-      normalizeAndPresentError(error, {
-        context: 'App.startup.networkStatusManager',
-        showToast: false,
-      });
-    }
-  }, []);
-
   return (
     <AppProviders>
       <AppInternalContent />
     </AppProviders>
   );
 }
-

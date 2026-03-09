@@ -3,7 +3,7 @@
  *
  * This replaces ad-hoc window globals with an explicit typed access layer.
  */
-const PROJECT_SELECTION_STORAGE_KEY = 'lastSelectedProjectId';
+export const PROJECT_SELECTION_STORAGE_KEY = 'lastSelectedProjectId';
 
 interface ProjectSelectionSnapshot {
   selectedProjectId: string | null;
@@ -11,7 +11,7 @@ interface ProjectSelectionSnapshot {
 
 type ProjectSelectionListener = (snapshot: ProjectSelectionSnapshot) => void;
 
-function readPersistedProjectSelection(): string | null {
+export function readPersistedProjectSelection(): string | null {
   if (typeof window === 'undefined') {
     return null;
   }
@@ -24,35 +24,48 @@ function readPersistedProjectSelection(): string | null {
   }
 }
 
-let snapshot: ProjectSelectionSnapshot | null = null;
-
-function ensureSnapshot(): ProjectSelectionSnapshot {
-  if (!snapshot) {
-    snapshot = { selectedProjectId: readPersistedProjectSelection() };
-  }
-  return snapshot;
+function normalizeSelectedProjectId(selectedProjectId: string | null | undefined): string | null {
+  return selectedProjectId && selectedProjectId.trim().length > 0 ? selectedProjectId : null;
 }
 
+let snapshot: ProjectSelectionSnapshot = { selectedProjectId: null };
+let initialized = false;
 const listeners = new Set<ProjectSelectionListener>();
 
-export function setProjectSelectionSnapshot(next: ProjectSelectionSnapshot): void {
+export function initializeProjectSelectionStore(
+  initialSelectedProjectId: string | null = readPersistedProjectSelection(),
+): ProjectSelectionSnapshot {
   const normalized: ProjectSelectionSnapshot = {
-    selectedProjectId: next.selectedProjectId ?? null,
+    selectedProjectId: normalizeSelectedProjectId(initialSelectedProjectId),
   };
-  const current = ensureSnapshot();
-  if (current.selectedProjectId === normalized.selectedProjectId) {
-    return;
-  }
+  const shouldNotify = initialized && snapshot.selectedProjectId !== normalized.selectedProjectId;
   snapshot = normalized;
-  for (const listener of listeners) {
-    listener(normalized);
+  initialized = true;
+
+  if (shouldNotify) {
+    for (const listener of listeners) {
+      listener(normalized);
+    }
   }
+
+  return getProjectSelectionSnapshot();
+}
+
+export function setProjectSelectionSnapshot(next: ProjectSelectionSnapshot): void {
+  initializeProjectSelectionStore(next.selectedProjectId ?? null);
 }
 
 export function getProjectSelectionSnapshot(): ProjectSelectionSnapshot {
-  return ensureSnapshot();
+  return { ...snapshot };
 }
 
 export function getProjectSelectionFallbackId(): string | null {
-  return ensureSnapshot().selectedProjectId ?? readPersistedProjectSelection();
+  return snapshot.selectedProjectId;
+}
+
+/** @internal Only for test isolation — do not call in production code. */
+export function resetProjectSelectionStoreForTests(): void {
+  snapshot = { selectedProjectId: null };
+  initialized = false;
+  listeners.clear();
 }

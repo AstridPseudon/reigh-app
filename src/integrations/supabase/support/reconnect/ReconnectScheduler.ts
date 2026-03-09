@@ -149,7 +149,7 @@ export class ReconnectScheduler {
 let reconnectScheduler: ReconnectScheduler | null = null;
 let cleanupReconnectSchedulerDebugGlobal: (() => void) | null = null;
 
-export function getReconnectScheduler(): ReconnectScheduler {
+export function initializeReconnectScheduler(): ReconnectScheduler {
   if (!reconnectScheduler) {
     reconnectScheduler = new ReconnectScheduler();
     
@@ -163,6 +163,22 @@ export function getReconnectScheduler(): ReconnectScheduler {
       );
     }
   }
-  
+
   return reconnectScheduler;
+}
+
+export function getReconnectScheduler(): ReconnectScheduler {
+  if (!reconnectScheduler) {
+    throw new Error('[ReconnectScheduler] initializeReconnectScheduler() must be called before getReconnectScheduler().');
+  }
+
+  return reconnectScheduler;
+}
+
+/** @internal Only for test isolation — do not call in production code. */
+export function resetReconnectSchedulerForTests(): void {
+  reconnectScheduler?.destroy();
+  reconnectScheduler = null;
+  cleanupReconnectSchedulerDebugGlobal?.();
+  cleanupReconnectSchedulerDebugGlobal = null;
 }

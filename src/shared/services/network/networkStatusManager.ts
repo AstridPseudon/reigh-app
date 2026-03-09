@@ -110,19 +110,35 @@ export class NetworkStatusManager {
   }
 }
 
-let networkStatusManager: NetworkStatusManager;
+let networkStatusManager: NetworkStatusManager | null = null;
+let networkStatusDebugRegistered = false;
 
-export function getNetworkStatusManager(): NetworkStatusManager {
-  if (!networkStatusManager) {
-    networkStatusManager = new NetworkStatusManager();
-    networkStatusManager.initialize();
-
-    if (import.meta.env.DEV && typeof window !== 'undefined') {
-      void import('@/shared/services/network/networkStatusDebug').then(({ installNetworkStatusDebugHelpers }) => {
-        installNetworkStatusDebugHelpers(networkStatusManager);
-      });
-    }
+function registerNetworkStatusDebugHelpers(manager: NetworkStatusManager): void {
+  if (networkStatusDebugRegistered || !import.meta.env.DEV || typeof window === 'undefined') {
+    return;
   }
 
+  networkStatusDebugRegistered = true;
+  void import('@/shared/services/network/networkStatusDebug').then(({ installNetworkStatusDebugHelpers }) => {
+    installNetworkStatusDebugHelpers(manager);
+  });
+}
+
+export function initializeNetworkStatusManager(): NetworkStatusManager {
+  if (!networkStatusManager) {
+    networkStatusManager = new NetworkStatusManager();
+  }
+  networkStatusManager.initialize();
+  registerNetworkStatusDebugHelpers(networkStatusManager);
   return networkStatusManager;
+}
+
+export function getNetworkStatusManager(): NetworkStatusManager | null {
+  return networkStatusManager;
+}
+
+/** @internal Only for test isolation — do not call in production code. */
+export function resetNetworkStatusManagerForTests(): void {
+  networkStatusManager = null;
+  networkStatusDebugRegistered = false;
 }

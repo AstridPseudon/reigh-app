@@ -45,17 +45,21 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     // Use centralized NetworkStatusManager if available
     try {
       const manager = getNetworkStatusManager();
-      const status = manager.getStatus();
-      const qualityMap: Record<string, number> = {
-        '4g': 1,
-        '3g': 0.6,
-        '2g': 0.35,
-        'slow-2g': 0.2,
-      };
-      console.log('- Network Status (NetworkStatusManager):', status.isOnline ? 'Online' : 'Offline');
-      console.log('- Connection Type:', status.effectiveType || 'Unknown');
-      console.log('- Connection Quality:', Math.round((qualityMap[status.effectiveType || ''] ?? 1) * 100) + '%');
-      console.log('- Last Network Transition:', new Date(status.lastTransitionAt).toISOString());
+      if (manager) {
+        const status = manager.getStatus();
+        const qualityMap: Record<string, number> = {
+          '4g': 1,
+          '3g': 0.6,
+          '2g': 0.35,
+          'slow-2g': 0.2,
+        };
+        console.log('- Network Status (NetworkStatusManager):', status.isOnline ? 'Online' : 'Offline');
+        console.log('- Connection Type:', status.effectiveType || 'Unknown');
+        console.log('- Connection Quality:', Math.round((qualityMap[status.effectiveType || ''] ?? 1) * 100) + '%');
+        console.log('- Last Network Transition:', new Date(status.lastTransitionAt).toISOString());
+      } else {
+        throw new Error('NetworkStatusManager not initialized');
+      }
     } catch {
       // Fallback to direct navigator access
       console.log('- Network Status (navigator):', navigator.onLine ? 'Online' : 'Offline');

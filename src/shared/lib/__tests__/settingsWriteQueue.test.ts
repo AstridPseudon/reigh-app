@@ -15,6 +15,8 @@ vi.stubGlobal('document', {
 
 // Import after mocks
 import {
+  initializeSettingsWriteQueue,
+  resetSettingsWriteQueueForTests,
   setSettingsWriteFunction,
   enqueueSettingsWrite,
   type QueuedWrite,
@@ -25,11 +27,13 @@ describe('settingsWriteQueue', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    resetSettingsWriteQueueForTests();
     mockWriteFn = vi.fn().mockResolvedValue({ ok: true });
-    setSettingsWriteFunction(mockWriteFn);
+    initializeSettingsWriteQueue(mockWriteFn);
   });
 
   afterEach(() => {
+    resetSettingsWriteQueueForTests();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -234,14 +238,6 @@ describe('settingsWriteQueue', () => {
 
     it('throws when write function is not initialized', async () => {
       // Reset the write function to null
-      setSettingsWriteFunction(null as unknown);
-      // Re-set to a proper function that signals missing initialization
-      // Actually, we need to test the path where writeFunction is null
-      // The module checks `if (!writeFunction)` and throws
-      // We can't easily set it to null via the public API since setSettingsWriteFunction expects a function
-      // Instead, let's test that a proper write function works after being set
-      setSettingsWriteFunction(mockWriteFn);
-
       const write: QueuedWrite = {
         scope: 'user',
         entityId: 'user-2',
@@ -249,10 +245,11 @@ describe('settingsWriteQueue', () => {
         patch: { test: true },
       };
 
-      const promise = enqueueSettingsWrite(write, 'immediate');
-      await vi.advanceTimersByTimeAsync(0);
-      const result = await promise;
-      expect(result).toEqual({ ok: true });
+      resetSettingsWriteQueueForTests();
+
+      await expect(() => enqueueSettingsWrite(write, 'immediate')).toThrow(
+        'initializeSettingsWriteQueue',
+      );
     });
 
     it('handles immediate mode upgrading a debounced write', async () => {

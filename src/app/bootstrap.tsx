@@ -13,6 +13,9 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { notifyError } from '@/shared/lib/errorHandling/notifyError';
 import { installRuntimeErrorPresenter } from '@/shared/lib/errorHandling/runtimeErrorPresenter';
 import { initializeViewportLockRuntime } from '@/shared/runtime/viewportLockRuntime';
+import { initializeProjectSelectionStore } from '@/shared/contexts/projectSelectionStore';
+import { initializeToolSettingsWriteRuntime } from '@/shared/lib/toolSettingsWriteService';
+import { initializeNetworkStatusManager } from '@/shared/services/network/networkStatusManager';
 import '@/index.css';
 
 let presenterInstalled = false;
@@ -63,6 +66,11 @@ export function initializeAppEnvironment(): void {
   initializeToastManager();
   registerToastErrorPresenter();
   initializeViewportLockRuntime();
+  initializeProjectSelectionStore();
+  initializeToolSettingsWriteRuntime();
+  if (typeof window !== 'undefined') {
+    initializeNetworkStatusManager();
+  }
 
   // Initialize autoplay monitoring in development (after console suppression check)
   if (shouldLoadAutoplayMonitor(env)) {

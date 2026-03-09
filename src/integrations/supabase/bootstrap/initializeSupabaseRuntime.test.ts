@@ -3,11 +3,11 @@ import { initializeSupabaseRuntime } from './initializeSupabaseRuntime';
 
 const {
   initAuthStateManagerMock,
-  getReconnectSchedulerMock,
+  initializeReconnectSchedulerMock,
   maybeAutoLoginMock,
 } = vi.hoisted(() => ({
   initAuthStateManagerMock: vi.fn(),
-  getReconnectSchedulerMock: vi.fn(),
+  initializeReconnectSchedulerMock: vi.fn(),
   maybeAutoLoginMock: vi.fn(),
 }));
 
@@ -16,7 +16,7 @@ vi.mock('@/integrations/supabase/auth/AuthStateManager', () => ({
 }));
 
 vi.mock('@/integrations/supabase/support/reconnect/ReconnectScheduler', () => ({
-  getReconnectScheduler: getReconnectSchedulerMock,
+  initializeReconnectScheduler: initializeReconnectSchedulerMock,
 }));
 
 vi.mock('@/integrations/supabase/support/dev/autoLogin', () => ({
@@ -29,7 +29,7 @@ describe('initializeSupabaseRuntime', () => {
 
     initializeSupabaseRuntime(client);
 
-    expect(getReconnectSchedulerMock).toHaveBeenCalledTimes(1);
+    expect(initializeReconnectSchedulerMock).toHaveBeenCalledTimes(1);
     expect(initAuthStateManagerMock).toHaveBeenCalledWith(client);
     expect(maybeAutoLoginMock).toHaveBeenCalledWith(client);
   });

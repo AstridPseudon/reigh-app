@@ -1,13 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ReconnectScheduler, getReconnectScheduler } from './ReconnectScheduler';
+import {
+  ReconnectScheduler,
+  getReconnectScheduler,
+  initializeReconnectScheduler,
+  resetReconnectSchedulerForTests,
+} from './ReconnectScheduler';
 
 describe('ReconnectScheduler', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    resetReconnectSchedulerForTests();
   });
 
   afterEach(() => {
+    resetReconnectSchedulerForTests();
     vi.useRealTimers();
   });
 
@@ -45,8 +52,12 @@ describe('ReconnectScheduler', () => {
     scheduler.destroy();
   });
 
-  it('returns a singleton from getReconnectScheduler', () => {
-    const first = getReconnectScheduler();
+  it('requires explicit initialization before getReconnectScheduler', () => {
+    expect(() => getReconnectScheduler()).toThrow('initializeReconnectScheduler');
+  });
+
+  it('returns a singleton from initializeReconnectScheduler/getReconnectScheduler', () => {
+    const first = initializeReconnectScheduler();
     const second = getReconnectScheduler();
     expect(first).toBe(second);
   });

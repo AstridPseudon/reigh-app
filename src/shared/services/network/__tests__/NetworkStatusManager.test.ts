@@ -5,7 +5,12 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NetworkStatusManager, getNetworkStatusManager } from '../networkStatusManager';
+import {
+  NetworkStatusManager,
+  getNetworkStatusManager,
+  initializeNetworkStatusManager,
+  resetNetworkStatusManagerForTests,
+} from '../networkStatusManager';
 
 // Mock navigator
 const mockNavigator = {
@@ -38,6 +43,7 @@ describe('NetworkStatusManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetNetworkStatusManagerForTests();
     manager = new NetworkStatusManager();
   });
 
@@ -122,14 +128,18 @@ describe('NetworkStatusManager', () => {
   });
 
   describe('global instance', () => {
+    it('returns null until initialized explicitly', () => {
+      expect(getNetworkStatusManager()).toBeNull();
+    });
+
     it('should return the same instance', () => {
-      const instance1 = getNetworkStatusManager();
-      const instance2 = getNetworkStatusManager();
+      const instance1 = initializeNetworkStatusManager();
+      const instance2 = initializeNetworkStatusManager();
       expect(instance1).toBe(instance2);
     });
 
     it('should initialize automatically', () => {
-      const instance = getNetworkStatusManager();
+      const instance = initializeNetworkStatusManager();
       expect(instance).toBeInstanceOf(NetworkStatusManager);
     });
   });

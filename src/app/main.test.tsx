@@ -13,8 +13,24 @@ vi.mock('@/shared/lib/logger', () => ({
   reactProfilerOnRender: vi.fn(),
 }));
 
+const initializeProjectSelectionStoreMock = vi.fn();
+const initializeToolSettingsWriteRuntimeMock = vi.fn();
+const initializeNetworkStatusManagerMock = vi.fn();
+
+vi.mock('@/shared/contexts/projectSelectionStore', () => ({
+  initializeProjectSelectionStore: initializeProjectSelectionStoreMock,
+}));
+
+vi.mock('@/shared/lib/toolSettingsWriteService', () => ({
+  initializeToolSettingsWriteRuntime: initializeToolSettingsWriteRuntimeMock,
+}));
+
+vi.mock('@/shared/services/network/networkStatusManager', () => ({
+  initializeNetworkStatusManager: initializeNetworkStatusManagerMock,
+}));
+
 vi.mock('@/app/App', () => ({
-  default: () => null,
+  App: () => null,
 }));
 
 vi.mock('@/app/components/error/AppErrorBoundary', () => ({
@@ -26,6 +42,9 @@ describe('bootstrap.renderApp', () => {
     vi.resetModules();
     mockCreateRoot.mockClear();
     mockRender.mockClear();
+    initializeProjectSelectionStoreMock.mockClear();
+    initializeToolSettingsWriteRuntimeMock.mockClear();
+    initializeNetworkStatusManagerMock.mockClear();
     localStorage.clear();
     document.documentElement.classList.remove('dark');
   });
@@ -46,6 +65,9 @@ describe('bootstrap.renderApp', () => {
     initializeAppEnvironment();
 
     expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(initializeProjectSelectionStoreMock).toHaveBeenCalledTimes(1);
+    expect(initializeToolSettingsWriteRuntimeMock).toHaveBeenCalledTimes(1);
+    expect(initializeNetworkStatusManagerMock).toHaveBeenCalledTimes(1);
   });
 });
 

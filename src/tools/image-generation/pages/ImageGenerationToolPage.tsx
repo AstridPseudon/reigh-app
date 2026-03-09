@@ -42,16 +42,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
   const effectiveProjectId = useMemo(() => {
     if (selectedProjectId) return selectedProjectId;
     const fromRuntime = getProjectSelectionFallbackId();
-    if (fromRuntime) {
-      return fromRuntime;
-    }
-    if (typeof window !== 'undefined') {
-      try {
-        const fromStorage = window.localStorage.getItem('lastSelectedProjectId');
-        if (fromStorage) return fromStorage;
-      } catch { /* intentionally ignored */ }
-    }
-    return null;
+    return fromRuntime ?? null;
   }, [selectedProjectId]);
 
   const currentProject = projects.find(project => project.id === selectedProjectId);

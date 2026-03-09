@@ -41,6 +41,7 @@ const flushQueue: Array<{ targetKey: string; pending: PendingWrite }> = [];
 
 // The actual write function - injected to avoid circular imports
 let writeFunction: ((write: QueuedWrite) => Promise<unknown>) | null = null;
+let lifecycleHooksRegistered = false;
 
 function createAbortError(): Error {
   if (typeof DOMException !== 'undefined') {
@@ -57,25 +58,50 @@ function throwIfAborted(signal?: AbortSignal): void {
   }
 }
 
+function registerLifecycleHooks(): void {
+  if (lifecycleHooksRegistered || typeof window === 'undefined') {
+    return;
+  }
+
+  window.addEventListener('beforeunload', () => {
+    flushAll();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushAll();
+    }
+  });
+  lifecycleHooksRegistered = true;
+}
+
 /**
- * Set the write function that performs the actual DB update.
- * Must be called once at app init (in useToolSettings.ts).
- * Also registers page-unload listeners on first call (deferred from module load).
+ * Initialize the queue with the write function that performs the actual DB update.
+ * Must be called during app bootstrap before any settings write is enqueued.
+ */
+export function initializeSettingsWriteQueue(fn: (write: QueuedWrite) => Promise<unknown>) {
+  writeFunction = fn;
+  registerLifecycleHooks();
+}
+
+/**
+ * @deprecated Use initializeSettingsWriteQueue() so runtime setup stays explicit.
  */
 export function setSettingsWriteFunction(fn: (write: QueuedWrite) => Promise<unknown>) {
-  const isFirstInit = writeFunction === null;
-  writeFunction = fn;
+  initializeSettingsWriteQueue(fn);
+}
 
-  if (isFirstInit && typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => {
-      flushAll();
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        flushAll();
-      }
-    });
+/** @internal Only for test isolation — do not call in production code. */
+export function resetSettingsWriteQueueForTests(): void {
+  for (const pending of pendingByTarget.values()) {
+    if (pending.timerId) {
+      clearTimeout(pending.timerId);
+    }
   }
+  pendingByTarget.clear();
+  flushQueue.length = 0;
+  inFlightCount = 0;
+  writeFunction = null;
+  lifecycleHooksRegistered = false;
 }
 
 /**
@@ -167,8 +193,8 @@ export function enqueueSettingsWrite(
 ): Promise<unknown> {
   if (!writeFunction) {
     throw new Error(
-      '[SettingsWriteQueue] enqueueSettingsWrite called before setSettingsWriteFunction. ' +
-      'Ensure app initialization calls setSettingsWriteFunction first.'
+      '[SettingsWriteQueue] enqueueSettingsWrite called before initializeSettingsWriteQueue. ' +
+      'Ensure app bootstrap initializes the queue before settings writes run.'
     );
   }
 
@@ -235,4 +261,3 @@ function flushAll(): void {
   pendingByTarget.clear();
   processQueue();
 }
-
