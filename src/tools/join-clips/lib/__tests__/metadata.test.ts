@@ -41,7 +41,6 @@ describe('join clips metadata boundary', () => {
       ok: true,
       value: { id: 'clip-1', durationSeconds: 9.5 },
       policy: 'best_effort',
-      recoverable: false,
     });
     expect(mockHandleError).not.toHaveBeenCalled();
   });

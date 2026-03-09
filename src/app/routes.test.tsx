@@ -34,7 +34,7 @@ vi.mock('@/pages/Blog/BlogListPage', () => ({ default: () => null }));
 vi.mock('@/pages/Blog/BlogPostPage', () => ({ default: () => null }));
 vi.mock('@/pages/NotFoundPage', () => ({ default: () => null }));
 vi.mock('@/pages/ShotsPage', () => ({ default: () => null }));
-vi.mock('@/app/Layout', () => ({ default: () => null }));
+vi.mock('@/app/Layout', () => ({ Layout: () => null }));
 vi.mock('@/shared/components/ReighLoading', () => ({ ReighLoading: () => null }));
 vi.mock('@/shared/components/ToolErrorBoundary', () => ({
   ToolErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,

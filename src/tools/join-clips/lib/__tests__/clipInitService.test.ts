@@ -198,7 +198,6 @@ describe('consumePendingJoinClips', () => {
       ok: true,
       value: [],
       policy: 'best_effort',
-      recoverable: false,
     });
   });
 
@@ -252,7 +251,6 @@ describe('consumePendingJoinClips', () => {
       ok: true,
       value: [],
       policy: 'best_effort',
-      recoverable: false,
     });
     expect(localStorage.getItem('pendingJoinClips')).toBeNull();
   });

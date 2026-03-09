@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../DropIndicator', () => ({
-  default: ({ isVisible }: { isVisible: boolean }) => (
+  DropIndicator: ({ isVisible }: { isVisible: boolean }) => (
     <div data-testid="drop-indicator" data-visible={String(isVisible)} />
   ),
 }));

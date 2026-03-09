@@ -23,7 +23,6 @@ describe('runAuthSupabaseOperation', () => {
       ok: true,
       value,
       policy: 'best_effort',
-      recoverable: false,
     });
   });
 
@@ -39,7 +38,6 @@ describe('runAuthSupabaseOperation', () => {
       ok: true,
       value: 'ok',
       policy: 'degrade',
-      recoverable: false,
     });
   });
 

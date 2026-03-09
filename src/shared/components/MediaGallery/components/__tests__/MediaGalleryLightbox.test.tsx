@@ -6,16 +6,14 @@ import type { GeneratedImageWithMetadata } from '../../types';
 const mediaLightboxSpy = vi.fn();
 
 vi.mock('@/domains/media-lightbox/MediaLightbox', () => ({
-  __esModule: true,
-  default: (props: unknown) => {
+  MediaLightbox: (props: unknown) => {
     mediaLightboxSpy(props);
     return null;
   },
 }));
 
-vi.mock('@/shared/components/TaskDetailsModal', () => ({
-  __esModule: true,
-  default: () => null,
+vi.mock('@/shared/components/TaskDetails/TaskDetailsModal', () => ({
+  TaskDetailsModal: () => null,
 }));
 
 vi.mock('../../hooks/useMediaGalleryLightboxControllers', () => ({

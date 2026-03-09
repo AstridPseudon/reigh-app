@@ -114,6 +114,7 @@ describe('deriveTaskInputImages', () => {
     const task = makeTask({
       taskType: 'individual_travel_segment',
       params: {
+        segment_index: 0,
         individual_segment_params: {
           input_image_paths_resolved: ['seg1.png', 'seg2.png'],
         },

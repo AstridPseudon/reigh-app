@@ -59,7 +59,7 @@ vi.mock('@/shared/components/ui/runtime/sonner', () => ({
   },
 }));
 
-import { useCredits } from '../useCredits';
+import { useCredits } from '@/shared/hooks/billing/useCredits';
 
 function createWrapper() {
   const queryClient = new QueryClient({

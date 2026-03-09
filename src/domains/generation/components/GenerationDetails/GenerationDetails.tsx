@@ -22,7 +22,7 @@ import { isJoinClipsTaskType, isCharacterAnimateTaskType, isTravelTaskType } fro
 import { ImageGenerationDetails } from '@/domains/generation/components/GenerationDetails/ImageGenerationDetails';
 import { Task } from '@/types/tasks';
 import type { LoraModel } from '@/domains/lora/types/lora';
-import type { DisplayableMetadata } from '@/shared/componen@/shared/types/displayableMetadata';
+import type { DisplayableMetadata } from '@/shared/types/displayableMetadata';
 
 // Types
 type DisplayVariant = 'hover' | 'modal' | 'panel';

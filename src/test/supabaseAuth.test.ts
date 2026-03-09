@@ -9,8 +9,17 @@ import {
 
 type SingleResponse = { data: unknown; error: unknown };
 
-function createSupabaseAdminMock(responses: Record<string, SingleResponse>) {
+function createSupabaseAdminMock(
+  responses: Record<string, SingleResponse>,
+  authUser?: { user: { id: string; role?: string; app_metadata?: Record<string, unknown> } } | null,
+) {
   return {
+    auth: {
+      getUser: async () =>
+        authUser
+          ? { data: { user: authUser.user }, error: null }
+          : { data: { user: null }, error: { message: 'invalid token' } },
+    },
     from(table: string) {
       return {
         select() {
@@ -64,18 +73,17 @@ describe('supabase auth shared helpers', () => {
   });
 
   it('authenticates JWT user tokens when enabled', async () => {
-    const payload = btoa(JSON.stringify({ sub: 'jwt-user', role: 'authenticated' }))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/g, '');
-    const token = `header.${payload}.signature`;
+    const token = 'valid-jwt-token';
     const req = new Request('https://example.com', {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const result = await authenticateRequest(req, createSupabaseAdminMock({}), '[AUTH]', {
-      allowJwtUserAuth: true,
-    });
+    const result = await authenticateRequest(
+      req,
+      createSupabaseAdminMock({}, { user: { id: 'jwt-user', role: 'authenticated' } }),
+      '[AUTH]',
+      { allowJwtUserAuth: true },
+    );
 
     expect(result.success).toBe(true);
     expect(result.userId).toBe('jwt-user');

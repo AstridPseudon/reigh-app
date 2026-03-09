@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useState } from 'react';
 
 vi.mock('@/shared/hooks/usePersistentState', () => ({
-  default: vi.fn(function usePersistentStateMock(_key: string, defaultVal: boolean) {
+  usePersistentState: vi.fn(function usePersistentStateMock(_key: string, defaultVal: boolean) {
     return useState(defaultVal);
   }),
 }));

@@ -81,7 +81,20 @@ describe('useVideoTravelTaskData', () => {
       orchestratorDetails: {},
       individualSegmentParams: {},
     });
-    mocks.readTravelContractData.mockReturnValue(taskParams.task_view_contract);
+    mocks.readTravelContractData.mockReturnValue({
+      inputImages: taskParams.task_view_contract.input_images,
+      prompt: taskParams.task_view_contract.prompt,
+      enhancedPrompt: taskParams.task_view_contract.enhanced_prompt,
+      negativePrompt: taskParams.task_view_contract.negative_prompt,
+      modelName: taskParams.task_view_contract.model_name,
+      resolution: taskParams.task_view_contract.resolution,
+      selectedPhasePresetId: taskParams.task_view_contract.selected_phase_preset_id,
+      advancedMode: taskParams.task_view_contract.advanced_mode,
+      phaseConfig: taskParams.task_view_contract.phase_config,
+      additionalLoras: taskParams.task_view_contract.additional_loras,
+      structureGuidance: taskParams.task_view_contract.structure_guidance,
+      segmentFramesExpanded: taskParams.task_view_contract.segment_frames_expanded,
+    });
     mocks.deriveInputImages.mockReturnValue(['derived.png']);
     mocks.derivePrompt.mockReturnValue('derived prompt');
     mocks.pickFirstStructureGuidance.mockImplementation(

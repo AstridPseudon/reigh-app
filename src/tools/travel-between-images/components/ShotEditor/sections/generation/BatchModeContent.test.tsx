@@ -72,8 +72,7 @@ vi.mock('@/shared/contexts/AIInputModeContext', () => ({
 }));
 
 vi.mock('../../../BatchSettingsForm', () => ({
-  __esModule: true,
-  default: (props: unknown) => {
+  BatchSettingsForm: (props: unknown) => {
     batchSettingsFormSpy(props);
     return <div data-testid="batch-settings-form" />;
   },

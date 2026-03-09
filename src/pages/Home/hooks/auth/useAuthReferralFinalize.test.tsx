@@ -64,7 +64,6 @@ describe('useAuthReferralFinalize', () => {
       ok: true,
       value: { finalized: false },
       policy: 'best_effort',
-      recoverable: false,
     });
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
@@ -92,7 +91,6 @@ describe('useAuthReferralFinalize', () => {
       ok: true,
       value: { finalized: true },
       policy: 'best_effort',
-      recoverable: false,
     });
   });
 

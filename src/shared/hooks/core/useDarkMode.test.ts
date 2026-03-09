@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 vi.mock('../usePersistentState', () => {
   return {
-    default: function usePersistentStateMock(_key: string, defaultValue: unknown) {
+    usePersistentState: function usePersistentStateMock(_key: string, defaultValue: unknown) {
       return useState(defaultValue);
     },
   };

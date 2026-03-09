@@ -38,7 +38,7 @@ vi.mock('@/shared/components/ui/checkbox', () => ({
 }));
 
 vi.mock('@/shared/components/FileInput', () => ({
-  default: ({ onFileChange }: { onFileChange: (files: File[]) => void }) => (
+  FileInput: ({ onFileChange }: { onFileChange: (files: File[]) => void }) => (
     <button
       type="button"
       data-testid="mock-file-input"

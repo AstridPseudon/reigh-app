@@ -4,7 +4,7 @@ import { renderHook } from '@testing-library/react';
 let darkModeValue = true;
 
 vi.mock('@/shared/hooks/usePersistentState', () => ({
-  default: () => [darkModeValue, vi.fn()],
+  usePersistentState: () => [darkModeValue, vi.fn()],
 }));
 
 import { useApplyDarkModeTheme } from '../useApplyDarkModeTheme';
