@@ -1,6 +1,6 @@
-import { cn } from '@/shared/components/ui/contracts/cn';
-import { TrimTimelineBar } from '@/shared/components/VideoTrimEditor/components/TrimTimelineBar';
-import type { TrimControlsPanelProps } from '@/shared/components/VideoTrimEditor/types';
+import { cn } from '../../ui/contracts/cn';
+import { TrimTimelineBar } from './TrimTimelineBar';
+import type { TrimControlsPanelProps } from '../types';
 
 interface TrimTimelineDisplayProps {
   trimState: TrimControlsPanelProps['trimState'];
