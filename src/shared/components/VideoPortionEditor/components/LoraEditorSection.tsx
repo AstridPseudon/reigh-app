@@ -1,6 +1,6 @@
-import { LoraManager } from '@/shared/components/LoraManager';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
-import type { VideoPortionEditorLoraProps } from '@/shared/components/VideoPortionEditor/types';
+import { LoraManager } from '../../LoraManager';
+import { TOOL_IDS } from '../../../lib/toolIds';
+import type { VideoPortionEditorLoraProps } from '../types';
 
 type LoraEditorSectionProps = Pick<
   VideoPortionEditorLoraProps,
