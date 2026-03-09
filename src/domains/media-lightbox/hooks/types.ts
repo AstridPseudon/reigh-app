@@ -159,7 +159,7 @@ export interface UseSharedLightboxStateReturn {
     isCreatingShot: boolean;
     quickCreateSuccess: QuickCreateSuccess;
     handleQuickCreateAndAdd: () => Promise<void>;
-    handleQuickCreateSuccess: () => void;
+    handleVisitCreatedShot: () => void;
   };
   sourceGeneration: {
     data: GenerationRow | null;

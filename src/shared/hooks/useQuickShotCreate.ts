@@ -41,7 +41,7 @@ interface UseQuickShotCreateReturn {
   /** Main function to create shot and add image atomically. Optionally pass a shot name. */
   handleQuickCreateAndAdd: (shotName?: string) => Promise<void>;
   /** Navigate to the newly created shot */
-  handleQuickCreateSuccess: () => void;
+  handleVisitCreatedShot: () => void;
   /** Clear the success state manually */
   clearQuickCreateSuccess: () => void;
 }
@@ -151,7 +151,7 @@ export const useQuickShotCreate = ({
     clearQuickCreateSuccess,
   ]);
 
-  const handleQuickCreateSuccess = useCallback(() => {
+  const handleVisitCreatedShot = useCallback(() => {
     if (!quickCreateSuccess.shotId) return;
 
     // Close parent UI before navigating (if callback provided)
@@ -186,7 +186,7 @@ export const useQuickShotCreate = ({
     isCreatingShot: isCreating,
     quickCreateSuccess,
     handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
+    handleVisitCreatedShot,
     clearQuickCreateSuccess,
   };
 };

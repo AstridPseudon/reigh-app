@@ -16,6 +16,7 @@ interface UseGenerationDetailsResult {
   inputImages: string[];
   isLoading: boolean;
   isError: boolean;
+  nonfatalWarning: string | null;
 }
 
 /**
@@ -39,11 +40,19 @@ export function useGenerationDetails({
   const task = taskProp || fetchedTask;
 
   // Derive input images from task if not explicitly provided
-  const inputImages = useMemo(() => {
+  const { inputImages, nonfatalWarning } = useMemo(() => {
     if (inputImagesProp && inputImagesProp.length > 0) {
-      return inputImagesProp;
+      return {
+        inputImages: inputImagesProp,
+        nonfatalWarning: null,
+      };
     }
-    if (!task?.params) return [];
+    if (!task?.params) {
+      return {
+        inputImages: [],
+        nonfatalWarning: null,
+      };
+    }
     // Parse params if needed
     let params: Record<string, unknown>;
     try {
@@ -54,9 +63,15 @@ export function useGenerationDetails({
         showToast: false,
         logData: { taskId: task?.id, hasStringParams: typeof task?.params === 'string' },
       });
-      return [];
+      return {
+        inputImages: [],
+        nonfatalWarning: 'Task parameters could not be parsed completely, so some generation details may be missing.',
+      };
     }
-    return deriveInputImages(params);
+    return {
+      inputImages: deriveInputImages(params),
+      nonfatalWarning: null,
+    };
   }, [inputImagesProp, task]);
 
   return {
@@ -64,5 +79,6 @@ export function useGenerationDetails({
     inputImages,
     isLoading: taskId ? isLoading && !taskProp : false,
     isError: taskId ? isError && !taskProp : false,
+    nonfatalWarning,
   };
 }

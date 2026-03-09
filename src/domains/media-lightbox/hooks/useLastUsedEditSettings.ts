@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 
@@ -22,11 +22,17 @@ interface UseLastUsedEditSettingsReturn {
   lastUsed: LastUsedEditSettings;
   updateLastUsed: (settings: Partial<LastUsedEditSettings>) => void;
   isLoading: boolean;
+  persistenceIssue: LastUsedEditSettingsPersistenceIssue | null;
 }
 
 interface UseLastUsedEditSettingsProps {
   projectId: string | null;
   enabled?: boolean;
+}
+
+export interface LastUsedEditSettingsPersistenceIssue {
+  scope: 'local_read' | 'local_write' | 'db_write';
+  message: string;
 }
 
 /**
@@ -72,6 +78,8 @@ export function useLastUsedEditSettings({
   projectId,
   enabled = true,
 }: UseLastUsedEditSettingsProps): UseLastUsedEditSettingsReturn {
+  const [persistenceIssue, setPersistenceIssue] = useState<LastUsedEditSettingsPersistenceIssue | null>(null);
+  const pendingLocalReadIssueRef = useRef<LastUsedEditSettingsPersistenceIssue | null>(null);
 
   // Database storage via useToolSettings (cascades: user → project)
   const {
@@ -108,7 +116,10 @@ export function useLastUsedEditSettings({
         return merged;
       }
     } catch {
-      // Failed to read localStorage
+      pendingLocalReadIssueRef.current = {
+        scope: 'local_read',
+        message: 'Failed to read stored lightbox edit settings from localStorage.',
+      };
     }
 
     return DEFAULT_LAST_USED;
@@ -130,6 +141,13 @@ export function useLastUsedEditSettings({
     }
   }, [projectId, getLocalStorageValue]);
 
+  useEffect(() => {
+    if (pendingLocalReadIssueRef.current) {
+      setPersistenceIssue(pendingLocalReadIssueRef.current);
+      pendingLocalReadIssueRef.current = null;
+    }
+  }, [projectId]);
+
   // Sync from DB when loaded (DB is source of truth for cross-device)
   useEffect(() => {
     if (!isDbLoading && dbSettings && !hasSyncedFromDbRef.current && projectId) {
@@ -143,7 +161,13 @@ export function useLastUsedEditSettings({
       try {
         localStorage.setItem(STORAGE_KEY_PROJECT(projectId), JSON.stringify(merged));
         localStorage.setItem(STORAGE_KEY_GLOBAL, JSON.stringify(merged));
-      } catch { /* intentionally ignored */ }
+        setPersistenceIssue(null);
+      } catch {
+        setPersistenceIssue({
+          scope: 'local_write',
+          message: 'Failed to sync lightbox edit settings back to localStorage.',
+        });
+      }
     }
   }, [isDbLoading, dbSettings, projectId]);
 
@@ -167,12 +191,23 @@ export function useLastUsedEditSettings({
         localStorage.setItem(STORAGE_KEY_PROJECT(projectId), JSON.stringify(merged));
       }
       localStorage.setItem(STORAGE_KEY_GLOBAL, JSON.stringify(merged));
-    } catch { /* intentionally ignored */ }
+      setPersistenceIssue(null);
+    } catch {
+      setPersistenceIssue({
+        scope: 'local_write',
+        message: 'Failed to persist lightbox edit settings to localStorage.',
+      });
+    }
 
     // 2. Update database (cross-device sync)
     // Save at user level only - "last used" is a personal preference, not project-specific
-    void updateDbSettings('user', merged).catch(() => {
-      // Swallow to avoid spam - useToolSettings handles errors
+    void updateDbSettings('user', merged).then(() => {
+      setPersistenceIssue(null);
+    }).catch(() => {
+      setPersistenceIssue({
+        scope: 'db_write',
+        message: 'Failed to sync lightbox edit settings to the database.',
+      });
     });
   }, [projectId, updateDbSettings]);
 
@@ -180,5 +215,6 @@ export function useLastUsedEditSettings({
     lastUsed: currentValueRef.current!,
     updateLastUsed,
     isLoading: isDbLoading && !hasSyncedFromDbRef.current,
+    persistenceIssue,
   };
 }

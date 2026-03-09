@@ -81,7 +81,7 @@ export const ShotSelectorWithAdd: React.FC<ShotSelectorWithAddProps> = ({
     isCreatingShot,
     quickCreateSuccess,
     handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
+    handleVisitCreatedShot,
   } = useQuickShotCreate({
     generationId: imageId,
     generationPreview: {
@@ -164,7 +164,7 @@ export const ShotSelectorWithAdd: React.FC<ShotSelectorWithAddProps> = ({
         onCreateShot={handleQuickCreateAndAdd}
         isCreatingShot={isCreatingShot}
         quickCreateSuccess={quickCreateSuccess}
-        onQuickCreateSuccess={handleQuickCreateSuccess}
+        onVisitCreatedShot={handleVisitCreatedShot}
         side="top"
         align="start"
         sideOffset={4}

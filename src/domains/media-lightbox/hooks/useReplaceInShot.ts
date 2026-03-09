@@ -27,8 +27,23 @@ interface UseReplaceInShotReturn {
     currentMediaId: string,
     parentTimelineFrame: number,
     shotId: string
-  ) => Promise<void>;
+  ) => Promise<ReplaceInShotResult>;
 }
+
+type ReplaceInShotFailureStage =
+  | 'clear_parent'
+  | 'fetch_target_assoc'
+  | 'assign_target'
+  | 'restore_parent';
+
+export type ReplaceInShotResult =
+  | { ok: true }
+  | {
+      ok: false;
+      stage: ReplaceInShotFailureStage;
+      recovered: boolean;
+      message: string;
+    };
 
 export function useReplaceInShot({
   onClose,
@@ -38,7 +53,14 @@ export function useReplaceInShot({
     currentMediaId: string,
     parentTimelineFrame: number,
     shotIdParam: string
-  ) => {
+  ): Promise<ReplaceInShotResult> => {
+    const restoreParentTimelineFrame = async (): Promise<Error | null> => {
+      const { error } = await supabase().from('shot_generations')
+        .update({ timeline_frame: parentTimelineFrame })
+        .eq('generation_id', parentGenerationId)
+        .eq('shot_id', shotIdParam);
+      return error ?? null;
+    };
 
     try {
       // 1. Remove timeline_frame from parent's shot_generation record
@@ -47,15 +69,31 @@ export function useReplaceInShot({
         .eq('generation_id', parentGenerationId)
         .eq('shot_id', shotIdParam);
 
-      if (removeError) throw removeError;
+      if (removeError) {
+        throw {
+          stage: 'clear_parent' as const,
+          recovered: false,
+          cause: removeError,
+        };
+      }
 
       // 2. Update or create shot_generation for current image with the timeline_frame
       // First check if current image already has a shot_generation for this shot
-      const { data: existingAssoc } = await supabase().from('shot_generations')
+      const { data: existingAssoc, error: existingAssocError } = await supabase().from('shot_generations')
         .select('id')
         .eq('generation_id', currentMediaId)
         .eq('shot_id', shotIdParam)
-        .single();
+        .maybeSingle();
+
+      if (existingAssocError) {
+        const restoreError = await restoreParentTimelineFrame();
+        throw {
+          stage: restoreError ? 'restore_parent' as const : 'fetch_target_assoc' as const,
+          recovered: !restoreError,
+          cause: existingAssocError,
+          restoreError,
+        };
+      }
 
       if (existingAssoc) {
         // Update existing
@@ -66,7 +104,15 @@ export function useReplaceInShot({
           })
           .eq('id', existingAssoc.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          const restoreError = await restoreParentTimelineFrame();
+          throw {
+            stage: restoreError ? 'restore_parent' as const : 'assign_target' as const,
+            recovered: !restoreError,
+            cause: updateError,
+            restoreError,
+          };
+        }
       } else {
         // Create new
         const { error: createError } = await supabase().from('shot_generations')
@@ -77,14 +123,49 @@ export function useReplaceInShot({
             metadata: { user_positioned: true, drag_source: 'replace_parent' }
           });
 
-        if (createError) throw createError;
+        if (createError) {
+          const restoreError = await restoreParentTimelineFrame();
+          throw {
+            stage: restoreError ? 'restore_parent' as const : 'assign_target' as const,
+            recovered: !restoreError,
+            cause: createError,
+            restoreError,
+          };
+        }
       }
 
       // Close lightbox to force refresh when reopened
       onClose();
+      return { ok: true };
     } catch (error) {
-      normalizeAndPresentError(error, { context: 'useReplaceInShot', showToast: false });
-      return;
+      const failure = (
+        error && typeof error === 'object' && 'stage' in error && 'recovered' in error
+      ) ? error as {
+        stage: ReplaceInShotFailureStage;
+        recovered: boolean;
+        cause: unknown;
+        restoreError?: unknown;
+      } : null;
+
+      normalizeAndPresentError(failure?.cause ?? error, {
+        context: 'useReplaceInShot',
+        showToast: false,
+        logData: failure
+          ? {
+              stage: failure.stage,
+              recovered: failure.recovered,
+              restoreError: failure.restoreError,
+            }
+          : undefined,
+      });
+      return {
+        ok: false,
+        stage: failure?.stage ?? 'assign_target',
+        recovered: failure?.recovered ?? false,
+        message: failure?.recovered
+          ? 'Replace-in-shot failed, but the parent timeline position was restored.'
+          : 'Replace-in-shot failed after mutating timeline state.',
+      };
     }
   }, [onClose]);
 

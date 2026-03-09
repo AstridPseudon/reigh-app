@@ -255,7 +255,7 @@ describe('MediaGalleryItem', () => {
     mocks.useQuickShotCreate.mockReturnValue({
       quickCreateSuccess: false,
       handleQuickCreateAndAdd: vi.fn(),
-      handleQuickCreateSuccess: vi.fn(),
+      handleVisitCreatedShot: vi.fn(),
     });
     mocks.resolveAspectRatioPadding.mockReturnValue('56.25%');
     mocks.deriveGalleryInputImages.mockReturnValue([]);

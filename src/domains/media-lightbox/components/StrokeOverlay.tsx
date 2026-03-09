@@ -5,10 +5,9 @@
  * StrokeOverlay             — rendering + ref (exportMask, actions)
  */
 
-import { useImperativeHandle, forwardRef } from 'react';
+import { Suspense, forwardRef, lazy, useImperativeHandle } from 'react';
 import { getRectangleCorners } from '../hooks/inpainting/shapeHelpers';
 import { exportStrokeMask } from './strokeOverlay/maskExport';
-import { StrokeOverlayCanvas } from './strokeOverlay/StrokeOverlayCanvas';
 import {
   useStrokeOverlayDrawing,
   type StrokeOverlayDrawingProps,
@@ -18,6 +17,11 @@ export type { BrushStroke, StrokeOverlayHandle } from '../hooks/inpainting/types
 import type { BrushStroke, StrokeOverlayHandle } from '../hooks/inpainting/types';
 
 type StrokeOverlayProps = StrokeOverlayDrawingProps;
+
+const LazyStrokeOverlayCanvas = lazy(async () => {
+  const module = await import('./strokeOverlay/StrokeOverlayCanvas');
+  return { default: module.StrokeOverlayCanvas };
+});
 
 export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>((props, ref) => {
   const {
@@ -94,21 +98,23 @@ export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>
   }), [strokes, imageWidth, imageHeight, selectedShapeId, onStrokesChange, updateSelection]);
 
   return (
-    <StrokeOverlayCanvas
-      displayWidth={displayWidth}
-      displayHeight={displayHeight}
-      strokes={strokes}
-      currentStroke={currentStroke}
-      selectedShapeId={selectedShapeId}
-      annotationMode={annotationMode}
-      isEraseMode={isEraseMode}
-      brushSize={brushSize}
-      scaleX={scaleX}
-      toStage={toStage}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    />
+    <Suspense fallback={null}>
+      <LazyStrokeOverlayCanvas
+        displayWidth={displayWidth}
+        displayHeight={displayHeight}
+        strokes={strokes}
+        currentStroke={currentStroke}
+        selectedShapeId={selectedShapeId}
+        annotationMode={annotationMode}
+        isEraseMode={isEraseMode}
+        brushSize={brushSize}
+        scaleX={scaleX}
+        toStage={toStage}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      />
+    </Suspense>
   );
 });
 

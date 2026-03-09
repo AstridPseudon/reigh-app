@@ -140,7 +140,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   const {
     quickCreateSuccess,
     handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
+    handleVisitCreatedShot,
   } = useQuickShotCreate({
     generationId: generationIdForActions,
     generationPreview: {
@@ -370,7 +370,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
               quickCreate={{
                 quickCreateSuccess,
                 handleQuickCreateAndAdd,
-                handleQuickCreateSuccess,
+                handleVisitCreatedShot,
               }}
               actions={{
                 onCreateShot,

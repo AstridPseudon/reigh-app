@@ -10,10 +10,8 @@ interface UseLightboxTransitionReturn {
   isLightboxTransitioning: boolean;
   /** Ref for the transition overlay element */
   transitionOverlayRef: React.RefObject<HTMLDivElement>;
-  /** Show the overlay synchronously */
-  showTransitionOverlay: () => void;
-  /** Hide the overlay with fade animation */
-  hideTransitionOverlay: () => void;
+  /** Complete a transition and clean up shared document state. */
+  completeTransition: (delayMs?: number) => void;
   /** Execute navigation with transition overlay to prevent flash */
   navigateWithTransition: (doNavigation: () => void) => void;
 }
@@ -50,6 +48,27 @@ export function useLightboxTransition(): UseLightboxTransitionReturn {
     setIsLightboxTransitioning(false);
   }, []);
 
+  const cleanupTransitionArtifacts = useCallback(() => {
+    document.body.classList.remove('lightbox-transitioning');
+    if (document.body.style.overflow === 'hidden' && !document.querySelector('[data-dialog-backdrop]')) {
+      document.body.style.overflow = '';
+    }
+  }, []);
+
+  const completeTransition = useCallback((delayMs = 0) => {
+    const run = () => {
+      hideTransitionOverlay();
+      cleanupTransitionArtifacts();
+    };
+
+    if (delayMs > 0) {
+      setTimeout(run, delayMs);
+      return;
+    }
+
+    run();
+  }, [cleanupTransitionArtifacts, hideTransitionOverlay]);
+
   // Helper to navigate with transition overlay - prevents flash when component type changes
   // Shows overlay synchronously, waits for paint via double-rAF, then executes navigation
   const navigateWithTransition = useCallback((doNavigation: () => void) => {
@@ -65,38 +84,24 @@ export function useLightboxTransition(): UseLightboxTransitionReturn {
   // Safety cleanup: always remove the class when transition state is cleared
   useEffect(() => {
     if (!isLightboxTransitioning) {
-      document.body.classList.remove('lightbox-transitioning');
+      cleanupTransitionArtifacts();
     }
-  }, [isLightboxTransitioning]);
+  }, [cleanupTransitionArtifacts, isLightboxTransitioning]);
 
   // Safety timeout: remove overlay after 500ms max to prevent it getting stuck
   useEffect(() => {
     if (isLightboxTransitioning) {
       const safetyTimer = setTimeout(() => {
-        hideTransitionOverlay();
-        document.body.classList.remove('lightbox-transitioning');
+        completeTransition();
       }, 500);
       return () => clearTimeout(safetyTimer);
     }
-  }, [isLightboxTransitioning, hideTransitionOverlay]);
-
-  // Safety: ensure body scroll is restored after lightbox transition ends
-  useEffect(() => {
-    if (!isLightboxTransitioning) {
-      const timer = setTimeout(() => {
-        if (document.body.style.overflow === 'hidden' && !document.querySelector('[data-dialog-backdrop]')) {
-          document.body.style.overflow = '';
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isLightboxTransitioning]);
+  }, [completeTransition, isLightboxTransitioning]);
 
   return {
     isLightboxTransitioning,
     transitionOverlayRef,
-    showTransitionOverlay,
-    hideTransitionOverlay,
+    completeTransition,
     navigateWithTransition,
   };
 }

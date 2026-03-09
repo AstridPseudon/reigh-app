@@ -29,8 +29,8 @@ export const useEditModeLoras = (): UseEditModeLorasReturn => {
   const [loraMode, setLoraMode] = useState<LoraMode>('none'); // Default to no preset LoRA
   const [customLoraUrl, setCustomLoraUrl] = useState<string>('');
 
-  // Legacy boolean support - map to new lora mode
-  const isInSceneBoostEnabled = loraMode !== 'none';
+  // Legacy boolean support: this flag only represents the in-scene preset.
+  const isInSceneBoostEnabled = loraMode === 'in-scene';
   const setIsInSceneBoostEnabled = (enabled: boolean) => {
     setLoraMode(enabled ? 'in-scene' : 'none');
   };

@@ -86,7 +86,7 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
   showCopyButtons,
 }) => {
   // Use hook for data fetching and preparation
-  const { task, inputImages, isLoading } = useGenerationDetails({
+  const { task, inputImages, isLoading, nonfatalWarning } = useGenerationDetails({
     taskId,
     task: taskProp,
     inputImages: inputImagesProp,
@@ -120,31 +120,66 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
   };
 
   const taskType = task.taskType;
+  const warningBanner = nonfatalWarning ? (
+    <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+      {nonfatalWarning}
+    </div>
+  ) : null;
 
   // Route to appropriate specialized component based on task type
   if (isVideoEnhanceTaskType(taskType)) {
-    return <VideoEnhanceDetails {...detailsProps} />;
+    return (
+      <>
+        {warningBanner}
+        <VideoEnhanceDetails {...detailsProps} />
+      </>
+    );
   }
 
   if (isImageEnhanceTaskType(taskType)) {
-    return <ImageEnhanceDetails {...detailsProps} />;
+    return (
+      <>
+        {warningBanner}
+        <ImageEnhanceDetails {...detailsProps} />
+      </>
+    );
   }
 
   if (isImageEditTaskType(taskType)) {
-    return <ImageEditTaskDetails {...detailsProps} />;
+    return (
+      <>
+        {warningBanner}
+        <ImageEditTaskDetails {...detailsProps} />
+      </>
+    );
   }
 
   if (isCharacterAnimateTaskType(taskType)) {
-    return <CharacterAnimateDetails {...detailsProps} />;
+    return (
+      <>
+        {warningBanner}
+        <CharacterAnimateDetails {...detailsProps} />
+      </>
+    );
   }
 
   if (isJoinClipsTaskType(taskType)) {
-    return <JoinClipsDetails {...detailsProps} />;
+    return (
+      <>
+        {warningBanner}
+        <JoinClipsDetails {...detailsProps} />
+      </>
+    );
   }
 
   // For travel tasks, use VideoTravelDetails
   if (isTravelTaskType(taskType)) {
-    return <VideoTravelDetails {...detailsProps} />;
+    return (
+      <>
+        {warningBanner}
+        <VideoTravelDetails {...detailsProps} />
+      </>
+    );
   }
 
   // For image generation tasks (non-video), build metadata and use ImageGenerationDetails
@@ -170,15 +205,18 @@ export const GenerationDetails: React.FC<GenerationDetailsProps> = ({
   };
 
   return (
-    <ImageGenerationDetails
-      metadata={metadata}
-      variant={variant}
-      isMobile={isMobile}
-      showFullPrompt={showFullPrompt}
-      onShowFullPromptChange={onShowFullPromptChange}
-      showFullNegativePrompt={showFullNegativePrompt}
-      onShowFullNegativePromptChange={onShowFullNegativePromptChange}
-      showCopyButtons={showCopyButtons}
-    />
+    <>
+      {warningBanner}
+      <ImageGenerationDetails
+        metadata={metadata}
+        variant={variant}
+        isMobile={isMobile}
+        showFullPrompt={showFullPrompt}
+        onShowFullPromptChange={onShowFullPromptChange}
+        showFullNegativePrompt={showFullNegativePrompt}
+        onShowFullNegativePromptChange={onShowFullNegativePromptChange}
+        showCopyButtons={showCopyButtons}
+      />
+    </>
   );
 };

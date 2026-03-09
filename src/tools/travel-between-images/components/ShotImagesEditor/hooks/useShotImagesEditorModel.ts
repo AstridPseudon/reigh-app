@@ -175,7 +175,7 @@ function useModeOrchestration(
 
   const {
     transitionOverlayRef,
-    hideTransitionOverlay,
+    completeTransition,
     navigateWithTransition,
   } = useLightboxTransition();
 
@@ -236,11 +236,8 @@ function useModeOrchestration(
 
   const handleClearPendingImageToOpen = useCallback(() => {
     segmentSlot.setPendingImageToOpen(null);
-    setTimeout(() => {
-      hideTransitionOverlay();
-      document.body.classList.remove('lightbox-transitioning');
-    }, 200);
-  }, [hideTransitionOverlay, segmentSlot]);
+    completeTransition(200);
+  }, [completeTransition, segmentSlot]);
 
   return {
     transitionOverlayRef,

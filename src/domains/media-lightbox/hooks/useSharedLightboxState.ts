@@ -247,7 +247,7 @@ export function useSharedLightboxState(input: UseSharedLightboxStateInput): UseS
       isCreatingShot: shotState.isCreatingShot,
       quickCreateSuccess: shotState.quickCreateSuccess,
       handleQuickCreateAndAdd: shotState.handleQuickCreateAndAdd,
-      handleQuickCreateSuccess: shotState.handleQuickCreateSuccess,
+      handleVisitCreatedShot: shotState.handleVisitCreatedShot,
     },
     sourceGeneration: {
       data: sourceGenerationData,

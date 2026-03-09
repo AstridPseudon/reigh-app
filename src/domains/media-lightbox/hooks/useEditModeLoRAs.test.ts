@@ -79,15 +79,24 @@ describe('useEditModeLoras', () => {
     expect(result.current.editModeLoras).toBeUndefined();
   });
 
-  it('reports isInSceneBoostEnabled as true for all non-none modes', () => {
+  it('reports isInSceneBoostEnabled only for the in-scene preset', () => {
     const { result } = renderHook(() => useEditModeLoras());
 
-    for (const mode of ['in-scene', 'next-scene', 'custom'] as const) {
-      act(() => {
-        result.current.setLoraMode(mode);
-      });
-      expect(result.current.isInSceneBoostEnabled).toBe(true);
-    }
+    act(() => {
+      result.current.setLoraMode('in-scene');
+    });
+    expect(result.current.isInSceneBoostEnabled).toBe(true);
+
+    act(() => {
+      result.current.setLoraMode('next-scene');
+    });
+    expect(result.current.isInSceneBoostEnabled).toBe(false);
+
+    act(() => {
+      result.current.setLoraMode('custom');
+      result.current.setCustomLoraUrl('https://example.com/custom.safetensors');
+    });
+    expect(result.current.isInSceneBoostEnabled).toBe(false);
 
     act(() => {
       result.current.setLoraMode('none');

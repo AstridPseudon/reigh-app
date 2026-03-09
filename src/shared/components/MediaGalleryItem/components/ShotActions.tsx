@@ -47,7 +47,7 @@ interface ShotQuickCreateState {
     isLoading?: boolean;
   };
   handleQuickCreateAndAdd: () => void;
-  handleQuickCreateSuccess: () => void;
+  handleVisitCreatedShot: () => void;
 }
 
 /** Callback handlers for shot actions */
@@ -97,7 +97,7 @@ export const ShotActions: React.FC<ShotActionsProps> = ({
   const {
     quickCreateSuccess,
     handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
+    handleVisitCreatedShot,
   } = quickCreate;
 
   const {
@@ -145,7 +145,7 @@ export const ShotActions: React.FC<ShotActionsProps> = ({
           onCreateShot={handleQuickCreateAndAdd}
           isCreatingShot={addingToShotImageId === image.id}
           quickCreateSuccess={quickCreateSuccess}
-          onQuickCreateSuccess={handleQuickCreateSuccess}
+          onVisitCreatedShot={handleVisitCreatedShot}
           side="top"
           align="start"
           sideOffset={4}

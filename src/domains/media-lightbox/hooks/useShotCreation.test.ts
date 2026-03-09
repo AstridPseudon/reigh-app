@@ -81,7 +81,7 @@ describe('MediaLightbox useShotCreation', () => {
     );
 
     act(() => {
-      result.current.handleQuickCreateSuccess();
+      result.current.handleVisitCreatedShot();
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -111,7 +111,7 @@ describe('MediaLightbox useShotCreation', () => {
     );
 
     act(() => {
-      result.current.handleQuickCreateSuccess();
+      result.current.handleVisitCreatedShot();
     });
 
     expect(onNavigateToShot).toHaveBeenCalledWith(

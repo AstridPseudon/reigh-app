@@ -17,7 +17,7 @@ interface UseShotCreationReturn {
   isCreatingShot: boolean;
   quickCreateSuccess: QuickCreateSuccess;
   handleQuickCreateAndAdd: () => Promise<void>;
-  handleQuickCreateSuccess: () => void;
+  handleVisitCreatedShot: () => void;
 }
 
 /**
@@ -57,7 +57,7 @@ export const useShotCreation = ({
   });
 
   // Custom navigation handler that uses onNavigateToShot callback
-  const handleQuickCreateSuccess = useCallback(() => {
+  const handleVisitCreatedShot = useCallback(() => {
 
     if (quickCreateSuccess.shotId && onNavigateToShot) {
       // Try to find the shot in the list first
@@ -95,6 +95,6 @@ export const useShotCreation = ({
     isCreatingShot,
     quickCreateSuccess,
     handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
+    handleVisitCreatedShot,
   };
 };

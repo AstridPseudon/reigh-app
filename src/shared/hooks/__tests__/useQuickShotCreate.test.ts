@@ -40,7 +40,7 @@ describe('useQuickShotCreate', () => {
     expect(result.current.quickCreateSuccess.isSuccessful).toBe(false);
     expect(result.current.quickCreateSuccess.shotId).toBeNull();
     expect(typeof result.current.handleQuickCreateAndAdd).toBe('function');
-    expect(typeof result.current.handleQuickCreateSuccess).toBe('function');
+    expect(typeof result.current.handleVisitCreatedShot).toBe('function');
     expect(typeof result.current.clearQuickCreateSuccess).toBe('function');
   });
 
@@ -129,7 +129,7 @@ describe('useQuickShotCreate', () => {
     expect(result.current.quickCreateSuccess.shotId).toBeNull();
   });
 
-  it('handleQuickCreateSuccess calls onClose and navigateToShot', async () => {
+  it('handleVisitCreatedShot calls onClose and navigateToShot', async () => {
     const onClose = vi.fn();
     const { result } = renderHook(() =>
       useQuickShotCreate({
@@ -144,7 +144,7 @@ describe('useQuickShotCreate', () => {
     });
 
     act(() => {
-      result.current.handleQuickCreateSuccess();
+      result.current.handleVisitCreatedShot();
     });
 
     expect(onClose).toHaveBeenCalled();

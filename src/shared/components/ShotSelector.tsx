@@ -35,7 +35,7 @@ interface ShotSelectorProps {
     shotName: string | null;
     isLoading?: boolean; // True when shot is created but still syncing/loading
   };
-  onQuickCreateSuccess?: () => void;
+  onVisitCreatedShot?: () => void;
   
   // Additional props for SelectContent
   side?: "top" | "bottom" | "left" | "right";
@@ -64,7 +64,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
   onCreateShot,
   isCreatingShot = false,
   quickCreateSuccess,
-  onQuickCreateSuccess,
+  onVisitCreatedShot,
   side = "top",
   align = "start",
   sideOffset = 4,
@@ -226,8 +226,8 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
                     e.stopPropagation();
                     if (quickCreateSuccess.isLoading) return;
                     setShotSelectorOpen(false);
-                    if (onQuickCreateSuccess) {
-                      onQuickCreateSuccess();
+                    if (onVisitCreatedShot) {
+                      onVisitCreatedShot();
                     }
                   }}
                   disabled={quickCreateSuccess.isLoading}

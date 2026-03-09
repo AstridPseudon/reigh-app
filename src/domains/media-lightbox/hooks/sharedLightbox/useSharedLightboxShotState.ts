@@ -30,7 +30,7 @@ export function useSharedLightboxShotState(input: UseSharedLightboxShotStateInpu
     onOptimisticUnpositioned,
   } = shotWorkflow ?? {};
 
-  const { isCreatingShot, quickCreateSuccess, handleQuickCreateAndAdd, handleQuickCreateSuccess } = useShotCreation({
+  const { isCreatingShot, quickCreateSuccess, handleQuickCreateAndAdd, handleVisitCreatedShot } = useShotCreation({
     media,
     selectedProjectId,
     allShots: allShots || [],
@@ -76,6 +76,6 @@ export function useSharedLightboxShotState(input: UseSharedLightboxShotStateInpu
     isCreatingShot,
     quickCreateSuccess,
     handleQuickCreateAndAdd,
-    handleQuickCreateSuccess,
+    handleVisitCreatedShot,
   };
 }
