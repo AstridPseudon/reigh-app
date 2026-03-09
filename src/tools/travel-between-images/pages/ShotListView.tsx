@@ -5,7 +5,7 @@ import CreateShotModal from '@/features/shots/components/CreateShotModal';
 import { ShotListDisplay } from '../components/VideoGallery/ShotListDisplay';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
-import { useHandleExternalImageDrop, useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/shots';
+import { useHandleExternalImageDrop, useAddImageToShot } from '@/shared/hooks/shots';
 import { useProjectGenerations } from '@/shared/hooks/projects/useProjectGenerations';
 import type { GenerationsPaginatedResponse } from '@/shared/hooks/projects/useProjectGenerations';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
@@ -68,7 +68,6 @@ export function ShotListView({
   const { createShot } = useShotCreation();
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
   const addImageToShotMutation = useAddImageToShot();
-  const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const { requestDelete: requestDeleteGeneration, confirmDialogProps, isPending: isDeletePending } = useDeleteGenerationWithConfirm({ projectId: selectedProjectId });
   const toggleStarMutation = useToggleGenerationStar();
 
@@ -195,7 +194,6 @@ export function ShotListView({
     selectedProjectId,
     shots,
     addImageToShotMutation,
-    addImageToShotWithoutPositionMutation,
   });
 
   // Delete generation handler (with confirmation dialog)
@@ -217,7 +215,6 @@ export function ShotListView({
     selectedProjectId,
     shots,
     addImageToShotMutation,
-    addImageToShotWithoutPositionMutation,
     handleExternalImageDropMutation,
     refetchShots,
     setShotSortMode,

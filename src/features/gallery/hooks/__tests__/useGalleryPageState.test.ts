@@ -36,9 +36,7 @@ vi.mock('@/domains/generation/hooks/useDeleteGenerationWithConfirm', () => ({
 vi.mock('@/shared/hooks/shots', () => ({
   useAddImageToShot: () => ({
     mutateAsync: vi.fn().mockResolvedValue(undefined),
-  }),
-  useAddImageToShotWithoutPosition: () => ({
-    mutateAsync: vi.fn().mockResolvedValue(undefined),
+    mutateAsyncWithoutPosition: vi.fn().mockResolvedValue(undefined),
   }),
   usePositionExistingGenerationInShot: () => ({
     mutateAsync: vi.fn().mockResolvedValue(undefined),

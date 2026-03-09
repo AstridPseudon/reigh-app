@@ -5,8 +5,7 @@ import { ShotSettingsEditor } from './index';
 
 vi.mock('@/shared/hooks/shots', () => ({
   useUpdateShotImageOrder: () => ({ mutateAsync: vi.fn() }),
-  useAddImageToShotWithoutPosition: () => ({ mutateAsync: vi.fn() }),
-  useAddImageToShot: () => ({ mutateAsync: vi.fn() }),
+  useAddImageToShot: () => ({ mutateAsync: vi.fn(), mutateAsyncWithoutPosition: vi.fn() }),
   useRemoveImageFromShot: () => ({ mutateAsync: vi.fn() }),
 }));
 

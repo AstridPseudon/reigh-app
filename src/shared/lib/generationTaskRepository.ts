@@ -1,6 +1,6 @@
 import {
-  supabaseClientRegistry,
-  type SupabaseClientRegistry,
+  getSupabaseClientResult,
+  type GetSupabaseClientResult,
 } from '@/integrations/supabase/client';
 import { parseGenerationTaskId } from '@/shared/lib/generationTaskIdParser';
 
@@ -72,15 +72,15 @@ interface VariantProjectScopeResolution {
 
 interface GenerationTaskRepositoryOptions {
   projectId?: string;
-  supabaseRegistry?: SupabaseClientRegistry;
+  getSupabaseClientResult?: GetSupabaseClientResult;
 }
 
 export async function resolveGenerationProjectScope(
   generationId: string,
   expectedProjectId?: string,
-  supabaseRegistry: SupabaseClientRegistry = supabaseClientRegistry,
+  getClientResult: GetSupabaseClientResult = getSupabaseClientResult,
 ): Promise<GenerationProjectScopeResolution> {
-  const supabaseResult = supabaseRegistry.getClientResult();
+  const supabaseResult = getClientResult();
   if (!supabaseResult.ok) {
     return {
       generationId,
@@ -147,9 +147,9 @@ export async function resolveGenerationProjectScope(
 export async function resolveVariantProjectScope(
   variantId: string,
   expectedProjectId?: string,
-  supabaseRegistry: SupabaseClientRegistry = supabaseClientRegistry,
+  getClientResult: GetSupabaseClientResult = getSupabaseClientResult,
 ): Promise<VariantProjectScopeResolution> {
-  const supabaseResult = supabaseRegistry.getClientResult();
+  const supabaseResult = getClientResult();
   if (!supabaseResult.ok) {
     return {
       variantId,
@@ -215,7 +215,7 @@ export async function resolveVariantProjectScope(
   const generationScope = await resolveGenerationProjectScope(
     data.generation_id,
     expectedProjectId,
-    supabaseRegistry,
+    getClientResult,
   );
 
   if (generationScope.status !== 'ok') {
@@ -257,7 +257,7 @@ export async function getPrimaryTaskMappingsForGenerations(
   }
 
   const requestedIds = Array.from(new Set(generationIds));
-  const supabaseResult = (options?.supabaseRegistry ?? supabaseClientRegistry).getClientResult();
+  const supabaseResult = (options?.getSupabaseClientResult ?? getSupabaseClientResult)();
   if (!supabaseResult.ok) {
     const failures = new Map<string, GenerationTaskMapping>();
     requestedIds.forEach((generationId) => {

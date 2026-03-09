@@ -6,7 +6,6 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import {
   useAddImageToShot,
-  useAddImageToShotWithoutPosition,
   useRemoveImageFromShot,
   useUpdateShotImageOrder
 } from '@/shared/hooks/shots';
@@ -33,7 +32,6 @@ export function useShotImageMutations(input: UseShotImageMutationsInput): UseSho
   const removeImageFromShotMutation = useRemoveImageFromShot();
   const updateShotImageOrderMutation = useUpdateShotImageOrder();
   const addImageToShotMutation = useAddImageToShot();
-  const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
 
   const refreshSelectedShotImages = useCallback(async () => {
     if (currentShotId && selectedProjectId) {
@@ -130,7 +128,7 @@ export function useShotImageMutations(input: UseShotImageMutationsInput): UseSho
     }
 
     try {
-      await addImageToShotWithoutPositionMutation.mutateAsync({
+      await addImageToShotMutation.mutateAsyncWithoutPosition({
         shot_id: currentShotId,
         generation_id: generationId,
         imageUrl,
@@ -144,7 +142,7 @@ export function useShotImageMutations(input: UseShotImageMutationsInput): UseSho
       normalizeAndPresentError(error, { context: 'ShotsPage', toastTitle: 'Failed to add to shot' });
       return false;
     }
-  }, [addImageToShotWithoutPositionMutation, currentShotId, refreshSelectedShotImages, selectedProjectId]);
+  }, [addImageToShotMutation, currentShotId, refreshSelectedShotImages, selectedProjectId]);
 
   return {
     handleDeleteImage,

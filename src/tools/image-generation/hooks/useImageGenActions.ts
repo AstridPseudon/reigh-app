@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/shots';
+import { useAddImageToShot, usePositionExistingGenerationInShot } from '@/shared/hooks/shots';
 import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useLastAffectedShot } from '@/shared/hooks/shots/useLastAffectedShot';
@@ -33,7 +33,6 @@ export function useImageGenActions({
   const queryClient = useQueryClient();
   const { lastAffectedShotId, setLastAffectedShotId } = useLastAffectedShot();
   const addImageToShotMutation = useAddImageToShot();
-  const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const positionExistingGenerationMutation = usePositionExistingGenerationInShot();
   const { requestDelete, confirmDialogProps } = useDeleteGenerationWithConfirm({ projectId });
   const toggleStarMutation = useToggleGenerationStar();
@@ -118,7 +117,7 @@ export function useImageGenActions({
     }
 
     try {
-      await addImageToShotWithoutPositionMutation?.mutateAsync({
+      await addImageToShotMutation?.mutateAsyncWithoutPosition({
         shot_id: resolvedTargetShotId,
         generation_id: generationId,
         imageUrl,
@@ -132,7 +131,7 @@ export function useImageGenActions({
       normalizeAndPresentError(error, { context: 'ImageGenerationToolPage.handleAddImageToTargetShotWithoutPosition', toastTitle: 'Failed to add image to shot without position.' });
       return false;
     }
-  }, [targetShotInfo.targetShotIdForButton, projectId, addImageToShotWithoutPositionMutation, setLastAffectedShotId, queryClient, effectiveProjectId]);
+  }, [targetShotInfo.targetShotIdForButton, projectId, addImageToShotMutation, setLastAffectedShotId, queryClient, effectiveProjectId]);
 
   const handleBackfillRequest = useCallback(async (): Promise<void> => {
     if (!projectId) return;

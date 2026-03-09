@@ -35,9 +35,7 @@ const { mockGetSupabaseClientResult } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabaseClientRegistry: {
-    getClientResult: () => mockGetSupabaseClientResult(),
-  },
+  getSupabaseClientResult: () => mockGetSupabaseClientResult(),
 }));
 
 vi.mock('@/shared/lib/tasks/orchestratorReference', () => ({

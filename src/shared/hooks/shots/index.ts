@@ -18,7 +18,6 @@ export { useUpdateShotName } from './useShotUpdates';
 // Shot-generation mutations (add, remove, reorder images in shots)
 export {
   useAddImageToShot,
-  useAddImageToShotWithoutPosition,
   useRemoveImageFromShot,
   useUpdateShotImageOrder,
   usePositionExistingGenerationInShot,

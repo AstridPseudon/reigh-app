@@ -66,9 +66,7 @@ vi.mock('../useShotsCrud', () => ({
 vi.mock('../useShotGenerationMutations', () => ({
   useAddImageToShot: vi.fn(() => ({
     mutateAsync: vi.fn().mockResolvedValue(undefined),
-  })),
-  useAddImageToShotWithoutPosition: vi.fn(() => ({
-    mutateAsync: vi.fn().mockResolvedValue(undefined),
+    mutateAsyncWithoutPosition: vi.fn().mockResolvedValue(undefined),
   })),
 }));
 

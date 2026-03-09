@@ -563,7 +563,6 @@ const moduleLoaders = [
   () => import('@/tools/travel-between-images/components/ShotEditor/controllers/useOutputController'),
   () => import('@/tools/travel-between-images/components/ShotEditor/controllers/useShotEditorApplySettingsModel'),
   () => import('@/tools/travel-between-images/components/ShotEditor/controllers/useShotEditorLayoutModel'),
-  () => import('@/tools/travel-between-images/components/ShotEditor/controllers/useShotEditorLayoutPayloadModel'),
   () => import('@/tools/travel-between-images/components/ShotEditor/controllers/useShotEditorMediaAndOutputControllers'),
   () => import('@/tools/travel-between-images/components/ShotEditor/services/generateVideo/pairPayload'),
   () => import('@/tools/travel-between-images/components/ShotEditor/services/generateVideo/requestBody'),

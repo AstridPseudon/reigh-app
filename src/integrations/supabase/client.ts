@@ -8,10 +8,7 @@ import {
 } from '@/integrations/supabase/runtime/supabaseRuntime';
 
 export type { SupabaseClientAccessResult };
-
-export interface SupabaseClientRegistry {
-  getClientResult: () => SupabaseClientAccessResult;
-}
+export type GetSupabaseClientResult = () => SupabaseClientAccessResult;
 
 /** Runtime bootstrap entrypoint for app startup. */
 function initializeSupabase() {
@@ -33,13 +30,9 @@ export function getSupabaseClientResult(): SupabaseClientAccessResult {
   return result.ok ? result : { ok: false, error: normalizeSupabaseError(result.error) };
 }
 
-export const supabaseClientRegistry: SupabaseClientRegistry = {
-  getClientResult: getSupabaseClientResult,
-};
-
 /** Runtime accessor for initialized app runtime. Throws if bootstrap has not run. */
 export function getSupabaseClient() {
-  const result = supabaseClientRegistry.getClientResult();
+  const result = getSupabaseClientResult();
   if (!result.ok) {
     throw result.error;
   }

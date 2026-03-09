@@ -23,7 +23,7 @@ interface UseVideoTravelAddToShotParams {
   selectedProjectId: string;
   /** Current shots list */
   shots: Shot[] | undefined;
-  /** Mutation to add an image to a shot with automatic position */
+  /** Mutation to add an image to a shot with automatic or explicit no-position behavior */
   addImageToShotMutation: {
     mutateAsync: (params: {
       shot_id: string;
@@ -32,10 +32,7 @@ interface UseVideoTravelAddToShotParams {
       imageUrl?: string;
       thumbUrl?: string;
     }) => Promise<unknown>;
-  };
-  /** Mutation to add an image to a shot without timeline position */
-  addImageToShotWithoutPositionMutation: {
-    mutateAsync: (params: {
+    mutateAsyncWithoutPosition: (params: {
       shot_id: string;
       generation_id: string;
       project_id: string;
@@ -61,7 +58,6 @@ export const useVideoTravelAddToShot = ({
   selectedProjectId,
   shots,
   addImageToShotMutation,
-  addImageToShotWithoutPositionMutation,
 }: UseVideoTravelAddToShotParams): UseVideoTravelAddToShotReturn => {
   const queryClient = useQueryClient();
   const { lastAffectedShotId, setLastAffectedShotId } = useLastAffectedShot();
@@ -74,7 +70,7 @@ export const useVideoTravelAddToShot = ({
   
   // Shared implementation for adding to shot (with or without position)
   const addToTargetShot = useCallback(async (
-    mutation: typeof addImageToShotMutation,
+    mutation: typeof addImageToShotMutation.mutateAsync,
     targetShotId: string,
     generationId: string,
     imageUrl?: string,
@@ -98,7 +94,7 @@ export const useVideoTravelAddToShot = ({
     }
 
     try {
-      await mutation.mutateAsync({
+      await mutation({
         shot_id: resolvedTargetShotId,
         generation_id: generationId,
         imageUrl,
@@ -119,15 +115,15 @@ export const useVideoTravelAddToShot = ({
   // Handle adding a video/image to target shot WITH position
   const handleAddVideoToTargetShot = useCallback(
     (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) =>
-      addToTargetShot(addImageToShotMutation, targetShotId, generationId, imageUrl, thumbUrl),
+      addToTargetShot(addImageToShotMutation.mutateAsync, targetShotId, generationId, imageUrl, thumbUrl),
     [addToTargetShot, addImageToShotMutation]
   );
 
   // Handle adding a video/image to target shot WITHOUT position
   const handleAddVideoToTargetShotWithoutPosition = useCallback(
     (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) =>
-      addToTargetShot(addImageToShotWithoutPositionMutation, targetShotId, generationId, imageUrl, thumbUrl),
-    [addToTargetShot, addImageToShotWithoutPositionMutation]
+      addToTargetShot(addImageToShotMutation.mutateAsyncWithoutPosition, targetShotId, generationId, imageUrl, thumbUrl),
+    [addToTargetShot, addImageToShotMutation]
   );
 
   return {

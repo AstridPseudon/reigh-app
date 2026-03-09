@@ -10,7 +10,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useCreateShot } from './useShotsCrud';
-import { useAddImageToShot, useAddImageToShotWithoutPosition } from './useShotGenerationMutations';
+import { useAddImageToShot } from './useShotGenerationMutations';
 import { processDroppedImages, type ExternalImageDropVariables } from './externalImageDrop';
 
 interface CreateShotWithImageResponse {
@@ -84,7 +84,6 @@ export const useCreateShotWithImage = () => {
 export const useHandleExternalImageDrop = () => {
   const createShotMutation = useCreateShot();
   const addImageToShotMutation = useAddImageToShot();
-  const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
 
   return useMutation({
     mutationFn: async (variables: ExternalImageDropVariables) => {
@@ -100,7 +99,7 @@ export const useHandleExternalImageDrop = () => {
           projectId: currentProjectQueryKey,
           createShot: createShotMutation.mutateAsync,
           addImageToShot: addImageToShotMutation.mutateAsync,
-          addImageToShotWithoutPosition: addImageToShotWithoutPositionMutation.mutateAsync,
+          addImageToShotWithoutPosition: addImageToShotMutation.mutateAsyncWithoutPosition,
         });
       } catch (error) {
         normalizeAndPresentError(error, { context: 'useShotCreation', toastTitle: 'Failed to process dropped image(s)' });

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useUpdateShotImageOrder, useAddImageToShot, useAddImageToShotWithoutPosition } from "@/shared/hooks/shots";
+import { useUpdateShotImageOrder, useAddImageToShot } from "@/shared/hooks/shots";
 import { useShotCreation } from "@/shared/hooks/shotCreation/useShotCreation";
 import { useIsMobile } from "@/shared/hooks/mobile";
 import { Shot } from '@/domains/generation/types';
@@ -36,7 +36,6 @@ import { useGenerationController } from './controllers/useGenerationController';
 import { useImageManagementController } from './controllers/useImageManagementController';
 import { useGenerationControllerInputModel } from './controllers/useGenerationControllerInputModel';
 import { useShotEditorApplySettingsModel } from './controllers/useShotEditorApplySettingsModel';
-import { useShotEditorLayoutPayloadModel } from './controllers/useShotEditorLayoutPayloadModel';
 import { useShotEditorMediaAndOutputControllers } from './controllers/useShotEditorMediaAndOutputControllers';
 import { useShotEditorLayoutModel } from './controllers/useShotEditorLayoutModel';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
@@ -112,8 +111,8 @@ export function useShotEditorController({
   const { setCurrentShotId } = useCurrentShot();
   const { navigateToShot } = useShotNavigation();
   const { createShot } = useShotCreation();
-  const { mutateAsync: addToShotMutation } = useAddImageToShot();
-  const { mutateAsync: addToShotWithoutPositionMutation } = useAddImageToShotWithoutPosition();
+  const addImageToShotMutation = useAddImageToShot();
+  const { mutateAsync: addToShotMutation, mutateAsyncWithoutPosition: addToShotWithoutPositionMutation } = addImageToShotMutation;
 
   const createShotRef = useRef(createShot);
   createShotRef.current = createShot;
@@ -378,7 +377,7 @@ export function useShotEditorController({
     lastVideoGeneration,
   });
 
-  const layoutPayload = useShotEditorLayoutPayloadModel({
+  const layoutProps: ShotEditorLayoutProps = useShotEditorLayoutModel({
     core: {
       selectedShot,
       selectedShotId,
@@ -483,8 +482,6 @@ export function useShotEditorController({
       applySettingsFromTask,
     },
   });
-
-  const layoutProps: ShotEditorLayoutProps = useShotEditorLayoutModel(layoutPayload);
 
   return {
     hasSelectedShot: Boolean(selectedShot),

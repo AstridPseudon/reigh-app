@@ -5,7 +5,7 @@ import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useProjectGenerations, type GenerationsPaginatedResponse } from '@/shared/hooks/projects/useProjectGenerations';
 import { useToggleGenerationStar } from '@/domains/generation/hooks/useGenerationMutations';
 import { useDeleteGenerationWithConfirm } from '@/domains/generation/hooks/useDeleteGenerationWithConfirm';
-import { useAddImageToShot, useAddImageToShotWithoutPosition, usePositionExistingGenerationInShot } from '@/shared/hooks/shots';
+import { useAddImageToShot, usePositionExistingGenerationInShot } from '@/shared/hooks/shots';
 import { LastAffectedShotContext } from '@/shared/contexts/LastAffectedShotContext';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShots } from '@/shared/contexts/ShotsContext';
@@ -91,7 +91,6 @@ function useGenerationsPageLogic({
 
 
   const addImageToShotMutation = useAddImageToShot();
-  const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
   const positionExistingGenerationMutation = usePositionExistingGenerationInShot();
   const { requestDelete, confirmDialogProps, deletingId } = useDeleteGenerationWithConfirm({ projectId: selectedProjectId });
   const toggleStarMutation = useToggleGenerationStar();
@@ -186,7 +185,7 @@ function useGenerationsPageLogic({
     }
 
     try {
-      await addImageToShotWithoutPositionMutation.mutateAsync({
+      await addImageToShotMutation.mutateAsyncWithoutPosition({
         shot_id: resolvedTargetShotId,
         generation_id: generationId,
         imageUrl: imageUrl,

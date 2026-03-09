@@ -33,7 +33,7 @@ interface UseVideoTravelDropHandlersParams {
   selectedProjectId: string;
   /** Current shots list */
   shots: Shot[] | undefined;
-  /** Mutation to add an image to a shot with automatic position */
+  /** Mutation to add an image to a shot with automatic or explicit no-position behavior */
   addImageToShotMutation: {
     mutateAsync: (params: {
       shot_id: string;
@@ -42,10 +42,7 @@ interface UseVideoTravelDropHandlersParams {
       imageUrl: string;
       thumbUrl?: string;
     }) => Promise<unknown>;
-  };
-  /** Mutation to add an image to a shot without timeline position */
-  addImageToShotWithoutPositionMutation: {
-    mutateAsync: (params: {
+    mutateAsyncWithoutPosition: (params: {
       shot_id: string;
       generation_id: string;
       project_id: string;
@@ -100,7 +97,6 @@ export const useVideoTravelDropHandlers = ({
   selectedProjectId,
   shots,
   addImageToShotMutation,
-  addImageToShotWithoutPositionMutation,
   handleExternalImageDropMutation,
   setShotSortMode,
 }: UseVideoTravelDropHandlersParams): UseVideoTravelDropHandlersReturn => {
@@ -128,7 +124,7 @@ export const useVideoTravelDropHandlers = ({
     try {
       if (withoutPosition) {
         // Add without timeline position
-        await addImageToShotWithoutPositionMutation.mutateAsync({
+        await addImageToShotMutation.mutateAsyncWithoutPosition({
           shot_id: shotId,
           generation_id: data.generationId,
           project_id: selectedProjectId,
@@ -151,7 +147,7 @@ export const useVideoTravelDropHandlers = ({
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useVideoTravelDropHandlers', toastTitle: 'Failed to add to shot' });
     }
-  }, [selectedProjectId, addImageToShotMutation, addImageToShotWithoutPositionMutation, setLastAffectedShotId]);
+  }, [selectedProjectId, addImageToShotMutation, setLastAffectedShotId]);
 
   // Handle dropping a generation to create a new shot
   const handleGenerationDropForNewShot = useCallback(async (

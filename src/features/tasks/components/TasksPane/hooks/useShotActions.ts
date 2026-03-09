@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/shots';
+import { useAddImageToShot } from '@/shared/hooks/shots';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { toast as sonnerToast } from '@/shared/components/ui/runtime/sonner';
 
@@ -22,7 +22,6 @@ export function useShotActions({
 
   // Shot management mutations
   const addImageToShotMutation = useAddImageToShot();
-  const addImageToShotWithoutPositionMutation = useAddImageToShotWithoutPosition();
 
   // Optimistic update handlers - use composite key mediaId:shotId
   const handleOptimisticPositioned = useCallback((mediaId: string, shotId?: string) => {
@@ -124,7 +123,7 @@ export function useShotActions({
     handleOptimisticUnpositioned(generationId, targetShotId);
     
     try {
-      await addImageToShotWithoutPositionMutation.mutateAsync({
+      await addImageToShotMutation.mutateAsyncWithoutPosition({
         shot_id: targetShotId,
         generation_id: generationId,
         imageUrl,
@@ -144,7 +143,7 @@ export function useShotActions({
       normalizeAndPresentError(error, { context: 'useShotActions', toastTitle: 'Failed to add to shot' });
       return false;
     }
-  }, [lightboxSelectedShotId, currentShotId, lastAffectedShotId, selectedProjectId, addImageToShotWithoutPositionMutation, handleOptimisticUnpositioned]);
+  }, [lightboxSelectedShotId, currentShotId, lastAffectedShotId, selectedProjectId, addImageToShotMutation, handleOptimisticUnpositioned]);
 
   return {
     optimisticPositionedIds,
@@ -155,5 +154,4 @@ export function useShotActions({
     handleOptimisticUnpositioned,
   };
 }
-
 

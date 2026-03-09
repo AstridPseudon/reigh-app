@@ -6,6 +6,7 @@
  * useDuplicateAsNewGeneration lives in ./useDuplicateAsNewGeneration.ts
  */
 
+import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/domains/generation/types';
@@ -49,6 +50,21 @@ interface AddImageToShotContext {
   tempId?: string;
 }
 
+type AddImageToShotWithoutPositionVariables = Omit<
+  AddImageToShotVariables,
+  'timelineFrame' | 'skipOptimistic'
+>;
+
+function withUnpositionedAddImageVariables(
+  variables: AddImageToShotWithoutPositionVariables,
+): AddImageToShotVariables {
+  return {
+    ...variables,
+    timelineFrame: null,
+    skipOptimistic: true,
+  };
+}
+
 /**
  * Add a generation to a shot.
  *
@@ -59,8 +75,7 @@ interface AddImageToShotContext {
  */
 export const useAddImageToShot = () => {
   const queryClient = useQueryClient();
-
-  return useMutation<Record<string, unknown>, Error, AddImageToShotVariables, AddImageToShotContext>({
+  const mutation = useMutation<Record<string, unknown>, Error, AddImageToShotVariables, AddImageToShotContext>({
     mutationFn: async (variables: AddImageToShotVariables) => {
       const data = await runAddImageMutation(variables);
       return withVariableMetadata(data, variables);
@@ -157,26 +172,23 @@ export const useAddImageToShot = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.segments.parents(shot_id, project_id) });
     },
   });
-};
 
-/**
- * Add image to shot WITHOUT position.
- * Backwards-compatible wrapper around useAddImageToShot.
- *
- * Note: This intentionally skips optimistic item creation in the shots cache
- * (matching original behavior). The item will appear after realtime confirms.
- * Only the unified-generations cache is updated optimistically (for instant
- * removal from "items without shots" filter).
- */
-export const useAddImageToShotWithoutPosition = () => {
-  const addMutation = useAddImageToShot();
+  const mutateAsyncWithoutPosition = useCallback(
+    (variables: AddImageToShotWithoutPositionVariables) =>
+      mutation.mutateAsync(withUnpositionedAddImageVariables(variables)),
+    [mutation],
+  );
+
+  const mutateWithoutPosition = useCallback(
+    (variables: AddImageToShotWithoutPositionVariables) =>
+      mutation.mutate(withUnpositionedAddImageVariables(variables)),
+    [mutation],
+  );
 
   return {
-    ...addMutation,
-    mutateAsync: (vars: Omit<AddImageToShotVariables, 'timelineFrame' | 'skipOptimistic'>) =>
-      addMutation.mutateAsync({ ...vars, timelineFrame: null, skipOptimistic: true }),
-    mutate: (vars: Omit<AddImageToShotVariables, 'timelineFrame' | 'skipOptimistic'>) =>
-      addMutation.mutate({ ...vars, timelineFrame: null, skipOptimistic: true }),
+    ...mutation,
+    mutateAsyncWithoutPosition,
+    mutateWithoutPosition,
   };
 };
 

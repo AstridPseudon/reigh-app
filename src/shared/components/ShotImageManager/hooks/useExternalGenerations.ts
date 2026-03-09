@@ -3,7 +3,7 @@ import { GenerationRow } from '@/domains/generation/types';
 import { DerivedNavContext } from '../types';
 import { transformExternalGeneration } from '../utils/external-generation-utils';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { useAddImageToShot, useAddImageToShotWithoutPosition } from '@/shared/hooks/shots';
+import { useAddImageToShot } from '@/shared/hooks/shots';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useAppEventListener } from '@/shared/lib/typedEvents';
@@ -35,7 +35,7 @@ export function useExternalGenerations({
   
   const { selectedProjectId } = useProject();
   const { mutateAsync: addToShotMutation } = useAddImageToShot();
-  const { mutateAsync: addToShotWithoutPositionMutation } = useAddImageToShotWithoutPosition();
+  const { mutateAsyncWithoutPosition: addToShotWithoutPositionMutation } = useAddImageToShot();
   
   // Listen for realtime generation updates
   const handleGenerationUpdate = useCallback(async (detail: { payloads: Array<{ generationId: string; upscaleCompleted?: boolean }> }) => {
