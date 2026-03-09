@@ -1,9 +1,9 @@
-import type { AppError } from './errors';
+import type { AppError } from '@/shared/lib/errorHandling/errors';
 import {
   reportError,
   type ErrorReportOptions,
-} from './coreReporter';
-import { presentRuntimeError } from './runtimeErrorPresenter';
+} from '@/shared/lib/errorHandling/coreReporter';
+import { presentRuntimeError } from '@/shared/lib/errorHandling/runtimeErrorPresenter';
 
 export interface RuntimeErrorOptions extends ErrorReportOptions {
   toastTitle?: string;

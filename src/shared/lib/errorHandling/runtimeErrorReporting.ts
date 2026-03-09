@@ -1,4 +1,4 @@
 export {
   normalizeAndLogError,
   
-} from './normalizeAndLogError';
+} from '@/shared/lib/errorHandling/normalizeAndLogError';

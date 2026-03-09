@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { normalizeAndPresentError } from '../../../lib/errorHandling/runtimeError';
+import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 interface UseTaskDetailsModalStateParams {
   taskId?: string | null;

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Slot } from './Slot';
-import { cn } from './contracts/cn';
+import { Slot } from '@/shared/components/ui/Slot';
+import { cn } from '@/shared/components/ui/contracts/cn';
 
 interface ButtonPrimitiveProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
