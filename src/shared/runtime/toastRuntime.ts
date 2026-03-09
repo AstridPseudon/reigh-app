@@ -17,7 +17,3 @@ export function getToastManager(): ToastManager {
   }
   return runtimeToastManager;
 }
-
-function resetToastManagerForTests(): void {
-  runtimeToastManager = null;
-}

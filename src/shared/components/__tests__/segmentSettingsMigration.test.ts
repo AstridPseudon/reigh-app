@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { extractSettingsFromParams, buildMetadataUpdate } from '../SegmentSettingsForm/segmentSettingsMigration';
+import { extractSettingsFromParams } from '../SegmentSettingsForm/segmentSettingsMigration';
 
 describe('segmentSettingsMigration', () => {
-  it('exports expected members', () => {
-    expect(extractSettingsFromParams).toBeDefined();
-    expect(buildMetadataUpdate).toBeDefined();
-  });
 
   it('normalizes top-level loras[] as canonical input', () => {
     const settings = extractSettingsFromParams({

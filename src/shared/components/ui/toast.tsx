@@ -4,7 +4,7 @@ import type { ToastRootToastObject } from "@base-ui-components/react/toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 import { cn } from "@/shared/components/ui/contracts/cn"
-import { getToastManager, initializeToastManager } from '@/shared/runtime/toastRuntime'
+import { initializeToastManager } from '@/shared/runtime/toastRuntime';
 
 // ── Variant styles ──────────────────────────────────────────────────────────
 const toastVariants = cva(
@@ -187,7 +187,6 @@ toastFn.info = (
 export const toast = toastFn
 
 // ── Type exports (backwards compat) ─────────────────────────────────────────
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast.Root> & VariantProps<typeof toastVariants>
-type ToastActionElement = React.ReactElement<typeof Toast.Action>
-
+export type ToastProps = React.ComponentPropsWithoutRef<typeof Toast.Root> & VariantProps<typeof toastVariants>
+export type ToastActionElement = React.ReactElement<typeof Toast.Action>
 

@@ -7,11 +7,10 @@ import {
 import { readTravelContractData } from './travelContractData';
 import {
   asNumber,
-  asString,
   resolveNumberCandidate,
   resolveStringCandidate,
   toRecordOrEmpty,
-  type UnknownRecord,
+  type UnknownRecord
 } from './taskParamParsers';
 import { asMotionMode, asPhaseConfig } from './segmentTypeCoercers';
 import type {

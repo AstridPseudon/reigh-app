@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 

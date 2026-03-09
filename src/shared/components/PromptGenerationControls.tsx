@@ -8,7 +8,7 @@ import { GeneratePromptsParams, AIPromptItem } from '@/types/ai';
 import { ChevronDown, ChevronRight, Settings, Zap } from 'lucide-react';
 import { useGenerationControlsState } from './PromptGenerationControls/hooks/useGenerationControlsState';
 import { AdvancedOptionsPanel } from './PromptGenerationControls/components/AdvancedOptionsPanel';
-import { temperatureOptions, type GenerationControlValues } from './PromptGenerationControls/constants';
+import { type GenerationControlValues } from './PromptGenerationControls/constants';
 
 export type { GenerationControlValues };
 ;

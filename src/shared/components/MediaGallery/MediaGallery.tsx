@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import {
   useProjectCrudContext,
@@ -28,9 +28,7 @@ import { usePaginatedImagesWithBadges } from './hooks/usePaginatedImagesWithBadg
 import { useMediaGalleryLightboxSession } from './hooks/useMediaGalleryLightboxSession';
 import { useMediaGalleryViewInteractions } from './hooks/useMediaGalleryViewInteractions';
 import type {
-  GeneratedImageWithMetadata,
   MediaGalleryProps,
-  GalleryFilterState,
   GalleryConfig,
 } from './types';
 ;
@@ -207,7 +205,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     }
     actionsHook.handleShotChange(selectedShotId);
     shotAdditionSelection.clearSelectedShotForAddition();
-  }, [actionsHook.handleShotChange, shotAdditionSelection]);
+  }, [actionsHook, shotAdditionSelection]);
   const lightboxImageId = getGenerationId(stateHook.state.activeLightboxMedia);
   const {
     taskDetailsData,

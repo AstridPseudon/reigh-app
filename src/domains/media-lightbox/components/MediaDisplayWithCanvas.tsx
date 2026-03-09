@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
 import { StrokeOverlay } from './StrokeOverlay';
 import { RepositionOverlay } from './RepositionOverlay';
