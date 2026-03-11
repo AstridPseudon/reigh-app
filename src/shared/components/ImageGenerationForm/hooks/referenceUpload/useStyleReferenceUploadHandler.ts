@@ -5,7 +5,7 @@ import { toast } from '@/shared/components/ui/runtime/sonner';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { updateSettingsCache } from '@/shared/hooks/settings/useToolSettings';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { toOperationResultError } from '@/shared/lib/operationResult';
+import { getOperationFailureLogData } from '@/shared/lib/operationResult';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import {
@@ -114,7 +114,12 @@ export function useStyleReferenceUploadHandler(
         selectedProjectId,
       });
       if (!uploadResult.ok) {
-        throw toOperationResultError(uploadResult);
+        normalizeAndPresentError(uploadResult.error, {
+          context: 'useReferenceUpload.handleStyleReferenceUpload.uploadAndProcessReference',
+          toastTitle: 'Failed to upload reference image',
+          logData: getOperationFailureLogData(uploadResult),
+        });
+        return;
       }
 
       const { originalUploadedUrl, processedUploadedUrl } = uploadResult.value;
@@ -124,9 +129,10 @@ export function useStyleReferenceUploadHandler(
       });
       const thumbnailUrl = thumbnailResult.ok ? thumbnailResult.value : originalUploadedUrl;
       if (!thumbnailResult.ok) {
-        normalizeAndPresentError(toOperationResultError(thumbnailResult), {
+        normalizeAndPresentError(thumbnailResult.error, {
           context: 'useReferenceUpload.handleStyleReferenceUpload.thumbnailFallback',
           showToast: false,
+          logData: getOperationFailureLogData(thumbnailResult),
         });
       }
       const { data: { user } } = await supabase().auth.getUser();
@@ -154,7 +160,7 @@ export function useStyleReferenceUploadHandler(
         createdAt: new Date().toISOString(),
       };
 
-      await persistOptimisticReferenceSelection({
+      const persistSelectionResult = await persistOptimisticReferenceSelection({
         queryClient,
         selectedProjectId,
         optimisticContext: 'useReferenceUpload.handleStyleReferenceUpload.optimisticUpdate',
@@ -169,6 +175,14 @@ export function useStyleReferenceUploadHandler(
         },
         updateProjectImageSettings,
       });
+      if (!persistSelectionResult.ok) {
+        normalizeAndPresentError(persistSelectionResult.error, {
+          context: 'useReferenceUpload.handleStyleReferenceUpload.persistSelection',
+          toastTitle: 'Failed to upload reference image',
+          logData: getOperationFailureLogData(persistSelectionResult),
+        });
+        return;
+      }
 
       markAsInteracted();
       setStyleReferenceOverride(originalUploadedUrl);

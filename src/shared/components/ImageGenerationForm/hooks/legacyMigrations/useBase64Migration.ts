@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { dataURLtoFile } from '@/shared/lib/media/fileConversion';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { getOperationFailureLogData } from '@/shared/lib/operationResult';
 import type { LegacyMigrationsInput } from './types';
 
 type Base64MigrationInput = Pick<
@@ -28,17 +29,21 @@ export function useBase64Migration(input: Base64MigrationInput): void {
       }
 
       try {
-        const file = dataURLtoFile(
+        const fileResult = dataURLtoFile(
           rawStyleReferenceImage,
           `migrated-style-reference-${Date.now()}.png`
         );
 
-        if (!file) {
-          console.error('[ImageGenerationForm] Failed to convert base64 to file for migration');
+        if (!fileResult.ok) {
+          normalizeAndPresentError(fileResult.error, {
+            context: 'ImageGenerationForm.migrateBase64ToUrl.dataURLtoFile',
+            toastTitle: 'Failed to migrate style reference image',
+            logData: getOperationFailureLogData(fileResult),
+          });
           return;
         }
 
-        const uploadedUrl = await uploadImageToStorage(file);
+        const uploadedUrl = await uploadImageToStorage(fileResult.value);
 
         await updateProjectImageSettings('project', {
           styleReferenceImage: uploadedUrl,

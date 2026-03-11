@@ -18,6 +18,14 @@ export interface OperationFailure {
 
 export type OperationResult<T> = OperationSuccess<T> | OperationFailure;
 
+export interface OperationFailureLogData {
+  operationMessage: string;
+  operationErrorCode: string;
+  operationPolicy: OperationFailurePolicy;
+  operationRecoverable: boolean;
+  operationCause?: unknown;
+}
+
 class OperationResultError extends Error {
   errorCode: string;
   policy: OperationFailurePolicy;
@@ -98,6 +106,18 @@ export function operationFailure(error: unknown, options?: OperationFailureOptio
   }
 
   return failure;
+}
+
+export function getOperationFailureLogData(
+  failure: OperationFailure,
+): OperationFailureLogData {
+  return {
+    operationMessage: failure.message,
+    operationErrorCode: failure.errorCode,
+    operationPolicy: failure.policy,
+    operationRecoverable: failure.recoverable,
+    ...(failure.cause !== undefined ? { operationCause: failure.cause } : {}),
+  };
 }
 
 /**

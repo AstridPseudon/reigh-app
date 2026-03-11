@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { GenerationRow } from '@/domains/generation/types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { getOperationFailureLogData } from '@/shared/lib/operationResult';
 import { dataURLtoFile } from '@/shared/lib/media/fileConversion';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { uploadReferenceThumbnail } from '@/shared/lib/media/uploadReferenceThumbnail';
@@ -78,12 +79,17 @@ async function uploadProcessedReferenceImage(
     processedDataURL = processed;
   }
 
-  const processedFile = dataURLtoFile(processedDataURL, `reference-processed-${Date.now()}.png`);
-  if (!processedFile) {
-    throw new Error('Failed to convert processed image to file');
+  const processedFileResult = dataURLtoFile(processedDataURL, `reference-processed-${Date.now()}.png`);
+  if (!processedFileResult.ok) {
+    normalizeAndPresentError(processedFileResult.error, {
+      context: 'useReferences.uploadProcessedReferenceImage.dataURLtoFile',
+      showToast: false,
+      logData: getOperationFailureLogData(processedFileResult),
+    });
+    throw processedFileResult.error;
   }
 
-  return uploadImageToStorage(processedFile);
+  return uploadImageToStorage(processedFileResult.value);
 }
 
 function buildReferenceMetadata(input: {

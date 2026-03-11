@@ -3,7 +3,6 @@ import { Button } from '@/shared/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { reportErrorBoundaryCatch } from '@/shared/lib/errorHandling/recoverableError';
 import { ErrorDebugDetails } from '@/shared/components/error/ErrorDebugDetails';
-import { createRecoveredErrorBoundaryState } from '@/shared/components/error/errorBoundaryState';
 
 interface AppErrorBoundaryState {
   hasError: boolean;
@@ -28,7 +27,7 @@ export class AppErrorBoundary extends React.Component<
 > {
   constructor(props: AppErrorBoundaryProps) {
     super(props);
-    this.state = createRecoveredErrorBoundaryState();
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error: Error): Partial<AppErrorBoundaryState> {
@@ -54,7 +53,7 @@ export class AppErrorBoundary extends React.Component<
   };
 
   handleRetry = (): void => {
-    this.setState(createRecoveredErrorBoundaryState());
+    this.setState({ hasError: false, error: null, errorInfo: null });
   };
 
   render(): React.ReactNode {

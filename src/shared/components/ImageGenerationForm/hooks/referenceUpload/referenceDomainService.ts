@@ -10,6 +10,7 @@ import { processStyleReferenceForAspectRatioString } from '@/shared/lib/media/st
 import { extractSettingsFromCache } from '@/shared/hooks/settings/useToolSettings';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import {
+  getOperationFailureLogData,
   operationFailure,
   operationSuccess,
   type OperationResult,
@@ -90,20 +91,21 @@ export async function uploadAndProcessReference(
       processedDataURL = processed;
     }
 
-    const processedFile = dataURLtoFile(
+    const processedFileResult = dataURLtoFile(
       processedDataURL,
       `style-reference-processed-${Date.now()}.png`,
     );
-    if (!processedFile) {
-      return operationFailure(new Error('Failed to convert processed image to file'), {
+    if (!processedFileResult.ok) {
+      return operationFailure(processedFileResult.error, {
         policy: 'fail_closed',
         errorCode: 'reference_file_conversion_failed',
         message: 'Failed to convert processed image to file',
         recoverable: false,
+        cause: getOperationFailureLogData(processedFileResult),
       });
     }
 
-    const processedUploadedUrl = await uploadImageToStorage(processedFile);
+    const processedUploadedUrl = await uploadImageToStorage(processedFileResult.value);
     return operationSuccess({ originalUploadedUrl, processedUploadedUrl }, { policy: 'best_effort' });
   } catch (error) {
     return operationFailure(error, {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getOperationFailureLogData,
   operationFailure,
   operationSuccess,
   toOperationResultError,
@@ -46,5 +47,24 @@ describe('operationResult', () => {
     expect(wrapped.recoverable).toBe(false);
     expect(wrapped.cause).toEqual({ field: 'prompt' });
     expect(wrapped.stack).toBe('source stack');
+  });
+
+  it('builds log data from structured failures without rewrapping the source error', () => {
+    const failure = operationFailure(new Error('upload failed'), {
+      message: 'Failed to upload and process reference image',
+      errorCode: 'reference_upload_failed',
+      policy: 'degrade',
+      recoverable: true,
+      cause: { fileName: 'reference.png' },
+    });
+
+    expect(getOperationFailureLogData(failure)).toEqual({
+      operationMessage: 'Failed to upload and process reference image',
+      operationErrorCode: 'reference_upload_failed',
+      operationPolicy: 'degrade',
+      operationRecoverable: true,
+      operationCause: { fileName: 'reference.png' },
+    });
+    expect(failure.error.message).toBe('upload failed');
   });
 });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { operationFailure, operationSuccess } from '@/shared/lib/operationResult';
 import {
   persistReferenceSelection,
   resolveReferenceThumbnailUrl,
@@ -92,6 +93,52 @@ describe('referenceDomainService', () => {
     expect(uploadImageToStorageMock).toHaveBeenCalledTimes(1);
     expect(resolveProjectResolutionMock).toHaveBeenCalledWith('project-1');
     expect(processStyleReferenceForAspectRatioStringMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns failure when processed file conversion yields no file', async () => {
+    fileToDataURLMock.mockResolvedValue('data:image/png;base64,abc');
+    uploadImageToStorageMock.mockResolvedValue('https://example.com/original.png');
+    dataURLtoFileMock.mockReturnValue(operationFailure(new Error('Invalid Data URL format'), {
+      message: 'Failed to convert data URL to file',
+      errorCode: 'data_url_file_conversion_failed',
+      policy: 'fail_closed',
+      recoverable: false,
+    }));
+
+    const result = await uploadAndProcessReference({
+      file: new File(['x'], 'a.png', { type: 'image/png' }),
+      selectedProjectId: undefined,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.errorCode).toBe('reference_file_conversion_failed');
+    expect(result.message).toBe('Failed to convert processed image to file');
+    expect(uploadImageToStorageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the original upload error on the failure result', async () => {
+    const uploadError = new Error('Upload timed out after 60000ms');
+    fileToDataURLMock.mockResolvedValue('data:image/png;base64,abc');
+    uploadImageToStorageMock.mockRejectedValue(uploadError);
+    dataURLtoFileMock.mockReturnValue(
+      operationSuccess(new File(['processed'], 'processed.png', { type: 'image/png' }))
+    );
+
+    const result = await uploadAndProcessReference({
+      file: new File(['x'], 'a.png', { type: 'image/png' }),
+      selectedProjectId: 'project-1',
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.errorCode).toBe('reference_upload_failed');
+    expect(result.error).toBe(uploadError);
+    expect(result.cause).toBe(uploadError);
   });
 
   it('returns failure when thumbnail auth/session is missing', async () => {

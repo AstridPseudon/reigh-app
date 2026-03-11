@@ -1,5 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { toOperationResultError } from '@/shared/lib/operationResult';
+import {
+  operationSuccess,
+  type OperationResult,
+} from '@/shared/lib/operationResult';
 import { runOptimisticCacheUpdate } from './optimisticCacheUpdate';
 import { persistReferenceSelection } from './referenceDomainService';
 import type { ProjectImageSettings } from '../../types';
@@ -17,13 +20,13 @@ interface PersistOptimisticReferenceSelectionInput {
 
 export async function persistOptimisticReferenceSelection(
   input: PersistOptimisticReferenceSelectionInput,
-): Promise<void> {
+): Promise<OperationResult<void>> {
   const optimisticUpdateResult = runOptimisticCacheUpdate(
     input.applyOptimisticUpdate,
     input.optimisticContext,
   );
   if (!optimisticUpdateResult.ok) {
-    throw toOperationResultError(optimisticUpdateResult);
+    return optimisticUpdateResult;
   }
 
   const persistResult = await persistReferenceSelection({
@@ -32,6 +35,8 @@ export async function persistOptimisticReferenceSelection(
     updateProjectImageSettings: input.updateProjectImageSettings,
   });
   if (!persistResult.ok) {
-    throw toOperationResultError(persistResult);
+    return persistResult;
   }
+
+  return operationSuccess(undefined, { policy: persistResult.policy });
 }

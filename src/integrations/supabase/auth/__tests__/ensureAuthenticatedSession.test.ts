@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/databasePublicTypes';
 import {
   requireSession,
   requireUserFromSession,

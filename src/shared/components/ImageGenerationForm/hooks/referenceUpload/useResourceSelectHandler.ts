@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { updateSettingsCache } from '@/shared/hooks/settings/useToolSettings';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { getOperationFailureLogData } from '@/shared/lib/operationResult';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import {
@@ -133,7 +134,7 @@ export function useResourceSelectHandler(
         inThisSceneStrength,
       });
 
-      await persistOptimisticReferenceSelection({
+      const persistSelectionResult = await persistOptimisticReferenceSelection({
         queryClient,
         selectedProjectId,
         optimisticContext: 'useReferenceUpload.handleResourceSelect.optimisticUpdate',
@@ -147,6 +148,14 @@ export function useResourceSelectHandler(
         },
         updateProjectImageSettings,
       });
+      if (!persistSelectionResult.ok) {
+        normalizeAndPresentError(persistSelectionResult.error, {
+          context: 'useReferenceUpload.handleResourceSelect.persistSelection',
+          toastTitle: 'Failed to add reference',
+          logData: getOperationFailureLogData(persistSelectionResult),
+        });
+        return;
+      }
 
       markAsInteracted();
     } catch (error) {

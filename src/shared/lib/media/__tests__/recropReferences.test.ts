@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { operationSuccess } from '@/shared/lib/operationResult';
+
 // Mock all external dependencies
 vi.mock('../styleReferenceProcessor', () => ({
   processStyleReferenceForAspectRatioString: vi.fn().mockResolvedValue('data:image/png;base64,processed'),
@@ -10,7 +12,9 @@ vi.mock('../imageUploader', () => ({
 }));
 
 vi.mock('../fileConversion', () => ({
-  dataURLtoFile: vi.fn().mockReturnValue(new File(['test'], 'test.png', { type: 'image/png' })),
+  dataURLtoFile: vi.fn().mockReturnValue(
+    operationSuccess(new File(['test'], 'test.png', { type: 'image/png' }))
+  ),
 }));
 
 vi.mock('@/shared/media/clientThumbnailGenerator', () => ({

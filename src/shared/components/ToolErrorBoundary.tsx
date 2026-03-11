@@ -2,7 +2,6 @@ import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { ErrorDebugDetails } from '@/shared/components/error/ErrorDebugDetails';
-import { createRecoveredErrorBoundaryState } from '@/shared/components/error/errorBoundaryState';
 
 interface ToolErrorBoundaryState {
   hasError: boolean;
@@ -28,7 +27,7 @@ export class ToolErrorBoundary extends React.Component<
 > {
   constructor(props: ToolErrorBoundaryProps) {
     super(props);
-    this.state = createRecoveredErrorBoundaryState();
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error: Error): Partial<ToolErrorBoundaryState> {
@@ -47,7 +46,7 @@ export class ToolErrorBoundary extends React.Component<
   }
 
   handleRetry = (): void => {
-    this.setState(createRecoveredErrorBoundaryState());
+    this.setState({ hasError: false, error: null, errorInfo: null });
   };
 
   render(): React.ReactNode {

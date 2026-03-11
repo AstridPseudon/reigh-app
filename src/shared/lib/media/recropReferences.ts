@@ -3,6 +3,7 @@ import { uploadImageToStorage } from './imageUploader';
 import { dataURLtoFile } from './fileConversion';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/media/clientThumbnailGenerator';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { getOperationFailureLogData } from '@/shared/lib/operationResult';
 
 /**
  * Legacy reference image shape used by the recrop pipeline.
@@ -79,15 +80,22 @@ export async function recropAllReferences(
       }
       
       // Upload new processed version with thumbnail
-      const processedFile = dataURLtoFile(
+      const processedFileResult = dataURLtoFile(
         processedDataURL,
         `reference-${ref.id}-${Date.now()}.png`
       );
-      
-      if (!processedFile) {
-        throw new Error('dataURLtoFile returned null');
+
+      if (!processedFileResult.ok) {
+        normalizeAndPresentError(processedFileResult.error, {
+          context: 'RecropReferences.dataURLtoFile',
+          showToast: false,
+          logData: getOperationFailureLogData(processedFileResult),
+        });
+        throw processedFileResult.error;
       }
-      
+
+      const processedFile = processedFileResult.value;
+
       let newProcessedUrl = '';
       let newThumbnailUrl = '';
       

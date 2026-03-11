@@ -3,7 +3,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { isNotFoundError, isUniqueViolationError } from '@/shared/constants/supabaseErrors';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 
 /** Narrow a Json value to a record, returning null if not an object */
 function asJsonRecord(value: Json | undefined | null): Record<string, Json | undefined> | null {
