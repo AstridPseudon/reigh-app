@@ -14,6 +14,7 @@ import {
 import { UpdatingTimeCell } from '@/shared/components/UpdatingTimeCell';
 import { getTaskDisplayName } from '@/shared/lib/taskConfig';
 import { TaskLogFilters } from './TaskLogFilters';
+import { getTaskLogFilterSummary } from '../taskLogFilterDescriptors';
 import type {
   TaskLogAvailableFilters,
   TaskLogFilters as TaskLogFiltersType,
@@ -53,6 +54,7 @@ export function TaskLogPanel({
   onDownload,
 }: TaskLogPanelProps) {
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+  const filterSummary = getTaskLogFilterSummary(availableFilters);
 
   const handleCopyTaskId = (taskId: string) => {
     navigator.clipboard.writeText(taskId);
@@ -71,7 +73,6 @@ export function TaskLogPanel({
       <TaskLogFilters
         filters={filters}
         availableFilters={availableFilters}
-        filterCount={filterCount}
         onUpdateFilter={onUpdateFilter}
         onToggleArrayFilter={onToggleArrayFilter}
         onClearFilters={onClearFilters}
@@ -103,14 +104,10 @@ export function TaskLogPanel({
       </div>
 
       {/* Helper text when no filters are active */}
-      {filterCount === 0 && availableFilters && (
+      {filterCount === 0 && filterSummary && (
         <div className="text-center py-2">
           <p className="text-sm text-gray-600">
-            💡 <strong>Tip:</strong> Use the filters above to analyze tasks by{' '}
-            {availableFilters.projects.length > 1 && 'project, '}
-            {availableFilters.taskTypes.length > 1 && 'task type, '}
-            {availableFilters.statuses.length > 1 && 'status, '}
-            and cost
+            💡 <strong>Tip:</strong> Use the filters above to analyze tasks by {filterSummary}
           </p>
         </div>
       )}

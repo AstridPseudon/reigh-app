@@ -6,16 +6,16 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Joyride, { CallBackProps, STATUS, EVENTS, ACTIONS } from 'react-joyride';
-import { TOUR_STEPS, tourSteps } from './tourSteps';
+import { tourSteps } from './tourSteps';
+import {
+  getJoyrideAdvanceBehavior,
+  getSpotlightAdvanceBehavior,
+} from './stateMachine';
 import { useProductTour } from '@/shared/hooks/useProductTour';
 import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import { CustomTooltip } from './CustomTooltip';
-
-const SHORT_DELAY_MS = 400;
-const LONG_DELAY_MS = 1500;
-const WAIT_FOR_TARGET_DELAY_MS = 800;
 type ScheduleTimeout = (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
 
 function useManagedTimeouts() {
@@ -117,20 +117,14 @@ function useSpotlightClickAdvance(input: {
 
     const handleClick = () => {
       const nextIndex = stepIndex + 1;
+      const behavior = getSpotlightAdvanceBehavior(stepIndex);
 
-      if (stepIndex === TOUR_STEPS.OPEN_FIRST_SHOT) {
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, LONG_DELAY_MS, scheduleTimeout);
-        return;
-      }
-
-      if (stepIndex === TOUR_STEPS.TASKS_PANE) {
+      if (behavior.lockTasksPane) {
         setIsTasksPaneLocked(true);
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, SHORT_DELAY_MS, scheduleTimeout);
-        return;
       }
 
-      if (stepIndex === TOUR_STEPS.OPEN_GALLERY || stepIndex === TOUR_STEPS.GENERATE_IMAGES) {
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, SHORT_DELAY_MS, scheduleTimeout);
+      if (behavior.delayMs) {
+        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, behavior.delayMs, scheduleTimeout);
         return;
       }
 
@@ -168,42 +162,45 @@ function useJoyrideCallback(input: {
 
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
+      const behavior = getJoyrideAdvanceBehavior(index, action);
 
-      if (index === TOUR_STEPS.OPEN_GALLERY && action !== ACTIONS.PREV) {
-        setIsGenerationsPaneLocked(true);
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, SHORT_DELAY_MS, scheduleTimeout);
-      } else if (index === TOUR_STEPS.GALLERY_SECTION && action !== ACTIONS.PREV) {
+      if (behavior.type === 'advance') {
         setStepIndex(nextIndex);
-      } else if (index === TOUR_STEPS.GENERATE_IMAGES && action !== ACTIONS.PREV) {
-        dispatchTourEvent('openGenerationModal');
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, SHORT_DELAY_MS, scheduleTimeout);
-      } else if (index === TOUR_STEPS.HOW_IT_WORKS && action !== ACTIONS.PREV) {
-        dispatchTourEvent('closeGenerationModal');
-        setIsGenerationsPaneLocked(false);
+      } else if (behavior.type === 'pause') {
+        if (behavior.dispatchEvent) {
+          dispatchTourEvent(behavior.dispatchEvent);
+        }
+        if (behavior.lockGenerationsPane) {
+          setIsGenerationsPaneLocked(true);
+        }
+        if (behavior.lockTasksPane) {
+          setIsTasksPaneLocked(true);
+        }
+        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, behavior.delayMs, scheduleTimeout);
+      } else if (behavior.type === 'waitForTarget') {
+        if (behavior.dispatchEvent) {
+          dispatchTourEvent(behavior.dispatchEvent);
+        }
+        if (behavior.releaseGenerationsPane) {
+          setIsGenerationsPaneLocked(false);
+        }
         setIsPaused(true);
         scheduleTimeout(() => {
           const waitForTarget = () => {
-            const target = document.querySelector('[data-tour="first-shot"]');
+            const target = document.querySelector(behavior.selector);
             if (target) {
               setStepIndex(nextIndex);
-              scheduleTimeout(() => setIsPaused(false), 100);
+              scheduleTimeout(() => setIsPaused(false), behavior.resumeDelayMs);
             } else {
-              scheduleTimeout(waitForTarget, 100);
+              scheduleTimeout(waitForTarget, behavior.resumeDelayMs);
             }
           };
           waitForTarget();
-        }, WAIT_FOR_TARGET_DELAY_MS);
-      } else if (index === TOUR_STEPS.OPEN_FIRST_SHOT && action !== ACTIONS.PREV) {
-        const firstShot = document.querySelector('[data-tour="first-shot"]') as HTMLElement;
-        if (firstShot) {
-          firstShot.click();
-        }
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, LONG_DELAY_MS, scheduleTimeout);
-      } else if (index === TOUR_STEPS.TASKS_PANE && action !== ACTIONS.PREV) {
-        setIsTasksPaneLocked(true);
-        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, SHORT_DELAY_MS, scheduleTimeout);
+        }, behavior.delayMs);
       } else {
-        setStepIndex(nextIndex);
+        const target = document.querySelector(behavior.selector) as HTMLElement | null;
+        target?.click();
+        pauseThenAdvance(nextIndex, setStepIndex, setIsPaused, behavior.delayMs, scheduleTimeout);
       }
     }
 

@@ -10,6 +10,8 @@ export interface TaskLogFilters {
   projectIds: string[];
 }
 
+export type TaskLogArrayFilterKey = 'status' | 'taskTypes' | 'projectIds';
+
 export interface TaskLogTask {
   id: string;
   createdAt: string;

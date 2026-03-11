@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { TaskLogFilters } from '../types';
+import type { TaskLogArrayFilterKey, TaskLogFilters } from '../types';
+import { getTaskLogFilterCount } from '../taskLogFilterDescriptors';
 
 const DEFAULT_FILTERS: TaskLogFilters = {
   costFilter: 'all',
@@ -13,7 +14,7 @@ interface UseTaskLogFiltersReturn {
   page: number;
   setPage: (page: number) => void;
   updateFilter: <K extends keyof TaskLogFilters>(filterType: K, value: TaskLogFilters[K]) => void;
-  toggleArrayFilter: (filterType: 'status' | 'taskTypes' | 'projectIds', value: string) => void;
+  toggleArrayFilter: (filterType: TaskLogArrayFilterKey, value: string) => void;
   clearFilters: () => void;
   getFilterCount: () => number;
 }
@@ -31,7 +32,7 @@ export function useTaskLogFilters(): UseTaskLogFiltersReturn {
   }, []);
 
   const toggleArrayFilter = useCallback((
-    filterType: 'status' | 'taskTypes' | 'projectIds',
+    filterType: TaskLogArrayFilterKey,
     value: string
   ) => {
     setFilters(prev => {
@@ -50,12 +51,7 @@ export function useTaskLogFilters(): UseTaskLogFiltersReturn {
   }, []);
 
   const getFilterCount = useCallback(() => {
-    let count = 0;
-    if (filters.costFilter !== 'all') count++;
-    if (filters.status.length > 0) count++;
-    if (filters.taskTypes.length > 0) count++;
-    if (filters.projectIds.length > 0) count++;
-    return count;
+    return getTaskLogFilterCount(filters);
   }, [filters]);
 
   return {
