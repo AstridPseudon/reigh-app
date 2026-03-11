@@ -1,11 +1,14 @@
 import type { GenerationRow, Shot, ShotOption } from '@/domains/generation/types';
-import type { Task } from '@/types/database';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
 import type { AsyncImageDeleteHandler } from '@/shared/types/imageHandlers';
+import type {
+  TaskDetailsData,
+  TaskDetailsStatus,
+} from '@/shared/components/TaskDetails/types';
 
 export type { ShotOption };
+export type { TaskDetailsData, TaskDetailsStatus };
 export type LightboxDeleteHandler = AsyncImageDeleteHandler;
-export type TaskDetailsStatus = 'ok' | 'missing' | 'error';
 
 // ============================================================================
 // Props Sub-Interfaces (grouped by concern, shared by ImageLightbox & VideoLightbox)
@@ -55,21 +58,6 @@ export interface LightboxActionHandlers {
   onApplySettings?: (metadata: GenerationRow['metadata']) => void;
   onToggleStar?: (id: string, starred: boolean) => void;
   starred?: boolean;
-}
-
-/**
- * Shared task details data shape used by lightbox components.
- * Passed through from parent to InfoPanel/TaskDetailsPanelWrapper.
- */
-export interface TaskDetailsData {
-  task: Task | null;
-  isLoading: boolean;
-  status: TaskDetailsStatus;
-  error: Error | null;
-  inputImages: string[];
-  taskId: string | null;
-  onApplySettingsFromTask?: (taskId: string, replaceImages: boolean, inputImages: string[]) => void;
-  onClose?: () => void;
 }
 
 /**

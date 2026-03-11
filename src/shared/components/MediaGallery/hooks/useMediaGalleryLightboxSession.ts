@@ -1,5 +1,13 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { GenerationRow } from '@/domains/generation/types';
+import type { TaskDetailsData } from '@/shared/components/TaskDetails/types';
 import type { MediaGalleryLightboxSession } from '../components/MediaGalleryLightbox';
+import {
+  buildTaskDetailsPayload,
+  useGenerationNavigationController,
+  useLightboxNavigationState,
+  useShotAssociationState,
+} from './useMediaGalleryLightboxControllers';
 
 interface MediaGalleryLightboxSessionStateHook {
   state: {
@@ -92,25 +100,113 @@ export function useMediaGalleryLightboxSession(params: UseMediaGalleryLightboxSe
     currentToolType,
     showDelete,
   } = params;
+  const [lightboxShotOverrideId, setLightboxShotOverrideId] = useState<string | null>(null);
+
+  const selectedShotIdFromGallery = stateHook.state.selectedShotIdLocal !== 'all'
+    ? stateHook.state.selectedShotIdLocal
+    : undefined;
+  const selectedShotIdForLightbox = lightboxShotOverrideId ?? selectedShotIdFromGallery;
+
+  const hasNextPrevious = useLightboxNavigationState({
+    activeLightboxMedia: stateHook.state.activeLightboxMedia,
+    filteredImages: filtersHook.filteredImages,
+    isServerPagination: paginationHook.isServerPagination,
+    serverPage,
+    totalPages: paginationHook.totalPages,
+  });
+
+  const sourceRecord = useMemo(() => {
+    return filtersHook.filteredImages.find((img) => img.id === stateHook.state.activeLightboxMedia?.id);
+  }, [filtersHook.filteredImages, stateHook.state.activeLightboxMedia?.id]);
+
+  const {
+    positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot,
+  } = useShotAssociationState({
+    sourceRecord,
+    effectiveShotId: selectedShotIdForLightbox,
+  });
+  const closeLightboxAction = actionsHook.handleCloseLightbox;
+  const deleteLightboxAction = actionsHook.handleOptimisticDelete;
+  const shotChangeAction = actionsHook.handleShotChange;
+
+  const { handleNavigateToGeneration, handleOpenExternalGeneration } = useGenerationNavigationController({
+    filteredImages: filtersHook.filteredImages,
+    setActiveLightboxIndex: handleSetActiveLightboxIndex,
+  });
+
+  const lightboxMedia = useMemo<GenerationRow | null>(() => {
+    const activeMedia = stateHook.state.activeLightboxMedia;
+    if (!activeMedia) {
+      return null;
+    }
+
+    const sourceMedia = filtersHook.filteredImages.find((img) => img.id === activeMedia.id) ?? activeMedia;
+    const sourceMetadata = sourceMedia.metadata ?? activeMedia.metadata ?? {};
+    const { __autoEnterEditMode, ...cleanMetadata } = sourceMetadata;
+
+    return {
+      ...(activeMedia as unknown as GenerationRow),
+      ...(sourceMedia as unknown as GenerationRow),
+      starred: sourceMedia.starred ?? activeMedia.starred ?? false,
+      location: sourceMedia.location ?? sourceMedia.url ?? activeMedia.location ?? activeMedia.url,
+      timeline_frame: sourceMedia.timeline_frame ?? activeMedia.timeline_frame ?? undefined,
+      metadata: cleanMetadata,
+    };
+  }, [filtersHook.filteredImages, stateHook.state.activeLightboxMedia]);
+
+  const handleLightboxClose = useCallback(() => {
+    setLightboxShotOverrideId(null);
+    closeLightboxAction();
+  }, [closeLightboxAction]);
+
+  const handleLightboxShotChange = useCallback((shotId: string) => {
+    setLightboxShotOverrideId(shotId);
+    shotChangeAction(shotId);
+  }, [shotChangeAction]);
+
+  const taskDetailsData = useMemo<TaskDetailsData>(() => buildTaskDetailsPayload({
+    task,
+    isLoadingTask: taskDetailsLoading,
+    taskError,
+    inputImages,
+    taskId: lightboxTaskMapping?.taskId ?? null,
+    onClose: handleLightboxClose,
+  }), [
+    handleLightboxClose,
+    inputImages,
+    lightboxTaskMapping?.taskId,
+    task,
+    taskDetailsLoading,
+    taskError,
+  ]);
 
   return useMemo<MediaGalleryLightboxSession>(() => ({
     activeLightboxMedia: stateHook.state.activeLightboxMedia,
+    lightboxMedia,
     autoEnterEditMode: stateHook.state.autoEnterEditMode,
-    onClose: actionsHook.handleCloseLightbox,
+    onClose: handleLightboxClose,
     filteredImages: filtersHook.filteredImages,
     isServerPagination: paginationHook.isServerPagination,
     serverPage,
     totalPages: paginationHook.totalPages,
     onNext: handleNextImage,
     onPrevious: handlePreviousImage,
-    onDelete: showDelete ? actionsHook.handleOptimisticDelete : undefined,
+    hasNext: hasNextPrevious.hasNext,
+    hasPrevious: hasNextPrevious.hasPrevious,
+    handleNavigateToGeneration,
+    handleOpenExternalGeneration,
+    onDelete: showDelete ? deleteLightboxAction : undefined,
     isDeleting: lightboxDeletingId,
     onApplySettings,
     simplifiedShotOptions,
     selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
-    onShotChange: actionsHook.handleShotChange,
+    selectedShotIdForLightbox,
+    onShotChange: handleLightboxShotChange,
     onAddToShot: onAddToLastShot,
     onAddToShotWithoutPosition: onAddToLastShotWithoutPosition,
+    positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot,
     showTickForImageId: stateHook.state.showTickForImageId,
     setShowTickForImageId: stateHook.setShowTickForImageId,
     showTickForSecondaryImageId: stateHook.state.showTickForSecondaryImageId,
@@ -130,24 +226,30 @@ export function useMediaGalleryLightboxSession(params: UseMediaGalleryLightboxSe
     taskError,
     inputImages,
     lightboxTaskMapping,
+    taskDetailsData,
     onCreateShot,
     onNavigateToShot: handleNavigateToShot,
     toolTypeOverride: currentToolType,
     setActiveLightboxIndex: handleSetActiveLightboxIndex,
   }), [
-    actionsHook.handleCloseLightbox,
-    actionsHook.handleOptimisticDelete,
-    actionsHook.handleShotChange,
     currentToolType,
+    deleteLightboxAction,
     filtersHook.filteredImages,
+    handleLightboxClose,
+    handleLightboxShotChange,
+    handleNavigateToGeneration,
     handleNavigateToShot,
     handleNextImage,
+    handleOpenExternalGeneration,
     handlePreviousImage,
     handleSetActiveLightboxIndex,
     handleShowTaskDetails,
+    hasNextPrevious.hasNext,
+    hasNextPrevious.hasPrevious,
     inputImages,
     isMobile,
     lightboxDeletingId,
+    lightboxMedia,
     lightboxTaskMapping,
     onAddToLastShot,
     onAddToLastShotWithoutPosition,
@@ -173,7 +275,11 @@ export function useMediaGalleryLightboxSession(params: UseMediaGalleryLightboxSe
     stateHook.state.showTaskDetailsModal,
     stateHook.state.showTickForImageId,
     stateHook.state.showTickForSecondaryImageId,
+    positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot,
+    selectedShotIdForLightbox,
     task,
+    taskDetailsData,
     taskDetailsLoading,
     taskError,
   ]);

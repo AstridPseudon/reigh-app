@@ -29,7 +29,11 @@ export function useAdjustedTaskDetails({
   isLoadingVariants,
   initialVariantId,
 }: UseAdjustedTaskDetailsProps): UseAdjustedTaskDetailsReturn {
-  const { variantSourceTask, isLoadingVariantTask } = useVariantSourceTask({
+  const {
+    variantSourceTask,
+    isLoadingVariantTask,
+    variantSourceTaskError,
+  } = useVariantSourceTask({
     projectId,
     activeVariant,
     taskDetailsData,
@@ -40,11 +44,20 @@ export function useAdjustedTaskDetails({
       activeVariant,
       taskDetailsData,
       variantSourceTask,
+      variantSourceTaskError,
       isLoadingVariantTask,
       isLoadingVariants,
       initialVariantId,
     });
-  }, [taskDetailsData, activeVariant, variantSourceTask, isLoadingVariantTask, isLoadingVariants, initialVariantId]);
+  }, [
+    taskDetailsData,
+    activeVariant,
+    variantSourceTask,
+    variantSourceTaskError,
+    isLoadingVariantTask,
+    isLoadingVariants,
+    initialVariantId,
+  ]);
 
   return {
     adjustedTaskDetailsData,

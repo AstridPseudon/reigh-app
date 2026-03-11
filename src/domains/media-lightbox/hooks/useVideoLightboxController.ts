@@ -1,81 +1,19 @@
 import { useMemo } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import { useLoadVariantImages } from '@/shared/hooks/variants/useLoadVariantImages';
-import type { SegmentSlotModeData } from '../types';
 import { useAdjustedTaskDetails } from './useAdjustedTaskDetails';
 import { useLightboxVariantBadges } from './useLightboxVariantBadges';
 import { useLightboxVideoMode } from './useLightboxVideoMode';
+import {
+  buildVariantSegmentImages,
+  buildVideoSharedLightboxInput,
+} from './lightboxSharedBuilders';
 import { usePanelModeRestore } from './usePanelModeRestore';
 import { useSharedLightboxState } from './useSharedLightboxState';
 import { useVideoEditContextValue } from './useVideoEditContextValue';
 import { useVideoRegenerateMode } from './useVideoRegenerateMode';
 import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './useVideoLightboxEnvironment';
 import type { VideoLightboxProps } from '../types';
-
-type SharedLightboxInput = Parameters<typeof useSharedLightboxState>[0];
-
-function buildVideoSharedLightboxInput(params: {
-  props: VideoLightboxProps;
-  modeModel: VideoLightboxModeModel;
-  env: VideoLightboxEnvironment;
-}): SharedLightboxInput {
-  const { props, modeModel, env } = params;
-  const nav = props.navigation;
-  const sw = props.shotWorkflow;
-  const feat = props.features;
-  const act = props.actions;
-  const readOnly = props.readOnly ?? false;
-  const fallbackMedia = props.media || ({} as GenerationRow);
-
-  return {
-    core: {
-      media: fallbackMedia,
-      isVideo: true,
-      selectedProjectId: env.selectedProjectId,
-      isMobile: env.isMobile,
-      isFormOnlyMode: modeModel.isFormOnlyMode,
-      onClose: props.onClose,
-      readOnly,
-      variantFetchGenerationId: env.variantFetchGenerationId,
-      initialVariantId: props.initialVariantId,
-    },
-    navigation: {
-      showNavigation: nav?.showNavigation ?? true,
-      hasNext: modeModel.hasNext,
-      hasPrevious: modeModel.hasPrevious,
-      handleSlotNavNext: modeModel.handleSlotNavNext,
-      handleSlotNavPrev: modeModel.handleSlotNavPrev,
-      swipeDisabled: env.videoEditSubMode !== null || readOnly,
-    },
-    shots: {
-      shotId: props.shotId,
-      shotWorkflow: sw,
-    },
-    layout: {
-      showTaskDetails: feat?.showTaskDetails ?? false,
-      isSpecialEditMode: env.videoEditSubMode !== null,
-      isInpaintMode: false,
-      isMagicEditMode: false,
-    },
-    actions: {
-      isCloudMode: env.isCloudMode,
-      showDownload: feat?.showDownload ?? true,
-      isDownloading: env.isDownloading,
-      setIsDownloading: env.setIsDownloading,
-      onDelete: act?.onDelete,
-      isDeleting: act?.isDeleting,
-      isUpscaling: false,
-      handleUpscale: () => {},
-    },
-    media: {
-      effectiveImageUrl: env.effectiveImageUrl,
-      imageDimensions: env.imageDimensions || { width: 1024, height: 576 },
-      projectAspectRatio: env.projectAspectRatio,
-    },
-    starred: act?.starred,
-    onOpenExternalGeneration: props.onOpenExternalGeneration,
-  };
-}
 
 export function useVideoLightboxSharedState(
   props: VideoLightboxProps,
@@ -84,26 +22,6 @@ export function useVideoLightboxSharedState(
 ) {
   const input = buildVideoSharedLightboxInput({ props, modeModel, env });
   return useSharedLightboxState(input);
-}
-
-function buildVariantSegmentImages(
-  segmentSlotMode?: SegmentSlotModeData,
-  currentSegmentImages?: NonNullable<VideoLightboxProps['videoProps']>['currentSegmentImages'],
-) {
-  if (segmentSlotMode?.pairData) {
-    return {
-      startUrl: segmentSlotMode.pairData.startImage?.url,
-      endUrl: segmentSlotMode.pairData.endImage?.url,
-      startGenerationId: segmentSlotMode.pairData.startImage?.generationId,
-      endGenerationId: segmentSlotMode.pairData.endImage?.generationId,
-      startShotGenerationId: segmentSlotMode.pairData.startImage?.id,
-      endShotGenerationId: segmentSlotMode.pairData.endImage?.id,
-      startVariantId: segmentSlotMode.pairData.startImage?.primaryVariantId,
-      endVariantId: segmentSlotMode.pairData.endImage?.primaryVariantId,
-    };
-  }
-
-  return currentSegmentImages;
 }
 
 export function useVideoLightboxEditing(

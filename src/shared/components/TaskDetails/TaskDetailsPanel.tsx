@@ -16,7 +16,7 @@ import {
   TaskDetailsSummaryControls,
   TaskDetailsSummarySection,
 } from '@/shared/components/TaskDetails/components/TaskDetailsSummarySection';
-import type { TaskDetailsStatus } from '@/domains/media-lightbox/types';
+import type { TaskDetailsStatus } from '@/shared/components/TaskDetails/types';
 
 interface TaskDetailsPanelProps {
   task: Task | null;

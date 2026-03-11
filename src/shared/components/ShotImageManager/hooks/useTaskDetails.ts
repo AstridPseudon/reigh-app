@@ -1,5 +1,5 @@
 import type { Task } from '@/types/tasks';
-import type { TaskDetailsData as LightboxTaskDetailsData } from '@/domains/media-lightbox/types';
+import type { TaskDetailsData } from '@/shared/components/TaskDetails/types';
 import { useGenerationTaskDetails } from '@/shared/components/TaskDetails/hooks/useGenerationTaskDetails';
 
 interface UseTaskDetailsProps {
@@ -12,7 +12,7 @@ interface UseTaskDetailsProps {
 }
 
 interface UseTaskDetailsReturn {
-  taskDetailsData: LightboxTaskDetailsData | null;
+  taskDetailsData: TaskDetailsData | null;
   /** The cached generation -> task mapping entry. */
   taskMapping: { taskId: string | null; status?: string; queryError?: string } | undefined;
   /** The raw task data */

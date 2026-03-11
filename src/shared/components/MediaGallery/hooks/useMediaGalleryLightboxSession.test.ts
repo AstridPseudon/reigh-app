@@ -1,11 +1,50 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useMediaGalleryLightboxSession } from './useMediaGalleryLightboxSession';
+
+vi.mock('./useMediaGalleryLightboxControllers', () => ({
+  buildTaskDetailsPayload: ({
+    task,
+    isLoadingTask,
+    taskError,
+    inputImages,
+    taskId,
+    onClose,
+  }: {
+    task?: unknown;
+    isLoadingTask?: boolean;
+    taskError?: Error | null;
+    inputImages?: string[];
+    taskId?: string | null;
+    onClose: () => void;
+  }) => ({
+    task: task ?? null,
+    isLoading: isLoadingTask ?? false,
+    status: taskError ? 'error' : (task ? 'ok' : 'missing'),
+    error: taskError ?? null,
+    inputImages: inputImages ?? [],
+    taskId: taskId ?? null,
+    onClose,
+  }),
+  useLightboxNavigationState: () => ({ hasNext: true, hasPrevious: true }),
+  useShotAssociationState: () => ({
+    positionedInSelectedShot: undefined,
+    associatedWithoutPositionInSelectedShot: undefined,
+  }),
+  useGenerationNavigationController: () => ({
+    handleNavigateToGeneration: vi.fn(),
+    handleOpenExternalGeneration: vi.fn(),
+  }),
+}));
 
 function buildParams(overrides: Record<string, unknown> = {}) {
   const stateHook = {
     state: {
-      activeLightboxMedia: { id: 'img-1' },
+      activeLightboxMedia: {
+        id: 'img-1',
+        metadata: { __autoEnterEditMode: true, source: 'active' },
+        starred: false,
+      },
       autoEnterEditMode: false,
       selectedShotIdLocal: 'shot-1',
       showTickForImageId: 'img-1',
@@ -33,7 +72,10 @@ function buildParams(overrides: Record<string, unknown> = {}) {
     stateHook,
     actionsHook,
     filtersHook: {
-      filteredImages: [{ id: 'img-1' }, { id: 'img-2' }],
+      filteredImages: [
+        { id: 'img-1', metadata: { source: 'filtered' }, starred: true },
+        { id: 'img-2' },
+      ],
     },
     paginationHook: {
       isServerPagination: true,
@@ -53,7 +95,7 @@ function buildParams(overrides: Record<string, unknown> = {}) {
     taskDetailsLoading: true,
     taskError: null,
     inputImages: ['in-1.png'],
-    lightboxTaskMapping: { 'img-1': 'task-1' },
+    lightboxTaskMapping: { taskId: 'task-1' },
     onCreateShot: vi.fn(),
     handleNavigateToShot: vi.fn(),
     handleShowTaskDetails: vi.fn(),
@@ -71,7 +113,7 @@ describe('useMediaGalleryLightboxSession', () => {
     expect(result.current).toEqual(expect.objectContaining({
       activeLightboxMedia: params.stateHook.state.activeLightboxMedia,
       autoEnterEditMode: false,
-      onClose: params.actionsHook.handleCloseLightbox,
+      onClose: expect.any(Function),
       filteredImages: params.filtersHook.filteredImages,
       isServerPagination: true,
       serverPage: 2,
@@ -83,7 +125,12 @@ describe('useMediaGalleryLightboxSession', () => {
       onApplySettings: params.onApplySettings,
       simplifiedShotOptions: params.simplifiedShotOptions,
       selectedShotIdLocal: 'shot-1',
-      onShotChange: params.actionsHook.handleShotChange,
+      selectedShotIdForLightbox: 'shot-1',
+      onShotChange: expect.any(Function),
+      hasNext: true,
+      hasPrevious: true,
+      handleNavigateToGeneration: expect.any(Function),
+      handleOpenExternalGeneration: expect.any(Function),
       showTickForImageId: 'img-1',
       showTickForSecondaryImageId: 'img-2',
       optimisticPositionedIds: params.stateHook.state.optimisticPositionedIds,
@@ -95,10 +142,34 @@ describe('useMediaGalleryLightboxSession', () => {
       taskError: null,
       inputImages: ['in-1.png'],
       lightboxTaskMapping: params.lightboxTaskMapping,
+      taskDetailsData: expect.objectContaining({
+        task: params.task,
+        taskId: 'task-1',
+        status: 'ok',
+        onClose: expect.any(Function),
+      }),
       onNavigateToShot: params.handleNavigateToShot,
       toolTypeOverride: 'image',
       setActiveLightboxIndex: params.handleSetActiveLightboxIndex,
     }));
+    expect(result.current.lightboxMedia).toEqual(expect.objectContaining({
+      id: 'img-1',
+      starred: true,
+      location: undefined,
+      metadata: { source: 'filtered' },
+    }));
+  });
+
+  it('keeps the shot override inside the session boundary instead of the component', () => {
+    const params = buildParams();
+    const { result } = renderHook(() => useMediaGalleryLightboxSession(params as never));
+
+    act(() => {
+      result.current.onShotChange('shot-2');
+    });
+
+    expect(params.actionsHook.handleShotChange).toHaveBeenCalledWith('shot-2');
+    expect(result.current.selectedShotIdForLightbox).toBe('shot-2');
   });
 
   it('omits delete action when showDelete is false', () => {

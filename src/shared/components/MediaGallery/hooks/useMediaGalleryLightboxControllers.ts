@@ -5,9 +5,12 @@ import { getSupabaseClient as supabase } from "@/integrations/supabase/client";
 import { toast } from "@/shared/components/ui/runtime/sonner";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import { expandShotData } from "@/shared/lib/shotData";
+import {
+  buildTaskDetailsData,
+  type TaskDetailsStatus,
+} from "@/shared/components/TaskDetails/types";
 import type { GeneratedImageWithMetadata } from "../types";
 import type { Task } from "@/types/tasks";
-import type { TaskDetailsStatus } from "@/domains/media-lightbox/types";
 
 interface UseLightboxNavigationStateInput {
   activeLightboxMedia: GeneratedImageWithMetadata | null;
@@ -153,16 +156,15 @@ export function buildTaskDetailsPayload({
       ? "ok"
       : "missing";
 
-  return {
+  return buildTaskDetailsData({
     task: task ?? null,
     isLoading: isLoadingTask ?? false,
     status,
     error: taskError ?? null,
     inputImages: inputImages ?? [],
     taskId: taskId ?? null,
-    onApplySettingsFromTask: undefined,
     onClose,
-  };
+  });
 }
 
 interface UseGenerationNavigationControllerInput {

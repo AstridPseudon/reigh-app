@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
+import { fetchTaskInProject } from '@/integrations/supabase/repositories/taskRepository';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import {
   getSourceTaskIdLegacyCompatible,
@@ -29,23 +29,34 @@ export function useVariantSourceTask(input: UseVariantSourceTaskInput) {
     };
   }, [activeVariant?.params]);
 
-  const { data: variantSourceTask, isLoading: isLoadingVariantTask } = useQuery({
+  const {
+    data: variantSourceTask,
+    error: variantSourceTaskQueryError,
+    isLoading: isLoadingVariantTask,
+  } = useQuery({
     queryKey: taskQueryKeys.single(variantSourceTaskId ?? '', projectId ?? null),
     queryFn: async () => {
       if (!variantSourceTaskId || !projectId) {
         return null;
       }
 
-      const { data, error } = await supabase().from('tasks')
-        .select('*')
-        .eq('id', variantSourceTaskId)
-        .eq('project_id', projectId)
-        .single();
-      if (error) {
-        console.error('[VariantTaskDetails] Error fetching source task:', error);
-        return null;
+      try {
+        return await fetchTaskInProject(variantSourceTaskId, projectId);
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+
+        const message = (
+          typeof error === 'object'
+          && error !== null
+          && 'message' in error
+          && typeof error.message === 'string'
+        )
+          ? error.message
+          : 'Failed to fetch source task';
+        throw new Error(message);
       }
-      return data;
     },
     enabled: !!variantSourceTaskId
       && !!projectId
@@ -53,11 +64,20 @@ export function useVariantSourceTask(input: UseVariantSourceTaskInput) {
       && !variantHasOrchestratorDetails,
     staleTime: Infinity,
   });
+  const variantSourceTaskError = useMemo(() => {
+    if (!variantSourceTaskQueryError) {
+      return null;
+    }
+    return variantSourceTaskQueryError instanceof Error
+      ? variantSourceTaskQueryError
+      : new Error('Failed to fetch source task');
+  }, [variantSourceTaskQueryError]);
 
   return {
     variantSourceTaskId,
     variantHasOrchestratorDetails,
     variantSourceTask,
+    variantSourceTaskError,
     isLoadingVariantTask,
   };
 }

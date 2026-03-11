@@ -1,4 +1,5 @@
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
+import { buildTaskDetailsData } from '@/shared/components/TaskDetails/types';
 import { deriveInputImages } from '@/shared/lib/taskParamsUtils';
 import type { TaskDetailsData } from '../../types';
 import type { Task } from '@/types/tasks';
@@ -12,6 +13,7 @@ interface ResolveAdjustedTaskDetailsInput {
   } | null;
   taskDetailsData: TaskDetailsData | undefined;
   variantSourceTask: { params?: unknown } | null;
+  variantSourceTaskError: Error | null;
   isLoadingVariantTask: boolean;
   isLoadingVariants: boolean;
   initialVariantId: string | undefined;
@@ -24,6 +26,7 @@ export function resolveAdjustedTaskDetails(
     activeVariant,
     taskDetailsData,
     variantSourceTask,
+    variantSourceTaskError,
     isLoadingVariantTask,
     isLoadingVariants,
     initialVariantId,
@@ -39,6 +42,7 @@ export function resolveAdjustedTaskDetails(
   if (isTaskCreatedVariant && variantParams) {
     const sourceTaskId = typeof variantParams.source_task_id === 'string' ? variantParams.source_task_id : undefined;
     const hasMatchingTaskData = taskDetailsData?.taskId === sourceTaskId && taskDetailsData?.task?.params;
+    const shouldSurfaceVariantSourceTaskError = !hasMatchingTaskData && !!variantSourceTaskError;
 
     let effectiveParams = variantParams;
     const effectiveTaskType = activeVariant.variant_type || 'variant';
@@ -55,7 +59,7 @@ export function resolveAdjustedTaskDetails(
       }
     }
 
-    return {
+    return buildTaskDetailsData({
       task: {
         id: activeVariant.id,
         taskType: effectiveTaskType,
@@ -65,11 +69,13 @@ export function resolveAdjustedTaskDetails(
         projectId: '',
       } as Task,
       isLoading: isLoadingVariantTask,
-      error: null,
+      error: shouldSurfaceVariantSourceTaskError ? variantSourceTaskError : null,
       inputImages: deriveInputImages(effectiveParams),
       taskId: sourceTaskId ?? activeVariant.id,
       onApplySettingsFromTask: taskDetailsData?.onApplySettingsFromTask,
-    };
+      onClose: taskDetailsData?.onClose,
+      status: shouldSurfaceVariantSourceTaskError ? 'error' : undefined,
+    });
   }
 
   const waitingForInitialVariant = initialVariantId &&

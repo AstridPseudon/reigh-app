@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useGenerationTaskMapping } from "@/domains/generation/hooks/tasks/useGenerationTaskMapping";
 import { useGetTask } from "@/shared/hooks/tasks/useTasks";
+import {
+  buildTaskDetailsData,
+  type TaskDetailsData,
+  type TaskDetailsStatus,
+} from "@/shared/components/TaskDetails/types";
 import { deriveInputImages, parseTaskParams } from "@/shared/lib/taskParamsUtils";
 import { useResolveGenerationTaskMapping } from "@/domains/generation/hooks/tasks/useResolveGenerationTaskMapping";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import type { Task } from "@/types/tasks";
-import type { TaskDetailsData as LightboxTaskDetailsData } from "@/domains/media-lightbox/types";
-import type { TaskDetailsStatus } from "@/domains/media-lightbox/types";
 import type {
   GenerationTaskMappingCacheEntry,
 } from "@/shared/lib/generationTaskRepository";
@@ -21,7 +24,7 @@ interface UseGenerationTaskDetailsOptions {
 }
 
 interface UseGenerationTaskDetailsResult {
-  taskDetailsData: LightboxTaskDetailsData | null;
+  taskDetailsData: TaskDetailsData | null;
   taskDetailsStatus: TaskDetailsStatus;
   taskMapping: GenerationTaskMappingCacheEntry | undefined;
   taskId: string | null;
@@ -160,7 +163,7 @@ export function useGenerationTaskDetails({
   }
 
   return {
-    taskDetailsData: {
+    taskDetailsData: buildTaskDetailsData({
       task: task ?? null,
       isLoading,
       status: taskDetailsStatus,
@@ -169,7 +172,7 @@ export function useGenerationTaskDetails({
       taskId,
       onApplySettingsFromTask,
       onClose,
-    },
+    }),
     taskDetailsStatus,
     taskMapping,
     taskId,

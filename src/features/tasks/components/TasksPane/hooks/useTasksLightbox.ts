@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/domains/generation/types';
+import { fetchGenerationRecordById } from '@/integrations/supabase/repositories/generationRepository';
 import { Task } from '@/types/tasks';
+import { buildTaskDetailsData } from '@/shared/components/TaskDetails/types';
 import { deriveTaskInputImages } from '../utils/task-utils';
 import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
@@ -37,16 +38,14 @@ export function useTasksLightbox({
   const [lightboxSelectedShotId, setLightboxSelectedShotId] = useState<string | undefined>(undefined);
 
   // Build task details data directly from lightbox task
-  const taskDetailsData = lightboxData?.task ? {
-    task: lightboxData.task,
-    isLoading: false,
-    status: 'ok' as const,
-    error: null,
-    inputImages: deriveTaskInputImages(lightboxData.task),
-    taskId: lightboxData.task.id,
-    onApplySettingsFromTask: undefined,
-    onClose: undefined
-  } : null;
+  const taskDetailsData = lightboxData?.task
+    ? buildTaskDetailsData({
+      task: lightboxData.task,
+      isLoading: false,
+      inputImages: deriveTaskInputImages(lightboxData.task),
+      taskId: lightboxData.task.id,
+    })
+    : null;
 
   // Handlers for opening lightbox
   const handleOpenImageLightbox = useCallback((task: Task, media: GenerationRow, initialVariantId?: string) => {
@@ -74,33 +73,29 @@ export function useTasksLightbox({
     _derivedContext?: string[]
   ) => {
     try {
-      // Fetch the generation from the database with its shot associations
-      const { data, error } = await supabase().from('generations')
-        .select('*')
-        .eq('id', generationId)
-        .single();
-      
-      if (error) throw error;
-      
+      const data = await fetchGenerationRecordById(generationId);
+
       if (data) {
-        // The Supabase select returns unknown additional fields; cast once for property access
-        const dbRow = data as Record<string, unknown>;
-        const metadata = dbRow.metadata as Record<string, unknown> | undefined;
+        const metadata = (
+          (typeof data.params === 'object' && data.params && !Array.isArray(data.params))
+            ? data.params
+            : (typeof data.metadata === 'object' && data.metadata && !Array.isArray(data.metadata) ? data.metadata : null)
+        ) as Record<string, unknown> | null;
 
         // The database field is 'based_on' at the top level
-        const basedOnValue = (dbRow.based_on as string | null) || (metadata?.based_on as string | null) || null;
+        const basedOnValue = data.based_on || (metadata?.based_on as string | null) || null;
 
         // Transform the data to match GenerationRow format
         const shotGenerations = expandShotData(
-          dbRow.shot_data as Record<string, unknown> | null | undefined,
+          data.shot_data as Record<string, unknown> | null | undefined,
         );
 
         // Database fields: location (full image), thumbnail_url (thumb)
-        const location = dbRow.location as string | undefined;
-        const thumbnailUrl = dbRow.thumbnail_url as string | undefined;
+        const location = data.location ?? undefined;
+        const thumbnailUrl = data.thumbnail_url ?? undefined;
         const imageUrl = location || thumbnailUrl;
         const thumbUrl = thumbnailUrl || location;
-        const videoUrl = dbRow.video_url as string | null | undefined;
+        const videoUrl = typeof data.video_url === 'string' ? data.video_url : null;
 
         const transformedData: GenerationRow & { videoUrl?: string | null; sourceGenerationId?: string | null; shotIds?: string[]; timelineFrames?: Record<string, number | null> } = {
           id: data.id,
@@ -110,7 +105,7 @@ export function useTasksLightbox({
           videoUrl: videoUrl || null,
           createdAt: data.created_at,
           metadata: metadata as GenerationRow['metadata'],
-          starred: (dbRow.starred as boolean) || false,
+          starred: data.starred || false,
           // CRITICAL: Include based_on at TOP LEVEL for MediaLightbox
           based_on: basedOnValue,
           // Also include as sourceGenerationId for compatibility
@@ -126,13 +121,13 @@ export function useTasksLightbox({
         // Update lightbox to show this generation
         // We don't have the original task, so we'll use a minimal task object
         const minimalTask: Task = {
-          id: (dbRow.task_id as string) || 'unknown',
+          id: typeof data.task_id === 'string' ? data.task_id : 'unknown',
           status: 'Complete',
           taskType: 'unknown',
           createdAt: data.created_at,
           updatedAt: data.created_at,
-          projectId: selectedProjectId || '',
-          params: {},
+          projectId: data.project_id || selectedProjectId || '',
+          params: metadata ?? {},
         };
 
         setLightboxData({
@@ -140,7 +135,10 @@ export function useTasksLightbox({
           task: minimalTask,
           media: transformedData as GenerationRow,
         });
+        return;
       }
+
+      throw new Error('Generation not found');
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useTasksLightbox', toastTitle: 'Failed to load generation' });
     }

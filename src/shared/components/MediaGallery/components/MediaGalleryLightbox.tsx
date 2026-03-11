@@ -1,19 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { MediaLightbox } from "@/domains/media-lightbox/MediaLightbox";
 import { TaskDetailsModal } from '@/shared/components/TaskDetails/TaskDetailsModal';
 import { GenerationRow, Shot } from "@/domains/generation/types";
 import { Task } from "@/types/tasks";
 import type { GeneratedImageWithMetadata } from '../types';
 import type { LightboxActionHandlers } from '@/domains/media-lightbox/types';
-import {
-  buildTaskDetailsPayload,
-  useGenerationNavigationController,
-  useLightboxNavigationState,
-  useShotAssociationState,
-} from '../hooks/useMediaGalleryLightboxControllers';
+import type { TaskDetailsData } from '@/shared/components/TaskDetails/types';
 
 export interface MediaGalleryLightboxSession {
   activeLightboxMedia: GeneratedImageWithMetadata | null;
+  lightboxMedia: GenerationRow | null;
   autoEnterEditMode?: boolean;
   onClose: () => void;
   filteredImages: GeneratedImageWithMetadata[];
@@ -22,14 +18,21 @@ export interface MediaGalleryLightboxSession {
   totalPages: number;
   onNext: () => void;
   onPrevious: () => void;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  handleNavigateToGeneration: (generationId: string) => void;
+  handleOpenExternalGeneration: (generationId: string, derivedContext?: string[]) => Promise<void>;
   onDelete?: LightboxActionHandlers['onDelete'];
   isDeleting?: LightboxActionHandlers['isDeleting'];
   onApplySettings?: LightboxActionHandlers['onApplySettings'];
   simplifiedShotOptions: { id: string; name: string }[];
   selectedShotIdLocal: string;
+  selectedShotIdForLightbox?: string;
   onShotChange: (shotId: string) => void;
   onAddToShot?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
   onAddToShotWithoutPosition?: (targetShotId: string, generationId: string, imageUrl?: string, thumbUrl?: string) => Promise<boolean>;
+  positionedInSelectedShot?: boolean;
+  associatedWithoutPositionInSelectedShot?: boolean;
   showTickForImageId: string | null;
   setShowTickForImageId: (id: string | null) => void;
   showTickForSecondaryImageId?: string | null;
@@ -49,6 +52,7 @@ export interface MediaGalleryLightboxSession {
   taskError?: Error | null;
   inputImages?: string[];
   lightboxTaskMapping?: { taskId: string | null };
+  taskDetailsData: TaskDetailsData | null;
   onCreateShot?: (shotName: string, files: File[]) => Promise<void>;
   onNavigateToShot?: (shot: Shot) => void;
   toolTypeOverride?: string;
@@ -64,22 +68,26 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
 }) => {
   const {
     activeLightboxMedia,
+    lightboxMedia,
     autoEnterEditMode = false,
     onClose,
-    filteredImages,
-    isServerPagination,
-    serverPage,
-    totalPages,
     onNext,
     onPrevious,
+    hasNext,
+    hasPrevious,
+    handleNavigateToGeneration,
+    handleOpenExternalGeneration,
     onDelete,
     isDeleting,
     onApplySettings,
     simplifiedShotOptions,
     selectedShotIdLocal,
+    selectedShotIdForLightbox,
     onShotChange,
     onAddToShot,
     onAddToShotWithoutPosition,
+    positionedInSelectedShot,
+    associatedWithoutPositionInSelectedShot,
     showTickForImageId,
     setShowTickForImageId,
     showTickForSecondaryImageId,
@@ -94,110 +102,24 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
     selectedImageForDetails,
     setSelectedImageForDetails,
     onShowTaskDetails,
-    task,
-    isLoadingTask,
-    taskError,
-    inputImages,
-    lightboxTaskMapping,
+    taskDetailsData,
     onCreateShot,
     onNavigateToShot,
     toolTypeOverride,
-    setActiveLightboxIndex,
   } = session;
-  
-  // Local shot override is intentionally separate from parent gallery filters.
-  const [lightboxShotOverrideId, setLightboxShotOverrideId] = useState<string | null>(null);
-  const selectedShotIdFromGallery = selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined;
 
   const effectiveAutoEnterEditMode = useMemo(() => {
     const fromMetadata = activeLightboxMedia?.metadata?.__autoEnterEditMode as boolean | undefined;
     return fromMetadata ?? autoEnterEditMode ?? false;
   }, [activeLightboxMedia?.metadata?.__autoEnterEditMode, autoEnterEditMode]);
 
-  const { hasNext, hasPrevious } = useLightboxNavigationState({
-    activeLightboxMedia,
-    filteredImages,
-    isServerPagination,
-    serverPage,
-    totalPages,
-  });
-
-  // Build lightbox media from explicit gallery state only (no cache side-channel subscriptions).
-  const enhancedMedia = useMemo(() => {
-    if (!activeLightboxMedia) return null;
-    const sourceMedia = filteredImages.find((img) => img.id === activeLightboxMedia.id) ?? activeLightboxMedia;
-    const sourceMetadata = sourceMedia.metadata ?? activeLightboxMedia.metadata ?? {};
-    const { __autoEnterEditMode, ...cleanMetadata } = sourceMetadata;
-
-    return {
-      ...activeLightboxMedia,
-      ...sourceMedia,
-      starred: sourceMedia.starred ?? activeLightboxMedia.starred ?? false,
-      // Internal-only metadata flags do not cross the lightbox boundary.
-      metadata: cleanMetadata,
-    };
-  }, [activeLightboxMedia, filteredImages]);
-
-  const mediaForLightbox = useMemo<GenerationRow | undefined>(() => {
-    if (!enhancedMedia) return undefined;
-    return {
-      ...enhancedMedia,
-      location: enhancedMedia.location ?? enhancedMedia.url,
-      timeline_frame: enhancedMedia.timeline_frame ?? undefined,
-    } as unknown as GenerationRow;
-  }, [enhancedMedia]);
-
-  // Compute positioned/associated state from gallery source record (mirrors MediaGalleryItem logic)
-  const sourceRecord = useMemo(() => {
-    const found = filteredImages.find(img => img.id === activeLightboxMedia?.id);
-    return found;
-  }, [filteredImages, activeLightboxMedia?.id]);
-  
-  const selectedShotIdForLightbox = lightboxShotOverrideId ?? selectedShotIdFromGallery;
-  const effectiveShotIdForOverride = selectedShotIdForLightbox;
-  
-  const {
-    positionedInSelectedShot,
-    associatedWithoutPositionInSelectedShot,
-  } = useShotAssociationState({
-    sourceRecord,
-    effectiveShotId: effectiveShotIdForOverride,
-  });
-
-  const {
-    handleNavigateToGeneration,
-    handleOpenExternalGeneration,
-  } = useGenerationNavigationController({
-    filteredImages,
-    setActiveLightboxIndex,
-  });
-
-  const taskDetailsPayload = useMemo(() => buildTaskDetailsPayload({
-    task,
-    isLoadingTask,
-    taskError,
-    inputImages,
-    taskId: lightboxTaskMapping?.taskId,
-    onClose,
-  }), [inputImages, isLoadingTask, lightboxTaskMapping?.taskId, onClose, task, taskError]);
-
-  const handleLightboxClose = () => {
-    setLightboxShotOverrideId(null);
-    onClose();
-  };
-
-  const handleLightboxShotChange = (shotId: string) => {
-    setLightboxShotOverrideId(shotId);
-    onShotChange(shotId);
-  };
-
   return (
     <>
       {/* Main Lightbox Modal */}
-      {enhancedMedia && (
+      {lightboxMedia && (
         <MediaLightbox
-          media={mediaForLightbox}
-          onClose={handleLightboxClose}
+          media={lightboxMedia}
+          onClose={onClose}
           shotId={selectedShotIdLocal !== 'all' ? selectedShotIdLocal : undefined}
           toolTypeOverride={toolTypeOverride}
           navigation={{
@@ -212,7 +134,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
           shotWorkflow={{
             allShots: simplifiedShotOptions,
             selectedShotId: selectedShotIdForLightbox,
-            onShotChange: handleLightboxShotChange,
+            onShotChange,
             onAddToShot,
             onAddToShotWithoutPosition,
             onCreateShot,
@@ -230,7 +152,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
             onDelete,
             isDeleting,
             onApplySettings,
-            starred: enhancedMedia.starred ?? false,
+            starred: lightboxMedia.starred ?? false,
           }}
           features={{
             showTaskDetails: true,
@@ -239,7 +161,7 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
             showMagicEdit: false,
             initialEditActive: effectiveAutoEnterEditMode,
           }}
-          taskDetailsData={taskDetailsPayload}
+          taskDetailsData={taskDetailsData ?? undefined}
           showTickForImageId={showTickForImageId}
           showTickForSecondaryImageId={showTickForSecondaryImageId}
           videoProps={{ onShowTaskDetails: isMobile ? onShowTaskDetails : undefined }}
