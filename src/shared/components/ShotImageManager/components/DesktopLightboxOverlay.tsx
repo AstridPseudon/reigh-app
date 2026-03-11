@@ -8,12 +8,26 @@ import type { useOptimisticOrder } from '@/shared/components/ShotImageManager/ho
 import type { useExternalGenerations } from '@/shared/components/ShotImageManager/hooks/useExternalGenerations';
 
 type MediaLightboxProps = React.ComponentProps<typeof MediaLightbox>;
+type DesktopLightboxManagerProps = Pick<
+  ShotImageManagerProps,
+  | 'images'
+  | 'shotId'
+  | 'toolTypeOverride'
+  | 'selectedShotId'
+  | 'readOnly'
+  | 'onImageDelete'
+  | 'allShots'
+  | 'onShotChange'
+  | 'onAddToShot'
+  | 'onAddToShotWithoutPosition'
+  | 'onCreateShot'
+>;
 
 interface DesktopLightboxOverlayProps {
   lightbox: ReturnType<typeof useLightbox>;
   optimistic: ReturnType<typeof useOptimisticOrder>;
   externalGens: ReturnType<typeof useExternalGenerations>;
-  managerProps: ShotImageManagerProps;
+  managerProps: DesktopLightboxManagerProps;
   lightboxSelectedShotId?: string;
   setLightboxSelectedShotId?: (shotId: string | undefined) => void;
   taskDetailsData?: MediaLightboxProps['taskDetailsData'];

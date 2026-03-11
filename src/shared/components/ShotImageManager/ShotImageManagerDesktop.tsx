@@ -52,7 +52,36 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   pendingImageVariantId,
   onClearPendingImageToOpen,
   navigateWithTransition,
-  ...props
+  images,
+  shotId,
+  projectId,
+  toolTypeOverride,
+  allShots,
+  selectedShotId,
+  onShotChange,
+  onAddToShot,
+  onAddToShotWithoutPosition,
+  onCreateShot,
+  onNewShotFromSelection,
+  onPairClick,
+  pairPrompts,
+  enhancedPrompts,
+  defaultPrompt,
+  defaultNegativePrompt,
+  onClearEnhancedPrompt,
+  pairOverrides,
+  onImageDelete,
+  onImageDuplicate,
+  onImageUpload,
+  isUploadingImage,
+  onFileDrop,
+  onGenerationDrop,
+  columns,
+  duplicatingImageId,
+  duplicateSuccessImageId,
+  projectAspectRatio,
+  batchVideoFrames,
+  readOnly,
 }) => {
   const {
     showTickForImageId,
@@ -65,16 +94,16 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
     lightboxIndex: lightbox.lightboxIndex,
     currentImages: lightbox.currentImages,
     setLightboxIndex: lightbox.setLightboxIndex,
-    projectId: props.projectId ?? null,
+    projectId: projectId ?? null,
     pendingImageToOpen,
     pendingImageVariantId,
     onClearPendingImageToOpen,
     segmentSlots,
-    onPairClick: props.onPairClick,
+    onPairClick,
     navigateWithTransition,
   });
 
-  const gridColsClass = GRID_COLS_CLASSES[props.columns || 4] || 'grid-cols-4';
+  const gridColsClass = GRID_COLS_CLASSES[columns || 4] || 'grid-cols-4';
   const isMobile = useIsMobile();
   
   // Shot navigation for "add without position" flow
@@ -93,8 +122,22 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   } = useDesktopSegmentScrubbing({
     isMobile,
     segmentSlots,
-    projectAspectRatio: props.projectAspectRatio,
+    projectAspectRatio,
   });
+
+  const lightboxManagerProps = {
+    images,
+    shotId,
+    toolTypeOverride,
+    allShots,
+    selectedShotId,
+    onShotChange,
+    onAddToShot,
+    onAddToShotWithoutPosition,
+    onCreateShot,
+    onImageDelete,
+    readOnly,
+  };
 
   return (
     <>
@@ -110,13 +153,13 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
       />
 
       <BatchDropZone
-        onFileDrop={props.onFileDrop}
-        onGenerationDrop={props.onGenerationDrop}
-        columns={props.columns || 4}
+        onFileDrop={onFileDrop}
+        onGenerationDrop={onGenerationDrop}
+        columns={columns || 4}
         itemCount={lightbox.currentImages.length}
-        disabled={props.readOnly || (!props.onFileDrop && !props.onGenerationDrop)}
+        disabled={readOnly || (!onFileDrop && !onGenerationDrop)}
         getFramePositionForIndex={getFramePosition}
-        projectAspectRatio={props.projectAspectRatio}
+        projectAspectRatio={projectAspectRatio}
       >
         {(_isFileDragOver, dropTargetIndex) => (
           <DndContext
@@ -130,47 +173,51 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
               strategy={rectSortingStrategy}
             >
               <ImageGrid
-                images={lightbox.currentImages}
-                selectedIds={selection.selectedIds}
-                gridColsClass={gridColsClass}
-                columns={props.columns || 4}
-                onItemClick={selection.handleItemClick}
-                onItemDoubleClick={(index) => lightbox.setLightboxIndex(index)}
-                onInpaintClick={(index) => {
-                  lightbox.setShouldAutoEnterInpaint(true);
-                  lightbox.setLightboxIndex(index);
+                layout={{
+                  gridColsClass,
+                  columns,
+                  isMobile,
+                  readOnly,
+                  projectAspectRatio,
+                  batchVideoFrames,
+                  activeDragId: dragAndDrop.activeId,
+                  dropTargetIndex,
+                  activeScrubbingIndex,
                 }}
-                onDelete={batchOps.handleIndividualDelete}
-                onDuplicate={props.onImageDuplicate}
-                isMobile={isMobile}
-                duplicatingImageId={props.duplicatingImageId}
-                duplicateSuccessImageId={props.duplicateSuccessImageId}
-                projectAspectRatio={props.projectAspectRatio}
-                batchVideoFrames={props.batchVideoFrames}
-                onGridDoubleClick={() => {
-                  selection.setSelectedIds([]);
-                  selection.setLastSelectedIndex(null);
+                content={{
+                  images: lightbox.currentImages,
+                  selectedIds: selection.selectedIds,
+                  segmentSlots,
+                  hasPendingTask,
+                  deletingSegmentId,
+                  scrubbing,
                 }}
-                onImageUpload={props.onImageUpload}
-                isUploadingImage={props.isUploadingImage}
-                readOnly={props.readOnly}
-                onPairClick={props.onPairClick}
-                pairPrompts={props.pairPrompts}
-                enhancedPrompts={props.enhancedPrompts}
-                defaultPrompt={props.defaultPrompt}
-                defaultNegativePrompt={props.defaultNegativePrompt}
-                onClearEnhancedPrompt={props.onClearEnhancedPrompt}
-                pairOverrides={props.pairOverrides}
-                activeDragId={dragAndDrop.activeId}
-                dropTargetIndex={dropTargetIndex}
-                segmentSlots={segmentSlots}
-                onSegmentClick={onSegmentClick}
-                hasPendingTask={hasPendingTask}
-                onSegmentDelete={onSegmentDelete}
-                deletingSegmentId={deletingSegmentId}
-                activeScrubbingIndex={activeScrubbingIndex}
-                onScrubbingStart={handleScrubbingStart}
-                scrubbing={scrubbing}
+                interactions={{
+                  onItemClick: selection.handleItemClick,
+                  onItemDoubleClick: (index) => lightbox.setLightboxIndex(index),
+                  onDelete: batchOps.handleIndividualDelete,
+                  onDuplicate: onImageDuplicate,
+                  duplicatingImageId,
+                  duplicateSuccessImageId,
+                  onGridDoubleClick: () => {
+                    selection.setSelectedIds([]);
+                    selection.setLastSelectedIndex(null);
+                  },
+                  onImageUpload,
+                  isUploadingImage,
+                  onSegmentClick,
+                  onSegmentDelete,
+                  onScrubbingStart: handleScrubbingStart,
+                }}
+                prompts={{
+                  onPairClick,
+                  pairPrompts,
+                  enhancedPrompts,
+                  defaultPrompt,
+                  defaultNegativePrompt,
+                  onClearEnhancedPrompt,
+                  pairOverrides,
+                }}
               />
             </SortableContext>
 
@@ -193,7 +240,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
               lightbox={lightbox}
               optimistic={optimistic}
               externalGens={externalGens}
-              managerProps={props}
+              managerProps={lightboxManagerProps}
               lightboxSelectedShotId={lightboxSelectedShotId}
               setLightboxSelectedShotId={setLightboxSelectedShotId}
               taskDetailsData={taskDetailsData ?? undefined}
@@ -214,14 +261,14 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
                 onDeselect={selection.clearSelection}
                 onDelete={() => batchOps.handleBatchDelete(selection.selectedIds)}
                 onNewShot={
-                  props.onNewShotFromSelection
+                  onNewShotFromSelection
                     ? async () => {
-                        const shotId = await props.onNewShotFromSelection!(selection.selectedIds);
+                        const shotId = await onNewShotFromSelection(selection.selectedIds);
                         return shotId;
                       }
                     : undefined
                 }
-                onJumpToShot={props.onShotChange}
+                onJumpToShot={onShotChange}
               />
             )}
 

@@ -19,33 +19,44 @@ import { resolveDuplicateFrame } from '../utils/image-utils';
 
 const FPS = 16;
 
-interface ImageGridCoreProps {
-  images: GenerationRow[];
-  selectedIds: string[];
+interface ImageGridLayoutModel {
   gridColsClass: string;
   /** Number of columns in the grid (for row boundary calculations) */
   columns?: number;
   isMobile: boolean;
   readOnly?: boolean;
+  projectAspectRatio?: string;
+  batchVideoFrames?: number;
+  activeDragId?: string | null;
+  dropTargetIndex?: number | null;
+  activeScrubbingIndex?: number | null;
 }
 
-interface ImageGridInteractionProps {
+interface ImageGridContentModel {
+  images: GenerationRow[];
+  selectedIds: string[];
+  segmentSlots?: ShotSegmentProps['segmentSlots'];
+  hasPendingTask?: ShotSegmentProps['hasPendingTask'];
+  deletingSegmentId?: ShotSegmentProps['deletingSegmentId'];
+  scrubbing?: UseVideoScrubbingReturn;
+}
+
+interface ImageGridInteractionModel {
   onItemClick: (imageKey: string, event: React.MouseEvent) => void;
   onItemDoubleClick: (idx: number) => void;
-  onInpaintClick: (idx: number) => void;
   onDelete: (id: string) => void;
-  onGridDoubleClick?: () => void;
-  onImageUpload?: (files: File[]) => Promise<void>;
-  isUploadingImage?: boolean;
-}
-
-interface ImageGridDuplicationProps {
   onDuplicate?: (shotImageEntryId: string, timeline_frame: number) => void;
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
+  onGridDoubleClick?: () => void;
+  onImageUpload?: (files: File[]) => Promise<void>;
+  isUploadingImage?: boolean;
+  onSegmentClick?: ShotSegmentProps['onSegmentClick'];
+  onSegmentDelete?: ShotSegmentProps['onSegmentDelete'];
+  onScrubbingStart?: (index: number, rect: DOMRect) => void;
 }
 
-interface ImageGridPairPromptProps {
+interface ImageGridPromptModel {
   // Pair prompt props - pass index and optionally pairData (for single-image mode)
   onPairClick?: (pairIndex: number, pairData?: PairData) => void;
   pairPrompts?: Record<number, { prompt: string; negativePrompt: string }>;
@@ -61,72 +72,55 @@ interface ImageGridPairPromptProps {
   }>;
 }
 
-type ImageGridSegmentVideoProps = Pick<
-  ShotSegmentProps,
-  'segmentSlots' | 'onSegmentClick' | 'hasPendingTask' | 'onSegmentDelete' | 'deletingSegmentId'
->;
-
-interface ImageGridScrubbingProps {
-  // Scrubbing preview props
-  /** Index of the currently scrubbing segment (null if none) */
-  activeScrubbingIndex?: number | null;
-  /** Callback when scrubbing starts on a segment */
-  onScrubbingStart?: (index: number, rect: DOMRect) => void;
-  /** Scrubbing hook return for the active segment */
-  scrubbing?: UseVideoScrubbingReturn;
-}
-
-interface ImageGridProps
-  extends ImageGridCoreProps,
-    ImageGridInteractionProps,
-    ImageGridDuplicationProps,
-    ImageGridPairPromptProps,
-    ImageGridSegmentVideoProps,
-    ImageGridScrubbingProps {
-  projectAspectRatio?: string;
-  batchVideoFrames?: number;
-  isDragging?: boolean;
-  activeDragId?: string | null;
-  dropTargetIndex?: number | null;
+interface ImageGridProps {
+  layout: ImageGridLayoutModel;
+  content: ImageGridContentModel;
+  interactions: ImageGridInteractionModel;
+  prompts: ImageGridPromptModel;
 }
 
 export const ImageGrid: React.FC<ImageGridProps> = ({
-  images,
-  selectedIds,
-  gridColsClass,
-  columns = 4,
-  onItemClick,
-  onItemDoubleClick,
-  onInpaintClick,
-  onDelete,
-  onDuplicate,
-  isMobile,
-  duplicatingImageId,
-  duplicateSuccessImageId,
-  projectAspectRatio,
-  batchVideoFrames = DEFAULT_BATCH_VIDEO_FRAMES,
-  onGridDoubleClick,
-  onImageUpload,
-  isUploadingImage,
-  readOnly = false,
-  onPairClick,
-  pairPrompts,
-  enhancedPrompts,
-  defaultPrompt,
-  defaultNegativePrompt,
-  onClearEnhancedPrompt,
-  pairOverrides,
-  activeDragId = null,
-  dropTargetIndex = null,
-  segmentSlots,
-  onSegmentClick,
-  hasPendingTask,
-  onSegmentDelete,
-  deletingSegmentId,
-  activeScrubbingIndex,
-  onScrubbingStart,
-  scrubbing,
+  layout,
+  content,
+  interactions,
+  prompts,
 }) => {
+  const {
+    gridColsClass,
+    columns = 4,
+    isMobile,
+    readOnly = false,
+    projectAspectRatio,
+    batchVideoFrames = DEFAULT_BATCH_VIDEO_FRAMES,
+    activeDragId = null,
+    dropTargetIndex = null,
+    activeScrubbingIndex,
+  } = layout;
+  const { images, selectedIds, segmentSlots, hasPendingTask, deletingSegmentId, scrubbing } = content;
+  const {
+    onItemClick,
+    onItemDoubleClick,
+    onDelete,
+    onDuplicate,
+    duplicatingImageId,
+    duplicateSuccessImageId,
+    onGridDoubleClick,
+    onImageUpload,
+    isUploadingImage,
+    onSegmentClick,
+    onSegmentDelete,
+    onScrubbingStart,
+  } = interactions;
+  const {
+    onPairClick,
+    pairPrompts,
+    enhancedPrompts,
+    defaultPrompt,
+    defaultNegativePrompt,
+    onClearEnhancedPrompt,
+    pairOverrides,
+  } = prompts;
+
   // Prefetch task data on hover (desktop only)
   const prefetchTaskData = usePrefetchTaskData();
 
@@ -235,24 +229,35 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
             onMouseEnter={() => handleMouseEnter(generationId)}
           >
             <ShotBatchItemDesktop
-              image={image}
-              isSelected={desktopSelected}
-              isDragDisabled={isMobile}
-              onClick={(e) => {
-                if (!isMobile) {
-                  onItemClick(imageKey, e);
-                }
+              item={{
+                image,
+                selection: {
+                  isSelected: desktopSelected,
+                  isDragDisabled: isMobile,
+                },
+                timing: {
+                  timelineFrame: duplicateFrame,
+                  displayTimeSeconds,
+                },
+                duplication: {
+                  duplicatingImageId,
+                  duplicateSuccessImageId,
+                },
+                loading: {
+                  shouldLoad: true,
+                  projectAspectRatio,
+                },
               }}
-              onDelete={() => onDelete(image.id)}
-              onDuplicate={onDuplicate}
-              timeline_frame={duplicateFrame}
-              displayTimeSeconds={displayTimeSeconds}
-              onDoubleClick={isMobile ? () => {} : () => onItemDoubleClick(index)}
-              onInpaintClick={isMobile ? undefined : () => onInpaintClick(index)}
-              duplicatingImageId={duplicatingImageId}
-              duplicateSuccessImageId={duplicateSuccessImageId}
-              shouldLoad={true}
-              projectAspectRatio={projectAspectRatio}
+              actions={{
+                onClick: (event) => {
+                  if (!isMobile) {
+                    onItemClick(imageKey, event);
+                  }
+                },
+                onDelete: () => onDelete(image.id),
+                onDuplicate,
+                onOpenLightbox: isMobile ? () => {} : () => onItemDoubleClick(index),
+              }}
             />
 
             {/* Cross-row: Previous pair's video + indicator - shows on LEFT at start of row, centered vertically together */}

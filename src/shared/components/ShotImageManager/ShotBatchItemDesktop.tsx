@@ -19,45 +19,51 @@ import { framesToSeconds } from '@/shared/lib/media/videoUtils';
 import { VariantBadge } from '@/shared/components/VariantBadge';
 import { useMarkVariantViewed } from '@/shared/hooks/variants/useMarkVariantViewed';
 
-interface ShotBatchItemDesktopProps {
+interface ShotBatchItemModel {
   image: GenerationRow;
+  selection: {
+    isSelected: boolean;
+    isDragDisabled?: boolean;
+  };
+  timing: {
+    timelineFrame?: number;
+    displayTimeSeconds?: number;
+  };
+  duplication: {
+    duplicatingImageId?: string | null;
+    duplicateSuccessImageId?: string | null;
+  };
+  loading: {
+    shouldLoad?: boolean;
+    projectAspectRatio?: string;
+  };
+}
+
+interface ShotBatchItemDesktopActions {
   onDelete: (shotImageEntryId: string) => void;
   onDuplicate?: (shotImageEntryId: string, timeline_frame: number) => void;
-  onDoubleClick: () => void;
-  onMobileTap?: () => void;
   onClick: (event: React.MouseEvent) => void;
   onPointerDown?: (event: React.PointerEvent) => void;
-  onInpaintClick?: () => void;
-  isSelected: boolean;
-  isDragDisabled?: boolean;
-  timeline_frame?: number;
-  /** Display time in seconds (calculated from position × frames per image / fps) */
-  displayTimeSeconds?: number;
-  duplicatingImageId?: string | null;
-  duplicateSuccessImageId?: string | null;
-  /** When provided, image src will only be set once this is true */
-  shouldLoad?: boolean;
-  /** Project aspect ratio for proper dimensions */
-  projectAspectRatio?: string;
+  onOpenLightbox: () => void;
+  onMobileTap?: () => void;
+}
+
+interface ShotBatchItemDesktopProps {
+  item: ShotBatchItemModel;
+  actions: ShotBatchItemDesktopActions;
 }
 
 const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
-  image,
-  onDelete,
-  onDuplicate,
-  onDoubleClick,
-  onMobileTap,
-  onClick,
-  onPointerDown,
-  isSelected,
-  isDragDisabled = false,
-  timeline_frame,
-  displayTimeSeconds,
-  duplicatingImageId,
-  duplicateSuccessImageId,
-  shouldLoad = true,
-  projectAspectRatio,
+  item,
+  actions,
 }) => {
+  const { image, selection, timing, duplication, loading } = item;
+  const { isSelected, isDragDisabled = false } = selection;
+  const { timelineFrame, displayTimeSeconds } = timing;
+  const { duplicatingImageId, duplicateSuccessImageId } = duplication;
+  const { shouldLoad = true, projectAspectRatio } = loading;
+  const { onDelete, onDuplicate, onMobileTap, onClick, onPointerDown, onOpenLightbox } = actions;
+
   // Hook for marking variants as viewed
   const { markAllViewed } = useMarkVariantViewed();
 
@@ -135,9 +141,9 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
     e.preventDefault();
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
-    if (onDuplicate && timeline_frame !== undefined) {
+    if (onDuplicate && timelineFrame !== undefined) {
       // Use id (shot_generations.id) - unique per entry
-      onDuplicate(image.id, timeline_frame);
+      onDuplicate(image.id, timelineFrame);
     }
   };
 
@@ -162,7 +168,7 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
 
         // Don't trigger onClick if the click came from a button
         if (!isButtonClick) {
-          onClick?.(e);
+          onClick(e);
         }
       }}
       onPointerDown={(e) => {
@@ -175,13 +181,13 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
           onPointerDown?.(e);
         }
       }}
-      onDoubleClick={isMobile ? undefined : onDoubleClick}
+      onDoubleClick={isMobile ? undefined : onOpenLightbox}
     >
       {/* Progressive image display */}
       <img
         ref={progressiveRef}
         src={shouldLoad ? displayImageUrl : '/placeholder.svg'}
-        alt={`Generated image ${Math.floor((timeline_frame ?? 0) / 50) + 1}`}
+        alt={`Generated image ${Math.floor((timelineFrame ?? 0) / 50) + 1}`}
         className={cn(
           "w-full h-full object-cover transition-all duration-200",
           // Progressive loading visual states
@@ -203,12 +209,12 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
       />
 
       {/* Time overlay - bottom (showing position-based time in seconds) */}
-      {(displayTimeSeconds !== undefined || timeline_frame !== undefined) && (
+      {(displayTimeSeconds !== undefined || timelineFrame !== undefined) && (
         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] leading-none text-center py-0.5 pointer-events-none whitespace-nowrap overflow-hidden">
           <span className="inline-block">
             {displayTimeSeconds !== undefined
               ? `${displayTimeSeconds.toFixed(2)}s`
-              : framesToSeconds(timeline_frame!)}
+              : framesToSeconds(timelineFrame!)}
           </span>
         </div>
       )}
@@ -228,7 +234,7 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
 
           {/* Action buttons - top center, side by side */}
           <div className="absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-            {onDuplicate && timeline_frame !== undefined && (
+            {onDuplicate && timelineFrame !== undefined && (
               <Button
                 variant="secondary"
                 size="icon"
@@ -287,19 +293,21 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
 export const ShotBatchItemDesktop = React.memo(
   ShotBatchItemDesktopComponent,
   (prevProps, nextProps) => {
-    // Use image.id (shot_generations.id) - unique per entry
+    const previousItem = prevProps.item;
+    const nextItem = nextProps.item;
+
     return (
-      prevProps.image.id === nextProps.image.id &&
-      prevProps.isSelected === nextProps.isSelected &&
-      prevProps.isDragDisabled === nextProps.isDragDisabled &&
-      prevProps.timeline_frame === nextProps.timeline_frame &&
-      prevProps.displayTimeSeconds === nextProps.displayTimeSeconds &&
-      prevProps.duplicatingImageId === nextProps.duplicatingImageId &&
-      prevProps.duplicateSuccessImageId === nextProps.duplicateSuccessImageId &&
-      prevProps.shouldLoad === nextProps.shouldLoad &&
-      prevProps.projectAspectRatio === nextProps.projectAspectRatio &&
-      prevProps.image.thumbUrl === nextProps.image.thumbUrl &&
-      prevProps.image.imageUrl === nextProps.image.imageUrl
+      previousItem.image.id === nextItem.image.id &&
+      previousItem.selection.isSelected === nextItem.selection.isSelected &&
+      previousItem.selection.isDragDisabled === nextItem.selection.isDragDisabled &&
+      previousItem.timing.timelineFrame === nextItem.timing.timelineFrame &&
+      previousItem.timing.displayTimeSeconds === nextItem.timing.displayTimeSeconds &&
+      previousItem.duplication.duplicatingImageId === nextItem.duplication.duplicatingImageId &&
+      previousItem.duplication.duplicateSuccessImageId === nextItem.duplication.duplicateSuccessImageId &&
+      previousItem.loading.shouldLoad === nextItem.loading.shouldLoad &&
+      previousItem.loading.projectAspectRatio === nextItem.loading.projectAspectRatio &&
+      previousItem.image.thumbUrl === nextItem.image.thumbUrl &&
+      previousItem.image.imageUrl === nextItem.image.imageUrl
     );
   }
 );
