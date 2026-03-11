@@ -39,7 +39,7 @@ describe('createVideoEnhanceTask', () => {
       enable_upscale: false,
     });
 
-    expect(result.task).toEqual({ task_id: 'task-1', status: 'pending' });
+    expect(result).toEqual({ task_id: 'task-1', status: 'pending' });
 
     const call = mockCreateTask.mock.calls[0][0];
     expect(call.project_id).toBe('proj-1');

@@ -30,6 +30,7 @@ export {
 
 // Main task creator
 export { createTravelBetweenImagesTask } from './createTravelBetweenImagesTask';
+export { createTravelBetweenImagesTaskWithParentGeneration } from './createTravelBetweenImagesTask';
 export { validateTravelBetweenImagesParams } from './payloadBuilder';
 
 // TaskValidationError is used internally - import from taskCreation.ts if needed externally

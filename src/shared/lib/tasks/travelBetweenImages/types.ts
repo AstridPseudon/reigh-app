@@ -60,34 +60,6 @@ export interface StructureVideoConfig {
   source_end_frame?: number | null;
 }
 
-interface VideoMotionApiParams {
-  amount_of_motion?: number;
-  motion_mode?: 'basic' | 'presets' | 'advanced';
-  advanced_mode?: boolean;
-  phase_config?: PhaseConfig;
-  selected_phase_preset_id?: string | null;
-}
-
-interface VideoModelApiParams {
-  model_name?: string;
-  model_type?: 'i2v' | 'vace';
-  seed?: number;
-  steps?: number;
-  random_seed?: boolean;
-  turbo_mode?: boolean;
-  debug?: boolean;
-}
-
-interface VideoPromptApiParams {
-  base_prompt?: string;
-  base_prompts?: string[];
-  negative_prompts?: string[];
-  enhanced_prompts?: string[];
-  enhance_prompt?: boolean;
-  text_before_prompts?: string;
-  text_after_prompts?: string;
-}
-
 export interface PromptConfig {
   base_prompt: string;
   enhance_prompt: boolean;
@@ -211,7 +183,7 @@ export interface StitchConfig {
   loop_first_clip?: boolean;
 }
 
-export interface TravelBetweenImagesTaskResult {
+export interface TravelBetweenImagesTaskWithParentGenerationResult {
   task: import("../../taskCreation").TaskCreationResult;
   parentGenerationId: string | undefined;
 }

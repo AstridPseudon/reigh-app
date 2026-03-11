@@ -3,77 +3,101 @@ import {
   generateTaskId,
   generateRunId,
   createTask,
+  type BaseTaskParams,
+  type TaskCreationResult,
 } from "../../taskCreation";
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import type { TravelBetweenImagesTaskInput, TravelBetweenImagesTaskResult } from './types';
+import type {
+  TravelBetweenImagesTaskInput,
+  TravelBetweenImagesTaskWithParentGenerationResult,
+} from './types';
 import { validateTravelBetweenImagesParams, buildTravelBetweenImagesPayload } from './payloadBuilder';
 import { TOOL_IDS } from '@/shared/lib/toolIds';
 import { ensureShotParentGenerationId } from '../shotParentGeneration';
+
+interface PreparedTravelBetweenImagesTaskRequest {
+  taskRequest: BaseTaskParams;
+  parentGenerationId: string | undefined;
+}
+
+async function prepareTravelBetweenImagesTaskRequest(
+  params: TravelBetweenImagesTaskInput,
+): Promise<PreparedTravelBetweenImagesTaskRequest> {
+  validateTravelBetweenImagesParams(params);
+
+  const { resolution: finalResolution } = await resolveProjectResolution(
+    params.project_id,
+    params.resolution
+  );
+
+  const orchestratorTaskId = generateTaskId("sm_travel_orchestrator");
+  const runId = generateRunId();
+
+  const effectiveParentGenerationId = await ensureShotParentGenerationId({
+    projectId: params.project_id,
+    shotId: params.shot_id,
+    parentGenerationId: params.parent_generation_id,
+    context: 'TravelBetweenImages',
+  });
+
+  const orchestratorPayload = buildTravelBetweenImagesPayload(
+    params,
+    finalResolution,
+    orchestratorTaskId,
+    runId,
+    effectiveParentGenerationId
+  );
+
+  const isTurboMode = params.turbo_mode === true;
+  const taskType = isTurboMode ? 'wan_2_2_i2v' : 'travel_orchestrator';
+
+  return {
+    taskRequest: {
+      project_id: params.project_id,
+      task_type: taskType,
+      params: {
+        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
+        orchestrator_details: orchestratorPayload,
+        ...(effectiveParentGenerationId ? { parent_generation_id: effectiveParentGenerationId } : {}),
+        ...(params.generation_name ? { generation_name: params.generation_name } : {}),
+      },
+    },
+    parentGenerationId: effectiveParentGenerationId,
+  };
+}
 
 /**
  * Creates a travel between images task using the unified approach.
  * This replaces the direct call to the steerable-motion edge function.
  *
  * @param params - Travel between images task parameters
- * @returns Promise resolving to the created task and parent generation ID
+ * @returns Promise resolving to the created task
  */
-export async function createTravelBetweenImagesTask(params: TravelBetweenImagesTaskInput): Promise<TravelBetweenImagesTaskResult> {
-
+export async function createTravelBetweenImagesTask(
+  params: TravelBetweenImagesTaskInput,
+): Promise<TaskCreationResult> {
   try {
-    // 1. Validate parameters
-    validateTravelBetweenImagesParams(params);
+    const { taskRequest } = await prepareTravelBetweenImagesTaskRequest(params);
+    return await createTask(taskRequest);
+  } catch (error) {
+    throw normalizeAndPresentError(error, { context: 'TravelBetweenImages', showToast: false });
+  }
+}
 
-    // 2. Resolve project resolution
-    const { resolution: finalResolution } = await resolveProjectResolution(
-      params.project_id,
-      params.resolution
-    );
-
-    // 3. Generate IDs for orchestrator payload (not for database)
-    const orchestratorTaskId = generateTaskId("sm_travel_orchestrator");
-    const runId = generateRunId();
-
-    // 4. Ensure we have a canonical parent generation for this shot.
-    // If one already exists, reuse it. If none exists yet, create exactly one.
-    const effectiveParentGenerationId = await ensureShotParentGenerationId({
-      projectId: params.project_id,
-      shotId: params.shot_id,
-      parentGenerationId: params.parent_generation_id,
-      context: 'TravelBetweenImages',
-    });
-
-    // 5. Build orchestrator payload (now includes parent_generation_id)
-    const orchestratorPayload = buildTravelBetweenImagesPayload(
-      params,
-      finalResolution,
-      orchestratorTaskId,
-      runId,
-      effectiveParentGenerationId
-    );
-
-    // 6. Determine task type based on turbo mode
-    const isTurboMode = params.turbo_mode === true;
-    const taskType = isTurboMode ? 'wan_2_2_i2v' : 'travel_orchestrator';
-
-    // Create task using unified create-task function (no task_id - let DB auto-generate)
-    const result = await createTask({
-      project_id: params.project_id,
-      task_type: taskType,
-      params: {
-        tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES, // Override tool_type for proper generation tagging
-        orchestrator_details: orchestratorPayload,
-        // Also store parent_generation_id at top level for easy access
-        ...(effectiveParentGenerationId ? { parent_generation_id: effectiveParentGenerationId } : {}),
-        // Also store at top level for direct access by worker (not just in orchestrator_details)
-        ...(params.generation_name ? { generation_name: params.generation_name } : {}),
-      }
-    });
+/**
+ * Explicit outlier for callers that need the created task and ensured parent generation id.
+ */
+export async function createTravelBetweenImagesTaskWithParentGeneration(
+  params: TravelBetweenImagesTaskInput,
+): Promise<TravelBetweenImagesTaskWithParentGenerationResult> {
+  try {
+    const prepared = await prepareTravelBetweenImagesTaskRequest(params);
+    const result = await createTask(prepared.taskRequest);
 
     return {
       task: result,
-      parentGenerationId: effectiveParentGenerationId,
+      parentGenerationId: prepared.parentGenerationId,
     };
-
   } catch (error) {
     throw normalizeAndPresentError(error, { context: 'TravelBetweenImages', showToast: false });
   }

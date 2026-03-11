@@ -68,12 +68,12 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
     }
   }, [image.generation_id, markAllViewed]);
 
-  const fullImageUrl = image.imageUrl ?? image.location ?? image.thumbUrl ?? image.thumbnail_url ?? '';
-  const fallbackImageUrl = image.thumbUrl ?? image.thumbnail_url ?? image.location ?? fullImageUrl;
+  const fullImageUrl = image.imageUrl ?? image.location ?? image.thumbUrl ?? '';
+  const fallbackImageUrl = image.thumbUrl ?? image.location ?? fullImageUrl;
 
   // Progressive loading for batch item
   const { displayImageUrl, progressiveRef, isThumbShowing, isFullLoaded } = useBatchImageLoading({
-    thumbUrl: image.thumbUrl ?? image.thumbnail_url ?? image.location ?? undefined,
+    thumbUrl: image.thumbUrl ?? image.location ?? undefined,
     imageUrl: fullImageUrl,
     shouldLoad,
   });

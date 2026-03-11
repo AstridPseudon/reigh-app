@@ -20,8 +20,8 @@ import { joinPromptParts } from '@/shared/lib/promptAssembly';
 import { buildTaskParams, type SegmentSettings } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
 import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individualTravelSegment';
 import type { IndividualTravelSegmentParams } from '@/shared/lib/tasks/individualTravelSegment';
+import { persistSegmentEnhancedPrompt } from '@/shared/lib/tasks/segmentGenerationPersistence';
 import { buildStructureGuidanceFromControls } from '@/shared/lib/tasks/structureGuidance';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import type {
   StructureGuidanceConfig,
@@ -218,46 +218,24 @@ async function saveEnhancedPromptMetadata(
   promptToEnhance: string,
   basePrompt: string,
 ): Promise<void> {
-  if (!task.pairShotGenerationId || enhancedPromptResult === promptToEnhance) {
-    return;
-  }
-
-  const pairShotGenerationId = task.pairShotGenerationId;
-  const { data: current, error: fetchError } = await supabase().from('shot_generations')
-    .select('metadata')
-    .eq('id', pairShotGenerationId)
-    .single();
-
-  if (fetchError) {
-    runtime.reportNonFatalError?.('metadata_fetch', fetchError);
-    normalizeAndPresentError(fetchError, {
-      context: `${runtime.errorContext}.fetchMetadata`,
-      showToast: false,
+  try {
+    const updated = await persistSegmentEnhancedPrompt({
+      pairShotGenerationId: task.pairShotGenerationId,
+      enhancedPrompt: enhancedPromptResult,
+      promptToEnhance,
+      basePrompt,
+      context: runtime.errorContext,
     });
-    return;
+
+    if (updated && task.pairShotGenerationId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(task.pairShotGenerationId) });
+    }
+  } catch (error) {
+    const step = error instanceof Error && error.message.includes('load segment metadata')
+      ? 'metadata_fetch'
+      : 'metadata_update';
+    runtime.reportNonFatalError?.(step, error);
   }
-
-  const currentMetadata = (current?.metadata as Record<string, unknown>) || {};
-  const { error: updateError } = await supabase().from('shot_generations')
-    .update({
-      metadata: {
-        ...currentMetadata,
-        enhanced_prompt: enhancedPromptResult,
-        base_prompt_for_enhancement: basePrompt,
-      },
-    })
-    .eq('id', pairShotGenerationId);
-
-  if (updateError) {
-    runtime.reportNonFatalError?.('metadata_update', updateError);
-    normalizeAndPresentError(updateError, {
-      context: `${runtime.errorContext}.saveEnhancedPrompt`,
-      showToast: false,
-    });
-    return;
-  }
-
-  queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(pairShotGenerationId) });
 }
 
 async function maybeSaveSettings(runtime: SubmitSegmentRuntime): Promise<void> {

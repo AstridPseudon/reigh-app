@@ -52,6 +52,13 @@ describe('transformGenerationToParentRow', () => {
     const result = transformGenerationToParentRow(gen);
     expect((result as { thumbUrl?: string } | null)?.thumbUrl).toBe('/thumb.jpg');
   });
+
+  it('normalizes created_at onto createdAt', () => {
+    const gen = { id: 'gen-1', created_at: '2025-01-01T00:00:00Z' };
+    const result = transformGenerationToParentRow(gen);
+    expect(result?.createdAt).toBe('2025-01-01T00:00:00Z');
+    expect(result).not.toHaveProperty('created_at');
+  });
 });
 
 describe('calculateColumnsForDevice', () => {

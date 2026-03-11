@@ -3,14 +3,13 @@ import {
   resolveProjectResolution,
 } from '../taskCreation';
 import type { TaskCreationResult } from '../taskCreation';
-import { getSupabaseClient } from '@/integrations/supabase/client';
-import { ensureShotParentGenerationId } from './shotParentGeneration';
 import { composeTaskRequest } from './taskRequestComposer';
 import { runTaskCreationPipeline } from './taskCreatorPipeline';
 import { asString, toRecordOrEmpty } from './taskParamParsers';
 import { buildIndividualTravelSegmentParams } from './segmentTaskPayload';
 import { MAX_SEGMENT_FRAMES } from './segmentStateResolvers';
 import type { IndividualTravelSegmentParams } from './individualTravelSegmentTypes';
+import { resolveSegmentGenerationRoute } from './segmentGenerationPersistence';
 
 export type { IndividualTravelSegmentParams } from './individualTravelSegmentTypes';
 
@@ -62,63 +61,20 @@ export async function createIndividualTravelSegmentTask(
     context: 'IndividualTravelSegment',
     validate: validateIndividualTravelSegmentParams,
     buildTaskRequest: async (requestParams) => {
-      const supabase = getSupabaseClient();
-
-      const effectiveParentGenerationId = await ensureShotParentGenerationId({
+      const { parentGenerationId: effectiveParentGenerationId, childGenerationId } = await resolveSegmentGenerationRoute({
         projectId: requestParams.project_id,
         shotId: requestParams.shot_id,
         parentGenerationId: requestParams.parent_generation_id,
+        childGenerationId: requestParams.child_generation_id,
+        pairShotGenerationId: requestParams.pair_shot_generation_id,
+        segmentIndex: requestParams.segment_index,
         context: 'IndividualTravelSegment',
       });
-
-      let effectiveChildGenerationId = requestParams.child_generation_id;
-
-      if (!effectiveChildGenerationId && effectiveParentGenerationId) {
-        if (requestParams.pair_shot_generation_id) {
-          const { data: childByPairId, error: pairIdError } = await supabase
-            .from('generations')
-            .select('id')
-            .eq('parent_generation_id', effectiveParentGenerationId)
-            .eq('pair_shot_generation_id', requestParams.pair_shot_generation_id)
-            .limit(1)
-            .maybeSingle();
-
-          if (pairIdError) {
-            throw new Error(
-              `IndividualTravelSegment.lookupChildByPairId failed: ${pairIdError.message}`,
-            );
-          }
-
-          if (childByPairId) {
-            effectiveChildGenerationId = childByPairId.id;
-          }
-        }
-
-        if (!effectiveChildGenerationId && requestParams.segment_index !== undefined && !requestParams.pair_shot_generation_id) {
-          const { data: childByOrder, error: orderError } = await supabase
-            .from('generations')
-            .select('id')
-            .eq('parent_generation_id', effectiveParentGenerationId)
-            .eq('child_order', requestParams.segment_index)
-            .limit(1)
-            .maybeSingle();
-
-          if (orderError) {
-            throw new Error(
-              `IndividualTravelSegment.lookupChildByOrder failed: ${orderError.message}`,
-            );
-          }
-
-          if (childByOrder) {
-            effectiveChildGenerationId = childByOrder.id;
-          }
-        }
-      }
 
       const paramsWithIds = {
         ...requestParams,
         parent_generation_id: effectiveParentGenerationId,
-        child_generation_id: effectiveChildGenerationId,
+        child_generation_id: childGenerationId,
       };
 
       const directResolution = asString(requestParams.parsed_resolution_wh);

@@ -219,13 +219,6 @@ function buildVideoEnhancePayload(
 }
 
 /**
- * Result of creating a video enhancement task
- */
-interface VideoEnhanceTaskResult {
-  task: TaskCreationResult;
-}
-
-/**
  * Creates a video enhancement task
  *
  * @param params - Video enhancement task parameters
@@ -233,7 +226,7 @@ interface VideoEnhanceTaskResult {
  */
 export async function createVideoEnhanceTask(
   params: VideoEnhanceTaskParams
-): Promise<VideoEnhanceTaskResult> {
+): Promise<TaskCreationResult> {
   return runTaskCreationPipeline({
     params,
     context: 'VideoEnhance',
@@ -250,7 +243,6 @@ export async function createVideoEnhanceTask(
         },
       });
     },
-    onCreated: (task) => ({ task }),
   });
 }
 

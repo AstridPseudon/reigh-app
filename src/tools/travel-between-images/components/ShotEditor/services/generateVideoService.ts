@@ -3,7 +3,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { normalizeAndPresentError, type RuntimeErrorOptions } from '@/shared/lib/errorHandling/runtimeError';
 import { ValidationError } from '@/shared/lib/errorHandling/errors';
 import {
-  createTravelBetweenImagesTask,
+  createTravelBetweenImagesTaskWithParentGeneration,
   validateTravelBetweenImagesParams,
   DEFAULT_STRUCTURE_VIDEO,
 } from '@/shared/lib/tasks/travelBetweenImages';
@@ -289,7 +289,7 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
       }
     }
 
-    const result = await createTravelBetweenImagesTask(requestBody);
+    const result = await createTravelBetweenImagesTaskWithParentGeneration(requestBody);
     return operationSuccess(
       { parentGenerationId: result.parentGenerationId },
       { policy: 'best_effort' },

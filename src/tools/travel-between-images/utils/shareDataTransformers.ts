@@ -8,6 +8,8 @@
  */
 
 import type { GenerationRow } from '@/domains/generation/types';
+import type { GenerationRowDto } from '@/domains/generation/types/generationRowDto';
+import { mapGenerationRowDtoToRow } from '@/domains/generation/mappers/generationRowMapper';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import type { StructureVideoConfigWithLegacyGuidance } from '@/shared/lib/tasks/travelBetweenImages';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
@@ -47,23 +49,20 @@ export function transformGenerationToParentRow(
     ? rawGeneration.id
     : (typeof rawGeneration.generation_id === 'string' ? rawGeneration.generation_id : 'shared');
 
-  const location = typeof rawGeneration.location === 'string' ? rawGeneration.location : null;
-  const thumbUrl = typeof rawGeneration.thumbUrl === 'string'
-    ? rawGeneration.thumbUrl
-    : (typeof rawGeneration.thumbnail_url === 'string' ? rawGeneration.thumbnail_url : undefined);
-  const createdAt = typeof rawGeneration.created_at === 'string' ? rawGeneration.created_at : undefined;
-  const params = rawGeneration.params;
-
-  return {
+  const dto: GenerationRowDto = {
     id,
     generation_id: resolvedGenerationId,
-    type: 'video',
-    location,
-    imageUrl: location ?? undefined, // FinalVideoSection/VideoItem uses imageUrl
-    thumbUrl,
-    created_at: createdAt,
-    params: params as GenerationRow['params'],
+    location: typeof rawGeneration.location === 'string' ? rawGeneration.location : null,
+    type: typeof rawGeneration.type === 'string' ? rawGeneration.type : 'video',
+    createdAt: typeof rawGeneration.createdAt === 'string' ? rawGeneration.createdAt : undefined,
+    created_at: typeof rawGeneration.created_at === 'string' ? rawGeneration.created_at : undefined,
+    thumbnail_url: typeof rawGeneration.thumbnail_url === 'string'
+      ? rawGeneration.thumbnail_url
+      : (typeof rawGeneration.thumbUrl === 'string' ? rawGeneration.thumbUrl : undefined),
+    params: rawGeneration.params as GenerationRow['params'],
   };
+
+  return mapGenerationRowDtoToRow(dto);
 }
 
 /**

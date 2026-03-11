@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockCreateTask, mockSupabase } = vi.hoisted(() => {
-  const mockCreateTask = vi.fn().mockResolvedValue({ id: 'task-123' });
+  const mockCreateTask = vi.fn().mockResolvedValue({ task_id: 'task-123', status: 'pending' });
   const mockSupabase = {
     rpc: vi.fn().mockResolvedValue({ data: 'parent-gen-123', error: null }),
   };
@@ -34,7 +34,10 @@ vi.mock('@/shared/lib/toolIds', () => ({
   },
 }));
 
-import { createTravelBetweenImagesTask } from '../createTravelBetweenImagesTask';
+import {
+  createTravelBetweenImagesTask,
+  createTravelBetweenImagesTaskWithParentGeneration,
+} from '../createTravelBetweenImagesTask';
 import { validateTravelBetweenImagesParams } from '../payloadBuilder';
 
 describe('createTravelBetweenImagesTask', () => {
@@ -93,10 +96,16 @@ describe('createTravelBetweenImagesTask', () => {
     );
   });
 
-  it('returns task result and parent generation ID', async () => {
+  it('returns a plain task creation result', async () => {
     const result = await createTravelBetweenImagesTask(baseParams);
 
-    expect(result.task).toEqual({ id: 'task-123' });
+    expect(result).toEqual({ task_id: 'task-123', status: 'pending' });
+  });
+
+  it('returns task result and parent generation ID from the explicit enriched helper', async () => {
+    const result = await createTravelBetweenImagesTaskWithParentGeneration(baseParams);
+
+    expect(result.task).toEqual({ task_id: 'task-123', status: 'pending' });
     expect(result.parentGenerationId).toBe('parent-gen-123');
   });
 

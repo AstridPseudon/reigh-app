@@ -30,11 +30,11 @@ export const ShotBatchItemMobile: React.FC<ShotBatchItemMobileProps> = ({
   readOnly = false,
   onMarkAllViewed,
 }) => {
-  const fullImageUrl = image.imageUrl ?? image.location ?? image.thumbUrl ?? image.thumbnail_url ?? '';
+  const fullImageUrl = image.imageUrl ?? image.location ?? image.thumbUrl ?? '';
 
   // Progressive loading setup
   const { displayImageUrl, progressiveRef } = useBatchImageLoading({
-    thumbUrl: image.thumbUrl ?? image.thumbnail_url ?? image.location ?? undefined,
+    thumbUrl: image.thumbUrl ?? image.location ?? undefined,
     imageUrl: fullImageUrl,
     shouldLoad,
   });
