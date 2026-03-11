@@ -160,6 +160,208 @@ interface UseTimelineOrchestratorReturn {
   };
 }
 
+interface ImageDropInterceptorArgs {
+  files: File[];
+  targetFrame?: number;
+  onFileDrop?: TimelineOrchestratorDropHandlers['onFileDrop'];
+  setPendingDropFrame: (frame: number | null) => void;
+}
+
+interface GenerationDropInterceptorArgs {
+  generationId: string;
+  imageUrl: string;
+  thumbUrl: string | undefined;
+  targetFrame?: number;
+  onGenerationDrop?: TimelineOrchestratorDropHandlers['onGenerationDrop'];
+  setPendingDropFrame: (frame: number | null) => void;
+  setIsInternalDropProcessing: (value: boolean) => void;
+}
+
+interface DuplicateInterceptorArgs {
+  imageId: string;
+  timelineFrame: number;
+  images: GenerationRow[];
+  framePositions: Map<string, number>;
+  onImageDuplicate: (imageId: string, timeline_frame: number) => void;
+  setPendingDuplicateFrame: (frame: number | null) => void;
+}
+
+interface StructureVideoSelectionArgs {
+  resource: Resource;
+  structureVideos?: StructureVideoConfigWithMetadata[];
+  primaryStructureVideo?: PrimaryStructureVideo;
+  onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
+  onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
+  onPrimaryStructureVideoInputChange?: TimelineOrchestratorStructureVideoConfig['onPrimaryStructureVideoInputChange'];
+  fullMax: number;
+  setShowVideoBrowser: (value: boolean) => void;
+}
+
+interface TimelineOrchestratorResultArgs {
+  refs: UseTimelineOrchestratorReturn['refs'];
+  viewport: UseTimelineOrchestratorReturn['viewport'];
+  drag: UseTimelineOrchestratorReturn['drag'];
+  selection: UseTimelineOrchestratorReturn['selection'];
+  pending: UseTimelineOrchestratorReturn['pending'];
+  drop: UseTimelineOrchestratorReturn['drop'];
+  computed: UseTimelineOrchestratorReturn['computed'];
+  actions: UseTimelineOrchestratorReturn['actions'];
+  endpoint: UseTimelineOrchestratorReturn['endpoint'];
+  uiState: UseTimelineOrchestratorReturn['uiState'];
+  device: UseTimelineOrchestratorReturn['device'];
+}
+
+export async function runImageDropInterceptor({
+  files,
+  targetFrame,
+  onFileDrop,
+  setPendingDropFrame,
+}: ImageDropInterceptorArgs): Promise<void> {
+  if (targetFrame !== undefined) {
+    setPendingDropFrame(targetFrame);
+  }
+  if (onFileDrop) {
+    await onFileDrop(files, targetFrame);
+  }
+}
+
+export async function runGenerationDropInterceptor({
+  generationId,
+  imageUrl,
+  thumbUrl,
+  targetFrame,
+  onGenerationDrop,
+  setPendingDropFrame,
+  setIsInternalDropProcessing,
+}: GenerationDropInterceptorArgs): Promise<void> {
+  if (targetFrame !== undefined) {
+    setPendingDropFrame(targetFrame);
+    setIsInternalDropProcessing(true);
+  }
+  try {
+    if (onGenerationDrop) {
+      await onGenerationDrop(generationId, imageUrl, thumbUrl, targetFrame);
+    }
+  } finally {
+    setIsInternalDropProcessing(false);
+    setPendingDropFrame(null);
+  }
+}
+
+export function runDuplicateInterceptor({
+  imageId,
+  timelineFrame,
+  images,
+  framePositions,
+  onImageDuplicate,
+  setPendingDuplicateFrame,
+}: DuplicateInterceptorArgs): void {
+  const sortedImages = [...images]
+    .filter((img) => img.timeline_frame !== undefined && img.timeline_frame !== null)
+    .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
+
+  const currentIndex = sortedImages.findIndex((img) => img.timeline_frame === timelineFrame);
+  const nextImage = currentIndex >= 0 && currentIndex < sortedImages.length - 1
+    ? sortedImages[currentIndex + 1]
+    : null;
+
+  const existingFrames = images
+    .map((img) => img.timeline_frame)
+    .filter((frame): frame is number => frame !== null && frame !== undefined);
+  const nextFrame = nextImage?.timeline_frame;
+  const finalFrame = calculateDuplicateFrame({
+    currentFrame: timelineFrame,
+    nextFrame: nextFrame ?? null,
+    existingFrames,
+    singleItemTrailingFrame: framePositions.get(TRAILING_ENDPOINT_KEY) ?? null,
+    isSingleItem: images.length === 1,
+  });
+
+  setPendingDuplicateFrame(finalFrame);
+  onImageDuplicate(imageId, finalFrame);
+}
+
+export function handleTimelineStructureVideoSelect({
+  resource,
+  structureVideos,
+  primaryStructureVideo,
+  onAddStructureVideo,
+  onUpdateStructureVideo,
+  onPrimaryStructureVideoInputChange,
+  fullMax,
+  setShowVideoBrowser,
+}: StructureVideoSelectionArgs): void {
+  const metadata = resource.metadata as StructureVideoMetadata;
+  if (onAddStructureVideo && metadata.videoMetadata) {
+    const placement = calculateNewVideoPlacement(
+      metadata.videoMetadata.total_frames,
+      structureVideos,
+      fullMax,
+    );
+
+    if (placement.lastVideoUpdate && onUpdateStructureVideo) {
+      onUpdateStructureVideo(placement.lastVideoUpdate.index, {
+        end_frame: placement.lastVideoUpdate.newEndFrame,
+      });
+    }
+
+    onAddStructureVideo({
+      path: metadata.videoUrl,
+      start_frame: placement.start_frame,
+      end_frame: placement.end_frame,
+      treatment: 'adjust',
+      metadata: metadata.videoMetadata,
+      resource_id: resource.id,
+    });
+  } else if (onPrimaryStructureVideoInputChange) {
+    onPrimaryStructureVideoInputChange(
+      metadata.videoUrl,
+      metadata.videoMetadata,
+      primaryStructureVideo?.treatment ?? 'adjust',
+      primaryStructureVideo?.motionStrength ?? 1.0,
+      primaryStructureVideo?.structureType ?? 'flow',
+    );
+  }
+
+  setShowVideoBrowser(false);
+}
+
+function buildTimelineOrchestratorResult({
+  refs,
+  viewport,
+  drag,
+  selection,
+  pending,
+  drop,
+  computed,
+  actions,
+  endpoint,
+  uiState,
+  device,
+}: TimelineOrchestratorResultArgs): UseTimelineOrchestratorReturn {
+  return {
+    refs,
+    viewport,
+    drag,
+    selection,
+    pending,
+    drop,
+    computed,
+    actions,
+    endpoint,
+    uiState,
+    device,
+  };
+}
+
+export const __internal = {
+  buildTimelineOrchestratorResult,
+  handleTimelineStructureVideoSelect,
+  runDuplicateInterceptor,
+  runGenerationDropInterceptor,
+  runImageDropInterceptor,
+};
+
 export function useTimelineOrchestrator({
   shotId,
   images,
@@ -274,12 +476,12 @@ export function useTimelineOrchestrator({
   }, [uiState]);
 
   const handleImageDropInterceptor = useCallback(async (files: File[], targetFrame?: number) => {
-    if (targetFrame !== undefined) {
-      setPendingDropFrame(targetFrame);
-    }
-    if (onFileDrop) {
-      await onFileDrop(files, targetFrame);
-    }
+    await runImageDropInterceptor({
+      files,
+      targetFrame,
+      onFileDrop,
+      setPendingDropFrame,
+    });
   }, [onFileDrop, setPendingDropFrame]);
 
   const handleGenerationDropInterceptor = useCallback(async (
@@ -288,18 +490,15 @@ export function useTimelineOrchestrator({
     thumbUrl: string | undefined,
     targetFrame?: number,
   ) => {
-    if (targetFrame !== undefined) {
-      setPendingDropFrame(targetFrame);
-      setIsInternalDropProcessing(true);
-    }
-    try {
-      if (onGenerationDrop) {
-        await onGenerationDrop(generationId, imageUrl, thumbUrl, targetFrame);
-      }
-    } finally {
-      setIsInternalDropProcessing(false);
-      setPendingDropFrame(null);
-    }
+    await runGenerationDropInterceptor({
+      generationId,
+      imageUrl,
+      thumbUrl,
+      targetFrame,
+      onGenerationDrop,
+      setPendingDropFrame,
+      setIsInternalDropProcessing,
+    });
   }, [onGenerationDrop, setIsInternalDropProcessing, setPendingDropFrame]);
 
   const drop = useUnifiedDrop({
@@ -310,29 +509,14 @@ export function useTimelineOrchestrator({
   });
 
   const handleDuplicateInterceptor = useCallback((imageId: string, timelineFrame: number) => {
-    const sortedImages = [...images]
-      .filter((img) => img.timeline_frame !== undefined && img.timeline_frame !== null)
-      .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
-
-    const currentIndex = sortedImages.findIndex((img) => img.timeline_frame === timelineFrame);
-    const nextImage = currentIndex >= 0 && currentIndex < sortedImages.length - 1
-      ? sortedImages[currentIndex + 1]
-      : null;
-
-    const existingFrames = images
-      .map((img) => img.timeline_frame)
-      .filter((frame): frame is number => frame !== null && frame !== undefined);
-    const nextFrame = nextImage?.timeline_frame;
-    const finalFrame = calculateDuplicateFrame({
-      currentFrame: timelineFrame,
-      nextFrame: nextFrame ?? null,
-      existingFrames,
-      singleItemTrailingFrame: framePositions.get(TRAILING_ENDPOINT_KEY) ?? null,
-      isSingleItem: images.length === 1,
+    runDuplicateInterceptor({
+      imageId,
+      timelineFrame,
+      images,
+      framePositions,
+      onImageDuplicate,
+      setPendingDuplicateFrame,
     });
-
-    setPendingDuplicateFrame(finalFrame);
-    onImageDuplicate(imageId, finalFrame);
   }, [framePositions, images, onImageDuplicate, setPendingDuplicateFrame]);
 
   const {
@@ -353,38 +537,16 @@ export function useTimelineOrchestrator({
   });
 
   const handleVideoBrowserSelect = useCallback((resource: Resource) => {
-    const metadata = resource.metadata as StructureVideoMetadata;
-    if (onAddStructureVideo && metadata.videoMetadata) {
-      const placement = calculateNewVideoPlacement(
-        metadata.videoMetadata.total_frames,
-        structureVideos,
-        viewport.fullMax,
-      );
-
-      if (placement.lastVideoUpdate && onUpdateStructureVideo) {
-        onUpdateStructureVideo(placement.lastVideoUpdate.index, {
-          end_frame: placement.lastVideoUpdate.newEndFrame,
-        });
-      }
-
-      onAddStructureVideo({
-        path: metadata.videoUrl,
-        start_frame: placement.start_frame,
-        end_frame: placement.end_frame,
-        treatment: 'adjust',
-        metadata: metadata.videoMetadata,
-        resource_id: resource.id,
-      });
-    } else if (onPrimaryStructureVideoInputChange) {
-      onPrimaryStructureVideoInputChange(
-        metadata.videoUrl,
-        metadata.videoMetadata,
-        primaryStructureVideo?.treatment ?? 'adjust',
-        primaryStructureVideo?.motionStrength ?? 1.0,
-        primaryStructureVideo?.structureType ?? 'flow',
-      );
-    }
-    uiState.setShowVideoBrowser(false);
+    handleTimelineStructureVideoSelect({
+      resource,
+      structureVideos,
+      primaryStructureVideo,
+      onAddStructureVideo,
+      onUpdateStructureVideo,
+      onPrimaryStructureVideoInputChange,
+      fullMax: viewport.fullMax,
+      setShowVideoBrowser: uiState.setShowVideoBrowser,
+    });
   }, [
     onAddStructureVideo,
     onPrimaryStructureVideoInputChange,
@@ -428,7 +590,7 @@ export function useTimelineOrchestrator({
     zoomLevel: viewport.zoomLevel,
   });
 
-  return {
+  return buildTimelineOrchestratorResult({
     refs: {
       timelineRef,
       containerRef,
@@ -496,5 +658,5 @@ export function useTimelineOrchestrator({
       enableTapToMove,
       prefetchTaskData,
     },
-  };
+  });
 }

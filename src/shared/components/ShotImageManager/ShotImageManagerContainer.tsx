@@ -64,6 +64,12 @@ interface ShotImageManagerContainerState {
   segments: SegmentController;
 }
 
+interface ShotImageManagerContentProps {
+  isMobile: boolean;
+  props: ShotImageManagerProps;
+  state: ShotImageManagerContainerState;
+}
+
 function useSegmentController(
   props: ShotImageManagerProps,
   currentImages: GenerationRow[],
@@ -118,7 +124,7 @@ function useSegmentController(
   };
 }
 
-function useSegmentLightboxState(
+export function useSegmentLightboxState(
   segmentSlots: SegmentSlot[],
   onPairClick?: ShotImageManagerProps['onPairClick']
 ): SegmentLightboxState {
@@ -183,22 +189,48 @@ function useSegmentLightboxState(
   };
 }
 
-function useShotImageManagerContainerState(
+function useShotImageManagerNavigationController(
   props: ShotImageManagerProps,
-  isMobile: boolean
-): ShotImageManagerContainerState {
-  const optimistic = useOptimisticOrder({ images: props.images });
+  optimisticOrder: ReturnType<typeof useOptimisticOrder>['optimisticOrder'],
+): NavigationController {
   const setLightboxIndexRef = useRef<(index: number) => void>(() => {});
-
   const externalGens = useExternalGenerations({
     selectedShotId: props.selectedShotId,
-    optimisticOrder: optimistic.optimisticOrder,
+    optimisticOrder,
     images: props.images,
     setLightboxIndexRef,
   });
 
   const [lightboxSelectedShotId, setLightboxSelectedShotId] = useState<string | undefined>(props.selectedShotId);
+  const lightbox = useLightbox({
+    images: optimisticOrder,
+    externalGenerations: externalGens.externalGenerations,
+    tempDerivedGenerations: externalGens.tempDerivedGenerations,
+    derivedNavContext: externalGens.derivedNavContext,
+    handleOpenExternalGeneration: externalGens.handleOpenExternalGeneration,
+  });
 
+  useEffect(() => {
+    setLightboxIndexRef.current = lightbox.setLightboxIndex;
+  }, [lightbox.setLightboxIndex]);
+
+  return {
+    lightbox,
+    externalGens,
+    shotSelector: {
+      lightboxSelectedShotId,
+      setLightboxSelectedShotId,
+    },
+  };
+}
+
+function useShotImageManagerSelectionOrderController(
+  props: ShotImageManagerProps,
+  isMobile: boolean,
+  currentImages: GenerationRow[],
+  optimistic: ReturnType<typeof useOptimisticOrder>,
+  setLightboxIndex: ReturnType<typeof useLightbox>['setLightboxIndex'],
+): SelectionOrderController {
   const selection = useSelection({
     images: optimistic.optimisticOrder,
     isMobile,
@@ -206,21 +238,8 @@ function useShotImageManagerContainerState(
     onSelectionChange: props.onSelectionChange,
   });
 
-  const lightbox = useLightbox({
-    images: optimistic.optimisticOrder,
-    externalGenerations: externalGens.externalGenerations,
-    tempDerivedGenerations: externalGens.tempDerivedGenerations,
-    derivedNavContext: externalGens.derivedNavContext,
-    handleOpenExternalGeneration: externalGens.handleOpenExternalGeneration,
-  });
-  const segments = useSegmentController(props, lightbox.currentImages);
-
-  useEffect(() => {
-    setLightboxIndexRef.current = lightbox.setLightboxIndex;
-  }, [lightbox.setLightboxIndex]);
-
   const dragAndDrop = useDragAndDrop({
-    images: lightbox.currentImages,
+    images: currentImages,
     selectedIds: selection.selectedIds,
     onImageReorder: props.onImageReorder,
     isMobile,
@@ -233,7 +252,7 @@ function useShotImageManagerContainerState(
   });
 
   const batchOps = useBatchOperations({
-    currentImages: lightbox.currentImages,
+    currentImages,
     onImageDelete: props.onImageDelete,
     onBatchImageDelete: props.onBatchImageDelete,
     onSelectionChange: props.onSelectionChange,
@@ -243,24 +262,24 @@ function useShotImageManagerContainerState(
   });
 
   const mobileGestures = useMobileGestures({
-    currentImages: lightbox.currentImages,
+    currentImages,
     mobileSelectedIds: selection.mobileSelectedIds,
     onImageReorder: props.onImageReorder,
     setMobileSelectedIds: selection.setMobileSelectedIds,
-    setLightboxIndex: lightbox.setLightboxIndex,
+    setLightboxIndex,
   });
 
   const getFramePosition = useMemo(
     () => (index: number) =>
       getFramePositionForIndex(
         index,
-        lightbox.currentImages,
+        currentImages,
         props.batchVideoFrames || DEFAULT_BATCH_VIDEO_FRAMES
       ),
-    [lightbox.currentImages, props.batchVideoFrames]
+    [currentImages, props.batchVideoFrames]
   );
 
-  const selectionOrder: SelectionOrderController = {
+  return {
     optimistic,
     selection,
     dragAndDrop,
@@ -268,15 +287,22 @@ function useShotImageManagerContainerState(
     mobileGestures,
     getFramePosition,
   };
+}
 
-  const navigation: NavigationController = {
-    lightbox,
-    externalGens,
-    shotSelector: {
-      lightboxSelectedShotId,
-      setLightboxSelectedShotId,
-    },
-  };
+function useShotImageManagerContainerState(
+  props: ShotImageManagerProps,
+  isMobile: boolean
+): ShotImageManagerContainerState {
+  const optimistic = useOptimisticOrder({ images: props.images });
+  const navigation = useShotImageManagerNavigationController(props, optimistic.optimisticOrder);
+  const selectionOrder = useShotImageManagerSelectionOrderController(
+    props,
+    isMobile,
+    navigation.lightbox.currentImages,
+    optimistic,
+    navigation.lightbox.setLightboxIndex,
+  );
+  const segments = useSegmentController(props, navigation.lightbox.currentImages);
 
   return {
     selectionOrder,
@@ -330,16 +356,11 @@ function SegmentLightboxModal({
   );
 }
 
-/**
- * Main container component for ShotImageManager
- *
- * CRITICAL: All hooks MUST be called before any early returns to satisfy Rules of Hooks.
- * This prevents hook ordering violations that occur when responsive breakpoints change.
- */
-export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props) => {
-  const isMobile = useIsMobile();
-  const state = useShotImageManagerContainerState(props, isMobile);
-
+export function ShotImageManagerContent({
+  isMobile,
+  props,
+  state,
+}: ShotImageManagerContentProps) {
   if (!props.images || props.images.length === 0) {
     return (
       <EmptyState
@@ -411,5 +432,24 @@ export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props
         readOnly={props.readOnly}
       />
     </>
+  );
+}
+
+/**
+ * Main container component for ShotImageManager
+ *
+ * CRITICAL: All hooks MUST be called before any early returns to satisfy Rules of Hooks.
+ * This prevents hook ordering violations that occur when responsive breakpoints change.
+ */
+export const ShotImageManagerContainer: React.FC<ShotImageManagerProps> = (props) => {
+  const isMobile = useIsMobile();
+  const state = useShotImageManagerContainerState(props, isMobile);
+
+  return (
+    <ShotImageManagerContent
+      isMobile={isMobile}
+      props={props}
+      state={state}
+    />
   );
 };

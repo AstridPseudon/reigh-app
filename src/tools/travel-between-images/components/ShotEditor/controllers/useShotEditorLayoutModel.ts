@@ -140,137 +140,141 @@ interface UseShotEditorLayoutModelParams {
   };
 }
 
-export function useShotEditorLayoutModel({
+interface ShotEditorContextInputArgs {
+  core: UseShotEditorLayoutModelParams['core'];
+  images: UseShotEditorLayoutModelParams['images'];
+  controllers: UseShotEditorLayoutModelParams['controllers'];
+  settings: UseShotEditorLayoutModelParams['settings'];
+  dimensions: UseShotEditorLayoutModelParams['dimensions'];
+}
+
+interface ShotEditorLayoutSectionsArgs {
+  core: UseShotEditorLayoutModelParams['core'];
+  controllers: UseShotEditorLayoutModelParams['controllers'];
+  settings: UseShotEditorLayoutModelParams['settings'];
+  sections: UseShotEditorLayoutModelParams['sections'];
+  contextValue: ReturnType<typeof useShotSettingsValue>;
+  handleJoinSegmentsClick: () => void;
+}
+
+function buildShotEditorContextInput({
   core,
   images,
   controllers,
   settings,
   dimensions,
+}: ShotEditorContextInputArgs): UseShotSettingsValueProps {
+  return {
+    selectedShot: core.selectedShot!,
+    selectedShotId: core.selectedShotId,
+    projectId: core.projectId,
+    selectedProjectId: core.selectedProjectId,
+    effectiveAspectRatio: core.effectiveAspectRatio,
+    projects: core.projects,
+    state: core.state,
+    actions: core.actions,
+    loraManager: controllers.loraManager,
+    availableLoras: controllers.availableLoras,
+    allShotImages: images.allShotImages,
+    timelineImages: images.timelineImages,
+    unpositionedImages: images.unpositionedImages,
+    contextImages: images.contextImages,
+    videoOutputs: images.videoOutputs,
+    simpleFilteredImages: images.simpleFilteredImages,
+    structureVideo: {
+      structureGuidance: controllers.mediaEditing.structureGuidance,
+      structureVideoPath: controllers.mediaEditing.structureVideoPath,
+      structureVideoMetadata: controllers.mediaEditing.structureVideoMetadata,
+      structureVideoTreatment: controllers.mediaEditing.structureVideoTreatment,
+      structureVideoMotionStrength: controllers.mediaEditing.structureVideoMotionStrength,
+      structureVideoType: controllers.mediaEditing.structureVideoType,
+      structureVideoResourceId: controllers.mediaEditing.structureVideoResourceId,
+      structureVideoUni3cEndPercent: controllers.mediaEditing.structureVideoUni3cEndPercent,
+      isLoading: controllers.mediaEditing.isStructureVideoSettingsLoading,
+      structureVideos: controllers.mediaEditing.structureVideos,
+      addStructureVideo: controllers.mediaEditing.addStructureVideo,
+      updateStructureVideo: controllers.mediaEditing.updateStructureVideo,
+      removeStructureVideo: controllers.mediaEditing.removeStructureVideo,
+      clearAllStructureVideos: controllers.mediaEditing.clearAllStructureVideos,
+      setStructureVideos: controllers.mediaEditing.setStructureVideos,
+    },
+    structureVideoHandlers: {
+      handleStructureVideoMotionStrengthChange:
+        controllers.mediaEditing.handleStructureVideoMotionStrengthChange,
+      handleStructureTypeChangeFromMotionControl:
+        controllers.mediaEditing.handleStructureTypeChangeFromMotionControl,
+      handleUni3cEndPercentChange:
+        controllers.mediaEditing.handleUni3cEndPercentChange,
+      handleStructureVideoInputChange:
+        controllers.mediaEditing.handleStructureVideoInputChange,
+    },
+    audio: {
+      audioUrl: controllers.mediaEditing.audioUrl,
+      audioMetadata: controllers.mediaEditing.audioMetadata,
+      handleAudioChange: controllers.mediaEditing.handleAudioChange,
+      isLoading: controllers.mediaEditing.isAudioSettingsLoading,
+    },
+    generationActions: controllers.generationActions,
+    handleImageReorder: controllers.imageManagement.handleReorderImagesInShot,
+    handleImageUpload: controllers.imageManagement.handleImageUpload,
+    shots: controllers.shots,
+    shotActions: controllers.shotActions,
+    generationMode: {
+      generateMode: controllers.joinWorkflow.generateMode,
+      setGenerateMode: controllers.joinWorkflow.setGenerateMode,
+      toggleGenerateModePreserveScroll:
+        controllers.joinWorkflow.toggleGenerateModePreserveScroll,
+      isGenerationDisabled:
+        controllers.generationController.isGenerationDisabled,
+      isSteerableMotionEnqueuing:
+        controllers.generationController.isSteerableMotionEnqueuing,
+      steerableMotionJustQueued:
+        controllers.generationController.steerableMotionJustQueued,
+      currentMotionSettings:
+        controllers.generationController.currentMotionSettings,
+      accelerated: settings.accelerated,
+      onAcceleratedChange:
+        controllers.generationController.handleAcceleratedChange,
+      randomSeed: settings.randomSeed,
+      onRandomSeedChange:
+        controllers.generationController.handleRandomSeedChange,
+    },
+    generationHandlers: {
+      handleGenerateBatch:
+        controllers.generationController.handleGenerateBatch,
+      handleBatchVideoPromptChangeWithClear:
+        controllers.generationController.handleBatchVideoPromptChangeWithClear,
+      handleStepsChange: controllers.generationController.handleStepsChange,
+      clearAllEnhancedPrompts:
+        controllers.generationController.clearAllEnhancedPrompts,
+    },
+    joinState: {
+      joinSettings: {
+        settings: controllers.joinWorkflow.joinSettings.settings,
+        updateField: controllers.joinWorkflow.joinSettings.updateField,
+        updateFields: controllers.joinWorkflow.joinSettings.updateFields,
+      },
+      joinLoraManager: controllers.joinWorkflow.joinLoraManager,
+      joinValidationData: controllers.joinWorkflow.joinValidationData,
+      handleJoinSegments: controllers.joinWorkflow.handleJoinSegments,
+      isJoiningClips: controllers.joinWorkflow.isJoiningClips,
+      joinClipsSuccess: controllers.joinWorkflow.joinClipsSuccess,
+      handleRestoreJoinDefaults:
+        controllers.joinWorkflow.handleRestoreJoinDefaults,
+    },
+    dimensions,
+    queryClient: core.queryClient,
+  };
+}
+
+function buildShotEditorLayoutSections({
+  core,
+  controllers,
+  settings,
   sections,
-}: UseShotEditorLayoutModelParams): ShotEditorLayoutProps {
-  const contextInput = useMemo<UseShotSettingsValueProps>(
-    () => ({
-      selectedShot: core.selectedShot!,
-      selectedShotId: core.selectedShotId,
-      projectId: core.projectId,
-      selectedProjectId: core.selectedProjectId,
-      effectiveAspectRatio: core.effectiveAspectRatio,
-      projects: core.projects,
-      state: core.state,
-      actions: core.actions,
-      loraManager: controllers.loraManager,
-      availableLoras: controllers.availableLoras,
-      allShotImages: images.allShotImages,
-      timelineImages: images.timelineImages,
-      unpositionedImages: images.unpositionedImages,
-      contextImages: images.contextImages,
-      videoOutputs: images.videoOutputs,
-      simpleFilteredImages: images.simpleFilteredImages,
-      structureVideo: {
-        structureGuidance: controllers.mediaEditing.structureGuidance,
-        structureVideoPath: controllers.mediaEditing.structureVideoPath,
-        structureVideoMetadata: controllers.mediaEditing.structureVideoMetadata,
-        structureVideoTreatment: controllers.mediaEditing.structureVideoTreatment,
-        structureVideoMotionStrength: controllers.mediaEditing.structureVideoMotionStrength,
-        structureVideoType: controllers.mediaEditing.structureVideoType,
-        structureVideoResourceId: controllers.mediaEditing.structureVideoResourceId,
-        structureVideoUni3cEndPercent: controllers.mediaEditing.structureVideoUni3cEndPercent,
-        isLoading: controllers.mediaEditing.isStructureVideoSettingsLoading,
-        structureVideos: controllers.mediaEditing.structureVideos,
-        addStructureVideo: controllers.mediaEditing.addStructureVideo,
-        updateStructureVideo: controllers.mediaEditing.updateStructureVideo,
-        removeStructureVideo: controllers.mediaEditing.removeStructureVideo,
-        clearAllStructureVideos: controllers.mediaEditing.clearAllStructureVideos,
-        setStructureVideos: controllers.mediaEditing.setStructureVideos,
-      },
-      structureVideoHandlers: {
-        handleStructureVideoMotionStrengthChange:
-          controllers.mediaEditing.handleStructureVideoMotionStrengthChange,
-        handleStructureTypeChangeFromMotionControl:
-          controllers.mediaEditing.handleStructureTypeChangeFromMotionControl,
-        handleUni3cEndPercentChange:
-          controllers.mediaEditing.handleUni3cEndPercentChange,
-        handleStructureVideoInputChange:
-          controllers.mediaEditing.handleStructureVideoInputChange,
-      },
-      audio: {
-        audioUrl: controllers.mediaEditing.audioUrl,
-        audioMetadata: controllers.mediaEditing.audioMetadata,
-        handleAudioChange: controllers.mediaEditing.handleAudioChange,
-        isLoading: controllers.mediaEditing.isAudioSettingsLoading,
-      },
-      generationActions: controllers.generationActions,
-      handleImageReorder: controllers.imageManagement.handleReorderImagesInShot,
-      handleImageUpload: controllers.imageManagement.handleImageUpload,
-      shots: controllers.shots,
-      shotActions: controllers.shotActions,
-      generationMode: {
-        generateMode: controllers.joinWorkflow.generateMode,
-        setGenerateMode: controllers.joinWorkflow.setGenerateMode,
-        toggleGenerateModePreserveScroll:
-          controllers.joinWorkflow.toggleGenerateModePreserveScroll,
-        isGenerationDisabled:
-          controllers.generationController.isGenerationDisabled,
-        isSteerableMotionEnqueuing:
-          controllers.generationController.isSteerableMotionEnqueuing,
-        steerableMotionJustQueued:
-          controllers.generationController.steerableMotionJustQueued,
-        currentMotionSettings:
-          controllers.generationController.currentMotionSettings,
-        accelerated: settings.accelerated,
-        onAcceleratedChange:
-          controllers.generationController.handleAcceleratedChange,
-        randomSeed: settings.randomSeed,
-        onRandomSeedChange:
-          controllers.generationController.handleRandomSeedChange,
-      },
-      generationHandlers: {
-        handleGenerateBatch:
-          controllers.generationController.handleGenerateBatch,
-        handleBatchVideoPromptChangeWithClear:
-          controllers.generationController.handleBatchVideoPromptChangeWithClear,
-        handleStepsChange: controllers.generationController.handleStepsChange,
-        clearAllEnhancedPrompts:
-          controllers.generationController.clearAllEnhancedPrompts,
-      },
-      joinState: {
-        joinSettings: {
-          settings: controllers.joinWorkflow.joinSettings.settings,
-          updateField: controllers.joinWorkflow.joinSettings.updateField,
-          updateFields: controllers.joinWorkflow.joinSettings.updateFields,
-        },
-        joinLoraManager: controllers.joinWorkflow.joinLoraManager,
-        joinValidationData: controllers.joinWorkflow.joinValidationData,
-        handleJoinSegments: controllers.joinWorkflow.handleJoinSegments,
-        isJoiningClips: controllers.joinWorkflow.isJoiningClips,
-        joinClipsSuccess: controllers.joinWorkflow.joinClipsSuccess,
-        handleRestoreJoinDefaults:
-          controllers.joinWorkflow.handleRestoreJoinDefaults,
-      },
-      dimensions,
-      queryClient: core.queryClient,
-    }),
-    [core, images, controllers, settings.accelerated, settings.randomSeed, dimensions],
-  );
-
-  const contextValue = useShotSettingsValue(contextInput);
-
-  const handleJoinSegmentsClick = useCallback(() => {
-    controllers.joinWorkflow.setGenerateMode('join');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const target = sections.refs.generateVideosCardRef.current;
-        if (!target) {
-          return;
-        }
-
-        const rect = target.getBoundingClientRect();
-        const scrollTop = window.scrollY + rect.top - 20;
-        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-      });
-    });
-  }, [controllers.joinWorkflow, sections.refs.generateVideosCardRef]);
-
+  contextValue,
+  handleJoinSegmentsClick,
+}: ShotEditorLayoutSectionsArgs): ShotEditorLayoutProps {
   return {
     contextValue,
     header: {
@@ -351,4 +355,56 @@ export function useShotEditorLayoutModel({
       onSettingsModalOpenChange: core.actions.setSettingsModalOpen,
     },
   };
+}
+
+export const __internal = {
+  buildShotEditorContextInput,
+  buildShotEditorLayoutSections,
+};
+
+export function useShotEditorLayoutModel({
+  core,
+  images,
+  controllers,
+  settings,
+  dimensions,
+  sections,
+}: UseShotEditorLayoutModelParams): ShotEditorLayoutProps {
+  const contextInput = useMemo<UseShotSettingsValueProps>(
+    () => buildShotEditorContextInput({
+      core,
+      images,
+      controllers,
+      settings,
+      dimensions,
+    }),
+    [core, images, controllers, settings, dimensions],
+  );
+
+  const contextValue = useShotSettingsValue(contextInput);
+
+  const handleJoinSegmentsClick = useCallback(() => {
+    controllers.joinWorkflow.setGenerateMode('join');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const target = sections.refs.generateVideosCardRef.current;
+        if (!target) {
+          return;
+        }
+
+        const rect = target.getBoundingClientRect();
+        const scrollTop = window.scrollY + rect.top - 20;
+        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      });
+    });
+  }, [controllers.joinWorkflow, sections.refs.generateVideosCardRef]);
+
+  return buildShotEditorLayoutSections({
+    core,
+    controllers,
+    settings,
+    sections,
+    contextValue,
+    handleJoinSegmentsClick,
+  });
 }
