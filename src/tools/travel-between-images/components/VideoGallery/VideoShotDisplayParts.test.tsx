@@ -1,0 +1,204 @@
+// @vitest-environment jsdom
+import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import type { GenerationRow } from '@/domains/generation/types';
+import {
+  ShotControls,
+  ShotMetadata,
+  ShotPreview,
+} from './VideoShotDisplayParts';
+
+vi.mock('@/shared/components/ui/button', () => ({
+  Button: ({
+    children,
+    type,
+    ...props
+  }: {
+    children: ReactNode;
+    type?: 'button' | 'submit' | 'reset';
+    [key: string]: unknown;
+  }) => (
+    <button type={type ?? 'button'} {...props}>
+      {children}
+    </button>
+  ),
+}));
+
+vi.mock('@/shared/components/ui/input', () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+}));
+
+vi.mock('@/shared/components/ui/tooltip', () => ({
+  TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@/shared/components/media/HoverScrubVideo', () => ({
+  HoverScrubVideo: ({ src }: { src: string }) => <div data-testid="hover-scrub-video" data-src={src} />,
+}));
+
+vi.mock('@/shared/lib/media/mediaUrl', () => ({
+  getDisplayUrl: (url: string) => `display:${url}`,
+}));
+
+vi.mock('@/shared/components/ui/contracts/cn', () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
+}));
+
+function createImage(id: string, url: string): GenerationRow {
+  return {
+    id,
+    imageUrl: url,
+    location: url,
+    thumbUrl: url,
+  } as GenerationRow;
+}
+
+describe('VideoShotDisplayParts', () => {
+  it('renders editable shot metadata and forwards save/cancel interactions', () => {
+    const onEditableNameChange = vi.fn();
+    const onSaveName = vi.fn();
+    const onCancelEdit = vi.fn();
+
+    render(
+      <ShotMetadata
+        displayName="Shot Alpha"
+        isEditingName={true}
+        editableName="Shot Alpha"
+        onEditableNameChange={onEditableNameChange}
+        onSaveName={onSaveName}
+        onCancelEdit={onCancelEdit}
+      />,
+    );
+
+    const input = screen.getByDisplayValue('Shot Alpha');
+    fireEvent.change(input, { target: { value: 'Shot Beta' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(onEditableNameChange).toHaveBeenCalledWith('Shot Beta');
+    expect(onSaveName).toHaveBeenCalledTimes(1);
+    expect(onCancelEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards control-button callbacks when the shot is actionable and disables them while saving', () => {
+    const callbacks = {
+      onVideoClick: vi.fn(),
+      onEditName: vi.fn(),
+      onDuplicate: vi.fn(),
+      onDelete: vi.fn(),
+    };
+
+    const { rerender } = render(
+      <ShotControls
+        isTempShot={false}
+        displayImagesCount={2}
+        isEditingName={false}
+        dragHandleProps={{}}
+        dragDisabledReason={undefined}
+        duplicateIsPending={false}
+        {...callbacks}
+      />,
+    );
+
+    const enabledButtons = screen.getAllByRole('button');
+    fireEvent.click(enabledButtons[0]);
+    fireEvent.click(enabledButtons[2]);
+    fireEvent.click(enabledButtons[3]);
+    fireEvent.click(enabledButtons[4]);
+
+    expect(callbacks.onVideoClick).toHaveBeenCalledTimes(1);
+    expect(callbacks.onEditName).toHaveBeenCalledTimes(1);
+    expect(callbacks.onDuplicate).toHaveBeenCalledTimes(1);
+    expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ShotControls
+        isTempShot={true}
+        displayImagesCount={2}
+        isEditingName={false}
+        dragHandleProps={{}}
+        dragDisabledReason="Locked"
+        duplicateIsPending={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.getAllByText('Saving...').length).toBeGreaterThan(0);
+    screen.getAllByRole('button').forEach((button) => {
+      expect(button).toBeDisabled();
+    });
+  });
+
+  it('renders the final-video preview and toggles back to shot images', () => {
+    const onShowVideoChange = vi.fn();
+    const onFinalVideoLightboxOpen = vi.fn();
+
+    render(
+      <ShotPreview
+        displayImages={[createImage('img-1', '/one.png')]}
+        pendingUploads={0}
+        finalVideo={{ location: '/final.mp4', thumbnailUrl: '/thumb.jpg' } as never}
+        showVideo={true}
+        onShowVideoChange={onShowVideoChange}
+        projectAspectRatio="16:9"
+        dropLoadingState="idle"
+        onFinalVideoLightboxOpen={onFinalVideoLightboxOpen}
+        showMobileSelect={false}
+        isSelectedForAddition={false}
+        onSelectShotForAddition={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('hover-scrub-video')).toHaveAttribute('data-src', '/final.mp4');
+
+    fireEvent.click(screen.getByTestId('hover-scrub-video').parentElement as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /shot images/i }));
+
+    expect(onFinalVideoLightboxOpen).toHaveBeenCalledTimes(1);
+    expect(onShowVideoChange).toHaveBeenCalledWith(false);
+  });
+
+  it('shows collapsed images, expands them, and surfaces final-video and select actions in image mode', () => {
+    const onShowVideoChange = vi.fn();
+    const onSelectShotForAddition = vi.fn();
+
+    render(
+      <ShotPreview
+        displayImages={[
+          createImage('img-1', '/one.png'),
+          createImage('img-2', '/two.png'),
+          createImage('img-3', '/three.png'),
+          createImage('img-4', '/four.png'),
+        ]}
+        pendingUploads={1}
+        finalVideo={{ location: '/final.mp4', thumbnailUrl: '/thumb.jpg' } as never}
+        showVideo={false}
+        onShowVideoChange={onShowVideoChange}
+        projectAspectRatio="1:1"
+        dropLoadingState="loading"
+        onFinalVideoLightboxOpen={vi.fn()}
+        showMobileSelect={true}
+        isSelectedForAddition={false}
+        onSelectShotForAddition={onSelectShotForAddition}
+      />,
+    );
+
+    expect(screen.getAllByRole('img')).toHaveLength(3);
+    expect(screen.getByText('Show All (5)')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /show all \(5\)/i }));
+
+    expect(screen.getAllByRole('img')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: /hide/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /final video/i }));
+    fireEvent.click(screen.getByRole('button', { name: /select/i }));
+
+    expect(onShowVideoChange).toHaveBeenCalledWith(true);
+    expect(onSelectShotForAddition).toHaveBeenCalledTimes(1);
+  });
+});
