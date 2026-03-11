@@ -2,14 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useGenerationTaskMapping } from "@/domains/generation/hooks/tasks/useGenerationTaskMapping";
 import { useGetTask } from "@/shared/hooks/tasks/useTasks";
 import { deriveInputImages, parseTaskParams } from "@/shared/lib/taskParamsUtils";
-import { useResolveGenerationTaskMapping } from "@/domains/generation/hooks/tasks/usePrimaryTaskMapping";
+import { useResolveGenerationTaskMapping } from "@/domains/generation/hooks/tasks/useResolveGenerationTaskMapping";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import type { Task } from "@/types/tasks";
 import type { TaskDetailsData as LightboxTaskDetailsData } from "@/domains/media-lightbox/types";
 import type { TaskDetailsStatus } from "@/domains/media-lightbox/types";
 import type {
   GenerationTaskMappingCacheEntry,
-  GenerationTaskMappingStatus,
 } from "@/shared/lib/generationTaskRepository";
 
 interface UseGenerationTaskDetailsOptions {

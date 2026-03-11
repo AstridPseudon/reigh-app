@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  mockGetPrimaryTaskMappingForGeneration,
+  mockResolveGenerationTaskMapping,
   mockHandleError,
 } = vi.hoisted(() => {
-  const mockGetPrimaryTaskMappingForGeneration = vi.fn();
+  const mockResolveGenerationTaskMapping = vi.fn();
   const mockHandleError = vi.fn();
   return {
-    mockGetPrimaryTaskMappingForGeneration,
+    mockResolveGenerationTaskMapping,
     mockHandleError,
   };
 });
@@ -17,14 +17,14 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('@/shared/lib/generationTaskRepository', () => ({
-  getPrimaryTaskIdForGeneration: (...args: unknown[]) => mockGetPrimaryTaskMappingForGeneration(...args),
+  resolveGenerationTaskMapping: (...args: unknown[]) => mockResolveGenerationTaskMapping(...args),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => mockHandleError(...args),
 }));
 
-import { useResolveGenerationTaskMapping } from '@/domains/generation/hooks/tasks/usePrimaryTaskMapping';
+import { useResolveGenerationTaskMapping } from '@/domains/generation/hooks/tasks/useResolveGenerationTaskMapping';
 
 describe('generationTaskMapping resolver', () => {
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('generationTaskMapping resolver', () => {
   });
 
   it('preserves repository status semantics from the mutation function', async () => {
-    mockGetPrimaryTaskMappingForGeneration.mockResolvedValue({
+    mockResolveGenerationTaskMapping.mockResolvedValue({
       generationId: 'gen-1',
       taskId: null,
       status: 'scope_mismatch',
@@ -51,7 +51,7 @@ describe('generationTaskMapping resolver', () => {
       taskId: null,
       status: 'scope_mismatch',
     });
-    expect(mockGetPrimaryTaskMappingForGeneration).toHaveBeenCalledWith('gen-1');
+    expect(mockResolveGenerationTaskMapping).toHaveBeenCalledWith('gen-1');
     expect(mockHandleError).not.toHaveBeenCalled();
   });
 
@@ -67,6 +67,6 @@ describe('generationTaskMapping resolver', () => {
       error,
       expect.objectContaining({ context: 'GenerationTaskMapping', showToast: false }),
     );
-    expect(mockGetPrimaryTaskMappingForGeneration).not.toHaveBeenCalled();
+    expect(mockResolveGenerationTaskMapping).not.toHaveBeenCalled();
   });
 });

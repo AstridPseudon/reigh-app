@@ -1,13 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
-  getPrimaryTaskIdForGeneration as getPrimaryTaskMappingForGeneration,
+  resolveGenerationTaskMapping,
   type GenerationTaskMapping,
 } from '@/shared/lib/generationTaskRepository';
-
-function getPrimaryTaskMapping(generationId: string): Promise<GenerationTaskMapping> {
-  return getPrimaryTaskMappingForGeneration(generationId);
-}
 
 /**
  * Canonical on-demand generation -> task mapping resolver.
@@ -16,7 +12,7 @@ function getPrimaryTaskMapping(generationId: string): Promise<GenerationTaskMapp
  */
 export function useResolveGenerationTaskMapping() {
   return useMutation<GenerationTaskMapping, Error, string>({
-    mutationFn: getPrimaryTaskMapping,
+    mutationFn: resolveGenerationTaskMapping,
     onError: (error: Error) => {
       normalizeAndPresentError(error, { context: 'GenerationTaskMapping', showToast: false });
     },

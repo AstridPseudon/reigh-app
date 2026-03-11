@@ -1,27 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  mockSupabase,
-  mockGetPrimaryTaskMappingsForGenerations,
+  mockResolveGenerationTaskMappings,
   mockHandleError,
+  mockFetchTaskInProject,
 } = vi.hoisted(() => {
-  const mockSupabase = {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-  };
-
-  const mockGetPrimaryTaskMappingsForGenerations = vi.fn();
+  const mockResolveGenerationTaskMappings = vi.fn();
   const mockHandleError = vi.fn();
+  const mockFetchTaskInProject = vi.fn();
 
-  return { mockSupabase, mockGetPrimaryTaskMappingsForGenerations, mockHandleError };
+  return { mockResolveGenerationTaskMappings, mockHandleError, mockFetchTaskInProject };
 });
-
-vi.mock('@/integrations/supabase/client', () => ({
-  getSupabaseClient: () => mockSupabase,
-}));
 
 vi.mock('@/shared/lib/queryKeys/tasks', () => ({
   taskQueryKeys: {
@@ -35,12 +24,16 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
 }));
 
 vi.mock('@/shared/lib/generationTaskRepository', () => ({
-  getPrimaryTaskMappingsForGenerations: (...args: unknown[]) => mockGetPrimaryTaskMappingsForGenerations(...args),
+  resolveGenerationTaskMappings: (...args: unknown[]) => mockResolveGenerationTaskMappings(...args),
   toGenerationTaskMappingCacheEntry: (mapping?: { taskId?: string | null; status?: string; queryError?: string }) => ({
     taskId: mapping?.taskId ?? null,
     status: mapping?.status ?? 'not_loaded',
     ...(mapping?.queryError ? { queryError: mapping.queryError } : {}),
   }),
+}));
+
+vi.mock('@/integrations/supabase/repositories/taskRepository', () => ({
+  fetchTaskInProject: (...args: unknown[]) => mockFetchTaskInProject(...args),
 }));
 
 import {
@@ -58,11 +51,6 @@ describe('preloadGenerationTaskMappings', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSupabase.from.mockReturnThis();
-    mockSupabase.select.mockReturnThis();
-    mockSupabase.in.mockReturnThis();
-    mockSupabase.eq.mockReturnThis();
-    mockSupabase.single.mockResolvedValue({ data: { id: 'task-1' }, error: null });
   });
 
   it('does nothing for empty generation IDs', async () => {
@@ -71,11 +59,11 @@ describe('preloadGenerationTaskMappings', () => {
       [],
       PROJECT_ID,
     );
-    expect(mockGetPrimaryTaskMappingsForGenerations).not.toHaveBeenCalled();
+    expect(mockResolveGenerationTaskMappings).not.toHaveBeenCalled();
   });
 
   it('fetches and caches task mappings', async () => {
-    mockGetPrimaryTaskMappingsForGenerations.mockResolvedValue(
+    mockResolveGenerationTaskMappings.mockResolvedValue(
       new Map([
         ['gen-1', { generationId: 'gen-1', taskId: 'task-1', status: 'ok' }],
         ['gen-2', { generationId: 'gen-2', taskId: 'task-2', status: 'ok' }],
@@ -100,7 +88,7 @@ describe('preloadGenerationTaskMappings', () => {
   });
 
   it('handles generations with no tasks', async () => {
-    mockGetPrimaryTaskMappingsForGenerations.mockResolvedValue(
+    mockResolveGenerationTaskMappings.mockResolvedValue(
       new Map([['gen-1', { generationId: 'gen-1', taskId: null, status: 'ok' }]]),
     );
 
@@ -117,7 +105,7 @@ describe('preloadGenerationTaskMappings', () => {
   });
 
   it('prefetches task details with project-scoped cache key', async () => {
-    mockGetPrimaryTaskMappingsForGenerations.mockResolvedValue(
+    mockResolveGenerationTaskMappings.mockResolvedValue(
       new Map([['gen-1', { generationId: 'gen-1', taskId: 'task-1', status: 'ok' }]]),
     );
 
@@ -136,7 +124,7 @@ describe('preloadGenerationTaskMappings', () => {
   });
 
   it('records query failures without throwing', async () => {
-    mockGetPrimaryTaskMappingsForGenerations.mockResolvedValue(
+    mockResolveGenerationTaskMappings.mockResolvedValue(
       new Map([[
         'gen-1',
         {
@@ -167,7 +155,7 @@ describe('preloadGenerationTaskMappings', () => {
   });
 
   it('batches requests according to batchSize', async () => {
-    mockGetPrimaryTaskMappingsForGenerations.mockResolvedValue(new Map());
+    mockResolveGenerationTaskMappings.mockResolvedValue(new Map());
     const ids = Array.from({ length: 12 }, (_, i) => `gen-${i}`);
 
     await preloadGenerationTaskMappings(
@@ -180,7 +168,7 @@ describe('preloadGenerationTaskMappings', () => {
       },
     );
 
-    expect(mockGetPrimaryTaskMappingsForGenerations).toHaveBeenCalledTimes(3);
+    expect(mockResolveGenerationTaskMappings).toHaveBeenCalledTimes(3);
   });
 });
 

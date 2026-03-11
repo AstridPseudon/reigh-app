@@ -19,7 +19,7 @@ vi.mock('@/shared/hooks/tasks/useTasks', () => ({
   useGetTask: (...args: unknown[]) => mockUseGetTask(...args),
 }));
 
-vi.mock('@/domains/generation/hooks/tasks/usePrimaryTaskMapping', () => ({
+vi.mock('@/domains/generation/hooks/tasks/useResolveGenerationTaskMapping', () => ({
   useResolveGenerationTaskMapping: () => mockPrimaryTaskLookup,
 }));
 

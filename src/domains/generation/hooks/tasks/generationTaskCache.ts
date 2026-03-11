@@ -1,14 +1,13 @@
-import { getSupabaseClient } from '@/integrations/supabase/client';
 import { QueryClient } from '@tanstack/react-query';
 import type { GenerationRow } from '@/domains/generation/types';
 import { Task } from '@/types/tasks';
+import { fetchTaskInProject } from '@/integrations/supabase/repositories/taskRepository';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { resolveTaskProjectScope } from '@/shared/lib/tasks/resolveTaskProjectScope';
-import { isTaskDbRow, mapTaskDbRowToTask } from '@/shared/lib/taskRowMapper';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import {
-  getPrimaryTaskMappingsForGenerations,
+  resolveGenerationTaskMappings,
   toGenerationTaskMappingCacheEntry,
   type GenerationTaskMappingCacheEntry,
   type GenerationTaskMappingStatus,
@@ -34,7 +33,6 @@ export async function preloadGenerationTaskMappings(
   projectId: string | null,
   options: PreloadGenerationTaskMappingsOptions = {},
 ) {
-  const supabase = getSupabaseClient();
   const effectiveProjectId = resolveTaskProjectScope(projectId);
   const {
     batchSize = 5,
@@ -45,7 +43,9 @@ export async function preloadGenerationTaskMappings(
   for (let i = 0; i < generationIds.length; i += batchSize) {
     const batch = generationIds.slice(i, i + batchSize);
 
-    const mappings = await getPrimaryTaskMappingsForGenerations(batch, { projectId: effectiveProjectId ?? undefined });
+    const mappings = await resolveGenerationTaskMappings(batch, {
+      projectId: effectiveProjectId ?? undefined,
+    });
     let reportedBatchQueryFailure = false;
 
     const prefetchTasks: Array<Promise<unknown>> = [];
@@ -69,20 +69,7 @@ export async function preloadGenerationTaskMappings(
       if (preloadFullTaskData && effectiveProjectId && cacheEntry.taskId && cacheEntry.status === 'ok') {
         prefetchTasks.push(queryClient.prefetchQuery({
           queryKey: taskQueryKeys.single(cacheEntry.taskId, effectiveProjectId),
-          queryFn: async () => {
-            const { data, error } = await supabase
-              .from('tasks')
-              .select('*')
-              .eq('id', cacheEntry.taskId)
-              .eq('project_id', effectiveProjectId)
-              .single();
-
-            if (error) throw error;
-            if (!isTaskDbRow(data)) {
-              throw new Error('Task row has unexpected shape');
-            }
-            return mapTaskDbRowToTask(data);
-          },
+          queryFn: () => fetchTaskInProject(cacheEntry.taskId, effectiveProjectId),
           staleTime: 2 * 60 * 1000,
         }));
       }

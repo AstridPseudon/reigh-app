@@ -1,25 +1,17 @@
 import type { Json } from '@/integrations/supabase/jsonTypes';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
-  deleteProjectByIdForUser,
-  fetchUserById,
-  insertDefaultShotForProject,
-  rpcCopyOnboardingTemplate,
-  rpcCreateUserRecordIfNotExists,
+  copyOnboardingTemplateToProject,
+  createDefaultShotRecord,
+  createUserRecordIfMissing,
+  deleteProjectForUser,
+  hasUserRecord,
 } from '@/shared/services/projects/projectSetupRepository';
 
-async function copyTemplateToNewUser(newProjectId: string, newShotId: string): Promise<void> {
-  const { error } = await rpcCopyOnboardingTemplate(newProjectId, newShotId);
-
-  if (error) {
-    throw error;
-  }
-}
-
 export async function cleanupFailedProjectSetup(projectId: string, userId: string): Promise<void> {
-  const { error } = await deleteProjectByIdForUser(projectId, userId);
-
-  if (error) {
+  try {
+    await deleteProjectForUser(projectId, userId);
+  } catch (error) {
     normalizeAndPresentError(error, {
       context: 'projectSetupService.cleanupFailedProjectSetup',
       showToast: false,
@@ -37,32 +29,26 @@ export async function createDefaultShotForProject(
   const isFirstProject = options?.isFirstProject === true;
   const shotName = isFirstProject ? 'Getting Started' : 'Default Shot';
 
-  const { data: shot, error } = await insertDefaultShotForProject(
+  const shot = await createDefaultShotRecord(
     projectId,
     shotName,
     options?.initialSettings || {},
   );
 
-  if (error) {
-    throw error;
-  }
-  if (!shot?.id) {
-    throw new Error('Default shot creation returned no shot id');
-  }
-
   if (isFirstProject) {
-    await copyTemplateToNewUser(projectId, shot.id);
+    await copyOnboardingTemplateToProject(projectId, shot.id);
   }
 
   return shot.id;
 }
 
 export async function ensureUserRecordExists(userId: string): Promise<void> {
-  const { data: existingUser } = await fetchUserById(userId);
+  const existingUser = await hasUserRecord(userId);
 
   if (!existingUser) {
-    const { error: userError } = await rpcCreateUserRecordIfNotExists();
-    if (userError) {
+    try {
+      await createUserRecordIfMissing();
+    } catch (userError) {
       normalizeAndPresentError(userError, {
         context: 'projectSetupService.ensureUserRecordExists',
         showToast: false,

@@ -3,16 +3,11 @@ import { fetchDerivedItemsFromRepository } from './derivedItemsRepository';
 
 const mocks = vi.hoisted(() => ({
   getSupabaseClient: vi.fn(),
-  normalizeAndLogError: vi.fn(),
   calculateDerivedCountsSafe: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: (...args: unknown[]) => mocks.getSupabaseClient(...args),
-}));
-
-vi.mock('@/shared/lib/errorHandling/runtimeErrorReporting', () => ({
-  normalizeAndLogError: (...args: unknown[]) => mocks.normalizeAndLogError(...args),
 }));
 
 vi.mock('@/shared/lib/generationTransformers', () => ({
@@ -44,9 +39,7 @@ describe('fetchDerivedItemsFromRepository', () => {
     expect(mocks.getSupabaseClient).not.toHaveBeenCalled();
   });
 
-  it('maps generations/variants, logs query errors, and sorts by starred then recency', async () => {
-    const generationError = new Error('generation query failed');
-    const variantError = new Error('variant query failed');
+  it('maps generations/variants and sorts by starred then recency', async () => {
     const generationsQuery = buildQueryChain(
       [
         {
@@ -74,7 +67,6 @@ describe('fetchDerivedItemsFromRepository', () => {
           shot_data: { shot_b: [50] },
         },
       ],
-      generationError,
     );
     const variantsQuery = buildQueryChain(
       [
@@ -94,7 +86,6 @@ describe('fetchDerivedItemsFromRepository', () => {
           is_primary: false,
         },
       ],
-      variantError,
     );
 
     const from = vi.fn((table: string) => {
@@ -117,12 +108,6 @@ describe('fetchDerivedItemsFromRepository', () => {
 
     const result = await fetchDerivedItemsFromRepository('source-1');
 
-    expect(mocks.normalizeAndLogError).toHaveBeenCalledWith(generationError, {
-      context: 'generation.derivedItems.repository.generations',
-    });
-    expect(mocks.normalizeAndLogError).toHaveBeenCalledWith(variantError, {
-      context: 'generation.derivedItems.repository.variants',
-    });
     expect(mocks.calculateDerivedCountsSafe).toHaveBeenCalledWith(['gen-older', 'gen-starred']);
 
     expect(result.map((item) => item.id)).toEqual(['gen-starred', 'var-newest', 'gen-older']);
@@ -159,5 +144,45 @@ describe('fetchDerivedItemsFromRepository', () => {
         { shot_id: 'shot_a', timeline_frame: 100, position: 2 },
       ],
     }));
+  });
+
+  it('throws when the generations query fails', async () => {
+    const generationError = new Error('generation query failed');
+    const generationsQuery = buildQueryChain([], generationError);
+    const variantsQuery = buildQueryChain([]);
+    const from = vi.fn((table: string) => {
+      if (table === 'generations') {
+        return generationsQuery;
+      }
+      if (table === 'generation_variants') {
+        return variantsQuery;
+      }
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    mocks.getSupabaseClient.mockReturnValue({ from });
+
+    await expect(fetchDerivedItemsFromRepository('source-1')).rejects.toThrow('generation query failed');
+    expect(mocks.calculateDerivedCountsSafe).not.toHaveBeenCalled();
+  });
+
+  it('throws when the variants query fails', async () => {
+    const generationsQuery = buildQueryChain([]);
+    const variantError = new Error('variant query failed');
+    const variantsQuery = buildQueryChain([], variantError);
+    const from = vi.fn((table: string) => {
+      if (table === 'generations') {
+        return generationsQuery;
+      }
+      if (table === 'generation_variants') {
+        return variantsQuery;
+      }
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    mocks.getSupabaseClient.mockReturnValue({ from });
+
+    await expect(fetchDerivedItemsFromRepository('source-1')).rejects.toThrow('variant query failed');
+    expect(mocks.calculateDerivedCountsSafe).not.toHaveBeenCalled();
   });
 });

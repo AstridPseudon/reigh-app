@@ -234,11 +234,11 @@ export async function resolveVariantProjectScope(
   };
 }
 
-export async function getPrimaryTaskIdForGeneration(
+export async function resolveGenerationTaskMapping(
   generationId: string,
   options?: GenerationTaskRepositoryOptions,
 ): Promise<GenerationTaskMapping> {
-  const mappings = await getPrimaryTaskMappingsForGenerations([generationId], options);
+  const mappings = await resolveGenerationTaskMappings([generationId], options);
   return mappings.get(generationId) ?? {
     generationId,
     taskId: null,
@@ -246,7 +246,7 @@ export async function getPrimaryTaskIdForGeneration(
   };
 }
 
-export async function getPrimaryTaskMappingsForGenerations(
+export async function resolveGenerationTaskMappings(
   generationIds: string[],
   options?: GenerationTaskRepositoryOptions,
 ): Promise<Map<string, GenerationTaskMapping>> {

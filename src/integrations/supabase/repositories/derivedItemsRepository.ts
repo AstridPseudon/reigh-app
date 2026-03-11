@@ -1,5 +1,4 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { normalizeAndLogError } from '@/shared/lib/errorHandling/runtimeErrorReporting';
 import { calculateDerivedCountsSafe } from '@/shared/lib/generationTransformers';
 import { expandShotData } from '@/shared/lib/shotData';
 import { EDIT_VARIANT_TYPES } from '@/shared/constants/variantTypes';
@@ -44,6 +43,22 @@ function normalizePrompt(params: unknown): string | undefined {
   return typeof orchestratorDetails?.prompt === 'string' ? orchestratorDetails.prompt : undefined;
 }
 
+function throwDerivedItemsRepositoryError(error: unknown, fallbackMessage: string): never {
+  if (error instanceof Error) {
+    throw error;
+  }
+  if (
+    error
+    && typeof error === 'object'
+    && 'message' in error
+    && typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    throw new Error((error as { message: string }).message);
+  }
+
+  throw new Error(fallbackMessage);
+}
+
 export async function fetchDerivedItemsFromRepository(
   sourceGenerationId: string | null,
 ): Promise<DerivedItem[]> {
@@ -77,14 +92,10 @@ export async function fetchDerivedItemsFromRepository(
   ]);
 
   if (generationsResult.error) {
-    normalizeAndLogError(generationsResult.error, {
-      context: 'generation.derivedItems.repository.generations',
-          });
+    throwDerivedItemsRepositoryError(generationsResult.error, 'Failed to load derived generations');
   }
   if (variantsResult.error) {
-    normalizeAndLogError(variantsResult.error, {
-      context: 'generation.derivedItems.repository.variants',
-          });
+    throwDerivedItemsRepositoryError(variantsResult.error, 'Failed to load derived variants');
   }
 
   const childGenerations = generationsResult.data || [];

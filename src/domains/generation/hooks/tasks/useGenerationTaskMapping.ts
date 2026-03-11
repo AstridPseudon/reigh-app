@@ -2,7 +2,7 @@ import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { isUuid } from '@/shared/lib/uuid';
 import {
-  getPrimaryTaskIdForGeneration,
+  resolveGenerationTaskMapping,
   toGenerationTaskMappingCacheEntry,
   type GenerationTaskMappingCacheEntry,
 } from '@/shared/lib/generationTaskRepository';
@@ -15,7 +15,7 @@ export async function fetchGenerationTaskMapping(
   }
 
   return toGenerationTaskMappingCacheEntry(
-    await getPrimaryTaskIdForGeneration(generationId),
+    await resolveGenerationTaskMapping(generationId),
   );
 }
 

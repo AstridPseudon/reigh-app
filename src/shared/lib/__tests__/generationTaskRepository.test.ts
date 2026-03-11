@@ -43,8 +43,8 @@ vi.mock('@/shared/lib/tasks/orchestratorReference', () => ({
 }));
 
 import {
-  getPrimaryTaskIdForGeneration,
-  getPrimaryTaskMappingsForGenerations,
+  resolveGenerationTaskMapping,
+  resolveGenerationTaskMappings,
   resolveGenerationProjectScope,
   resolveVariantProjectScope,
 } from '../generationTaskRepository';
@@ -60,7 +60,7 @@ describe('generationTaskRepository', () => {
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const result = await getPrimaryTaskMappingsForGenerations(['gen-1', 'gen-2']);
+    const result = await resolveGenerationTaskMappings(['gen-1', 'gen-2']);
 
     expect(result.get('gen-1')).toMatchObject({ status: 'query_failed', taskId: null });
     expect(result.get('gen-2')).toMatchObject({ status: 'query_failed', taskId: null });
@@ -78,7 +78,7 @@ describe('generationTaskRepository', () => {
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const result = await getPrimaryTaskMappingsForGenerations(['gen-ok', 'gen-invalid', 'gen-missing']);
+    const result = await resolveGenerationTaskMappings(['gen-ok', 'gen-invalid', 'gen-missing']);
 
     expect(result.get('gen-ok')).toMatchObject({ status: 'ok', taskId: 'task-1' });
     expect(result.get('gen-invalid')).toMatchObject({ status: 'ok', taskId: 'not-an-array' });
@@ -96,7 +96,7 @@ describe('generationTaskRepository', () => {
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const result = await getPrimaryTaskMappingsForGenerations(['gen-1'], { projectId: 'project-b' });
+    const result = await resolveGenerationTaskMappings(['gen-1'], { projectId: 'project-b' });
 
     expect(result.get('gen-1')).toMatchObject({ status: 'scope_mismatch', taskId: null });
   });
@@ -110,7 +110,7 @@ describe('generationTaskRepository', () => {
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const mapping = await getPrimaryTaskIdForGeneration('gen-1');
+    const mapping = await resolveGenerationTaskMapping('gen-1');
     expect(mapping).toMatchObject({ generationId: 'gen-1', status: 'ok', taskId: 'task-1' });
   });
 
