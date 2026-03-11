@@ -35,6 +35,7 @@ import {
   TaskDetailsSummaryControls,
   TaskDetailsSummarySection,
 } from '@/shared/components/TaskDetails/components/TaskDetailsSummarySection';
+import type { TaskGenerationDetailsRendererProps } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
 import { useTaskDetailsModalState } from '@/shared/components/TaskDetails/hooks/useTaskDetailsModalState';
 
 interface TaskDetailsModalProps {
@@ -46,9 +47,20 @@ interface TaskDetailsModalProps {
   isVideoContext?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  renderGenerationDetails?: (props: TaskGenerationDetailsRendererProps) => ReactNode;
 }
 
-const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, children, onApplySettingsFromTask, onClose, onShowVideo, isVideoContext, open, onOpenChange }) => {
+const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
+  generationId,
+  children,
+  onApplySettingsFromTask,
+  onClose,
+  onShowVideo,
+  isVideoContext,
+  open,
+  onOpenChange,
+  renderGenerationDetails,
+}) => {
   const isMobile = useIsMobile();
   const modal = useLargeModal();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -179,6 +191,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ generationId, child
                 isMobile={isMobile}
                 availableLoras={availableLoras}
                 controls={summaryControls}
+                renderGenerationDetails={renderGenerationDetails}
               />
             </div>
           ) : (

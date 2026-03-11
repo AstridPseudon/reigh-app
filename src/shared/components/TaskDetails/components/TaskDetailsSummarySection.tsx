@@ -1,7 +1,10 @@
 import React from 'react';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import { Task } from '@/types/tasks';
-import { TaskDetailsSummaryAndParams } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
+import {
+  TaskDetailsSummaryAndParams,
+  type TaskGenerationDetailsRendererProps,
+} from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
 
 export interface TaskDetailsSummaryControls {
   showAllImages: boolean;
@@ -24,6 +27,7 @@ interface TaskDetailsSummarySectionProps {
   availableLoras?: LoraModel[];
   controls: TaskDetailsSummaryControls;
   showCopyButtons?: boolean;
+  renderGenerationDetails?: (props: TaskGenerationDetailsRendererProps) => React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -35,6 +39,7 @@ export function TaskDetailsSummarySection({
   availableLoras,
   controls,
   showCopyButtons,
+  renderGenerationDetails,
   children,
 }: TaskDetailsSummarySectionProps) {
   return (
@@ -55,6 +60,7 @@ export function TaskDetailsSummarySection({
       paramsCopied={controls.paramsCopied}
       onCopyParams={controls.onCopyParams}
       showCopyButtons={showCopyButtons}
+      renderGenerationDetails={renderGenerationDetails}
     >
       {children}
     </TaskDetailsSummaryAndParams>

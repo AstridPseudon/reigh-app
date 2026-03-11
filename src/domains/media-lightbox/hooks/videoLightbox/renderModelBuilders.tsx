@@ -6,11 +6,11 @@ import type { VideoLightboxPropsWithMedia } from '../../types';
 import type {
   VideoLightboxEditModel,
   VideoLightboxSharedStateModel,
-} from '../useVideoLightboxController';
+} from './useVideoLightboxController';
 import type {
   VideoLightboxEnvironment,
   VideoLightboxModeModel,
-} from '../useVideoLightboxEnvironment';
+} from './useVideoLightboxEnvironment';
 
 type VideoEditPanelModel = ComponentProps<typeof VideoEditPanel>;
 type VideoInfoPanelModel = ComponentProps<typeof InfoPanel>;

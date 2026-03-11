@@ -12,15 +12,9 @@ import { TaskTravelMetadata } from './TaskTravelMetadata';
 import { getVariantConfig } from '../../../types/taskDetailsTypes';
 import type { Task } from '../../../../types/tasks';
 import type { LoraModel } from '../../../../domains/lora/types/lora';
+import type { TaskGenerationDetailsRendererProps } from './TaskDetailsSummaryAndParams';
 
 const generationDetailsPropsSpy = vi.fn();
-
-vi.mock('../../../../domains/generation/components/GenerationDetails', () => ({
-  GenerationDetails: (props: Record<string, unknown>) => {
-    generationDetailsPropsSpy(props);
-    return <div data-testid="generation-details">Generation details stub</div>;
-  },
-}));
 
 vi.mock('../../ui/button', () => ({
   Button: ({
@@ -247,6 +241,10 @@ describe('TaskDetails coverage', () => {
           paramsCopied={paramsCopied}
           onCopyParams={() => setParamsCopied(true)}
           showCopyButtons
+          renderGenerationDetails={(props: TaskGenerationDetailsRendererProps) => {
+            generationDetailsPropsSpy(props);
+            return <div data-testid="generation-details">Generation details stub</div>;
+          }}
         >
           <div>Extra child block</div>
         </TaskDetailsSummaryAndParams>

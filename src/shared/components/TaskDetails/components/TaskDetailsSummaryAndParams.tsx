@@ -1,9 +1,23 @@
 import React from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { GenerationDetails } from '@/domains/generation/components/GenerationDetails';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import { Task } from '@/types/tasks';
+
+export interface TaskGenerationDetailsRendererProps {
+  task: Task;
+  inputImages: string[];
+  variant: 'modal' | 'panel';
+  isMobile: boolean;
+  availableLoras: LoraModel[] | undefined;
+  showAllImages: boolean;
+  onShowAllImagesChange: (show: boolean) => void;
+  showFullPrompt: boolean;
+  onShowFullPromptChange: (show: boolean) => void;
+  showFullNegativePrompt: boolean;
+  onShowFullNegativePromptChange: (show: boolean) => void;
+  showCopyButtons?: boolean;
+}
 
 interface TaskDetailsSummaryAndParamsProps {
   task: Task;
@@ -22,6 +36,7 @@ interface TaskDetailsSummaryAndParamsProps {
   paramsCopied: boolean;
   onCopyParams: () => void;
   showCopyButtons?: boolean;
+  renderGenerationDetails?: (props: TaskGenerationDetailsRendererProps) => React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -42,6 +57,7 @@ export const TaskDetailsSummaryAndParams: React.FC<TaskDetailsSummaryAndParamsPr
   paramsCopied,
   onCopyParams,
   showCopyButtons = false,
+  renderGenerationDetails,
   children,
 }) => {
   const isModal = detailsVariant === 'modal';
@@ -50,7 +66,7 @@ export const TaskDetailsSummaryAndParams: React.FC<TaskDetailsSummaryAndParamsPr
   const toggleButtonClass = isModal
     ? 'h-8 px-2'
     : 'h-7 px-2 flex items-center gap-x-1 text-muted-foreground hover:text-foreground';
-  const generationDetailsProps = {
+  const generationDetailsProps: TaskGenerationDetailsRendererProps = {
     task,
     inputImages,
     variant: detailsVariant,
@@ -68,7 +84,7 @@ export const TaskDetailsSummaryAndParams: React.FC<TaskDetailsSummaryAndParamsPr
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <GenerationDetails {...generationDetailsProps} />
+        {renderGenerationDetails?.(generationDetailsProps) ?? null}
       </div>
 
       <div className="space-y-3">

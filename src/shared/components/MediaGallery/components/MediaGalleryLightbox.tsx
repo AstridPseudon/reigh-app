@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { MediaLightbox } from "@/domains/media-lightbox/MediaLightbox";
 import { TaskDetailsModal } from '@/shared/components/TaskDetails/TaskDetailsModal';
+import { GenerationDetails } from '@/domains/generation/components/GenerationDetails';
 import { Shot } from "@/domains/generation/types";
 import { Task } from "@/types/tasks";
 import type { GeneratedImageWithMetadata } from '../types';
@@ -180,6 +181,9 @@ export const MediaGalleryLightbox: React.FC<MediaGalleryLightboxProps> = ({
             }
           }}
           generationId={selectedImageForDetails.id}
+          renderGenerationDetails={(props) => (
+            <GenerationDetails {...props} />
+          )}
         />
       )}
     </>

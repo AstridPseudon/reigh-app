@@ -9,7 +9,7 @@ import type {
   VideoLightboxPropsWithMedia,
 } from '../types';
 import type { ImageLightboxEnvironment } from './useImageLightboxEnvironment';
-import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './useVideoLightboxEnvironment';
+import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './videoLightbox/useVideoLightboxEnvironment';
 import type { useSharedLightboxState } from './useSharedLightboxState';
 
 type SharedLightboxInput = Parameters<typeof useSharedLightboxState>[0];

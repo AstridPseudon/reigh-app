@@ -26,12 +26,12 @@ import { SegmentSlotFormView } from './components/SegmentSlotFormView';
 import {
   useVideoLightboxMode,
   useVideoLightboxEnvironment,
-} from './hooks/useVideoLightboxEnvironment';
-import { useVideoLightboxRenderModel } from './hooks/useVideoLightboxRenderModel';
+} from './hooks/videoLightbox/useVideoLightboxEnvironment';
+import { useVideoLightboxRenderModel } from './hooks/videoLightbox/useVideoLightboxRenderModel';
 import {
   useVideoLightboxSharedState,
   useVideoLightboxEditing,
-} from './hooks/useVideoLightboxController';
+} from './hooks/videoLightbox/useVideoLightboxController';
 
 import { LightboxShell } from './components/LightboxShell';
 import { VideoEditProvider } from './contexts/VideoEditContext';
@@ -39,7 +39,7 @@ import { VideoEditProvider } from './contexts/VideoEditContext';
 export type {
   VideoLightboxSharedStateModel,
   VideoLightboxEditModel,
-} from './hooks/useVideoLightboxController';
+} from './hooks/videoLightbox/useVideoLightboxController';
 
 const VideoLightboxMediaContent: React.FC<VideoLightboxPropsWithMedia> = (props) => {
   const modeModel = useVideoLightboxMode(props);

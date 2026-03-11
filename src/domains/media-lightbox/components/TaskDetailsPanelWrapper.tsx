@@ -1,6 +1,7 @@
 import React from 'react';
 import { TaskDetailsPanel } from '@/shared/components/TaskDetails/TaskDetailsPanel';
 import type { GenerationRow } from '@/domains/generation/types';
+import { GenerationDetails } from '@/domains/generation/components/GenerationDetails';
 import type { TaskDetailsData } from '../types';
 import type { DerivedItem } from '@/domains/generation/hooks/useDerivedItems';
 
@@ -71,6 +72,9 @@ export const TaskDetailsPanelWrapper: React.FC<TaskDetailsPanelWrapperProps> = (
       showUserImage={false}
       derivedSection={null}
       hideHeader={true}
+      renderGenerationDetails={(props) => (
+        <GenerationDetails {...props} />
+      )}
     />
   );
 };

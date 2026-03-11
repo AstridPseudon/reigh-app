@@ -16,6 +16,7 @@ import {
   TaskDetailsSummaryControls,
   TaskDetailsSummarySection,
 } from '@/shared/components/TaskDetails/components/TaskDetailsSummarySection';
+import type { TaskGenerationDetailsRendererProps } from '@/shared/components/TaskDetails/components/TaskDetailsSummaryAndParams';
 import type { TaskDetailsStatus } from '@/shared/lib/taskDetails/taskDetailsContract';
 
 interface TaskDetailsPanelProps {
@@ -35,6 +36,7 @@ interface TaskDetailsPanelProps {
   showUserImage?: boolean;
   // Hide the header (title is shown in parent component)
   hideHeader?: boolean;
+  renderGenerationDetails?: (props: TaskGenerationDetailsRendererProps) => ReactNode;
 }
 
 const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
@@ -50,7 +52,8 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
   className = "",
   basedOnSection,
   derivedSection,
-  hideHeader = false
+  hideHeader = false,
+  renderGenerationDetails,
 }) => {
   const isMobile = useIsMobile();
   const resolvedStatus = status ?? (error ? 'error' : task ? 'ok' : 'missing');
@@ -188,6 +191,7 @@ const TaskDetailsPanel: React.FC<TaskDetailsPanelProps> = ({
           availableLoras={availableLoras}
           controls={summaryControls}
           showCopyButtons={true}
+          renderGenerationDetails={renderGenerationDetails}
         >
           {basedOnSection}
           {derivedSection}
