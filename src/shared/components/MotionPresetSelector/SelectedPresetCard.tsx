@@ -63,6 +63,27 @@ export const SelectedPresetCard: React.FC<SelectedPresetCardProps> = ({
     );
   }
 
+  if (!preset) {
+    return (
+      <div className="relative p-3 border rounded-lg bg-muted/30 border-border">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Preset unavailable</p>
+            <p className="text-xs text-muted-foreground">Select a different preset to continue</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onChangePreset}
+            className="h-7 text-xs"
+          >
+            Change
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const metadata = preset?.metadata;
   const sampleVideo = metadata?.sample_generations?.find((g) => g.type === 'video');
 

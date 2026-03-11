@@ -1,20 +1,31 @@
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import type { Task } from '@/types/tasks';
 import { isTaskDbRow, mapTaskDbRowToTask } from '@/shared/lib/taskRowMapper';
+import {
+  createInvalidRowShapeError,
+  createRepositoryQueryError,
+  isRepositoryNoRowsError,
+} from './repositoryErrors';
 
-export async function fetchTaskInProject(taskId: string, projectId: string): Promise<Task> {
+export async function fetchTaskInProject(taskId: string, projectId: string): Promise<Task | null> {
   const { data, error } = await getSupabaseClient()
     .from('tasks')
     .select('*')
     .eq('id', taskId)
     .eq('project_id', projectId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    throw error;
+    if (isRepositoryNoRowsError(error)) {
+      return null;
+    }
+    throw createRepositoryQueryError('task', error, { taskId, projectId });
+  }
+  if (!data) {
+    return null;
   }
   if (!isTaskDbRow(data)) {
-    throw new Error('Task row has unexpected shape');
+    throw createInvalidRowShapeError('task', { taskId, projectId });
   }
 
   return mapTaskDbRowToTask(data);

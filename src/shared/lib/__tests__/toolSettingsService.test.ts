@@ -5,11 +5,23 @@ const mockMaybeSingle = vi.fn();
 const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockSelect = vi.fn(() => ({ eq: mockEq }));
 const mockFrom = vi.fn(() => ({ select: mockSelect }));
+const mockGetSession = vi.fn();
+const mockUnsubscribe = vi.fn();
+const mockOnAuthStateChange = vi.fn(() => ({
+  data: {
+    subscription: {
+      unsubscribe: mockUnsubscribe,
+    },
+  },
+}));
 
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
     from: (...args: unknown[]) => mockFrom(...args),
-    auth: {},
+    auth: {
+      getSession: (...args: unknown[]) => mockGetSession(...args),
+      onAuthStateChange: (...args: unknown[]) => mockOnAuthStateChange(...args),
+    },
   }),
 }));
 
@@ -71,6 +83,19 @@ function setStoredSession(userId: string | null) {
   }
 }
 
+function readStoredSessionUserId(): string | null {
+  const raw = localStorage.getItem('sb-testproject-auth-token');
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { user?: { id?: string } };
+    return parsed.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -91,6 +116,21 @@ describe('toolSettingsService', () => {
     mockEq.mockImplementation(() => ({ maybeSingle: mockMaybeSingle }));
     mockSelect.mockImplementation(() => ({ eq: mockEq }));
     mockFrom.mockImplementation(() => ({ select: mockSelect }));
+    mockGetSession.mockImplementation(async () => {
+      const storedUserId = readStoredSessionUserId();
+      return {
+        data: {
+          session: storedUserId ? { user: { id: storedUserId } } : null,
+        },
+      };
+    });
+    mockOnAuthStateChange.mockImplementation(() => ({
+      data: {
+        subscription: {
+          unsubscribe: mockUnsubscribe,
+        },
+      },
+    }));
   });
 
   afterEach(() => {
@@ -99,6 +139,16 @@ describe('toolSettingsService', () => {
   });
 
   describe('resolveAndCacheUserId', () => {
+    it('initializes auth cache on demand when bootstrap has not run', async () => {
+      setStoredSession('session-user');
+
+      const result = await resolveAndCacheUserId();
+
+      expect(result.data.user?.id).toBe('session-user');
+      expect(mockGetSession).toHaveBeenCalledTimes(1);
+      expect(mockOnAuthStateChange).toHaveBeenCalledTimes(1);
+    });
+
     it('returns user from localStorage when cache is cold', async () => {
       setStoredSession('user-from-storage');
 
@@ -296,6 +346,7 @@ describe('toolSettingsService', () => {
     });
 
     it('reuses the same in-flight fetch for concurrent identical requests', async () => {
+      setCachedUserId('test-user');
       const deferred = createDeferred<{ data: null; error: null }>();
       mockFrom.mockImplementation((table: string) => ({
         select: vi.fn(() => ({
@@ -328,6 +379,7 @@ describe('toolSettingsService', () => {
     });
 
     it('cancels the fetch when auth changes after scope reads start', async () => {
+      setCachedUserId('test-user');
       const deferred = createDeferred<{ data: null; error: null }>();
       mockMaybeSingle.mockImplementation(() => deferred.promise);
 

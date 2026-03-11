@@ -190,6 +190,7 @@ vi.mock('@/shared/lib/toolSettingsService', async () => {
   );
   return {
     ...actual,
+    ensureToolSettingsAuthCacheInitialized: vi.fn().mockResolvedValue(undefined),
     fetchToolSettingsSupabaseOrThrow: vi.fn().mockResolvedValue({
       settings: { prompt: 'default', seed: 1 },
       hasShotSettings: false,
@@ -204,6 +205,9 @@ vi.mock('@/shared/lib/settingsWriteQueue', () => ({
 
 vi.mock('@/shared/lib/errorHandling/errorUtils', () => ({
   isCancellationError: () => false,
+  getErrorMessage: (error: unknown) => error instanceof Error ? error.message : String(error),
+  isErrorWithCode: () => false,
+  isErrorWithStatus: () => false,
 }));
 
 function createWrapper() {

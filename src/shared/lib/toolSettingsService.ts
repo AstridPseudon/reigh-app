@@ -31,12 +31,30 @@ let cachedUser: { id: string } | null = null;
 let hasCachedUserSnapshot = false;
 let cachedUserAt: number = 0;
 let cleanupAuthCacheSync: (() => void) | null = null;
+let authCacheInitializationPromise: Promise<void> | null = null;
 const USER_CACHE_MS = 10_000; // 10 seconds
 
 type UserLookupResult = Promise<{ data: { user: { id: string } | null }; error: null }>;
 type AuthStateCallback = (event: string, session: Session | null) => void;
 interface AuthCacheSyncSource {
   subscribe: (id: string, callback: AuthStateCallback) => () => void;
+}
+
+function createDirectAuthCacheSyncSource(
+  supabaseClient: ReturnType<typeof getSupabaseClient>,
+): AuthCacheSyncSource {
+  return {
+    subscribe: (_id, callback) => {
+      if (typeof supabaseClient.auth.onAuthStateChange !== 'function') {
+        return () => {};
+      }
+      const authSubscription = supabaseClient.auth.onAuthStateChange((event, session) => {
+        callback(event, session);
+      });
+      const unsubscribe = authSubscription.data?.subscription?.unsubscribe;
+      return typeof unsubscribe === 'function' ? () => unsubscribe() : () => {};
+    },
+  };
 }
 
 function invalidateAuthDependentState(): void {
@@ -87,17 +105,23 @@ export function setCachedUserId(userId: string) {
 export function clearCachedUserId() {
   updateCachedUserId(null, true);
 }
-export function initializeToolSettingsAuthCache(
+function startToolSettingsAuthCacheInitialization(
   supabaseClient: ReturnType<typeof getSupabaseClient>,
   authManager: AuthCacheSyncSource,
-): void {
-  if (cleanupAuthCacheSync) {
-    return;
+): Promise<void> {
+  if (authCacheInitializationPromise) {
+    return authCacheInitializationPromise;
   }
 
   syncCachedUserId(readUserIdFromStorage());
 
-  supabaseClient.auth
+  if (!cleanupAuthCacheSync) {
+    cleanupAuthCacheSync = authManager.subscribe('toolSettingsService', (_event, session) => {
+      syncCachedUserFromSession(session);
+    });
+  }
+
+  authCacheInitializationPromise = supabaseClient.auth
     .getSession()
     .then(({ data: { session } }) => {
       syncCachedUserFromSession(session);
@@ -109,15 +133,32 @@ export function initializeToolSettingsAuthCache(
       });
     });
 
-  cleanupAuthCacheSync = authManager.subscribe('toolSettingsService', (_event, session) => {
-    syncCachedUserFromSession(session);
-  });
+  return authCacheInitializationPromise;
+}
+export function initializeToolSettingsAuthCache(
+  supabaseClient: ReturnType<typeof getSupabaseClient>,
+  authManager: AuthCacheSyncSource,
+): void {
+  void startToolSettingsAuthCacheInitialization(supabaseClient, authManager);
+}
+
+export function ensureToolSettingsAuthCacheInitialized(): Promise<void> {
+  if (authCacheInitializationPromise) {
+    return authCacheInitializationPromise;
+  }
+
+  const supabaseClient = getSupabaseClient();
+  return startToolSettingsAuthCacheInitialization(
+    supabaseClient,
+    createDirectAuthCacheSyncSource(supabaseClient),
+  );
 }
 
 /** @internal Only for test isolation — do not call in production code. */
 export function _resetCachedUserForTesting() {
   cleanupAuthCacheSync?.();
   cleanupAuthCacheSync = null;
+  authCacheInitializationPromise = null;
   cachedUser = null;
   hasCachedUserSnapshot = false;
   cachedUserAt = 0;
@@ -244,7 +285,13 @@ function buildUserLookupResult(userId: string | null): UserLookupResult {
 }
 
 function readFreshCachedUserId(): string | null | undefined {
-  if (!hasCachedUserSnapshot || (Date.now() - cachedUserAt) >= USER_CACHE_MS) {
+  if (!hasCachedUserSnapshot) {
+    return undefined;
+  }
+  if (cleanupAuthCacheSync) {
+    return cachedUser?.id ?? null;
+  }
+  if ((Date.now() - cachedUserAt) >= USER_CACHE_MS) {
     return undefined;
   }
   return cachedUser?.id ?? null;
@@ -261,14 +308,9 @@ export function resolveAndCacheUserId(): UserLookupResult {
     return buildUserLookupResult(cachedUserId);
   }
 
-  const localUserId = readUserIdFromStorage();
-  if (localUserId) {
-    updateCachedUserId(localUserId, false);
-    return buildUserLookupResult(localUserId);
-  }
-
-  updateCachedUserId(null, false);
-  return buildUserLookupResult(null);
+  return ensureToolSettingsAuthCacheInitialized().then(() => {
+    return buildUserLookupResult(readFreshCachedUserId() ?? null);
+  });
 }
 type SettingsRow = { data: { settings: unknown } | null; error: unknown };
 function throwIfAborted(signal?: AbortSignal): void {

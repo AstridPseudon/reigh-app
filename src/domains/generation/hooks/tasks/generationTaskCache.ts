@@ -99,7 +99,7 @@ export function mergeGenerationsWithTaskData(
     );
     const taskId = cachedMapping?.taskId || null;
     const taskData = (taskId && effectiveProjectId)
-      ? queryClient.getQueryData<Task>(taskQueryKeys.single(taskId, effectiveProjectId))
+      ? queryClient.getQueryData<Task | null>(taskQueryKeys.single(taskId, effectiveProjectId))
       : null;
     const taskMappingStatus = cachedMapping?.status ?? (taskId ? 'ok' : 'not_loaded');
 

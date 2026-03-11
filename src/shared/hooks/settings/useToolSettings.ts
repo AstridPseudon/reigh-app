@@ -6,6 +6,7 @@ import { QUERY_PRESETS, STANDARD_RETRY_DELAY } from '@/shared/lib/query/queryDef
 import { deepMerge } from '@/shared/lib/utils/deepEqual';
 import {
   classifyToolSettingsError,
+  ensureToolSettingsAuthCacheInitialized,
   fetchToolSettingsSupabaseOrThrow,
   resolveAndCacheUserId,
   ToolSettingsError,
@@ -189,6 +190,7 @@ export function useToolSettings<T>(
   const { data: queryResult, isLoading, error } = useQuery({
     queryKey: queryKeys.settings.tool(toolId, projectId, shotId),
     queryFn: async ({ signal }): Promise<SettingsFetchResult> => {
+      await ensureToolSettingsAuthCacheInitialized();
       return fetchToolSettingsSupabaseOrThrow(toolId, { projectId, shotId }, signal);
     },
     enabled: !!toolId && fetchEnabled,
@@ -220,6 +222,7 @@ export function useToolSettings<T>(
 
       if (!idForScope) {
         if (scope === 'user') {
+          await ensureToolSettingsAuthCacheInitialized();
           const { data: { user } } = await resolveAndCacheUserId();
           idForScope = user?.id;
           if (!idForScope) {
