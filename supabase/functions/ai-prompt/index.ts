@@ -2,9 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Groq from "npm:groq-sdk@0.26.0";
 import {
-  checkRateLimit,
-  isRateLimitExceededFailure,
-  rateLimitFailureResponse,
+  enforceRateLimit,
   RATE_LIMITS,
 } from "../_shared/rateLimit.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
@@ -54,24 +52,25 @@ serve(async (req) => {
     return bootstrap.response;
   }
 
-  const { supabaseAdmin, auth, body } = bootstrap.value;
+  const { supabaseAdmin, logger, auth, body } = bootstrap.value;
   if (!auth?.userId) {
     return jsonResponse({ error: "Authentication failed" }, 401);
   }
 
   // Rate limit by user ID (this is an expensive AI endpoint)
-  const rateLimitResult = await checkRateLimit({
+  const rateLimitDenied = await enforceRateLimit({
     supabaseAdmin,
     functionName: 'ai-prompt',
-    identifier: auth.userId,
+    userId: auth.userId,
     config: RATE_LIMITS.expensive,
+    logger,
     logPrefix: '[AI-PROMPT]',
+    responses: {
+      serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
+    },
   });
-  if (!rateLimitResult.ok) {
-    if (isRateLimitExceededFailure(rateLimitResult)) {
-      return rateLimitFailureResponse(rateLimitResult, RATE_LIMITS.expensive);
-    }
-    return jsonResponse({ error: 'Rate limit service unavailable' }, 503);
+  if (rateLimitDenied) {
+    return rateLimitDenied;
   }
 
   const task = body.task as string | undefined;

@@ -5,9 +5,7 @@ import * as DeleteProjectEntrypoint from './index.ts';
 const mocks = vi.hoisted(() => ({
   withEdgeRequest: vi.fn(),
   verifyProjectOwnership: vi.fn(),
-  checkRateLimit: vi.fn(),
-  isRateLimitExceededFailure: vi.fn(),
-  rateLimitFailureResponse: vi.fn(),
+  enforceRateLimit: vi.fn(),
   toErrorMessage: vi.fn((error: unknown) => (error instanceof Error ? error.message : String(error))),
 }));
 
@@ -21,9 +19,7 @@ vi.mock('../_shared/auth.ts', () => ({
 }));
 
 vi.mock('../_shared/rateLimit.ts', () => ({
-  checkRateLimit: (...args: unknown[]) => mocks.checkRateLimit(...args),
-  isRateLimitExceededFailure: (...args: unknown[]) => mocks.isRateLimitExceededFailure(...args),
-  rateLimitFailureResponse: (...args: unknown[]) => mocks.rateLimitFailureResponse(...args),
+  enforceRateLimit: (...args: unknown[]) => mocks.enforceRateLimit(...args),
 }));
 
 vi.mock('../_shared/errorMessage.ts', () => ({
@@ -74,9 +70,7 @@ describe('delete-project edge entrypoint', () => {
     __resetServeHandler();
 
     mocks.verifyProjectOwnership.mockResolvedValue({ success: true, projectId: 'project-1' });
-    mocks.checkRateLimit.mockResolvedValue({ ok: true, policy: 'strict', value: {} });
-    mocks.isRateLimitExceededFailure.mockReturnValue(false);
-    mocks.rateLimitFailureResponse.mockReturnValue(new Response('rate limit exceeded', { status: 429 }));
+    mocks.enforceRateLimit.mockResolvedValue(null);
     mocks.withEdgeRequest.mockImplementation(
       async (_req: Request, _opts: unknown, handler: (ctx: unknown) => Promise<Response>) => {
         return handler(createContext());
@@ -123,22 +117,13 @@ describe('delete-project edge entrypoint', () => {
   });
 
   it('returns rate-limit response when threshold is exceeded', async () => {
-    const logger = createLogger();
-    mocks.withEdgeRequest.mockImplementation(
-      async (_req: Request, _opts: unknown, handler: (ctx: unknown) => Promise<Response>) => {
-        return handler(createContext({ logger }));
-      },
-    );
-    mocks.checkRateLimit.mockResolvedValue({ ok: false, reason: 'limit' });
-    mocks.isRateLimitExceededFailure.mockReturnValue(true);
-    mocks.rateLimitFailureResponse.mockReturnValue(new Response('limited', { status: 429 }));
+    mocks.enforceRateLimit.mockResolvedValue(new Response('limited', { status: 429 }));
 
     const handler = await loadHandler();
     const response = await handler(new Request('https://edge.test/delete-project', { method: 'POST' }));
 
     expect(response.status).toBe(429);
     await expect(response.text()).resolves.toBe('limited');
-    expect(logger.warn).toHaveBeenCalled();
   });
 
   it('returns 400 when projectId is missing', async () => {

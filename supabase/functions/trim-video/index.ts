@@ -212,12 +212,12 @@ async function uploadToStorage(
 async function updateVariantRecord(
   supabase: ReturnType<typeof createClient>,
   variantId: string,
+  projectId: string,
   videoUrl: string,
   thumbnailUrl: string | null,
   duration: number
 ): Promise<void> {
-  
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('generation_variants')
     .update({
       location: videoUrl,
@@ -228,12 +228,54 @@ async function updateVariantRecord(
         format: 'mp4',
       },
     })
-    .eq('id', variantId);
+    .eq('id', variantId)
+    .eq('project_id', projectId)
+    .select('id')
+    .maybeSingle();
 
-  if (error) {
-    console.error(`[TRIM-VIDEO] Failed to update variant: ${error.message}`);
+  if (error || !data) {
+    const message = error?.message ?? 'No matching variant record found for project';
+    console.error(`[TRIM-VIDEO] Failed to update variant: ${message}`);
     // Don't throw - the video was still processed successfully
   }
+}
+
+async function verifyVariantProjectOwnership(
+  supabase: ReturnType<typeof createClient>,
+  variantId: string,
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; statusCode: number; error: string }> {
+  const { data, error } = await supabase
+    .from('generation_variants')
+    .select('id, project_id')
+    .eq('id', variantId)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      statusCode: 500,
+      error: `Failed to verify variant ownership: ${error.message}`,
+    };
+  }
+
+  if (!data) {
+    return {
+      ok: false,
+      statusCode: 404,
+      error: 'Variant not found',
+    };
+  }
+
+  if (data.project_id !== projectId) {
+    return {
+      ok: false,
+      statusCode: 403,
+      error: 'Forbidden: Variant does not belong to project',
+    };
+  }
+
+  return { ok: true };
 }
 
 /**
@@ -338,6 +380,26 @@ serve(async (req) => {
       }
     }
 
+    if (!isServiceRole && variant_id) {
+      const variantOwnership = await verifyVariantProjectOwnership(
+        supabase,
+        variant_id,
+        project_id,
+      );
+      if (!variantOwnership.ok) {
+        logger.error("Variant ownership verification failed", {
+          project_id,
+          variant_id,
+          user_id: effectiveUserId,
+          error: variantOwnership.error,
+        });
+        return jsonResponse(
+          { error: variantOwnership.error, success: false },
+          variantOwnership.statusCode,
+        );
+      }
+    }
+
     // Get API tokens
     const replicateToken = Deno.env.get('REPLICATE_API_TOKEN');
     if (!replicateToken) {
@@ -381,7 +443,7 @@ serve(async (req) => {
     // Step 4: Update variant record if provided (thumbnail is extracted client-side)
     const duration = end_time - start_time;
     if (variant_id) {
-      await updateVariantRecord(supabase, variant_id, finalVideoUrl, null, duration);
+      await updateVariantRecord(supabase, variant_id, project_id, finalVideoUrl, null, duration);
     }
 
     const processingTime = Date.now() - startProcessTime;

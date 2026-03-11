@@ -4,9 +4,7 @@ import * as AiPromptEntrypoint from './index.ts';
 
 const mocks = vi.hoisted(() => ({
   bootstrapEdgeHandler: vi.fn(),
-  checkRateLimit: vi.fn(),
-  isRateLimitExceededFailure: vi.fn(),
-  rateLimitFailureResponse: vi.fn(),
+  enforceRateLimit: vi.fn(),
   buildGeneratePromptsMessages: vi.fn(),
   buildEditPromptMessages: vi.fn(),
   buildEnhanceSegmentUserPrompt: vi.fn(),
@@ -20,11 +18,9 @@ vi.mock('../_shared/edgeHandler.ts', () => ({
 }));
 
 vi.mock('../_shared/rateLimit.ts', () => ({
-  checkRateLimit: (...args: unknown[]) => mocks.checkRateLimit(...args),
-  isRateLimitExceededFailure: (...args: unknown[]) => mocks.isRateLimitExceededFailure(...args),
-  rateLimitFailureResponse: (...args: unknown[]) => mocks.rateLimitFailureResponse(...args),
+  enforceRateLimit: (...args: unknown[]) => mocks.enforceRateLimit(...args),
   RATE_LIMITS: {
-    expensive: { max: 10, windowMs: 60_000 },
+    expensive: { maxRequests: 10, windowSeconds: 60 },
   },
 }));
 
@@ -87,9 +83,7 @@ describe('ai-prompt edge entrypoint', () => {
     __resetServeHandler();
     stubDenoEnv();
 
-    mocks.checkRateLimit.mockResolvedValue({ ok: true });
-    mocks.isRateLimitExceededFailure.mockReturnValue(false);
-    mocks.rateLimitFailureResponse.mockReturnValue(new Response('rate limited', { status: 429 }));
+    mocks.enforceRateLimit.mockResolvedValue(null);
 
     mocks.buildGeneratePromptsMessages.mockReturnValue({
       systemMsg: 'system message',
@@ -154,12 +148,16 @@ describe('ai-prompt edge entrypoint', () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: 'Authentication failed' });
-    expect(mocks.checkRateLimit).not.toHaveBeenCalled();
+    expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
   });
 
   it('returns 503 when rate limit service is unavailable', async () => {
-    mocks.checkRateLimit.mockResolvedValue({ ok: false, reason: 'service-down' });
-    mocks.isRateLimitExceededFailure.mockReturnValue(false);
+    mocks.enforceRateLimit.mockResolvedValue(
+      new Response(JSON.stringify({ error: 'Rate limit service unavailable' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
 
     const handler = await loadHandler();
     const response = await handler(new Request('https://edge.test/ai-prompt', { method: 'POST' }));

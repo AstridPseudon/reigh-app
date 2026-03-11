@@ -94,16 +94,12 @@ describe('_shared/rateLimit', () => {
       config: RATE_LIMITS.userAction,
     });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) {
-      return;
-    }
-    expect(result.value.allowed).toBe(false);
+    expect(result.ok).toBe(false);
     expect(isRateLimitExceededFailure(result)).toBe(true);
-    if (result.value.allowed) {
-      throw new Error('Expected denied rate-limit result');
+    if (result.ok) {
+      throw new Error('Expected denied rate-limit failure');
     }
-    const response = rateLimitFailureResponse(result.value, RATE_LIMITS.userAction);
+    const response = rateLimitFailureResponse(result, RATE_LIMITS.userAction);
     expect(response.status).toBe(429);
   });
 });

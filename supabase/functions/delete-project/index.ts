@@ -2,9 +2,11 @@ import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { NO_SESSION_RUNTIME_OPTIONS, withEdgeRequest } from "../_shared/edgeHandler.ts"
 import { verifyProjectOwnership } from "../_shared/auth.ts"
-import { checkRateLimit, isRateLimitExceededFailure, rateLimitFailureResponse } from "../_shared/rateLimit.ts"
+import { enforceRateLimit } from "../_shared/rateLimit.ts"
 import { jsonResponse } from "../_shared/http.ts"
 import { ensureUserAuth } from "../_shared/requestGuards.ts"
+
+const DELETE_PROJECT_RATE_LIMIT = { maxRequests: 10, windowSeconds: 60 } as const;
 
 serve(async (req) => {
   return withEdgeRequest(req, {
@@ -49,34 +51,19 @@ serve(async (req) => {
     }
 
     // Rate limit: 10 requests per minute for this destructive operation
-    const deleteProjectLimit = { maxRequests: 10, windowSeconds: 60 }
-    const rateLimitResult = await checkRateLimit({
+    const rateLimitDenied = await enforceRateLimit({
       supabaseAdmin,
       functionName: 'delete-project',
-      identifier: userId,
-      config: deleteProjectLimit,
+      userId,
+      config: DELETE_PROJECT_RATE_LIMIT,
+      logger,
       logPrefix: '[DELETE-PROJECT]',
+      responses: {
+        serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
+      },
     })
-    if (!rateLimitResult.ok) {
-      if (isRateLimitExceededFailure(rateLimitResult)) {
-        logger.warn("Rate limit exceeded", { user_id: userId })
-        return rateLimitFailureResponse(rateLimitResult, deleteProjectLimit)
-      }
-
-      logger.error("Rate limit check failed", {
-        user_id: userId,
-        error_code: rateLimitResult.errorCode,
-        message: rateLimitResult.message,
-      })
-      return jsonResponse({ error: 'Rate limit service unavailable' }, 503)
-    }
-
-    if (rateLimitResult.policy === 'fail_open') {
-      logger.warn("Rate limit check degraded; allowing request", {
-        user_id: userId,
-        reason: rateLimitResult.value.degraded?.reason,
-        message: rateLimitResult.value.degraded?.message,
-      })
+    if (rateLimitDenied) {
+      return rateLimitDenied;
     }
 
     logger.info('Starting deletion', { projectId, user_id: userId })

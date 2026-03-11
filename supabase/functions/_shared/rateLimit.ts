@@ -1,6 +1,7 @@
 // deno-lint-ignore-file
 import { edgeErrorResponse } from './edgeRequest.ts';
 import {
+  operationFailure,
   operationSuccess,
   type OperationFailure,
   type OperationResult,
@@ -16,11 +17,7 @@ interface RateLimitConfig {
   windowSeconds: number;
 }
 
-/**
- * Rate limit check result
- */
-interface RateLimitResult {
-  allowed: boolean;
+interface RateLimitBase {
   remaining: number;
   resetAt: Date;
   retryAfter?: number; // seconds until reset
@@ -31,7 +28,21 @@ interface RateLimitResult {
   };
 }
 
-type DeniedRateLimitResult = Omit<RateLimitResult, 'allowed'> & { allowed: false };
+/**
+ * Rate limit check result when the request is still allowed.
+ */
+export interface AllowedRateLimitResult extends RateLimitBase {
+  allowed: true;
+}
+
+/**
+ * Rate limit check result when the request must be denied.
+ */
+export interface DeniedRateLimitResult extends RateLimitBase {
+  allowed: false;
+}
+
+export type RateLimitResult = AllowedRateLimitResult | DeniedRateLimitResult;
 
 /**
  * Default rate limit configs for different function types
@@ -90,7 +101,7 @@ function failOpenRateLimit(
   reason: RateLimitFailureReason,
   message: string,
   cause: unknown,
-): RateLimitResult {
+): AllowedRateLimitResult {
   return {
     allowed: true,
     remaining: config.maxRequests,
@@ -130,7 +141,7 @@ function parseRateLimitRpcPayload(data: unknown): RateLimitRpcPayload | null {
 
 export async function checkRateLimit(
   input: CheckRateLimitInput,
-): Promise<OperationResult<RateLimitResult>> {
+): Promise<OperationResult<AllowedRateLimitResult>> {
   const {
     supabaseAdmin,
     functionName,
@@ -182,13 +193,19 @@ export async function checkRateLimit(
     
     if (!result.allowed) {
       const retryAfter = Math.max(0, Math.ceil((resetAt.getTime() - now.getTime()) / 1000));
-      return operationSuccess({
-        allowed: false,
-        remaining: 0,
-        resetAt,
-        retryAfter,
-      }, {
+      return operationFailure(new Error('Rate limit exceeded'), {
         policy: 'fail_closed',
+        recoverable: true,
+        errorCode: 'rate_limit_exceeded',
+        message: 'Rate limit exceeded',
+        cause: {
+          decision: {
+            allowed: false,
+            remaining: 0,
+            resetAt,
+            retryAfter,
+          } satisfies DeniedRateLimitResult,
+        },
       });
     }
     
@@ -250,7 +267,7 @@ export function rateLimitResponse(result: RateLimitResult, config: RateLimitConf
   );
 }
 
-function fallbackDeniedResult(config: RateLimitConfig): RateLimitResult {
+function fallbackDeniedResult(config: RateLimitConfig): DeniedRateLimitResult {
   const now = new Date();
   return {
     allowed: false,
@@ -263,7 +280,7 @@ function fallbackDeniedResult(config: RateLimitConfig): RateLimitResult {
 function extractDeniedResultFromFailure(
   failure: OperationFailure,
   config: RateLimitConfig,
-): RateLimitResult {
+): DeniedRateLimitResult {
   const decision = (failure.cause as { decision?: unknown } | undefined)?.decision;
   if (decision && typeof decision === 'object' && !Array.isArray(decision)) {
     const record = decision as Partial<RateLimitResult>;
@@ -283,11 +300,8 @@ function extractDeniedResultFromFailure(
   return fallbackDeniedResult(config);
 }
 
-export function isRateLimitExceededFailure(result: OperationResult<RateLimitResult>): boolean {
-  if (result.ok) {
-    return result.value.allowed === false;
-  }
-  return result.errorCode === 'rate_limit_exceeded';
+export function isRateLimitExceededFailure(result: OperationResult<AllowedRateLimitResult>): boolean {
+  return !result.ok && result.errorCode === 'rate_limit_exceeded';
 }
 
 export function rateLimitFailureResponse(
@@ -345,13 +359,9 @@ export async function enforceRateLimit(
     logPrefix,
   });
 
-  // Rate limit exceeded — works for both ok (fail_closed) and !ok paths
   if (isRateLimitExceededFailure(result)) {
     logger.warn('Rate limit exceeded', { user_id: userId });
     await logger.flush();
-    if (result.ok) {
-      return rateLimitResponse(result.value, config);
-    }
     return rateLimitFailureResponse(result, config);
   }
 

@@ -23,6 +23,25 @@ function createLogger() {
   };
 }
 
+function createVariantLookupSupabase(projectId: string | null) {
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: projectId ? { id: 'variant-1', project_id: projectId } : null,
+    error: null,
+  });
+  const eq = vi.fn().mockReturnValue({ maybeSingle });
+  const select = vi.fn().mockReturnValue({ eq });
+
+  return {
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === 'generation_variants') {
+        return { select };
+      }
+      return { select: vi.fn() };
+    }),
+    storage: { from: vi.fn() },
+  };
+}
+
 function createContext(overrides?: {
   supabaseAdmin?: { from: ReturnType<typeof vi.fn>; storage: { from: ReturnType<typeof vi.fn> } };
   logger?: ReturnType<typeof createLogger>;
@@ -147,6 +166,35 @@ describe('trim-video edge entrypoint', () => {
         project_id: 'project-1',
         user_id: 'user-1',
       },
+    });
+  });
+
+  it('rejects variant updates when the target variant is outside the owned project', async () => {
+    mocks.withEdgeRequest.mockImplementation(
+      async (_req: Request, _opts: unknown, handler: (ctx: unknown) => Promise<Response>) => {
+        return handler(
+          createContext({
+            supabaseAdmin: createVariantLookupSupabase('project-2'),
+            body: {
+              video_url: 'https://cdn.example.com/video.mp4',
+              start_time: 0,
+              end_time: 2,
+              project_id: 'project-1',
+              variant_id: 'variant-1',
+              test_mode: true,
+            },
+          }),
+        );
+      },
+    );
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/trim-video', { method: 'POST' }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Forbidden: Variant does not belong to project',
+      success: false,
     });
   });
 

@@ -86,6 +86,121 @@ function createServiceRoleSupabase() {
   return { rpc, from };
 }
 
+function createUserSupabase() {
+  const queuedLimit = vi.fn().mockResolvedValue({
+    data: [
+      {
+        id: 'queued-eligible',
+        task_type: 'image_generation',
+        created_at: '2026-03-01T00:00:00.000Z',
+        project_id: 'project-1',
+        dependant_on: ['dep-complete'],
+      },
+      {
+        id: 'queued-blocked',
+        task_type: 'image_generation',
+        created_at: '2026-03-01T00:01:00.000Z',
+        project_id: 'project-1',
+        dependant_on: ['dep-pending'],
+      },
+      {
+        id: 'queued-orchestrator',
+        task_type: 'image_orchestrator',
+        created_at: '2026-03-01T00:02:00.000Z',
+        project_id: 'project-1',
+        dependant_on: null,
+      },
+    ],
+    error: null,
+  });
+  const queuedOrder = vi.fn().mockReturnValue({ limit: queuedLimit });
+  const queuedIn = vi.fn().mockReturnValue({ order: queuedOrder });
+  const queuedEq = vi.fn().mockReturnValue({ in: queuedIn });
+
+  const activeLimit = vi.fn().mockResolvedValue({
+    data: [
+      {
+        id: 'active-1',
+        task_type: 'image_generation',
+        worker_id: 'worker-1',
+        updated_at: '2026-03-01T00:03:00.000Z',
+        project_id: 'project-1',
+      },
+    ],
+    error: null,
+  });
+  const activeOrder = vi.fn().mockReturnValue({ limit: activeLimit });
+  const activeNot = vi.fn().mockReturnValue({ order: activeOrder });
+  const activeIn = vi.fn().mockReturnValue({ not: activeNot });
+  const activeEq = vi.fn().mockReturnValue({ in: activeIn });
+
+  const dependencyIn = vi.fn().mockResolvedValue({
+    data: [
+      { id: 'dep-complete', status: 'Complete' },
+      { id: 'dep-pending', status: 'Queued' },
+    ],
+    error: null,
+  });
+
+  const projectsEq = vi.fn().mockResolvedValue({
+    data: [{ id: 'project-1' }],
+    error: null,
+  });
+
+  const from = vi.fn().mockImplementation((table: string) => {
+    if (table === 'projects') {
+      return {
+        select: vi.fn().mockReturnValue({ eq: projectsEq }),
+      };
+    }
+
+    if (table === 'tasks') {
+      return {
+        select: vi.fn().mockImplementation((columns: string) => {
+          if (columns === 'id, status') {
+            return { in: dependencyIn };
+          }
+          if (columns.includes('dependant_on')) {
+            return { eq: queuedEq };
+          }
+          if (columns.includes('worker_id')) {
+            return { eq: activeEq };
+          }
+          throw new Error(`Unexpected tasks select: ${columns}`);
+        }),
+      };
+    }
+
+    return { select: vi.fn() };
+  });
+
+  const rpc = vi.fn().mockImplementation((fn: string, args: Record<string, unknown>) => {
+    if (fn === 'count_eligible_tasks_user_pat') {
+      if (args.p_include_active === false) {
+        return Promise.resolve({ data: 1, error: null });
+      }
+      return Promise.resolve({ data: 3, error: null });
+    }
+
+    if (fn === 'analyze_task_availability_user_pat') {
+      return Promise.resolve({
+        data: {
+          eligible_count: 2,
+          user_info: {
+            credits: 5,
+            settings: {},
+          },
+        },
+        error: null,
+      });
+    }
+
+    throw new Error(`Unexpected rpc: ${fn}`);
+  });
+
+  return { rpc, from };
+}
+
 async function loadHandler() {
   await import('./index.ts');
   return __getServeHandler();
@@ -147,5 +262,44 @@ describe('task-counts edge entrypoint', () => {
     expect(payload.queued_tasks).toEqual([]);
     expect(payload.active_tasks).toEqual([]);
     expect(payload.users).toEqual([]);
+  });
+
+  it('filters PAT queued_tasks to the same immediately-claimable contract as queued_only', async () => {
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin: createUserSupabase(),
+        logger: createLogger(),
+        auth: { isServiceRole: false, userId: 'user-1' },
+        body: {},
+      },
+    });
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/task-counts', { method: 'POST' }));
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+
+    expect(payload.user_id).toBe('user-1');
+    expect(payload.totals).toMatchObject({
+      queued_only: 1,
+      active_only: 2,
+      queued_plus_active: 3,
+      eligible_queued: 2,
+    });
+    expect(payload.queued_tasks).toEqual([
+      {
+        task_id: 'queued-eligible',
+        task_type: 'image_generation',
+        user_id: 'user-1',
+        created_at: '2026-03-01T00:00:00.000Z',
+      },
+    ]);
+    expect(payload.debug_summary).toEqual({
+      at_capacity: false,
+      capacity_used_pct: 40,
+      can_claim_more: true,
+    });
   });
 });

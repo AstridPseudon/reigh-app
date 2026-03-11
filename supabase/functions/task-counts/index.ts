@@ -20,6 +20,44 @@ function parseDebug(body: unknown): boolean {
   return (body as Record<string, unknown>).debug === true;
 }
 
+function isOrchestratorTask(taskType: string | null | undefined): boolean {
+  return taskType?.toLowerCase().includes('orchestrator') ?? false;
+}
+
+function hasPositiveCredits(value: unknown): boolean {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0;
+  }
+  return false;
+}
+
+function collectDependencyIds(tasks: Array<{ dependant_on?: string[] | null }>): string[] {
+  const dependencyIds = new Set<string>();
+  for (const task of tasks) {
+    if (!Array.isArray(task.dependant_on)) {
+      continue;
+    }
+    for (const dependencyId of task.dependant_on) {
+      dependencyIds.add(dependencyId);
+    }
+  }
+  return Array.from(dependencyIds);
+}
+
+function allDependenciesComplete(
+  dependantOn: string[] | null | undefined,
+  completedDependencyIds: Set<string>,
+): boolean {
+  if (!dependantOn || dependantOn.length === 0) {
+    return true;
+  }
+  return dependantOn.every((dependencyId) => completedDependencyIds.has(dependencyId));
+}
+
 /**
  * Edge function: task-counts
  *
@@ -222,23 +260,13 @@ serve(async (req) => {
           .limit(100)
       ]);
 
-      // Collect all dependency task IDs to check their completion status
-      const allDepIds = new Set<string>();
-      for (const task of queuedResult.data || []) {
-        if (Array.isArray(task.dependant_on)) {
-          for (const depId of task.dependant_on) {
-            allDepIds.add(depId);
-          }
-        }
-      }
-
-      // Fetch dependency task statuses if any
+      const allDepIds = collectDependencyIds(queuedResult.data || []);
       const completedDepIds = new Set<string>();
-      if (allDepIds.size > 0) {
+      if (allDepIds.length > 0) {
         const { data: depTasks } = await supabaseAdmin
           .from('tasks')
           .select('id, status')
-          .in('id', Array.from(allDepIds));
+          .in('id', allDepIds);
 
         if (depTasks) {
           for (const dep of depTasks) {
@@ -249,25 +277,19 @@ serve(async (req) => {
         }
       }
 
-      // Helper to check if all dependencies are complete
-      const allDepsComplete = (dependant_on: string[] | null): boolean => {
-        if (!dependant_on || dependant_on.length === 0) return true;
-        return dependant_on.every(depId => completedDepIds.has(depId));
-      };
-
       // Filter queued tasks to match RPC criteria (only claimable tasks)
       // Criteria: not orchestrator, credits > 0, allows_cloud, deps complete, user not at capacity
       const queued_tasks = (queuedResult.data || [])
         .filter(task => {
           // Exclude orchestrator tasks
-          if (task.task_type?.toLowerCase().includes('orchestrator')) return false;
+          if (isOrchestratorTask(task.task_type)) return false;
           // Exclude no-credits users
           if (task.projects.users.credits <= 0) return false;
           // Exclude users with cloud disabled
           const allowsCloud = task.projects.users.settings?.ui?.generationMethods?.inCloud ?? true;
           if (!allowsCloud) return false;
           // Exclude tasks with incomplete dependencies
-          if (!allDepsComplete(task.dependant_on)) return false;
+          if (!allDependenciesComplete(task.dependant_on, completedDepIds)) return false;
           // Exclude users at capacity (5+ in progress)
           const userInProgress = userInProgressMap.get(task.projects.user_id) ?? 0;
           if (userInProgress >= 5) return false;
@@ -380,6 +402,10 @@ serve(async (req) => {
       const analysis = analysisResult.data || {};
       const eligible_queued = analysis.eligible_count ?? 0;
       const user_info = analysis.user_info ?? {};
+      const userHasCapacity = active_only < 5;
+      const userHasCredits = hasPositiveCredits(
+        typeof user_info === 'object' && user_info ? (user_info as Record<string, unknown>).credits : undefined,
+      );
 
       const projectIds = projectsResult.data?.map(p => p.id) || [];
 
@@ -391,7 +417,7 @@ serve(async (req) => {
         const [queuedResult, activeResult] = await Promise.all([
           supabaseAdmin
             .from('tasks')
-            .select('id, task_type, created_at, project_id')
+            .select('id, task_type, created_at, project_id, dependant_on')
             .eq('status', 'Queued')
             .in('project_id', projectIds)
             .order('created_at', { ascending: true })
@@ -406,9 +432,29 @@ serve(async (req) => {
             .limit(50)
         ]);
 
+        const dependencyIds = collectDependencyIds(queuedResult.data || []);
+        const completedDepIds = new Set<string>();
+        if (dependencyIds.length > 0) {
+          const { data: dependencyTasks } = await supabaseAdmin
+            .from('tasks')
+            .select('id, status')
+            .in('id', dependencyIds);
+
+          if (dependencyTasks) {
+            for (const dependencyTask of dependencyTasks) {
+              if (dependencyTask.status === 'Complete') {
+                completedDepIds.add(dependencyTask.id);
+              }
+            }
+          }
+        }
+
         // Filter and format queued tasks
         queued_tasks = (queuedResult.data || [])
-          .filter(task => !task.task_type?.toLowerCase().includes('orchestrator'))
+          .filter(task => !isOrchestratorTask(task.task_type))
+          .filter(() => userHasCredits)
+          .filter(() => userHasCapacity)
+          .filter(task => allDependenciesComplete(task.dependant_on, completedDepIds))
           .map(task => ({
             task_id: task.id,
             task_type: task.task_type,
@@ -418,7 +464,7 @@ serve(async (req) => {
 
         // Filter and format active tasks
         active_tasks = (activeResult.data || [])
-          .filter(task => !task.task_type?.toLowerCase().includes('orchestrator'))
+          .filter(task => !isOrchestratorTask(task.task_type))
           .map(task => ({
             task_id: task.id,
             task_type: task.task_type,
@@ -452,7 +498,7 @@ serve(async (req) => {
         debug_summary: {
           at_capacity: active_only >= 5,
           capacity_used_pct: Math.round((active_only / 5) * 100),
-          can_claim_more: active_only < 5 && eligible_queued > 0
+          can_claim_more: queued_only > 0
         },
         elapsed_ms: debug ? elapsed : undefined
       }), {
