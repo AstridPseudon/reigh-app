@@ -3,7 +3,7 @@
  */
 
 import { generateUUID } from '@/shared/lib/taskCreation';
-import type { VideoClip } from '../types';
+import type { VideoClip } from '../clipTypes';
 
 export function createEmptyClip(): VideoClip {
   return { id: generateUUID(), url: '', loaded: false, playing: false };

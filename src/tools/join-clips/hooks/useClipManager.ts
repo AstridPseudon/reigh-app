@@ -5,7 +5,7 @@ import { toOperationResultError } from '@/shared/lib/operationResult';
 import { DragEndEvent, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { subscribeJoinClipsIntents } from '@/shared/lib/joinClips/intentStore';
-import type { VideoClip, TransitionPrompt } from '../types';
+import type { VideoClip, TransitionPrompt } from '../clipTypes';
 import type { useJoinClipsSettings } from './useJoinClipsSettings';
 import type { useCreateGeneration } from '@/domains/generation/hooks/useGenerationMutations';
 import {

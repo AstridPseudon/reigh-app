@@ -13,7 +13,7 @@ import {
   updateClipInArray,
   clearClipVideo,
 } from '../clipManagerService';
-import type { VideoClip, TransitionPrompt } from '../../types';
+import type { VideoClip, TransitionPrompt } from '../../clipTypes';
 
 // Mock dependencies that aren't used by the pure functions we're testing
 vi.mock('@/shared/lib/videoUploader', () => ({

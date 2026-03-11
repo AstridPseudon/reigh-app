@@ -30,7 +30,7 @@ interface UseFormContextBuilderProps {
     'currentBeforePromptText' | 'currentAfterPromptText' | 'lastKnownPromptCount' |
     'setPrompts' | 'setMasterPromptText' | 'setEffectivePromptMode' |
     'setCurrentBeforePromptText' | 'setCurrentAfterPromptText' |
-    'handleAddPrompt' | 'handleUpdatePrompt' | 'handleRemovePrompt' | 'handleDeleteAllPrompts'
+    'handleAddPrompt' | 'handleUpdatePrompt' | 'handleRemovePrompt' | 'handleResetPromptsToSingleBlank'
   >;
   referenceManagement: Pick<
     ReturnType<typeof import('./useReferenceManagement').useReferenceManagement>,
@@ -95,9 +95,9 @@ export function useFormContextBuilder({
     handleAddPrompt: pm.handleAddPrompt,
     handleUpdatePrompt: pm.handleUpdatePrompt,
     handleRemovePrompt: pm.handleRemovePrompt,
-    handleDeleteAllPrompts: pm.handleDeleteAllPrompts,
+    handleResetPromptsToSingleBlank: pm.handleResetPromptsToSingleBlank,
     markAsInteracted,
-  }), [pm.setPrompts, pm.setMasterPromptText, pm.setEffectivePromptMode, pm.setCurrentBeforePromptText, pm.setCurrentAfterPromptText, pm.handleAddPrompt, pm.handleUpdatePrompt, pm.handleRemovePrompt, pm.handleDeleteAllPrompts, markAsInteracted]);
+  }), [pm.setPrompts, pm.setMasterPromptText, pm.setEffectivePromptMode, pm.setCurrentBeforePromptText, pm.setCurrentAfterPromptText, pm.handleAddPrompt, pm.handleUpdatePrompt, pm.handleRemovePrompt, pm.handleResetPromptsToSingleBlank, markAsInteracted]);
 
   const referenceState = useMemo<FormReferenceState>(() => ({
     references: refs.hydratedReferences,

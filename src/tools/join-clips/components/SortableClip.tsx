@@ -8,7 +8,7 @@ import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { VideoClip, TransitionPrompt } from '../types';
+import type { VideoClip, TransitionPrompt } from '../clipTypes';
 
 // Video container skeleton loader
 const VideoContainerSkeleton: React.FC = () => (

@@ -1,4 +1,4 @@
-import type { VideoClip } from '../../types';
+import type { VideoClip } from '../../clipTypes';
 
 /** Update a single clip in the array by ID. */
 export function updateClipInArray(

@@ -5,7 +5,7 @@ import {
   TaskValidationError,
   safeParseJson,
 } from "../../taskCreation";
-import type { TravelBetweenImagesTaskInput } from './types';
+import type { TravelBetweenImagesTaskInput } from './taskTypes';
 import {
   DEFAULT_STRUCTURE_VIDEO,
   DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES,

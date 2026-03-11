@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyPendingClipActions, tryConsumePendingJoinClips } from '../clipPendingActions';
 import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClips/pendingQueue';
 import { _clearJoinClipsIntentsForTesting, enqueueJoinClipsIntent } from '@/shared/lib/joinClips/intentStore';
-import type { VideoClip } from '../../types';
+import type { VideoClip } from '../../clipTypes';
 
 const normalizeAndPresentErrorMock = vi.hoisted(() => vi.fn());
 const generateUUIDMock = vi.hoisted(() => vi.fn());

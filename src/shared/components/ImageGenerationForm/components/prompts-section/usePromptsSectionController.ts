@@ -11,7 +11,7 @@ interface PromptsSectionController {
   actionablePromptsCount: number;
   afterEachPromptText: string;
   beforeEachPromptText: string;
-  handleDeleteAllPrompts: () => void;
+  handleResetPromptsToSingleBlank: () => void;
   isGenerating: boolean;
   isMobile: boolean;
   masterPromptText: string;
@@ -44,7 +44,7 @@ export const usePromptsSectionController = (): PromptsSectionController => {
     setMasterPromptText,
     setCurrentBeforePromptText,
     setCurrentAfterPromptText,
-    handleDeleteAllPrompts,
+    handleResetPromptsToSingleBlank,
     markAsInteracted,
   } = useFormPromptsContext();
 
@@ -107,7 +107,7 @@ export const usePromptsSectionController = (): PromptsSectionController => {
     actionablePromptsCount,
     afterEachPromptText,
     beforeEachPromptText,
-    handleDeleteAllPrompts,
+    handleResetPromptsToSingleBlank,
     isGenerating,
     isMobile,
     masterPromptText,

@@ -93,7 +93,7 @@ vi.mock('@/shared/lib/joinClips/defaults', () => ({
 }));
 
 import { useJoinClipsGenerate } from '../useJoinClipsGenerate';
-import type { VideoClip, TransitionPrompt } from '../../types';
+import type { VideoClip, TransitionPrompt } from '../../clipTypes';
 
 function createWrapper() {
   const queryClient = new QueryClient({

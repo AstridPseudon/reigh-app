@@ -1,4 +1,4 @@
-import type { StructureVideoConfig } from './types';
+import type { StructureVideoConfig } from './taskTypes';
 
 /**
  * Editor-facing structure-video model with local metadata and UI-only control

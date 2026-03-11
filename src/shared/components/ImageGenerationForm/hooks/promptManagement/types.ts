@@ -37,7 +37,7 @@ export interface PromptHandlersContract {
   handleAddPrompt: () => void;
   handleUpdatePrompt: (id: string, field: 'fullPrompt' | 'shortPrompt', value: string) => void;
   handleRemovePrompt: (id: string) => void;
-  handleDeleteAllPrompts: () => void;
+  handleResetPromptsToSingleBlank: () => void;
 }
 
 export interface PromptManagementOutput {
@@ -57,7 +57,7 @@ export interface PromptManagementOutput {
   handleAddPrompt: PromptHandlersContract['handleAddPrompt'];
   handleUpdatePrompt: PromptHandlersContract['handleUpdatePrompt'];
   handleRemovePrompt: PromptHandlersContract['handleRemovePrompt'];
-  handleDeleteAllPrompts: PromptHandlersContract['handleDeleteAllPrompts'];
+  handleResetPromptsToSingleBlank: PromptHandlersContract['handleResetPromptsToSingleBlank'];
   handleSavePromptsFromModal: (updatedPrompts: PromptEntry[]) => void;
 }
 

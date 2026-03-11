@@ -3,7 +3,7 @@ import type { PathLoraConfig } from '@/domains/lora/types/lora';
 import type {
   StructureGuidanceConfig,
   StructureVideoConfig,
-} from './travelBetweenImages/types';
+} from './travelBetweenImages/taskTypes';
 import type { UnknownRecord } from './taskParamParsers';
 
 export interface IndividualTravelSegmentParams {

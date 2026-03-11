@@ -1,20 +1,10 @@
-/**
- * Backward-compatible barrel for task-creation utilities.
- *
- * The implementation has been decomposed into focused modules under
- * `shared/lib/taskCreation/` to improve cohesion while preserving the
- * existing import path (`@/shared/lib/taskCreation`).
- */
-
 export type {
   BaseTaskParams,
   HiresFixApiParams,
-  
   TaskCreationResult,
 } from './taskCreation/types';
 
 export {
-  
   TaskValidationError,
 } from './taskCreation/types';
 
@@ -50,9 +40,7 @@ export {
 } from './taskCreation/batchResults';
 
 export {
-  
   resolveSeed32Bit,
-  
   validateLoraConfigs,
   validateNonEmptyString,
   validateNumericRange,

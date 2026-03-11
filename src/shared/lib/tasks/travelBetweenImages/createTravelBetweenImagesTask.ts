@@ -10,7 +10,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import type {
   TravelBetweenImagesTaskInput,
   TravelBetweenImagesTaskWithParentGenerationResult,
-} from './types';
+} from './taskTypes';
 import { validateTravelBetweenImagesParams, buildTravelBetweenImagesPayload } from './payloadBuilder';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { ensureShotParentGenerationId } from '../shotParentGeneration';

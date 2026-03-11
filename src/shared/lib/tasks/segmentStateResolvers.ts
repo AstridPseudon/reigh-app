@@ -17,7 +17,7 @@ import type {
   IndividualTravelSegmentParams,
   SegmentBuildState,
 } from './individualTravelSegmentTypes';
-import type { StructureVideoConfig } from './travelBetweenImages/types';
+import type { StructureVideoConfig } from './travelBetweenImages/taskTypes';
 
 export const MAX_SEGMENT_FRAMES = 81;
 const DEFAULT_I2V_MODEL = 'wan_2_2_i2v_lightning_baseline_2_2_2';

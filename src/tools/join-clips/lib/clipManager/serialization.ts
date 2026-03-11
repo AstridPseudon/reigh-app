@@ -1,4 +1,4 @@
-import type { TransitionPrompt, VideoClip } from '../../types';
+import type { TransitionPrompt, VideoClip } from '../../clipTypes';
 
 export function buildClipsToSave(
   clips: VideoClip[],

@@ -44,7 +44,7 @@ describe('usePromptsSectionController', () => {
       setMasterPromptText: vi.fn(),
       setCurrentBeforePromptText: vi.fn(),
       setCurrentAfterPromptText: vi.fn(),
-      handleDeleteAllPrompts: vi.fn(),
+      handleResetPromptsToSingleBlank: vi.fn(),
       markAsInteracted: vi.fn(),
     });
   });
@@ -91,7 +91,7 @@ describe('usePromptsSectionController', () => {
       setMasterPromptText: vi.fn(),
       setCurrentBeforePromptText: vi.fn(),
       setCurrentAfterPromptText: vi.fn(),
-      handleDeleteAllPrompts: vi.fn(),
+      handleResetPromptsToSingleBlank: vi.fn(),
       markAsInteracted: vi.fn(),
     };
 

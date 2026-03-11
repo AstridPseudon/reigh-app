@@ -1,7 +1,7 @@
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import { getDeprecationPolicy } from '@/shared/lib/governance/deprecationPolicy';
 import { signalPastRemovalTargetUsage } from '@/shared/lib/governance/deprecationEnforcement';
-import type { StructureVideoConfig } from './types';
+import type { StructureVideoConfig } from './taskTypes';
 
 const legacyStructurePolicy = getDeprecationPolicy('travel_structure_legacy');
 

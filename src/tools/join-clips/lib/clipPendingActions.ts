@@ -13,7 +13,7 @@ import {
   operationSuccess,
   type OperationResult,
 } from '@/shared/lib/operationResult';
-import type { VideoClip } from '../types';
+import type { VideoClip } from '../clipTypes';
 
 const PENDING_CLIPS_TTL_MS = 5 * 60 * 1000;
 

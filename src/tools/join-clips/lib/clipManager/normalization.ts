@@ -1,4 +1,4 @@
-import type { VideoClip } from '../../types';
+import type { VideoClip } from '../../clipTypes';
 import { createEmptyClip } from '../clipInitService';
 
 interface ClipNormalizationResult {

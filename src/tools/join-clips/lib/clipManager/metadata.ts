@@ -5,7 +5,7 @@ import {
   operationSuccess,
   type OperationResult,
 } from '@/shared/lib/operationResult';
-import type { VideoClip } from '../../types';
+import type { VideoClip } from '../../clipTypes';
 
 export function getClipsNeedingDuration(clips: VideoClip[]): VideoClip[] {
   return clips.filter(

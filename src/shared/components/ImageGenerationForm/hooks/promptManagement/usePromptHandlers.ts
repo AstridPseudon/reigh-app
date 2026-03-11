@@ -64,7 +64,7 @@ export function usePromptHandlers(input: PromptHandlersInput) {
     [markAsInteracted, prompts.length, setPrompts]
   );
 
-  const handleDeleteAllPrompts = useCallback(() => {
+  const handleResetPromptsToSingleBlank = useCallback(() => {
     markAsInteracted();
     setPrompts([{ id: generatePromptId(), fullPrompt: '', shortPrompt: 'Prompt 1' }]);
   }, [markAsInteracted, generatePromptId, setPrompts]);
@@ -98,7 +98,7 @@ export function usePromptHandlers(input: PromptHandlersInput) {
     handleAddPrompt,
     handleUpdatePrompt,
     handleRemovePrompt,
-    handleDeleteAllPrompts,
+    handleResetPromptsToSingleBlank,
     handleSavePromptsFromModal,
   };
 }

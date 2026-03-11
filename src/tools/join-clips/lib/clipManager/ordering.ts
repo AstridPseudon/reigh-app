@@ -1,5 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import type { TransitionPrompt, VideoClip } from '../../types';
+import type { TransitionPrompt, VideoClip } from '../../clipTypes';
 
 interface ReorderResult {
   clips: VideoClip[];

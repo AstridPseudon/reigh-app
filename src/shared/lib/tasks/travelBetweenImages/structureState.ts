@@ -1,5 +1,5 @@
 import { normalizeStructureGuidance } from '@/shared/lib/tasks/structureGuidance';
-import type { StructureGuidanceConfig } from './types';
+import type { StructureGuidanceConfig } from './taskTypes';
 import type {
   StructureVideoConfigWithLegacyGuidance,
   StructureVideoConfigWithMetadata,

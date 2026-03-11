@@ -1,7 +1,3 @@
-/**
- * usePromptManagement - Manages prompts, master prompt, and prompt mode
- */
-
 import { useMemo, useState } from 'react';
 import { usePromptHandlers } from './promptManagement/usePromptHandlers';
 import { usePromptIdDedupEffect } from './promptManagement/usePromptIdDedupEffect';
@@ -13,8 +9,6 @@ import type {
   PromptManagementOutput,
 } from './promptManagement/types';
 import { getStoredPromptCount } from './promptManagement/storedPromptCount';
-
-;
 
 export function usePromptManagement(
   input: PromptManagementInput
@@ -100,7 +94,7 @@ export function usePromptManagement(
     handleAddPrompt,
     handleUpdatePrompt,
     handleRemovePrompt,
-    handleDeleteAllPrompts,
+    handleResetPromptsToSingleBlank,
     handleSavePromptsFromModal,
   } = usePromptHandlers({
     prompts: routing.prompts,
@@ -131,7 +125,7 @@ export function usePromptManagement(
     handleAddPrompt,
     handleUpdatePrompt,
     handleRemovePrompt,
-    handleDeleteAllPrompts,
+    handleResetPromptsToSingleBlank,
     handleSavePromptsFromModal,
   };
 }

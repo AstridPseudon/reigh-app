@@ -1,4 +1,4 @@
-import type { StructureGuidanceConfig } from './travelBetweenImages/types';
+import type { StructureGuidanceConfig } from './travelBetweenImages/taskTypes';
 import { asNumber, asRecord, asString, type UnknownRecord } from './taskParamParsers';
 
 const STRUCTURE_PREPROCESSING_MAP: Record<string, string> = {
