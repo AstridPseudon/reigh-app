@@ -60,7 +60,7 @@ describe('AdvancedSettingsLoraModal', () => {
     expect(passedProps.onAddLora).toBe(onAddLora);
     expect(passedProps.onRemoveLora).toBe(onRemoveLora);
     expect(passedProps.onUpdateLoraStrength).toBe(onUpdateLoraStrength);
-    expect(passedProps.lora_type).toBe('Wan I2V');
+    expect(passedProps.loraType).toBe('Wan I2V');
 
     expect(passedProps.selectedLoras).toEqual([
       expect.objectContaining({

@@ -59,7 +59,7 @@ export const LoraManager: React.FC<LoraManagerProps> = ({
         onRemoveLora={loraManager.handleRemoveLora}
         onUpdateLoraStrength={loraManager.handleLoraStrengthChange}
         selectedLoras={mapSelectedLorasForModal(loraManager.selectedLoras, availableLoras)}
-        lora_type="Wan 2.1 14b"
+        loraType="Wan 2.1 14b"
       />
     </div>
   );

@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
+import {
+  fetchAuthenticatedUserId,
+  invokeHuggingFaceUploadFunction,
+  type HuggingFaceUploadResponse,
+  uploadTemporaryFile,
+} from '@/integrations/supabase/repositories/huggingFaceUploadRepository';
 import {
   operationFailure,
   operationSuccess,
@@ -59,18 +64,7 @@ interface SampleVideoMeta {
   originalFileName: string;
 }
 
-interface HuggingFaceUploadResponse {
-  success: boolean;
-  error?: string;
-  repoId?: string;
-  repoUrl?: string;
-  loraUrl?: string;
-  highNoiseUrl?: string;
-  lowNoiseUrl?: string;
-  videoUrls?: string[];
-}
-
-function uploadStages(): UploadProgress['stage'][] {
+function activeUploadStages(): UploadProgress['stage'][] {
   return [
     'uploading-lora',
     'uploading-high-noise',
@@ -180,19 +174,7 @@ async function invokeHuggingFaceUpload(input: {
     formData.append('repoName', input.options.repoName);
   }
 
-  const { data, error } = await supabase().functions.invoke('huggingface-upload', {
-    body: formData,
-  });
-
-  if (error) {
-    throw new Error(error.message || 'Edge function error');
-  }
-
-  if (!data?.success) {
-    throw new Error(data?.error || 'Upload failed');
-  }
-
-  return data;
+  return invokeHuggingFaceUploadFunction(formData);
 }
 
 function mapUploadSuccess(data: HuggingFaceUploadResponse): HuggingFaceUploadSuccess {
@@ -219,20 +201,7 @@ export function useHuggingFaceUpload() {
    * Upload a file to the temporary storage bucket
    */
   const uploadToTempStorage = async (file: File, userId: string): Promise<string> => {
-    const fileName = `${crypto.randomUUID()}-${file.name}`;
-    const filePath = `${userId}/${fileName}`;
-    const { error } = await supabase().storage
-      .from('temporary')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      throw new Error(`Failed to upload file: ${error.message}`);
-    }
-
-    return filePath;
+    return uploadTemporaryFile(file, userId);
   };
 
   /**
@@ -249,8 +218,8 @@ export function useHuggingFaceUpload() {
     } = {}
   ): Promise<UploadResult> => {
     try {
-      const { data: { user } } = await supabase().auth.getUser();
-      if (!user) {
+      const userId = await fetchAuthenticatedUserId();
+      if (!userId) {
         return operationFailure(new Error('Not authenticated'), {
           errorCode: 'huggingface_upload_not_authenticated',
           recoverable: false,
@@ -260,7 +229,7 @@ export function useHuggingFaceUpload() {
 
       const storagePaths = await uploadLoraFilesToTempStorage({
         loraFiles,
-        userId: user.id,
+        userId,
         setUploadProgress,
         uploadToTempStorage,
       });
@@ -275,7 +244,7 @@ export function useHuggingFaceUpload() {
 
       const sampleVideoMeta = await uploadSampleVideosToTempStorage({
         sampleVideos,
-        userId: user.id,
+        userId,
         setUploadProgress,
         uploadToTempStorage,
       });
@@ -321,6 +290,6 @@ export function useHuggingFaceUpload() {
     uploadToHuggingFace,
     uploadProgress,
     resetProgress,
-    isUploading: uploadStages().includes(uploadProgress.stage),
+    isUploading: activeUploadStages().includes(uploadProgress.stage),
   };
 }

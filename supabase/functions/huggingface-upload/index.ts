@@ -86,13 +86,21 @@ type ResponseResult<T> =
   | { ok: true; value: T }
   | { ok: false; response: Response };
 
-const huggingFaceHubPromise: Promise<HuggingFaceHubClient> = import(
-  "https://esm.sh/@huggingface/hub@0.18.2"
-).then((module) => ({
-  whoAmI: module.whoAmI as HuggingFaceHubClient["whoAmI"],
-  createRepo: module.createRepo as HuggingFaceHubClient["createRepo"],
-  uploadFile: module.uploadFile as HuggingFaceHubClient["uploadFile"],
-}));
+let huggingFaceHubClientPromise: Promise<HuggingFaceHubClient> | null = null;
+
+function loadHuggingFaceHubClient(): Promise<HuggingFaceHubClient> {
+  if (!huggingFaceHubClientPromise) {
+    huggingFaceHubClientPromise = import(
+      "https://esm.sh/@huggingface/hub@0.18.2"
+    ).then((module) => ({
+      whoAmI: module.whoAmI as HuggingFaceHubClient["whoAmI"],
+      createRepo: module.createRepo as HuggingFaceHubClient["createRepo"],
+      uploadFile: module.uploadFile as HuggingFaceHubClient["uploadFile"],
+    }));
+  }
+
+  return huggingFaceHubClientPromise;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -669,7 +677,7 @@ async function handleHuggingFaceUpload(req: Request): Promise<Response> {
   const { supabaseAdmin, logger, auth } = bootstrap.value;
 
   try {
-    const huggingFaceHub = await huggingFaceHubPromise;
+    const huggingFaceHub = await loadHuggingFaceHubClient();
 
     // 1. Authenticate user
     const authResult = ensureUserAuth(auth, logger);

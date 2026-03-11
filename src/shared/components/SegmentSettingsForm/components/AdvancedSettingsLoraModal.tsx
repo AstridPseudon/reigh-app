@@ -47,7 +47,7 @@ export function AdvancedSettingsLoraModal({
       onRemoveLora={onRemoveLora}
       onUpdateLoraStrength={onUpdateLoraStrength}
       selectedLoras={selectedLoras}
-      lora_type="Wan I2V"
+      loraType="Wan I2V"
     />
   );
 }

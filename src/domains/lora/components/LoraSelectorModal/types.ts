@@ -20,7 +20,7 @@ export interface LoraSelectorModalProps {
   /** Callback to update a LoRA's strength */
   onUpdateLoraStrength: (loraId: string, strength: number) => void;
   selectedLoras: (LoraModel & { strength: number })[];
-  lora_type: string;
+  loraType: string;
 }
 
 export interface CommunityLorasTabProps {

@@ -187,7 +187,7 @@ export const Img2ImgControls: React.FC<Img2ImgControlsProps> = ({
             onRemoveLora={img2imgLoraManager.handleRemoveLora}
             onUpdateLoraStrength={img2imgLoraManager.handleLoraStrengthChange}
             selectedLoras={mapSelectedLorasForModal(img2imgLoraManager.selectedLoras, availableLoras)}
-            lora_type="z-image"
+            loraType="z-image"
           />
         </Suspense>
       )}

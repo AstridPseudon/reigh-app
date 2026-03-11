@@ -470,7 +470,7 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             onRemoveLora={editLoraManager.handleRemoveLora}
             onUpdateLoraStrength={editLoraManager.handleLoraStrengthChange}
             selectedLoras={mapSelectedLorasForModal(editLoraManager.selectedLoras, availableLoras)}
-            lora_type="Qwen Edit"
+            loraType="Qwen Edit"
           />
         </Suspense>
       )}

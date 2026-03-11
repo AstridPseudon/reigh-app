@@ -135,7 +135,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
         onRemoveLora={handleRemoveLora}
         onUpdateLoraStrength={handleLoraStrengthChange}
         selectedLoras={selectedLorasForModal}
-        lora_type="Wan 2.1 14b"
+        loraType="Wan 2.1 14b"
       />
     </>
   );

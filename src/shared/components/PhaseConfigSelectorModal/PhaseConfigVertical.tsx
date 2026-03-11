@@ -110,7 +110,7 @@ export const PhaseConfigVertical: React.FC<PhaseConfigVerticalProps> = ({
         }}
         onRemoveLora={() => {}}
         onUpdateLoraStrength={() => {}}
-        lora_type="Wan 2.1 14b"
+        loraType="Wan 2.1 14b"
       />
 
       <PhaseConfigSelectorModal

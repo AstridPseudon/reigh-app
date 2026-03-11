@@ -176,7 +176,7 @@ export const ImageGenerationForm: React.FC<ImageGenerationFormProps> = ({
             onRemoveLora={form.handleRemoveLora}
             onUpdateLoraStrength={form.handleLoraStrengthChange}
             selectedLoras={form.mappedSelectedLoras}
-            lora_type={form.loraType}
+            loraType={form.loraType}
           />
         </Suspense>
       </ChunkLoadErrorBoundary>

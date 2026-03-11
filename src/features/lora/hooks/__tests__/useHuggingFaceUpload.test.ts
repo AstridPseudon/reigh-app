@@ -1,26 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const { mockUpload, mockGetUser, mockInvoke } = vi.hoisted(() => ({
-  mockUpload: vi.fn(),
-  mockGetUser: vi.fn(),
-  mockInvoke: vi.fn(),
+const { mockUploadTemporaryFile, mockFetchAuthenticatedUserId, mockInvokeHuggingFaceUploadFunction } = vi.hoisted(() => ({
+  mockUploadTemporaryFile: vi.fn(),
+  mockFetchAuthenticatedUserId: vi.fn(),
+  mockInvokeHuggingFaceUploadFunction: vi.fn(),
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  getSupabaseClient: () => ({
-    storage: {
-      from: vi.fn(() => ({
-        upload: mockUpload,
-      })),
-    },
-    auth: {
-      getUser: mockGetUser,
-    },
-    functions: {
-      invoke: mockInvoke,
-    },
-  }),
+vi.mock('@/integrations/supabase/repositories/huggingFaceUploadRepository', () => ({
+  fetchAuthenticatedUserId: (...args: unknown[]) => mockFetchAuthenticatedUserId(...args),
+  uploadTemporaryFile: (...args: unknown[]) => mockUploadTemporaryFile(...args),
+  invokeHuggingFaceUploadFunction: (...args: unknown[]) => mockInvokeHuggingFaceUploadFunction(...args),
 }));
 
 vi.mock('uuid', () => ({
@@ -32,16 +22,15 @@ import { useHuggingFaceUpload } from '@/domains/lora/hooks/useHuggingFaceUpload'
 describe('useHuggingFaceUpload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    mockUpload.mockResolvedValue({ error: null });
-    mockInvoke.mockResolvedValue({
-      data: {
-        success: true,
-        repoId: 'repo-1',
-        repoUrl: 'https://hf.co/repo',
-        loraUrl: 'https://hf.co/lora.safetensors',
-      },
-      error: null,
+    mockFetchAuthenticatedUserId.mockResolvedValue('user-1');
+    mockUploadTemporaryFile.mockImplementation(async (_file: File, userId: string) => {
+      return `${userId}/temp-file`;
+    });
+    mockInvokeHuggingFaceUploadFunction.mockResolvedValue({
+      success: true,
+      repoId: 'repo-1',
+      repoUrl: 'https://hf.co/repo',
+      loraUrl: 'https://hf.co/lora.safetensors',
     });
   });
 
@@ -56,7 +45,7 @@ describe('useHuggingFaceUpload', () => {
   });
 
   it('returns error when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+    mockFetchAuthenticatedUserId.mockResolvedValue(null);
 
     const { result } = renderHook(() => useHuggingFaceUpload());
 
@@ -110,10 +99,7 @@ describe('useHuggingFaceUpload', () => {
   });
 
   it('handles edge function error', async () => {
-    mockInvoke.mockResolvedValue({
-      data: null,
-      error: { message: 'Edge function failed' },
-    });
+    mockInvokeHuggingFaceUploadFunction.mockRejectedValue(new Error('Edge function failed'));
 
     const { result } = renderHook(() => useHuggingFaceUpload());
 
@@ -130,7 +116,7 @@ describe('useHuggingFaceUpload', () => {
   });
 
   it('handles upload failure', async () => {
-    mockUpload.mockResolvedValue({ error: { message: 'Upload failed' } });
+    mockUploadTemporaryFile.mockRejectedValue(new Error('Upload failed'));
 
     const { result } = renderHook(() => useHuggingFaceUpload());
 

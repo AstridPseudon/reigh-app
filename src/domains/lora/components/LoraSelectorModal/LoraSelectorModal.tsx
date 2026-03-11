@@ -21,7 +21,7 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
   onRemoveLora,
   onUpdateLoraStrength,
   selectedLoras,
-  lora_type,
+  loraType,
 }) => {
   const myLorasResource = useListResources('lora');
   const createResource = useCreateResource();
@@ -52,7 +52,7 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
     totalPages,
     onPageChange,
     handlePageChange,
-  } = useLoraFilters(lora_type);
+  } = useLoraFilters(loraType);
 
   // Modal styling and scroll fade
   const modal = useExtraLargeModal('loraSelector');

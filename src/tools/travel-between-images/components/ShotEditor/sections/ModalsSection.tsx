@@ -48,7 +48,7 @@ export const ModalsSection: React.FC<ModalsSectionProps> = ({
         onRemoveLora={onRemoveLora}
         onUpdateLoraStrength={onUpdateLoraStrength}
         selectedLoras={mapSelectedLorasForModal(selectedLoras, availableLoras)}
-        lora_type="Wan 2.1 14b"
+        loraType="Wan 2.1 14b"
       />
 
       <SettingsModal

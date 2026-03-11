@@ -394,7 +394,7 @@ export const PhaseConfigSection: React.FC<PhaseConfigSectionProps> = ({
         }}
         onRemoveLora={() => {}}
         onUpdateLoraStrength={() => {}}
-        lora_type="Wan 2.1 14b"
+        loraType="Wan 2.1 14b"
       />
     </div>
   );
