@@ -1,6 +1,6 @@
 import { Globe, Loader2 } from 'lucide-react';
 import { DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
-import { PrivacyToggle } from '@/shared/components/ui/privacy-toggle';
+import { PrivacyToggle } from '@/shared/components/ui/composed/privacy-toggle';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { getStepColors } from '@/shared/components/OnboardingModal/lib/onboardingColors';
 import { OnboardingStepWithContinue } from '@/shared/components/OnboardingModal/components/OnboardingStepWithContinue';

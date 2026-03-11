@@ -5,7 +5,7 @@ import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/domains/generation/types';
 import { extractSourceGenerationId } from '../utils/task-utils';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
-import { expandShotData } from '@/shared/lib/shotData';
+import { expandShotData } from '@/shared/lib/shots/shotData';
 import { findGenerationByVariantLocation } from '../utils/findGenerationByVariantLocation';
 
 interface UseImageGenerationOptions {

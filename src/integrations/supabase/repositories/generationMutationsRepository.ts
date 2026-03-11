@@ -6,7 +6,7 @@ import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
 import {
   resolveGenerationProjectScope,
   resolveVariantProjectScope,
-} from '@/shared/lib/generationTaskRepository';
+} from '@/shared/lib/tasks/generationTaskRepository';
 
 interface ProjectScopedGenerationInput {
   id: string;

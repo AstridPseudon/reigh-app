@@ -9,7 +9,7 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { useClickRipple } from '@/shared/hooks/interaction/useClickRipple';
 import { isVideoGeneration, isPositioned } from '@/shared/lib/typeGuards';
 import { VideoGenerationModal } from '../VideoGenerationModal';
-import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
+import { ImageGenerationModal } from '@/shared/components/modals/ImageGenerationModal';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';

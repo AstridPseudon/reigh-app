@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useSearchParams } from 'react-router-dom';
 
 import { ImageGenerationForm } from "@/shared/components/ImageGenerationForm";
@@ -9,7 +9,7 @@ import { useProject } from "@/shared/contexts/ProjectContext";
 import { usePublicLoras, usePublicStyleReferences, useMyStyleReferences } from '@/shared/hooks/useResources';
 import { PageFadeIn } from '@/shared/components/transitions/PageFadeIn';
 import { useIsMobile, useIsTablet } from "@/shared/hooks/mobile";
-import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
+import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { ChevronDown, ChevronLeft, Sparkles, Settings2 } from 'lucide-react';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';

@@ -13,7 +13,7 @@ import { useToggleGenerationStar } from '@/domains/generation/hooks/useGeneratio
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
 import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useStableObject } from '@/shared/hooks/useStableObject';
 import { useVideoTravelViewMode } from '../hooks/workflow/useVideoTravelViewMode';
 import { useVideoTravelDropHandlers } from '../hooks/workflow/useVideoTravelDropHandlers';

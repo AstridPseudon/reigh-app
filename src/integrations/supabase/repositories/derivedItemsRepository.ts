@@ -1,6 +1,6 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { calculateDerivedCountsSafe } from '@/shared/lib/generationTransformers';
-import { expandShotData } from '@/shared/lib/shotData';
+import { expandShotData } from '@/shared/lib/shots/shotData';
 import { EDIT_VARIANT_TYPES } from '@/shared/constants/variantTypes';
 
 export interface DerivedItem {

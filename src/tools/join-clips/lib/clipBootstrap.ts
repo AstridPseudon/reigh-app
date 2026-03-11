@@ -1,5 +1,5 @@
 import { generateUUID } from '@/shared/lib/taskCreation';
-import type { JoinClipsSettings } from '@/shared/lib/joinClipsDefaults';
+import type { JoinClipsSettings } from '@/shared/lib/joinClips/defaults';
 import type { TransitionPrompt, VideoClip } from '../types';
 
 function createEmptyClip(): VideoClip {

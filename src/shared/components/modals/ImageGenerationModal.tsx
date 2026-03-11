@@ -15,9 +15,9 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { ExternalLinkTooltipButton } from '@/shared/components/ui/ExternalLinkTooltipButton';
+import { ExternalLinkTooltipButton } from '@/shared/components/ui/composed/ExternalLinkTooltipButton';
 import { useNavigate } from 'react-router-dom';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 
 interface ImageGenerationModalProps {
   isOpen: boolean;

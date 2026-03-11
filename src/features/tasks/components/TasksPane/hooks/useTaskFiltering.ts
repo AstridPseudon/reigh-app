@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { type PaginatedTasksResponse } from '@/shared/hooks/tasks/useTasks';
 import { IncomingTask } from '@/shared/contexts/IncomingTasksContext';
-import { filterVisibleTasks } from '@/shared/lib/taskConfig';
+import { filterVisibleTasks } from '@/shared/lib/tasks/taskConfig';
 import { Task } from '@/types/tasks';
 import { FilterGroup } from '../constants';
 

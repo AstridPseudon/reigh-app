@@ -1,5 +1,5 @@
 import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { characterAnimateSettings, CharacterAnimateSettings } from '../settings';
 
 export function useCharacterAnimateSettings(projectId: string | null | undefined) {

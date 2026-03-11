@@ -2,8 +2,8 @@ import React from "react";
 import { Star, Search, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { MediaGalleryPagination } from "@/shared/components/MediaGalleryPagination";
-import { MediaTypeFilter } from "@/shared/components/MediaTypeFilter";
-import { ShotFilter } from "@/shared/components/ShotFilter";
+import { MediaTypeFilter } from "@/shared/components/selectors/MediaTypeFilter";
+import { ShotFilter } from "@/shared/components/selectors/ShotFilter";
 import type { Shot } from "@/domains/generation/types";
 
 interface MediaGalleryHeaderPaginationProps {

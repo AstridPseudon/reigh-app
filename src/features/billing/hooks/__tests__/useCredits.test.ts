@@ -38,7 +38,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   reportRuntimeError: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/queryDefaults', () => ({
+vi.mock('@/shared/lib/query/queryDefaults', () => ({
   QUERY_PRESETS: {
     userConfig: { staleTime: 120000 },
   },

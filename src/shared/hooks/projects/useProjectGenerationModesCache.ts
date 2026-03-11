@@ -7,7 +7,7 @@ import {
   extractToolSettings,
   type GenerationModeNormalized
 } from '@/shared/lib/settingsResolution';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { ProjectScopedCache } from '@/shared/lib/cache/ProjectScopedCache';
 import { toObjectRecord } from '@/shared/lib/jsonRecord';

@@ -23,7 +23,7 @@ vi.mock('@/shared/hooks/useResources', () => ({
   usePublicLoras: () => ({ data: [] }),
 }));
 
-vi.mock('@/shared/lib/toolIds', () => ({
+vi.mock('@/shared/lib/tooling/toolIds', () => ({
   TOOL_IDS: {
     EDIT_IMAGES: 'edit-images',
   },

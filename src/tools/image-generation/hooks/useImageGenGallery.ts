@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, type RefObject } from 'react';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useContainerDimensions } from '@/shared/components/MediaGallery/hooks/useContainerWidth';
 import { calculateGalleryLayout } from '@/shared/components/MediaGallery/utils';
 import { useProjectGenerations } from '@/shared/hooks/projects/useProjectGenerations';

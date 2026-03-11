@@ -1,4 +1,4 @@
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import type {
   TaskLogArrayFilterKey,
   TaskLogAvailableFilters,

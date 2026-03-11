@@ -15,7 +15,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { updateToolSettingsSupabase } from '@/shared/hooks/settings/useToolSettings';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import type { SegmentSettings } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
 import { buildMetadataUpdate } from '@/shared/components/SegmentSettingsForm/segmentSettingsMigration';
 import type { ShotVideoSettings } from '@/shared/lib/settingsMigration';

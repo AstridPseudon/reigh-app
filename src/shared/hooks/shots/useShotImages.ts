@@ -6,7 +6,7 @@
 import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { GenerationRow } from '@/domains/generation/types';
-import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
+import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/query/queryDefaults';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import React from 'react';

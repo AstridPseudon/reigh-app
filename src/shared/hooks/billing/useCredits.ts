@@ -2,7 +2,7 @@ import { getSupabaseClient } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
-import { QUERY_PRESETS } from '@/shared/lib/queryDefaults';
+import { QUERY_PRESETS } from '@/shared/lib/query/queryDefaults';
 import { normalizeAndPresentAndRethrow, normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { creditQueryKeys } from '@/shared/lib/queryKeys/credits';
 import {

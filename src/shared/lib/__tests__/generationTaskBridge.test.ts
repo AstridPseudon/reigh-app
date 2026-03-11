@@ -16,7 +16,7 @@ vi.mock('@tanstack/react-query', () => ({
   useMutation: vi.fn((options: unknown) => options),
 }));
 
-vi.mock('@/shared/lib/generationTaskRepository', () => ({
+vi.mock('@/shared/lib/tasks/generationTaskRepository', () => ({
   resolveGenerationTaskMapping: (...args: unknown[]) => mockResolveGenerationTaskMapping(...args),
 }));
 

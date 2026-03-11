@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
-import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
-import { handleImageFileInputChange } from '@/shared/lib/handleImageFileInputChange';
+import { ImageGenerationModal } from '@/shared/components/modals/ImageGenerationModal';
+import { handleImageFileInputChange } from '@/shared/lib/media/handleImageFileInputChange';
 
 interface ImageUploadActionsProps {
   /** Callback when files are selected via the file input */

@@ -27,9 +27,9 @@ import {
 import {
   _clearJoinClipsIntentsForTesting,
   enqueueJoinClipsIntent,
-} from '@/shared/lib/joinClipsIntentStore';
+} from '@/shared/lib/joinClips/intentStore';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClipsPendingQueue';
+import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClips/pendingQueue';
 
 describe('createEmptyClip', () => {
   it('creates an empty clip with default values', () => {

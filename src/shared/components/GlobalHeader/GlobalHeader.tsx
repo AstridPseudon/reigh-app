@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { ProjectSettingsModal } from '@/shared/components/ProjectSettingsModal';
-import { ReferralModal } from '@/shared/components/ReferralModal';
+import { ProjectSettingsModal } from '@/shared/components/modals/ProjectSettingsModal';
+import { ReferralModal } from '@/shared/components/modals/ReferralModal';
 import { useGlobalHeaderController } from './useGlobalHeaderController';
 import { CreateProjectModal } from './CreateProjectModal';
 

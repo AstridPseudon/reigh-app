@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { GenerationRow } from '@/domains/generation/types';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { expandShotData } from '@/shared/lib/shotData';
+import { expandShotData } from '@/shared/lib/shots/shotData';
 
 interface UseSourceGenerationParams {
   media: GenerationRow;

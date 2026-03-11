@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { ShotPrimaryActionButton } from '@/shared/components/shots/ShotPrimaryActionButton';
-import { ShotSelector, ShotOption } from "@/shared/components/ShotSelector";
+import { ShotSelector, ShotOption } from "@/shared/components/selectors/ShotSelector";
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useShotNavigation } from "@/shared/hooks/shots/useShotNavigation";
 import { useLastAffectedShot } from "@/shared/hooks/shots/useLastAffectedShot";

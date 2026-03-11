@@ -59,7 +59,7 @@ vi.mock('@/shared/lib/media/aspectRatios', () => ({
   },
 }));
 
-vi.mock('@/shared/lib/toolIds', () => ({
+vi.mock('@/shared/lib/tooling/toolIds', () => ({
   TOOL_IDS: {
     JOIN_CLIPS: 'join_clips',
   },
@@ -71,7 +71,7 @@ vi.mock('@/shared/lib/vaceDefaults', () => ({
   VACE_GENERATION_DEFAULTS: { model: 'wan_2_2_default' },
 }));
 
-vi.mock('@/shared/lib/joinClipsDefaults', () => ({
+vi.mock('@/shared/lib/joinClips/defaults', () => ({
   joinClipsSettings: {
     defaults: {
       contextFrameCount: 15,

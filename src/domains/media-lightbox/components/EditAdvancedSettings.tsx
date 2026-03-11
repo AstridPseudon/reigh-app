@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
-import { CollapsibleSection } from '@/shared/components/ui/collapsible-section';
-import { SliderWithValue } from '@/shared/components/ui/slider-with-value';
+import { CollapsibleSection } from '@/shared/components/ui/composed/collapsible-section';
+import { SliderWithValue } from '@/shared/components/ui/composed/slider-with-value';
 import { Switch } from '@/shared/components/ui/switch';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { ResetHeaderAction } from '@/shared/components/GenerationControls/ResetHeaderAction';

@@ -12,7 +12,7 @@ import { useEditVideoSettings } from '@/shared/settings/hooks/useEditVideoSettin
 import { useLoraManager } from '@/domains/lora/hooks/useLoraManager';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useVideoEditingSelections } from './useVideoEditingSelections';
 import { buildVideoEditOrchestratorDetails } from './videoEditingTaskPayload';
 

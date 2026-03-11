@@ -11,7 +11,7 @@ import {
   toGenerationTaskMappingCacheEntry,
   type GenerationTaskMappingCacheEntry,
   type GenerationTaskMappingStatus,
-} from '@/shared/lib/generationTaskRepository';
+} from '@/shared/lib/tasks/generationTaskRepository';
 
 interface PreloadGenerationTaskMappingsOptions {
   batchSize?: number;

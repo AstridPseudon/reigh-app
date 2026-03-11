@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/components/ui/button';
 import { Settings, X } from 'lucide-react';
-import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { fetchPresetResourceById } from '@/integrations/supabase/repositories/presetResourcesRepository';
 import type { SelectedPresetCardProps, PresetMetadata } from './types';
 

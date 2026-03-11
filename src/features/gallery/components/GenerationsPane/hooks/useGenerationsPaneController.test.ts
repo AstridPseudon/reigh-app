@@ -42,7 +42,7 @@ vi.mock('react-router-dom', () => ({
   useLocation: (...args: unknown[]) => mocks.useLocation(...args),
 }));
 
-vi.mock('@/shared/lib/toolRoutes', () => ({
+vi.mock('@/shared/lib/tooling/toolRoutes', () => ({
   TOOL_ROUTES: {
     IMAGE_GENERATION: '/tools/image-generation',
   },

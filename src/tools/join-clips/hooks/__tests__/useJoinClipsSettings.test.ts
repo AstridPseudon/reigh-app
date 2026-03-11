@@ -9,13 +9,13 @@ vi.mock('@/shared/settings/hooks/useAutoSaveSettings', () => ({
   useAutoSaveSettings: (...args: unknown[]) => mockUseAutoSaveSettings(...args),
 }));
 
-vi.mock('@/shared/lib/toolIds', () => ({
+vi.mock('@/shared/lib/tooling/toolIds', () => ({
   TOOL_IDS: {
     JOIN_CLIPS: 'join_clips',
   },
 }));
 
-vi.mock('@/shared/lib/joinClipsDefaults', () => ({
+vi.mock('@/shared/lib/joinClips/defaults', () => ({
   joinClipsSettings: {
     defaults: {
       contextFrameCount: 15,

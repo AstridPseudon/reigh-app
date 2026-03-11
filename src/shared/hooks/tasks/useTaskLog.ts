@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { getVisibleTaskTypes, getHiddenTaskTypes } from '@/shared/lib/taskConfig';
+import { getVisibleTaskTypes, getHiddenTaskTypes } from '@/shared/lib/tasks/taskConfig';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { fetchTaskLogCosts } from './taskLogCosts';
 

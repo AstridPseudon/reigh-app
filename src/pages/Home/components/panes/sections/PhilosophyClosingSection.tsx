@@ -1,4 +1,4 @@
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 
 interface PhilosophyClosingSectionProps {
   navigate: (path: string) => void;

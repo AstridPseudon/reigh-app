@@ -1,5 +1,5 @@
 import React from 'react';
-import { SliderWithValue } from '@/shared/components/ui/slider-with-value';
+import { SliderWithValue } from '@/shared/components/ui/composed/slider-with-value';
 import { Switch } from '@/shared/components/ui/switch';
 
 interface TwoPassPhase1SettingsProps {

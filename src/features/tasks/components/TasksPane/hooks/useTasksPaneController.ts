@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePaginatedTasks, type PaginatedTasksResponse } from '@/shared/hooks/tasks/useTasks';
 import { useAllTaskTypes, useTaskStatusCounts } from '@/shared/hooks/tasks/useTaskStatusCounts';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { ITEMS_PER_PAGE, STATUS_GROUPS } from '../constants';
 import { useTasksPaneViewState, type UseTasksPaneViewStateResult } from './useTasksPaneViewState';
 import { useTasksPaneCancelPending } from './useTasksPaneCancelPending';

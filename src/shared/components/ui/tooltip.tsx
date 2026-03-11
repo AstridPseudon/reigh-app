@@ -5,7 +5,7 @@ import {
   TooltipProvider as TooltipProviderPrimitive,
   TooltipTrigger as TooltipTriggerPrimitive,
 } from '@/shared/components/ui/tooltipPrimitives';
-import { TouchableTooltip } from '@/shared/components/ui/touchableTooltip';
+import { TouchableTooltip } from '@/shared/components/ui/composed/touchableTooltip';
 
 /** Shared app policy for tooltips: short open delay to avoid accidental hover noise. */
 const DEFAULT_TOOLTIP_DELAY_MS = 120;

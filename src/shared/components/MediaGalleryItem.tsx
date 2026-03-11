@@ -20,7 +20,7 @@ import { resolveAspectRatioPadding } from "./MediaGalleryItem/lib/aspectRatioPad
 import { setGenerationDragData, createDragPreview } from '@/shared/lib/dnd/dragDrop';
 import { CreateShotModal } from "@/shared/components/shots/CreateShotModal";
 import { useProjectSelectionContext } from "@/shared/contexts/ProjectContext";
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useShotNavigation } from "@/shared/hooks/shots/useShotNavigation";
 import { useLastAffectedShot } from "@/shared/hooks/shots/useLastAffectedShot";
 import { useQuickShotCreate } from "@/shared/hooks/useQuickShotCreate";

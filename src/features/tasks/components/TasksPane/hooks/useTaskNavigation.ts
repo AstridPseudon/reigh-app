@@ -11,7 +11,7 @@ import { Task } from '@/types/tasks';
 import { GenerationRow } from '@/domains/generation/types';
 import { isSegmentVideoTask, extractPairShotGenerationId, checkSegmentConnection } from '../utils/task-utils';
 import { getTaskVariantId } from '../utils/getTaskVariantId';
-import { travelShotUrl } from '@/shared/lib/toolRoutes';
+import { travelShotUrl } from '@/shared/lib/tooling/toolRoutes';
 
 type ActionEvent = React.MouseEvent | React.TouchEvent;
 

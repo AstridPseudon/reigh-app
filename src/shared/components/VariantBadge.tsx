@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { TouchableTooltip } from '@/shared/components/ui/touchableTooltip';
+import { TouchableTooltip } from '@/shared/components/ui/composed/touchableTooltip';
 import { StatusBadge } from '@/shared/components/StatusBadge';
 
 interface VariantBadgeProps {

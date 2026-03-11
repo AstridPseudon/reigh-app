@@ -14,7 +14,7 @@ vi.mock('@/shared/components/ui/runtime/sonner', () => ({
   toast: (...args: unknown[]) => mocks.toast(...args),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   getTaskDisplayName: (...args: unknown[]) => mocks.getTaskDisplayName(...args),
 }));
 

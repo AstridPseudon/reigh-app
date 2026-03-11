@@ -2,7 +2,7 @@ import {
   getPendingJoinClipsCandidateKeys,
   getPendingJoinClipsStorageKey,
   type PendingJoinClipEntry,
-} from '@/shared/lib/joinClipsPendingQueue';
+} from '@/shared/lib/joinClips/pendingQueue';
 
 interface JoinClipsIntentScope {
   projectId?: string | null;

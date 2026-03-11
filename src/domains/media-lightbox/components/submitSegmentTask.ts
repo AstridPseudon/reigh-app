@@ -16,7 +16,7 @@
 
 import { QueryClient } from '@tanstack/react-query';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { joinPromptParts } from '@/shared/lib/promptAssembly';
+import { joinPromptParts } from '@/shared/lib/tasks/promptAssembly';
 import { buildTaskParams, type SegmentSettings } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
 import { createIndividualTravelSegmentTask } from '@/shared/lib/tasks/individualTravelSegment';
 import type { IndividualTravelSegmentParams } from '@/shared/lib/tasks/individualTravelSegment';

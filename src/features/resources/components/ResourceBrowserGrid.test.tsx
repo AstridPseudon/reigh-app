@@ -27,7 +27,7 @@ vi.mock('@/shared/components/ui/tooltip', () => ({
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('@/shared/components/HoverScrubVideo', () => ({
+vi.mock('@/shared/components/media/HoverScrubVideo', () => ({
   default: ({ src, onLoadedData }: { src: string; onLoadedData?: () => void }) => (
     <button data-testid={`video-${src}`} onClick={onLoadedData}>
       video

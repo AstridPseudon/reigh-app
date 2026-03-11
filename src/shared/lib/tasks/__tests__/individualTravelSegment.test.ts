@@ -36,7 +36,7 @@ vi.mock('@/shared/lib/vaceDefaults', () => ({
   },
 }));
 
-vi.mock('@/shared/lib/toolIds', () => ({
+vi.mock('@/shared/lib/tooling/toolIds', () => ({
   TOOL_IDS: {
     TRAVEL_BETWEEN_IMAGES: 'travel-between-images',
   },

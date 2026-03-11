@@ -87,7 +87,7 @@ vi.mock('@/shared/components/ui/slider', () => ({
   ),
 }));
 
-vi.mock('@/shared/components/ui/text-action', () => ({
+vi.mock('@/shared/components/ui/composed/text-action', () => ({
   TextAction: ({ children, onClick }: { children: ReactNode; onClick: () => void }) => (
     <button type="button" onClick={onClick}>
       {children}

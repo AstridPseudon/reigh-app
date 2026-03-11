@@ -134,7 +134,7 @@ vi.mock('@/shared/components/ui/tooltip', () => ({
   TooltipContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@/shared/components/ui/text-action', () => ({
+vi.mock('@/shared/components/ui/composed/text-action', () => ({
   TextAction: ({
     children,
     onClick,

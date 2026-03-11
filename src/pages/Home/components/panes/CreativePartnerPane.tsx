@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { useTooltipInteractionPolicy } from '@/shared/components/ui/useTooltipInteractionPolicy';
 import { ProfitSplitBar } from '@/shared/components/ProfitSplitBar';
 import { useIsMobile } from '@/shared/hooks/mobile';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 import { UI_Z_LAYERS } from '@/shared/lib/uiLayers';
 import { GlassSidePane } from './GlassSidePane';
 

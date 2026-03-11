@@ -12,7 +12,7 @@ import {
   getSpotlightAdvanceBehavior,
 } from './stateMachine';
 import { useProductTour } from '@/shared/hooks/useProductTour';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import { CustomTooltip } from './CustomTooltip';

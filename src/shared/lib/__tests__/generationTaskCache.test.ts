@@ -23,7 +23,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => mockHandleError(...args),
 }));
 
-vi.mock('@/shared/lib/generationTaskRepository', () => ({
+vi.mock('@/shared/lib/tasks/generationTaskRepository', () => ({
   resolveGenerationTaskMappings: (...args: unknown[]) => mockResolveGenerationTaskMappings(...args),
   toGenerationTaskMappingCacheEntry: (mapping?: { taskId?: string | null; status?: string; queryError?: string }) => ({
     taskId: mapping?.taskId ?? null,

@@ -17,7 +17,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: (...args: unknown[]) => mocks.getSupabaseClient(...args),
 }));
 
-vi.mock('@/shared/lib/generationTaskRepository', () => ({
+vi.mock('@/shared/lib/tasks/generationTaskRepository', () => ({
   resolveGenerationProjectScope: (...args: unknown[]) => mocks.resolveGenerationProjectScope(...args),
   resolveVariantProjectScope: (...args: unknown[]) => mocks.resolveVariantProjectScope(...args),
 }));

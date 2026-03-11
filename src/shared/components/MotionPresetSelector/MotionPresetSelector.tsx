@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Settings, Pencil } from 'lucide-react';
-import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { PhaseConfigVertical } from '@/shared/components/PhaseConfigSelectorModal';
 import { PhaseConfigSelectorModal } from '@/shared/components/PhaseConfigSelectorModal';
 import { PhaseConfig } from '@/shared/types/phaseConfig';

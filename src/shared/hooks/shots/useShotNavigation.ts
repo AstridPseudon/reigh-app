@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { Shot } from '@/domains/generation/types';
-import { TOOL_ROUTES, travelShotUrl } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES, travelShotUrl } from '@/shared/lib/tooling/toolRoutes';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 interface ShotNavigationOptions {

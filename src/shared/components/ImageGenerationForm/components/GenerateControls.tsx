@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/shared/components/ui/button";
-import { SliderWithValue } from "@/shared/components/ui/slider-with-value";
+import { SliderWithValue } from "@/shared/components/ui/composed/slider-with-value";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { PromptMode } from "../types";

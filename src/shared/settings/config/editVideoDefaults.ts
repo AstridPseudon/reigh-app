@@ -1,5 +1,5 @@
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 
 interface EditVideoDefaultsExtension {
   contextFrameCount: number;

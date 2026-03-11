@@ -3,10 +3,10 @@ import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { createCanonicalJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { resolveAspectRatioResolutionTuple } from '@/shared/lib/video/resolveAspectRatioResolutionTuple';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
-import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
-import { scaleJoinFrameCountsToShortestClip } from '@/shared/lib/joinClipsFrameScaling';
+import { joinClipsSettings } from '@/shared/lib/joinClips/defaults';
+import { scaleJoinFrameCountsToShortestClip } from '@/shared/lib/joinClips/frameScaling';
 import {
   flashSuccessForDuration,
   invalidateTaskAndProjectQueries,

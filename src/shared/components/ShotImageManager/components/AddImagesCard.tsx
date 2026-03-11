@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { getAspectRatioStyle } from '../utils/image-utils';
-import { handleImageFileInputChange } from '@/shared/lib/handleImageFileInputChange';
+import { handleImageFileInputChange } from '@/shared/lib/media/handleImageFileInputChange';
 
 interface AddImagesCardProps {
   projectAspectRatio?: string;

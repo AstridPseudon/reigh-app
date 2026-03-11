@@ -1,6 +1,6 @@
 import { Task, TaskStatus } from '@/types/tasks';
 import { getSupabaseClient } from '@/integrations/supabase/client';
-import { filterVisibleTasks } from '@/shared/lib/taskConfig';
+import { filterVisibleTasks } from '@/shared/lib/tasks/taskConfig';
 import { TaskDbRow, mapTaskDbRowToTask } from '@/shared/lib/taskRowMapper';
 import {
   isProcessingStatusFilter,

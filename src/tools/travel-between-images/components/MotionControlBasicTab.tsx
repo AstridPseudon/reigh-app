@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Switch } from '@/shared/components/ui/switch';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { ActiveLoRAsDisplay } from '@/domains/lora/components';
 import { MotionPresetSectionHeader } from '@/shared/components/MotionPresetSelector/MotionPresetSectionHeader';
 import { SelectedPresetCard } from './SelectedPresetCard';

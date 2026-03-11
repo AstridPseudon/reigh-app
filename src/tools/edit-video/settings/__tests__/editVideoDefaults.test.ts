@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { editVideoSettings, type EditVideoSettings } from '../editVideoDefaults';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 
 describe('editVideoDefaults', () => {

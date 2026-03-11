@@ -38,7 +38,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => mocks.normalizeAndPresentError(...args),
 }));
 
-vi.mock('@/shared/lib/shotData', () => ({
+vi.mock('@/shared/lib/shots/shotData', () => ({
   expandShotData: (...args: unknown[]) => mocks.expandShotData(...args),
 }));
 

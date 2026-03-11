@@ -23,7 +23,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   }),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   getVisibleTaskTypes: vi.fn(() => ['video_generation', 'travel_segment']),
 }));
 
@@ -31,7 +31,7 @@ vi.mock('@/shared/hooks/useSmartPolling', () => ({
   useSmartPollingConfig: vi.fn(() => ({})),
 }));
 
-vi.mock('@/shared/lib/queryDefaults', () => ({
+vi.mock('@/shared/lib/query/queryDefaults', () => ({
   QUERY_PRESETS: { immutable: { staleTime: Infinity } },
   STANDARD_RETRY: 3,
   STANDARD_RETRY_DELAY: vi.fn(() => 1000),

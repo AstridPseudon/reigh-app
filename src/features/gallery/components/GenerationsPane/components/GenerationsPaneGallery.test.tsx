@@ -12,7 +12,7 @@ vi.mock('@/features/gallery/components/MediaGallery', () => ({
   MediaGallery: (props: unknown) => mocks.MediaGallery(props),
 }));
 
-vi.mock('@/shared/components/ui/skeleton-gallery', () => ({
+vi.mock('@/shared/components/ui/composed/skeleton-gallery', () => ({
   SkeletonGallery: (props: unknown) => mocks.SkeletonGallery(props),
 }));
 

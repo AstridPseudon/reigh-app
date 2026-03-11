@@ -7,8 +7,8 @@
 
 import React from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { TouchableTooltip } from '@/shared/components/ui/touchableTooltip';
-import { TextAction } from '@/shared/components/ui/text-action';
+import { TouchableTooltip } from '@/shared/components/ui/composed/touchableTooltip';
+import { TextAction } from '@/shared/components/ui/composed/text-action';
 
 const colorVariants = {
   yellow: 'bg-yellow-500 text-black hover:bg-yellow-400',

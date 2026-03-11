@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sparkles, ExternalLink } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { ImageGenerationModal } from '@/shared/components/ImageGenerationModal';
+import { ImageGenerationModal } from '@/shared/components/modals/ImageGenerationModal';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
 import { PaneControlTab } from '@/shared/components/PaneControlTab';
 import { GenerationsPaneControls } from './components/GenerationsPaneControls';

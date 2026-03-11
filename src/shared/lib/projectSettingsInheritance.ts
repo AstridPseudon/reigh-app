@@ -1,6 +1,6 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { STORAGE_KEYS } from '@/shared/lib/storage/storageKeys';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 /**

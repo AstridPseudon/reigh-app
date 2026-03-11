@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyPendingClipActions, tryConsumePendingJoinClips } from '../clipPendingActions';
-import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClipsPendingQueue';
-import { _clearJoinClipsIntentsForTesting, enqueueJoinClipsIntent } from '@/shared/lib/joinClipsIntentStore';
+import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClips/pendingQueue';
+import { _clearJoinClipsIntentsForTesting, enqueueJoinClipsIntent } from '@/shared/lib/joinClips/intentStore';
 import type { VideoClip } from '../../types';
 
 const normalizeAndPresentErrorMock = vi.hoisted(() => vi.fn());
@@ -104,9 +104,9 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => normalizeAndPresentErrorMock(...args),
 }));
 
-vi.mock('@/shared/lib/joinClipsPendingQueue', () => joinClipsQueueMock);
+vi.mock('@/shared/lib/joinClips/pendingQueue', () => joinClipsQueueMock);
 
-vi.mock('@/shared/lib/joinClipsIntentStore', () => joinClipsIntentStoreMock);
+vi.mock('@/shared/lib/joinClips/intentStore', () => joinClipsIntentStoreMock);
 
 vi.mock('@/shared/lib/taskCreation', () => ({
   generateUUID: (...args: unknown[]) => generateUUIDMock(...args),

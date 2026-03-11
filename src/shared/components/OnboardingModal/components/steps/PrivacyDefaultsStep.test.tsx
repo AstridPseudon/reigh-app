@@ -17,7 +17,7 @@ vi.mock('@/shared/components/ui/dialog', () => ({
   ),
 }));
 
-vi.mock('@/shared/components/ui/privacy-toggle', () => ({
+vi.mock('@/shared/components/ui/composed/privacy-toggle', () => ({
   PrivacyToggle: ({
     isPublic,
     onValueChange,

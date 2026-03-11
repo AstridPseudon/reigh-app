@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Image, Upload } from 'lucide-react';
-import { ImageUploadActions } from '@/shared/components/ImageUploadActions';
+import { ImageUploadActions } from '@/shared/components/media/ImageUploadActions';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useFileDragTracking } from '@/shared/hooks/useFileDragTracking';

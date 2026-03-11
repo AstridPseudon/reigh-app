@@ -3,7 +3,7 @@ import {
   editVideoSettings,
   type EditVideoSettings,
 } from '@/shared/settings/config/editVideoDefaults';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 
 export type { EditVideoSettings } from '@/shared/settings/config/editVideoDefaults';
 

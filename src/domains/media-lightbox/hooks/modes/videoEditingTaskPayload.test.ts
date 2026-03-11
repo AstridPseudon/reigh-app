@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GenerationRow } from '@/domains/generation/types';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { buildVideoEditOrchestratorDetails } from './videoEditingTaskPayload';
 
 const mocks = vi.hoisted(() => ({

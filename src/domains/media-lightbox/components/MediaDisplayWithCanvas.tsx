@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyledVideoPlayer } from '@/shared/components/StyledVideoPlayer';
+import { StyledVideoPlayer } from '@/shared/components/media/StyledVideoPlayer';
 import { StrokeOverlay } from './StrokeOverlay';
 import { RepositionOverlay } from './RepositionOverlay';
 import { useImageEditCanvasSafe } from '../contexts/ImageEditCanvasContext';

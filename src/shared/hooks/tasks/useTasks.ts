@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Task, TaskStatus } from '@/types/tasks';
 import { getSupabaseClientResult } from '@/integrations/supabase/client';
-import { getVisibleTaskTypes } from '@/shared/lib/taskConfig';
+import { getVisibleTaskTypes } from '@/shared/lib/tasks/taskConfig';
 import { normalizeAndPresentAndRethrow } from '@/shared/lib/errorHandling/runtimeError';
 // Removed invalidationRouter - DataFreshnessManager handles all invalidation logic
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
-import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
+import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/query/queryDefaults';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { useProcessingRefetchGuard } from '@/shared/hooks/tasks/useProcessingRefetchGuard';
 import {

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
-import { CollapsibleSection } from '@/shared/components/ui/collapsible-section';
-import { SliderWithValue } from '@/shared/components/ui/slider-with-value';
+import { CollapsibleSection } from '@/shared/components/ui/composed/collapsible-section';
+import { SliderWithValue } from '@/shared/components/ui/composed/slider-with-value';
 import { HiresFixConfig, DEFAULT_HIRES_FIX_CONFIG, ResolutionMode } from '../types';
 import { AspectRatioSelector } from '@/shared/components/GenerationControls/AspectRatioSelector';
 import { AspectRatioVisualizer } from '@/shared/components/GenerationControls/AspectRatioVisualizer';

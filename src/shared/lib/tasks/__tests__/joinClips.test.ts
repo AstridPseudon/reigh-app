@@ -50,7 +50,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/joinClipsDefaults', () => ({
+vi.mock('@/shared/lib/joinClips/defaults', () => ({
   joinClipsSettings: {
     id: 'join-clips',
     scope: ['project', 'shot'],

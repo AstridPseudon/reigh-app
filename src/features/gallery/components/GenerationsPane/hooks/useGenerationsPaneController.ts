@@ -13,7 +13,7 @@ import { useSlidingPane } from '@/shared/hooks/useSlidingPane';
 import { useQueryClient } from '@tanstack/react-query';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 import { type GalleryFilterState } from '@/features/gallery/components/MediaGallery';
 import { useContainerWidth } from '@/shared/components/MediaGallery/hooks/useContainerWidth';
 import { calculateGalleryLayout } from '@/shared/components/MediaGallery/utils';

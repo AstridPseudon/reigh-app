@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { useAsyncOperation } from '@/shared/hooks/async/useAsyncOperation';

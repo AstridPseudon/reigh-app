@@ -11,10 +11,10 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import {
   getPendingJoinClipsStorageKey,
   type PendingJoinClipEntry,
-} from '@/shared/lib/joinClipsPendingQueue';
-import { enqueueJoinClipsIntent } from '@/shared/lib/joinClipsIntentStore';
+} from '@/shared/lib/joinClips/pendingQueue';
+import { enqueueJoinClipsIntent } from '@/shared/lib/joinClips/intentStore';
 import { readUserIdFromStorage } from '@/shared/lib/supabaseSession';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 import { GenerationRow } from '@/domains/generation/types';
 
 interface UseJoinClipsProps {

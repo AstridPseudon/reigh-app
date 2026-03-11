@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useResetCurrentShotOnRouteChange } from './useResetCurrentShotOnRouteChange';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 
 let currentPathname = TOOL_ROUTES.TRAVEL_BETWEEN_IMAGES;
 const setCurrentShotIdMock = vi.fn();

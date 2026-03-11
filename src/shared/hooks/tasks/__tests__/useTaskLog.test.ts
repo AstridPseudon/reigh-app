@@ -28,7 +28,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   }),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   getVisibleTaskTypes: vi.fn(() => ['generate-video', 'generate-image']),
   getHiddenTaskTypes: vi.fn(() => ['internal-task']),
 }));

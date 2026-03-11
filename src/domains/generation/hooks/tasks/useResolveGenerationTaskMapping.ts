@@ -3,7 +3,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import {
   resolveGenerationTaskMapping,
   type GenerationTaskMapping,
-} from '@/shared/lib/generationTaskRepository';
+} from '@/shared/lib/tasks/generationTaskRepository';
 
 /**
  * Canonical on-demand generation -> task mapping resolver.

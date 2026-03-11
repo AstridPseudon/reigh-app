@@ -12,7 +12,7 @@ import type {
   TravelBetweenImagesTaskWithParentGenerationResult,
 } from './types';
 import { validateTravelBetweenImagesParams, buildTravelBetweenImagesPayload } from './payloadBuilder';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { ensureShotParentGenerationId } from '../shotParentGeneration';
 
 interface PreparedTravelBetweenImagesTaskRequest {

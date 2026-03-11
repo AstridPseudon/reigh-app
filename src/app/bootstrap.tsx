@@ -88,7 +88,7 @@ export function initializeAppEnvironment(): void {
   if (shouldLoadDevDebugTools(env)) {
     import('@/shared/lib/simpleCacheValidator');
     import('@/shared/lib/debug/debugPolling');
-    import('@/shared/lib/mobileProjectDebug');
+    import('@/shared/lib/debug/mobileProjectDebug');
   }
 
   // Initialize dark mode from localStorage (prevents flash of wrong theme).

@@ -4,8 +4,8 @@ import {
   getPendingJoinClipsStorageKey,
   isPendingJoinClipInScope,
   type PendingJoinClipEntry,
-} from '@/shared/lib/joinClipsPendingQueue';
-import { consumeJoinClipsIntents } from '@/shared/lib/joinClipsIntentStore';
+} from '@/shared/lib/joinClips/pendingQueue';
+import { consumeJoinClipsIntents } from '@/shared/lib/joinClips/intentStore';
 import { generateUUID } from '@/shared/lib/taskCreation';
 import { readUserIdFromStorage } from '@/shared/lib/supabaseSession';
 import {

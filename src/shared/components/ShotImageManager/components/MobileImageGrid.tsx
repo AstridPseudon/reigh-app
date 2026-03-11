@@ -6,7 +6,7 @@ import { ShotBatchItemMobile } from '@/shared/components/ShotImageManager/ShotBa
 import { PairPromptIndicator } from '@/shared/components/ShotImageManager/components/PairPromptIndicator';
 import { InlineSegmentVideo } from '@/shared/components/InlineSegmentVideo';
 import { getAspectRatioStyle, resolveDuplicateFrame } from '@/shared/components/ShotImageManager/utils/image-utils';
-import { handleImageFileInputChange } from '@/shared/lib/handleImageFileInputChange';
+import { handleImageFileInputChange } from '@/shared/lib/media/handleImageFileInputChange';
 import type { BaseShotImageManagerProps } from '@/shared/components/ShotImageManager/types';
 import type { GenerationRow } from '@/domains/generation/types';
 

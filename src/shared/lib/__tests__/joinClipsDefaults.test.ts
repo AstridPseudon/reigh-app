@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { joinClipsSettings, type JoinClipsSettings } from '../joinClipsDefaults';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 
 describe('joinClipsDefaults', () => {

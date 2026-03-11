@@ -22,7 +22,7 @@ import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import type { PortionSelection } from '@/shared/components/VideoPortionTimeline';
 import { DEFAULT_VACE_PHASE_CONFIG, buildPhaseConfigWithLoras, VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import {
   calculateGapFramesFromRange,
   calculateMaxContextFrames,

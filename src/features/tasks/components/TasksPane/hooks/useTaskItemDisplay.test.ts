@@ -16,7 +16,7 @@ vi.mock('@/shared/hooks/useUpdatingTimestamp', () => ({
   useRelativeTimestamp: (...args: unknown[]) => mocks.useRelativeTimestamp(...args),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   getTaskDisplayName: (...args: unknown[]) => mocks.getTaskDisplayName(...args),
 }));
 

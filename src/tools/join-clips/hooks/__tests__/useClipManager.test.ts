@@ -19,7 +19,7 @@ vi.mock('@/shared/lib/operationResult', () => ({
   toOperationResultError: vi.fn((r: unknown) => r),
 }));
 
-vi.mock('@/shared/lib/joinClipsIntentStore', () => ({
+vi.mock('@/shared/lib/joinClips/intentStore', () => ({
   subscribeJoinClipsIntents: vi.fn().mockReturnValue(() => {}),
 }));
 

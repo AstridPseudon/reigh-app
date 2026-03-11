@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { useRelativeTimestamp, useTaskTimestamp } from '@/shared/hooks/useUpdatingTimestamp';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { Task } from '@/types/tasks';
 import { IMAGE_EDIT_TASK_TYPES } from '../constants';
 import { getAbbreviatedTaskName } from '../utils/task-utils';

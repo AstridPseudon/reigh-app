@@ -2,11 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ActiveLoRAsDisplay } from './ActiveLoRAsDisplay';
 
-vi.mock('@/shared/components/HoverScrubVideo', () => ({
+vi.mock('@/shared/components/media/HoverScrubVideo', () => ({
   default: () => <div data-testid="hover-scrub-video" />,
 }));
 
-vi.mock('@/shared/components/ui/slider-with-value', () => ({
+vi.mock('@/shared/components/ui/composed/slider-with-value', () => ({
   SliderWithValue: ({ onChange }: { onChange: (value: number) => void }) => (
     <button type="button" onClick={() => onChange(1.25)}>
       set strength

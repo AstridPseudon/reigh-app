@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   ImageUploadActions: vi.fn(() => <div data-testid="image-upload-actions" />),
 }));
 
-vi.mock('@/shared/components/ImageUploadActions', () => ({
+vi.mock('@/shared/components/media/ImageUploadActions', () => ({
   ImageUploadActions: (props: unknown) => mocks.ImageUploadActions(props),
 }));
 

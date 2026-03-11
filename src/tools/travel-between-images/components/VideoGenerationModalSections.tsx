@@ -1,6 +1,6 @@
 import React from 'react';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
-import { ExternalLinkTooltipButton } from '@/shared/components/ui/ExternalLinkTooltipButton';
+import { ExternalLinkTooltipButton } from '@/shared/components/ui/composed/ExternalLinkTooltipButton';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { BatchSettingsForm } from '@/tools/travel-between-images/components/BatchSettingsForm';
 import { MotionControl } from '@/tools/travel-between-images/components/MotionControl';

@@ -10,7 +10,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { shotQueryKeys } from '@/shared/lib/queryKeys/shots';
 import { readShotSettings, type ShotVideoSettings } from '@/shared/lib/settingsMigration';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 
 interface UseShotVideoSettingsReturn {
   data: ShotVideoSettings | null | undefined;

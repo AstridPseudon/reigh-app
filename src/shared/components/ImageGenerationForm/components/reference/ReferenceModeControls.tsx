@@ -1,7 +1,7 @@
 import React from "react";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/primitives/label";
-import { SliderWithValue } from "@/shared/components/ui/slider-with-value";
+import { SliderWithValue } from "@/shared/components/ui/composed/slider-with-value";
 import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
 import { ReferenceMode } from "../../types";
 import { useFormCoreContext, useFormReferencesContext } from "../../ImageGenerationFormContext";

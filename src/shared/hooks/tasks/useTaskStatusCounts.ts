@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient } from '@/integrations/supabase/client';
-import { getVisibleTaskTypes } from '@/shared/lib/taskConfig';
+import { getVisibleTaskTypes } from '@/shared/lib/tasks/taskConfig';
 import { useSmartPollingConfig } from '@/shared/hooks/useSmartPolling';
-import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
+import { QUERY_PRESETS, STANDARD_RETRY, STANDARD_RETRY_DELAY } from '@/shared/lib/query/queryDefaults';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { dataFreshnessManager } from '@/shared/realtime/DataFreshnessManager';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';

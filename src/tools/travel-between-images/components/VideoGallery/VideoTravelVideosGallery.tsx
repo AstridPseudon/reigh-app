@@ -8,9 +8,9 @@
  */
 
 import React, { type Dispatch, type SetStateAction } from 'react';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { MediaGallery, type GalleryFilterState } from '@/features/gallery/components/MediaGallery';
-import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
+import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import type { GenerationsPaginatedResponse } from '@/shared/hooks/projects/useProjectGenerations';
 import { Shot } from '@/domains/generation/types';

@@ -10,7 +10,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: mocks.getSupabaseClient,
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   filterVisibleTasks: <T>(tasks: T[]): T[] => tasks,
 }));
 

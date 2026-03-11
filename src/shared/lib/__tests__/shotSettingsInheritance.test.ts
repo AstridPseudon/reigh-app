@@ -14,7 +14,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => mockSupabase,
 }));
 
-vi.mock('@/shared/lib/storageKeys', () => ({
+vi.mock('@/shared/lib/storage/storageKeys', () => ({
   STORAGE_KEYS: {
     LAST_ACTIVE_SHOT_SETTINGS: (projectId: string) => `last-active-shot-settings-${projectId}`,
     LAST_ACTIVE_UI_SETTINGS: (projectId: string) => `last-active-ui-settings-${projectId}`,
@@ -26,7 +26,7 @@ vi.mock('@/shared/lib/storageKeys', () => ({
   },
 }));
 
-vi.mock('@/shared/lib/toolIds', () => ({
+vi.mock('@/shared/lib/tooling/toolIds', () => ({
   TOOL_IDS: {
     TRAVEL_BETWEEN_IMAGES: 'travel-between-images',
   },

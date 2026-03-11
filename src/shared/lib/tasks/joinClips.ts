@@ -8,7 +8,7 @@ import {
 } from "../taskCreation";
 import type { TaskCreationResult } from "../taskCreation";
 import { PhaseConfig } from '@/shared/types/phaseConfig';
-import { joinClipsSettings } from '@/shared/lib/joinClipsDefaults';
+import { joinClipsSettings } from '@/shared/lib/joinClips/defaults';
 import { camelToSnakeKeys } from '@/shared/lib/utils/caseConversion';
 import type { PathLoraConfig } from '@/domains/lora/types/lora';
 import { buildPhaseConfigWithLoras } from '@/shared/lib/vaceDefaults';

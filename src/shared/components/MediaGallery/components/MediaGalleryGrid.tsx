@@ -1,6 +1,6 @@
 import React from "react";
 import { Filter, Sparkles } from "lucide-react";
-import { SkeletonGallery } from "@/shared/components/ui/skeleton-gallery";
+import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
 import { ProgressiveLoadingManager } from "@/shared/components/ProgressiveLoadingManager";
 import { MediaGalleryItem } from "@/shared/components/MediaGalleryItem";
 import { getImageLoadingStrategy } from '@/shared/lib/media/imageLoadingPriority';

@@ -19,7 +19,7 @@ vi.mock('@/shared/hooks/mobile', () => ({
   useIsMobile: () => false,
 }));
 
-vi.mock('@/shared/lib/toolRoutes', () => ({
+vi.mock('@/shared/lib/tooling/toolRoutes', () => ({
   TOOL_ROUTES: { TRAVEL_BETWEEN_IMAGES: '/travel' },
   travelShotUrl: (shotId: string) => `/travel#shot=${shotId}`,
 }));

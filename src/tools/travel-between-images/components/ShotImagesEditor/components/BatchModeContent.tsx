@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { ShotImageManagerContainer as ShotImageManager } from '@/shared/components/ShotImageManager/ShotImageManagerContainer';
 import { BatchGuidanceVideo } from '../../BatchGuidanceVideo';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';

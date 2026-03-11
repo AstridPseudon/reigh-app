@@ -25,7 +25,7 @@ import { queryKeys } from '@/shared/lib/queryKeys';
 import type { SegmentRegenerateFormProps } from '../components/SegmentRegenerateForm';
 import type { SegmentSlotModeData } from '../types';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { TaskDetailsData } from '../types';
 import {

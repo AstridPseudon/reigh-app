@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GenerationsPaneControls } from './GenerationsPaneControls';
 import { SHOT_FILTER } from '@/shared/constants/filterConstants';
 
-vi.mock('@/shared/components/ShotFilter', () => ({
+vi.mock('@/shared/components/selectors/ShotFilter', () => ({
   ShotFilter: ({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) => (
     <button type="button" data-testid="shot-filter" onClick={() => onOpenChange?.(true)}>
       shot-filter
@@ -12,7 +12,7 @@ vi.mock('@/shared/components/ShotFilter', () => ({
   ),
 }));
 
-vi.mock('@/shared/components/MediaTypeFilter', () => ({
+vi.mock('@/shared/components/selectors/MediaTypeFilter', () => ({
   MediaTypeFilter: ({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) => (
     <button type="button" data-testid="media-type-filter" onClick={() => onOpenChange?.(true)}>
       media-type-filter

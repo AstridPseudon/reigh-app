@@ -6,7 +6,7 @@
  */
 
 import { BatchImageGenerationTaskParams } from '@/shared/lib/tasks/imageGeneration';
-import { joinPromptParts } from '@/shared/lib/promptAssembly';
+import { joinPromptParts } from '@/shared/lib/tasks/promptAssembly';
 import { PromptEntry, HiresFixConfig, ReferenceApiParams } from '../types';
 import { toShortPrompt } from './promptUtils';
 

@@ -12,7 +12,7 @@ import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeErro
 import type { Task } from "@/types/tasks";
 import type {
   GenerationTaskMappingCacheEntry,
-} from "@/shared/lib/generationTaskRepository";
+} from '@/shared/lib/tasks/generationTaskRepository';
 
 interface UseGenerationTaskDetailsOptions {
   generationId: string | null;

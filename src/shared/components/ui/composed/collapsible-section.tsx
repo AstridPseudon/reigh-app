@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
-import { Button } from "./button";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./collapsible";
+import { Button } from "@/shared/components/ui/button";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/shared/components/ui/collapsible";
 import { cn } from "@/shared/components/ui/contracts/cn";
 
 interface CollapsibleSectionProps {

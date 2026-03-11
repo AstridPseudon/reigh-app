@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { truncateText } from '@/shared/lib/stringFormatting';
 import { IncomingTask, useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 
 interface IncomingTaskItemProps {
   task: IncomingTask;

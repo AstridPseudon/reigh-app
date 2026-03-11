@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 
 export function useResetCurrentShotOnRouteChange() {
   const { setCurrentShotId } = useCurrentShot();

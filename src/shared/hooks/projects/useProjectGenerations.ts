@@ -35,7 +35,7 @@ import { unifiedGenerationQueryKeys } from '@/shared/lib/queryKeys/unified';
 import { transformGeneration, transformVariant, type RawGeneration, type RawVariant } from '@/shared/lib/generationTransformers';
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { SHOT_FILTER } from '@/shared/constants/filterConstants';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { getProjectSelectionFallbackId } from '@/shared/contexts/projectSelectionStore';
 
 /** Cache garbage collection time for paginated generation queries */

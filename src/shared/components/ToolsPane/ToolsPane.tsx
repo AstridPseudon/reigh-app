@@ -19,8 +19,8 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { AppEnv, type AppEnvValue } from '@/types/env';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
-import { TOOL_ROUTES } from '@/shared/lib/toolRoutes';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
+import { TOOL_ROUTES } from '@/shared/lib/tooling/toolRoutes';
 
 const SHARED_TOOL_ENVS: AppEnvValue[] = [AppEnv.LOCAL, AppEnv.WEB];
 

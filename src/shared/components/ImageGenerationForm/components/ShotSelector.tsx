@@ -12,7 +12,7 @@ import { SectionHeader } from './SectionHeader';
 import {
   ShotSelector as SharedShotSelector,
   type ShotOption,
-} from '@/shared/components/ShotSelector';
+} from '@/shared/components/selectors/ShotSelector';
 
 interface ShotSelectorProps {
   shots: Shot[] | undefined;

@@ -48,7 +48,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   }),
 }));
 
-vi.mock('@/shared/lib/queryDefaults', () => ({
+vi.mock('@/shared/lib/query/queryDefaults', () => ({
   QUERY_PRESETS: {
     static: { staleTime: Infinity },
   },

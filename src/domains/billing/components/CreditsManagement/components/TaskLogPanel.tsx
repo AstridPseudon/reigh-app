@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@/shared/components/ui/table';
 import { UpdatingTimeCell } from '@/shared/components/UpdatingTimeCell';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { TaskLogFilters } from './TaskLogFilters';
 import { getTaskLogFilterSummary } from '../taskLogFilterDescriptors';
 import type {

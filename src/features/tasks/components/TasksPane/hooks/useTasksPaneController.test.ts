@@ -21,7 +21,7 @@ vi.mock('@/shared/hooks/tasks/useTaskStatusCounts', () => ({
   useAllTaskTypes: (...args: unknown[]) => mocks.useAllTaskTypes(...args),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   getTaskDisplayName: (...args: unknown[]) => mocks.getTaskDisplayName(...args),
 }));
 

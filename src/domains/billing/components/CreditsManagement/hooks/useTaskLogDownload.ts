@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { fetchTaskLogCosts } from '@/shared/hooks/tasks/taskLogCosts';
 import type { TaskLogFilters } from '../types';

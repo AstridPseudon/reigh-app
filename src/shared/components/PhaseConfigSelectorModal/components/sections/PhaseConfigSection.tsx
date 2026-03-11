@@ -7,7 +7,7 @@ import { Label } from '@/shared/components/ui/primitives/label';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Slider } from '@/shared/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { TextAction } from '@/shared/components/ui/text-action';
+import { TextAction } from '@/shared/components/ui/composed/text-action';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { Info, Trash2, RotateCcw, Search, Download } from 'lucide-react';
 import { PhaseConfig } from '@/shared/types/phaseConfig';

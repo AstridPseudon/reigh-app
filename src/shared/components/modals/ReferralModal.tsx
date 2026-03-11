@@ -38,7 +38,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onOpenChan
     if (isOpen && scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
-  }, [isOpen]);
+  }, [isOpen, scrollRef]);
 
   // Get session and username
   useEffect(() => {

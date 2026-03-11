@@ -15,7 +15,7 @@ import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import {
   resolveVariantProjectScope,
   type VariantProjectScopeStatus,
-} from '@/shared/lib/generationTaskRepository';
+} from '@/shared/lib/tasks/generationTaskRepository';
 
 interface LineageItem {
   id: string;

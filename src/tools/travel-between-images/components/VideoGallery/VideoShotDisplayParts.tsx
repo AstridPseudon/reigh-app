@@ -6,7 +6,7 @@ import { Pencil, Trash2, Check, X, Copy, GripVertical, Loader2, Video, ChevronDo
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import type { ShotFinalVideo } from '../../hooks/video/useShotFinalVideos';
 
 interface ActionButtonsRowProps {

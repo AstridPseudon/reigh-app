@@ -18,7 +18,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/generationTaskRepository', () => ({
+vi.mock('@/shared/lib/tasks/generationTaskRepository', () => ({
   resolveVariantProjectScope: (...args: unknown[]) => mockResolveVariantProjectScope(...args),
 }));
 

@@ -1,6 +1,6 @@
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { MediaGallery } from '@/features/gallery/components/MediaGallery';
-import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
+import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
 import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
 import {
   buildVideoResultsGalleryConfig,

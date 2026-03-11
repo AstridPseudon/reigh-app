@@ -1,6 +1,6 @@
 import { NumberField } from "@base-ui/react/number-field";
-import { Slider } from "./slider";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+import { Slider } from "@/shared/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface SliderWithValueProps {

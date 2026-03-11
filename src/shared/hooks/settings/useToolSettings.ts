@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useCallback, useMemo } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { queryKeys } from '@/shared/lib/queryKeys';
-import { QUERY_PRESETS, STANDARD_RETRY_DELAY } from '@/shared/lib/queryDefaults';
+import { QUERY_PRESETS, STANDARD_RETRY_DELAY } from '@/shared/lib/query/queryDefaults';
 import { deepMerge } from '@/shared/lib/utils/deepEqual';
 import {
   classifyToolSettingsError,

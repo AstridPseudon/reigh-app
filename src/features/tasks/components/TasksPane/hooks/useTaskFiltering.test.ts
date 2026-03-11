@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   filterVisibleTasks: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   filterVisibleTasks: (...args: unknown[]) => mocks.filterVisibleTasks(...args),
 }));
 

@@ -11,7 +11,7 @@ import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { mapDbTaskToTask } from './useTasks';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { isUuid } from '@/shared/lib/uuid';
-import type { GenerationTaskMappingCacheEntry } from '@/shared/lib/generationTaskRepository';
+import type { GenerationTaskMappingCacheEntry } from '@/shared/lib/tasks/generationTaskRepository';
 import { resolveTaskProjectScope } from '@/shared/lib/tasks/resolveTaskProjectScope';
 import { prefetchGenerationTaskMapping } from '@/domains/generation/hooks/tasks/useGenerationTaskMapping';
 

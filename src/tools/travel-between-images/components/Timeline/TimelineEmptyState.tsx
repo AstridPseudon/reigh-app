@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, Upload } from 'lucide-react';
-import { ImageUploadActions } from '@/shared/components/ImageUploadActions';
+import { ImageUploadActions } from '@/shared/components/media/ImageUploadActions';
 
 interface TimelineEmptyStateProps {
   isDragOver: boolean;

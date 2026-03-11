@@ -3,8 +3,8 @@ import { cn } from '@/shared/components/ui/contracts/cn';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/primitives/label';
-import { ShotFilter } from '@/shared/components/ShotFilter';
-import { MediaTypeFilter } from '@/shared/components/MediaTypeFilter';
+import { ShotFilter } from '@/shared/components/selectors/ShotFilter';
+import { MediaTypeFilter } from '@/shared/components/selectors/MediaTypeFilter';
 import { SHOT_FILTER } from '@/shared/constants/filterConstants';
 import { ChevronLeft, ChevronRight, Search, Star, X } from 'lucide-react';
 import {

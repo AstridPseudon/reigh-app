@@ -4,7 +4,7 @@ import { getGenerationId } from "@/shared/lib/media/mediaTypeHelpers";
 import { getSupabaseClient as supabase } from "@/integrations/supabase/client";
 import { toast } from "@/shared/components/ui/runtime/sonner";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
-import { expandShotData } from "@/shared/lib/shotData";
+import { expandShotData } from '@/shared/lib/shots/shotData';
 import {
   buildTaskDetailsData,
   type TaskDetailsStatus,

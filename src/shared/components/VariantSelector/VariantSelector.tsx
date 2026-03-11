@@ -18,7 +18,7 @@ import { usePublicLoras } from '@/shared/hooks/useResources';
 import { ChunkLoadErrorBoundary } from '@/shared/runtime/ChunkLoadErrorBoundary';
 // Lazy load LineageGifModal since it's only opened on demand
 const LazyLineageGifModal = React.lazy(() =>
-  import('@/shared/components/LineageGifModal').then(module => ({
+  import('@/shared/components/modals/LineageGifModal').then(module => ({
     default: module.LineageGifModal
   }))
 );

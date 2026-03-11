@@ -1,6 +1,6 @@
 import React from "react";
 import { Sun, Moon, Mic, Wand2 } from "lucide-react";
-import { PrivacyToggle } from "@/shared/components/ui/privacy-toggle";
+import { PrivacyToggle } from "@/shared/components/ui/composed/privacy-toggle";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import type { PreferencesSectionProps } from "../types";
 

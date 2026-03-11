@@ -7,7 +7,7 @@ import { useAddImageToShot } from '@/shared/hooks/shots';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useAppEventListener } from '@/shared/lib/typedEvents';
-import { expandShotData } from '@/shared/lib/shotData';
+import { expandShotData } from '@/shared/lib/shots/shotData';
 
 /** Generation row with JSONB shot_data associations */
 interface GenerationWithShotData {

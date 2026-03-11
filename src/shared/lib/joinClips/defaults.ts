@@ -7,7 +7,7 @@
  */
 
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 
 export const joinClipsSettings = {
   id: TOOL_IDS.JOIN_CLIPS,

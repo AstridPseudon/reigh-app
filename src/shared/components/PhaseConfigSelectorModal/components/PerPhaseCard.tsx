@@ -5,7 +5,7 @@ import { NumberInput } from '@/shared/components/ui/number-input';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Slider } from '@/shared/components/ui/slider';
-import { TextAction } from '@/shared/components/ui/text-action';
+import { TextAction } from '@/shared/components/ui/composed/text-action';
 import {
   DropdownMenu,
   DropdownMenuContent,

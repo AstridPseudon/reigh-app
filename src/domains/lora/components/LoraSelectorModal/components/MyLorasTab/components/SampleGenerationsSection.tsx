@@ -3,7 +3,7 @@ import { Label } from "@/shared/components/ui/primitives/label";
 import { Button } from "@/shared/components/ui/button";
 
 import { FileInput } from "@/shared/components/FileInput";
-import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { UploadedSampleFileCard } from '@/shared/components/PhaseConfigSelectorModal/components/sections/UploadedSampleFileCard';
 
 import type { Resource } from '@/shared/hooks/useResources';

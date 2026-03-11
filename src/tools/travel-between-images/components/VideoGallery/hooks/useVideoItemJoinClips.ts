@@ -6,7 +6,7 @@ import { createCanonicalJoinClipsTask } from '@/shared/lib/tasks/joinClips';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { VACE_GENERATION_DEFAULTS } from '@/shared/lib/vaceDefaults';
 import { resolveAspectRatioResolutionTuple } from '@/shared/lib/video/resolveAspectRatioResolutionTuple';
 import { useTaskPlaceholder, type RunTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';

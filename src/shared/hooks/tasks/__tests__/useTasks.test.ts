@@ -33,12 +33,12 @@ vi.mock('@/shared/hooks/useSmartPolling', () => ({
   })),
 }));
 
-vi.mock('@/shared/lib/taskConfig', () => ({
+vi.mock('@/shared/lib/tasks/taskConfig', () => ({
   filterVisibleTasks: vi.fn((tasks: unknown[]) => tasks),
   getVisibleTaskTypes: vi.fn(() => ['generate-video', 'generate-image']),
 }));
 
-vi.mock('@/shared/lib/queryDefaults', () => ({
+vi.mock('@/shared/lib/query/queryDefaults', () => ({
   QUERY_PRESETS: {
     realtimeBacked: { staleTime: 0 },
     immutable: { staleTime: Infinity },

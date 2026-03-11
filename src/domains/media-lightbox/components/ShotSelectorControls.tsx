@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { CheckCircle, PlusCircle, ImagePlus, Loader2, ArrowRight } from 'lucide-react';
-import { ShotSelectorWithAdd } from '@/shared/components/ShotSelectorWithAdd';
+import { ShotSelectorWithAdd } from '@/shared/components/selectors/ShotSelectorWithAdd';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { ShotOption } from '@/domains/generation/types';
 import { INTERACTION_TIMING } from '@/shared/lib/interactions/timing';

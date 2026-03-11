@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
-import { ShotSelector } from "@/shared/components/ShotSelector";
+import { ShotSelector } from "@/shared/components/selectors/ShotSelector";
 import { ShotPrimaryActionButton } from '@/shared/components/shots/ShotPrimaryActionButton';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type {

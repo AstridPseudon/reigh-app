@@ -9,7 +9,7 @@ import type { ImageTransform } from './types';
 import type { GenerationRow } from '@/domains/generation/types';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 
 /** Extended media fields that may be present at runtime from gallery/query layer */

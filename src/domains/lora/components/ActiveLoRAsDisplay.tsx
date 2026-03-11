@@ -1,9 +1,9 @@
 import React from 'react';
 import { X, Plus } from 'lucide-react';
-import { HoverScrubVideo } from '@/shared/components/HoverScrubVideo';
+import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
-import { SliderWithValue } from '@/shared/components/ui/slider-with-value';
+import { SliderWithValue } from '@/shared/components/ui/composed/slider-with-value';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { getDisplayNameFromUrl, type LoraDisplayModel } from '@/domains/lora/lib/loraUtils';
 import type { ActiveLora } from '@/domains/lora/types/lora';

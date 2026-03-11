@@ -1,4 +1,4 @@
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 
 /**
  * Explicit mapping where tool IDs are intentionally valid settings IDs.

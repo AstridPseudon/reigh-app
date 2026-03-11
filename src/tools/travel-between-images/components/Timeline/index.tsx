@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppEventListener } from "@/shared/lib/typedEvents";
 import { GenerationRow } from "@/domains/generation/types";
 import { toast } from "@/shared/components/ui/runtime/sonner";
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { MediaLightbox, type MediaLightboxProps } from "@/domains/media-lightbox/MediaLightbox";
 import type { LightboxActionHandlers } from '@/domains/media-lightbox/types';
 import { TimelineEmptyState } from "./TimelineEmptyState";

@@ -6,8 +6,8 @@ import {
   getVideoGalleryItemsPerPage,
   VIDEO_ONLY_GALLERY_FILTERS,
 } from '@/shared/components/MediaGallery/videoGalleryDefaults';
-import { SkeletonGallery } from '@/shared/components/ui/skeleton-gallery';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import type { GenerationsPaginatedResponse } from '@/shared/hooks/projects/useProjectGenerations';
 
 interface ResultsGalleryProps {

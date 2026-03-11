@@ -6,7 +6,7 @@ import { buildTaskDetailsData } from '@/shared/lib/taskDetails/taskDetailsContra
 import { deriveTaskInputImages } from '../utils/task-utils';
 import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { expandShotData } from '@/shared/lib/shotData';
+import { expandShotData } from '@/shared/lib/shots/shotData';
 
 interface LightboxData {
   type: 'image' | 'video';

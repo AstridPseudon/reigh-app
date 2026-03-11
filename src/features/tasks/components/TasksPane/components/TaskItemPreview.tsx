@@ -1,7 +1,7 @@
 import React from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { toast } from '@/shared/components/ui/runtime/sonner';
-import { getTaskDisplayName } from '@/shared/lib/taskConfig';
+import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { Task } from '@/types/tasks';
 import { getTaskVariantId } from '../utils/getTaskVariantId';
 

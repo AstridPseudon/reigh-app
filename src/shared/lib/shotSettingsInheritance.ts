@@ -1,8 +1,8 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { STORAGE_KEYS } from '@/shared/lib/storageKeys';
+import { STORAGE_KEYS } from '@/shared/lib/storage/storageKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
-import { TOOL_IDS } from '@/shared/lib/toolIds';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { toObjectRecord } from '@/shared/lib/jsonRecord';
 import { compareByCreatedAtDesc } from '@/shared/lib/sorting/createdAtSort';
 

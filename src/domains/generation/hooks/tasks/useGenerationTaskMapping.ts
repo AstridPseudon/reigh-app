@@ -5,7 +5,7 @@ import {
   resolveGenerationTaskMapping,
   toGenerationTaskMappingCacheEntry,
   type GenerationTaskMappingCacheEntry,
-} from '@/shared/lib/generationTaskRepository';
+} from '@/shared/lib/tasks/generationTaskRepository';
 
 export async function fetchGenerationTaskMapping(
   generationId: string,
