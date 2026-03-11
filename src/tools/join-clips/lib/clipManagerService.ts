@@ -9,7 +9,7 @@ export {
   getCachedClipsCount,
   setCachedClipsCount,
   preloadPosterImages,
-  consumePendingJoinClips,
+  tryConsumePendingJoinClips,
   applyPendingClipActions,
   buildInitialClipsFromSettings,
   padClipsWithEmptySlots,
@@ -23,7 +23,7 @@ export {
 
 export {
   getClipsNeedingDuration,
-  loadClipDuration,
+  tryLoadClipDuration,
 } from './clipManager/metadata';
 
 export {

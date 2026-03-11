@@ -99,7 +99,7 @@ describe('create-task edge entrypoint', () => {
     const response = await handler(new Request('https://edge.test/create-task', { method: 'OPTIONS' }));
 
     expect(response.status).toBe(200);
-    await expect(response.text()).resolves.toBe('ok');
+    await expect(response.json()).resolves.toEqual({ ok: true });
     expect(mocks.bootstrapEdgeHandler).not.toHaveBeenCalled();
   });
 
@@ -137,7 +137,10 @@ describe('create-task edge entrypoint', () => {
     const response = await handler(new Request('https://edge.test/create-task', { method: 'POST' }));
 
     expect(response.status).toBe(400);
-    await expect(response.text()).resolves.toBe('params, task_type required');
+    await expect(response.json()).resolves.toMatchObject({
+      errorCode: 'invalid_request_body',
+      message: 'params, task_type required',
+    });
     expect(logger.flush).toHaveBeenCalled();
   });
 
@@ -169,7 +172,10 @@ describe('create-task edge entrypoint', () => {
     const response = await handler(new Request('https://edge.test/create-task', { method: 'POST' }));
 
     expect(response.status).toBe(400);
-    await expect(response.text()).resolves.toBe('project_id required for service role');
+    await expect(response.json()).resolves.toMatchObject({
+      errorCode: 'project_id_required',
+      message: 'project_id required for service role',
+    });
     expect(logger.flush).toHaveBeenCalled();
   });
 

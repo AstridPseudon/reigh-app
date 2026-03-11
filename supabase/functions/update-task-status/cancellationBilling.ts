@@ -1,7 +1,7 @@
 import { toErrorMessage } from "../_shared/errorMessage.ts";
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-import { buildSubTaskFilter, getSubTaskOrchestratorId, triggerCostCalculation } from '../_shared/billing.ts';
+import { buildSubTaskFilter, getSubTaskOrchestratorId, tryTriggerCostCalculation } from '../_shared/billing.ts';
 import type { SystemLogger } from '../_shared/systemLogger.ts';
 import type { TaskStatusRow } from './types.ts';
 
@@ -91,7 +91,7 @@ export async function handleOrchestratorCancellationBilling(
     }
 
     logger.info('Triggering billing for cancelled orchestrator', { orchestrator_task_id: cancelledTaskId });
-    const billingResult = await triggerCostCalculation({
+    const billingResult = await tryTriggerCostCalculation({
       supabaseUrl,
       serviceKey,
       taskId: cancelledTaskId,

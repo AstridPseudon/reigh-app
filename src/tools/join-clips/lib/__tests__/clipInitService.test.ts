@@ -18,7 +18,7 @@ import {
   getCachedClipsCount,
   setCachedClipsCount,
   preloadPosterImages,
-  consumePendingJoinClips,
+  tryConsumePendingJoinClips,
   applyPendingClipActions,
   buildInitialClipsFromSettings,
   padClipsWithEmptySlots,
@@ -186,14 +186,14 @@ describe('applyPendingClipActions', () => {
   });
 });
 
-describe('consumePendingJoinClips', () => {
+describe('tryConsumePendingJoinClips', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.mocked(normalizeAndPresentError).mockClear();
   });
 
   it('returns empty array when no pending clips exist', async () => {
-    const result = await consumePendingJoinClips();
+    const result = await tryConsumePendingJoinClips();
     expect(result).toEqual({
       ok: true,
       value: [],
@@ -225,7 +225,7 @@ describe('consumePendingJoinClips', () => {
     );
 
     const readVideoDuration = vi.fn().mockResolvedValue(7);
-    const result = await consumePendingJoinClips({ projectId: 'project-1', readVideoDuration });
+    const result = await tryConsumePendingJoinClips({ projectId: 'project-1', readVideoDuration });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -246,7 +246,7 @@ describe('consumePendingJoinClips', () => {
       },
     ]));
 
-    const result = await consumePendingJoinClips();
+    const result = await tryConsumePendingJoinClips();
     expect(result).toEqual({
       ok: true,
       value: [],
@@ -272,7 +272,7 @@ describe('consumePendingJoinClips', () => {
     ]));
 
     const readVideoDuration = vi.fn().mockResolvedValue(12);
-    const result = await consumePendingJoinClips({ readVideoDuration });
+    const result = await tryConsumePendingJoinClips({ readVideoDuration });
 
     expect(readVideoDuration).toHaveBeenCalledTimes(1);
     expect(readVideoDuration).toHaveBeenCalledWith('https://example.com/a.mp4');
@@ -314,7 +314,7 @@ describe('consumePendingJoinClips', () => {
     ]));
 
     const readVideoDuration = vi.fn().mockResolvedValue(9);
-    const result = await consumePendingJoinClips({ projectId: 'project-1', readVideoDuration });
+    const result = await tryConsumePendingJoinClips({ projectId: 'project-1', readVideoDuration });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -330,7 +330,7 @@ describe('consumePendingJoinClips', () => {
   it('clears malformed pending payloads and logs explicitly', async () => {
     localStorage.setItem('pendingJoinClips', '{"bad":"shape"}');
 
-    const result = await consumePendingJoinClips();
+    const result = await tryConsumePendingJoinClips();
 
     expect(result).toMatchObject({
       ok: false,

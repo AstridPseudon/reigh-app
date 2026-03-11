@@ -10,8 +10,7 @@
 -- Returns the new positions as jsonb array
 --------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION normalize_shot_timeline(
-  p_shot_id uuid,
-  p_user_id uuid
+  p_shot_id uuid
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -20,6 +19,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_max_gap constant integer := 81;
+  v_user_id uuid;
   v_items record;
   v_sorted_items jsonb;
   v_result jsonb := '[]'::jsonb;
@@ -32,6 +32,11 @@ DECLARE
   v_has_large_gap boolean := false;
   v_needs_normalization boolean := false;
 BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'User not authenticated';
+  END IF;
+
   -- Get all positioned items for this shot (excluding videos), sorted by frame
   SELECT jsonb_agg(
     jsonb_build_object(
@@ -45,7 +50,7 @@ BEGIN
   JOIN projects p ON s.project_id = p.id
   WHERE sg.shot_id = p_shot_id
     AND sg.timeline_frame IS NOT NULL
-    AND p.user_id = p_user_id
+    AND p.user_id = v_user_id
     -- Exclude videos
     AND COALESCE(sg.type, '') NOT IN ('video', 'video_travel_output')
     AND NOT (COALESCE(sg.output_file_path, '') LIKE '%.mp4');
@@ -159,7 +164,7 @@ BEGIN
     p_shot_generation_id, v_deleted_frame;
 
   -- Normalize remaining items
-  v_result := normalize_shot_timeline(p_shot_id, v_user_id);
+  v_result := normalize_shot_timeline(p_shot_id);
 
   RETURN jsonb_build_object(
     'deleted_id', p_shot_generation_id,
@@ -228,7 +233,7 @@ BEGIN
     p_shot_generation_id, v_old_frame;
 
   -- Normalize remaining items
-  v_result := normalize_shot_timeline(p_shot_id, v_user_id);
+  v_result := normalize_shot_timeline(p_shot_id);
 
   RETURN jsonb_build_object(
     'unpositioned_id', p_shot_generation_id,
@@ -326,7 +331,7 @@ Returns: [{"shot_generation_id": uuid, "timeline_frame": int}, ...]';
 --------------------------------------------------------------------------------
 -- Grant execute on helper function
 --------------------------------------------------------------------------------
-GRANT EXECUTE ON FUNCTION normalize_shot_timeline(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION normalize_shot_timeline(uuid) TO authenticated;
 
 --------------------------------------------------------------------------------
 -- Log completion
@@ -334,7 +339,7 @@ GRANT EXECUTE ON FUNCTION normalize_shot_timeline(uuid, uuid) TO authenticated;
 DO $$
 BEGIN
   RAISE NOTICE '✅ Created timeline normalization RPCs:';
-  RAISE NOTICE '   - normalize_shot_timeline(shot_id, user_id) - helper function';
+  RAISE NOTICE '   - normalize_shot_timeline(shot_id) - helper function';
   RAISE NOTICE '   - delete_and_normalize(shot_id, shot_generation_id)';
   RAISE NOTICE '   - unposition_and_normalize(shot_id, shot_generation_id)';
   RAISE NOTICE '   - reorder_normalized(shot_id, new_order[])';

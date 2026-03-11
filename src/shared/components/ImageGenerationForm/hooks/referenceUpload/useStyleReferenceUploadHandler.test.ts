@@ -36,7 +36,7 @@ vi.mock('./referenceDomainService', async () => {
   const actual = await vi.importActual<typeof import('./referenceDomainService')>('./referenceDomainService');
   return {
     ...actual,
-    uploadAndProcessReference: (...args: unknown[]) => uploadAndProcessReferenceMock(...args),
+    tryUploadAndProcessReference: (...args: unknown[]) => uploadAndProcessReferenceMock(...args),
     resolveReferenceThumbnailUrl: (...args: unknown[]) => resolveReferenceThumbnailUrlMock(...args),
   };
 });
@@ -85,7 +85,7 @@ describe('useStyleReferenceUploadHandler', () => {
     });
 
     expect(normalizeAndPresentErrorMock).toHaveBeenCalledWith(uploadError, {
-      context: 'useReferenceUpload.handleStyleReferenceUpload.uploadAndProcessReference',
+      context: 'useReferenceUpload.handleStyleReferenceUpload.tryUploadAndProcessReference',
       toastTitle: 'Failed to upload reference image',
       logData: {
         operationMessage: 'Failed to upload and process reference image',

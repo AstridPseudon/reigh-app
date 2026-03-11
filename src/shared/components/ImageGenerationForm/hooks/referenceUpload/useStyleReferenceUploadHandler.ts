@@ -11,7 +11,7 @@ import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import {
   buildStyleReferenceMetadata,
   resolveReferenceThumbnailUrl,
-  uploadAndProcessReference,
+  tryUploadAndProcessReference,
 } from './referenceDomainService';
 import { persistOptimisticReferenceSelection } from './persistOptimisticReferenceSelection';
 import type {
@@ -109,13 +109,13 @@ export function useStyleReferenceUploadHandler(
     try {
       setIsUploadingStyleReference(true);
 
-      const uploadResult = await uploadAndProcessReference({
+      const uploadResult = await tryUploadAndProcessReference({
         file,
         selectedProjectId,
       });
       if (!uploadResult.ok) {
         normalizeAndPresentError(uploadResult.error, {
-          context: 'useReferenceUpload.handleStyleReferenceUpload.uploadAndProcessReference',
+          context: 'useReferenceUpload.handleStyleReferenceUpload.tryUploadAndProcessReference',
           toastTitle: 'Failed to upload reference image',
           logData: getOperationFailureLogData(uploadResult),
         });

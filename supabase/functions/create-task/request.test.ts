@@ -11,8 +11,8 @@ describe('normalizeDependantOn', () => {
     expect(normalizeDependantOn(' task-1 ')).toEqual(['task-1']);
   });
 
-  it('filters invalid array entries and returns null for empty result', () => {
-    expect(normalizeDependantOn(['', '   ', null])).toBeNull();
+  it('returns an empty array when every array entry is invalid', () => {
+    expect(normalizeDependantOn(['', '   ', null])).toEqual([]);
   });
 
   it('normalizes mixed array input', () => {
@@ -66,6 +66,26 @@ describe('parseCreateTaskBody', () => {
     })).toEqual({
       ok: false,
       error: 'idempotency_key must be a non-empty string when provided',
+    });
+  });
+
+  it('rejects invalid dependant_on shapes instead of silently filtering them', () => {
+    expect(parseCreateTaskBody({
+      params: {},
+      task_type: 'x',
+      dependant_on: ['valid', '', null],
+    })).toEqual({
+      ok: false,
+      error: 'dependant_on must be a non-empty string or array of non-empty strings when provided',
+    });
+
+    expect(parseCreateTaskBody({
+      params: {},
+      task_type: 'x',
+      dependant_on: [],
+    })).toEqual({
+      ok: false,
+      error: 'dependant_on must be a non-empty string or array of non-empty strings when provided',
     });
   });
 });

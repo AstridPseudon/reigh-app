@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getClipsNeedingDuration, loadClipDuration } from '../clipManager/metadata';
+import { getClipsNeedingDuration, tryLoadClipDuration } from '../clipManager/metadata';
 
 const mockExtractVideoMetadataFromUrl = vi.fn();
 const mockHandleError = vi.fn();
@@ -31,7 +31,7 @@ describe('join clips metadata boundary', () => {
 
   it('returns extracted duration when metadata probe succeeds', async () => {
     mockExtractVideoMetadataFromUrl.mockResolvedValue({ duration_seconds: 9.5 });
-    const result = await loadClipDuration({
+    const result = await tryLoadClipDuration({
       id: 'clip-1',
       url: 'https://example.com/clip.mp4',
       loaded: false,
@@ -49,7 +49,7 @@ describe('join clips metadata boundary', () => {
     const probeError = new Error('metadata read failed');
     mockExtractVideoMetadataFromUrl.mockRejectedValue(probeError);
 
-    const result = await loadClipDuration({
+    const result = await tryLoadClipDuration({
       id: 'clip-2',
       url: 'https://example.com/broken.mp4',
       loaded: false,

@@ -3,7 +3,7 @@
  * Basic database operations for generations and variants
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 type ExistingGenerationLookupErrorCode =
   | 'existing_generation_lookup_failed'

@@ -1,7 +1,7 @@
 import { toErrorMessage } from "../_shared/errorMessage.ts";
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { extractOrchestratorRef } from '../_shared/billing.ts';
-import { triggerCostCalculation } from './billing.ts';
+import { tryTriggerCostCalculation } from './billing.ts';
 import { SEGMENT_TYPE_CONFIG } from './constants.ts';
 import { CompletionError, toCompletionError } from './errors.ts';
 import { lookupTasksByOrchestratorIdWithFallback, lookupTasksByRunIdWithFallback } from '../_shared/orchestratorReferenceLookup.ts';
@@ -469,7 +469,7 @@ async function markOrchestratorComplete(
     });
     return;
   }
-  const billingResult = await triggerCostCalculation({
+  const billingResult = await tryTriggerCostCalculation({
     supabaseUrl,
     serviceKey,
     taskId: orchestratorTaskId,

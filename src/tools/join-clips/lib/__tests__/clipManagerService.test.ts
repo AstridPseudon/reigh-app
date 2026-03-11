@@ -47,7 +47,7 @@ vi.mock('../clipInitService', () => ({
   getCachedClipsCount: vi.fn(),
   setCachedClipsCount: vi.fn(),
   preloadPosterImages: vi.fn(),
-  consumePendingJoinClips: vi.fn(),
+  tryConsumePendingJoinClips: vi.fn(),
   applyPendingClipActions: vi.fn(),
   buildInitialClipsFromSettings: vi.fn(),
   padClipsWithEmptySlots: vi.fn(),

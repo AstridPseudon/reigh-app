@@ -1,6 +1,7 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
+import { type DayBucket, parseDayBuckets } from "../_shared/rpcDecoders.ts";
 import { toErrorMessage } from "../_shared/errorMessage.ts";
 
 const LOG_PREFIX = "[DISCORD-DAILY-STATS]";
@@ -18,13 +19,6 @@ const CHART_THEME = {
   axisGridColor: "rgba(148, 163, 184, 0.08)",
   backgroundColor: "#1a1a2e",
 } as const;
-
-interface DayBucket {
-  date: string;
-  images_generated: number;
-  images_edited: number;
-  videos_generated: number;
-}
 
 serve(async (req) => {
   const bootstrap = await bootstrapEdgeHandler(req, {
@@ -75,9 +69,11 @@ serve(async (req) => {
 
     let buckets: DayBucket[];
 
-    if (statsError || !dailyStats) {
+    const parsedDailyStats = parseDayBuckets(dailyStats ?? []);
+    if (statsError || !parsedDailyStats.ok) {
       logger.warn("RPC func_daily_task_stats not available, using direct query", {
-        error: statsError?.message,
+        error: statsError?.message ?? (!parsedDailyStats.ok ? parsedDailyStats.message : undefined),
+        cause: !parsedDailyStats.ok ? parsedDailyStats.cause : undefined,
       });
 
       // Paginate to fetch all completed tasks (default limit is 1000)
@@ -121,7 +117,7 @@ serve(async (req) => {
 
       buckets = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
     } else {
-      buckets = dailyStats;
+      buckets = parsedDailyStats.value;
     }
 
     if (buckets.length === 0) {

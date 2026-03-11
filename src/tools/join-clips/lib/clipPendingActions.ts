@@ -126,7 +126,7 @@ async function toPendingClipActions(
   return actions;
 }
 
-export async function consumePendingJoinClips(
+export async function tryConsumePendingJoinClips(
   options: ConsumePendingJoinClipsOptions = {},
 ): Promise<OperationResult<PendingClipAction[]>> {
   const projectId = options.projectId ?? null;

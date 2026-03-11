@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
+import { edgeErrorResponse } from "../_shared/edgeRequest.ts";
+import { jsonResponse } from "../_shared/http.ts";
 import {
   enforceRateLimit,
   RATE_LIMITS,
@@ -7,25 +9,18 @@ import {
 import { buildTaskInsertObject, getErrorMessage, parseCreateTaskBody } from "./request.ts";
 import { JWT_AUTH_REQUIRED } from "../_shared/requestGuards.ts";
 
-function createCorsResponse(body: string, status: number = 200) {
-  return new Response(body, {
-    status,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Content-Type": "application/json",
-    },
-  });
+function createErrorResponse(
+  message: string,
+  status: number,
+  errorCode: string,
+  recoverable = status >= 500 || status === 429,
+) {
+  return edgeErrorResponse({ errorCode, message, recoverable }, status);
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return jsonResponse({ ok: true });
   }
 
   const bootstrap = await bootstrapEdgeHandler(req, {
@@ -47,7 +42,7 @@ serve(async (req) => {
   if (!parsedBody.ok) {
     logger.error("Invalid request body", { error: parsedBody.error });
     await logger.flush();
-    return createCorsResponse(parsedBody.error, 400);
+    return createErrorResponse(parsedBody.error, 400, "invalid_request_body", false);
   }
 
   const requestBody = parsedBody.value;
@@ -84,7 +79,11 @@ serve(async (req) => {
       logger,
       logPrefix: '[CREATE-TASK]',
       responses: {
-        serviceUnavailable: () => createCorsResponse("Rate limit service unavailable", 503),
+        serviceUnavailable: () => createErrorResponse(
+          "Rate limit service unavailable",
+          503,
+          "rate_limit_service_unavailable",
+        ),
       },
     });
     if (rateLimitDenied) return rateLimitDenied;
@@ -95,20 +94,20 @@ serve(async (req) => {
     if (!requestBody.project_id) {
       logger.error("project_id required for service role");
       await logger.flush();
-      return createCorsResponse("project_id required for service role", 400);
+      return createErrorResponse("project_id required for service role", 400, "project_id_required", false);
     }
     finalProjectId = requestBody.project_id;
   } else {
     if (!callerId) {
       logger.error("Could not determine user ID");
       await logger.flush();
-      return createCorsResponse("Could not determine user ID", 401);
+      return createErrorResponse("Could not determine user ID", 401, "authentication_failed", false);
     }
 
     if (!requestBody.project_id) {
       logger.error("project_id required", { user_id: callerId });
       await logger.flush();
-      return createCorsResponse("project_id required", 400);
+      return createErrorResponse("project_id required", 400, "project_id_required", false);
     }
 
     const { data: projectData, error: projectError } = await supabaseAdmin
@@ -120,14 +119,14 @@ serve(async (req) => {
     if (projectError) {
       logger.error("Project lookup error", { project_id: requestBody.project_id, error: projectError.message });
       await logger.flush();
-      return createCorsResponse("Project not found", 404);
+      return createErrorResponse("Project not found", 404, "project_not_found", false);
     }
 
     const ownerId = projectData?.user_id;
     if (typeof ownerId !== "string") {
       logger.error("Project missing owner", { project_id: requestBody.project_id });
       await logger.flush();
-      return createCorsResponse("Project not found", 404);
+      return createErrorResponse("Project not found", 404, "project_not_found", false);
     }
 
     if (ownerId !== callerId) {
@@ -137,7 +136,7 @@ serve(async (req) => {
         owner_id: ownerId,
       });
       await logger.flush();
-      return createCorsResponse("Forbidden: You don't own this project", 403);
+      return createErrorResponse("Forbidden: You don't own this project", 403, "project_forbidden", false);
     }
 
     finalProjectId = requestBody.project_id;
@@ -177,30 +176,31 @@ serve(async (req) => {
             error: fetchError?.message,
           });
           await logger.flush();
-          return createCorsResponse("Duplicate task detected but could not retrieve it", 500);
+          return createErrorResponse(
+            "Duplicate task detected but could not retrieve it",
+            500,
+            "duplicate_task_lookup_failed",
+          );
         }
 
         logger.setDefaultTaskId(existingTask.id);
         await logger.flush();
-        return createCorsResponse(
-          JSON.stringify({
-            task_id: existingTask.id,
-            status: "Task queued",
-            deduplicated: true,
-          }),
-          200
-        );
+        return jsonResponse({
+          task_id: existingTask.id,
+          status: "Task queued",
+          deduplicated: true,
+        });
       }
 
       logger.error("Task creation failed", { error: error.message, code: error.code });
       await logger.flush();
-      return createCorsResponse(error.message, 500);
+      return createErrorResponse(error.message, 500, "task_insert_failed");
     }
 
     if (!insertedTask || typeof insertedTask.id !== "string") {
       logger.error("Task creation returned invalid payload", { insertedTask });
       await logger.flush();
-      return createCorsResponse("Task creation failed", 500);
+      return createErrorResponse("Task creation failed", 500, "invalid_task_insert_payload");
     }
 
     logger.setDefaultTaskId(insertedTask.id);
@@ -215,17 +215,14 @@ serve(async (req) => {
     });
 
     await logger.flush();
-    return createCorsResponse(
-      JSON.stringify({
-        task_id: insertedTask.id,
-        status: "Task queued",
-      }),
-      200
-    );
+    return jsonResponse({
+      task_id: insertedTask.id,
+      status: "Task queued",
+    });
   } catch (error: unknown) {
     const message = getErrorMessage(error);
     logger.critical("Unexpected error", { error: message });
     await logger.flush();
-    return createCorsResponse(`Internal server error: ${message}`, 500);
+    return createErrorResponse("Internal server error", 500, "internal_server_error");
   }
 });

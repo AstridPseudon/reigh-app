@@ -5,8 +5,8 @@ import {
   buildSubTaskFilter,
   extractOrchestratorRef,
   getSubTaskOrchestratorId,
-  lookupCompletedSubTasksForOrchestrator,
-  triggerCostCalculation,
+  fetchCompletedSubTasksForOrchestrator,
+  tryTriggerCostCalculation,
   type CompletedSubTaskRow,
 } from './billing.ts';
 
@@ -70,7 +70,7 @@ describe('_shared/billing', () => {
       { data: canonicalRows, error: null },
     ]);
 
-    const rows = await lookupCompletedSubTasksForOrchestrator(
+    const rows = await fetchCompletedSubTasksForOrchestrator(
       client,
       'orch-1',
     );
@@ -94,7 +94,7 @@ describe('_shared/billing', () => {
       { data: legacyRows, error: null },
     ]);
 
-    const rows = await lookupCompletedSubTasksForOrchestrator(client, 'orch-2');
+    const rows = await fetchCompletedSubTasksForOrchestrator(client, 'orch-2');
 
     expect(rows).toEqual(legacyRows);
     expect(filters).toHaveLength(2);
@@ -107,7 +107,7 @@ describe('_shared/billing', () => {
       { data: null, error: new Error('canonical failed') },
     ]);
 
-    await expect(lookupCompletedSubTasksForOrchestrator(client, 'orch-3')).rejects.toMatchObject({
+    await expect(fetchCompletedSubTasksForOrchestrator(client, 'orch-3')).rejects.toMatchObject({
       name: 'SubTaskLookupError',
       stage: 'canonical',
     } satisfies Partial<SubTaskLookupError>);
@@ -119,7 +119,7 @@ describe('_shared/billing', () => {
       { data: null, error: new Error('legacy failed') },
     ]);
 
-    await expect(lookupCompletedSubTasksForOrchestrator(client, 'orch-4')).rejects.toMatchObject({
+    await expect(fetchCompletedSubTasksForOrchestrator(client, 'orch-4')).rejects.toMatchObject({
       name: 'SubTaskLookupError',
       stage: 'legacy',
     } satisfies Partial<SubTaskLookupError>);
@@ -130,7 +130,7 @@ describe('_shared/billing', () => {
       new Response(JSON.stringify({ cost: 7.25, skipped: true }), { status: 200 }),
     );
 
-    const result = await triggerCostCalculation({
+    const result = await tryTriggerCostCalculation({
       supabaseUrl: 'https://example.supabase.co',
       serviceKey: 'service-key',
       taskId: 'task-1',
@@ -158,7 +158,7 @@ describe('_shared/billing', () => {
       new Response('upstream unavailable', { status: 503 }),
     );
 
-    const result = await triggerCostCalculation({
+    const result = await tryTriggerCostCalculation({
       supabaseUrl: 'https://example.supabase.co',
       serviceKey: 'service-key',
       taskId: 'task-2',
@@ -176,7 +176,7 @@ describe('_shared/billing', () => {
       new Response('invalid payload', { status: 400 }),
     );
 
-    const result = await triggerCostCalculation({
+    const result = await tryTriggerCostCalculation({
       supabaseUrl: 'https://example.supabase.co',
       serviceKey: 'service-key',
       taskId: 'task-3',
@@ -192,7 +192,7 @@ describe('_shared/billing', () => {
   it('returns recoverable request error envelope when fetch throws', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'));
 
-    const result = await triggerCostCalculation({
+    const result = await tryTriggerCostCalculation({
       supabaseUrl: 'https://example.supabase.co',
       serviceKey: 'service-key',
       taskId: 'task-4',
@@ -212,7 +212,7 @@ describe('_shared/billing', () => {
       new Response(JSON.stringify({ cost: "7.25" }), { status: 200 }),
     );
 
-    const result = await triggerCostCalculation({
+    const result = await tryTriggerCostCalculation({
       supabaseUrl: 'https://example.supabase.co',
       serviceKey: 'service-key',
       taskId: 'task-5',

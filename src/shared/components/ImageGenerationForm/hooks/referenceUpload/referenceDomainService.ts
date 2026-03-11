@@ -68,7 +68,7 @@ interface PersistReferenceSelectionInput {
   ) => Promise<void>;
 }
 
-export async function uploadAndProcessReference(
+export async function tryUploadAndProcessReference(
   input: UploadAndProcessReferenceInput,
 ): Promise<OperationResult<UploadAndProcessReferenceResult>> {
   try {
@@ -213,7 +213,7 @@ export function createReferencePointer(input: CreateReferencePointerInput): Refe
   };
 }
 
-export async function persistReferenceSelection(
+export async function tryPersistReferenceSelection(
   input: PersistReferenceSelectionInput,
 ): Promise<OperationResult<void>> {
   try {

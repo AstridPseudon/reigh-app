@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { operationFailure, operationSuccess } from '@/shared/lib/operationResult';
 import {
-  persistReferenceSelection,
+  tryPersistReferenceSelection,
   resolveReferenceThumbnailUrl,
-  uploadAndProcessReference,
+  tryUploadAndProcessReference,
 } from './referenceDomainService';
 
 const fileToDataURLMock = vi.fn();
@@ -80,7 +80,7 @@ describe('referenceDomainService', () => {
     resolveProjectResolutionMock.mockResolvedValue({ aspectRatio: '16:9' });
     processStyleReferenceForAspectRatioStringMock.mockResolvedValue(null);
 
-    const result = await uploadAndProcessReference({
+    const result = await tryUploadAndProcessReference({
       file: new File(['x'], 'a.png', { type: 'image/png' }),
       selectedProjectId: 'project-1',
     });
@@ -105,7 +105,7 @@ describe('referenceDomainService', () => {
       recoverable: false,
     }));
 
-    const result = await uploadAndProcessReference({
+    const result = await tryUploadAndProcessReference({
       file: new File(['x'], 'a.png', { type: 'image/png' }),
       selectedProjectId: undefined,
     });
@@ -127,7 +127,7 @@ describe('referenceDomainService', () => {
       operationSuccess(new File(['processed'], 'processed.png', { type: 'image/png' }))
     );
 
-    const result = await uploadAndProcessReference({
+    const result = await tryUploadAndProcessReference({
       file: new File(['x'], 'a.png', { type: 'image/png' }),
       selectedProjectId: 'project-1',
     });
@@ -168,7 +168,7 @@ describe('referenceDomainService', () => {
     });
     const updateProjectImageSettings = vi.fn().mockRejectedValue(new Error('write failed'));
 
-    const result = await persistReferenceSelection({
+    const result = await tryPersistReferenceSelection({
       queryClient: {
         getQueryData: () => ({}),
       } as unknown as import('@tanstack/react-query').QueryClient,

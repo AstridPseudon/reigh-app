@@ -13,7 +13,7 @@ export {
   setCachedClipsCount,
 } from './clipCache';
 export {
-  consumePendingJoinClips,
+  tryConsumePendingJoinClips,
   applyPendingClipActions,
   type PendingClipAction,
 } from './clipPendingActions';

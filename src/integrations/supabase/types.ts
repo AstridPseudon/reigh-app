@@ -1944,7 +1944,7 @@ export type Database = {
       }
       delete_external_api_key: { Args: { p_service: string }; Returns: Json }
       delete_project_with_extended_timeout: {
-        Args: { p_project_id: string; p_user_id: string }
+        Args: { p_project_id: string }
         Returns: boolean
       }
       demote_orphaned_video_variants: {
@@ -2265,7 +2265,7 @@ export type Database = {
       normalize_image_path: { Args: { image_path: string }; Returns: string }
       normalize_image_paths_in_jsonb: { Args: { data: Json }; Returns: Json }
       normalize_shot_timeline: {
-        Args: { p_shot_id: string; p_user_id: string }
+        Args: { p_shot_id: string }
         Returns: Json
       }
       per_user_capacity_stats_service_role: {

@@ -18,7 +18,7 @@ vi.mock('../_shared/orchestratorReferenceLookup.ts', () => ({
 }));
 
 vi.mock('./billing.ts', () => ({
-  triggerCostCalculation: (...args: unknown[]) =>
+  tryTriggerCostCalculation: (...args: unknown[]) =>
     triggerCostCalculationMock(...args),
 }));
 

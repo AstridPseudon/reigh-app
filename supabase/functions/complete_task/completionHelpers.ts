@@ -1,5 +1,5 @@
 import { toErrorMessage } from "../_shared/errorMessage.ts";
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { edgeErrorResponse } from "../_shared/edgeRequest.ts";
 import type { CompletionLogger } from './types.ts';
 

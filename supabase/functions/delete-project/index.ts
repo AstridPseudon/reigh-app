@@ -32,59 +32,60 @@ serve(async (req) => {
     }
 
     try {
-    const ownership = await verifyProjectOwnership(
-      supabaseAdmin,
-      projectId,
-      userId,
-      '[DELETE-PROJECT]',
-    );
-    if (!ownership.success) {
-      logger.warn('Project ownership verification failed', {
+      const ownership = await verifyProjectOwnership(
+        supabaseAdmin,
         projectId,
-        user_id: userId,
-        reason: ownership.error,
-      });
-      return jsonResponse(
-        { error: ownership.error || 'Forbidden: You do not own this project' },
-        ownership.statusCode || 403,
+        userId,
+        '[DELETE-PROJECT]',
       );
+      if (!ownership.success) {
+        logger.warn('Project ownership verification failed', {
+          projectId,
+          user_id: userId,
+          reason: ownership.error,
+        });
+        return jsonResponse(
+          { error: ownership.error || 'Forbidden: You do not own this project' },
+          ownership.statusCode || 403,
+        );
+      }
+
+      // Rate limit: 10 requests per minute for this destructive operation
+      const rateLimitDenied = await enforceRateLimit({
+        supabaseAdmin,
+        functionName: 'delete-project',
+        userId,
+        config: DELETE_PROJECT_RATE_LIMIT,
+        logger,
+        logPrefix: '[DELETE-PROJECT]',
+        responses: {
+          serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
+        },
+      })
+      if (rateLimitDenied) {
+        return rateLimitDenied;
+      }
+
+      logger.info('Starting deletion', { projectId, user_id: userId })
+
+      // Call the PostgreSQL function with extended timeout (5 minutes)
+      // This handles large projects that would otherwise timeout due to CASCADE deletes
+      const { error: deleteError } = await supabaseAdmin.rpc(
+        'delete_project_with_extended_timeout',
+        { p_project_id: projectId }
+      )
+
+      if (deleteError) {
+        logger.error('Error deleting project', { projectId, error: deleteError.message })
+        return jsonResponse({ error: `Failed to delete project: ${deleteError.message}` }, 500)
+      }
+
+      logger.info('Successfully deleted project', { projectId })
+      return jsonResponse({ success: true }, 200)
+    } catch (err: unknown) {
+      const message = toErrorMessage(err)
+      logger.error('Unexpected error', { error: message })
+      return jsonResponse({ error: message || 'Unexpected error' }, 500)
     }
-
-    // Rate limit: 10 requests per minute for this destructive operation
-    const rateLimitDenied = await enforceRateLimit({
-      supabaseAdmin,
-      functionName: 'delete-project',
-      userId,
-      config: DELETE_PROJECT_RATE_LIMIT,
-      logger,
-      logPrefix: '[DELETE-PROJECT]',
-      responses: {
-        serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
-      },
-    })
-    if (rateLimitDenied) {
-      return rateLimitDenied;
-    }
-
-    logger.info('Starting deletion', { projectId, user_id: userId })
-
-    // Call the PostgreSQL function with extended timeout (5 minutes)
-    // This handles large projects that would otherwise timeout due to CASCADE deletes
-    const { error: deleteError } = await supabaseAdmin.rpc(
-      'delete_project_with_extended_timeout',
-      { p_project_id: projectId, p_user_id: userId }
-    )
-
-    if (deleteError) {
-      logger.error('Error deleting project', { projectId, error: deleteError.message })
-      return jsonResponse({ error: `Failed to delete project: ${deleteError.message}` }, 500)
-    }
-
-    logger.info('Successfully deleted project', { projectId })
-    return jsonResponse({ success: true }, 200)
-  } catch (err: unknown) {
-    const message = toErrorMessage(err)
-    logger.error('Unexpected error', { error: message })
-    return jsonResponse({ error: message || 'Unexpected error' }, 500)
-  }})
+  })
 })

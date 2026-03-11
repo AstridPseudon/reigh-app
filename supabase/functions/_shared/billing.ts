@@ -147,7 +147,7 @@ export class SubTaskLookupError extends Error {
   }
 }
 
-export async function lookupCompletedSubTasksForOrchestrator(
+export async function fetchCompletedSubTasksForOrchestrator(
   supabaseAdmin: TaskQueryClient,
   orchestratorTaskId: string,
 ): Promise<CompletedSubTaskRow[]> {
@@ -170,6 +170,10 @@ export async function lookupCompletedSubTasksForOrchestrator(
   if (canonicalTasks.length > 0) {
     return canonicalTasks;
   }
+
+  console.warn('[Billing] Canonical sub-task lookup returned no rows; falling back to legacy reference paths', {
+    orchestratorTaskId,
+  });
 
   const legacyResult = await supabaseAdmin
     .from('tasks')
@@ -230,7 +234,7 @@ function parseJsonRecord(text: string): Record<string, unknown> | null {
   }
 }
 
-export async function triggerCostCalculation(
+export async function tryTriggerCostCalculation(
   params: {
     supabaseUrl: string;
     serviceKey: string;

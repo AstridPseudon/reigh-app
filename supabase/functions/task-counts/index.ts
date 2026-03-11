@@ -2,6 +2,11 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { toErrorMessage } from "../_shared/errorMessage.ts";
+import {
+  parseQueuedTasksBreakdownRow,
+  parseTaskAvailabilityAnalysis,
+  parseUserCapacityStatsRows,
+} from "../_shared/rpcDecoders.ts";
 
 type RunType = 'gpu' | 'api';
 
@@ -65,10 +70,10 @@ function allDependenciesComplete(
  * Optimized for low latency - use debug=true for verbose diagnostics.
  *
  * - Service-role key: returns global task statistics across all users
- * - User token: returns task statistics for that specific user only
+ * - PAT: returns task statistics for that specific user only
  *
  * POST /functions/v1/task-counts
- * Headers: Authorization: Bearer <JWT or PAT>
+ * Headers: Authorization: Bearer <PAT or service-role key>
  * Body: {
  *   run_type?: 'gpu' | 'api',  // Optional service-role filter by execution environment
  *   debug?: boolean            // Optional: enable verbose logging and extra queries
@@ -104,7 +109,7 @@ function allDependenciesComplete(
  *   // User stats (service role only)
  *   users?: [...],
  *
- *   // User-specific info (user token only)
+ *   // User-specific info (PAT only)
  *   user_id?: string,
  *   user_info?: {...}
  * }
@@ -175,6 +180,10 @@ serve(async (req) => {
         logger.error("Service role breakdown error", { error: breakdownResult.error.message });
         throw breakdownResult.error;
       }
+      if (userStatsResult.error) {
+        logger.error("Service role user stats error", { error: userStatsResult.error.message });
+        throw userStatsResult.error;
+      }
 
       // Legacy capacity-limited counts (for backward compatibility and claim logic)
       const queued_only = countQueuedOnly.data ?? 0;
@@ -183,13 +192,21 @@ serve(async (req) => {
 
       // Extract breakdown for scaling decisions (RPC returns a single row)
       // Note: breakdown counts are per-task eligibility, not capacity-limited
-      const breakdown = breakdownResult.data?.[0] ?? {
+      const parsedBreakdown = parseQueuedTasksBreakdownRow(breakdownResult.data?.[0] ?? {
         claimable_now: 0,
         blocked_by_capacity: 0,
         blocked_by_deps: 0,
         blocked_by_settings: 0,
         total_queued: 0
-      };
+      });
+      if (!parsedBreakdown.ok) {
+        logger.error("Service role breakdown payload invalid", {
+          error: parsedBreakdown.message,
+          cause: parsedBreakdown.cause,
+        });
+        throw parsedBreakdown.error;
+      }
+      const breakdown = parsedBreakdown.value;
 
       const blocked_by_capacity = breakdown.blocked_by_capacity ?? 0;
       const blocked_by_deps = breakdown.blocked_by_deps ?? 0;
@@ -199,16 +216,15 @@ serve(async (req) => {
       const potentially_claimable = queued_only + blocked_by_capacity;
 
       // Format user stats
-      const user_stats = Array.isArray(userStatsResult.data)
-        ? userStatsResult.data.map((u: unknown) => ({
-            user_id: u.user_id,
-            credits: u.credits,
-            queued_tasks: u.queued_tasks,
-            in_progress_tasks: u.in_progress_tasks,
-            allows_cloud: u.allows_cloud,
-            at_limit: u.at_limit
-          }))
-        : [];
+      const parsedUserStats = parseUserCapacityStatsRows(userStatsResult.data ?? []);
+      if (!parsedUserStats.ok) {
+        logger.error("Service role user stats payload invalid", {
+          error: parsedUserStats.message,
+          cause: parsedUserStats.cause,
+        });
+        throw parsedUserStats.error;
+      }
+      const user_stats = parsedUserStats.value;
 
       // Fetch task_types lookup if run_type filtering is needed
       let taskTypeRunTypeMap: Map<string, string> | null = null;
@@ -225,10 +241,8 @@ serve(async (req) => {
 
       // Build map of user in-progress counts for capacity filtering
       const userInProgressMap = new Map<string, number>();
-      if (Array.isArray(userStatsResult.data)) {
-        for (const u of userStatsResult.data) {
-          userInProgressMap.set(u.user_id, u.in_progress_tasks ?? 0);
-        }
+      for (const u of user_stats) {
+        userInProgressMap.set(u.user_id, u.in_progress_tasks ?? 0);
       }
 
       // Fetch detailed task lists (parallel, with limits for performance)
@@ -394,12 +408,26 @@ serve(async (req) => {
         logger.error("User count (queued+active) error", { error: countQueuedPlusActive.error.message, user_id: callerId });
         throw countQueuedPlusActive.error;
       }
+      if (analysisResult.error) {
+        logger.error("User analysis error", { error: analysisResult.error.message, user_id: callerId });
+        throw analysisResult.error;
+      }
 
       const queued_only = countQueuedOnly.data ?? 0;
       const queued_plus_active = countQueuedPlusActive.data ?? 0;
       const active_only = Math.max(0, queued_plus_active - queued_only);
 
-      const analysis = analysisResult.data || {};
+      const parsedAnalysis = parseTaskAvailabilityAnalysis(analysisResult.data ?? {});
+      if (!parsedAnalysis.ok) {
+        logger.error("User analysis payload invalid", {
+          error: parsedAnalysis.message,
+          user_id: callerId,
+          cause: parsedAnalysis.cause,
+        });
+        throw parsedAnalysis.error;
+      }
+
+      const analysis = parsedAnalysis.value;
       const eligible_queued = analysis.eligible_count ?? 0;
       const user_info = analysis.user_info ?? {};
       const userHasCapacity = active_only < 5;

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyPendingClipActions, consumePendingJoinClips } from '../clipPendingActions';
+import { applyPendingClipActions, tryConsumePendingJoinClips } from '../clipPendingActions';
 import { getPendingJoinClipsStorageKey } from '@/shared/lib/joinClipsPendingQueue';
 import { _clearJoinClipsIntentsForTesting, enqueueJoinClipsIntent } from '@/shared/lib/joinClipsIntentStore';
 import type { VideoClip } from '../../types';
@@ -180,11 +180,11 @@ describe('clipPendingActions', () => {
     const key = getPendingJoinClipsStorageKey('project-1', 'user-1');
     localStorage.setItem(key, '{not-json');
 
-    const result = await consumePendingJoinClips({ projectId: 'project-1' });
+    const result = await tryConsumePendingJoinClips({ projectId: 'project-1' });
 
     expect(result.ok).toBe(false);
     if (result.ok) {
-      throw new Error('Expected consumePendingJoinClips to fail');
+      throw new Error('Expected tryConsumePendingJoinClips to fail');
     }
     expect(result.errorCode).toBe('pending_join_clips_invalid_payload');
     expect(localStorage.getItem(key)).toBeNull();
@@ -213,14 +213,14 @@ describe('clipPendingActions', () => {
       ]),
     );
 
-    const result = await consumePendingJoinClips({
+    const result = await tryConsumePendingJoinClips({
       projectId: 'project-1',
       readVideoDuration: async () => 12.5,
     });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
-      throw new Error('Expected consumePendingJoinClips to succeed');
+      throw new Error('Expected tryConsumePendingJoinClips to succeed');
     }
     expect(result.policy).toBe('degrade');
     expect(result.value).toHaveLength(1);
@@ -264,14 +264,14 @@ describe('clipPendingActions', () => {
       { projectId: 'project-1', userId: 'user-1' },
     );
 
-    const result = await consumePendingJoinClips({
+    const result = await tryConsumePendingJoinClips({
       projectId: 'project-1',
       readVideoDuration: async () => 7,
     });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
-      throw new Error('Expected consumePendingJoinClips to succeed');
+      throw new Error('Expected tryConsumePendingJoinClips to succeed');
     }
     expect(result.value).toHaveLength(1);
     expect(result.value[0].clip.url).toBe('https://cdn.example.com/memory.mp4');
@@ -300,11 +300,11 @@ describe('clipPendingActions', () => {
       ]),
     );
 
-    const result = await consumePendingJoinClips({ projectId: 'project-1' });
+    const result = await tryConsumePendingJoinClips({ projectId: 'project-1' });
 
     expect(result.ok).toBe(true);
     if (!result.ok) {
-      throw new Error('Expected consumePendingJoinClips to succeed');
+      throw new Error('Expected tryConsumePendingJoinClips to succeed');
     }
     expect(result.value).toEqual([]);
     expect(localStorage.getItem(key)).toBeNull();

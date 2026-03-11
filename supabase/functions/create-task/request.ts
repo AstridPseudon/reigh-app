@@ -29,6 +29,7 @@ interface ParseFailure {
 }
 
 type ParseResult = ParseSuccess | ParseFailure;
+type DependantOnParseResult = { ok: true; value: string[] | null } | ParseFailure;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -42,14 +43,46 @@ function asNonEmptyString(value: unknown): string | null {
 
 export function normalizeDependantOn(value: unknown): string[] | null {
   if (Array.isArray(value)) {
-    const normalized = value
-      .map(asNonEmptyString)
-      .filter((entry): entry is string => entry !== null);
-    return normalized.length > 0 ? normalized : null;
+    return value.map((entry) => asNonEmptyString(entry)).filter((entry): entry is string => entry !== null);
   }
 
   const one = asNonEmptyString(value);
   return one ? [one] : null;
+}
+
+function parseDependantOn(value: unknown): DependantOnParseResult {
+  if (value === undefined || value === null) {
+    return { ok: true, value: null };
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return {
+        ok: false,
+        error: 'dependant_on must be a non-empty string or array of non-empty strings when provided',
+      };
+    }
+
+    const normalized = normalizeDependantOn(value);
+    if (normalized.length !== value.length) {
+      return {
+        ok: false,
+        error: 'dependant_on must be a non-empty string or array of non-empty strings when provided',
+      };
+    }
+
+    return { ok: true, value: normalized };
+  }
+
+  const one = asNonEmptyString(value);
+  if (!one) {
+    return {
+      ok: false,
+      error: 'dependant_on must be a non-empty string or array of non-empty strings when provided',
+    };
+  }
+
+  return { ok: true, value: [one] };
 }
 
 export function parseCreateTaskBody(body: unknown): ParseResult {
@@ -81,6 +114,11 @@ export function parseCreateTaskBody(body: unknown): ParseResult {
     return { ok: false, error: 'idempotency_key must be a non-empty string when provided' };
   }
 
+  const dependantOn = parseDependantOn(body.dependant_on);
+  if (!dependantOn.ok) {
+    return dependantOn;
+  }
+
   return {
     ok: true,
     value: {
@@ -88,7 +126,7 @@ export function parseCreateTaskBody(body: unknown): ParseResult {
       params,
       task_type: taskType,
       project_id: projectId,
-      normalizedDependantOn: normalizeDependantOn(body.dependant_on),
+      normalizedDependantOn: dependantOn.value,
       idempotency_key: idempotencyKey,
     },
   };

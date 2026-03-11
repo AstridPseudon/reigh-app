@@ -10,7 +10,7 @@ vi.mock('./optimisticCacheUpdate', () => ({
 }));
 
 vi.mock('./referenceDomainService', () => ({
-  persistReferenceSelection: (...args: unknown[]) => persistReferenceSelectionMock(...args),
+  tryPersistReferenceSelection: (...args: unknown[]) => persistReferenceSelectionMock(...args),
 }));
 
 describe('persistOptimisticReferenceSelection', () => {

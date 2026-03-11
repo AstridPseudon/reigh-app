@@ -4,7 +4,7 @@ import { NO_SESSION_RUNTIME_OPTIONS, withEdgeRequest } from "../_shared/edgeHand
 import { toErrorMessage } from "../_shared/errorMessage.ts";
 import {
   getSubTaskOrchestratorId,
-  lookupCompletedSubTasksForOrchestrator,
+  fetchCompletedSubTasksForOrchestrator,
   SubTaskLookupError,
   type CompletedSubTaskRow,
 } from "../_shared/billing.ts";
@@ -142,7 +142,7 @@ serve((req) => {
     // Check if this is an orchestrator task - calculate cost based on sub-task durations
     let subTasks: CompletedSubTaskRow[] = [];
     try {
-      subTasks = await lookupCompletedSubTasksForOrchestrator(supabaseAdmin, task_id);
+      subTasks = await fetchCompletedSubTasksForOrchestrator(supabaseAdmin, task_id);
     } catch (subTaskLookupError) {
       const stage = subTaskLookupError instanceof SubTaskLookupError
         ? subTaskLookupError.stage

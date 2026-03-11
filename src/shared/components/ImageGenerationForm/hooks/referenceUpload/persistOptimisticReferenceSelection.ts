@@ -4,7 +4,7 @@ import {
   type OperationResult,
 } from '@/shared/lib/operationResult';
 import { runOptimisticCacheUpdate } from './optimisticCacheUpdate';
-import { persistReferenceSelection } from './referenceDomainService';
+import { tryPersistReferenceSelection } from './referenceDomainService';
 import type { ProjectImageSettings } from '../../types';
 
 interface PersistOptimisticReferenceSelectionInput {
@@ -29,7 +29,7 @@ export async function persistOptimisticReferenceSelection(
     return optimisticUpdateResult;
   }
 
-  const persistResult = await persistReferenceSelection({
+  const persistResult = await tryPersistReferenceSelection({
     queryClient: input.queryClient,
     selectedProjectId: input.selectedProjectId,
     updateProjectImageSettings: input.updateProjectImageSettings,

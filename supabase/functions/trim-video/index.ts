@@ -23,7 +23,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { storagePaths, MEDIA_BUCKET } from '../_shared/storagePaths.ts';
 import { NO_SESSION_RUNTIME_OPTIONS, withEdgeRequest } from "../_shared/edgeHandler.ts";
 import { verifyProjectOwnership } from "../_shared/auth.ts";

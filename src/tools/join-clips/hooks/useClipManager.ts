@@ -12,7 +12,7 @@ import {
   getCachedClipsCount,
   setCachedClipsCount,
   preloadPosterImages,
-  consumePendingJoinClips,
+  tryConsumePendingJoinClips,
   applyPendingClipActions,
   buildInitialClipsFromSettings,
   padClipsWithEmptySlots,
@@ -20,7 +20,7 @@ import {
   buildClipsToSave,
   buildPromptsToSave,
   getClipsNeedingDuration,
-  loadClipDuration,
+  tryLoadClipDuration,
   normalizeClipSlots,
   uploadClipVideo,
   reorderClipsAndPrompts,
@@ -95,7 +95,7 @@ export function useClipManager({
     const requestVersion = pendingConsumeVersionRef.current + 1;
     pendingConsumeVersionRef.current = requestVersion;
     let cancelled = false;
-    void consumePendingJoinClips({ projectId: projectIdAtRequestStart }).then(result => {
+    void tryConsumePendingJoinClips({ projectId: projectIdAtRequestStart }).then(result => {
       if (cancelled) {
         return;
       }
@@ -204,7 +204,7 @@ export function useClipManager({
         ),
     );
     clipsNeedingDuration.forEach(async clip => {
-      const result = await loadClipDuration(clip);
+      const result = await tryLoadClipDuration(clip);
       if (!isCurrentRequest()) {
         return;
       }

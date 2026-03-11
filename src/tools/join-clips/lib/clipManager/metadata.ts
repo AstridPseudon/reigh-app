@@ -13,7 +13,7 @@ export function getClipsNeedingDuration(clips: VideoClip[]): VideoClip[] {
   );
 }
 
-export async function loadClipDuration(
+export async function tryLoadClipDuration(
   clip: VideoClip,
 ): Promise<OperationResult<{ id: string; durationSeconds: number }>> {
   try {

@@ -1,5 +1,5 @@
 import { toErrorMessage } from "../_shared/errorMessage.ts";
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 import { extractOrchestratorRef, buildSubTaskFilter, UUID_REGEX } from '../_shared/billing.ts';
 import type { SystemLogger } from '../_shared/systemLogger.ts';

@@ -5,16 +5,16 @@ import { toErrorMessage } from "../_shared/errorMessage.ts";
  * Re-exports shared billing logic and adds complete_task-specific helpers.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import {
   getSubTaskOrchestratorId,
   type CostCalculationTriggerResult,
-  triggerCostCalculation,
+  tryTriggerCostCalculation,
 } from '../_shared/billing.ts';
 import { operationFailure, operationSuccess } from '../_shared/edgeOperation.ts';
 
-// Re-export triggerCostCalculation so existing imports from orchestrator.ts continue to work
-export { triggerCostCalculation };
+// Re-export tryTriggerCostCalculation so existing imports from orchestrator.ts continue to work
+export { tryTriggerCostCalculation };
 export type { CostCalculationTriggerResult };
 
 /**
@@ -50,7 +50,7 @@ export async function triggerCostCalculationIfNotSubTask(
       );
     }
 
-    return await triggerCostCalculation({
+    return await tryTriggerCostCalculation({
       supabaseUrl,
       serviceKey,
       taskId,

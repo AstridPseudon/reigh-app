@@ -12,7 +12,7 @@
  * - extractSegmentSpecificParams: Extract per-segment params from orchestrator arrays
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { TASK_TYPES, VARIANT_TYPE_DEFAULT } from './constants.ts';
 import { extractShotAndPosition, buildGenerationParams, resolveBasedOn } from './params.ts';
 import { insertGeneration, createVariant } from './generation-core.ts';

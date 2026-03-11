@@ -155,7 +155,6 @@ describe('delete-project edge entrypoint', () => {
     await expect(response.json()).resolves.toEqual({ success: true });
     expect(supabaseAdmin.rpc).toHaveBeenCalledWith('delete_project_with_extended_timeout', {
       p_project_id: 'project-1',
-      p_user_id: 'user-1',
     });
   });
 });

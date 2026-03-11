@@ -2,7 +2,7 @@
  * Request parsing and validation for complete_task
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import {
   edgeErrorResponse,
   parseJsonBodyStrict,
