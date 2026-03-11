@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import type { PromptEntry } from '@/shared/components/ImageGenerationForm';
+import type { PromptEntry } from '@/shared/components/ImageGenerationForm/types';
 import type { GeneratePromptsParams } from '@/types/ai';
 import type { BulkEditParams as BEC_BulkEditParams } from '@/shared/components/PromptEditorModal/BulkEditControls';
 

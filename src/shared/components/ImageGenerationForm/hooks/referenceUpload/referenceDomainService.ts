@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { fileToDataURL, dataURLtoFile } from '@/shared/lib/fileConversion';
+import { fileToDataURL, dataURLtoFile } from '@/shared/lib/media/fileConversion';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import {
   ReferenceThumbnailUploadError,

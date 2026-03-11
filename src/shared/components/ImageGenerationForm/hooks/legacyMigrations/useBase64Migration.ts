@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { dataURLtoFile } from '@/shared/lib/fileConversion';
+import { dataURLtoFile } from '@/shared/lib/media/fileConversion';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { LegacyMigrationsInput } from './types';

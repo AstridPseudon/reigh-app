@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { GenerationRow } from '@/domains/generation/types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { dataURLtoFile } from '@/shared/lib/fileConversion';
+import { dataURLtoFile } from '@/shared/lib/media/fileConversion';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { uploadReferenceThumbnail } from '@/shared/lib/media/uploadReferenceThumbnail';
 import { processStyleReferenceForAspectRatioString } from '@/shared/lib/media/styleReferenceProcessor';

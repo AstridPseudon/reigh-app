@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseGenerationTaskId } from '@/shared/lib/generationTaskIdParser';
+import { parseGenerationTaskId } from '../generationTaskIdParser';
 
 describe('parseGenerationTaskId', () => {
   it('returns ok null for missing values', () => {

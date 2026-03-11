@@ -1,5 +1,5 @@
 import type { CommandConfig } from './types';
-import { writeClipboardTextSafe } from '@/shared/lib/clipboard';
+import { writeClipboardTextSafe } from '@/shared/lib/browser/clipboard';
 
 /**
  * Safe clipboard copy with fallback for older browsers

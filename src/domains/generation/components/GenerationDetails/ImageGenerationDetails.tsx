@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { writeClipboardTextSafe } from '@/shared/lib/clipboard';
+import { writeClipboardTextSafe } from '@/shared/lib/browser/clipboard';
 import type { DisplayableMetadata } from '@/shared/types/displayableMetadata';
 import { useImageGenerationDetailsViewModel } from './useImageGenerationDetailsViewModel';
 

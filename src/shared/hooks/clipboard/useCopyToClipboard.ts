@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { writeClipboardTextSafe } from '@/shared/lib/clipboard';
+import { writeClipboardTextSafe } from '@/shared/lib/browser/clipboard';
 
 /**
  * Hook for copying text to clipboard with temporary visual feedback.

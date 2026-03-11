@@ -9,7 +9,7 @@ vi.mock('../imageUploader', () => ({
   uploadImageToStorage: vi.fn().mockResolvedValue('https://storage.com/uploaded.jpg'),
 }));
 
-vi.mock('../../fileConversion', () => ({
+vi.mock('../fileConversion', () => ({
   dataURLtoFile: vi.fn().mockReturnValue(new File(['test'], 'test.png', { type: 'image/png' })),
 }));
 

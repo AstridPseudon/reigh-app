@@ -6,7 +6,7 @@ const { mockWriteClipboardTextSafe } = vi.hoisted(() => ({
   mockWriteClipboardTextSafe: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/clipboard', () => ({
+vi.mock('@/shared/lib/browser/clipboard', () => ({
   writeClipboardTextSafe: mockWriteClipboardTextSafe,
 }));
 

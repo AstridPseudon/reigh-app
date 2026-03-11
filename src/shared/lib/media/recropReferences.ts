@@ -1,6 +1,6 @@
 import { processStyleReferenceForAspectRatioString } from './styleReferenceProcessor';
 import { uploadImageToStorage } from './imageUploader';
-import { dataURLtoFile } from '../fileConversion';
+import { dataURLtoFile } from './fileConversion';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/media/clientThumbnailGenerator';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 

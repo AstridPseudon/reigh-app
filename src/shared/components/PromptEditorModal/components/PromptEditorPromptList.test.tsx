@@ -12,6 +12,10 @@ vi.mock('@/shared/components/ImageGenerationForm', () => ({
   PromptInputRow: (props: unknown) => mocks.PromptInputRow(props),
 }));
 
+vi.mock('@/shared/components/ImageGenerationForm/components/PromptInputRow', () => ({
+  PromptInputRow: (props: unknown) => mocks.PromptInputRow(props),
+}));
+
 describe('PromptEditorPromptList', () => {
   it('renders empty-state copy when there are no prompts', () => {
     render(

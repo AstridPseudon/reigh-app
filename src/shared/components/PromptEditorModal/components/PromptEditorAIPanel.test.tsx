@@ -21,7 +21,7 @@ vi.mock('@/shared/components/ui/collapsible', () => ({
 }));
 
 vi.mock('@/shared/components/ui/tabs', () => {
-  const ReactLocal = require('react') as typeof React;
+  const ReactLocal = React;
   const TabsContext = ReactLocal.createContext<{
     value: string;
     onValueChange: (value: string) => void;

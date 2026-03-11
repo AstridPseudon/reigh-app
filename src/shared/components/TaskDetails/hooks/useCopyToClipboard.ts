@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { writeClipboardTextSafe } from '@/shared/lib/clipboard';
+import { writeClipboardTextSafe } from '@/shared/lib/browser/clipboard';
 
 export function useCopyToClipboard<T>(resetMs = 2000) {
   const [copiedValue, setCopiedValue] = useState<T | null>(null);

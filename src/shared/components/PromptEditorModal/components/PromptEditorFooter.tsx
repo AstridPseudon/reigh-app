@@ -2,7 +2,7 @@ import React from 'react';
 import { DialogFooter } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { PackagePlus, Trash2 } from 'lucide-react';
-import type { PromptEntry } from '@/shared/components/ImageGenerationForm';
+import type { PromptEntry } from '@/shared/components/ImageGenerationForm/types';
 
 interface PromptEditorFooterProps {
   showFade: boolean;

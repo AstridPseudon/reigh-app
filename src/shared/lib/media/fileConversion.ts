@@ -9,7 +9,7 @@ export const fileToDataURL = (file: File): Promise<string> =>
 export const dataURLtoFile = (
   dataUrl: string,
   filename: string,
-  fileType?: string
+  fileType?: string,
 ): File | null => {
   try {
     const [metadata, payload] = dataUrl.split(',');

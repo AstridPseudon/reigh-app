@@ -1,5 +1,6 @@
 import React from 'react';
-import { PromptInputRow, type PromptEntry } from '@/shared/components/ImageGenerationForm';
+import { PromptInputRow } from '@/shared/components/ImageGenerationForm/components/PromptInputRow';
+import type { PromptEntry } from '@/shared/components/ImageGenerationForm/types';
 
 interface PromptEditorPromptListProps {
   prompts: PromptEntry[];

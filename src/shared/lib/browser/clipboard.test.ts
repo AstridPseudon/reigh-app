@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { writeClipboardTextSafe } from '../clipboard';
+import { writeClipboardTextSafe } from './clipboard';
 
 describe('writeClipboardTextSafe', () => {
   const originalClipboard = navigator.clipboard;

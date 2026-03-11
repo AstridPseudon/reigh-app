@@ -17,7 +17,7 @@ const uploadMock = vi.fn();
 const getPublicUrlMock = vi.fn();
 const extractSettingsFromCacheMock = vi.fn();
 
-vi.mock('@/shared/lib/fileConversion', () => ({
+vi.mock('@/shared/lib/media/fileConversion', () => ({
   fileToDataURL: (...args: unknown[]) => fileToDataURLMock(...args),
   dataURLtoFile: (...args: unknown[]) => dataURLtoFileMock(...args),
 }));

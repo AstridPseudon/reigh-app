@@ -1,9 +1,11 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { isUuid } from '@/shared/lib/uuid';
-import { parseGenerationTaskId } from '@/shared/lib/generationTaskIdParser';
-import type { GenerationTaskMappingCacheEntry } from '@/shared/lib/generationTaskRepository';
+import {
+  getPrimaryTaskIdForGeneration,
+  toGenerationTaskMappingCacheEntry,
+  type GenerationTaskMappingCacheEntry,
+} from '@/shared/lib/generationTaskRepository';
 
 export async function fetchGenerationTaskMapping(
   generationId: string,
@@ -12,29 +14,9 @@ export async function fetchGenerationTaskMapping(
     return { taskId: null, status: 'not_loaded' };
   }
 
-  const { data, error } = await supabase()
-    .from('generations')
-    .select('tasks')
-    .eq('id', generationId)
-    .maybeSingle();
-
-  if (error) {
-    return {
-      taskId: null,
-      status: 'query_failed',
-      queryError: error.message,
-    };
-  }
-
-  if (!data) {
-    return { taskId: null, status: 'missing_generation' };
-  }
-
-  const parsed = parseGenerationTaskId(data.tasks);
-  return {
-    taskId: parsed.taskId,
-    status: parsed.status,
-  };
+  return toGenerationTaskMappingCacheEntry(
+    await getPrimaryTaskIdForGeneration(generationId),
+  );
 }
 
 export function useGenerationTaskMapping(generationId: string) {

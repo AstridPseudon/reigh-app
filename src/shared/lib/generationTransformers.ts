@@ -27,7 +27,7 @@ import { TOOL_IDS, isToolId } from '@/shared/lib/toolIds';
 import { ServerError } from '@/shared/lib/errorHandling/errors';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { expandShotData } from '@/shared/lib/shotData';
-import { parseGenerationTaskId } from '@/shared/lib/generationTaskIdParser';
+import { parseGenerationTaskId } from '@/shared/lib/tasks/generationTaskIdParser';
 import { filterUuidStrings } from '@/shared/lib/uuid';
 import { asRecord, asString, firstString } from '@/shared/lib/jsonNarrowing';
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
-import { PromptEntry } from './ImageGenerationForm';
+import type { PromptEntry } from './ImageGenerationForm/types';
 import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useIsMobile } from '@/shared/hooks/mobile';
 import { useExtraLargeModal } from '@/shared/hooks/useModal';

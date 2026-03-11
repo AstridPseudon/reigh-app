@@ -12,7 +12,7 @@ import {
   type BulkEditParams as BECBulkEditParams,
   type BulkEditControlValues as BECBulkEditControlValues,
 } from '@/shared/components/PromptEditorModal/BulkEditControls';
-import type { PromptEntry } from '@/shared/components/ImageGenerationForm';
+import type { PromptEntry } from '@/shared/components/ImageGenerationForm/types';
 import type { GeneratePromptsParams } from '@/types/ai';
 type EditorMode = 'generate' | 'remix' | 'bulk-edit';
 
