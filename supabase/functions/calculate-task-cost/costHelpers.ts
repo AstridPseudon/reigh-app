@@ -206,12 +206,19 @@ export function parseTaskWithProject(value: unknown): TaskParseResult {
   if (ttRaw) {
     const ttId = asString(ttRaw.id);
     const billingType = asString(ttRaw.billing_type);
-    if (ttId && billingType) {
+    const baseCostPerSecond = asNumber(ttRaw.base_cost_per_second);
+    const unitCost = asNumber(ttRaw.unit_cost);
+    if (
+      ttId &&
+      billingType &&
+      baseCostPerSecond !== undefined &&
+      unitCost !== undefined
+    ) {
       taskTypeConfig = {
         id: ttId,
         billing_type: billingType,
-        base_cost_per_second: typeof ttRaw.base_cost_per_second === 'number' ? ttRaw.base_cost_per_second : 0,
-        unit_cost: typeof ttRaw.unit_cost === 'number' ? ttRaw.unit_cost : 0,
+        base_cost_per_second: baseCostPerSecond,
+        unit_cost: unitCost,
         cost_factors: parseCostFactors(ttRaw.cost_factors),
         is_active: ttRaw.is_active === true,
       };

@@ -130,16 +130,21 @@ function parseJsonField<T>(
   }
 }
 
-function parseSampleVideos(raw: string | null): NormalizedSampleVideo[] {
+function parseSampleVideos(raw: string | null): ResponseResult<NormalizedSampleVideo[]> {
   if (!raw) {
-    return [];
+    return { ok: true, value: [] };
   }
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed as NormalizedSampleVideo[] : [];
-  } catch {
-    return [];
+
+  const parsed = parseJsonField<unknown>(raw, "sampleVideos");
+  if (!parsed.ok) {
+    return parsed;
   }
+
+  if (!Array.isArray(parsed.value)) {
+    return invalidUploadRequest("sampleVideos must be a JSON array");
+  }
+
+  return { ok: true, value: parsed.value as NormalizedSampleVideo[] };
 }
 
 function parseStoragePaths(
@@ -189,12 +194,17 @@ async function parseUploadRequest(req: Request): Promise<ResponseResult<ParsedUp
     return loraDetailsResult;
   }
 
+  const sampleVideosResult = parseSampleVideos(formData.get("sampleVideos") as string | null);
+  if (!sampleVideosResult.ok) {
+    return sampleVideosResult;
+  }
+
   return {
     ok: true,
     value: {
       storagePaths,
       loraDetails: loraDetailsResult.value,
-      sampleVideos: parseSampleVideos(formData.get("sampleVideos") as string | null),
+      sampleVideos: sampleVideosResult.value,
       repoNameOverride: formData.get("repoName") as string | null,
       isPrivate: formData.get("isPrivate") === "true",
     },

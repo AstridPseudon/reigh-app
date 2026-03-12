@@ -126,6 +126,31 @@ describe('huggingface-upload edge entrypoint', () => {
     }
   });
 
+  it('rejects malformed sampleVideos JSON through the extracted request helper', async () => {
+    const formData = new FormData();
+    formData.set('loraStoragePath', 'user-1/uploads/model.safetensors');
+    formData.set('loraDetails', JSON.stringify({
+      name: 'Test LoRA',
+      baseModel: 'wan',
+    }));
+    formData.set('sampleVideos', '{bad-json');
+
+    const result = await HuggingfaceUploadEntrypoint.__internal.parseUploadRequest(
+      new Request('https://edge.test/huggingface-upload', {
+        method: 'POST',
+        body: formData,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(400);
+      await expect(result.response.json()).resolves.toEqual({
+        error: 'sampleVideos must be valid JSON',
+      });
+    }
+  });
+
   it('rejects LoRA paths that do not belong to the authenticated user before reading secrets', async () => {
     const rpc = vi.fn();
     const download = vi.fn();

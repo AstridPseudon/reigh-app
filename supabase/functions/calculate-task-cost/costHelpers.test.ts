@@ -74,6 +74,33 @@ describe('calculate-task-cost costHelpers', () => {
     });
   });
 
+  it('drops malformed joined billing config instead of fabricating zero-valued rates', () => {
+    const parsed = CostHelpers.parseTaskWithProject({
+      id: 'task-1',
+      task_type: 'image_generation',
+      params: {},
+      status: 'complete',
+      generation_started_at: '2026-01-01T00:00:00.000Z',
+      generation_processed_at: '2026-01-01T00:00:05.000Z',
+      project_id: 'project-1',
+      projects: { user_id: 'user-1' },
+      task_types: {
+        id: 'image_generation',
+        billing_type: 'per_second',
+        base_cost_per_second: 'bad',
+        unit_cost: 0,
+        cost_factors: null,
+        is_active: true,
+      },
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      throw new Error('Expected parsed task to be valid');
+    }
+    expect(parsed.task.task_type_config).toBeNull();
+  });
+
   it('calculates non-video task cost with multipliers and frame factors', () => {
     const result = CostHelpers.calculateTaskCost(
       'image_generation',
