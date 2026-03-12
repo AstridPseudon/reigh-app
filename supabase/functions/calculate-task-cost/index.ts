@@ -17,9 +17,6 @@ import {
   parseTaskCostParams,
   parseTaskWithProject,
 } from "./costHelpers.ts";
-export const __internal = {
-  parseTaskCostParams,
-};
 
 serve((req) => {
   return withEdgeRequest(req, {

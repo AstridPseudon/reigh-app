@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { __getServeHandler, __resetServeHandler } from '../_tests/mocks/denoHttpServer.ts';
-import * as CalculateTaskCostEntrypoint from './index.ts';
+import { parseTaskCostParams } from './costHelpers.ts';
 
 describe('calculate-task-cost parsing contracts', () => {
   it('preserves validated known fields and extra unknown fields', () => {
-    const parsed = CalculateTaskCostEntrypoint.__internal.parseTaskCostParams({
+    const parsed = parseTaskCostParams({
       resolution: '1280x720',
       frame_count: 32,
       model_type: 'i2v',
@@ -20,7 +20,7 @@ describe('calculate-task-cost parsing contracts', () => {
   });
 
   it('drops malformed known billing keys instead of re-injecting raw values', () => {
-    const parsed = CalculateTaskCostEntrypoint.__internal.parseTaskCostParams({
+    const parsed = parseTaskCostParams({
       resolution: 123,
       frame_count: '32',
       model_type: 999,

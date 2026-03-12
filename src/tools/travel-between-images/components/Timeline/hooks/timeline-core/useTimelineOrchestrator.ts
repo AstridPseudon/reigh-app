@@ -156,56 +156,6 @@ interface UseTimelineOrchestratorReturn {
   };
 }
 
-interface TimelineOrchestratorResultArgs {
-  refs: UseTimelineOrchestratorReturn['refs'];
-  viewport: UseTimelineOrchestratorReturn['viewport'];
-  drag: UseTimelineOrchestratorReturn['drag'];
-  selection: UseTimelineOrchestratorReturn['selection'];
-  pending: UseTimelineOrchestratorReturn['pending'];
-  drop: UseTimelineOrchestratorReturn['drop'];
-  computed: UseTimelineOrchestratorReturn['computed'];
-  actions: UseTimelineOrchestratorReturn['actions'];
-  endpoint: UseTimelineOrchestratorReturn['endpoint'];
-  uiState: UseTimelineOrchestratorReturn['uiState'];
-  device: UseTimelineOrchestratorReturn['device'];
-}
-
-function buildTimelineOrchestratorResult({
-  refs,
-  viewport,
-  drag,
-  selection,
-  pending,
-  drop,
-  computed,
-  actions,
-  endpoint,
-  uiState,
-  device,
-}: TimelineOrchestratorResultArgs): UseTimelineOrchestratorReturn {
-  return {
-    refs,
-    viewport,
-    drag,
-    selection,
-    pending,
-    drop,
-    computed,
-    actions,
-    endpoint,
-    uiState,
-    device,
-  };
-}
-
-export const __internal = {
-  buildTimelineOrchestratorResult,
-  handleTimelineStructureVideoSelect,
-  runDuplicateInterceptor,
-  runGenerationDropInterceptor,
-  runImageDropInterceptor,
-};
-
 export function useTimelineOrchestrator({
   shotId,
   images,
@@ -393,7 +343,7 @@ export function useTimelineOrchestrator({
     zoomLevel: viewport.zoomLevel,
   });
 
-  return buildTimelineOrchestratorResult({
+  return {
     refs: {
       timelineRef,
       containerRef,
@@ -461,5 +411,5 @@ export function useTimelineOrchestrator({
       enableTapToMove,
       prefetchTaskData,
     },
-  });
+  };
 }

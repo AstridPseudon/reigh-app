@@ -73,154 +73,43 @@ function pickRecord(reader: ReturnType<typeof createTravelPayloadReader>, key: s
   return legacyRecord;
 }
 
+/** Field descriptors for structure source: [outputKey, lookupKeys, sources] */
+const STRUCTURE_FIELDS: [string, string[], TravelPayloadSource[]][] = [
+  ['structure_guidance', ['structure_guidance', 'structureGuidance'], CONTRACT_THEN_LEGACY],
+  ['structure_videos', ['structure_videos', 'structureVideos'], CONTRACT_THEN_LEGACY],
+  ['structure_video_path', ['structure_video_path', 'structureVideoPath'], LEGACY_SOURCES],
+  ['structure_video_treatment', ['structure_video_treatment', 'structureVideoTreatment'], LEGACY_SOURCES],
+  ['structure_video_type', ['structure_video_type', 'structure_type', 'structureVideoType', 'structureType'], LEGACY_SOURCES],
+  ['structure_video_motion_strength', ['structure_video_motion_strength', 'structureVideoMotionStrength'], LEGACY_SOURCES],
+  ['structure_canny_intensity', ['structure_canny_intensity', 'structureCannyIntensity'], LEGACY_SOURCES],
+  ['structure_depth_contrast', ['structure_depth_contrast', 'structureDepthContrast'], LEGACY_SOURCES],
+  ['uni3c_start_percent', ['uni3c_start_percent', 'uni3cStartPercent'], LEGACY_SOURCES],
+  ['uni3c_end_percent', ['uni3c_end_percent', 'uni3cEndPercent'], LEGACY_SOURCES],
+  ['use_uni3c', ['use_uni3c', 'useUni3c'], LEGACY_SOURCES],
+];
+
 export function buildTravelStructureSource(
   snapshot: TaskPayloadSnapshot,
 ): Record<string, unknown> {
   const reader = createTravelPayloadReader(snapshot);
-  const structureGuidance = pickFirstDefinedValue(
-    reader,
-    ['structure_guidance', 'structureGuidance'],
-    CONTRACT_THEN_LEGACY,
-  );
-  const guidanceVideos = asRecord(structureGuidance)?.videos;
+  const result: Record<string, unknown> = {};
 
-  return {
-    ...(structureGuidance !== undefined
-      ? { structure_guidance: structureGuidance }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_videos', 'structureVideos'],
-      CONTRACT_THEN_LEGACY,
-    ) !== undefined
-      ? {
-          structure_videos: pickFirstDefinedValue(
-            reader,
-            ['structure_videos', 'structureVideos'],
-            CONTRACT_THEN_LEGACY,
-          ),
-        }
-      : Array.isArray(guidanceVideos)
-        ? { structure_videos: guidanceVideos }
-        : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_video_path', 'structureVideoPath'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          structure_video_path: pickFirstDefinedValue(
-            reader,
-            ['structure_video_path', 'structureVideoPath'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_video_treatment', 'structureVideoTreatment'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          structure_video_treatment: pickFirstDefinedValue(
-            reader,
-            ['structure_video_treatment', 'structureVideoTreatment'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_video_type', 'structure_type', 'structureVideoType', 'structureType'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          structure_video_type: pickFirstDefinedValue(
-            reader,
-            ['structure_video_type', 'structure_type', 'structureVideoType', 'structureType'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_video_motion_strength', 'structureVideoMotionStrength'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          structure_video_motion_strength: pickFirstDefinedValue(
-            reader,
-            ['structure_video_motion_strength', 'structureVideoMotionStrength'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_canny_intensity', 'structureCannyIntensity'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          structure_canny_intensity: pickFirstDefinedValue(
-            reader,
-            ['structure_canny_intensity', 'structureCannyIntensity'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['structure_depth_contrast', 'structureDepthContrast'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          structure_depth_contrast: pickFirstDefinedValue(
-            reader,
-            ['structure_depth_contrast', 'structureDepthContrast'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['uni3c_start_percent', 'uni3cStartPercent'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          uni3c_start_percent: pickFirstDefinedValue(
-            reader,
-            ['uni3c_start_percent', 'uni3cStartPercent'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['uni3c_end_percent', 'uni3cEndPercent'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          uni3c_end_percent: pickFirstDefinedValue(
-            reader,
-            ['uni3c_end_percent', 'uni3cEndPercent'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-    ...(pickFirstDefinedValue(
-      reader,
-      ['use_uni3c', 'useUni3c'],
-      LEGACY_SOURCES,
-    ) !== undefined
-      ? {
-          use_uni3c: pickFirstDefinedValue(
-            reader,
-            ['use_uni3c', 'useUni3c'],
-            LEGACY_SOURCES,
-          ),
-        }
-      : {}),
-  };
+  for (const [outputKey, lookupKeys, sources] of STRUCTURE_FIELDS) {
+    const value = pickFirstDefinedValue(reader, lookupKeys, sources);
+    if (value !== undefined) {
+      result[outputKey] = value;
+    }
+  }
+
+  // Fallback: if structure_videos wasn't found, check for videos array inside structure_guidance
+  if (result.structure_videos === undefined && result.structure_guidance !== undefined) {
+    const guidanceVideos = asRecord(result.structure_guidance)?.videos;
+    if (Array.isArray(guidanceVideos)) {
+      result.structure_videos = guidanceVideos;
+    }
+  }
+
+  return result;
 }
 
 export function readResolvedTravelStructure(

@@ -276,7 +276,7 @@ export function buildShotEditorContextInput({
   };
 }
 
-function buildShotEditorScreenModel({
+export function buildShotEditorScreenModel({
   core,
   images,
   controllers,
@@ -390,12 +390,6 @@ function buildShotEditorLayoutSections({
     },
   };
 }
-
-export const __internal = {
-  buildShotEditorScreenModel,
-  buildShotEditorContextInput,
-  buildShotEditorLayoutSections,
-};
 
 export function useShotEditorLayoutModel({
   core,

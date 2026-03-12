@@ -652,7 +652,7 @@ function generateReadmeContent(
  * 6. Clean up temporary files
  * 7. Return HuggingFace URLs
  */
-export const __internal = {
+export {
   buildUploadResponse,
   normalizeOwnedInputs,
   parseUploadRequest,

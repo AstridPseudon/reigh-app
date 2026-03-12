@@ -133,17 +133,10 @@ async function fetchFreshShotGenerations(selectedShotId: string): Promise<ShotGe
   return (data || []) as ShotGenRow[];
 }
 
-// =============================================================================
-// TEST-ONLY INTERNAL SURFACE
-// Keep helper exports behind a single internal namespace so production
-// consumers rely on generateVideo() as the stable module contract.
-// =============================================================================
-export const __internal = {
+export {
   stripModeFromPhaseConfig,
   extractPairOverrides,
   filterImageShotGenerations,
-  resolveGenerationResolution,
-  buildStructureGuidance,
   buildTravelRequestBodyV2,
   buildImagePayload,
   buildTimelinePairConfig,
@@ -151,8 +144,9 @@ export const __internal = {
   buildByPairConfig,
   resolveModelPhaseSelection,
   validatePhaseConfigConsistency,
-  buildBasicModePhaseConfig: buildBasicModeGenerationRequest,
-} as const;
+  buildBasicModeGenerationRequest as buildBasicModePhaseConfig,
+};
+export { resolveGenerationResolution, buildStructureGuidance };
 export type { ShotGenRow, ImagePayload, PairConfigPayload, ModelPhaseSelection };
 
 /**

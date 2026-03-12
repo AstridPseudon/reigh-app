@@ -37,7 +37,7 @@ import { useImageManagementController } from './controllers/useImageManagementCo
 import { useGenerationControllerInputModel } from './controllers/useGenerationControllerInputModel';
 import { useShotEditorMediaAndOutputControllers } from './controllers/useShotEditorMediaAndOutputControllers';
 import {
-  __internal as shotEditorLayoutInternal,
+  buildShotEditorScreenModel,
   useShotEditorLayoutModel,
 } from './controllers/useShotEditorLayoutModel';
 import { useApplySettingsHandler } from './hooks/actions/useApplySettingsHandler';
@@ -407,7 +407,7 @@ export function useShotEditorController({
     lastVideoGeneration,
   });
 
-  const screenModel = shotEditorLayoutInternal.buildShotEditorScreenModel({
+  const screenModel = buildShotEditorScreenModel({
     core: {
       selectedShot,
       selectedShotId,

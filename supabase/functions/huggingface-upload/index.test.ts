@@ -81,7 +81,7 @@ describe('huggingface-upload edge entrypoint', () => {
     formData.set('repoName', 'custom-repo');
     formData.set('isPrivate', 'true');
 
-    const result = await HuggingfaceUploadEntrypoint.__internal.parseUploadRequest(
+    const result = await HuggingfaceUploadEntrypoint.parseUploadRequest(
       new Request('https://edge.test/huggingface-upload', {
         method: 'POST',
         body: formData,
@@ -110,7 +110,7 @@ describe('huggingface-upload edge entrypoint', () => {
       baseModel: 'wan',
     }));
 
-    const result = await HuggingfaceUploadEntrypoint.__internal.parseUploadRequest(
+    const result = await HuggingfaceUploadEntrypoint.parseUploadRequest(
       new Request('https://edge.test/huggingface-upload', {
         method: 'POST',
         body: formData,
@@ -135,7 +135,7 @@ describe('huggingface-upload edge entrypoint', () => {
     }));
     formData.set('sampleVideos', '{bad-json');
 
-    const result = await HuggingfaceUploadEntrypoint.__internal.parseUploadRequest(
+    const result = await HuggingfaceUploadEntrypoint.parseUploadRequest(
       new Request('https://edge.test/huggingface-upload', {
         method: 'POST',
         body: formData,

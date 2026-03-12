@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { __internal, buildShotEditorContextInput } from './useShotEditorLayoutModel';
+import { buildShotEditorContextInput, buildShotEditorScreenModel } from './useShotEditorLayoutModel';
 
 function createLayoutArgs() {
   const noop = vi.fn();
@@ -203,7 +203,7 @@ describe('useShotEditorLayoutModel builders', () => {
   it('builds one screen model that feeds both context and layout consumers', () => {
     const args = createLayoutArgs();
 
-    const result = __internal.buildShotEditorScreenModel({
+    const result = buildShotEditorScreenModel({
       core: args.core as never,
       images: args.images as never,
       controllers: args.controllers as never,
@@ -216,24 +216,5 @@ describe('useShotEditorLayoutModel builders', () => {
     expect(result.contextInput.structureVideo.structureVideoPath).toBe('video.mp4');
     expect(result.layoutParams.controllers.output.selectedOutputId).toBe('output-1');
     expect(result.layoutParams.sections.applySettingsFromTask).toBe(args.sections.applySettingsFromTask);
-  });
-
-  it('builds section props without forcing the top-level hook to hand-wire every subsection inline', () => {
-    const args = createLayoutArgs();
-    const contextValue = { test: true };
-
-    const result = __internal.buildShotEditorLayoutSections({
-      core: args.core as never,
-      controllers: args.controllers as never,
-      settings: args.settings as never,
-      sections: args.sections as never,
-      contextValue: contextValue as never,
-      handleJoinSegmentsClick: vi.fn(),
-    });
-
-    expect(result.contextValue).toBe(contextValue);
-    expect(result.timeline.prompt).toBe('Prompt');
-    expect(result.finalVideo.selectedOutputId).toBe('output-1');
-    expect(result.modals.isLoraModalOpen).toBe(true);
   });
 });

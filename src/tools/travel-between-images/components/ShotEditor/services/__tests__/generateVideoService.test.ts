@@ -19,14 +19,6 @@ vi.mock('sonner', () => ({
 }));
 
 import {
-  __internal,
-  type ShotGenRow,
-  type ImagePayload,
-  type PairConfigPayload,
-} from '../generateVideoService';
-import type { PhaseConfig } from '@/shared/types/phaseConfig';
-
-const {
   buildBasicModePhaseConfig,
   buildImagePayload,
   buildTimelinePairConfig,
@@ -34,13 +26,17 @@ const {
   buildByPairConfig,
   resolveModelPhaseSelection,
   validatePhaseConfigConsistency,
-  stripModeFromPhaseConfig: _stripModeFromPhaseConfig,
-  extractPairOverrides: _extractPairOverrides,
-  filterImageShotGenerations: _filterImageShotGenerations,
-  resolveGenerationResolution: _resolveGenerationResolution,
-  buildStructureGuidance: _buildStructureGuidance,
-  buildTravelRequestBodyV2: _buildTravelRequestBodyV2,
-} = __internal;
+  stripModeFromPhaseConfig as _stripModeFromPhaseConfig,
+  extractPairOverrides as _extractPairOverrides,
+  filterImageShotGenerations as _filterImageShotGenerations,
+  resolveGenerationResolution as _resolveGenerationResolution,
+  buildStructureGuidance as _buildStructureGuidance,
+  buildTravelRequestBodyV2 as _buildTravelRequestBodyV2,
+  type ShotGenRow,
+  type ImagePayload,
+  type PairConfigPayload,
+} from '../generateVideoService';
+import type { PhaseConfig } from '@/shared/types/phaseConfig';
 
 // ============================================================================
 // TEST HELPERS

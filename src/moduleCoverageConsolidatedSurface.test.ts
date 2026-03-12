@@ -147,7 +147,7 @@ const moduleLoaders = [
       import('@/shared/services/projects/projectSetupRepository'),
   },
   {
-    expectedExports: ['__internal', 'useShotEditorLayoutModel'],
+    expectedExports: ['buildShotEditorContextInput', 'buildShotEditorScreenModel', 'useShotEditorLayoutModel'],
     loadModule: () =>
       import(
         '@/tools/travel-between-images/components/ShotEditor/controllers/useShotEditorLayoutModel'
