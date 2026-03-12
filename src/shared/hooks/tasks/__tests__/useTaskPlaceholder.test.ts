@@ -88,11 +88,22 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }));
 
-const mockSupabaseUpdate = vi.fn(() => ({ in: vi.fn(() => Promise.resolve({ error: null })) }));
+const mockInvokeWithTimeout = vi.fn();
+const mockRequireSession = vi.fn().mockResolvedValue({
+  access_token: 'session-token',
+  user: { id: 'user-1' },
+});
+
 vi.mock('@/integrations/supabase/client', () => ({
-  getSupabaseClient: () => ({
-    from: () => ({ update: mockSupabaseUpdate }),
-  }),
+  getSupabaseClient: () => ({}),
+}));
+
+vi.mock('@/integrations/supabase/auth/ensureAuthenticatedSession', () => ({
+  requireSession: (...args: unknown[]) => mockRequireSession(...args),
+}));
+
+vi.mock('@/shared/lib/invokeWithTimeout', () => ({
+  invokeWithTimeout: (...args: unknown[]) => mockInvokeWithTimeout(...args),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
@@ -102,6 +113,11 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
 describe('useTaskPlaceholder', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireSession.mockResolvedValue({
+      access_token: 'session-token',
+      user: { id: 'user-1' },
+    });
+    mockInvokeWithTimeout.mockResolvedValue({});
   });
 
   it('runs full lifecycle on success', async () => {
@@ -212,5 +228,28 @@ describe('useTaskPlaceholder', () => {
       label: 'Generate 4 images',
       expectedCount: 4,
     });
+  });
+
+  it('cancels newly created tasks through the audited edge status path when the placeholder was cancelled mid-flight', async () => {
+    mockWasCancelled.mockReturnValue(true);
+    const { result } = renderHook(() => useTaskPlaceholder());
+
+    await act(async () => {
+      await result.current({
+        taskType: 'image_generation',
+        label: 'Generate 1 image',
+        context: 'test',
+        toastTitle: 'Failed',
+        create: async () => ({ task_id: 'task-1' }),
+      });
+    });
+
+    expect(mockRequireSession).toHaveBeenCalled();
+    expect(mockInvokeWithTimeout).toHaveBeenCalledWith('update-task-status', expect.objectContaining({
+      body: { task_id: 'task-1', status: 'Cancelled' },
+      headers: { Authorization: 'Bearer session-token' },
+    }));
+    expect(mockResolveTaskIds).not.toHaveBeenCalled();
+    expect(mockAcknowledgeCancellation).toHaveBeenCalledWith('incoming-1');
   });
 });

@@ -1,10 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { requireSession } from '@/integrations/supabase/auth/ensureAuthenticatedSession';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 
+async function updateTaskStatusToCancelled(taskId: string, accessToken: string): Promise<void> {
+  await invokeWithTimeout('update-task-status', {
+    body: {
+      task_id: taskId,
+      status: 'Cancelled',
+    },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    timeoutMs: 20000,
+  });
+}
+
 /**
- * Cancel a task using direct Supabase call
+ * Cancel a task via the audited task-status edge path.
  * For orchestrator tasks (travel_orchestrator, join_clips_orchestrator, etc.), also cancels all subtasks
  */
 async function cancelTask(taskId: string): Promise<void> {
@@ -23,26 +38,8 @@ async function cancelTask(taskId: string): Promise<void> {
     throw new Error(`Task is already ${task.status}`);
   }
 
-  // Cancel the main task - use .select() to verify the update happened
-  const { data: updatedTask, error: cancelError } = await supabase().from('tasks')
-    .update({
-      status: 'Cancelled',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', taskId)
-    .select('id, status')
-    .single();
-
-  if (cancelError) {
-    throw new Error(`Failed to cancel task: ${cancelError.message}`);
-  }
-
-  // Verify the update actually happened
-  if (!updatedTask || updatedTask.status !== 'Cancelled') {
-    const err = new Error('Task cancellation failed - status not updated');
-    normalizeAndPresentError(err, { context: 'useCancelTask', showToast: false, logData: { updatedTask } });
-    throw err;
-  }
+  const session = await requireSession(supabase(), 'useCancelTask.cancelTask');
+  await updateTaskStatusToCancelled(taskId, session.access_token);
 
   // If it's an orchestrator task, cancel all subtasks
   if (task && task.task_type?.includes('orchestrator')) {
@@ -60,17 +57,7 @@ async function cancelTask(taskId: string): Promise<void> {
       }).map(subtask => subtask.id);
 
       if (subtaskIds.length > 0) {
-        // Cancel all subtasks
-        const { error: subtaskCancelError } = await supabase().from('tasks')
-          .update({
-            status: 'Cancelled',
-            updated_at: new Date().toISOString()
-          })
-          .in('id', subtaskIds);
-
-        if (subtaskCancelError) {
-          normalizeAndPresentError(subtaskCancelError, { context: 'useCancelTask', showToast: false });
-        }
+        await Promise.all(subtaskIds.map((id) => updateTaskStatusToCancelled(id, session.access_token)));
       }
     }
   }
@@ -105,7 +92,7 @@ interface CancelAllPendingTasksResponse {
 }
 
 /**
- * Cancel all pending tasks for a project using direct Supabase call
+ * Cancel all pending tasks for a project via the audited task-status edge path.
  * For orchestrator tasks (travel_orchestrator, join_clips_orchestrator, etc.), also cancels their subtasks
  */
 async function cancelPendingTasks(projectId: string): Promise<CancelAllPendingTasksResponse> {
@@ -145,16 +132,8 @@ async function cancelPendingTasks(projectId: string): Promise<CancelAllPendingTa
   const taskIdsArray = Array.from(tasksToCancel);
 
   if (taskIdsArray.length > 0) {
-    const { error: cancelError } = await supabase().from('tasks')
-      .update({
-        status: 'Cancelled',
-        updated_at: new Date().toISOString()
-      })
-      .in('id', taskIdsArray);
-
-    if (cancelError) {
-      throw new Error(`Failed to cancel tasks: ${cancelError.message}`);
-    }
+    const session = await requireSession(supabase(), 'useCancelPendingTasks.cancelPendingTasks');
+    await Promise.all(taskIdsArray.map((taskId) => updateTaskStatusToCancelled(taskId, session.access_token)));
   }
 
   return {

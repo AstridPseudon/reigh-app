@@ -3,15 +3,31 @@ import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const { mockFrom, mockHandleError } = vi.hoisted(() => ({
+const { mockFrom, mockHandleError, mockInvokeWithTimeout, mockRequireSession } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockHandleError: vi.fn(),
+  mockInvokeWithTimeout: vi.fn(),
+  mockRequireSession: vi.fn().mockResolvedValue({
+    access_token: 'session-token',
+    user: { id: 'user-1' },
+  }),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
+    auth: {
+      getSession: vi.fn(),
+    },
     from: mockFrom,
   }),
+}));
+
+vi.mock('@/integrations/supabase/auth/ensureAuthenticatedSession', () => ({
+  requireSession: (...args: unknown[]) => mockRequireSession(...args),
+}));
+
+vi.mock('@/shared/lib/invokeWithTimeout', () => ({
+  invokeWithTimeout: (...args: unknown[]) => mockInvokeWithTimeout(...args),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
@@ -48,6 +64,11 @@ function createTaskCancellationWrapper(queryClient: QueryClient) {
 describe('useCancelTask', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireSession.mockResolvedValue({
+      access_token: 'session-token',
+      user: { id: 'user-1' },
+    });
+    mockInvokeWithTimeout.mockResolvedValue({});
   });
 
   it('cancels a queued task and invalidates relevant queries', async () => {
@@ -57,7 +78,6 @@ describe('useCancelTask', () => {
     const fetchTaskChain = {
       select: vi.fn(),
       eq: vi.fn(),
-      update: vi.fn(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
       single: vi.fn().mockResolvedValue({
         data: {
@@ -71,25 +91,7 @@ describe('useCancelTask', () => {
     } as MockChain;
     fetchTaskChain.select.mockReturnValue(fetchTaskChain);
     fetchTaskChain.eq.mockReturnValue(fetchTaskChain);
-    fetchTaskChain.update.mockReturnValue(fetchTaskChain);
-
-    const cancelTaskChain = {
-      select: vi.fn(),
-      eq: vi.fn(),
-      update: vi.fn(),
-      in: vi.fn().mockResolvedValue({ data: [], error: null }),
-      single: vi.fn().mockResolvedValue({
-        data: { id: 'task-1', status: 'Cancelled' },
-        error: null,
-      }),
-    } as MockChain;
-    cancelTaskChain.select.mockReturnValue(cancelTaskChain);
-    cancelTaskChain.eq.mockReturnValue(cancelTaskChain);
-    cancelTaskChain.update.mockReturnValue(cancelTaskChain);
-
-    mockFrom
-      .mockReturnValueOnce(fetchTaskChain)
-      .mockReturnValueOnce(cancelTaskChain);
+    mockFrom.mockReturnValueOnce(fetchTaskChain);
 
     const { result } = renderHook(() => useCancelTask('proj-1'), {
       wrapper: createTaskCancellationWrapper(queryClient),
@@ -99,14 +101,11 @@ describe('useCancelTask', () => {
 
     expect(fetchTaskChain.select).toHaveBeenCalledWith('*');
     expect(fetchTaskChain.eq).toHaveBeenCalledWith('id', 'task-1');
-    expect(cancelTaskChain.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'Cancelled',
-        updated_at: expect.any(String),
-      })
-    );
-    expect(cancelTaskChain.eq).toHaveBeenCalledWith('id', 'task-1');
-    expect(cancelTaskChain.select).toHaveBeenCalledWith('id, status');
+    expect(mockRequireSession).toHaveBeenCalled();
+    expect(mockInvokeWithTimeout).toHaveBeenCalledWith('update-task-status', expect.objectContaining({
+      body: { task_id: 'task-1', status: 'Cancelled' },
+      headers: { Authorization: 'Bearer session-token' },
+    }));
 
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['tasks', 'paginated'],
@@ -128,7 +127,6 @@ describe('useCancelTask', () => {
     const fetchTaskChain = {
       select: vi.fn(),
       eq: vi.fn(),
-      update: vi.fn(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
       single: vi.fn().mockResolvedValue({
         data: {
@@ -142,26 +140,10 @@ describe('useCancelTask', () => {
     } as MockChain;
     fetchTaskChain.select.mockReturnValue(fetchTaskChain);
     fetchTaskChain.eq.mockReturnValue(fetchTaskChain);
-    fetchTaskChain.update.mockReturnValue(fetchTaskChain);
-
-    const cancelTaskChain = {
-      select: vi.fn(),
-      eq: vi.fn(),
-      update: vi.fn(),
-      in: vi.fn().mockResolvedValue({ data: [], error: null }),
-      single: vi.fn().mockResolvedValue({
-        data: { id: 'orch-1', status: 'Cancelled' },
-        error: null,
-      }),
-    } as MockChain;
-    cancelTaskChain.select.mockReturnValue(cancelTaskChain);
-    cancelTaskChain.eq.mockReturnValue(cancelTaskChain);
-    cancelTaskChain.update.mockReturnValue(cancelTaskChain);
 
     const fetchSubtasksChain = {
       select: vi.fn(),
       eq: vi.fn(),
-      update: vi.fn(),
       in: vi.fn().mockResolvedValue({
         data: [
           { id: 'sub-1', params: { orchestrator_task_id_ref: 'orch-1' } },
@@ -174,24 +156,10 @@ describe('useCancelTask', () => {
     } as MockChain;
     fetchSubtasksChain.select.mockReturnValue(fetchSubtasksChain);
     fetchSubtasksChain.eq.mockReturnValue(fetchSubtasksChain);
-    fetchSubtasksChain.update.mockReturnValue(fetchSubtasksChain);
-
-    const cancelSubtasksChain = {
-      select: vi.fn(),
-      eq: vi.fn(),
-      update: vi.fn(),
-      in: vi.fn().mockResolvedValue({ data: null, error: null }),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    } as MockChain;
-    cancelSubtasksChain.select.mockReturnValue(cancelSubtasksChain);
-    cancelSubtasksChain.eq.mockReturnValue(cancelSubtasksChain);
-    cancelSubtasksChain.update.mockReturnValue(cancelSubtasksChain);
 
     mockFrom
       .mockReturnValueOnce(fetchTaskChain)
-      .mockReturnValueOnce(cancelTaskChain)
-      .mockReturnValueOnce(fetchSubtasksChain)
-      .mockReturnValueOnce(cancelSubtasksChain);
+      .mockReturnValueOnce(fetchSubtasksChain);
 
     const { result } = renderHook(() => useCancelTask('proj-1'), {
       wrapper: createTaskCancellationWrapper(queryClient),
@@ -201,7 +169,16 @@ describe('useCancelTask', () => {
 
     expect(fetchSubtasksChain.eq).toHaveBeenCalledWith('project_id', 'proj-1');
     expect(fetchSubtasksChain.in).toHaveBeenCalledWith('status', ['Queued']);
-    expect(cancelSubtasksChain.in).toHaveBeenCalledWith('id', ['sub-1', 'sub-2']);
+    expect(mockInvokeWithTimeout).toHaveBeenCalledTimes(3);
+    expect(mockInvokeWithTimeout).toHaveBeenNthCalledWith(1, 'update-task-status', expect.objectContaining({
+      body: { task_id: 'orch-1', status: 'Cancelled' },
+    }));
+    expect(mockInvokeWithTimeout).toHaveBeenNthCalledWith(2, 'update-task-status', expect.objectContaining({
+      body: { task_id: 'sub-1', status: 'Cancelled' },
+    }));
+    expect(mockInvokeWithTimeout).toHaveBeenNthCalledWith(3, 'update-task-status', expect.objectContaining({
+      body: { task_id: 'sub-2', status: 'Cancelled' },
+    }));
     expect(mockHandleError).not.toHaveBeenCalled();
   });
 
@@ -211,7 +188,6 @@ describe('useCancelTask', () => {
     const fetchTaskChain = {
       select: vi.fn(),
       eq: vi.fn(),
-      update: vi.fn(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
       single: vi.fn().mockResolvedValue({
         data: {
@@ -225,7 +201,6 @@ describe('useCancelTask', () => {
     } as MockChain;
     fetchTaskChain.select.mockReturnValue(fetchTaskChain);
     fetchTaskChain.eq.mockReturnValue(fetchTaskChain);
-    fetchTaskChain.update.mockReturnValue(fetchTaskChain);
 
     mockFrom.mockReturnValueOnce(fetchTaskChain);
 
@@ -249,6 +224,11 @@ describe('useCancelTask', () => {
 describe('useCancelAllPendingTasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireSession.mockResolvedValue({
+      access_token: 'session-token',
+      user: { id: 'user-1' },
+    });
+    mockInvokeWithTimeout.mockResolvedValue({});
   });
 
   it('cancels pending tasks and orchestrator subtasks in one batch', async () => {
@@ -260,7 +240,6 @@ describe('useCancelAllPendingTasks', () => {
     const pendingTasksChain = {
       select: vi.fn(),
       eq: vi.fn(),
-      update: vi.fn(),
       in: vi.fn().mockResolvedValue({
         data: [
           { id: 'orch-1', task_type: 'travel_orchestrator', params: null },
@@ -274,22 +253,7 @@ describe('useCancelAllPendingTasks', () => {
     } as MockChain;
     pendingTasksChain.select.mockReturnValue(pendingTasksChain);
     pendingTasksChain.eq.mockReturnValue(pendingTasksChain);
-    pendingTasksChain.update.mockReturnValue(pendingTasksChain);
-
-    const cancelBatchChain = {
-      select: vi.fn(),
-      eq: vi.fn(),
-      update: vi.fn(),
-      in: vi.fn().mockResolvedValue({ data: null, error: null }),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    } as MockChain;
-    cancelBatchChain.select.mockReturnValue(cancelBatchChain);
-    cancelBatchChain.eq.mockReturnValue(cancelBatchChain);
-    cancelBatchChain.update.mockReturnValue(cancelBatchChain);
-
-    mockFrom
-      .mockReturnValueOnce(pendingTasksChain)
-      .mockReturnValueOnce(cancelBatchChain);
+    mockFrom.mockReturnValueOnce(pendingTasksChain);
 
     const { result } = renderHook(() => useCancelAllPendingTasks(), {
       wrapper: createTaskCancellationWrapper(queryClient),
@@ -300,15 +264,15 @@ describe('useCancelAllPendingTasks', () => {
       message: '4 tasks cancelled (including subtasks)',
     });
 
-    expect(cancelBatchChain.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'Cancelled',
-        updated_at: expect.any(String),
-      })
-    );
-    expect(cancelBatchChain.in).toHaveBeenCalledWith(
-      'id',
-      expect.arrayContaining(['orch-1', 'task-1', 'sub-1', 'sub-2'])
+    expect(mockRequireSession).toHaveBeenCalled();
+    expect(mockInvokeWithTimeout).toHaveBeenCalledTimes(4);
+    expect(mockInvokeWithTimeout.mock.calls.map(([_, options]) => options)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ body: { task_id: 'orch-1', status: 'Cancelled' } }),
+        expect.objectContaining({ body: { task_id: 'task-1', status: 'Cancelled' } }),
+        expect.objectContaining({ body: { task_id: 'sub-1', status: 'Cancelled' } }),
+        expect.objectContaining({ body: { task_id: 'sub-2', status: 'Cancelled' } }),
+      ]),
     );
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ['tasks', 'paginated'],
@@ -325,7 +289,6 @@ describe('useCancelAllPendingTasks', () => {
     const pendingTasksChain = {
       select: vi.fn(),
       eq: vi.fn(),
-      update: vi.fn(),
       in: vi.fn().mockResolvedValue({
         data: null,
         error: { message: 'read failed' },
@@ -334,7 +297,6 @@ describe('useCancelAllPendingTasks', () => {
     } as MockChain;
     pendingTasksChain.select.mockReturnValue(pendingTasksChain);
     pendingTasksChain.eq.mockReturnValue(pendingTasksChain);
-    pendingTasksChain.update.mockReturnValue(pendingTasksChain);
 
     mockFrom.mockReturnValueOnce(pendingTasksChain);
 

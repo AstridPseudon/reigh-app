@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
+vi.mock('@/integrations/supabase/client', () => ({
+  getSupabaseClient: vi.fn(() => ({})),
+}));
+
+vi.mock('@/integrations/supabase/auth/ensureAuthenticatedSession', () => ({
+  requireSession: vi.fn().mockResolvedValue({
+    access_token: 'session-token',
+    user: { id: 'user-1' },
+  }),
+}));
+
 vi.mock('@/shared/lib/invokeWithTimeout', () => ({
   invokeWithTimeout: vi.fn(),
 }));
@@ -49,6 +60,9 @@ describe('useAIInteractionService', () => {
 
     expect(prompts!).toHaveLength(2);
     expect(prompts![0]).toHaveProperty('text', 'prompt 1');
+    expect(invokeWithTimeout).toHaveBeenCalledWith('ai-prompt', expect.objectContaining({
+      headers: { Authorization: 'Bearer session-token' },
+    }));
   });
 
   it('handles generate prompts error with fallback when throwOnError is false', async () => {

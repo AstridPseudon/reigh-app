@@ -28,6 +28,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+const WELCOME_BONUS_AMOUNT = 5;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -51,7 +52,14 @@ serve(async (req) => {
   const { supabaseAdmin: adminClient, logger, auth, body } = bootstrap.value;
 
   const { userId, amount, description, isWelcomeBonus = false } = body;
-  if (!userId || !amount || typeof amount !== 'number' || amount <= 0) {
+  if (!userId || typeof userId !== 'string') {
+    return new Response("userId is required", {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  if (!isWelcomeBonus && (!amount || typeof amount !== 'number' || amount <= 0)) {
     return new Response("userId and positive amount are required", {
       status: 400,
       headers: corsHeaders,
@@ -60,6 +68,7 @@ serve(async (req) => {
 
   const isServiceRole = auth?.isServiceRole === true;
   const currentUserId = auth?.userId;
+  const creditAmount = isWelcomeBonus ? WELCOME_BONUS_AMOUNT : amount;
 
   // For welcome bonus, allow authenticated users; for admin grants, require service role
   if (!isWelcomeBonus && !isServiceRole) {
@@ -139,7 +148,7 @@ serve(async (req) => {
         .from('credits_ledger')
         .insert({
           user_id: userId,
-          amount: amount * 100, // Convert dollars to cents
+          amount: creditAmount * 100, // Convert dollars to cents
           type: 'manual',
           metadata: {
             description: 'Welcome bonus',
@@ -162,13 +171,13 @@ serve(async (req) => {
         });
       }
 
-      logger.info('Welcome bonus granted', { amount, user_id: userId });
+      logger.info('Welcome bonus granted', { amount: creditAmount, requested_amount: amount, user_id: userId });
       await logger.flush();
 
       return new Response(JSON.stringify({
         success: true,
         transaction: ledgerEntry,
-        message: `Welcome bonus of $${amount} granted successfully!`,
+        message: `Welcome bonus of $${creditAmount} granted successfully!`,
         isWelcomeBonus: true,
       }), {
         status: 200,
@@ -185,7 +194,7 @@ serve(async (req) => {
       .from('credits_ledger')
       .insert({
         user_id: userId,
-        amount: amount * 100, // Convert dollars to cents
+        amount: creditAmount * 100, // Convert dollars to cents
         type: 'manual',
         metadata: {
           description: description || 'Admin credit grant',
@@ -205,13 +214,13 @@ serve(async (req) => {
       });
     }
 
-    logger.info('Credits granted', { amount, user_id: userId, granted_by: 'service_role' });
+    logger.info('Credits granted', { amount: creditAmount, user_id: userId, granted_by: 'service_role' });
     await logger.flush();
 
     return new Response(JSON.stringify({
       success: true,
       transaction: ledgerEntry,
-      message: `Successfully granted $${amount} credits to user ${userId}`,
+      message: `Successfully granted $${creditAmount} credits to user ${userId}`,
     }), {
       status: 200,
       headers: { 

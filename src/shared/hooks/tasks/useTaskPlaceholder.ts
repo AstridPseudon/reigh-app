@@ -11,9 +11,11 @@
 
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { requireSession } from '@/integrations/supabase/auth/ensureAuthenticatedSession';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 
 interface TaskPlaceholderOptions {
@@ -62,12 +64,33 @@ export function extractTaskIds(result: unknown): string[] {
   return [];
 }
 
-/** Cancel specific task IDs in the database (used for mid-flight cancellation). */
+/** Cancel specific task IDs through the audited task-status edge path. */
 async function cancelTasksByIds(taskIds: string[]): Promise<void> {
   if (taskIds.length === 0) return;
-  await supabase().from('tasks')
-    .update({ status: 'Cancelled', updated_at: new Date().toISOString() })
-    .in('id', taskIds);
+
+  const session = await requireSession(supabase(), 'useTaskPlaceholder.cancelTasksByIds');
+  const results = await Promise.allSettled(taskIds.map((taskId) => (
+    invokeWithTimeout('update-task-status', {
+      body: {
+        task_id: taskId,
+        status: 'Cancelled',
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      timeoutMs: 20000,
+    })
+  )));
+
+  const rejected = results.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (rejected) {
+    normalizeAndPresentError(rejected.reason, {
+      context: 'useTaskPlaceholder.cancelTasksByIds',
+      showToast: false,
+    });
+  }
 }
 
 export type RunTaskPlaceholder = (options: TaskPlaceholderOptions) => Promise<void>;

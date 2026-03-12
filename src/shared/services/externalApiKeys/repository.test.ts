@@ -6,7 +6,7 @@ import {
 } from './repository';
 
 const mocks = vi.hoisted(() => ({
-  getUser: vi.fn(),
+  requireUserFromSession: vi.fn(),
   from: vi.fn(),
   select: vi.fn(),
   eq: vi.fn(),
@@ -17,17 +17,18 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
-    auth: {
-      getUser: (...args: unknown[]) => mocks.getUser(...args),
-    },
     from: (...args: unknown[]) => mocks.from(...args),
     rpc: (...args: unknown[]) => mocks.rpc(...args),
   }),
 }));
 
+vi.mock('@/integrations/supabase/auth/ensureAuthenticatedSession', () => ({
+  requireUserFromSession: (...args: unknown[]) => mocks.requireUserFromSession(...args),
+}));
+
 describe('externalApiKeys repository', () => {
   beforeEach(() => {
-    mocks.getUser.mockReset();
+    mocks.requireUserFromSession.mockReset();
     mocks.from.mockReset();
     mocks.select.mockReset();
     mocks.eq.mockReset();
@@ -35,7 +36,7 @@ describe('externalApiKeys repository', () => {
     mocks.single.mockReset();
     mocks.rpc.mockReset();
 
-    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.requireUserFromSession.mockResolvedValue({ id: 'user-1' });
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
     mocks.single.mockResolvedValue({ data: null, error: null });
     mocks.eq.mockReturnValue({
@@ -53,7 +54,7 @@ describe('externalApiKeys repository', () => {
   });
 
   it('requires an authenticated user before fetching a stored key', async () => {
-    mocks.getUser.mockResolvedValueOnce({ data: { user: null } });
+    mocks.requireUserFromSession.mockRejectedValueOnce(new Error('Not authenticated'));
 
     await expect(fetchExternalApiKey('openai')).rejects.toThrow('Not authenticated');
   });
@@ -101,5 +102,12 @@ describe('externalApiKeys repository', () => {
     mocks.rpc.mockResolvedValueOnce({ error: rpcError });
 
     await expect(deleteExternalApiKey('openai')).rejects.toBe(rpcError);
+  });
+
+  it('requires an authenticated user before deleting a stored key', async () => {
+    mocks.requireUserFromSession.mockRejectedValueOnce(new Error('Not authenticated'));
+
+    await expect(deleteExternalApiKey('openai')).rejects.toThrow('Not authenticated');
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

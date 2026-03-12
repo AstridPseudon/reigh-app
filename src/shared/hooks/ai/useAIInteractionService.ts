@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import { requireSession } from '@/integrations/supabase/auth/ensureAuthenticatedSession';
 import { invokeWithTimeout } from '@/shared/lib/invokeWithTimeout';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
@@ -16,6 +18,21 @@ interface AIInteractionOptions {
   throwOnError?: boolean;
 }
 
+async function invokeAuthenticatedAIPrompt<T>(
+  body: Record<string, unknown>,
+  context: string,
+): Promise<T> {
+  const session = await requireSession(getSupabaseClient(), context);
+
+  return invokeWithTimeout<T>('ai-prompt', {
+    body,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    timeoutMs: 20000,
+  });
+}
+
 export const useAIInteractionService = ({
   generatePromptId,
 }: UseAIInteractionServiceOptions) => {
@@ -25,13 +42,13 @@ export const useAIInteractionService = ({
 
   const requestSummary = useCallback(
     async (promptText: string): Promise<string | null> => {
-      const data = await invokeWithTimeout<{ summary?: string }>('ai-prompt', {
-        body: {
+      const data = await invokeAuthenticatedAIPrompt<{ summary?: string }>(
+        {
           task: 'generate_summary',
           promptText,
         },
-        timeoutMs: 20000,
-      });
+        'useAIInteractionService.generateSummary',
+      );
       return data?.summary || null;
     },
     [],
@@ -68,8 +85,8 @@ export const useAIInteractionService = ({
     ): Promise<AIPromptItem[]> => {
       setIsGenerating(true);
       try {
-      const data = await invokeWithTimeout<{ prompts?: string[] }>('ai-prompt', {
-        body: {
+      const data = await invokeAuthenticatedAIPrompt<{ prompts?: string[] }>(
+        {
           task: 'generate_prompts',
           overallPromptText: params.overallPromptText,
           rulesToRememberText: params.rulesToRememberText,
@@ -77,8 +94,8 @@ export const useAIInteractionService = ({
           existingPrompts: params.existingPrompts ?? [],
           temperature: params.temperature || 0.8,
         },
-        timeoutMs: 20000,
-      });
+        'useAIInteractionService.generatePrompts',
+      );
 
       const generatedTexts: string[] = data?.prompts ?? [];
       const newPrompts: AIPromptItem[] = [];
@@ -123,15 +140,15 @@ export const useAIInteractionService = ({
     ): Promise<EditPromptResult> => {
       setIsEditing(true);
       try {
-      const result = await invokeWithTimeout<{ newText?: string }>('ai-prompt', {
-        body: {
+      const result = await invokeAuthenticatedAIPrompt<{ newText?: string }>(
+        {
           task: 'edit_prompt',
           originalPromptText: params.originalPromptText,
           editInstructions: params.editInstructions,
           modelType: params.modelType === 'smart' ? 'smart' : 'fast',
         },
-        timeoutMs: 20000,
-      });
+        'useAIInteractionService.editPromptWithAI',
+      );
 
       const newText = result?.newText || params.originalPromptText;
       return { success: true, newText: newText || params.originalPromptText };

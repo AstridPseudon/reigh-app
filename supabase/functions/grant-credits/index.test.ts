@@ -47,6 +47,61 @@ function createSupabaseAdmin() {
   return { from, insert, select, single };
 }
 
+function createWelcomeBonusSupabaseAdmin() {
+  const userSelectSingle = vi.fn().mockResolvedValue({
+    data: { id: 'user-1' },
+    error: null,
+  });
+  const userSelectEq = vi.fn().mockReturnValue({ single: userSelectSingle });
+  const userSelect = vi.fn().mockReturnValue({ eq: userSelectEq });
+
+  const claimedUserSingle = vi.fn().mockResolvedValue({
+    data: { id: 'user-1' },
+    error: null,
+  });
+  const claimedUserSelect = vi.fn().mockReturnValue({ single: claimedUserSingle });
+  const updateSecondEq = vi.fn().mockReturnValue({ select: claimedUserSelect });
+  const updateFirstEq = vi.fn().mockReturnValue({ eq: updateSecondEq });
+  const userUpdate = vi.fn().mockReturnValue({ eq: updateFirstEq });
+
+  const userUpsert = vi.fn().mockResolvedValue({ error: null });
+
+  const ledgerSingle = vi.fn().mockResolvedValue({
+    data: { id: 'ledger-1', user_id: 'user-1', amount: 500 },
+    error: null,
+  });
+  const ledgerSelect = vi.fn().mockReturnValue({ single: ledgerSingle });
+  const ledgerInsert = vi.fn().mockReturnValue({ select: ledgerSelect });
+
+  const from = vi.fn().mockImplementation((table: string) => {
+    if (table === 'users') {
+      return {
+        select: userSelect,
+        update: userUpdate,
+        upsert: userUpsert,
+      };
+    }
+
+    if (table === 'credits_ledger') {
+      return {
+        insert: ledgerInsert,
+      };
+    }
+
+    return {
+      select: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn(),
+      insert: vi.fn(),
+    };
+  });
+
+  return {
+    from,
+    ledgerInsert,
+  };
+}
+
 async function loadHandler() {
   await import('./index.ts');
   return __getServeHandler();
@@ -106,7 +161,7 @@ describe('grant-credits edge entrypoint', () => {
     const response = await handler(new Request('https://edge.test/grant-credits', { method: 'POST' }));
 
     expect(response.status).toBe(400);
-    await expect(response.text()).resolves.toContain('userId and positive amount are required');
+    await expect(response.text()).resolves.toContain('userId is required');
   });
 
   it('blocks non-service admin grants', async () => {
@@ -170,5 +225,36 @@ describe('grant-credits edge entrypoint', () => {
       }),
     );
     expect(logger.flush).toHaveBeenCalled();
+  });
+
+  it('ignores caller supplied amount for welcome bonus requests', async () => {
+    const supabaseAdmin = createWelcomeBonusSupabaseAdmin();
+    const logger = createLogger();
+
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin,
+        logger,
+        auth: { isServiceRole: false, userId: 'user-1' },
+        body: {
+          userId: 'user-1',
+          amount: 999,
+          isWelcomeBonus: true,
+        },
+      },
+    });
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/grant-credits', { method: 'POST' }));
+
+    expect(response.status).toBe(200);
+    expect(supabaseAdmin.ledgerInsert).toHaveBeenCalledWith(expect.objectContaining({
+      amount: 500,
+    }));
+    await expect(response.json()).resolves.toEqual(expect.objectContaining({
+      isWelcomeBonus: true,
+      message: 'Welcome bonus of $5 granted successfully!',
+    }));
   });
 });

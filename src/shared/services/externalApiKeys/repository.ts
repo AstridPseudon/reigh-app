@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/integrations/supabase/client';
+import { requireUserFromSession } from '@/integrations/supabase/auth/ensureAuthenticatedSession';
 import type {
   ExternalApiKey,
   ExternalApiKeyMetadata,
@@ -7,11 +8,14 @@ import type {
 
 const getSupabase = () => getSupabaseClient();
 
+async function requireExternalApiKeyUser(context: string) {
+  return requireUserFromSession(getSupabase(), context);
+}
+
 export async function fetchExternalApiKey(
   service: ExternalService
 ): Promise<ExternalApiKey | null> {
-  const { data: { user } } = await getSupabase().auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const user = await requireExternalApiKeyUser('externalApiKeys.fetchExternalApiKey');
 
   const { data, error } = await getSupabase()
     .from('external_api_keys')
@@ -29,8 +33,7 @@ export async function saveExternalApiKey(
   keyValue: string,
   metadata?: ExternalApiKeyMetadata
 ): Promise<ExternalApiKey> {
-  const { data: { user } } = await getSupabase().auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const user = await requireExternalApiKeyUser('externalApiKeys.saveExternalApiKey');
 
   const { error } = await getSupabase().rpc('save_external_api_key', {
     p_service: service,
@@ -51,6 +54,7 @@ export async function saveExternalApiKey(
 }
 
 export async function deleteExternalApiKey(service: ExternalService): Promise<void> {
+  await requireExternalApiKeyUser('externalApiKeys.deleteExternalApiKey');
   const { error } = await getSupabase().rpc('delete_external_api_key', {
     p_service: service,
   });
