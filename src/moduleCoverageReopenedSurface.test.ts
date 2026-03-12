@@ -411,19 +411,29 @@ const moduleLoaders = [
   ),
 ] as const;
 
-const zeroRuntimeExportIndexes = new Set([86, 102, 135]);
+const typeOnlyModules = new Set([
+  '@/shared/components/SegmentSettingsForm/types',
+  '@/shared/components/VideoPortionEditor/types',
+  '@/tools/travel-between-images/types/mediaHandlers',
+]);
+
+function getModulePath(loadModule: () => Promise<unknown>): string {
+  const match = loadModule.toString().match(/@\/[^'"]+/);
+  return match?.[0] ?? '';
+}
 
 describe('reopened module coverage surface batch', () => {
   it('loads each reopened app coverage target and exposes defined runtime exports when present', async () => {
-    for (const [index, loadModule] of moduleLoaders.entries()) {
+    for (const loadModule of moduleLoaders) {
+      const modulePath = getModulePath(loadModule);
       const loadedModule = await loadModule();
-      const exportNames = Object.keys(loadedModule);
+      const exportNames = Object.keys(loadedModule as Record<string, unknown>);
 
-      if (zeroRuntimeExportIndexes.has(index)) {
+      if (typeOnlyModules.has(modulePath)) {
         expect(exportNames).toHaveLength(0);
       } else {
         if (exportNames.length === 0) {
-          throw new Error(`Expected runtime exports for moduleLoaders[${index}]`);
+          throw new Error(`Expected runtime exports for ${modulePath || 'unknown module'}`);
         }
       }
     }

@@ -57,7 +57,7 @@ async function cancelTask(taskId: string): Promise<void> {
       }).map(subtask => subtask.id);
 
       if (subtaskIds.length > 0) {
-        await Promise.all(subtaskIds.map((id) => updateTaskStatusToCancelled(id, session.access_token)));
+        await Promise.allSettled(subtaskIds.map((id) => updateTaskStatusToCancelled(id, session.access_token)));
       }
     }
   }
@@ -133,7 +133,7 @@ async function cancelPendingTasks(projectId: string): Promise<CancelAllPendingTa
 
   if (taskIdsArray.length > 0) {
     const session = await requireSession(supabase(), 'useCancelPendingTasks.cancelPendingTasks');
-    await Promise.all(taskIdsArray.map((taskId) => updateTaskStatusToCancelled(taskId, session.access_token)));
+    await Promise.allSettled(taskIdsArray.map((taskId) => updateTaskStatusToCancelled(taskId, session.access_token)));
   }
 
   return {

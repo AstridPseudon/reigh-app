@@ -26,7 +26,6 @@ import type {
   ImageGenerationTaskParams,
 } from './types';
 
-;
 export type {
   BatchImageGenerationTaskParams,
   ReferenceApiParams,
