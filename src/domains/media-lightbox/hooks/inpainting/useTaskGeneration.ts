@@ -11,9 +11,14 @@ import { createImageInpaintTask } from '@/shared/lib/tasks/imageEditing/imageInp
 import { createMaskedEditTask } from '@/shared/lib/tasks/imageEditing/maskedEditTaskBuilder';
 import type { MaskedEditTaskParams } from '@/shared/lib/tasks/imageEditing/maskedEditTaskBuilder';
 import { buildMaskedEditTaskParams } from '@/shared/lib/tasks/imageEditing/buildMaskedEditTaskParams';
+import type { StrokeOverlayHandle } from '../../components/StrokeOverlay';
+import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
+import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
+import { getGenerationId, getMediaUrl } from '@/shared/lib/media/mediaTypeHelpers';
+import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 
 /**
- * Creates annotated image edit tasks
+ * Creates annotated image edit tasks.
  * First task ID is returned for backward compatibility.
  */
 function createAnnotatedImageEditTask(params: MaskedEditTaskParams): Promise<string> {
@@ -23,12 +28,6 @@ function createAnnotatedImageEditTask(params: MaskedEditTaskParams): Promise<str
     batchOperationName: 'AnnotatedImageEdit',
   }, params);
 }
-import type { StrokeOverlayHandle } from '../../components/StrokeOverlay';
-import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
-
-import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
-import { getGenerationId, getMediaUrl } from '@/shared/lib/media/mediaTypeHelpers';
-import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 
 /**
  * Task type configuration - captures the differences between inpaint and annotate modes
@@ -183,7 +182,7 @@ export function useTaskGeneration({
               maskUrl,
               prompt: inpaintPrompt,
               numGenerations: inpaintNumGenerations,
-              generationId: actualGenerationId ?? undefined,
+              generationId: actualGenerationId,
               shotId,
               toolType: toolTypeOverride,
               loras,

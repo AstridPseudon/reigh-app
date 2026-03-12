@@ -19,6 +19,18 @@ import { useItemInteraction } from "./MediaGalleryItem/hooks/useItemInteraction"
 import { setGenerationDragData, createDragPreview } from '@/shared/lib/dnd/dragDrop';
 import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
 import { parseRatio } from '@/shared/lib/media/aspectRatios';
+import { CreateShotModal } from "@/shared/components/shots/CreateShotModal";
+import { useProjectSelectionContext } from "@/shared/contexts/ProjectContext";
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
+import { useShotNavigation } from "@/shared/hooks/shots/useShotNavigation";
+import { useLastAffectedShot } from "@/shared/hooks/shots/useLastAffectedShot";
+import { useQuickShotCreate } from "@/shared/hooks/useQuickShotCreate";
+import { usePrefetchTaskData } from "@/shared/hooks/tasks/useTaskPrefetch";
+import { useGenerationTaskMapping } from "@/domains/generation/hooks/tasks/useGenerationTaskMapping";
+import { useTaskType } from "@/shared/hooks/tasks/useTaskType";
+import { useGetTask } from "@/shared/hooks/tasks/useTasks";
+import { useShareGeneration } from "@/shared/hooks/useShareGeneration";
+import { deriveGalleryInputImages } from "./MediaGallery/utils";
 
 const MIN_PADDING = 60;
 const MAX_PADDING = 200;
@@ -66,18 +78,6 @@ function resolveAspectRatioPadding(
 
   return '100%';
 }
-import { CreateShotModal } from "@/shared/components/shots/CreateShotModal";
-import { useProjectSelectionContext } from "@/shared/contexts/ProjectContext";
-import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
-import { useShotNavigation } from "@/shared/hooks/shots/useShotNavigation";
-import { useLastAffectedShot } from "@/shared/hooks/shots/useLastAffectedShot";
-import { useQuickShotCreate } from "@/shared/hooks/useQuickShotCreate";
-import { usePrefetchTaskData } from "@/shared/hooks/tasks/useTaskPrefetch";
-import { useGenerationTaskMapping } from "@/domains/generation/hooks/tasks/useGenerationTaskMapping";
-import { useTaskType } from "@/shared/hooks/tasks/useTaskType";
-import { useGetTask } from "@/shared/hooks/tasks/useTasks";
-import { useShareGeneration } from "@/shared/hooks/useShareGeneration";
-import { deriveGalleryInputImages } from "./MediaGallery/utils";
 import { isImageEditTaskType } from "@/shared/lib/taskParamsUtils";
 import { useMarkVariantViewed } from "@/shared/hooks/variants/useMarkVariantViewed";
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';

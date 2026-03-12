@@ -201,6 +201,27 @@ describe('useApplySettingsHandler', () => {
     expect(mocks.fetchTask).toHaveBeenCalledWith('task-99');
   });
 
+  it('bails out with silent error when task is not found', async () => {
+    mocks.fetchTask.mockResolvedValue({ status: 'missing' });
+
+    const handlerState = createHandlerState();
+    const { result } = renderHook(() => useApplySettingsHandler(handlerState));
+
+    await act(async () => {
+      await result.current('task-gone', false, []);
+    });
+
+    expect(mocks.normalizeAndPresentError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        showToast: false,
+        toastTitle: 'Failed to apply settings from task',
+      }),
+    );
+    // Should NOT proceed to extract or apply settings
+    expect(mocks.extractSettings).not.toHaveBeenCalled();
+  });
+
   it('catches errors from applySettingsFromTask and presents them', async () => {
     const taskError = new Error('Network failure');
     mocks.fetchTask.mockRejectedValue(taskError);

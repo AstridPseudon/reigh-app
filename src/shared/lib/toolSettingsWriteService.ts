@@ -8,10 +8,10 @@ import { deepMerge } from '@/shared/lib/utils/deepEqual';
 import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import { ToolSettingsError } from '@/shared/lib/toolSettingsService';
 
-type SettingsScopeIdentifier = 'user' | 'project' | 'shot';
+export type SettingsScope = 'user' | 'project' | 'shot';
 type SettingsScopeTableName = 'users' | 'projects' | 'shots';
 
-const SETTINGS_SCOPE_TABLES: Record<SettingsScopeIdentifier, SettingsScopeTableName> = {
+const SETTINGS_SCOPE_TABLES: Record<SettingsScope, SettingsScopeTableName> = {
   user: 'users',
   project: 'projects',
   shot: 'shots',
@@ -21,7 +21,7 @@ function assertNeverScope(scope: never): never {
   throw new Error(`Unsupported settings scope: ${String(scope)}`);
 }
 
-function resolveSettingsScopeTable(scope: SettingsScopeIdentifier): SettingsScopeTableName {
+function resolveSettingsScopeTable(scope: SettingsScope): SettingsScopeTableName {
   switch (scope) {
     case 'user':
     case 'project':
@@ -32,7 +32,7 @@ function resolveSettingsScopeTable(scope: SettingsScopeIdentifier): SettingsScop
   }
 }
 
-function selectSettingsForScope(scope: SettingsScopeIdentifier, id: string) {
+function selectSettingsForScope(scope: SettingsScope, id: string) {
   const tableName = resolveSettingsScopeTable(scope);
   return getSupabaseClient()
     .from(tableName)
@@ -55,7 +55,6 @@ function callUpdateToolSettingsAtomicRpc(
   });
 }
 
-export type SettingsScope = 'user' | 'project' | 'shot';
 type SettingsWriteMode = 'debounced' | 'immediate';
 
 interface UpdateToolSettingsParams {
