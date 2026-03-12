@@ -84,3 +84,4 @@ localhost-*.log
 # Supabase CLI artifacts
 supabase/.temp/
 supabase/.branches/
+.claude/worktrees/

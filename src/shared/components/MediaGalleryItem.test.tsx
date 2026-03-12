@@ -19,7 +19,6 @@ const mocks = vi.hoisted(() => ({
   useGetTask: vi.fn(),
   useShareGeneration: vi.fn(),
   useMarkVariantViewed: vi.fn(),
-  resolveAspectRatioPadding: vi.fn(),
   setGenerationDragData: vi.fn(),
   createDragPreview: vi.fn(),
   deriveGalleryInputImages: vi.fn(),
@@ -107,8 +106,8 @@ vi.mock('@/shared/hooks/useShareGeneration', () => ({
 vi.mock('@/shared/hooks/variants/useMarkVariantViewed', () => ({
   useMarkVariantViewed: (...args: unknown[]) => mocks.useMarkVariantViewed(...args),
 }));
-vi.mock('./MediaGalleryItem/lib/aspectRatioPaddingHelper', () => ({
-  resolveAspectRatioPadding: (...args: unknown[]) => mocks.resolveAspectRatioPadding(...args),
+vi.mock('@/shared/lib/media/aspectRatios', () => ({
+  parseRatio: () => NaN,
 }));
 vi.mock('@/shared/lib/dnd/dragDrop', () => ({
   setGenerationDragData: (...args: unknown[]) => mocks.setGenerationDragData(...args),
@@ -259,7 +258,6 @@ describe('MediaGalleryItem', () => {
       handleQuickCreateAndAdd: vi.fn(),
       handleVisitCreatedShot: vi.fn(),
     });
-    mocks.resolveAspectRatioPadding.mockReturnValue('56.25%');
     mocks.deriveGalleryInputImages.mockReturnValue([]);
     mocks.isImageEditTaskType.mockReturnValue(false);
     mocks.getGenerationId.mockImplementation((image: { id?: string }) => image.id ?? null);

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useMemo } from "react";
 import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import {
   useProjectCrudContext,
@@ -23,7 +23,6 @@ import { MediaGalleryGrid } from '@/shared/components/MediaGallery/components/Me
 import { MediaGalleryLightbox } from '@/shared/components/MediaGallery/components/MediaGalleryLightbox';
 import { MobileBottomBar } from '@/shared/components/MediaGallery/components/MobileBottomBar';
 import { useMediaGalleryDebugTools } from '@/shared/components/MediaGallery/hooks/useMediaGalleryDebugTools';
-import { useAspectRatioLayout } from '@/shared/components/MediaGallery/hooks/useAspectRatioLayout';
 import { usePaginatedImagesWithBadges } from '@/shared/components/MediaGallery/hooks/usePaginatedImagesWithBadges';
 import { useMediaGalleryLightboxSession } from '@/shared/components/MediaGallery/hooks/useMediaGalleryLightboxSession';
 import { useMediaGalleryViewInteractions } from '@/shared/components/MediaGallery/hooks/useMediaGalleryViewInteractions';
@@ -33,6 +32,52 @@ import type {
 } from '@/shared/components/MediaGallery/types';
 import { DEFAULT_GALLERY_CONFIG } from '@/shared/components/MediaGallery/types';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
+import { GRID_COLUMN_CLASSES, calculateGalleryLayout } from '@/shared/components/MediaGallery/utils';
+
+interface UseAspectRatioLayoutParams {
+  projectAspectRatio?: string;
+  isMobile: boolean;
+  containerWidth: number;
+  reducedSpacing: boolean;
+  columnsPerRow: 'auto' | number;
+  itemsPerPage?: number;
+}
+
+function useAspectRatioLayout({
+  projectAspectRatio,
+  isMobile,
+  containerWidth,
+  reducedSpacing,
+  columnsPerRow,
+  itemsPerPage,
+}: UseAspectRatioLayoutParams) {
+  const aspectRatioLayout = useMemo(
+    () => calculateGalleryLayout(projectAspectRatio, isMobile, containerWidth, undefined, reducedSpacing),
+    [projectAspectRatio, isMobile, containerWidth, reducedSpacing],
+  );
+
+  const effectiveColumnsPerRow = columnsPerRow === 'auto' ? aspectRatioLayout.columns : columnsPerRow;
+  const defaultItemsPerPage = aspectRatioLayout.itemsPerPage;
+
+  const rawItemsPerPage = itemsPerPage ?? defaultItemsPerPage;
+  const actualItemsPerPage =
+    Math.floor(rawItemsPerPage / effectiveColumnsPerRow) * effectiveColumnsPerRow || effectiveColumnsPerRow;
+
+  const gridColumnClasses = useMemo(
+    () =>
+      GRID_COLUMN_CLASSES[effectiveColumnsPerRow as keyof typeof GRID_COLUMN_CLASSES] ||
+      aspectRatioLayout.gridColumnClasses,
+    [effectiveColumnsPerRow, aspectRatioLayout.gridColumnClasses],
+  );
+
+  return {
+    aspectRatioLayout,
+    effectiveColumnsPerRow,
+    actualItemsPerPage,
+    gridColumnClasses,
+  };
+}
+
 const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
   const {
     images,

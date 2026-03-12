@@ -2,7 +2,8 @@ import { Label } from '@/shared/components/ui/primitives/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { MotionPresetSelector } from '@/shared/components/MotionPresetSelector';
-import { LoraEditorSection } from '@/shared/components/VideoPortionEditor/components/LoraEditorSection';
+import { LoraManager } from '@/shared/components/LoraManager';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import type {
   VideoPortionEditorLoraProps,
   VideoPortionEditorMotionProps,
@@ -110,10 +111,15 @@ export function AdvancedSettingsSection({
         onRandomSeedChange={onRandomSeedChange}
         queryKeyPrefix="edit-video-presets"
         renderBasicModeContent={() => (
-          <LoraEditorSection
+          <LoraManager
             availableLoras={availableLoras}
-            projectId={projectId}
-            loraManager={loraManager}
+            projectId={projectId || undefined}
+            persistenceScope="project"
+            enableProjectPersistence={true}
+            persistenceKey={TOOL_IDS.EDIT_VIDEO}
+            externalLoraManager={loraManager}
+            title="Additional LoRA Models (Optional)"
+            addButtonText="Add or manage LoRAs"
           />
         )}
       />

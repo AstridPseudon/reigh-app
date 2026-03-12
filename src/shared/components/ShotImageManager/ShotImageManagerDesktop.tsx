@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import type { ShotImageManagerProps, ShotLightboxSelectionProps } from './types';
@@ -7,8 +7,8 @@ import { useIsMobile } from '@/shared/hooks/mobile';
 import { useLightboxContextData } from './hooks/useLightboxContextData';
 import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
 import type { GenerationRow } from '@/domains/generation/types';
-import { useImageTickFeedback } from './hooks/useImageTickFeedback';
-import { useDesktopSegmentScrubbing } from './hooks/useDesktopSegmentScrubbing';
+import { useSegmentScrubbingCore } from '@/shared/hooks/useSegmentScrubbingCore';
+import type { SegmentSlot } from '@/shared/hooks/segments';
 import { BatchDropZone } from './components/BatchDropZone';
 import { DeleteConfirmationDialog } from './components/DeleteConfirmationDialog';
 import { ImageGrid } from './components/ImageGrid';
@@ -31,6 +31,51 @@ interface ShotImageManagerDesktopProps extends ShotImageManagerProps, ShotLightb
   optimistic: ReturnType<typeof useOptimisticOrder>;
   externalGens: ReturnType<typeof useExternalGenerations>;
   getFramePosition: (index: number) => number | undefined;
+}
+
+function useImageTickFeedback() {
+  const [showTickForImageId, setShowTickForImageId] = useState<string | null>(null);
+  const [showTickForSecondaryImageId, setShowTickForSecondaryImageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showTickForImageId) return;
+    const timer = setTimeout(() => setShowTickForImageId(null), 3000);
+    return () => clearTimeout(timer);
+  }, [showTickForImageId]);
+
+  useEffect(() => {
+    if (!showTickForSecondaryImageId) return;
+    const timer = setTimeout(() => setShowTickForSecondaryImageId(null), 3000);
+    return () => clearTimeout(timer);
+  }, [showTickForSecondaryImageId]);
+
+  return {
+    showTickForImageId,
+    setShowTickForImageId,
+    showTickForSecondaryImageId,
+    setShowTickForSecondaryImageId,
+  };
+}
+
+function useDesktopSegmentScrubbing({
+  isMobile,
+  segmentSlots,
+  projectAspectRatio,
+}: {
+  isMobile: boolean;
+  segmentSlots?: SegmentSlot[];
+  projectAspectRatio?: string;
+}) {
+  const { previewPosition, ...core } = useSegmentScrubbingCore({
+    isMobile,
+    slots: segmentSlots ?? [],
+    projectAspectRatio,
+  });
+
+  return {
+    ...core,
+    previewY: previewPosition.y,
+  };
 }
 
 export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = ({

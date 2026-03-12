@@ -1,7 +1,6 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UploadCloud } from 'lucide-react';
 import { Label } from '@/shared/components/ui/primitives/label';
-import { FileInputEmptyState } from '@/shared/components/FileInput/FileInputEmptyState';
 import { FileInputSelectedFiles } from '@/shared/components/FileInput/FileInputSelectedFiles';
 import { useFileInputController } from '@/shared/components/FileInput/useFileInputController';
 
@@ -27,6 +26,28 @@ interface FileInputProps {
   forceLoading?: boolean;
   /** Hide the "Accepted: image, video" text */
   suppressAcceptedTypes?: boolean;
+}
+
+function FileInputEmptyState({
+  multiple,
+  acceptTypes,
+  suppressAcceptedTypes,
+}: {
+  multiple: boolean;
+  acceptTypes: Array<'image' | 'video'>;
+  suppressAcceptedTypes: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-y-2 text-muted-foreground">
+      <UploadCloud className="h-10 w-10" />
+      <p>Drag & drop or click to upload {multiple ? 'files' : 'a file'}</p>
+      {!suppressAcceptedTypes && (
+        <p className="text-xs">
+          Accepted: {acceptTypes.join(', ')}
+        </p>
+      )}
+    </div>
+  );
 }
 
 const FileInput: React.FC<FileInputProps> = ({

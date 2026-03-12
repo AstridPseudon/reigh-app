@@ -9,10 +9,6 @@ const mockGenerateAIInstructions = vi.fn();
 const mockSafeCopy = vi.fn();
 const mockCommandPreview = vi.fn();
 
-const markInstallCopied = vi.fn();
-const markRunCopied = vi.fn();
-const markAICopied = vi.fn();
-
 const revealInstallCommand = vi.fn();
 const revealRunCommand = vi.fn();
 const setShowFullInstallCommand = vi.fn();
@@ -24,17 +20,6 @@ vi.mock('../../../commandUtils', () => ({
   getRunCommand: (...args: unknown[]) => mockGetRunCommand(...args),
   generateAIInstructions: (...args: unknown[]) => mockGenerateAIInstructions(...args),
   safeCopy: (...args: unknown[]) => mockSafeCopy(...args),
-}));
-
-vi.mock('../hooks/useCopyFeedback', () => ({
-  useCopyFeedback: () => ({
-    copiedInstallCommand: false,
-    copiedRunCommand: false,
-    copiedAIInstructions: false,
-    markInstallCopied,
-    markRunCopied,
-    markAICopied,
-  }),
 }));
 
 vi.mock('../hooks/useCommandVisibility', () => ({
@@ -144,10 +129,6 @@ beforeEach(() => {
   mockSafeCopy.mockReset();
   mockCommandPreview.mockReset();
 
-  markInstallCopied.mockReset();
-  markRunCopied.mockReset();
-  markAICopied.mockReset();
-
   revealInstallCommand.mockReset();
   revealRunCommand.mockReset();
   setShowFullInstallCommand.mockReset();
@@ -188,10 +169,6 @@ describe('GenerationTokenPanel', () => {
       expect(mockSafeCopy).toHaveBeenCalledWith('run-cmd');
       expect(mockSafeCopy).toHaveBeenCalledWith('ai-help-text');
     });
-
-    expect(markInstallCopied).toHaveBeenCalledTimes(1);
-    expect(markRunCopied).toHaveBeenCalledTimes(1);
-    expect(markAICopied).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'reveal-install-cmd' }));
     fireEvent.click(screen.getByRole('button', { name: 'hide-install-cmd' }));

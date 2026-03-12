@@ -1,7 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ONBOARDING_STEPS } from '@/shared/components/OnboardingModal/data/onboardingSteps';
 import { useOnboardingSteps } from './useOnboardingSteps';
+
+const STEP_COUNT = 6;
+const EXPECTED_TITLES = ['Welcome', 'Community', 'Generation', 'Theme', 'Privacy', 'Complete'];
 
 afterEach(() => {
   vi.useRealTimers();
@@ -13,7 +15,7 @@ describe('useOnboardingSteps', () => {
 
     expect(result.current.currentStep).toBe(1);
     expect(result.current.currentStepDefinition.id).toBe(1);
-    expect(result.current.stepTitles).toEqual(ONBOARDING_STEPS.map((step) => step.title));
+    expect(result.current.stepTitles).toEqual(EXPECTED_TITLES);
   });
 
   it('moves forward and backward within valid bounds', () => {
@@ -24,17 +26,17 @@ describe('useOnboardingSteps', () => {
     });
     expect(result.current.currentStep).toBe(1);
 
-    for (let i = 0; i < ONBOARDING_STEPS.length + 2; i += 1) {
+    for (let i = 0; i < STEP_COUNT + 2; i += 1) {
       act(() => {
         result.current.handleNext();
       });
     }
-    expect(result.current.currentStep).toBe(ONBOARDING_STEPS.length);
+    expect(result.current.currentStep).toBe(STEP_COUNT);
 
     act(() => {
       result.current.handleBack();
     });
-    expect(result.current.currentStep).toBe(ONBOARDING_STEPS.length - 1);
+    expect(result.current.currentStep).toBe(STEP_COUNT - 1);
   });
 
   it('resets to step 1 when modal opens', () => {

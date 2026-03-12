@@ -1,19 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  resolveSettingsScopeTable: vi.fn(),
-  selectSettingsForScope: vi.fn(),
-  callUpdateToolSettingsAtomicRpc: vi.fn(),
+  supabaseSingle: vi.fn(),
+  supabaseRpc: vi.fn(),
   initializeSettingsWriteQueue: vi.fn(),
   enqueueSettingsWrite: vi.fn(),
   deepMerge: vi.fn(),
   isCancellationError: vi.fn(),
 }));
 
-vi.mock('@/shared/lib/toolSettingsWriteRepository', () => ({
-  resolveSettingsScopeTable: (...args: unknown[]) => mocks.resolveSettingsScopeTable(...args),
-  selectSettingsForScope: (...args: unknown[]) => mocks.selectSettingsForScope(...args),
-  callUpdateToolSettingsAtomicRpc: (...args: unknown[]) => mocks.callUpdateToolSettingsAtomicRpc(...args),
+vi.mock('@/integrations/supabase/client', () => ({
+  getSupabaseClient: () => ({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: () => mocks.supabaseSingle(),
+        }),
+      }),
+    }),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
+  }),
 }));
 
 vi.mock('@/shared/lib/settingsWriteQueue', () => ({
@@ -40,20 +46,18 @@ import {
 
 describe('toolSettingsWriteService', () => {
   beforeEach(() => {
-    mocks.resolveSettingsScopeTable.mockReset();
-    mocks.selectSettingsForScope.mockReset();
-    mocks.callUpdateToolSettingsAtomicRpc.mockReset();
+    mocks.supabaseSingle.mockReset();
+    mocks.supabaseRpc.mockReset();
     mocks.initializeSettingsWriteQueue.mockReset();
     mocks.enqueueSettingsWrite.mockReset();
     mocks.deepMerge.mockReset();
     mocks.isCancellationError.mockReset();
 
-    mocks.resolveSettingsScopeTable.mockReturnValue('projects');
-    mocks.selectSettingsForScope.mockResolvedValue({
+    mocks.supabaseSingle.mockResolvedValue({
       data: { settings: { timeline: { enabled: true, density: 'compact' } } },
       error: null,
     });
-    mocks.callUpdateToolSettingsAtomicRpc.mockResolvedValue({ error: null });
+    mocks.supabaseRpc.mockResolvedValue({ error: null });
     mocks.deepMerge.mockImplementation((...args: Record<string, unknown>[]) => Object.assign({}, ...args));
     mocks.isCancellationError.mockReturnValue(false);
   });
@@ -78,18 +82,20 @@ describe('toolSettingsWriteService', () => {
       patch: { showGrid: true },
     });
 
-    expect(mocks.resolveSettingsScopeTable).toHaveBeenCalledWith('project');
-    expect(mocks.selectSettingsForScope).toHaveBeenCalledWith('project', 'project-1');
+    expect(mocks.supabaseSingle).toHaveBeenCalled();
     expect(mocks.deepMerge).toHaveBeenCalledWith(
       {},
       { enabled: true, density: 'compact' },
       { showGrid: true },
     );
-    expect(mocks.callUpdateToolSettingsAtomicRpc).toHaveBeenCalledWith(
-      'projects',
-      'project-1',
-      'timeline',
-      { enabled: true, density: 'compact', showGrid: true },
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'update_tool_settings_atomic',
+      {
+        p_table_name: 'projects',
+        p_id: 'project-1',
+        p_tool_id: 'timeline',
+        p_settings: { enabled: true, density: 'compact', showGrid: true },
+      },
     );
     expect(result).toEqual({ enabled: true, density: 'compact', showGrid: true });
   });
@@ -104,7 +110,7 @@ describe('toolSettingsWriteService', () => {
       signal?: AbortSignal;
     }) => Promise<Record<string, unknown>>;
 
-    mocks.selectSettingsForScope.mockResolvedValueOnce({
+    mocks.supabaseSingle.mockResolvedValueOnce({
       data: null,
       error: {
         message: 'Failed to fetch',

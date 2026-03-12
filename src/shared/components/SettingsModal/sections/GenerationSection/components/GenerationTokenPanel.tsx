@@ -1,4 +1,5 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Terminal, ChevronDown } from 'lucide-react';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
@@ -19,14 +20,52 @@ import { getInstallationCommand, getRunCommand, generateAIInstructions, safeCopy
 import type { CommandConfig } from '../../../types';
 import { CommandPreview } from './CommandPreview';
 import { GenerationHelpPopover } from './GenerationHelpPopover';
-import { useCopyFeedback } from '../hooks/useCopyFeedback';
 import { useCommandVisibility } from '../hooks/useCommandVisibility';
-import {
-  COMPUTER_LABELS,
-  GPU_LABELS,
-  MEMORY_LABELS,
-  SHELL_LABELS,
-} from '../data/generationLabels';
+
+const COMPUTER_LABELS: Record<string, string> = {
+  linux: 'Linux',
+  windows: 'Windows',
+  mac: 'Mac',
+};
+
+const GPU_LABELS: Record<string, string> = {
+  'nvidia-30-40': 'NVIDIA <=40 series',
+  'nvidia-50': 'NVIDIA 50 series',
+  'non-nvidia': 'Non-NVIDIA',
+};
+
+const MEMORY_LABELS: Record<string, string> = {
+  '1': 'Max Performance',
+  '2': 'High RAM',
+  '3': 'Balanced',
+  '4': 'Conservative',
+  '5': 'Minimum',
+};
+
+const SHELL_LABELS: Record<string, string> = {
+  cmd: 'Command Prompt',
+  powershell: 'PowerShell',
+};
+
+function useCopyFeedback() {
+  const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
+  const [copiedRunCommand, setCopiedRunCommand] = useState(false);
+  const [copiedAIInstructions, setCopiedAIInstructions] = useState(false);
+
+  const triggerCopyFeedback = useCallback((setCopied: Dispatch<SetStateAction<boolean>>) => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  }, []);
+
+  return {
+    copiedInstallCommand,
+    copiedRunCommand,
+    copiedAIInstructions,
+    markInstallCopied: () => triggerCopyFeedback(setCopiedInstallCommand),
+    markRunCopied: () => triggerCopyFeedback(setCopiedRunCommand),
+    markAICopied: () => triggerCopyFeedback(setCopiedAIInstructions),
+  };
+}
 
 interface GenerationTokenPanelConfig {
   computerType: string;

@@ -8,8 +8,21 @@ import { toast } from '@/shared/components/ui/runtime/sonner';
 import type { GenerationRow } from '@/domains/generation/types';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { createImageInpaintTask } from '@/shared/lib/tasks/imageEditing/imageInpaint';
-import { createAnnotatedImageEditTask } from '@/shared/lib/tasks/imageEditing/annotatedImageEdit';
+import { createMaskedEditTask } from '@/shared/lib/tasks/imageEditing/maskedEditTaskBuilder';
+import type { MaskedEditTaskParams } from '@/shared/lib/tasks/imageEditing/maskedEditTaskBuilder';
 import { buildMaskedEditTaskParams } from '@/shared/lib/tasks/imageEditing/buildMaskedEditTaskParams';
+
+/**
+ * Creates annotated image edit tasks
+ * First task ID is returned for backward compatibility.
+ */
+function createAnnotatedImageEditTask(params: MaskedEditTaskParams): Promise<string> {
+  return createMaskedEditTask({
+    taskType: 'annotated_image_edit',
+    context: 'createAnnotatedImageEditTask',
+    batchOperationName: 'AnnotatedImageEdit',
+  }, params);
+}
 import type { StrokeOverlayHandle } from '../../components/StrokeOverlay';
 import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
 
