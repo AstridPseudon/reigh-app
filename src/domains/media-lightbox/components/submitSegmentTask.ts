@@ -202,7 +202,7 @@ function applyPromptAffixes(settings: SegmentSettings, prompt: string): string {
   );
 }
 
-async function createTaskOrThrow(taskParams: ReturnType<BuildTaskParams>): Promise<string> {
+async function createTask(taskParams: ReturnType<BuildTaskParams>): Promise<string> {
   const result = await createIndividualTravelSegmentTask(taskParams);
   if (!result.task_id) {
     throw new Error('Failed to create task');
@@ -251,7 +251,7 @@ async function submitStandardSegmentTask(runtime: SubmitSegmentRuntime): Promise
   await maybeSaveSettings(runtime);
   const finalPrompt = applyPromptAffixes(runtime.effectiveSettings, runtime.effectiveSettings.prompt?.trim() || '');
   const taskParams = runtime.buildParams(finalPrompt);
-  return createTaskOrThrow(taskParams);
+  return createTask(taskParams);
 }
 
 async function enhanceSegmentPrompt(
@@ -301,7 +301,7 @@ async function submitEnhancedSegmentTask(
   );
 
   const taskParams = runtime.buildParams(originalPromptWithAffixes, enhancedPromptWithAffixes);
-  return createTaskOrThrow(taskParams);
+  return createTask(taskParams);
 }
 
 /**

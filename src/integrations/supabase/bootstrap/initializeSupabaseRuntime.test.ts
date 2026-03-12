@@ -25,7 +25,7 @@ vi.mock('@/integrations/supabase/support/dev/autoLogin', () => ({
   maybeAutoLogin: maybeAutoLoginMock,
 }));
 
-vi.mock('@/shared/lib/toolSettingsAuthCache', () => ({
+vi.mock('@/shared/lib/toolSettingsService', () => ({
   initializeToolSettingsAuthCache: initializeToolSettingsAuthCacheMock,
 }));
 

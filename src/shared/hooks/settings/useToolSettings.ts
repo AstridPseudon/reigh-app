@@ -8,7 +8,7 @@ import { deepMerge } from '@/shared/lib/utils/deepEqual';
 import {
   classifyToolSettingsError,
   ensureToolSettingsAuthCacheInitialized,
-  fetchToolSettingsSupabaseOrThrow,
+  fetchToolSettingsSupabase,
   resolveAndCacheUserId,
   ToolSettingsError,
   type SettingsFetchResult,
@@ -193,7 +193,7 @@ export function useToolSettings<T>(
     queryFn: async ({ signal }): Promise<SettingsFetchResult> => {
       const supabaseClient = getSupabaseClient();
       await ensureToolSettingsAuthCacheInitialized(supabaseClient);
-      return fetchToolSettingsSupabaseOrThrow(toolId, { projectId, shotId }, signal, supabaseClient);
+      return fetchToolSettingsSupabase(toolId, { projectId, shotId }, signal, supabaseClient);
     },
     enabled: !!toolId && fetchEnabled,
     ...QUERY_PRESETS.static,

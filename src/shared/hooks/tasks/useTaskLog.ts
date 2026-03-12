@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import {
-  fetchTaskLogDataOrThrow,
+  fetchTaskLogData,
   type EnrichedTaskLogTask,
   type TaskLogAvailableFilters,
   type TaskLogFilters,
@@ -31,7 +31,7 @@ export function useTaskLog(
     queryKey: taskQueryKeys.log(limit, page, filters),
     placeholderData: (previousData) => previousData, // Prevents table from disappearing during filter changes
     queryFn: async () => {
-      const { availableFilters, tasks, total } = await fetchTaskLogDataOrThrow({
+      const { availableFilters, tasks, total } = await fetchTaskLogData({
         filters,
         limit,
         offset,

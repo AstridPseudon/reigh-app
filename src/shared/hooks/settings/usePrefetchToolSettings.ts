@@ -5,7 +5,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import {
-  fetchToolSettingsSupabaseOrThrow,
+  fetchToolSettingsSupabase,
   type SettingsFetchResult,
 } from '@/shared/lib/toolSettingsService';
 
@@ -24,7 +24,7 @@ function fetchSettingsForPrefetch(
   toolId: string,
   ctx: { projectId?: string; shotId?: string },
 ): Promise<SettingsFetchResult> {
-  return fetchToolSettingsSupabaseOrThrow(toolId, ctx, undefined, getSupabaseClient());
+  return fetchToolSettingsSupabase(toolId, ctx, undefined, getSupabaseClient());
 }
 
 /**

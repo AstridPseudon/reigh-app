@@ -47,8 +47,8 @@ import {
   clearCachedUserId,
   readCachedUserId,
   resolveAndCacheUserId,
+  fetchToolSettingsResult,
   fetchToolSettingsSupabase,
-  fetchToolSettingsSupabaseOrThrow,
   initializeToolSettingsAuthCache,
   ToolSettingsError,
   setCachedUserId,
@@ -267,7 +267,7 @@ describe('toolSettingsService', () => {
     });
   });
 
-  describe('fetchToolSettingsSupabase', () => {
+  describe('fetchToolSettingsResult', () => {
     beforeEach(() => {
       setStoredSession('test-user');
     });
@@ -275,7 +275,7 @@ describe('toolSettingsService', () => {
     it('returns defaults when no settings exist', async () => {
       mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
-      const result = expectSuccess(await fetchToolSettingsSupabase('test-tool', {}, undefined, createTestSupabaseClient() as never));
+      const result = expectSuccess(await fetchToolSettingsResult('test-tool', {}, undefined, createTestSupabaseClient() as never));
 
       expect(result.settings).toEqual({
         setting1: 'default1',
@@ -291,7 +291,7 @@ describe('toolSettingsService', () => {
       });
       mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
 
-      const result = expectSuccess(await fetchToolSettingsSupabase('test-tool', {}, undefined, createTestSupabaseClient() as never));
+      const result = expectSuccess(await fetchToolSettingsResult('test-tool', {}, undefined, createTestSupabaseClient() as never));
 
       expect(result.settings).toEqual(
         expect.objectContaining({
@@ -330,7 +330,7 @@ describe('toolSettingsService', () => {
         })),
       }));
 
-      const result = expectSuccess(await fetchToolSettingsSupabase('test-tool', {
+      const result = expectSuccess(await fetchToolSettingsResult('test-tool', {
         projectId: 'project-1',
         shotId: 'shot-1',
       }, undefined, createTestSupabaseClient() as never));
@@ -359,11 +359,11 @@ describe('toolSettingsService', () => {
         })),
       }));
 
-      const first = fetchToolSettingsSupabase('test-tool', {
+      const first = fetchToolSettingsResult('test-tool', {
         projectId: 'project-1',
         shotId: 'shot-1',
       }, undefined, createTestSupabaseClient() as never);
-      const second = fetchToolSettingsSupabase('test-tool', {
+      const second = fetchToolSettingsResult('test-tool', {
         projectId: 'project-1',
         shotId: 'shot-1',
       }, undefined, createTestSupabaseClient() as never);
@@ -383,7 +383,7 @@ describe('toolSettingsService', () => {
       const deferred = createDeferred<{ data: null; error: null }>();
       mockMaybeSingle.mockImplementation(() => deferred.promise);
 
-      const resultPromise = fetchToolSettingsSupabase('test-tool', {
+      const resultPromise = fetchToolSettingsResult('test-tool', {
         projectId: 'project-1',
       }, undefined, createTestSupabaseClient() as never);
 
@@ -423,7 +423,7 @@ describe('toolSettingsService', () => {
         })),
       }));
 
-      const result = await fetchToolSettingsSupabase('test-tool', {
+      const result = await fetchToolSettingsResult('test-tool', {
         projectId: 'project-1',
         shotId: 'shot-1',
       }, undefined, createTestSupabaseClient() as never);
@@ -440,7 +440,7 @@ describe('toolSettingsService', () => {
       const controller = new AbortController();
       controller.abort();
 
-      const result = await fetchToolSettingsSupabase('test-tool', {}, controller.signal, createTestSupabaseClient() as never);
+      const result = await fetchToolSettingsResult('test-tool', {}, controller.signal, createTestSupabaseClient() as never);
       expect(result.ok).toBe(false);
       if (result.ok) {
         throw new Error('Expected cancellation failure result');
@@ -452,7 +452,7 @@ describe('toolSettingsService', () => {
     it('skips project query when no projectId provided', async () => {
       mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
-      await fetchToolSettingsSupabase('test-tool', {}, undefined, createTestSupabaseClient() as never);
+      await fetchToolSettingsResult('test-tool', {}, undefined, createTestSupabaseClient() as never);
 
       const fromCalls = mockFrom.mock.calls.map((c: unknown) => c[0]);
       expect(fromCalls).toContain('users');
@@ -461,7 +461,7 @@ describe('toolSettingsService', () => {
     it('throws Authentication required when not logged in', async () => {
       setStoredSession(null); // no session in storage, cache already cleared by beforeEach
 
-      const result = await fetchToolSettingsSupabase('test-tool', {}, undefined, createTestSupabaseClient() as never);
+      const result = await fetchToolSettingsResult('test-tool', {}, undefined, createTestSupabaseClient() as never);
       expect(result.ok).toBe(false);
       if (result.ok) {
         throw new Error('Expected auth_required failure result');
@@ -471,7 +471,7 @@ describe('toolSettingsService', () => {
     });
   });
 
-  describe('fetchToolSettingsSupabaseOrThrow', () => {
+  describe('fetchToolSettingsSupabase', () => {
     beforeEach(() => {
       setStoredSession('test-user');
     });
@@ -479,7 +479,7 @@ describe('toolSettingsService', () => {
     it('returns settings when the structured result is ok', async () => {
       mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
-      const result = await fetchToolSettingsSupabaseOrThrow('test-tool', {}, undefined, createTestSupabaseClient() as never);
+      const result = await fetchToolSettingsSupabase('test-tool', {}, undefined, createTestSupabaseClient() as never);
 
       expect(result.settings).toEqual({
         setting1: 'default1',
@@ -491,7 +491,7 @@ describe('toolSettingsService', () => {
     it('throws ToolSettingsError when the structured result is a failure', async () => {
       setStoredSession(null);
 
-      await expect(fetchToolSettingsSupabaseOrThrow('test-tool', {}, undefined, createTestSupabaseClient() as never)).rejects.toMatchObject({
+      await expect(fetchToolSettingsSupabase('test-tool', {}, undefined, createTestSupabaseClient() as never)).rejects.toMatchObject({
         name: 'ToolSettingsError',
         code: 'auth_required',
       } satisfies Partial<ToolSettingsError>);

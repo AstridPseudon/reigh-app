@@ -20,9 +20,9 @@ import {
   buildChildrenQueryKey,
   buildLiveTimelineQueryKey,
   buildParentGenerationsQueryKey,
-  fetchChildGenerationsOrThrow,
-  fetchLiveTimelineOrThrow,
-  fetchParentGenerationsOrThrow,
+  fetchChildGenerations,
+  fetchLiveTimeline,
+  fetchParentGenerations,
 } from './segmentOutputsQueries';
 import { buildSegmentSlots } from './segmentSlotAssignment';
 import type {
@@ -170,7 +170,7 @@ export function useSegmentOutputsForShot(
       if (!shotId || !projectId) {
         return [];
       }
-      return fetchParentGenerationsOrThrow(shotId, projectId);
+      return fetchParentGenerations(shotId, projectId);
     },
     enabled: !!shotId && !!projectId && !preloadedGenerations,
     staleTime: 30000,
@@ -228,7 +228,7 @@ export function useSegmentOutputsForShot(
       if (!selectedParentId) {
         return [];
       }
-      return fetchChildGenerationsOrThrow(selectedParentId);
+      return fetchChildGenerations(selectedParentId);
     },
     enabled: !!selectedParentId && !preloadedGenerations,
     ...childrenPollingConfig,
@@ -264,7 +264,7 @@ export function useSegmentOutputsForShot(
       if (!shotId) {
         return [];
       }
-      return fetchLiveTimelineOrThrow(shotId);
+      return fetchLiveTimeline(shotId);
     },
     enabled: !!shotId && !preloadedGenerations,
     staleTime: 10000,

@@ -193,7 +193,7 @@ vi.mock('@/shared/lib/toolSettingsService', async () => {
   return {
     ...actual,
     ensureToolSettingsAuthCacheInitialized: vi.fn().mockResolvedValue(undefined),
-    fetchToolSettingsSupabaseOrThrow: vi.fn().mockResolvedValue({
+    fetchToolSettingsSupabase: vi.fn().mockResolvedValue({
       settings: { prompt: 'default', seed: 1 },
       hasShotSettings: false,
     }),

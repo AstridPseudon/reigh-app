@@ -165,7 +165,7 @@ async function fetchAvailableTaskLogFilters(
   };
 }
 
-export async function fetchTaskLogDataOrThrow({
+export async function fetchTaskLogData({
   filters = {},
   limit,
   offset,

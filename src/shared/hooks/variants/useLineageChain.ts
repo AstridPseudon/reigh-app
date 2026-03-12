@@ -115,7 +115,7 @@ function toLineageScopeError(
   });
 }
 
-async function fetchVariantByIdOrThrow(variantId: string, projectId: string): Promise<VariantRecord> {
+async function fetchVariantById(variantId: string, projectId: string): Promise<VariantRecord> {
   const scope = await resolveVariantProjectScope(variantId, projectId);
   if (scope.status !== 'ok' || !scope.generationId) {
     throw new LineageScopeError({
@@ -157,7 +157,7 @@ async function fetchVariantByIdOrThrow(variantId: string, projectId: string): Pr
  * Recursively fetch the lineage chain for a variant.
  * Follows `params.source_variant_id` across generation boundaries.
  */
-async function fetchLineageChainOrThrow(
+async function fetchLineageChain(
   variantId: string,
   projectId: string,
 ): Promise<LineageItem[]> {
@@ -167,7 +167,7 @@ async function fetchLineageChainOrThrow(
 
   while (currentId && !visited.has(currentId)) {
     visited.add(currentId);
-    const variant = await fetchVariantByIdOrThrow(currentId, projectId);
+    const variant = await fetchVariantById(currentId, projectId);
 
     chain.unshift({
       id: variant.id,
@@ -195,7 +195,7 @@ export function useLineageChain(variantId: string | null, projectId: string | nu
     queryKey: [...generationQueryKeys.lineageChain(variantId!), projectId ?? '__no-project__'],
     queryFn: async () => {
       try {
-        return await fetchLineageChainOrThrow(variantId!, projectId!);
+        return await fetchLineageChain(variantId!, projectId!);
       } catch (caughtError) {
         const normalizedError = toLineageScopeError(caughtError, {
           status: 'query_failed',
@@ -234,10 +234,10 @@ export function useLineageChain(variantId: string | null, projectId: string | nu
  * Returns the number of ancestors (0 if no lineage, 1+ if has ancestors).
  * This fetches directly without caching - use sparingly for initial checks.
  *
- * Reuses fetchLineageChainOrThrow to avoid duplicating the traversal logic.
+ * Reuses fetchLineageChain to avoid duplicating the traversal logic.
  */
 export async function getLineageDepth(variantId: string, projectId: string): Promise<number> {
-  const chain = await fetchLineageChainOrThrow(variantId, projectId);
+  const chain = await fetchLineageChain(variantId, projectId);
   // chain includes the variant itself; ancestors = chain length - 1
   return Math.max(0, chain.length - 1);
 }
