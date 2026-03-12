@@ -1,24 +1,48 @@
 import { describe, expect, it } from 'vitest';
 
-const moduleSpecifiers = [
-  '../../../config/tailwind/theme/themeAnimations',
-  '../../../config/tailwind/theme/themeColors',
-  '../../../config/tailwind/theme/themeKeyframes',
-  '../../../config/testing/vitest.edge.aliases',
-  '../../../config/testing/vitest.edge.config',
-  '../../../config/testing/vitest.edge.shared',
-  '../../../config/vite/policy',
-  './autoTopupRequest',
-  '../_tests/mocks/groqSdk',
-  '../complete_task/handler',
-  '../complete_task/index',
-  '../update-task-status/types',
+const moduleLoaders = [
+  () => import(
+    '../../../config/tailwind/theme/themeAnimations'
+  ),
+  () => import(
+    '../../../config/tailwind/theme/themeColors'
+  ),
+  () => import(
+    '../../../config/tailwind/theme/themeKeyframes'
+  ),
+  () => import(
+    '../../../config/testing/vitest.edge.aliases'
+  ),
+  () => import(
+    '../../../config/testing/vitest.edge.config'
+  ),
+  () => import(
+    '../../../config/testing/vitest.edge.shared'
+  ),
+  () => import(
+    '../../../config/vite/policy'
+  ),
+  () => import(
+    './autoTopupRequest'
+  ),
+  () => import(
+    '../_tests/mocks/groqSdk'
+  ),
+  () => import(
+    '../complete_task/handler'
+  ),
+  () => import(
+    '../complete_task/index'
+  ),
+  () => import(
+    '../update-task-status/types'
+  ),
 ] as const;
 
-describe('reopened edge module coverage surface batch', () => {
-  it('loads each reopened edge coverage target and exposes defined runtime exports when present', async () => {
-    for (const moduleSpecifier of moduleSpecifiers) {
-      const loadedModule = await import(moduleSpecifier);
+describe('reopened config and edge module coverage surface batch', () => {
+  it('loads each reopened config or edge coverage target and exposes defined runtime exports when present', async () => {
+    for (const loadModule of moduleLoaders) {
+      const loadedModule = await loadModule();
 
       expect(loadedModule).toBeDefined();
 
