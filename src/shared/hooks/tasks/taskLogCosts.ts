@@ -1,6 +1,6 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 
-interface TaskLogCostEntry {
+export interface TaskLogCostEntry {
   task_id: string | null;
   amount: number;
   created_at: string;

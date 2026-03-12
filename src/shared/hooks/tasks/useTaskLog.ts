@@ -1,24 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { getVisibleTaskTypes, getHiddenTaskTypes } from '@/shared/lib/tasks/taskConfig';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
-import { fetchTaskLogCosts } from './taskLogCosts';
-
-interface TaskWithCost {
-  id: string;
-  taskType: string;
-  status: string;
-  createdAt: string;
-  generationStartedAt?: string | null;
-  generationProcessedAt?: string | null;
-  projectId: string;
-  cost?: number; // from credits_ledger
-  duration?: number; // calculated from start/end times
-  projectName?: string; // from projects table
-}
+import {
+  fetchTaskLogData,
+  type EnrichedTaskLogTask,
+  type TaskLogAvailableFilters,
+  type TaskLogFilters,
+} from './taskLogPipeline';
 
 interface TaskLogResponse {
-  tasks: TaskWithCost[];
+  tasks: EnrichedTaskLogTask[];
   pagination: {
     limit: number;
     offset: number;
@@ -27,18 +17,7 @@ interface TaskLogResponse {
     totalPages: number;
     currentPage: number;
   };
-  availableFilters: {
-    taskTypes: string[];
-    projects: { id: string; name: string }[];
-    statuses: string[];
-  };
-}
-
-interface TaskLogFilters {
-  costFilter?: 'all' | 'free' | 'paid';
-  status?: string[];
-  taskTypes?: string[];
-  projectIds?: string[];
+  availableFilters: TaskLogAvailableFilters;
 }
 
 export function useTaskLog(
@@ -52,135 +31,11 @@ export function useTaskLog(
     queryKey: taskQueryKeys.log(limit, page, filters),
     placeholderData: (previousData) => previousData, // Prevents table from disappearing during filter changes
     queryFn: async () => {
-      const { data: { user }, error: authError } = await supabase().auth.getUser();
-      if (authError || !user) {
-        throw new Error('Authentication required');
-      }
-
-      // First get user's projects to filter tasks
-      const { data: projects } = await supabase().from('projects')
-        .select('id, name')
-        .eq('user_id', user.id);
-
-      if (!projects || projects.length === 0) {
-        return {
-          tasks: [],
-          pagination: { 
-            limit, 
-            offset, 
-            total: 0, 
-            hasMore: false, 
-            totalPages: 0,
-            currentPage: page 
-          },
-          availableFilters: {
-            taskTypes: [],
-            projects: [],
-            statuses: []
-          }
-        };
-      }
-
-      const projectIds = projects.map(p => p.id);
-      const projectLookup = Object.fromEntries(projects.map(p => [p.id, p.name]));
-
-      // Get hidden task types from centralized config (same as TasksPane uses)
-      const hiddenTaskTypes = getHiddenTaskTypes();
-
-      // Build query with filters
-      // Only show visible task types (uses same centralized config as TasksPane)
-      let query = supabase().from('tasks')
-        .select('*', { count: 'exact' })
-        .in('project_id', projectIds);
-
-      // Exclude hidden task types if there are any defined
-      if (hiddenTaskTypes.length > 0) {
-        query = query.not('task_type', 'in', `(${hiddenTaskTypes.join(',')})`);
-      }
-
-      // Apply status filter
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status as Array<'Queued' | 'In Progress' | 'Complete' | 'Failed' | 'Cancelled'>);
-      }
-
-      // Apply task type filter
-      if (filters.taskTypes && filters.taskTypes.length > 0) {
-        query = query.in('task_type', filters.taskTypes);
-      }
-
-      // Apply project filter
-      if (filters.projectIds && filters.projectIds.length > 0) {
-        query = query.in('project_id', filters.projectIds);
-      }
-
-      const { data: tasksData, error: tasksError, count } = await query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (tasksError) {
-        throw new Error(`Failed to fetch tasks: ${tasksError.message}`);
-      }
-
-      const taskIds = tasksData?.map(task => task.id) || [];
-      const costsData = await fetchTaskLogCosts(taskIds);
-
-      // Combine tasks with cost information
-      let tasks: TaskWithCost[] = (tasksData || []).map(task => {
-        const costEntry = costsData.find(cost => cost.task_id === task.id);
-        let duration: number | undefined;
-        
-        // Calculate duration if both timestamps exist
-        if (task.generation_started_at && task.generation_processed_at) {
-          const start = new Date(task.generation_started_at);
-          const end = new Date(task.generation_processed_at);
-          duration = Math.ceil((end.getTime() - start.getTime()) / 1000); // in seconds
-        }
-
-        return {
-          id: task.id,
-          taskType: task.task_type,
-          status: task.status,
-          createdAt: task.created_at,
-          generationStartedAt: task.generation_started_at,
-          generationProcessedAt: task.generation_processed_at,
-          projectId: task.project_id,
-          projectName: projectLookup[task.project_id] || 'Unknown Project',
-          cost: costEntry ? Math.abs(costEntry.amount) : undefined,
-          duration,
-        };
+      const { availableFilters, tasks, total } = await fetchTaskLogData({
+        filters,
+        limit,
+        offset,
       });
-
-      // Apply cost filter (client-side since it depends on joined data)
-      if (filters.costFilter === 'free') {
-        tasks = tasks.filter(task => !task.cost || task.cost === 0);
-      } else if (filters.costFilter === 'paid') {
-        tasks = tasks.filter(task => task.cost && task.cost > 0);
-      }
-
-      // Get available filter options
-      // Use visible task types from centralized config (same as TasksPane dropdown)
-      // Show ALL visible types, not just ones user has used (matches TasksPane behavior)
-      const visibleTaskTypes = getVisibleTaskTypes();
-      
-      // Query for unique statuses from user's visible tasks
-      let allTasksQuery = supabase().from('tasks')
-        .select('task_type, status, project_id')
-        .in('project_id', projectIds);
-      
-      if (hiddenTaskTypes.length > 0) {
-        allTasksQuery = allTasksQuery.not('task_type', 'in', `(${hiddenTaskTypes.join(',')})`);
-      }
-      
-      const { data: allTasks } = await allTasksQuery;
-
-      const availableFilters = {
-        // Show all visible task types (same as TasksPane dropdown)
-        taskTypes: visibleTaskTypes.sort((a, b) => a.localeCompare(b)),
-        projects: projects,
-        statuses: [...new Set((allTasks || []).map(t => t.status))].sort((a, b) => a.localeCompare(b))
-      };
-
-      const total = count || 0;
       const totalPages = Math.ceil(total / limit);
       const hasMore = page < totalPages;
 

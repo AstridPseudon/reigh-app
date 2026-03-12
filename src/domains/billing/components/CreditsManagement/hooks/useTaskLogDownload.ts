@@ -1,99 +1,38 @@
 import { useState, useCallback } from 'react';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { fetchTaskLogCosts } from '@/shared/hooks/tasks/taskLogCosts';
+import { fetchTaskLogData } from '@/shared/hooks/tasks/taskLogPipeline';
 import type { TaskLogFilters } from '../types';
 
 interface UseTaskLogDownloadReturn {
   isDownloading: boolean;
   handleDownload: () => Promise<void>;
 }
-
-type TaskStatus = 'Queued' | 'In Progress' | 'Complete' | 'Failed' | 'Cancelled';
-
 export function useTaskLogDownload(filters: TaskLogFilters): UseTaskLogDownloadReturn {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);
     try {
-      const { data: { user }, error: authError } = await supabase().auth.getUser();
-      if (authError || !user) {
-        throw new Error('Authentication required');
-      }
-
-      // Get user's projects
-      const { data: projects } = await supabase().from('projects')
-        .select('id, name')
-        .eq('user_id', user.id);
-
-      if (!projects || projects.length === 0) {
+      const { tasks } = await fetchTaskLogData({ filters });
+      if (tasks.length === 0) {
         return;
       }
-
-      const projectIds = projects.map(p => p.id);
-      const projectLookup = Object.fromEntries(projects.map(p => [p.id, p.name]));
-
-      // Build query with current filters (no pagination)
-      let query = supabase().from('tasks')
-        .select('*')
-        .in('project_id', projectIds);
-
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status as TaskStatus[]);
-      }
-      if (filters.taskTypes && filters.taskTypes.length > 0) {
-        query = query.in('task_type', filters.taskTypes);
-      }
-      if (filters.projectIds && filters.projectIds.length > 0) {
-        query = query.in('project_id', filters.projectIds);
-      }
-
-      const { data: tasksData, error: tasksError } = await query
-        .order('created_at', { ascending: false });
-
-      if (tasksError) {
-        throw new Error(`Failed to fetch tasks: ${tasksError.message}`);
-      }
-
-      const taskIds = tasksData?.map(task => task.id) || [];
-      const costsData = await fetchTaskLogCosts(taskIds);
-
-      // Combine tasks with cost information
-      let tasks = (tasksData || []).map(task => {
-        const costEntry = costsData.find(cost => cost.task_id === task.id);
-        let duration: number | undefined;
-
-        if (task.generation_started_at && task.generation_processed_at) {
-          const start = new Date(task.generation_started_at);
-          const end = new Date(task.generation_processed_at);
-          duration = Math.ceil((end.getTime() - start.getTime()) / 1000);
-        }
-
-        return {
-          id: task.id,
-          date: new Date(task.created_at).toLocaleDateString(),
-          taskType: getTaskDisplayName(task.task_type),
-          project: projectLookup[task.project_id] || 'Unknown Project',
-          status: task.status,
-          duration: duration ? `${duration}s` : '',
-          cost: costEntry ? `$${Math.abs(costEntry.amount).toFixed(3)}` : 'Free',
-        };
-      });
-
-      // Apply cost filter (client-side)
-      if (filters.costFilter === 'free') {
-        tasks = tasks.filter(task => task.cost === 'Free');
-      } else if (filters.costFilter === 'paid') {
-        tasks = tasks.filter(task => task.cost !== 'Free');
-      }
+      const rows = tasks.map((task) => ({
+        id: task.id,
+        date: new Date(task.createdAt).toLocaleDateString(),
+        taskType: getTaskDisplayName(task.taskType),
+        project: task.projectName || 'Unknown Project',
+        status: task.status,
+        duration: task.duration ? `${task.duration}s` : '',
+        cost: task.cost ? `$${task.cost.toFixed(3)}` : 'Free',
+      }));
 
       // Convert to CSV
       const headers = ['ID', 'Date', 'Task Type', 'Project', 'Status', 'Duration', 'Cost'];
       const csvContent = [
         headers.join(','),
-        ...tasks.map(task => [
+        ...rows.map(task => [
           task.id,
           task.date,
           `"${task.taskType}"`,
