@@ -4,6 +4,8 @@ import * as UpdateTaskStatusEntrypoint from './index.ts';
 
 const mocks = vi.hoisted(() => ({
   bootstrapEdgeHandler: vi.fn(),
+  ensureTaskActor: vi.fn(),
+  authorizeTaskActor: vi.fn(),
   handleCascadingTaskFailure: vi.fn(),
   handleOrchestratorCancellationBilling: vi.fn(),
   buildTaskUpdatePayload: vi.fn(),
@@ -17,6 +19,14 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../_shared/edgeHandler.ts', () => ({
   bootstrapEdgeHandler: (...args: unknown[]) => mocks.bootstrapEdgeHandler(...args),
   NO_SESSION_RUNTIME_OPTIONS: {},
+}));
+
+vi.mock('../_shared/requestGuards.ts', () => ({
+  ensureTaskActor: (...args: unknown[]) => mocks.ensureTaskActor(...args),
+}));
+
+vi.mock('../_shared/taskActorPolicy.ts', () => ({
+  authorizeTaskActor: (...args: unknown[]) => mocks.authorizeTaskActor(...args),
 }));
 
 vi.mock('./cascade.ts', () => ({
@@ -91,6 +101,18 @@ describe('update-task-status edge entrypoint', () => {
     mocks.handleCascadingTaskFailure.mockResolvedValue(undefined);
     mocks.handleOrchestratorCancellationBilling.mockResolvedValue(undefined);
     mocks.buildTaskUpdatePayload.mockReturnValue({ status: 'Completed' });
+    mocks.ensureTaskActor.mockReturnValue({
+      ok: true,
+      response: null,
+    });
+    mocks.authorizeTaskActor.mockResolvedValue({
+      ok: true,
+      value: {
+        isServiceRole: true,
+        callerId: 'service-role',
+        taskOwnerVerified: false,
+      },
+    });
     mocks.parseAndValidateRequest.mockResolvedValue({
       ok: true,
       data: { task_id: 'task-1', status: 'Completed' },
@@ -151,6 +173,31 @@ describe('update-task-status edge entrypoint', () => {
 
     expect(response.status).toBe(400);
     await expect(response.text()).resolves.toBe('invalid payload');
+  });
+
+  it('returns authorization failure before reading task state', async () => {
+    const logger = createLogger();
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
+        logger,
+        auth: { isServiceRole: false, userId: 'user-1' },
+      },
+    });
+    mocks.authorizeTaskActor.mockResolvedValue({
+      ok: false,
+      error: 'Forbidden',
+      statusCode: 403,
+    });
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/update-task-status', { method: 'POST' }));
+
+    expect(response.status).toBe(403);
+    await expect(response.text()).resolves.toBe('Forbidden');
+    expect(mocks.fetchCurrentTaskStatus).not.toHaveBeenCalled();
+    expect(logger.flush).toHaveBeenCalled();
   });
 
   it('returns transition validation response and skips update', async () => {

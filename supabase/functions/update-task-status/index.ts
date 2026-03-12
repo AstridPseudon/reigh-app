@@ -1,6 +1,8 @@
 import { toErrorMessage } from "../_shared/errorMessage.ts";
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { bootstrapEdgeHandler } from '../_shared/edgeHandler.ts';
+import { ensureTaskActor } from '../_shared/requestGuards.ts';
+import { authorizeTaskActor } from '../_shared/taskActorPolicy.ts';
 
 import { handleCascadingTaskFailure } from './cascade.ts';
 import { handleOrchestratorCancellationBilling } from './cancellationBilling.ts';
@@ -47,10 +49,29 @@ serve(async (req) => {
     status: requestBody.status,
   });
 
-  const isServiceRole = auth?.isServiceRole === true;
-  const callerId = auth?.userId ?? null;
+  const authResult = ensureTaskActor(auth, logger);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
 
   try {
+    const actor = await authorizeTaskActor({
+      supabaseAdmin,
+      taskId: requestBody.task_id,
+      auth: auth!,
+      logPrefix: '[UPDATE-TASK-STATUS]',
+    });
+    if (!actor.ok) {
+      logger.error('Task access denied', {
+        task_id: requestBody.task_id,
+        error: actor.error,
+        status_code: actor.statusCode,
+      });
+      await logger.flush();
+      return new Response(actor.error, { status: actor.statusCode });
+    }
+
+    const { isServiceRole, callerId } = actor.value;
     const currentTaskResult = await fetchCurrentTaskStatus(supabaseAdmin, requestBody.task_id);
     if (currentTaskResult.error) {
       logger.error('Error checking current task status', { error: currentTaskResult.error.message });
