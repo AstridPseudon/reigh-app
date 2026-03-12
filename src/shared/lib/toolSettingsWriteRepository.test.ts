@@ -41,6 +41,12 @@ describe('toolSettingsWriteRepository', () => {
     expect(resolveSettingsScopeTable('shot')).toBe('shots');
   });
 
+  it('throws when an unsupported scope slips past the type boundary', () => {
+    expect(() =>
+      resolveSettingsScopeTable('workspace' as never),
+    ).toThrow('Unsupported settings scope: workspace');
+  });
+
   it('selects settings for the resolved scope table and entity id', () => {
     const result = selectSettingsForScope('project', 'project-1');
 

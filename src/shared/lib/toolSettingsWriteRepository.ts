@@ -9,8 +9,19 @@ const SETTINGS_SCOPE_TABLES: Record<SettingsScopeIdentifier, SettingsScopeTableN
   shot: 'shots',
 };
 
+function assertNeverScope(scope: never): never {
+  throw new Error(`Unsupported settings scope: ${String(scope)}`);
+}
+
 export function resolveSettingsScopeTable(scope: SettingsScopeIdentifier): SettingsScopeTableName {
-  return SETTINGS_SCOPE_TABLES[scope];
+  switch (scope) {
+    case 'user':
+    case 'project':
+    case 'shot':
+      return SETTINGS_SCOPE_TABLES[scope];
+    default:
+      return assertNeverScope(scope);
+  }
 }
 
 export function selectSettingsForScope(scope: SettingsScopeIdentifier, id: string) {
