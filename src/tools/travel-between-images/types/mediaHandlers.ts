@@ -3,13 +3,17 @@ import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travel
 
 export type StructureVideoType = 'uni3c' | 'flow' | 'canny' | 'depth';
 
+export interface PrimaryStructureVideoInput {
+  videoPath: string | null;
+  metadata: VideoMetadata | null;
+  treatment: 'adjust' | 'clip';
+  motionStrength: number;
+  structureType: StructureVideoType;
+  resourceId?: string;
+}
+
 export type OnPrimaryStructureVideoInputChange = (
-  videoPath: string | null,
-  metadata: VideoMetadata | null,
-  treatment: 'adjust' | 'clip',
-  motionStrength: number,
-  structureType: StructureVideoType,
-  resourceId?: string,
+  input: PrimaryStructureVideoInput,
 ) => void;
 
 export interface StructureVideoCollectionHandlers {

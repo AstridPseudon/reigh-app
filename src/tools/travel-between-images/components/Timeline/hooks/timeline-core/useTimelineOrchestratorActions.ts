@@ -4,7 +4,7 @@ import { calculateDuplicateFrame } from '@/shared/lib/timelinePositionCalculator
 import type { GenerationRow } from '@/domains/generation/types';
 import type { Resource, StructureVideoMetadata } from '@/shared/hooks/useResources';
 import type { PrimaryStructureVideo, StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
-import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
+import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
 import {
   calculateNewVideoPlacement,
   TRAILING_ENDPOINT_KEY,
@@ -48,14 +48,7 @@ interface StructureVideoSelectionArgs {
   primaryStructureVideo?: PrimaryStructureVideo;
   onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
   onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-  onPrimaryStructureVideoInputChange?: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string,
-  ) => void;
+  onPrimaryStructureVideoInputChange?: OnPrimaryStructureVideoInputChange;
   fullMax: number;
   setShowVideoBrowser: (value: boolean) => void;
 }
@@ -209,13 +202,13 @@ export function handleTimelineStructureVideoSelect({
       resource_id: resource.id,
     });
   } else if (onPrimaryStructureVideoInputChange) {
-    onPrimaryStructureVideoInputChange(
-      metadata.videoUrl,
-      metadata.videoMetadata,
-      primaryStructureVideo?.treatment ?? 'adjust',
-      primaryStructureVideo?.motionStrength ?? 1.0,
-      primaryStructureVideo?.structureType ?? 'flow',
-    );
+    onPrimaryStructureVideoInputChange({
+      videoPath: metadata.videoUrl,
+      metadata: metadata.videoMetadata,
+      treatment: primaryStructureVideo?.treatment ?? 'adjust',
+      motionStrength: primaryStructureVideo?.motionStrength ?? 1.0,
+      structureType: primaryStructureVideo?.structureType ?? 'flow',
+    });
   }
 
   setShowVideoBrowser(false);

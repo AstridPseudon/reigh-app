@@ -22,8 +22,8 @@ import type { GenerationRow } from '@/domains/generation/types';
 import type { PairData } from '../../TimelineContainer/types';
 import type { Resource } from '@/shared/hooks/useResources';
 import type { PrimaryStructureVideo, StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
-import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { DragType } from '@/shared/lib/dnd/dragDrop';
+import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
 import {
   handleTimelineStructureVideoSelect,
   runDuplicateInterceptor,
@@ -64,14 +64,7 @@ interface TimelineOrchestratorStructureVideoConfig {
   primaryStructureVideo?: PrimaryStructureVideo;
   onAddStructureVideo?: (video: StructureVideoConfigWithMetadata) => void;
   onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
-  onPrimaryStructureVideoInputChange?: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string,
-  ) => void;
+  onPrimaryStructureVideoInputChange?: OnPrimaryStructureVideoInputChange;
 }
 
 interface TimelineOrchestratorStructureVideoProps {

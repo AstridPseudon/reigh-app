@@ -10,11 +10,11 @@ import { BatchGuidanceVideo } from '../../BatchGuidanceVideo';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { UnpositionedGenerationsBanner } from './UnpositionedGenerationsBanner';
 import type { PairData } from '../../Timeline/TimelineContainer/types';
-import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
 import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { OperationResult } from '@/shared/lib/operationResult';
 import type { PrimaryStructureVideo } from '@/shared/lib/tasks/travelBetweenImages';
+import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
 
 interface BatchModeBatchConfig {
   selectedShotId: string;
@@ -74,14 +74,7 @@ interface BatchModeUIOptions {
   onClearPendingImageToOpen: () => void;
   navigateWithTransition: (doNavigation: () => void) => void;
 
-  onPrimaryStructureVideoInputChange?: (
-    videoPath: string | null,
-    metadata: VideoMetadata | null,
-    treatment: 'adjust' | 'clip',
-    motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
-    resourceId?: string,
-  ) => void;
+  onPrimaryStructureVideoInputChange?: OnPrimaryStructureVideoInputChange;
   onUni3cEndPercentChange?: (value: number) => void;
 
   onOpenUnpositionedPane: () => void;
@@ -239,45 +232,45 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             imageCount={images.length}
             timelineFramePositions={images.map((_, index) => index * batchVideoFrames)}
             onVideoUploaded={(videoUrl, metadata, resourceId) => {
-              onPrimaryStructureVideoInputChange(
-                videoUrl,
+              onPrimaryStructureVideoInputChange({
+                videoPath: videoUrl,
                 metadata,
-                primaryStructureVideo.treatment,
-                primaryStructureVideo.motionStrength,
-                primaryStructureVideo.structureType,
+                treatment: primaryStructureVideo.treatment,
+                motionStrength: primaryStructureVideo.motionStrength,
+                structureType: primaryStructureVideo.structureType,
                 resourceId,
-              );
+              });
             }}
             onTreatmentChange={(treatment) => {
               if (primaryStructureVideo.path && primaryStructureVideo.metadata) {
-                onPrimaryStructureVideoInputChange(
-                  primaryStructureVideo.path,
-                  primaryStructureVideo.metadata,
+                onPrimaryStructureVideoInputChange({
+                  videoPath: primaryStructureVideo.path,
+                  metadata: primaryStructureVideo.metadata,
                   treatment,
-                  primaryStructureVideo.motionStrength,
-                  primaryStructureVideo.structureType,
-                );
+                  motionStrength: primaryStructureVideo.motionStrength,
+                  structureType: primaryStructureVideo.structureType,
+                });
               }
             }}
             onMotionStrengthChange={(strength) => {
               if (primaryStructureVideo.path && primaryStructureVideo.metadata) {
-                onPrimaryStructureVideoInputChange(
-                  primaryStructureVideo.path,
-                  primaryStructureVideo.metadata,
-                  primaryStructureVideo.treatment,
-                  strength,
-                  primaryStructureVideo.structureType,
-                );
+                onPrimaryStructureVideoInputChange({
+                  videoPath: primaryStructureVideo.path,
+                  metadata: primaryStructureVideo.metadata,
+                  treatment: primaryStructureVideo.treatment,
+                  motionStrength: strength,
+                  structureType: primaryStructureVideo.structureType,
+                });
               }
             }}
-            onStructureTypeChange={(type) => {
-              onPrimaryStructureVideoInputChange(
-                primaryStructureVideo.path ?? null,
-                primaryStructureVideo.metadata ?? null,
-                primaryStructureVideo.treatment,
-                primaryStructureVideo.motionStrength,
-                type,
-              );
+            onStructureTypeChange={(structureType) => {
+              onPrimaryStructureVideoInputChange({
+                videoPath: primaryStructureVideo.path ?? null,
+                metadata: primaryStructureVideo.metadata ?? null,
+                treatment: primaryStructureVideo.treatment,
+                motionStrength: primaryStructureVideo.motionStrength,
+                structureType,
+              });
             }}
             uni3cEndPercent={primaryStructureVideo.uni3cEndPercent}
             onUni3cEndPercentChange={onUni3cEndPercentChange}

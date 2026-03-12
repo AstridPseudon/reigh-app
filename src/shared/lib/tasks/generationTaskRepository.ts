@@ -2,6 +2,7 @@ import {
   getSupabaseClientResult,
   type GetSupabaseClientResult,
 } from '@/integrations/supabase/client';
+import { isUuid } from '@/shared/lib/uuid';
 import { parseGenerationTaskId } from '@/shared/lib/tasks/generationTaskIdParser';
 
 const POSTGREST_NO_ROWS_CODE = 'PGRST116';
@@ -255,45 +256,59 @@ export async function resolveGenerationTaskMappings(
   }
 
   const requestedIds = Array.from(new Set(generationIds));
+  const mappings = new Map<string, GenerationTaskMapping>();
+  const persistedIds = requestedIds.filter((generationId) => isUuid(generationId));
+
+  requestedIds
+    .filter((generationId) => !isUuid(generationId))
+    .forEach((generationId) => {
+      mappings.set(generationId, {
+        generationId,
+        taskId: null,
+        status: 'not_loaded',
+      });
+    });
+
+  if (persistedIds.length === 0) {
+    return mappings;
+  }
+
   const supabaseResult = (options?.getSupabaseClientResult ?? getSupabaseClientResult)();
   if (!supabaseResult.ok) {
-    const failures = new Map<string, GenerationTaskMapping>();
-    requestedIds.forEach((generationId) => {
-      failures.set(generationId, {
+    persistedIds.forEach((generationId) => {
+      mappings.set(generationId, {
         generationId,
         taskId: null,
         status: 'query_failed',
         queryError: supabaseResult.error.message,
       });
     });
-    return failures;
+    return mappings;
   }
 
   const supabase = supabaseResult.client;
   const query = supabase
     .from('generations')
     .select('id, tasks, project_id')
-    .in('id', requestedIds);
+    .in('id', persistedIds);
 
   const { data, error } = await query;
 
   if (error) {
-    const failures = new Map<string, GenerationTaskMapping>();
-    requestedIds.forEach((generationId) => {
-      failures.set(generationId, {
+    persistedIds.forEach((generationId) => {
+      mappings.set(generationId, {
         generationId,
         taskId: null,
         status: 'query_failed',
         queryError: error.message,
       });
     });
-    return failures;
+    return mappings;
   }
 
   const rowsById = new Map((data || []).map((row) => [row.id, row]));
 
-  const mappings = new Map<string, GenerationTaskMapping>();
-  for (const generationId of requestedIds) {
+  for (const generationId of persistedIds) {
     const row = rowsById.get(generationId);
 
     if (!row) {

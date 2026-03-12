@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const GENERATION_IDS = {
+  one: '11111111-1111-4111-8111-111111111111',
+  two: '22222222-2222-4222-8222-222222222222',
+  ok: '33333333-3333-4333-8333-333333333333',
+  invalidTasks: '44444444-4444-4444-8444-444444444444',
+  missing: '55555555-5555-4555-8555-555555555555',
+} as const;
+
 type InResponse = { data: Array<{ id: string; tasks: unknown; project_id: string | null }> | null; error: { message: string } | null };
 type SingleResponse = {
   data: { id: string; project_id: string | null } | null;
@@ -60,58 +68,72 @@ describe('generationTaskRepository', () => {
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const result = await resolveGenerationTaskMappings(['gen-1', 'gen-2']);
+    const result = await resolveGenerationTaskMappings([GENERATION_IDS.one, GENERATION_IDS.two]);
 
-    expect(result.get('gen-1')).toMatchObject({ status: 'query_failed', taskId: null });
-    expect(result.get('gen-2')).toMatchObject({ status: 'query_failed', taskId: null });
+    expect(result.get(GENERATION_IDS.one)).toMatchObject({ status: 'query_failed', taskId: null });
+    expect(result.get(GENERATION_IDS.two)).toMatchObject({ status: 'query_failed', taskId: null });
+  });
+
+  it('marks invalid generation ids as not_loaded without querying Supabase', async () => {
+    const { client, mocks } = createSupabaseClientMock();
+    mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
+
+    const result = await resolveGenerationTaskMappings(['temp-generation-id']);
+
+    expect(result.get('temp-generation-id')).toMatchObject({ status: 'not_loaded', taskId: null });
+    expect(mocks.fromMock).not.toHaveBeenCalled();
   });
 
   it('returns ok for both legacy string tasks and array tasks, plus missing_generation', async () => {
     const { client } = createSupabaseClientMock({
       inResponse: {
         data: [
-          { id: 'gen-ok', tasks: ['task-1', 'task-2'], project_id: 'project-1' },
-          { id: 'gen-invalid', tasks: 'not-an-array', project_id: 'project-1' },
+          { id: GENERATION_IDS.ok, tasks: ['task-1', 'task-2'], project_id: 'project-1' },
+          { id: GENERATION_IDS.invalidTasks, tasks: 'not-an-array', project_id: 'project-1' },
         ],
         error: null,
       },
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const result = await resolveGenerationTaskMappings(['gen-ok', 'gen-invalid', 'gen-missing']);
+    const result = await resolveGenerationTaskMappings([
+      GENERATION_IDS.ok,
+      GENERATION_IDS.invalidTasks,
+      GENERATION_IDS.missing,
+    ]);
 
-    expect(result.get('gen-ok')).toMatchObject({ status: 'ok', taskId: 'task-1' });
-    expect(result.get('gen-invalid')).toMatchObject({ status: 'ok', taskId: 'not-an-array' });
-    expect(result.get('gen-missing')).toMatchObject({ status: 'missing_generation', taskId: null });
+    expect(result.get(GENERATION_IDS.ok)).toMatchObject({ status: 'ok', taskId: 'task-1' });
+    expect(result.get(GENERATION_IDS.invalidTasks)).toMatchObject({ status: 'ok', taskId: 'not-an-array' });
+    expect(result.get(GENERATION_IDS.missing)).toMatchObject({ status: 'missing_generation', taskId: null });
   });
 
   it('enforces project scope and returns scope_mismatch for out-of-scope rows', async () => {
     const { client } = createSupabaseClientMock({
       inResponse: {
         data: [
-          { id: 'gen-1', tasks: ['task-1'], project_id: 'project-a' },
+          { id: GENERATION_IDS.one, tasks: ['task-1'], project_id: 'project-a' },
         ],
         error: null,
       },
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const result = await resolveGenerationTaskMappings(['gen-1'], { projectId: 'project-b' });
+    const result = await resolveGenerationTaskMappings([GENERATION_IDS.one], { projectId: 'project-b' });
 
-    expect(result.get('gen-1')).toMatchObject({ status: 'scope_mismatch', taskId: null });
+    expect(result.get(GENERATION_IDS.one)).toMatchObject({ status: 'scope_mismatch', taskId: null });
   });
 
   it('keeps bridge-facing single lookup aligned with mapping semantics', async () => {
     const { client } = createSupabaseClientMock({
       inResponse: {
-        data: [{ id: 'gen-1', tasks: ['task-1'], project_id: 'project-1' }],
+        data: [{ id: GENERATION_IDS.one, tasks: ['task-1'], project_id: 'project-1' }],
         error: null,
       },
     });
     mockGetSupabaseClientResult.mockReturnValue({ ok: true, client });
 
-    const mapping = await resolveGenerationTaskMapping('gen-1');
-    expect(mapping).toMatchObject({ generationId: 'gen-1', status: 'ok', taskId: 'task-1' });
+    const mapping = await resolveGenerationTaskMapping(GENERATION_IDS.one);
+    expect(mapping).toMatchObject({ generationId: GENERATION_IDS.one, status: 'ok', taskId: 'task-1' });
   });
 
   it('resolves project scope statuses for ok, missing_generation, and query_failed paths', async () => {

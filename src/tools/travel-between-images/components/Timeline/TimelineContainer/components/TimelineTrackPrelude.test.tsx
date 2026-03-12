@@ -157,11 +157,13 @@ describe('TimelineTrackPrelude', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'guidance-strip' }));
     expect(props.guidance.onPrimaryStructureVideoInputChange).toHaveBeenCalledWith(
-      null,
-      null,
-      'adjust',
-      1.0,
-      'flow',
+      {
+        videoPath: null,
+        metadata: null,
+        treatment: 'adjust',
+        motionStrength: 1.0,
+        structureType: 'flow',
+      },
     );
   });
 

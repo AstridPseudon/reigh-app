@@ -95,13 +95,13 @@ export const GuidanceVideoControls = React.memo<GuidanceVideoControlsProps>(func
           resource_id: null,
         });
       } else if (onPrimaryStructureVideoInputChange) {
-        onPrimaryStructureVideoInputChange(
-          videoUrl,
+        onPrimaryStructureVideoInputChange({
+          videoPath: videoUrl,
           metadata,
-          primaryStructureVideo.treatment,
-          primaryStructureVideo.motionStrength,
-          primaryStructureVideo.structureType,
-        );
+          treatment: primaryStructureVideo.treatment,
+          motionStrength: primaryStructureVideo.motionStrength,
+          structureType: primaryStructureVideo.structureType,
+        });
       }
       e.target.value = '';
     } catch (error) {

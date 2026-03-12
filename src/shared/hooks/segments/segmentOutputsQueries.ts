@@ -12,7 +12,7 @@ export function buildParentGenerationsQueryKey(
   return segmentQueryKeys.parents(shotId, projectId ?? undefined);
 }
 
-export async function fetchParentGenerations(
+export async function fetchParentGenerationsOrThrow(
   shotId: string,
   projectId: string | null,
 ): Promise<GenerationRow[]> {
@@ -39,7 +39,7 @@ export function buildChildrenQueryKey(selectedParentId: string) {
   return segmentQueryKeys.children(selectedParentId);
 }
 
-export async function fetchChildGenerations(selectedParentId: string): Promise<GenerationRow[]> {
+export async function fetchChildGenerationsOrThrow(selectedParentId: string): Promise<GenerationRow[]> {
   const { data, error } = await supabase().from('generations')
     .select('*')
     .eq('parent_generation_id', selectedParentId)
@@ -62,7 +62,7 @@ export function buildLiveTimelineQueryKey(shotId: string) {
   return segmentQueryKeys.liveTimeline(shotId);
 }
 
-export async function fetchLiveTimeline(shotId: string): Promise<LiveTimelineRow[]> {
+export async function fetchLiveTimelineOrThrow(shotId: string): Promise<LiveTimelineRow[]> {
   const { data, error } = await supabase().from('shot_generations')
     .select('id, generation_id, timeline_frame')
     .eq('shot_id', shotId)

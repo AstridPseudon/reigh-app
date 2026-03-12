@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getTaskDisplayName } from '@/shared/lib/tasks/taskConfig';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { fetchTaskLogData } from '@/shared/hooks/tasks/taskLogPipeline';
+import { fetchTaskLogDataOrThrow } from '@/shared/hooks/tasks/taskLogPipeline';
 import type { TaskLogFilters } from '../types';
 
 interface UseTaskLogDownloadReturn {
@@ -14,7 +14,7 @@ export function useTaskLogDownload(filters: TaskLogFilters): UseTaskLogDownloadR
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);
     try {
-      const { tasks } = await fetchTaskLogData({ filters });
+      const { tasks } = await fetchTaskLogDataOrThrow({ filters });
       if (tasks.length === 0) {
         return;
       }

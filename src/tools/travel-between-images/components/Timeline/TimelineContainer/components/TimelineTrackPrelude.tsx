@@ -211,21 +211,27 @@ export const TimelineTrackPrelude: React.FC<TimelineTrackPreludeProps> = ({
               videoUrl={guidance.primaryStructureVideo.path}
               videoMetadata={guidance.primaryStructureVideo.metadata || null}
               treatment={guidance.primaryStructureVideo.treatment}
-              onTreatmentChange={(treatment) => guidance.onPrimaryStructureVideoInputChange?.(
-                guidance.primaryStructureVideo.path,
-                guidance.primaryStructureVideo.metadata ?? null,
+              onTreatmentChange={(treatment) => guidance.onPrimaryStructureVideoInputChange?.({
+                videoPath: guidance.primaryStructureVideo.path,
+                metadata: guidance.primaryStructureVideo.metadata ?? null,
                 treatment,
-                guidance.primaryStructureVideo.motionStrength,
-                guidance.primaryStructureVideo.structureType,
-              )}
-              onRemove={() => guidance.onPrimaryStructureVideoInputChange?.(null, null, 'adjust', 1.0, 'flow')}
-              onMetadataExtracted={(metadata) => guidance.onPrimaryStructureVideoInputChange?.(
-                guidance.primaryStructureVideo.path,
+                motionStrength: guidance.primaryStructureVideo.motionStrength,
+                structureType: guidance.primaryStructureVideo.structureType,
+              })}
+              onRemove={() => guidance.onPrimaryStructureVideoInputChange?.({
+                videoPath: null,
+                metadata: null,
+                treatment: 'adjust',
+                motionStrength: 1.0,
+                structureType: 'flow',
+              })}
+              onMetadataExtracted={(metadata) => guidance.onPrimaryStructureVideoInputChange?.({
+                videoPath: guidance.primaryStructureVideo.path,
                 metadata,
-                guidance.primaryStructureVideo.treatment,
-                guidance.primaryStructureVideo.motionStrength,
-                guidance.primaryStructureVideo.structureType,
-              )}
+                treatment: guidance.primaryStructureVideo.treatment,
+                motionStrength: guidance.primaryStructureVideo.motionStrength,
+                structureType: guidance.primaryStructureVideo.structureType,
+              })}
               fullMin={layout.fullMin}
               fullMax={layout.fullMax}
               fullRange={layout.fullRange}
@@ -252,13 +258,13 @@ export const TimelineTrackPrelude: React.FC<TimelineTrackPreludeProps> = ({
               projectId={projectId ?? ''}
               onVideoUploaded={(videoUrl, metadata) => {
                 if (videoUrl && metadata) {
-                  guidance.onPrimaryStructureVideoInputChange?.(
-                    videoUrl,
+                  guidance.onPrimaryStructureVideoInputChange?.({
+                    videoPath: videoUrl,
                     metadata,
-                    guidance.primaryStructureVideo.treatment,
-                    guidance.primaryStructureVideo.motionStrength,
-                    guidance.primaryStructureVideo.structureType,
-                  );
+                    treatment: guidance.primaryStructureVideo.treatment,
+                    motionStrength: guidance.primaryStructureVideo.motionStrength,
+                    structureType: guidance.primaryStructureVideo.structureType,
+                  });
                 }
               }}
               currentVideoUrl={guidance.primaryStructureVideo.path ?? null}

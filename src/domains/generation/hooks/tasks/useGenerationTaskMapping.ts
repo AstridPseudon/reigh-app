@@ -10,10 +10,6 @@ import {
 async function fetchGenerationTaskMapping(
   generationId: string,
 ): Promise<GenerationTaskMappingCacheEntry> {
-  if (!isUuid(generationId)) {
-    return { taskId: null, status: 'not_loaded' };
-  }
-
   return toGenerationTaskMappingCacheEntry(
     await resolveGenerationTaskMapping(generationId),
   );
@@ -36,9 +32,9 @@ export function useGenerationTaskMapping(generationId: string) {
 export async function prefetchGenerationTaskMapping(
   queryClient: QueryClient,
   generationId: string,
-): Promise<GenerationTaskMappingCacheEntry | null> {
+): Promise<GenerationTaskMappingCacheEntry> {
   if (!isUuid(generationId)) {
-    return null;
+    return { taskId: null, status: 'not_loaded' };
   }
 
   return queryClient.fetchQuery({

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, waitFor } from '@testing-library/react';
 import { renderHookWithProviders } from '@/test/test-utils';
 
+const mockResolveGenerationTaskMapping = vi.fn();
 const mockMaybeSingle = vi.fn();
 const mockSingle = vi.fn();
 
@@ -22,6 +23,17 @@ vi.mock('../useTasks', () => ({
   mapDbTaskToTask: vi.fn((data: unknown) => ({ ...data as object, _mapped: true })),
 }));
 
+vi.mock('@/shared/lib/tasks/generationTaskRepository', () => ({
+  resolveGenerationTaskMapping: (...args: unknown[]) => mockResolveGenerationTaskMapping(...args),
+  toGenerationTaskMappingCacheEntry: (
+    mapping: { taskId?: string | null; status?: string; queryError?: string } | undefined,
+  ) => ({
+    taskId: mapping?.taskId ?? null,
+    status: mapping?.status ?? 'not_loaded',
+    ...(mapping?.queryError ? { queryError: mapping.queryError } : {}),
+  }),
+}));
+
 import { useGenerationTaskMapping } from '@/domains/generation/hooks/tasks/useGenerationTaskMapping';
 import { usePrefetchTaskData, usePrefetchTaskById } from '../useTaskPrefetch';
 
@@ -32,7 +44,11 @@ const PROJECT_ID = '44444444-4444-4444-8444-444444444444';
 describe('useGenerationTaskMapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockMaybeSingle.mockResolvedValue({ data: { tasks: ['task-1'] }, error: null });
+    mockResolveGenerationTaskMapping.mockResolvedValue({
+      generationId: GENERATION_ID,
+      taskId: 'task-1',
+      status: 'ok',
+    });
   });
 
   it('is disabled when generationId is empty', () => {
@@ -49,7 +65,11 @@ describe('useGenerationTaskMapping', () => {
   });
 
   it('returns null taskId when generation has no tasks', async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { tasks: [] }, error: null });
+    mockResolveGenerationTaskMapping.mockResolvedValue({
+      generationId: GENERATION_ID,
+      taskId: null,
+      status: 'ok',
+    });
 
     const { result } = renderHookWithProviders(() => useGenerationTaskMapping(GENERATION_ID));
 
@@ -59,7 +79,11 @@ describe('useGenerationTaskMapping', () => {
   });
 
   it('returns null taskId when generation not found', async () => {
-    mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    mockResolveGenerationTaskMapping.mockResolvedValue({
+      generationId: MISSING_GENERATION_ID,
+      taskId: null,
+      status: 'missing_generation',
+    });
 
     const { result } = renderHookWithProviders(() => useGenerationTaskMapping(MISSING_GENERATION_ID));
 
