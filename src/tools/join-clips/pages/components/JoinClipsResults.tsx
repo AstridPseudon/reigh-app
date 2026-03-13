@@ -1,12 +1,12 @@
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { MediaGallery } from '@/features/gallery/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
-import { SKELETON_COLUMNS } from '@/shared/components/MediaGallery/utils';
+import { SKELETON_COLUMNS } from '@/features/gallery/components/MediaGallery/utils';
 import {
   buildVideoResultsGalleryConfig,
   getVideoGalleryItemsPerPage,
   VIDEO_ONLY_GALLERY_FILTERS,
-} from '@/shared/components/MediaGallery/videoGalleryDefaults';
+} from '@/features/gallery/components/MediaGallery/videoGalleryDefaults';
 import type { GenerationsPaginatedResponse } from '@/shared/hooks/projects/useProjectGenerations';
 
 interface JoinClipsResultsProps {

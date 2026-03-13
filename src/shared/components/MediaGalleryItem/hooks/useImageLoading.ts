@@ -24,16 +24,12 @@ interface UseImageLoadingReturn {
 
 const MAX_RETRIES = 2;
 
-/**
- * Hook to manage image loading state, error handling, and retry logic
- */
 export function useImageLoading({
   image,
   displayUrl,
   shouldLoad,
   onImageLoaded,
 }: UseImageLoadingProps): UseImageLoadingReturn {
-  // Check if this image was already cached by the preloader
   const isPreloadedAndCached = hasLoadedImage(image);
 
   const [imageLoadError, setImageLoadError] = useState<boolean>(false);
@@ -41,122 +37,133 @@ export function useImageLoading({
   const [imageLoaded, setImageLoaded] = useState<boolean>(isPreloadedAndCached);
   const [imageLoading, setImageLoading] = useState<boolean>(false);
   const [actualSrc, setActualSrc] = useState<string | null>(null);
+  const [scheduledRetryAttempt, setScheduledRetryAttempt] = useState<number | null>(null);
 
-  // Track previous image ID to detect actual changes vs re-renders
-  // Create a stable identifier using urlIdentity/thumbUrlIdentity (computed at data layer)
-  // This prevents resets when only Supabase URL tokens change
-  const imageIdentifier = useMemo(
-    () => {
-      return `${image.id}:${image.urlIdentity || image.url || ''}:${image.thumbUrlIdentity || image.thumbUrl || ''}:${image.updatedAt || ''}`;
-    },
-     
-    [image.id, image.urlIdentity, image.url, image.thumbUrlIdentity, image.thumbUrl, image.updatedAt]
-  );
+  const retryDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryApplyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const imageIdentifier = useMemo(() => {
+    return `${image.id}:${image.urlIdentity || image.url || ''}:${image.thumbUrlIdentity || image.thumbUrl || ''}:${image.updatedAt || ''}`;
+  }, [image.id, image.urlIdentity, image.url, image.thumbUrlIdentity, image.thumbUrl, image.updatedAt]);
 
   const prevImageIdentifierRef = useRef<string>(imageIdentifier);
 
-  // Generate display URL with retry cache busting
+  const clearRetryTimers = useCallback(() => {
+    if (retryDelayTimerRef.current) {
+      clearTimeout(retryDelayTimerRef.current);
+      retryDelayTimerRef.current = null;
+    }
+    if (retryApplyTimerRef.current) {
+      clearTimeout(retryApplyTimerRef.current);
+      retryApplyTimerRef.current = null;
+    }
+  }, []);
+
   const actualDisplayUrl = useMemo(() => {
     if (imageRetryCount > 0) {
-      return getDisplayUrl(image.thumbUrl || image.url, true); // Force refresh with cache busting
+      return getDisplayUrl(image.thumbUrl || image.url, true);
     }
     return displayUrl;
   }, [displayUrl, image.thumbUrl, image.url, imageRetryCount]);
 
-  // Track successful image load events
   const handleImageLoad = useCallback(() => {
     setImageLoaded(true);
     setImageLoading(false);
-    // Mark this image as cached in the centralized cache to avoid future skeletons
     try {
       setImageLoadStatus(image, true);
     } catch {
-      // Silent: cache status is non-critical optimization; failure won't affect functionality
+      // cache writes are a best-effort optimization
     }
-    // Notify parent that this image has loaded (if callback provided)
     onImageLoaded?.(image.id);
   }, [image, onImageLoaded]);
 
-  // Handle image load error with retry mechanism
   const handleImageError = useCallback((errorEvent?: React.SyntheticEvent<Element>) => {
     const failedSrc = (errorEvent?.target as HTMLImageElement | HTMLVideoElement)?.src || displayUrl;
 
-    // Always reset loading state on error
     setImageLoading(false);
 
-    // Don't retry placeholder URLs or obviously invalid URLs
     if (failedSrc?.includes('/placeholder.svg') || failedSrc?.includes('undefined') || !failedSrc) {
+      clearRetryTimers();
+      setScheduledRetryAttempt(null);
       setImageLoadError(true);
       return;
     }
 
     if (imageRetryCount < MAX_RETRIES) {
-      // Auto-retry with cache busting after a delay
-      setTimeout(() => {
-        setImageRetryCount(prev => prev + 1);
-        // Force reload by clearing and resetting the src
-        setActualSrc(null);
-        setTimeout(() => {
-          const retryUrl = getDisplayUrl(image.thumbUrl || image.url, true); // Force cache bust
-          setActualSrc(retryUrl);
-        }, 100);
-      }, 1000 * (imageRetryCount + 1)); // Exponential backoff
-    } else {
-      setImageLoadError(true);
+      setImageLoadError(false);
+      setScheduledRetryAttempt(imageRetryCount + 1);
+      return;
     }
-  }, [displayUrl, imageRetryCount, image.thumbUrl, image.url]);
 
-  // Manual retry function
+    clearRetryTimers();
+    setScheduledRetryAttempt(null);
+    setImageLoadError(true);
+  }, [clearRetryTimers, displayUrl, imageRetryCount]);
+
   const retryImageLoad = useCallback(() => {
+    clearRetryTimers();
     setImageLoadError(false);
     setImageRetryCount(0);
+    setScheduledRetryAttempt(null);
     setActualSrc(null);
     setImageLoaded(false);
     setImageLoading(false);
-  }, []);
+  }, [clearRetryTimers]);
 
-  // Reset error state when URL changes (new image)
   useEffect(() => {
-    // Check if this is actually a new image
     if (prevImageIdentifierRef.current === imageIdentifier) {
-      return; // Same image ID, don't reset
+      return;
     }
 
+    clearRetryTimers();
     prevImageIdentifierRef.current = imageIdentifier;
 
     setImageLoadError(false);
     setImageRetryCount(0);
-    // Check if the new image is already cached using centralized function
+    setScheduledRetryAttempt(null);
     const isNewImageCached = hasLoadedImage(image);
     setImageLoaded(isNewImageCached);
-    // Only set loading to false if not cached (if cached, we never start loading)
     if (!isNewImageCached) {
       setImageLoading(false);
     }
-    // CRITICAL: Reset actualSrc so the loading effect can run for the new image
     setActualSrc(null);
-  }, [imageIdentifier, image]);
+  }, [clearRetryTimers, imageIdentifier, image]);
 
-  // Simplified loading system - responds to progressive loading and URL changes
+  useEffect(() => {
+    if (scheduledRetryAttempt === null) {
+      return;
+    }
+
+    clearRetryTimers();
+
+    retryDelayTimerRef.current = setTimeout(() => {
+      setImageRetryCount(scheduledRetryAttempt);
+      setActualSrc(null);
+
+      retryApplyTimerRef.current = setTimeout(() => {
+        setActualSrc(getDisplayUrl(image.thumbUrl || image.url, true));
+        setScheduledRetryAttempt(null);
+      }, 100);
+    }, 1000 * scheduledRetryAttempt);
+
+    return clearRetryTimers;
+  }, [clearRetryTimers, image.thumbUrl, image.url, scheduledRetryAttempt]);
+
+  useEffect(() => clearRetryTimers, [clearRetryTimers]);
+
   useEffect(() => {
     const isPreloaded = hasLoadedImage(image);
 
-    // Update actualSrc when displayUrl changes (for progressive loading transitions)
-    // OR when shouldLoad becomes true for the first time
     if (shouldLoad && actualDisplayUrl) {
-      // Don't load placeholder URLs - they indicate missing/invalid image data
       if (actualDisplayUrl === '/placeholder.svg') {
         setImageLoadError(true);
         return;
       }
 
-      // Update actualSrc if it's different from actualDisplayUrl AND it's a different file
-      // This handles initial load and progressive transitions, but avoids token-only refreshes
       const isActuallyDifferent = actualSrc !== actualDisplayUrl;
       const isDifferentFile = stripQueryParameters(actualSrc) !== stripQueryParameters(actualDisplayUrl);
 
       if (isActuallyDifferent && isDifferentFile) {
-        // Only set loading if the image isn't already cached/loaded
         if (!isPreloaded && !actualSrc) {
           setImageLoading(true);
         }

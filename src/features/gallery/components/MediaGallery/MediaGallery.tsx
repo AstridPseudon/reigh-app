@@ -11,28 +11,28 @@ import { useTaskDetails } from '@/shared/components/ShotImageManager/hooks/useTa
 import { useBackgroundThumbnailGenerator } from '@/shared/hooks/media/useBackgroundThumbnailGenerator';
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { cn } from '@/shared/components/ui/contracts/cn';
-import { useMediaGalleryStateOptimized as useMediaGalleryState } from '@/shared/components/MediaGallery/hooks/useMediaGalleryStateOptimized';
-import { useMediaGalleryFiltersOptimized as useMediaGalleryFilters } from '@/shared/components/MediaGallery/hooks/useMediaGalleryFiltersOptimized';
-import { useMediaGalleryPagination } from '@/shared/components/MediaGallery/hooks/useMediaGalleryPagination';
-import { useMediaGalleryActions } from '@/shared/components/MediaGallery/hooks/useMediaGalleryActions';
-import { useContainerWidth } from '@/shared/components/MediaGallery/hooks/useContainerWidth';
-import { useLightboxNavigation } from '@/shared/components/MediaGallery/hooks/useLightboxNavigation';
-import { MediaGalleryHeader } from '@/shared/components/MediaGallery/components/MediaGalleryHeader';
-import { ShotNotifier } from '@/shared/components/MediaGallery/components/ShotNotifier';
-import { MediaGalleryGrid } from '@/shared/components/MediaGallery/components/MediaGalleryGrid';
-import { MediaGalleryLightbox } from '@/shared/components/MediaGallery/components/MediaGalleryLightbox';
-import { MobileBottomBar } from '@/shared/components/MediaGallery/components/MobileBottomBar';
-import { useMediaGalleryDebugTools } from '@/shared/components/MediaGallery/hooks/useMediaGalleryDebugTools';
-import { usePaginatedImagesWithBadges } from '@/shared/components/MediaGallery/hooks/usePaginatedImagesWithBadges';
-import { useMediaGalleryLightboxSession } from '@/shared/components/MediaGallery/hooks/useMediaGalleryLightboxSession';
-import { useMediaGalleryViewInteractions } from '@/shared/components/MediaGallery/hooks/useMediaGalleryViewInteractions';
+import { useMediaGalleryStateOptimized as useMediaGalleryState } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryStateOptimized';
+import { useMediaGalleryFiltersOptimized as useMediaGalleryFilters } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryFiltersOptimized';
+import { useMediaGalleryPagination } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryPagination';
+import { useMediaGalleryActions } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryActions';
+import { useContainerWidth } from '@/features/gallery/components/MediaGallery/hooks/useContainerWidth';
+import { useLightboxNavigation } from '@/features/gallery/components/MediaGallery/hooks/useLightboxNavigation';
+import { MediaGalleryHeader } from '@/features/gallery/components/MediaGallery/components/MediaGalleryHeader';
+import { ShotNotifier } from '@/features/gallery/components/MediaGallery/components/ShotNotifier';
+import { MediaGalleryGrid } from '@/features/gallery/components/MediaGallery/components/MediaGalleryGrid';
+import { MediaGalleryLightbox } from '@/features/gallery/components/MediaGallery/components/MediaGalleryLightbox';
+import { MobileBottomBar } from '@/features/gallery/components/MediaGallery/components/MobileBottomBar';
+import { useMediaGalleryDebugTools } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryDebugTools';
+import { usePaginatedImagesWithBadges } from '@/features/gallery/components/MediaGallery/hooks/usePaginatedImagesWithBadges';
+import { useMediaGalleryLightboxSession } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryLightboxSession';
+import { useMediaGalleryViewInteractions } from '@/features/gallery/components/MediaGallery/hooks/useMediaGalleryViewInteractions';
 import type {
   MediaGalleryProps,
   GalleryConfig,
-} from '@/shared/components/MediaGallery/types';
-import { DEFAULT_GALLERY_CONFIG } from '@/shared/components/MediaGallery/types';
+} from '@/features/gallery/components/MediaGallery/types';
+import { DEFAULT_GALLERY_CONFIG } from '@/features/gallery/components/MediaGallery/types';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
-import { GRID_COLUMN_CLASSES, calculateGalleryLayout } from '@/shared/components/MediaGallery/utils';
+import { GRID_COLUMN_CLASSES, calculateGalleryLayout } from '@/features/gallery/components/MediaGallery/utils';
 
 interface UseAspectRatioLayoutParams {
   projectAspectRatio?: string;
