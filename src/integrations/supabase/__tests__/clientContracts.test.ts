@@ -6,10 +6,15 @@ describe('supabase client runtime contracts', () => {
     const debugModule = await import('@/integrations/supabase/support/debug/initializeSupabaseDebugGlobals');
     const debugExports = debugModule as Record<string, unknown>;
 
+    expect(typeof clientExports.initializeSupabase).toBe('function');
+    expect(typeof clientExports.initializeSupabaseResult).toBe('function');
     expect(typeof clientExports.getSupabaseClient).toBe('function');
+    expect(typeof clientExports.getSupabaseClientResult).toBe('function');
+    expect(typeof clientExports.supabaseClientRegistry).toBe('object');
     expect(clientExports.initializeSupabaseDebugGlobals).toBeUndefined();
     expect(clientExports.supabase).toBeUndefined();
     expect(clientExports.getLegacySupabaseClient).toBeUndefined();
+    expect(clientExports.getOrInitializeSupabaseClientResult).toBeUndefined();
     expect(typeof debugExports.initializeSupabaseDebugGlobals).toBe('function');
   });
 

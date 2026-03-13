@@ -239,6 +239,11 @@ export const useTimelineDrag = ({
       return;
     }
 
+    // Single item must stay at position 0 — nothing to reorder
+    if (_images.length <= 1) {
+      return;
+    }
+
     const framePos = framePositions.get(imageId) ?? 0;
     const dragSessionId = createSessionId('drag');
 

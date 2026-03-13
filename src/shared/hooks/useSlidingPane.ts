@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/mobile';
 import { useLocation } from 'react-router-dom';
 import { PANE_CONFIG } from '@/shared/config/panes';
@@ -16,14 +16,12 @@ interface UseSlidingPaneOptions {
 }
 
 export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, programmaticOpen, onOpenChange }: UseSlidingPaneOptions) => {
-  const [isOpen, setIsOpenInternal] = useState(isLocked || programmaticOpen);
+  const [hoverOpen, setHoverOpen] = useState(false);
+  // Derive isOpen from all three sources — no competing write paths
+  const isOpen = isLocked || (programmaticOpen ?? false) || hoverOpen;
 
-  // Wrapper that also notifies parent of state changes
-  const setIsOpen = useCallback((open: boolean) => {
-    setIsOpenInternal(open);
-    onOpenChange?.(open);
-  }, [onOpenChange]);
   const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const openGracePeriodRef = useRef(false);
   const paneRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -32,43 +30,45 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
   const isSmallMobile = isMobile && !isTablet;
   const location = useLocation();
 
+  // When locked, clear hover state so unlocking doesn't leave pane stuck open
+  useEffect(() => {
+    if (isLocked) {
+      setHoverOpen(false);
+    }
+  }, [isLocked]);
+
+  // Fire onOpenChange when derived isOpen transitions
+  const prevOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (prevOpenRef.current !== isOpen) {
+      prevOpenRef.current = isOpen;
+      onOpenChange?.(isOpen);
+    }
+  }, [isOpen, onOpenChange]);
+
   const setOpen = useCallback((open: boolean) => {
     // On small phones (not tablets), don't use locks at all - just manage open state
     if (isSmallMobile) {
-      setIsOpen(open);
+      setHoverOpen(open);
       return;
     }
 
-    // Desktop and tablet behavior (original)
-    if (isLocked && !open) {
-      // If locked, don't allow programmatic close via hover
+    // Desktop and tablet behavior
+    if (!open && (isLocked || programmaticOpen)) {
+      // Don't allow hover-close when locked or programmatically open
       return;
     }
 
-    setIsOpen(open);
-  }, [isLocked, isSmallMobile, setIsOpen]);
-
-  // Sync open state with lock state AND programmatic open state
-  // Using useLayoutEffect to ensure state updates synchronously before paint
-  // This prevents visual glitches when state changes from external sources (like MediaLightbox)
-  // NOTE: Use setIsOpenInternal here (not setIsOpen) to avoid notifying parent of changes
-  // that originated from parent - that would create a feedback loop
-  useLayoutEffect(() => {
-    // Open if locked OR programmatically opened
-    if (isLocked || programmaticOpen) {
-      setIsOpenInternal(true);
-    } else {
-      setIsOpenInternal(false);
-    }
-  }, [isLocked, programmaticOpen]);
+    setHoverOpen(open);
+  }, [isLocked, programmaticOpen, isSmallMobile]);
 
   // Close pane on route change (small phones only)
   useEffect(() => {
     if (isSmallMobile) {
-      setIsOpen(false);
+      setHoverOpen(false);
     }
-     
-  }, [location.pathname, isSmallMobile, setIsOpen]);
+
+  }, [location.pathname, isSmallMobile]);
 
   // Lock body scroll when pane is open on small phones (both temporary and locked states)
   // When locked, Layout.tsx handles creating a scrollable main content area instead
@@ -90,7 +90,7 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
         document.body.style.touchAction = originalTouchAction;
       };
     }
-  }, [isSmallMobile, isOpen, setIsOpen]);
+  }, [isSmallMobile, isOpen]);
 
   // Click outside handler for small phones (only when not locked)
   // We now use BOTH touchstart and pointerdown to ensure we capture
@@ -121,7 +121,7 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
         // Prevent the click from triggering underlying UI actions
         event.preventDefault();
         event.stopPropagation();
-        setIsOpen(false);
+        setHoverOpen(false);
       }
     };
 
@@ -136,7 +136,7 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
       document.removeEventListener('touchstart', handleClickOutside, true);
       document.removeEventListener('pointerdown', handleClickOutside, true);
     };
-  }, [isSmallMobile, isOpen, isLocked, additionalRefs, setIsOpen]);
+  }, [isSmallMobile, isOpen, isLocked, additionalRefs]);
 
   // Close on dragstart anywhere (small phones)
   useEffect(() => {
@@ -144,13 +144,13 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
 
     const handleDragStart = () => {
       if (isOpen) {
-        setIsOpen(false);
+        setHoverOpen(false);
       }
     };
 
     document.addEventListener('dragstart', handleDragStart);
     return () => document.removeEventListener('dragstart', handleDragStart);
-  }, [isSmallMobile, isOpen, setIsOpen]);
+  }, [isSmallMobile, isOpen]);
 
   // Exclusive pane coordination on small phones
   // When another pane opens, this one should close (locking the other will handle unlocking this via PanesContext)
@@ -159,11 +159,11 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
     const openedSide = detail?.side ?? null;
     if (openedSide !== side && !isLocked) {
       // Another pane (or null) requested and we're not locked - close this one
-      setIsOpen(false);
+      setHoverOpen(false);
     }
     // Note: If this pane IS locked, PanesContext will handle unlocking it
     // when the other pane gets locked (only one can be locked at a time on mobile)
-  }, [isSmallMobile, side, isLocked, setIsOpen]);
+  }, [isSmallMobile, side, isLocked]);
 
   useAppEventListener('mobilePaneOpen', handleMobilePaneOpen);
 
@@ -172,6 +172,12 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
         clearTimeout(leaveTimeoutRef.current);
         leaveTimeoutRef.current = null;
     }
+
+    // Suppress mouseLeave-triggered close during the open animation.
+    // The tab CSS-transitions to a new position, which moves it away from
+    // the cursor and fires mouseLeave before the user can hover the surface.
+    openGracePeriodRef.current = true;
+    setTimeout(() => { openGracePeriodRef.current = false; }, PANE_CONFIG.timing.ANIMATION_DURATION);
 
     if (isSmallMobile) {
       // Dispatch global event so other panes close immediately
@@ -185,6 +191,9 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
     if (isSmallMobile) return;
 
     if (isLocked) return;
+    // Ignore leaves during the open animation grace period — the tab
+    // CSS-transitions away from the cursor which fires a spurious mouseLeave.
+    if (openGracePeriodRef.current) return;
     leaveTimeoutRef.current = setTimeout(() => {
       setOpen(false);
     }, PANE_CONFIG.timing.HOVER_DELAY);
@@ -224,8 +233,7 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
   }, []);
 
   const getTransformClass = () => {
-    // Pane is visible if open OR locked (all devices)
-    const isVisible = isOpen || isLocked;
+    const isVisible = isOpen;
 
     const transformClass = (() => {
       switch (side) {
@@ -264,6 +272,6 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
     handlePaneLeave,
     isMobile, // Still return isMobile for backward compatibility
     showBackdrop, // Whether to show backdrop overlay for tap-outside-to-close
-    closePane: () => setIsOpen(false), // Function to close the pane (for backdrop onClick)
+    closePane: () => setHoverOpen(false), // Function to close the pane (for backdrop onClick)
   };
 }; 

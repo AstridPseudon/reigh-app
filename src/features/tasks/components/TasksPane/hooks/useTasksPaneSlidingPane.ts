@@ -19,9 +19,7 @@ export function useTasksPaneSlidingPane(input: UseTasksPaneSlidingPaneInput) {
     side: 'right',
     isLocked: isTasksPaneLocked,
     onToggleLock: () => {
-      const willBeLocked = !isTasksPaneLocked;
-      setIsTasksPaneLocked(willBeLocked);
-      setIsTasksPaneOpenProgrammatic(willBeLocked);
+      setIsTasksPaneLocked(!isTasksPaneLocked);
     },
     programmaticOpen: isTasksPaneOpenProgrammatic,
     onOpenChange: (open) => {

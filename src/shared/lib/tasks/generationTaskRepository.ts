@@ -1,9 +1,10 @@
 import {
   getSupabaseClientResult,
-  type GetSupabaseClientResult,
 } from '@/integrations/supabase/client';
 import { isUuid } from '@/shared/lib/uuid';
 import { parseGenerationTaskId } from '@/shared/lib/tasks/generationTaskIdParser';
+
+type GetSupabaseClientResult = typeof getSupabaseClientResult;
 
 const POSTGREST_NO_ROWS_CODE = 'PGRST116';
 

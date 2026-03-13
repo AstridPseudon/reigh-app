@@ -97,14 +97,20 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
     }
   }, [open, onOpenChange]);
   
-  // Auto-focus search input when popover opens
+  // Prevent cmdk's scrollIntoView from scrolling the window on mount.
+  // cmdk calls scrollIntoView in a useLayoutEffect before floating-ui positions
+  // the portal, so the items are at 0,0 and the window scrolls to the top.
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure the popover content is rendered
-      const timer = setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 0);
-      return () => clearTimeout(timer);
+      const scrollY = window.scrollY;
+      const frame = requestAnimationFrame(() => {
+        if (window.scrollY !== scrollY) {
+          window.scrollTo({ top: scrollY, behavior: 'instant' });
+        }
+        // Focus search input after scroll is restored
+        searchInputRef.current?.focus({ preventScroll: true });
+      });
+      return () => cancelAnimationFrame(frame);
     }
   }, [isOpen]);
 
@@ -207,6 +213,7 @@ export const ShotSelector: React.FC<ShotSelectorProps> = ({
           align={align}
           collisionPadding={12}
           container={container}
+          initialFocus={false}
           onKeyDown={handleKeyDown}
           // Stop events from bubbling to parent (prevents lightbox closes, etc.)
           // Use bubble phase so events reach child buttons first

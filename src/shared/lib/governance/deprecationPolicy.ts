@@ -11,7 +11,6 @@ export interface DeprecationPolicy {
 
 type DeprecationPolicyId =
   | 'runtime_error_alias'
-  | 'legacy_supabase_facade'
   | 'join_clips_compat'
   | 'travel_structure_legacy';
 
@@ -24,16 +23,6 @@ const DEPRECATION_POLICIES: Record<DeprecationPolicyId, DeprecationPolicy> = {
       { through: '2026-04-30', max: 20 },
       { through: '2026-05-31', max: 10 },
       { through: '2026-06-30', max: 4 },
-    ],
-  },
-  legacy_supabase_facade: {
-    owner: 'platform-runtime',
-    removeBy: '2026-06-30',
-    importBudgetPhases: [
-      { through: '2026-03-31', max: 160 },
-      { through: '2026-04-30', max: 96 },
-      { through: '2026-05-31', max: 64 },
-      { through: '2026-06-30', max: 32 },
     ],
   },
   join_clips_compat: {

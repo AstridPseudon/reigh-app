@@ -12,8 +12,13 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('@/shared/config/panes', () => ({
   PANE_CONFIG: {
-    timing: { HOVER_DELAY: 300 },
+    timing: { HOVER_DELAY: 300, ANIMATION_DURATION: 300 },
   },
+}));
+
+vi.mock('@/shared/lib/typedEvents', () => ({
+  dispatchAppEvent: vi.fn(),
+  useAppEventListener: vi.fn(),
 }));
 
 import { useSlidingPane } from '../useSlidingPane';
@@ -249,5 +254,74 @@ describe('useSlidingPane', () => {
     });
 
     expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
+  it('hover-open survives unrelated re-renders', () => {
+    let isLocked = false;
+    const { result, rerender } = renderHook(() =>
+      useSlidingPane({
+        side: 'left',
+        isLocked,
+        onToggleLock: mockToggleLock,
+      })
+    );
+
+    // Hover open
+    act(() => {
+      result.current.openPane();
+    });
+    expect(result.current.isOpen).toBe(true);
+
+    // Re-render with same props (simulates unrelated parent re-render)
+    rerender();
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it('locking clears hover state so unlocking closes pane', () => {
+    let isLocked = false;
+    const { result, rerender } = renderHook(() =>
+      useSlidingPane({
+        side: 'left',
+        isLocked,
+        onToggleLock: mockToggleLock,
+      })
+    );
+
+    // Hover open
+    act(() => {
+      result.current.openPane();
+    });
+    expect(result.current.isOpen).toBe(true);
+
+    // Lock — pane stays open via isLocked, hover state gets cleared
+    isLocked = true;
+    rerender();
+    expect(result.current.isOpen).toBe(true);
+
+    // Unlock — pane closes because hover was cleared when locked
+    isLocked = false;
+    rerender();
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it('programmatic open keeps pane open even after hover-leave', () => {
+    const { result } = renderHook(() =>
+      useSlidingPane({
+        side: 'left',
+        isLocked: false,
+        onToggleLock: mockToggleLock,
+        programmaticOpen: true,
+      })
+    );
+
+    expect(result.current.isOpen).toBe(true);
+
+    // Attempt to close via closePane (simulates hover leave)
+    act(() => {
+      result.current.closePane();
+    });
+
+    // Should stay open because programmaticOpen is true
+    expect(result.current.isOpen).toBe(true);
   });
 });

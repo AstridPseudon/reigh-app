@@ -55,6 +55,10 @@ export function usePaneLockPolicyState() {
 
   const createPaneLockSetter = useCallback(
     (lockKey: PaneLockKey) => (isLocked: boolean) => {
+      if (typeof isLocked !== 'boolean') {
+        console.warn(`[PaneLock] Expected boolean for ${lockKey}, got ${typeof isLocked}. Ignoring.`);
+        return;
+      }
       setLocks((prev) => {
         if (prev[lockKey] === isLocked) return prev;
         const exclusiveLock = (isMobile || isTablet) && isLocked;

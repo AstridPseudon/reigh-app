@@ -146,7 +146,7 @@ export const ShotActions: React.FC<ShotActionsProps> = ({
           isCreatingShot={addingToShotImageId === image.id}
           quickCreateSuccess={quickCreateSuccess}
           onVisitCreatedShot={handleVisitCreatedShot}
-          side="top"
+          side="bottom"
           align="start"
           sideOffset={4}
           onNavigateToShot={(shot) => onNavigateToShot(shot)}

@@ -36,7 +36,7 @@ import { useAppEventListener } from '@/shared/lib/typedEvents';
 const PANE_ROWS = 2;
 
 type MediaTypeFilter = 'all' | 'image' | 'video';
-type BooleanStateSetter = Dispatch<SetStateAction<boolean>>;
+type BooleanStateSetter = (value: boolean) => void;
 type GalleryPageState = ReturnType<typeof useGalleryPageState>;
 type SelectedProjectId = ReturnType<typeof useProjectSelectionContext>['selectedProjectId'];
 type ProjectAspectRatio = ReturnType<typeof useProjectCrudContext>['projects'][number]['aspectRatio'];
@@ -206,7 +206,7 @@ const usePaneLifecycle = ({
   } = useSlidingPane({
     side: 'bottom',
     isLocked: isGenerationsPaneLocked,
-    onToggleLock: () => setIsGenerationsPaneLocked((locked) => !locked),
+    onToggleLock: () => setIsGenerationsPaneLocked(!isGenerationsPaneLocked),
     additionalRefs: [shotFilterContentRef, mediaTypeContentRef],
   });
   const paneIsOpen = Boolean(isOpen);

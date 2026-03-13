@@ -2,17 +2,23 @@
 
 import {
   type SupabaseClientAccessResult,
-  getOrInitializeSupabaseRuntimeClientResult,
+  getSupabaseRuntimeClientResult,
   initializeSupabaseClientRuntime,
   normalizeSupabaseError,
 } from '@/integrations/supabase/runtime/supabaseRuntime';
 
 export type { SupabaseClientAccessResult };
-export type GetSupabaseClientResult = () => SupabaseClientAccessResult;
 
 /** Runtime bootstrap entrypoint for app startup. */
-function initializeSupabase() {
+export function initializeSupabase() {
   return initializeSupabaseClientRuntime();
+}
+
+export interface SupabaseClientRegistry {
+  initializeSupabase: typeof initializeSupabase;
+  initializeSupabaseResult: typeof initializeSupabaseResult;
+  getSupabaseClientResult: typeof getSupabaseClientResult;
+  getSupabaseClient: typeof getSupabaseClient;
 }
 
 export function initializeSupabaseResult(): SupabaseClientAccessResult {
@@ -24,9 +30,9 @@ export function initializeSupabaseResult(): SupabaseClientAccessResult {
   }
 }
 
-/** Runtime accessor that never throws; callers can branch on initialization state. */
+/** Pure runtime accessor that never throws and never bootstraps. */
 export function getSupabaseClientResult(): SupabaseClientAccessResult {
-  const result = getOrInitializeSupabaseRuntimeClientResult();
+  const result = getSupabaseRuntimeClientResult();
   return result.ok ? result : { ok: false, error: normalizeSupabaseError(result.error) };
 }
 
@@ -38,3 +44,10 @@ export function getSupabaseClient() {
   }
   return result.client;
 }
+
+export const supabaseClientRegistry: SupabaseClientRegistry = {
+  initializeSupabase,
+  initializeSupabaseResult,
+  getSupabaseClientResult,
+  getSupabaseClient,
+};

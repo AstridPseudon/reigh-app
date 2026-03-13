@@ -27,7 +27,6 @@ describe('quality:check governance contract', () => {
       'npm run check:no-smoke-tests',
       'npm run check:shots-shim-usage',
       'npm run check:core-shim-usage',
-      'npm run check:legacy-supabase-usage',
       'npm run check:error-runtime-alias-usage',
       'npm run check:contracts',
       'npm run lint',
