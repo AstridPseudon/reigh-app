@@ -15,7 +15,7 @@ import { useShots } from '@/shared/contexts/ShotsContext';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { usePublicLoras } from '@/shared/hooks/useResources';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
-import { VideoTravelSettings } from '../../settings';
+import { normalizeVideoTravelSettings, VideoTravelSettings } from '../../settings';
 import { Shot } from '@/domains/generation/types';
 import type { LoraModel } from '@/domains/lora/types/lora';
 
@@ -131,14 +131,18 @@ export const useVideoTravelData = (
     lorasLoading: publicLorasQuery.isLoading,
     
     // Settings data
-    settings: toolSettingsQuery.settings,
+    settings: toolSettingsQuery.settings
+      ? normalizeVideoTravelSettings(toolSettingsQuery.settings)
+      : undefined,
     updateSettings: toolSettingsQuery.update,
     settingsLoading: toolSettingsQuery.isLoading,
     settingsUpdating: toolSettingsQuery.isUpdating,
     settingsError: toolSettingsError,
 
     // Project settings data
-    projectSettings: projectSettingsQuery.settings,
+    projectSettings: projectSettingsQuery.settings
+      ? normalizeVideoTravelSettings(projectSettingsQuery.settings)
+      : undefined,
     updateProjectSettings: projectSettingsQuery.update,
     projectSettingsLoading: projectSettingsQuery.isLoading,
     projectSettingsUpdating: projectSettingsQuery.isUpdating,

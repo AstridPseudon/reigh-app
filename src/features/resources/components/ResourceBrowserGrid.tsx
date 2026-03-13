@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { HoverScrubVideo } from '@/shared/components/media/HoverScrubVideo';
 import { Image as ImageIcon, Loader2, Lock, Globe, Video } from 'lucide-react';
-import { Resource, StyleReferenceMetadata, StructureVideoMetadata } from '@/shared/hooks/useResources';
+import { Resource, StyleReferenceMetadata, StructureVideoMetadata } from '@/features/resources/hooks/useResources';
 import type { ResourceBrowserData } from '@/shared/hooks/resources/useResourceBrowserData';
 
 const SkeletonShimmer: React.FC = () => (

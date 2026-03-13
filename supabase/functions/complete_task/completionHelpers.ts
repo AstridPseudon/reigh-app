@@ -42,12 +42,13 @@ export function completeTaskErrorResponse(
   message: string,
   status: number,
   errorCode = defaultErrorCode(status),
+  options?: { recoverable?: boolean },
 ): Response {
   return edgeErrorResponse(
     {
       errorCode,
       message,
-      recoverable: status >= 500 || status === 429,
+      recoverable: options?.recoverable ?? (status >= 500 || status === 429),
     },
     status,
   );

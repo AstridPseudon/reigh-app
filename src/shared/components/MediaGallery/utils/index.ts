@@ -1,14 +1,14 @@
-export { deriveGalleryInputImages } from './mediaGallery-utils';
+export { deriveGalleryInputImages } from './helpers';
 
 export {
   GRID_COLUMN_CLASSES,
   SKELETON_COLUMNS,
-} from './mediaGallery-constants';
+} from './constants';
 
 export {
   calculateGalleryLayout,
-} from './mediaGallery-layout';
+} from './layout';
 
 export {
   scrollToGalleryTop,
-} from './mediaGallery-scroll';
+} from './scroll';

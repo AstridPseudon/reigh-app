@@ -33,13 +33,17 @@ describe('projectSetupRepository', () => {
   });
 
   it('throws when project deletion fails', async () => {
-    const eqUserId = vi.fn().mockResolvedValue({ error: { message: 'delete failed' } });
+    const rawError = { message: 'delete failed', code: '23503' };
+    const eqUserId = vi.fn().mockResolvedValue({ error: rawError });
     const eqProjectId = vi.fn(() => ({ eq: eqUserId }));
     const deleteProject = vi.fn(() => ({ eq: eqProjectId }));
     const from = vi.fn(() => ({ delete: deleteProject }));
     mocks.getSupabaseClient.mockReturnValue({ from });
 
-    await expect(deleteProjectForUser('project-1', 'user-1')).rejects.toThrow('delete failed');
+    await expect(deleteProjectForUser('project-1', 'user-1')).rejects.toMatchObject({
+      message: 'delete failed',
+      cause: rawError,
+    });
   });
 
   it('creates the default shot and returns its id', async () => {

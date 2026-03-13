@@ -19,6 +19,7 @@ import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { useReferenceSelection } from './useReferenceSelection';
 import { useLegacyMigrations } from './useLegacyMigrations';
 import { useHydratedReferences } from './useHydratedReferences';
+import { enforceLegacyProjectImageSettingsSunset } from './legacyMigrations/legacyProjectImageSettings';
 
 import type { ProjectImageSettings } from '../types';
 import type { ProjectImageSettingsInput } from './legacyMigrations/legacyProjectImageSettings';
@@ -64,7 +65,11 @@ export function useProjectImageSettings(associatedShotId: string | null) {
       )
     : undefined;
 
-  const effectiveProjectImageSettings = projectImageSettings ?? cachedProjectSettings;
+  const effectiveProjectImageSettings = useMemo(() => {
+    const effective = projectImageSettings ?? cachedProjectSettings;
+    enforceLegacyProjectImageSettingsSunset(effective);
+    return effective;
+  }, [cachedProjectSettings, projectImageSettings]);
   const referencePointers = effectiveProjectImageSettings?.references ?? [];
   const referenceCount = referencePointers.length;
   const selectedReferenceIdByShot = effectiveProjectImageSettings?.selectedReferenceIdByShot ?? {};

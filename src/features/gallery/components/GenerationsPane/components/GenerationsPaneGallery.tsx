@@ -1,5 +1,5 @@
 import React from 'react';
-import { MediaGallery, type GalleryFilterState } from '@/features/gallery/components/MediaGallery';
+import { MediaGallery, type GalleryFilterState } from '@/shared/components/MediaGallery';
 import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
 
 type MediaGalleryProps = React.ComponentProps<typeof MediaGallery>;

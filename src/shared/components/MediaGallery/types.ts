@@ -3,7 +3,6 @@ import type { GalleryFilterState } from '@/shared/contracts/galleryFilters';
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
 import type { AsyncImageDeleteHandler } from '@/shared/types/imageHandlers';
 import type { DisplayableMetadata } from '@/shared/types/displayableMetadata';
-import { DEFAULT_GALLERY_FILTERS } from '@/shared/contracts/galleryFilters';
 
 export type { DisplayableMetadata } from '@/shared/types/displayableMetadata';
 export type { GalleryFilterState } from '@/shared/contracts/galleryFilters';

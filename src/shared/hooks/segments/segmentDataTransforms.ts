@@ -1,5 +1,42 @@
 import { GenerationRow } from '@/domains/generation/types';
+import { asRecord, asNullableString, asNullableNumber } from '@/shared/lib/typeCoercion';
 import { ExpectedSegmentData, RawGenerationDbRow } from './segmentOutputTypes';
+
+export function coerceRawGenerationDbRow(value: unknown): RawGenerationDbRow | null {
+  const record = asRecord(value);
+  if (!record || typeof record.id !== 'string') {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    ...(asNullableString(record.location) !== undefined ? { location: asNullableString(record.location) } : {}),
+    ...(asNullableString(record.thumbnail_url) !== undefined ? { thumbnail_url: asNullableString(record.thumbnail_url) } : {}),
+    ...(asNullableString(record.type) !== undefined ? { type: asNullableString(record.type) } : {}),
+    ...(typeof record.created_at === 'string' ? { created_at: record.created_at } : {}),
+    ...(asNullableString(record.updated_at) !== undefined ? { updated_at: asNullableString(record.updated_at) } : {}),
+    ...(asRecord(record.params) || record.params === null ? { params: (asRecord(record.params) ?? null) } : {}),
+    ...(asNullableString(record.parent_generation_id) !== undefined ? { parent_generation_id: asNullableString(record.parent_generation_id) } : {}),
+    ...(asNullableNumber(record.child_order) !== undefined ? { child_order: asNullableNumber(record.child_order) } : {}),
+    ...(typeof record.starred === 'boolean' ? { starred: record.starred } : {}),
+    ...(asNullableString(record.pair_shot_generation_id) !== undefined ? { pair_shot_generation_id: asNullableString(record.pair_shot_generation_id) } : {}),
+    ...(asNullableString(record.primary_variant_id) !== undefined ? { primary_variant_id: asNullableString(record.primary_variant_id) } : {}),
+  };
+}
+
+export function coerceRawGenerationDbRows(value: unknown): RawGenerationDbRow[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((entry, index) => {
+    const row = coerceRawGenerationDbRow(entry);
+    if (!row) {
+      throw new Error(`Invalid generation row at index ${index}`);
+    }
+    return row;
+  });
+}
 
 export function extractExpectedSegmentData(
   parentParams: Record<string, unknown> | null,
@@ -65,7 +102,7 @@ export function transformToGenerationRow(gen: RawGenerationDbRow): GenerationRow
     type: gen.type || 'video',
     created_at: createdAt,
     createdAt,
-    params: gen.params as GenerationRow['params'],
+    params: gen.params ?? undefined,
     parent_generation_id: gen.parent_generation_id,
     child_order: gen.child_order,
     starred: gen.starred,

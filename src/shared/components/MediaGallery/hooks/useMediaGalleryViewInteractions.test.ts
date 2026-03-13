@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useMediaGalleryViewInteractions } from './useMediaGalleryViewInteractions';
+import { useMediaGalleryViewInteractions } from '@/shared/components/MediaGallery/hooks/useMediaGalleryViewInteractions';
 
 const mocks = vi.hoisted(() => ({
   useMediaGalleryHandlers: vi.fn(),
@@ -8,15 +8,15 @@ const mocks = vi.hoisted(() => ({
   useMediaGalleryItemProps: vi.fn(),
 }));
 
-vi.mock('./useMediaGalleryHandlers', () => ({
+vi.mock('@/shared/components/MediaGallery/hooks/useMediaGalleryHandlers', () => ({
   useMediaGalleryHandlers: (...args: unknown[]) => mocks.useMediaGalleryHandlers(...args),
 }));
 
-vi.mock('./useMobileInteractions', () => ({
+vi.mock('@/shared/components/MediaGallery/hooks/useMobileInteractions', () => ({
   useMobileInteractions: (...args: unknown[]) => mocks.useMobileInteractions(...args),
 }));
 
-vi.mock('./useMediaGalleryItemProps', () => ({
+vi.mock('@/shared/components/MediaGallery/hooks/useMediaGalleryItemProps', () => ({
   useMediaGalleryItemProps: (...args: unknown[]) => mocks.useMediaGalleryItemProps(...args),
 }));
 

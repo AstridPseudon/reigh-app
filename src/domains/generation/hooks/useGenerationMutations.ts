@@ -32,8 +32,7 @@ import {
   rollbackOptimisticGenerationStarUpdate,
 } from '@/shared/hooks/invalidation/generationStarCacheCoordinator';
 import type { GenerationRow } from '@/domains/generation/types';
-import type { GenerationRowDto } from '@/domains/generation/types/generationRowDto';
-import { mapGenerationRowDtoToRow } from '@/domains/generation/mappers/generationRowMapper';
+import { coerceGenerationRowDto, mapGenerationRowDtoToRow } from '@/domains/generation/mappers/generationRowMapper';
 
 // ===== Helper Functions (internal) =====
 
@@ -78,13 +77,13 @@ function buildExternalUploadGenerationParams(input: CreateGenerationInput): Exte
  * @internal Used by useUpdateGenerationLocation hook.
  */
 async function updateGenerationLocation(
-  params: ScopedGenerationInput & { location: string; thumbUrl?: string },
+  params: ScopedGenerationInput & { location: string; thumbnailUrl?: string },
 ): Promise<void> {
   await updateGenerationLocationInProject({
     id: params.id,
     projectId: params.projectId,
     location: params.location,
-    thumbnailUrl: params.thumbUrl,
+    thumbnailUrl: params.thumbnailUrl,
   });
 }
 
@@ -103,7 +102,11 @@ async function createGeneration(params: CreateGenerationInput): Promise<Generati
     generationParams,
   });
 
-  return mapGenerationRowDtoToRow(data as GenerationRowDto & { params?: Json | null });
+  const row = coerceGenerationRowDto(data as Json | Record<string, unknown>);
+  if (!row) {
+    throw new Error('Created generation row has unexpected shape');
+  }
+  return mapGenerationRowDtoToRow(row);
 }
 
 /**
@@ -160,8 +163,13 @@ export function useDeleteVariant() {
 
 export function useUpdateGenerationLocation() {
   return useMutation({
-    mutationFn: ({ id, location, thumbUrl, projectId }: { id: string; location: string; thumbUrl?: string; projectId: string }) => {
-      return updateGenerationLocation({ id, location, thumbUrl, projectId });
+    mutationFn: ({ id, location, thumbnailUrl, projectId }: {
+      id: string;
+      location: string;
+      thumbnailUrl?: string;
+      projectId: string;
+    }) => {
+      return updateGenerationLocation({ id, location, thumbnailUrl, projectId });
     },
     onError: (error: Error) => {
       normalizeAndPresentError(error, { context: 'useUpdateGenerationLocation', toastTitle: 'Failed to update generation' });

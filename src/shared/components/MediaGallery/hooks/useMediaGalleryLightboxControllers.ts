@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { usePrefetchTaskData } from "@/shared/hooks/tasks/useTaskPrefetch";
 import { getGenerationId } from "@/shared/lib/media/mediaTypeHelpers";
-import { getSupabaseClient as supabase } from "@/integrations/supabase/client";
 import { toast } from "@/shared/components/ui/runtime/sonner";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import { expandShotData } from '@/shared/lib/shots/shotData';
+import { fetchGenerationRecordById } from '@/integrations/supabase/repositories/generationRepository';
 import {
   buildTaskDetailsData,
   type TaskDetailsStatus,
@@ -205,18 +205,11 @@ export function useGenerationNavigationController({
     }
 
     try {
-      const { data, error } = await supabase().from("generations")
-        .select("*")
-        .eq("id", generationId)
-        .single();
-
-      if (error) throw error;
-      if (!data) {
+      const row = await fetchGenerationRecordById(generationId);
+      if (!row) {
         toast.error("Generation not found");
         return;
       }
-
-      const row = data as Record<string, unknown>;
       const params = (row.params as Record<string, unknown>) || {};
       const basedOnValue = (row.based_on as string | null) || (params?.based_on as string | null) || null;
       const shotGenerations = expandShotData(
@@ -227,13 +220,13 @@ export function useGenerationNavigationController({
       const posterUrl = (row.thumbnail_url as string) || (row.location as string);
 
       const transformedData: GeneratedImageWithMetadata = {
-        id: data.id,
+        id: row.id,
         url: mediaUrl,
         thumbUrl: posterUrl,
         prompt: (params?.prompt as string) || "",
         metadata: params as GeneratedImageWithMetadata["metadata"],
-        createdAt: data.created_at,
-        starred: data.starred || false,
+        createdAt: row.created_at,
+        starred: row.starred || false,
         isVideo: !!(row.video_url),
         based_on: basedOnValue,
         shot_id: shotGenerations[0]?.shot_id,

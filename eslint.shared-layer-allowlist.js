@@ -1,4 +1,5 @@
 export const sharedLayerAllowlist = [
+  'src/shared/editMedia/navigation.ts',
   'src/shared/components/CreditsManagement/CreditsManagement.tsx',
   'src/shared/components/GenerationsPane/hooks/useGenerationsPaneController.ts',
   'src/shared/components/ImageDragPreview.tsx',
@@ -115,6 +116,9 @@ export const sharedLayerAllowlist = [
   'src/shared/hooks/gallery/useVideoGalleryPreloader.ts',
   'src/shared/hooks/invalidation/generationStarCacheCoordinator.ts',
   'src/shared/hooks/media/useEditToolMediaPersistence.ts',
+  'src/shared/hooks/projects/services/projectSetupRepository.ts',
+  'src/shared/hooks/projects/services/projectSetupService.ts',
+  'src/shared/hooks/projects/useProjectCRUD.ts',
   'src/shared/hooks/segments/segmentDataTransforms.ts',
   'src/shared/hooks/segments/segmentOutputTypes.ts',
   'src/shared/hooks/segments/segmentOutputsQueries.ts',
@@ -131,6 +135,7 @@ export const sharedLayerAllowlist = [
   'src/shared/hooks/shots/useShotsQueries.ts',
   'src/shared/hooks/usePendingImageOpen.ts',
   'src/shared/hooks/useQuickShotCreate.ts',
+  'src/shared/hooks/useResources.ts',
   'src/shared/hooks/useShotImages.ts',
   'src/shared/hooks/useShotNavigation.ts',
   'src/shared/hooks/useTimelineCore.enhancedPromptOperations.ts',
@@ -141,4 +146,6 @@ export const sharedLayerAllowlist = [
   'src/shared/lib/generationTransformers.ts',
   'src/shared/lib/media/mediaTypeHelpers.ts',
   'src/shared/lib/typeGuards.ts',
+  'src/shared/services/projects/projectSetupRepository.ts',
+  'src/shared/services/projects/projectSetupService.ts',
 ];

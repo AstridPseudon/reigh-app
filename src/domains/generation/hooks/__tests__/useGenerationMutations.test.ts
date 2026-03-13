@@ -173,7 +173,7 @@ describe('useUpdateGenerationLocation', () => {
     expect(mockFrom).toHaveBeenCalledWith('generations');
   });
 
-  it('includes thumbUrl when provided', async () => {
+  it('includes thumbnailUrl when provided', async () => {
     const updateSelect = vi.fn().mockResolvedValue({ data: [{ id: 'gen-123' }], error: null });
     const updateProjectEq = vi.fn().mockReturnValue({ select: updateSelect });
     const updateIdEq = vi.fn().mockReturnValue({ eq: updateProjectEq });
@@ -188,7 +188,7 @@ describe('useUpdateGenerationLocation', () => {
         id: 'gen-123',
         projectId: 'project-1',
         location: 'https://example.com/new.png',
-        thumbUrl: 'https://example.com/new-thumb.png',
+        thumbnailUrl: 'https://example.com/new-thumb.png',
       });
     });
 

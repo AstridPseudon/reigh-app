@@ -183,6 +183,7 @@ export function useTrainingData() {
       )));
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useTrainingData.updateSegment', toastTitle: 'Failed to update segment' });
+      throw error;
     }
   }, []);
 
@@ -192,6 +193,7 @@ export function useTrainingData() {
       setSegments((previous) => previous.filter((segment) => segment.id !== id));
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useTrainingData.deleteSegment', toastTitle: 'Failed to delete segment' });
+      throw error;
     }
   }, []);
 
@@ -215,6 +217,7 @@ export function useTrainingData() {
       await removeTrainingVideoFromStorage(video.storageLocation);
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useTrainingData.deleteVideo', toastTitle: 'Failed to delete video' });
+      throw error;
     }
   }, [videos, clearUrlCache, fetchVideos, fetchSegments]);
 

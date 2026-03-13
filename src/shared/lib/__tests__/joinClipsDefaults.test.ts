@@ -52,13 +52,6 @@ describe('joinClipsDefaults', () => {
       expect(joinClipsSettings.defaults.loopFirstClip).toBe(false);
     });
 
-    it('has undefined legacy video URL fields', () => {
-      expect(joinClipsSettings.defaults.startingVideoUrl).toBeUndefined();
-      expect(joinClipsSettings.defaults.startingVideoPosterUrl).toBeUndefined();
-      expect(joinClipsSettings.defaults.endingVideoUrl).toBeUndefined();
-      expect(joinClipsSettings.defaults.endingVideoPosterUrl).toBeUndefined();
-    });
-
     it('has empty clips array by default', () => {
       expect(joinClipsSettings.defaults.clips).toEqual([]);
     });

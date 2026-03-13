@@ -273,12 +273,8 @@ function useImageLightboxRenderModel(
   const controlsPanelContent = (
     <ImageLightboxControlsPanel
       media={props.media}
-      shotId={props.shotWorkflow?.shotId}
-      onOpenExternalGeneration={props.onOpenExternalGeneration}
-      shotWorkflow={props.shotWorkflow}
       features={props.features}
       env={env}
-      sharedModel={sharedModel}
       editModel={editModel}
       showPanel={showPanel}
       panelVariant={panelVariant}

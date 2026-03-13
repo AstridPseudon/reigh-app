@@ -23,7 +23,7 @@ import { parseRatio } from '@/shared/lib/media/aspectRatios';
 import { MediaSelectionPanel } from '@/shared/components/MediaSelectionPanel';
 import { useEditToolMediaPersistence } from '@/shared/hooks/media/useEditToolMediaPersistence';
 import { EditMediaSelectionLayout } from '@/shared/editMedia/EditMediaSelectionLayout';
-import { navigateToGenerationById } from '@/shared/editMedia/navigation';
+import { navigateToGenerationById } from '@/domains/generation/navigation';
 import { requireProjectAndUserId } from '@/shared/editMedia/uploadGuards';
 
 // Preload image helper - warm up the browser cache

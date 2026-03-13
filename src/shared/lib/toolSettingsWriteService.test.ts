@@ -163,14 +163,14 @@ describe('toolSettingsWriteService', () => {
       id: 'user-1',
       toolId: 'timeline',
       patch: { showGrid: true },
-    }, 'immediate');
+    }, { mode: 'immediate' });
 
     await updateToolSettingsSupabase({
       scope: 'shot',
       id: 'shot-1',
       toolId: 'timeline',
       patch: { showGrid: false },
-    }, controller.signal, 'debounced');
+    }, { signal: controller.signal, mode: 'debounced' });
 
     expect(mocks.enqueueSettingsWrite).toHaveBeenNthCalledWith(1, {
       scope: 'user',

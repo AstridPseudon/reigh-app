@@ -51,6 +51,18 @@ describe('repository contracts', () => {
     });
   });
 
+  it('throws RepositoryError for invalid generation row shapes', async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: { metadata: { broken: true } },
+      error: null,
+    });
+
+    await expect(fetchGenerationById('generation-1')).rejects.toMatchObject<Partial<RepositoryError>>({
+      name: 'RepositoryError',
+      code: 'invalid_row_shape',
+    });
+  });
+
   it('returns null for missing tasks instead of throwing raw Postgrest errors', async () => {
     await expect(fetchTaskInProject('task-1', 'project-1')).resolves.toBeNull();
   });

@@ -105,6 +105,7 @@ export function useTrainingDataBatches({ videos }: UseTrainingDataBatchesProps) 
       }
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useTrainingData.deleteBatch', toastTitle: 'Failed to delete batch' });
+      throw error;
     }
   };
 

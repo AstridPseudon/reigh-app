@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  coerceRawGenerationDbRows,
   extractExpectedSegmentData,
   getPairIdentifiers,
   isSegmentGeneration,
@@ -83,6 +84,12 @@ describe('segmentDataTransforms', () => {
         starred: true,
         pair_shot_generation_id: 'pair-1',
       }),
+    );
+  });
+
+  it('validates raw generation rows before mapping', () => {
+    expect(() => coerceRawGenerationDbRows([{ id: 'gen-1' }, { broken: true }])).toThrow(
+      'Invalid generation row at index 1',
     );
   });
 });

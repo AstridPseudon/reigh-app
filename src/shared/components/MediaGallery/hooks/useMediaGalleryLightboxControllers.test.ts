@@ -10,7 +10,7 @@ import {
 const mocks = vi.hoisted(() => ({
   usePrefetchTaskData: vi.fn(),
   getGenerationId: vi.fn(),
-  getSupabaseClient: vi.fn(),
+  fetchGenerationRecordById: vi.fn(),
   toastError: vi.fn(),
   normalizeAndPresentError: vi.fn(),
   expandShotData: vi.fn(),
@@ -24,8 +24,8 @@ vi.mock('@/shared/lib/media/mediaTypeHelpers', () => ({
   getGenerationId: (...args: unknown[]) => mocks.getGenerationId(...args),
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  getSupabaseClient: (...args: unknown[]) => mocks.getSupabaseClient(...args),
+vi.mock('@/integrations/supabase/repositories/generationRepository', () => ({
+  fetchGenerationRecordById: (...args: unknown[]) => mocks.fetchGenerationRecordById(...args),
 }));
 
 vi.mock('@/shared/components/ui/runtime/sonner', () => ({
@@ -160,15 +160,9 @@ describe('useMediaGalleryLightboxControllers', () => {
     );
   });
 
-  it('opens external generations via supabase fetch and handles missing/error paths', async () => {
+  it('opens external generations via repository lookup and handles missing/error paths', async () => {
     const setActiveLightboxIndex = vi.fn();
     const filteredImages = [{ id: 'gen-1' }] as Array<Record<string, unknown>>;
-
-    const single = vi.fn();
-    const eq = vi.fn(() => ({ single }));
-    const select = vi.fn(() => ({ eq }));
-    const from = vi.fn(() => ({ select }));
-    mocks.getSupabaseClient.mockReturnValue({ from });
 
     const { result } = renderHook(() =>
       useGenerationNavigationController({
@@ -177,8 +171,7 @@ describe('useMediaGalleryLightboxControllers', () => {
       }),
     );
 
-    single.mockResolvedValueOnce({
-      data: {
+    mocks.fetchGenerationRecordById.mockResolvedValueOnce({
         id: 'gen-external',
         location: 'https://cdn/image.png',
         thumbnail_url: 'https://cdn/thumb.png',
@@ -186,8 +179,6 @@ describe('useMediaGalleryLightboxControllers', () => {
         created_at: '2026-01-01T00:00:00.000Z',
         starred: false,
         shot_data: { shot_1: [0] },
-      },
-      error: null,
     });
 
     await act(async () => {
@@ -197,13 +188,13 @@ describe('useMediaGalleryLightboxControllers', () => {
     expect(filteredImages.at(-1)?.id).toBe('gen-external');
     expect(setActiveLightboxIndex).toHaveBeenCalledWith(filteredImages.length - 1);
 
-    single.mockResolvedValueOnce({ data: null, error: null });
+    mocks.fetchGenerationRecordById.mockResolvedValueOnce(null);
     await act(async () => {
       await result.current.handleOpenExternalGeneration('gen-missing');
     });
     expect(mocks.toastError).toHaveBeenCalledWith('Generation not found');
 
-    single.mockResolvedValueOnce({ data: null, error: new Error('db failed') });
+    mocks.fetchGenerationRecordById.mockRejectedValueOnce(new Error('db failed'));
     await act(async () => {
       await result.current.handleOpenExternalGeneration('gen-error');
     });

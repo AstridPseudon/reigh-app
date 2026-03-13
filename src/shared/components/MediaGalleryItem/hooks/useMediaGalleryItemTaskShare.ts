@@ -6,7 +6,7 @@ import { useShareGeneration } from '@/shared/hooks/useShareGeneration';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { isImageEditTaskType } from '@/shared/lib/taskParamsUtils';
 import { deriveGalleryInputImages } from '../../MediaGallery/utils';
-import type { GeneratedImageWithMetadata } from '@/features/gallery/components/MediaGallery/types';
+import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
 
 interface UseMediaGalleryItemTaskShareParams {
   image: GeneratedImageWithMetadata;

@@ -9,7 +9,6 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ApplySettingsService from '../../services/applySettingsService';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
-import type { LoraModel } from '@/domains/lora/types/lora';
 import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import type { AddImageToShotVariables } from '@/shared/hooks/shots/addImageToShotHelpers';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';

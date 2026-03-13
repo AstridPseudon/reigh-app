@@ -2,7 +2,12 @@ import { useCallback, useRef, useMemo, useEffect } from 'react';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
-import { VideoTravelSettings, DEFAULT_PHASE_CONFIG, videoTravelSettings } from '../../settings';
+import {
+  VideoTravelSettings,
+  DEFAULT_PHASE_CONFIG,
+  createDefaultVideoTravelSettings,
+  normalizeVideoTravelSettings,
+} from '../../settings';
 import { STORAGE_KEYS } from '@/shared/lib/storage/storageKeys';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
@@ -56,14 +61,16 @@ export const useShotSettings = (
     storageKeyForShot: STORAGE_KEYS.APPLY_PROJECT_DEFAULTS,
     mergeDefaults: (defaults) => {
       const { _uiSettings, ...validSettings } = defaults;
-      return {
-        ...videoTravelSettings.defaults,
+      return normalizeVideoTravelSettings({
+        ...createDefaultVideoTravelSettings(),
         ...validSettings,
         steerableMotionSettings: {
           ...DEFAULT_STEERABLE_MOTION_SETTINGS,
-          ...(validSettings.steerableMotionSettings || {}),
+          ...(typeof validSettings.steerableMotionSettings === 'object' && validSettings.steerableMotionSettings
+            ? validSettings.steerableMotionSettings
+            : {}),
         },
-      } as VideoTravelSettings;
+      });
     },
     context: 'useShotSettings',
   });
@@ -74,7 +81,7 @@ export const useShotSettings = (
     shotId,
     projectId,
     scope: 'shot',
-    defaults: inheritedSettings || videoTravelSettings.defaults,
+    defaults: inheritedSettings || createDefaultVideoTravelSettings(),
     enabled: !!shotId,
     debounceMs: 300,
   });
@@ -180,10 +187,10 @@ export const useShotSettings = (
 
       if (fetchError) throw fetchError;
 
-      const sourceSettings = (data?.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] as VideoTravelSettings;
+      const sourceSettingsRaw = (data?.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES];
 
-      if (sourceSettings) {
-        autoSaveUpdateFields(sourceSettings);
+      if (sourceSettingsRaw) {
+        autoSaveUpdateFields(normalizeVideoTravelSettings(sourceSettingsRaw));
       } else {
         toast.error('Source shot has no settings');
       }
@@ -207,10 +214,10 @@ export const useShotSettings = (
 
       if (fetchError) throw fetchError;
 
-      const projectDefaults = (data?.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] as VideoTravelSettings;
+      const projectDefaultsRaw = (data?.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES];
 
-      if (projectDefaults) {
-        autoSaveUpdateFields(projectDefaults);
+      if (projectDefaultsRaw) {
+        autoSaveUpdateFields(normalizeVideoTravelSettings(projectDefaultsRaw));
       } else {
         toast.error('Project has no default settings');
       }
@@ -221,7 +228,7 @@ export const useShotSettings = (
 
   // Reset to hardcoded defaults
   const resetToDefaults = useCallback(() => {
-    autoSaveUpdateFields(videoTravelSettings.defaults);
+    autoSaveUpdateFields(createDefaultVideoTravelSettings());
   }, [autoSaveUpdateFields]);
   
   // Memoize return value

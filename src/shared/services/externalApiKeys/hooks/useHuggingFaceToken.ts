@@ -84,6 +84,10 @@ function toVerifiedMetadata(
   };
 }
 
+export type SaveHuggingFaceTokenResult =
+  | { success: true }
+  | { success: false; error: string };
+
 /**
  * Hook specifically for HuggingFace token management
  */
@@ -106,18 +110,14 @@ export function useHuggingFaceToken() {
     return verifyHuggingFaceToken(token);
   };
 
-  const saveToken = async (token: string): Promise<{ success: boolean; error?: string }> => {
+  const saveToken = async (token: string): Promise<SaveHuggingFaceTokenResult> => {
     const verification = await verifyToken(token);
     if (!verification.valid) {
-      return { success: false, error: verification.error };
+      return { success: false, error: verification.error ?? 'Token verification failed' };
     }
 
-    try {
-      await save(token, toVerifiedMetadata(verification));
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Failed to save token' };
-    }
+    await save(token, toVerifiedMetadata(verification));
+    return { success: true };
   };
 
   return {

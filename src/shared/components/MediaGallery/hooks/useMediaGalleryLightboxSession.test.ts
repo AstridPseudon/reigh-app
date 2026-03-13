@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useMediaGalleryLightboxSession } from './useMediaGalleryLightboxSession';
+import { useMediaGalleryLightboxSession } from '@/shared/components/MediaGallery/hooks/useMediaGalleryLightboxSession';
 
-vi.mock('./useMediaGalleryLightboxControllers', () => ({
+vi.mock('@/shared/components/MediaGallery/hooks/useMediaGalleryLightboxControllers', () => ({
   buildTaskDetailsPayload: ({
     task,
     isLoadingTask,

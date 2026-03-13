@@ -64,6 +64,11 @@ interface UpdateToolSettingsParams {
   patch: unknown;
 }
 
+interface UpdateToolSettingsOptions {
+  signal?: AbortSignal;
+  mode?: SettingsWriteMode;
+}
+
 interface AbortSignalCapable<T> {
   abortSignal?: (signal: AbortSignal) => T;
 }
@@ -185,21 +190,11 @@ export function initializeToolSettingsWriteRuntime(): void {
 
 export function updateToolSettingsSupabase(
   params: UpdateToolSettingsParams,
-  mode?: SettingsWriteMode,
-): Promise<Record<string, unknown>>;
-export function updateToolSettingsSupabase(
-  params: UpdateToolSettingsParams,
-  signal?: AbortSignal,
-  mode?: SettingsWriteMode,
-): Promise<Record<string, unknown>>;
-export function updateToolSettingsSupabase(
-  params: UpdateToolSettingsParams,
-  signalOrMode?: AbortSignal | SettingsWriteMode,
-  maybeMode: SettingsWriteMode = 'debounced',
+  options: UpdateToolSettingsOptions = {},
 ): Promise<Record<string, unknown>> {
   const { scope, id, toolId, patch } = params;
-  const signal = isAbortSignal(signalOrMode) ? signalOrMode : undefined;
-  const mode = isSettingsWriteMode(signalOrMode) ? signalOrMode : maybeMode;
+  const signal = isAbortSignal(options.signal) ? options.signal : undefined;
+  const mode = isSettingsWriteMode(options.mode) ? options.mode : 'debounced';
 
   return enqueueSettingsWrite({
     scope,

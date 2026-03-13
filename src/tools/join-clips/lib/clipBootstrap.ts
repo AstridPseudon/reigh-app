@@ -12,16 +12,62 @@ interface InitialClipsResult {
   posterUrlsToPreload: string[];
 }
 
+type CanonicalJoinClip = JoinClipsSettings['clips'][number];
+type CanonicalTransitionPrompt = JoinClipsSettings['transitionPrompts'][number];
+
+interface LegacyJoinClipsSettingsShape {
+  clips?: CanonicalJoinClip[];
+  transitionPrompts?: CanonicalTransitionPrompt[];
+  startingVideoUrl?: string;
+  startingVideoPosterUrl?: string;
+  endingVideoUrl?: string;
+  endingVideoPosterUrl?: string;
+  prompt?: string;
+}
+
+type JoinClipsBootstrapSettings = JoinClipsSettings | LegacyJoinClipsSettingsShape;
+
+function normalizeLegacyJoinClipsSettings(
+  settings: JoinClipsBootstrapSettings,
+): Pick<JoinClipsSettings, 'clips' | 'transitionPrompts'> {
+  if (settings.clips && settings.clips.length > 0) {
+    return {
+      clips: settings.clips,
+      transitionPrompts: settings.transitionPrompts ?? [],
+    };
+  }
+
+  const clips: CanonicalJoinClip[] = [];
+  if (settings.startingVideoUrl) {
+    clips.push({
+      url: settings.startingVideoUrl,
+      ...(settings.startingVideoPosterUrl ? { posterUrl: settings.startingVideoPosterUrl } : {}),
+    });
+  }
+  if (settings.endingVideoUrl) {
+    clips.push({
+      url: settings.endingVideoUrl,
+      ...(settings.endingVideoPosterUrl ? { posterUrl: settings.endingVideoPosterUrl } : {}),
+    });
+  }
+
+  const transitionPrompts = clips.length >= 2 && settings.prompt
+    ? [{ clipIndex: 1, prompt: settings.prompt }]
+    : [];
+
+  return { clips, transitionPrompts };
+}
+
 export function buildInitialClipsFromSettings(
-  settings: JoinClipsSettings,
+  settings: JoinClipsBootstrapSettings,
 ): InitialClipsResult {
+  const normalizedSettings = normalizeLegacyJoinClipsSettings(settings);
   const initialClips: VideoClip[] = [];
   const posterUrlsToPreload: string[] = [];
   let transitionPrompts: TransitionPrompt[] = [];
 
-  // Try loading from new multi-clip format
-  if (settings.clips && settings.clips.length > 0) {
-    settings.clips.forEach(clip => {
+  if (normalizedSettings.clips.length > 0) {
+    normalizedSettings.clips.forEach((clip) => {
       if (clip.url) {
         initialClips.push({
           id: generateUUID(),
@@ -32,59 +78,19 @@ export function buildInitialClipsFromSettings(
           loaded: false,
           playing: false,
         });
-        if (clip.posterUrl) posterUrlsToPreload.push(clip.posterUrl);
+        if (clip.posterUrl) {
+          posterUrlsToPreload.push(clip.posterUrl);
+        }
       }
     });
 
-    // Load transition prompts
-    if (settings.transitionPrompts && settings.transitionPrompts.length > 0) {
-      transitionPrompts = settings.transitionPrompts
-        .map(tp => ({
-          id: initialClips[tp.clipIndex]?.id || '',
-          prompt: tp.prompt,
+    if (normalizedSettings.transitionPrompts.length > 0) {
+      transitionPrompts = normalizedSettings.transitionPrompts
+        .map((transitionPrompt) => ({
+          id: initialClips[transitionPrompt.clipIndex]?.id || '',
+          prompt: transitionPrompt.prompt,
         }))
-        .filter(p => p.id);
-    }
-  }
-  // Fallback to legacy two-video format
-  else if (settings.startingVideoUrl || settings.endingVideoUrl) {
-    if (settings.startingVideoUrl) {
-      initialClips.push({
-        id: generateUUID(),
-        url: settings.startingVideoUrl,
-        posterUrl: settings.startingVideoPosterUrl,
-        loaded: false,
-        playing: false,
-      });
-      if (settings.startingVideoPosterUrl) {
-        posterUrlsToPreload.push(settings.startingVideoPosterUrl);
-      }
-    }
-
-    if (settings.endingVideoUrl) {
-      initialClips.push({
-        id: generateUUID(),
-        url: settings.endingVideoUrl,
-        posterUrl: settings.endingVideoPosterUrl,
-        loaded: false,
-        playing: false,
-      });
-      if (settings.endingVideoPosterUrl) {
-        posterUrlsToPreload.push(settings.endingVideoPosterUrl);
-      }
-    }
-
-    // Initialize transition prompts from legacy format
-    // The `prompt` field existed in an older settings schema and may still
-    // be present in persisted data even though it's not in the current type.
-    const legacyPrompt = (settings as JoinClipsSettings & { prompt?: string }).prompt;
-    if (initialClips.length >= 2 && legacyPrompt) {
-      transitionPrompts = [
-        {
-          id: initialClips[1].id,
-          prompt: legacyPrompt,
-        },
-      ];
+        .filter((prompt) => prompt.id);
     }
   }
 

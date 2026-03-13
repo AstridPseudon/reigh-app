@@ -4,6 +4,7 @@ import { __resetCreateClientImpl, __setCreateClientImpl } from '../_tests/mocks/
 
 const {
   authenticateRequestMock,
+  loggerDebugMock,
   loggerWarnMock,
   loggerErrorMock,
   loggerInfoMock,
@@ -12,6 +13,7 @@ const {
   loggerSetTaskIdMock,
 } = vi.hoisted(() => ({
   authenticateRequestMock: vi.fn(),
+  loggerDebugMock: vi.fn(),
   loggerWarnMock: vi.fn(),
   loggerErrorMock: vi.fn(),
   loggerInfoMock: vi.fn(),
@@ -26,6 +28,7 @@ vi.mock('../_shared/auth.ts', () => ({
 
 vi.mock('../_shared/systemLogger.ts', () => ({
   SystemLogger: class {
+    debug = loggerDebugMock;
     warn = loggerWarnMock;
     error = loggerErrorMock;
     info = loggerInfoMock;

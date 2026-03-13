@@ -8,7 +8,7 @@ Follow these steps and your tool will be auto-wired into the system (routing, pe
 
 ### 1. Create Tool Structure
 
-Create your tool directory with this layout:
+Create your tool directory with a page entrypoint and whatever local components/hooks it needs:
 
 ```
 src/tools/my-new-tool/
@@ -16,15 +16,19 @@ src/tools/my-new-tool/
 │   └── MyNewToolPage.tsx      # Primary UI component
 ├── components/                 # Tool-specific widgets
 ├── hooks/                      # Custom hooks (optional)
-└── settings.ts                 # Config & defaults
 ```
+
+If the tool owns its own persisted settings contract, keep the settings object in
+`src/tools/my-new-tool/settings.ts`. If the settings/defaults are intentionally
+shared across tools, keep that canonical object in a shared module and import it
+from the tool registration points below.
 
 ### 2. Define Tool Settings
 
-Create `settings.ts` with your tool's configuration:
+Define one canonical settings object for the tool:
 
 ```typescript
-// src/tools/my-new-tool/settings.ts
+// src/tools/my-new-tool/settings.ts (or a shared module if the settings are reused)
 export const myNewToolSettings = {
   id: 'my-new-tool',
   scope: ['project'] as const,     // Can be: ['user'], ['project'], ['shot'], or combinations
@@ -42,15 +46,15 @@ export type MyNewToolSettings = typeof myNewToolSettings.defaults;
 
 ### 3. Register in Tool Manifest
 
-Add your tool to the global registry:
+Register the same settings object in the runtime manifests:
 
 ```typescript
 // src/tools/index.ts
 
-// 1. Export your settings
-export { myNewToolSettings } from './my-new-tool/settings';
+// 1. Import the canonical settings object
+import { myNewToolSettings } from './my-new-tool/settings';
 
-// 2. Add to manifest array
+// 2. Add it to the manifest array
 toolsManifest.push(myNewToolSettings);
 
 // 3. Add UI metadata
@@ -62,6 +66,18 @@ toolsUIManifest.push({
   description: 'Tool description',   // Optional
   category: 'generation',            // Optional categorization
 });
+```
+
+Also add the defaults to `src/tooling/toolDefaultsRegistry.ts` so the tool can
+participate in the shared defaults/bootstrap flow:
+
+```typescript
+import { myNewToolSettings } from '@/tools/my-new-tool/settings';
+
+const TOOL_SETTINGS_WITH_DEFAULTS = [
+  // ...
+  myNewToolSettings,
+];
 ```
 
 ### 4. Add Route
@@ -83,11 +99,12 @@ import { MyNewToolPage } from '@/tools/my-new-tool/pages/MyNewToolPage';
 
 ### 5. Implement Tool UI
 
-Create your main page component using `useAutoSaveSettings` (recommended for full-featured auto-save):
+Create your main page component using `useAutoSaveSettings`, and pass the same
+canonical settings object's `id` and `defaults` into the hook:
 
 ```typescript
 // src/tools/my-new-tool/pages/MyNewToolPage.tsx
-import { useAutoSaveSettings } from '@/shared/hooks/useAutoSaveSettings';
+import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import { useProject } from '@/shared/contexts/ProjectContext';
 import { myNewToolSettings, MyNewToolSettings } from '../settings';
 

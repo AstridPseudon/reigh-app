@@ -1,46 +1,13 @@
 import React from 'react';
 import { TaskDetailsPanel } from '@/shared/components/TaskDetails/TaskDetailsPanel';
-import type { GenerationRow } from '@/domains/generation/types';
 import { GenerationDetails } from '@/domains/generation/components/GenerationDetails';
 import type { TaskDetailsData } from '../types';
-import type { DerivedItem } from '@/domains/generation/hooks/useDerivedItems';
-
-interface VariantInfo {
-  id: string;
-  location: string;
-  thumbnail_url: string | null;
-  variant_type: string | null;
-  is_primary: boolean;
-}
 
 interface TaskDetailsPanelWrapperProps {
-  // Task details data
   taskDetailsData?: TaskDetailsData;
-
-  // State
   replaceImages: boolean;
   onReplaceImagesChange: (replace: boolean) => void;
-
-  // Close handler
   onClose: () => void;
-
-  // Variant
-  variant?: 'desktop' | 'mobile';
-
-  // Legacy props - kept for compatibility but no longer used
-  derivedItems?: DerivedItem[] | null;
-  paginatedDerived?: DerivedItem[];
-  derivedPage?: number;
-  derivedTotalPages?: number;
-  onSetDerivedPage?: (page: number) => void;
-  onNavigateToGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
-  onVariantSelect?: (variantId: string) => void;
-  currentMediaId?: string;
-  currentShotId?: string;
-  derivedGenerations?: GenerationRow[] | null;
-  activeVariant?: VariantInfo | null;
-  primaryVariant?: VariantInfo | null;
-  onSwitchToPrimary?: () => void;
 }
 
 /**

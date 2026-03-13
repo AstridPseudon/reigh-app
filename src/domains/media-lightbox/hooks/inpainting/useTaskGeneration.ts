@@ -6,28 +6,11 @@
 import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import type { GenerationRow } from '@/domains/generation/types';
-import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
-import { createImageInpaintTask } from '@/shared/lib/tasks/imageEditing/imageInpaint';
-import { createMaskedEditTask } from '@/shared/lib/tasks/imageEditing/maskedEditTaskBuilder';
-import type { MaskedEditTaskParams } from '@/shared/lib/tasks/imageEditing/maskedEditTaskBuilder';
-import { buildMaskedEditTaskParams } from '@/shared/lib/tasks/imageEditing/buildMaskedEditTaskParams';
 import type { StrokeOverlayHandle } from '../../components/StrokeOverlay';
 import type { BrushStroke, EditAdvancedSettings, QwenEditModel } from './types';
-import { convertToHiresFixApiParams } from '../useGenerationEditSettings';
-import { getGenerationId, getMediaUrl } from '@/shared/lib/media/mediaTypeHelpers';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
-
-/**
- * Creates annotated image edit tasks.
- * First task ID is returned for backward compatibility.
- */
-function createAnnotatedImageEditTask(params: MaskedEditTaskParams): Promise<string> {
-  return createMaskedEditTask({
-    taskType: 'annotated_image_edit',
-    context: 'createAnnotatedImageEditTask',
-    batchOperationName: 'AnnotatedImageEdit',
-  }, params);
-}
+import { createInpaintingTaskWorkflow } from './createInpaintingTaskWorkflow';
 
 /**
  * Task type configuration - captures the differences between inpaint and annotate modes
@@ -35,30 +18,21 @@ function createAnnotatedImageEditTask(params: MaskedEditTaskParams): Promise<str
 type TaskType = 'inpaint' | 'annotate';
 
 interface TaskTypeConfig {
-  logPrefix: string;
   emptyStrokesError: string;
   overlayNotReadyError: string;
-  fileNamePrefix: string;
   taskCreationError: string;
-  createTask: typeof createImageInpaintTask | typeof createAnnotatedImageEditTask;
 }
 
 const TASK_CONFIGS: Record<TaskType, TaskTypeConfig> = {
   inpaint: {
-    logPrefix: '[Inpaint]',
     emptyStrokesError: 'Please paint on the image first',
     overlayNotReadyError: 'Paint overlay not ready',
-    fileNamePrefix: 'inpaint_mask',
     taskCreationError: 'Failed to create inpaint task',
-    createTask: createImageInpaintTask,
   },
   annotate: {
-    logPrefix: '[AnnotateEdit]',
     emptyStrokesError: 'Please draw an annotation rectangle',
     overlayNotReadyError: 'Annotation overlay not ready',
-    fileNamePrefix: 'annotated_edit_mask',
     taskCreationError: 'Failed to create annotated edit task',
-    createTask: createAnnotatedImageEditTask,
   },
 };
 
@@ -151,47 +125,27 @@ export function useTaskGeneration({
         context: 'useTaskGeneration',
         toastTitle: config.taskCreationError,
         create: async () => {
-          // Export mask directly from Konva
-          const maskImageData = strokeOverlayRef.current!.exportMask({ pixelRatio: 1.5 });
-
-          if (!maskImageData) {
-            throw new Error('Failed to export mask from overlay');
-          }
-
-          // Upload mask to storage
-          const maskFile = await fetch(maskImageData)
-            .then(res => res.blob())
-            .then(blob => new File([blob], `${config.fileNamePrefix}_${media.id}_${Date.now()}.png`, { type: 'image/png' }));
-
-          const maskUrl = await uploadImageToStorage(maskFile);
-
-          // Get source image URL
-          const mediaUrl = getMediaUrl(media) || media.imageUrl;
-          const sourceUrl = activeVariantLocation || mediaUrl;
-          if (!sourceUrl) {
-            throw new Error('Missing source media URL');
-          }
           if (!actualGenerationId) {
             throw new Error('Missing generation id');
           }
 
-          return config.createTask(
-            buildMaskedEditTaskParams({
-              projectId: selectedProjectId,
-              imageUrl: sourceUrl,
-              maskUrl,
-              prompt: inpaintPrompt,
-              numGenerations: inpaintNumGenerations,
-              generationId: actualGenerationId,
-              shotId,
-              toolType: toolTypeOverride,
-              loras,
-              createAsGeneration,
-              sourceVariantId: activeVariantId || undefined,
-              hiresFix: convertToHiresFixApiParams(advancedSettings),
-              qwenEditModel,
-            }),
-          );
+          return createInpaintingTaskWorkflow({
+            taskType,
+            media,
+            selectedProjectId,
+            shotId,
+            toolTypeOverride,
+            loras,
+            activeVariantId,
+            activeVariantLocation,
+            createAsGeneration,
+            advancedSettings,
+            qwenEditModel,
+            inpaintPrompt,
+            inpaintNumGenerations,
+            actualGenerationId,
+            strokeOverlay: strokeOverlayRef.current!,
+          });
         },
         onSuccess: () => {
           // Show success state

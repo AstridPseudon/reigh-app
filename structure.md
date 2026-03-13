@@ -64,7 +64,7 @@
 | `/src/pages` | Top-level pages | `HomePage`, `ShotsPage`, `ArtPage`, `SharePage`, `NotFoundPage`, payment pages |
 | `/src/tools` | Feature modules | Each tool: `pages/`, `components/`, `hooks/`, `settings.ts` |
 | `/src/domains` | Domain-specific logic (billing, lora, media-lightbox, generation) | Business logic not tied to a single tool |
-| `/src/features` | Feature slices (tasks, shots, gallery, settings, etc.) | UI + hooks organized by product feature |
+| `/src/features` | Feature slices (tasks, shots, gallery, resources, projects, settings, etc.) | UI + hooks organized by product feature |
 | `/src/integrations` | Third-party integrations | Supabase client, auth, realtime, instrumentation |
 | `/src/types` | Shared TypeScript types | `database.ts`, `tasks.ts`, `ai.ts`, `env.ts` |
 | `/src/shared` | Cross-domain primitives and neutral contracts | `components/ui/` (presentational primitives only), reusable contracts/types, shared infra that does not own product workflows |
@@ -92,7 +92,7 @@ Tools live in `/src/tools/{tool-name}/` following a consistent structure. See [a
 - Keep product workflows, Supabase-backed repositories, and stateful feature orchestration in `/src/domains`, `/src/features`, or the owning `/src/tools/*` module.
 - `src/shared/components/ui/` is reserved for low-level presentational primitives and wrappers; feature-aware controls such as AI prompt actions belong in a feature/shared-product folder, not the UI primitive root.
 - Cross-surface contracts should live in neutral shared type files instead of importing from a concrete widget folder just to reach a type.
-- Feature-owned entrypoints such as `features/resources/*` or `features/shots/*` should host the real implementation. If an old `shared/*` path must stay alive for compatibility, keep it as a thin shim with an explicit comment instead of a second implementation home.
+- Feature-owned entrypoints such as `features/resources/*`, `features/projects/services/*`, or `features/shots/*` should host the real implementation. Domain-backed helpers like generation navigation should live with the owning domain instead of under `shared/*`. If an old `shared/*` path must stay alive for compatibility, keep it as a thin shim with an explicit comment instead of a second implementation home.
 
 ### Settings Resolution
 Priority: **shot → project → user → defaults**. See [settings_system.md](docs/structure_detail/settings_system.md).

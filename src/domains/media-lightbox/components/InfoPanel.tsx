@@ -22,25 +22,13 @@ import {
 } from '../contexts/LightboxStateContext';
 import { useImageEditCanvasSafe } from '../contexts/ImageEditCanvasContext';
 import { useVideoEditSafe } from '../contexts/VideoEditContext';
-import type { GenerationRow } from '@/domains/generation/types';
 import type { TaskDetailsData } from '../types';
 import { useCopyToClipboard } from '@/shared/hooks/clipboard/useCopyToClipboard';
-import type { DerivedItem } from '@/domains/generation/hooks/useDerivedItems';
 
 interface InfoPanelTaskPanelModel {
   taskDetailsData: TaskDetailsData | undefined;
-  derivedItems: DerivedItem[];
-  derivedGenerations: GenerationRow[] | null;
-  paginatedDerived: DerivedItem[];
-  derivedPage: number;
-  derivedTotalPages: number;
-  onSetDerivedPage: (page: number) => void;
-  onNavigateToGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
-  currentMediaId: string;
-  currentShotId?: string;
   replaceImages: boolean;
   onReplaceImagesChange: (value: boolean) => void;
-  onSwitchToPrimary?: () => void;
 }
 
 interface InfoPanelProps {
@@ -68,18 +56,8 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
 }) => {
   const {
     taskDetailsData,
-    derivedItems,
-    derivedGenerations,
-    paginatedDerived,
-    derivedPage,
-    derivedTotalPages,
-    onSetDerivedPage,
-    onNavigateToGeneration,
-    currentMediaId,
-    currentShotId,
     replaceImages,
     onReplaceImagesChange,
-    onSwitchToPrimary,
   } = taskPanel;
   const isMobile = variant === 'mobile';
 
@@ -93,7 +71,6 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const {
     variants,
     activeVariant,
-    primaryVariant,
     handleVariantSelect: onVariantSelect,
     handleMakePrimary: onMakePrimary,
     isLoadingVariants,
@@ -183,23 +160,9 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const renderTaskDetails = () => (
     <TaskDetailsPanelWrapper
       taskDetailsData={taskDetailsData}
-      derivedItems={derivedItems}
-      derivedGenerations={derivedGenerations}
-      paginatedDerived={paginatedDerived}
-      derivedPage={derivedPage}
-      derivedTotalPages={derivedTotalPages}
-      onSetDerivedPage={onSetDerivedPage}
-      onNavigateToGeneration={onNavigateToGeneration}
-      onVariantSelect={onVariantSelect}
-      currentMediaId={currentMediaId}
-      currentShotId={currentShotId}
       replaceImages={replaceImages}
       onReplaceImagesChange={onReplaceImagesChange}
       onClose={onClose}
-      variant={variant}
-      activeVariant={activeVariant}
-      primaryVariant={primaryVariant}
-      onSwitchToPrimary={onSwitchToPrimary}
     />
   );
 

@@ -114,4 +114,36 @@ describe('AuthStateManager', () => {
     expect(typeof manager?.subscribe).toBe('function');
     expect(initializeReconnectSchedulerMock).toHaveBeenCalledTimes(1);
   });
+
+  it('reuses the singleton for the same client and scheduler, but rejects conflicting dependencies', () => {
+    const scheduler = { requestReconnect: requestReconnectMock };
+    const supabase = {
+      auth: {
+        onAuthStateChange: vi.fn(),
+      },
+      realtime: {
+        setAuth: vi.fn(),
+      },
+    };
+    const otherSupabase = {
+      auth: {
+        onAuthStateChange: vi.fn(),
+      },
+      realtime: {
+        setAuth: vi.fn(),
+      },
+    };
+    const otherScheduler = { requestReconnect: vi.fn() };
+
+    const first = initAuthStateManager(supabase as never, scheduler);
+    const second = initAuthStateManager(supabase as never, scheduler);
+
+    expect(second).toBe(first);
+    expect(() => initAuthStateManager(otherSupabase as never, scheduler)).toThrow(
+      'AuthStateManager is already initialized with different runtime dependencies.',
+    );
+    expect(() => initAuthStateManager(supabase as never, otherScheduler)).toThrow(
+      'AuthStateManager is already initialized with different runtime dependencies.',
+    );
+  });
 });

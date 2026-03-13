@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { calculateGalleryLayout } from '@/features/gallery/components/MediaGallery/utils';
+import { calculateGalleryLayout } from '@/shared/components/MediaGallery/utils';
 
 interface UseVideoLayoutConfigOptions {
   /** Project aspect ratio (e.g., "16:9", "9:16") */

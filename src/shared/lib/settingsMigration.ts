@@ -21,6 +21,11 @@ import type {
   SegmentOverrides,
   LoraConfig,
 } from '@/shared/types/segmentSettings';
+import type {
+  PhaseConfig,
+  PhaseLoraConfig,
+  PhaseSettings,
+} from '@/shared/types/phaseConfig';
 import {
   DEFAULT_SEGMENT_SETTINGS,
   DEFAULT_SHOT_VIDEO_SETTINGS,
@@ -40,16 +45,27 @@ export type {
  * Migrate LoRA from any format to LoraConfig.
  * Handles both old ShotLora and new LoraConfig formats.
  */
-function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig {
+function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig | null {
+  const id = toString(lora.id, toString(lora.path, ''));
+  const name = toString(lora.name, '');
+  const path = toString(lora.path, '');
+  if (!id || !name || !path) {
+    return null;
+  }
+
   return {
-    id: (lora.id as string) ?? (lora.path as string) ?? '',
-    name: (lora.name as string) ?? '',
-    path: (lora.path as string) ?? '',
-    strength: (lora.strength as number) ?? 1.0,
-    lowNoisePath: lora.lowNoisePath as string | undefined,
-    isMultiStage: lora.isMultiStage as boolean | undefined,
-    previewImageUrl: lora.previewImageUrl as string | undefined,
-    triggerWord: (lora.triggerWord as string) ?? (lora.trigger_word as string),
+    id,
+    name,
+    path,
+    strength: toNumber(lora.strength, 1.0),
+    ...(typeof lora.lowNoisePath === 'string' ? { lowNoisePath: lora.lowNoisePath } : {}),
+    ...(typeof lora.isMultiStage === 'boolean' ? { isMultiStage: lora.isMultiStage } : {}),
+    ...(typeof lora.previewImageUrl === 'string' ? { previewImageUrl: lora.previewImageUrl } : {}),
+    ...(typeof lora.triggerWord === 'string'
+      ? { triggerWord: lora.triggerWord }
+      : typeof lora.trigger_word === 'string'
+        ? { triggerWord: lora.trigger_word }
+        : {}),
   };
 }
 
@@ -58,7 +74,9 @@ function migrateLoraConfig(lora: Record<string, unknown>): LoraConfig {
  */
 function migrateLoras(loras: Record<string, unknown>[] | undefined | null): LoraConfig[] {
   if (!loras || !Array.isArray(loras)) return [];
-  return loras.map(migrateLoraConfig);
+  return loras
+    .map(migrateLoraConfig)
+    .filter((entry): entry is LoraConfig => entry !== null);
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -105,6 +123,91 @@ function toStructureTreatment(value: unknown): SegmentSettings['structureTreatme
   return value === 'adjust' || value === 'clip' ? value : undefined;
 }
 
+function toNumberArray(value: unknown): number[] | undefined {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'number' && Number.isFinite(entry))
+    ? value
+    : undefined;
+}
+
+function decodePhaseLoraConfig(value: unknown): PhaseLoraConfig | null {
+  const record = toRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const url = typeof record.url === 'string' ? record.url : null;
+  const multiplier = typeof record.multiplier === 'string' ? record.multiplier : null;
+  if (!url || !multiplier) {
+    return null;
+  }
+
+  return { url, multiplier };
+}
+
+function decodePhaseSettings(value: unknown): PhaseSettings | null {
+  const record = toRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const phase = toOptionalNumber(record.phase);
+  const guidanceScale = toOptionalNumber(record.guidance_scale);
+  const loras = Array.isArray(record.loras)
+    ? record.loras
+      .map(decodePhaseLoraConfig)
+      .filter((entry): entry is PhaseLoraConfig => entry !== null)
+    : null;
+
+  if (phase === undefined || guidanceScale === undefined || !loras) {
+    return null;
+  }
+
+  return {
+    phase,
+    guidance_scale: guidanceScale,
+    loras,
+  };
+}
+
+function decodePhaseConfig(value: unknown): PhaseConfig | undefined {
+  const record = toRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const numPhases = toOptionalNumber(record.num_phases);
+  const stepsPerPhase = toNumberArray(record.steps_per_phase);
+  const flowShift = toOptionalNumber(record.flow_shift);
+  const sampleSolver = typeof record.sample_solver === 'string' ? record.sample_solver : undefined;
+  const modelSwitchPhase = toOptionalNumber(record.model_switch_phase);
+  const phases = Array.isArray(record.phases)
+    ? record.phases
+      .map(decodePhaseSettings)
+      .filter((entry): entry is PhaseSettings => entry !== null)
+    : undefined;
+
+  if (
+    numPhases === undefined
+    || !stepsPerPhase
+    || flowShift === undefined
+    || !sampleSolver
+    || modelSwitchPhase === undefined
+    || !phases
+  ) {
+    return undefined;
+  }
+
+  return {
+    num_phases: numPhases,
+    steps_per_phase: stepsPerPhase,
+    flow_shift: flowShift,
+    sample_solver: sampleSolver,
+    model_switch_phase: modelSwitchPhase,
+    phases,
+    ...(record.mode === 'i2v' || record.mode === 'vace' ? { mode: record.mode } : {}),
+  };
+}
+
 // =============================================================================
 // MOTION AMOUNT NORMALIZATION
 // =============================================================================
@@ -142,11 +245,13 @@ export function readShotSettings(raw: Record<string, unknown> | null | undefined
     amountOfMotion: normalizeMotionAmount(toOptionalNumber(raw.amountOfMotion)),
 
     // Advanced config
-    phaseConfig: (toRecord(raw.phaseConfig) as unknown as SegmentSettings['phaseConfig']) ?? undefined,
+    phaseConfig: decodePhaseConfig(raw.phaseConfig),
     selectedPhasePresetId: toNullableString(raw.selectedPhasePresetId, DEFAULT_SHOT_VIDEO_SETTINGS.selectedPhasePresetId),
 
     // LoRAs (unified field name after DB migration)
-    loras: migrateLoras(raw.loras as Record<string, unknown>[] | undefined | null),
+    loras: Array.isArray(raw.loras)
+      ? migrateLoras(raw.loras.filter((entry): entry is Record<string, unknown> => toRecord(entry) !== null))
+      : [],
 
     // Video
     numFrames: toNumber(raw.numFrames, DEFAULT_SHOT_VIDEO_SETTINGS.numFrames),
@@ -211,7 +316,7 @@ export function readSegmentOverrides(metadata: Record<string, unknown> | null | 
 
   // Phase config
   if (segmentOverrides.phaseConfig !== undefined) {
-    const phaseConfig = toRecord(segmentOverrides.phaseConfig) as unknown as SegmentSettings['phaseConfig'];
+    const phaseConfig = decodePhaseConfig(segmentOverrides.phaseConfig);
     if (phaseConfig) {
       overrides.phaseConfig = phaseConfig;
     }
@@ -224,7 +329,9 @@ export function readSegmentOverrides(metadata: Record<string, unknown> | null | 
 
   // LoRAs - include empty arrays to distinguish "explicitly no loras" from "no override"
   if (segmentOverrides.loras !== undefined && Array.isArray(segmentOverrides.loras)) {
-    overrides.loras = migrateLoras(segmentOverrides.loras as Record<string, unknown>[]);
+    overrides.loras = migrateLoras(
+      segmentOverrides.loras.filter((entry): entry is Record<string, unknown> => toRecord(entry) !== null),
+    );
   }
 
   // Frame count

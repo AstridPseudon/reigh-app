@@ -10,6 +10,11 @@ export {
   
 } from '@/shared/types/phaseConfig';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
+import {
+  DEFAULT_STRUCTURE_GUIDANCE_CONTROLS,
+  DEFAULT_STRUCTURE_VIDEO,
+} from '@/shared/lib/tasks/travelBetweenImages/defaults';
+import { migrateLegacyStructureVideos } from '@/shared/lib/tasks/travelBetweenImages/legacyStructureVideo';
 
 // Import for local use
 import {
@@ -17,6 +22,7 @@ import {
   DEFAULT_STEERABLE_MOTION_SETTINGS,
 } from '@/shared/types/steerableMotion';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
+import { asRecord } from '@/shared/lib/typeCoercion';
 
 // =============================================================================
 // TOOL-SPECIFIC TYPES
@@ -120,3 +126,178 @@ export const videoTravelSettings = {
     loras: [] as ShotLora[],
   },
 };
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function asEnum<T extends string>(value: unknown, options: readonly T[]): T | undefined {
+  return typeof value === 'string' && options.includes(value as T) ? value as T : undefined;
+}
+
+function cloneVideoTravelDefaults(): VideoTravelSettings {
+  return {
+    ...videoTravelSettings.defaults,
+    steerableMotionSettings: {
+      ...DEFAULT_STEERABLE_MOTION_SETTINGS,
+      ...videoTravelSettings.defaults.steerableMotionSettings,
+    },
+    pairConfigs: [...(videoTravelSettings.defaults.pairConfigs ?? [])],
+    shotImageIds: [...(videoTravelSettings.defaults.shotImageIds ?? [])],
+    loras: [...(videoTravelSettings.defaults.loras ?? [])],
+    ...(videoTravelSettings.defaults.phaseConfig
+      ? { phaseConfig: videoTravelSettings.defaults.phaseConfig }
+      : {}),
+    ...(videoTravelSettings.defaults.structureVideo
+      ? { structureVideo: { ...videoTravelSettings.defaults.structureVideo } }
+      : {}),
+  };
+}
+
+function normalizeShotLoras(value: unknown): ShotLora[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((entry) => {
+    const record = asRecord(entry);
+    if (!record) {
+      return [];
+    }
+    const id = asString(record.id);
+    const name = asString(record.name);
+    const path = asString(record.path);
+    const strength = asFiniteNumber(record.strength);
+    if (!id || !name || !path || strength === undefined) {
+      return [];
+    }
+    return [{
+      id,
+      name,
+      path,
+      strength,
+      ...(asString(record.previewImageUrl) ? { previewImageUrl: asString(record.previewImageUrl) } : {}),
+      ...(asString(record.trigger_word) ? { trigger_word: asString(record.trigger_word) } : {}),
+    }];
+  });
+}
+
+function normalizePairConfigs(value: unknown): VideoTravelSettings['pairConfigs'] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((entry) => {
+    const record = asRecord(entry);
+    if (!record) {
+      return [];
+    }
+    const id = asString(record.id);
+    if (!id) {
+      return [];
+    }
+    return [{
+      id,
+      prompt: asString(record.prompt) ?? '',
+      frames: asFiniteNumber(record.frames) ?? videoTravelSettings.defaults.batchVideoFrames,
+      negativePrompt: asString(record.negativePrompt) ?? '',
+      context: asFiniteNumber(record.context) ?? 0,
+    }];
+  });
+}
+
+function normalizeShotImageIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
+function normalizeStructureVideo(value: unknown): VideoTravelSettings['structureVideo'] {
+  const record = asRecord(value);
+  if (record) {
+    const path = asString(record.path);
+    if (path) {
+      return {
+        path,
+        metadata: asRecord(record.metadata) as VideoTravelSettings['structureVideo']['metadata'],
+        treatment: asEnum(record.treatment, ['adjust', 'clip']) ?? DEFAULT_STRUCTURE_VIDEO.treatment,
+        motionStrength: asFiniteNumber(record.motionStrength) ?? DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.motionStrength,
+        ...(asEnum(record.structureType, ['uni3c', 'flow', 'canny', 'depth'])
+          ? { structureType: asEnum(record.structureType, ['uni3c', 'flow', 'canny', 'depth']) }
+          : {}),
+      };
+    }
+  }
+
+  const migrated = migrateLegacyStructureVideos(value, {
+    defaultEndFrame: videoTravelSettings.defaults.batchVideoFrames,
+    defaultVideoTreatment: DEFAULT_STRUCTURE_VIDEO.treatment,
+    defaultMotionStrength: DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.motionStrength,
+    defaultStructureType: DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.structureType,
+    defaultUni3cEndPercent: DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.uni3cEndPercent,
+  })[0];
+  if (!migrated) {
+    return undefined;
+  }
+
+  return {
+    path: migrated.path,
+    metadata: migrated.metadata as VideoTravelSettings['structureVideo']['metadata'],
+    treatment: migrated.treatment ?? DEFAULT_STRUCTURE_VIDEO.treatment,
+    motionStrength: migrated.motion_strength ?? DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.motionStrength,
+    ...(migrated.structure_type ? { structureType: migrated.structure_type } : {}),
+  };
+}
+
+export function normalizeVideoTravelSettings(value: unknown): VideoTravelSettings {
+  const defaults = cloneVideoTravelDefaults();
+  const record = asRecord(value);
+  if (!record) {
+    return defaults;
+  }
+
+  return {
+    ...defaults,
+    prompt: asString(record.prompt) ?? defaults.prompt,
+    negativePrompt: asString(record.negativePrompt) ?? defaults.negativePrompt,
+    batchVideoFrames: asFiniteNumber(record.batchVideoFrames) ?? defaults.batchVideoFrames,
+    batchVideoSteps: asFiniteNumber(record.batchVideoSteps) ?? defaults.batchVideoSteps,
+    dimensionSource: asEnum(record.dimensionSource, ['project', 'firstImage', 'custom']) ?? defaults.dimensionSource,
+    customWidth: asFiniteNumber(record.customWidth) ?? defaults.customWidth,
+    customHeight: asFiniteNumber(record.customHeight) ?? defaults.customHeight,
+    steerableMotionSettings: {
+      ...defaults.steerableMotionSettings,
+      ...(asRecord(record.steerableMotionSettings) ?? {}),
+    },
+    enhancePrompt: asBoolean(record.enhancePrompt) ?? defaults.enhancePrompt,
+    generationMode: asEnum(record.generationMode, ['batch', 'by-pair', 'timeline']) ?? defaults.generationMode,
+    selectedModel: asEnum(record.selectedModel, ['wan-2.1', 'wan-2.2']) ?? defaults.selectedModel,
+    turboMode: asBoolean(record.turboMode) ?? defaults.turboMode,
+    amountOfMotion: asFiniteNumber(record.amountOfMotion) ?? defaults.amountOfMotion,
+    motionMode: asEnum(record.motionMode, ['basic', 'advanced']) ?? defaults.motionMode,
+    advancedMode: asBoolean(record.advancedMode) ?? defaults.advancedMode,
+    phaseConfig: (asRecord(record.phaseConfig) as PhaseConfig | null) ?? defaults.phaseConfig,
+    selectedPhasePresetId: (record.selectedPhasePresetId === null || typeof record.selectedPhasePresetId === 'string')
+      ? record.selectedPhasePresetId
+      : defaults.selectedPhasePresetId,
+    textBeforePrompts: asString(record.textBeforePrompts) ?? defaults.textBeforePrompts,
+    textAfterPrompts: asString(record.textAfterPrompts) ?? defaults.textAfterPrompts,
+    generationTypeMode: asEnum(record.generationTypeMode, ['i2v', 'vace']) ?? defaults.generationTypeMode,
+    smoothContinuations: asBoolean(record.smoothContinuations) ?? defaults.smoothContinuations,
+    pairConfigs: normalizePairConfigs(record.pairConfigs),
+    shotImageIds: normalizeShotImageIds(record.shotImageIds),
+    loras: normalizeShotLoras(record.loras),
+    structureVideo: normalizeStructureVideo(record.structureVideo ?? record),
+  };
+}
+
+export function createDefaultVideoTravelSettings(): VideoTravelSettings {
+  return cloneVideoTravelDefaults();
+}

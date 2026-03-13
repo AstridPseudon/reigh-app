@@ -150,7 +150,7 @@ export function useSegmentMutations({
             toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
             patch: shotPatch,
           },
-          'immediate'
+          { mode: 'immediate' }
         );
 
         // Refetch caches
@@ -181,7 +181,7 @@ export function useSegmentMutations({
             toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
             patch: { [field]: value },
           },
-          'immediate'
+          { mode: 'immediate' }
         );
 
         await queryClient.refetchQueries({ queryKey: queryKeys.shots.batchSettings(shotId) });

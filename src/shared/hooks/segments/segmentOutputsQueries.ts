@@ -2,8 +2,8 @@ import { GenerationRow } from '@/domains/generation/types';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { segmentQueryKeys } from '@/shared/lib/queryKeys/segments';
-import { LiveTimelineRow, RawGenerationDbRow } from './segmentOutputTypes';
-import { transformToGenerationRow } from './segmentDataTransforms';
+import { LiveTimelineRow } from './segmentOutputTypes';
+import { coerceRawGenerationDbRows, transformToGenerationRow } from './segmentDataTransforms';
 
 export function buildParentGenerationsQueryKey(
   shotId: string,
@@ -32,7 +32,7 @@ export async function fetchParentGenerations(
     throw error;
   }
 
-  return ((data || []) as unknown as RawGenerationDbRow[]).map(transformToGenerationRow);
+  return coerceRawGenerationDbRows(data || []).map(transformToGenerationRow);
 }
 
 export function buildChildrenQueryKey(selectedParentId: string) {
@@ -55,7 +55,7 @@ export async function fetchChildGenerations(selectedParentId: string): Promise<G
     throw error;
   }
 
-  return ((data || []) as unknown as RawGenerationDbRow[]).map(transformToGenerationRow);
+  return coerceRawGenerationDbRows(data || []).map(transformToGenerationRow);
 }
 
 export function buildLiveTimelineQueryKey(shotId: string) {

@@ -146,7 +146,7 @@ All DB writes go through `settingsWriteQueue.ts` to prevent `ERR_INSUFFICIENT_RE
 await updateToolSettingsSupabase({ scope, id, toolId, patch });
 
 // Immediate (flush on unmount/navigation)
-await updateToolSettingsSupabase({ scope, id, toolId, patch }, undefined, 'immediate');
+await updateToolSettingsSupabase({ scope, id, toolId, patch }, { mode: 'immediate' });
 ```
 
 ## Shot Inheritance

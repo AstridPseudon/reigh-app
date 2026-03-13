@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { completeTaskHandler } from './handler.ts';
+import { CompletionError } from './errors.ts';
 
 const mocks = vi.hoisted(() => ({
   bootstrapEdgeHandler: vi.fn(),
@@ -14,8 +15,8 @@ const mocks = vi.hoisted(() => ({
   checkOrchestratorCompletion: vi.fn(),
   validateAndCleanupShotId: vi.fn(),
   triggerCostCalculationIfNotSubTask: vi.fn(),
-  completeTaskErrorResponse: vi.fn((message: string, status: number) =>
-    new Response(JSON.stringify({ message }), {
+  completeTaskErrorResponse: vi.fn((message: string, status: number, errorCode?: string, options?: { recoverable?: boolean }) =>
+    new Response(JSON.stringify({ message, errorCode, recoverable: options?.recoverable }), {
       status,
       headers: { 'Content-Type': 'application/json' },
     }),
@@ -242,5 +243,90 @@ describe('completeTaskHandler', () => {
     expect(mocks.createGenerationFromTask).toHaveBeenCalled();
     expect(supabaseAdmin.from).toHaveBeenCalledWith('tasks');
     expect(logger.flush).toHaveBeenCalled();
+  });
+
+  it('preserves structured CompletionError details when generation creation fails', async () => {
+    const logger = createLogger();
+    const supabaseAdmin = createSupabaseAdmin();
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin,
+        logger,
+        auth: { userId: null, isServiceRole: true },
+      },
+    });
+    mocks.createGenerationFromTask.mockRejectedValue(
+      new CompletionError({
+        code: 'generation_route_no_result',
+        message: 'No generation route produced a result',
+        context: 'createGenerationFromTask',
+        recoverable: false,
+        metadata: { task_id: 'task-1' },
+      }),
+    );
+
+    const response = await completeTaskHandler(
+      new Request('https://edge.test/complete-task', { method: 'POST' }),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      message: 'No generation route produced a result',
+      errorCode: 'generation_route_no_result',
+      recoverable: false,
+    });
+    expect(logger.error).toHaveBeenCalledWith('Generation creation failed', expect.objectContaining({
+      error_code: 'generation_route_no_result',
+      recoverable: false,
+      error_context: 'createGenerationFromTask',
+      error_metadata: { task_id: 'task-1' },
+    }));
+    expect(mocks.markTaskFailed).toHaveBeenCalledWith(
+      supabaseAdmin,
+      'task-1',
+      'Generation creation failed [generation_route_no_result]: No generation route produced a result',
+    );
+    expect(mocks.completeTaskErrorResponse).toHaveBeenCalledWith(
+      'No generation route produced a result',
+      500,
+      'generation_route_no_result',
+      { recoverable: false },
+    );
+  });
+
+  it('wraps plain generation failures with the generic internal server response', async () => {
+    const logger = createLogger();
+    const supabaseAdmin = createSupabaseAdmin();
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin,
+        logger,
+        auth: { userId: null, isServiceRole: true },
+      },
+    });
+    mocks.createGenerationFromTask.mockRejectedValue(new Error('boom'));
+
+    const response = await completeTaskHandler(
+      new Request('https://edge.test/complete-task', { method: 'POST' }),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      message: 'Internal server error',
+      errorCode: 'internal_server_error',
+      recoverable: undefined,
+    });
+    expect(logger.error).toHaveBeenCalledWith('Generation creation failed', expect.objectContaining({
+      error: 'boom',
+      error_code: 'generation_completion_failed',
+      recoverable: true,
+    }));
+    expect(mocks.markTaskFailed).toHaveBeenCalledWith(
+      supabaseAdmin,
+      'task-1',
+      'Generation creation failed: boom',
+    );
   });
 });

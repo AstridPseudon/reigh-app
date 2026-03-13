@@ -63,7 +63,7 @@ const internalReducer = (
   }
 };
 
-interface UseMediaGalleryFiltersOptimizedProps {
+interface UseMediaGalleryFiltersProps {
   images: GeneratedImageWithMetadata[];
   optimisticDeletedIds: Set<string>;
   currentToolType?: string;
@@ -75,7 +75,7 @@ interface UseMediaGalleryFiltersOptimizedProps {
   defaultFilters?: Partial<GalleryFilterState>;
 }
 
-export const useMediaGalleryFiltersOptimized = ({
+export const useMediaGalleryFilters = ({
   images,
   optimisticDeletedIds,
   currentToolType,
@@ -85,7 +85,7 @@ export const useMediaGalleryFiltersOptimized = ({
   filters: controlledFilters,
   onFiltersChange,
   defaultFilters,
-}: UseMediaGalleryFiltersOptimizedProps) => {
+}: UseMediaGalleryFiltersProps) => {
   const isControlled = controlledFilters !== undefined;
 
    

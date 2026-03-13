@@ -1,7 +1,7 @@
 import { useLastAffectedShot } from '@/shared/hooks/shots/useLastAffectedShot';
 import { useQuickShotCreate } from '@/shared/hooks/useQuickShotCreate';
 import { useMediaGalleryItemShotActions } from './useShotActions';
-import type { GeneratedImageWithMetadata, SimplifiedShotOption } from '@/features/gallery/components/MediaGallery/types';
+import type { GeneratedImageWithMetadata, SimplifiedShotOption } from '@/shared/components/MediaGallery/types';
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
 
 interface UseMediaGalleryItemShotWorkflowParams {

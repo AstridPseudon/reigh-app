@@ -59,16 +59,21 @@ export const HuggingFaceTokenSetup: React.FC<HuggingFaceTokenSetupProps> = ({
     setState('saving');
     setErrorMessage(null);
 
-    const result = await saveToken(tokenInput.trim());
+    try {
+      const result = await saveToken(tokenInput.trim());
 
-    if (result.success) {
-      setState('success');
-      setTokenInput('');
-      setVerifiedUsername(null);
-      setIsUpdating(false);
-      onSuccess?.();
-    } else {
-      setErrorMessage(result.error || 'Failed to save token');
+      if (result.success) {
+        setState('success');
+        setTokenInput('');
+        setVerifiedUsername(null);
+        setIsUpdating(false);
+        onSuccess?.();
+      } else {
+        setErrorMessage(result.error || 'Failed to save token');
+        setState('error');
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to save token');
       setState('error');
     }
   };

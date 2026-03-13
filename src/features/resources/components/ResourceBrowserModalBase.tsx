@@ -12,7 +12,7 @@ import { Input } from '@/shared/components/ui/input';
 import { useLargeModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
 import { ChevronLeft, ChevronRight, Image as ImageIcon, Search, Video, X } from 'lucide-react';
-import { Resource } from '@/shared/hooks/useResources';
+import { Resource } from '@/features/resources/hooks/useResources';
 import { ResourceBrowserGrid } from '@/features/resources/components/ResourceBrowserGrid';
 import {
   ResourceType,

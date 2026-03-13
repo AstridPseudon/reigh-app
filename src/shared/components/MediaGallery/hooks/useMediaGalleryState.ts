@@ -117,7 +117,7 @@ const createInitialState = (
   backfillSkeletonCount: 0,
 });
 
-// Optimized reducer with batched updates
+// Reducer with batched updates
 const mediaGalleryStateReducer = (
   state: MediaGalleryState,
   action: MediaGalleryStateAction
@@ -244,7 +244,7 @@ const createFieldSetter = <Field extends keyof SettableMediaGalleryFields>(
   });
 };
 
-interface UseMediaGalleryStateOptimizedProps {
+interface UseMediaGalleryStateProps {
   images: GeneratedImageWithMetadata[];
   currentShotId?: string;
   lastShotId?: string;
@@ -253,7 +253,7 @@ interface UseMediaGalleryStateOptimizedProps {
   serverPage?: number;
 }
 
-interface UseMediaGalleryStateOptimizedReturn {
+interface UseMediaGalleryStateReturn {
   // State
   state: MediaGalleryState;
   
@@ -298,12 +298,12 @@ function clearTimer(timeoutRef: React.MutableRefObject<NodeJS.Timeout | null>): 
   timeoutRef.current = null;
 }
 
-export const useMediaGalleryStateOptimized = ({
+export const useMediaGalleryState = ({
   images,
   currentShotId,
   lastShotId,
   simplifiedShotOptions,
-}: UseMediaGalleryStateOptimizedProps): UseMediaGalleryStateOptimizedReturn => {
+}: UseMediaGalleryStateProps): UseMediaGalleryStateReturn => {
   
   // Initialize state with useReducer instead of multiple useState calls
   const [state, dispatch] = useReducer(

@@ -64,11 +64,36 @@ serve((req) => {
     return new Response(actor.error, { status: actor.statusCode });
   }
   const isServiceRole = actor.value.isServiceRole;
+  let parentProjectId: string | null = null;
+
+  if (!isServiceRole) {
+    const { data: parentTask, error: parentTaskError } = await supabaseAdmin
+      .from("tasks")
+      .select("project_id")
+      .eq("id", orchestratorTaskId)
+      .single();
+
+    if (parentTaskError || !parentTask?.project_id) {
+      logger.error("Error resolving authorized parent task project", {
+        task_id: orchestratorTaskId,
+        error: parentTaskError?.message ?? "project_id missing",
+      });
+      return new Response("Error resolving parent task project", { status: 500 });
+    }
+
+    parentProjectId = parentTask.project_id;
+  }
 
   // Query child tasks by orchestration contract + legacy orchestrator reference fields.
-  const { data: tasks, error: tasksError } = await supabaseAdmin
+  let childTasksQuery = supabaseAdmin
     .from("tasks")
-    .select("id, task_type, status, params, output_location, project_id")
+    .select("id, task_type, status, params, output_location, project_id");
+
+  if (parentProjectId) {
+    childTasksQuery = childTasksQuery.eq("project_id", parentProjectId);
+  }
+
+  const { data: tasks, error: tasksError } = await childTasksQuery
     .or([
       buildOrchestratorRefOrFilter(orchestratorTaskId),
       `params->>orchestrator_task_id.eq.${orchestratorTaskId}`,

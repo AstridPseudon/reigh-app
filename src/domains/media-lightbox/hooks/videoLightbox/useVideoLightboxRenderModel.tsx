@@ -39,8 +39,6 @@ export function useVideoLightboxRenderModel(
     onClose,
     readOnly = false,
     adjacentSegments,
-    shotId,
-    onOpenExternalGeneration,
     showTickForImageId,
     showTickForSecondaryImageId,
     actions,
@@ -186,6 +184,7 @@ export function useVideoLightboxRenderModel(
   const panelTaskId = editModel.adjustedTaskDetailsData?.taskId
     || media.source_task_id
     || null;
+  const selectedShotId = shotWorkflow?.selectedShotId;
   const videoEditPanelModel = useMemo<VideoEditPanelModel>(() => ({
     variant: panelVariant,
     isCloudMode: env.isCloudMode,
@@ -247,32 +246,14 @@ export function useVideoLightboxRenderModel(
     panelVariant,
     sharedState.effectiveMedia.videoUrl,
   ]);
-  const selectedShotId = shotWorkflow?.selectedShotId;
-  const primaryVariant = sharedState.variants.primaryVariant;
   const videoInfoPanelModel = useMemo<ComponentProps<typeof InfoPanel>>(() => {
-    const onSwitchToPrimary = primaryVariant
-      ? () => {
-        sharedState.variants.setActiveVariantId(primaryVariant.id);
-      }
-      : undefined;
-
     return {
       variant: panelVariant,
       showImageEditTools: false,
       taskPanel: {
         taskDetailsData: editModel.adjustedTaskDetailsData,
-        derivedItems: sharedState.lineage.derivedItems,
-        derivedGenerations: sharedState.lineage.derivedGenerations,
-        paginatedDerived: sharedState.lineage.paginatedDerived,
-        derivedPage: sharedState.lineage.derivedPage,
-        derivedTotalPages: sharedState.lineage.derivedTotalPages,
-        onSetDerivedPage: sharedState.lineage.setDerivedPage,
-        onNavigateToGeneration: onOpenExternalGeneration,
-        currentMediaId: media.id,
-        currentShotId: selectedShotId || shotId,
         replaceImages: env.replaceImages,
         onReplaceImagesChange: env.setReplaceImages,
-        onSwitchToPrimary,
       },
       taskId: panelTaskId,
     };
@@ -280,20 +261,8 @@ export function useVideoLightboxRenderModel(
     editModel.adjustedTaskDetailsData,
     env.replaceImages,
     env.setReplaceImages,
-    media.id,
-    onOpenExternalGeneration,
     panelTaskId,
     panelVariant,
-    primaryVariant,
-    selectedShotId,
-    sharedState.lineage.derivedGenerations,
-    sharedState.lineage.derivedItems,
-    sharedState.lineage.derivedPage,
-    sharedState.lineage.derivedTotalPages,
-    sharedState.lineage.paginatedDerived,
-    sharedState.lineage.setDerivedPage,
-    sharedState.variants.setActiveVariantId,
-    shotId,
   ]);
   const controlsPanelContent = useMemo<ReactNode | undefined>(() => {
     if (!showPanel) {

@@ -336,7 +336,7 @@ interface EnforceRateLimitInput {
  * Full rate-limit enforcement: check → error response → fail_open logging.
  * Returns a Response to short-circuit (exceeded or service error), or null to proceed.
  *
- * @param serviceUnavailableResponse Optional factory for 503 responses.
+ * @param input.responses.serviceUnavailable Optional factory for 503 responses.
  *   Defaults to a generic 503 edge error.
  */
 export async function enforceRateLimit(

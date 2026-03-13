@@ -112,7 +112,7 @@ describe('updateToolSettingsSupabase', () => {
     vi.mocked(enqueueSettingsWrite).mockClear();
   });
 
-  it('accepts mode as the second argument', async () => {
+  it('accepts mode via an explicit options object', async () => {
     await updateToolSettingsSupabase(
       {
         scope: 'user',
@@ -120,7 +120,7 @@ describe('updateToolSettingsSupabase', () => {
         toolId: 'tool-1',
         patch: { foo: 'bar' },
       },
-      'immediate',
+      { mode: 'immediate' },
     );
 
     expect(enqueueSettingsWrite).toHaveBeenCalledWith(
@@ -135,7 +135,7 @@ describe('updateToolSettingsSupabase', () => {
     );
   });
 
-  it('supports legacy signal + mode args and forwards the signal', async () => {
+  it('accepts signal + mode via an explicit options object and forwards the signal', async () => {
     const controller = new AbortController();
 
     await updateToolSettingsSupabase(
@@ -145,8 +145,7 @@ describe('updateToolSettingsSupabase', () => {
         toolId: 'tool-1',
         patch: { foo: 'bar' },
       },
-      controller.signal,
-      'immediate',
+      { signal: controller.signal, mode: 'immediate' },
     );
 
     expect(enqueueSettingsWrite).toHaveBeenCalledWith(

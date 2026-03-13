@@ -23,12 +23,7 @@ export const joinClipsSettings = {
     useInputVideoFps: false, // Use first input video's FPS instead of downsampling to 16fps
     noisedInputVideo: 0, // vid2vid init strength - adds noise to input video (0 = disabled)
     loopFirstClip: false, // Loop first clip - use first clip as both start and end
-    // Legacy two-video format (kept for backward compatibility)
-    startingVideoUrl: undefined as string | undefined,
-    startingVideoPosterUrl: undefined as string | undefined,
-    endingVideoUrl: undefined as string | undefined,
-    endingVideoPosterUrl: undefined as string | undefined,
-    // New multi-clip format (with optional duration for validation)
+    // Canonical multi-clip format (with optional duration for validation)
     clips: [] as Array<{
       url: string;
       posterUrl?: string;

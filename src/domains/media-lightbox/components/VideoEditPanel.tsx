@@ -3,10 +3,7 @@
  *
  * Unified video editing panel for both desktop and mobile layouts.
  * Handles Trim, Replace Portion, and Regenerate sub-modes with variant display.
- *
- * Supports props-first pattern: optional state props (coreState, videoEditState,
- * variantsState) override context values when provided. This allows the component
- * to work both within VideoLightbox (using context) and standalone (using props).
+ * Reads all state from VideoLightbox context.
  */
 
 import React from 'react';
@@ -24,8 +21,8 @@ import { SegmentRegenerateForm } from './SegmentRegenerateForm';
 import type { SegmentRegenerateFormProps } from './SegmentRegenerateForm';
 import { VideoEnhanceForm } from './VideoEnhanceForm';
 import type { VideoEnhanceSettings } from '../hooks/useVideoEnhance';
-import { useLightboxCoreSafe, useLightboxVariantsSafe, type LightboxCoreState, type LightboxVariantState } from '../contexts/LightboxStateContext';
-import { useVideoEditSafe, type VideoEditState } from '../contexts/VideoEditContext';
+import { useLightboxCoreSafe, useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
+import { useVideoEditSafe } from '../contexts/VideoEditContext';
 
 interface VideoEditTrimControls {
   // Trim mode controls (refs, handlers, save state)
@@ -63,27 +60,6 @@ interface VideoEditEnhanceControls {
   canSubmit?: boolean;
 }
 
-interface VideoEditPanelStateOverrides {
-  coreState?: Pick<LightboxCoreState, 'onClose'>;
-  videoEditState?: Pick<VideoEditState,
-    | 'videoEditSubMode'
-    | 'handleEnterVideoTrimMode'
-    | 'handleEnterVideoReplaceMode'
-    | 'handleEnterVideoRegenerateMode'
-    | 'handleEnterVideoEnhanceMode'
-    | 'handleExitVideoEditMode'
-  >;
-  variantsState?: Pick<LightboxVariantState,
-    | 'variants'
-    | 'activeVariant'
-    | 'handleVariantSelect'
-    | 'handleMakePrimary'
-    | 'isLoadingVariants'
-    | 'onLoadVariantSettings'
-    | 'handleDeleteVariant'
-  >;
-}
-
 interface VideoEditPanelProps {
   /** Layout variant */
   variant: 'desktop' | 'mobile';
@@ -102,9 +78,6 @@ interface VideoEditPanelProps {
 
   // Task ID for copy functionality
   taskId?: string | null;
-
-  // Optional state overrides for props-first pattern
-  stateOverrides?: VideoEditPanelStateOverrides;
 }
 
 export const VideoEditPanel: React.FC<VideoEditPanelProps> = ({
@@ -117,22 +90,13 @@ export const VideoEditPanel: React.FC<VideoEditPanelProps> = ({
   enhance,
   // Task ID
   taskId,
-  // Optional state overrides
-  stateOverrides,
 }) => {
-  // ========================================
-  // STATE: Props-first with context fallback
-  // When state props are provided, use them directly.
-  // Otherwise, read from context (for use within MediaLightbox).
-  // ========================================
   const contextCore = useLightboxCoreSafe();
   const contextVideoEdit = useVideoEditSafe();
   const contextVariants = useLightboxVariantsSafe();
 
-  // Core state
-  const { onClose } = stateOverrides?.coreState ?? contextCore;
+  const { onClose } = contextCore;
 
-  // Video edit state
   const {
     videoEditSubMode,
     handleEnterVideoTrimMode: onEnterTrimMode,
@@ -140,9 +104,8 @@ export const VideoEditPanel: React.FC<VideoEditPanelProps> = ({
     handleEnterVideoRegenerateMode: onEnterRegenerateMode,
     handleEnterVideoEnhanceMode: onEnterEnhanceMode,
     handleExitVideoEditMode: onExitVideoEditMode,
-  } = stateOverrides?.videoEditState ?? contextVideoEdit;
+  } = contextVideoEdit;
 
-  // Variants state
   const {
     variants,
     activeVariant,
@@ -151,7 +114,7 @@ export const VideoEditPanel: React.FC<VideoEditPanelProps> = ({
     isLoadingVariants,
     onLoadVariantSettings,
     handleDeleteVariant: onDeleteVariant,
-  } = stateOverrides?.variantsState ?? contextVariants;
+  } = contextVariants;
 
   const activeVariantId = activeVariant?.id || null;
   // Mode selector items for video editing

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveGalleryInputImages } from '../mediaGallery-utils';
+import { deriveGalleryInputImages } from '../helpers';
 
 describe('deriveGalleryInputImages', () => {
   it('returns empty array for null task', () => {

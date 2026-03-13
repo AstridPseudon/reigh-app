@@ -54,7 +54,7 @@ export function getSupabaseRuntimeClientResult(): SupabaseClientAccessResult {
 
 export function getOrInitializeSupabaseRuntimeClientResult(): SupabaseClientAccessResult {
   const existing = getSupabaseRuntimeClientResult();
-  if (existing.ok || runtimeError) {
+  if (existing.ok) {
     return existing;
   }
 

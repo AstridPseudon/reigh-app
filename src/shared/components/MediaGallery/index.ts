@@ -1,2 +1,3 @@
-// Deprecated compatibility shim. Canonical ownership lives in features/gallery.
-export { MediaGallery } from '@/features/gallery/components/MediaGallery';
+export { MediaGallery } from './MediaGallery';
+export { DEFAULT_GALLERY_FILTERS } from '@/shared/contracts/galleryFilters';
+export type { GalleryFilterState } from '@/shared/contracts/galleryFilters';

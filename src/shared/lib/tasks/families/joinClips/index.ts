@@ -113,7 +113,7 @@ export interface CanonicalJoinClipsTaskInput extends JoinClipsSharedTaskParams {
 }
 
 /**
- * Task defaults in snake_case, auto-derived from the tool's settings.ts.
+ * Task defaults in snake_case, auto-derived from the canonical joinClipsSettings object.
  * joinClipsSettings.defaults already spreads VACE_GENERATION_DEFAULTS,
  * so per-tool overrides (e.g., guidanceScale: 5.0) flow through automatically.
  */

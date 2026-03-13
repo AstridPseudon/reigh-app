@@ -2,22 +2,16 @@ import React from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import type {
   LightboxFeatureFlags,
-  LightboxShotWorkflowProps,
 } from '../types';
 import { EditModePanel } from './EditModePanel';
 import { InfoPanel } from './InfoPanel';
 import type { ImageLightboxEnvironment } from '../hooks/useImageLightboxEnvironment';
-import type { ImageLightboxSharedModel } from '../hooks/useImageLightboxSharedState';
 import type { ImageLightboxEditModel } from '../hooks/useImageLightboxEditing';
 
 interface ImageLightboxControlsPanelProps {
   media: GenerationRow;
-  shotId?: string;
-  onOpenExternalGeneration?: (generationId: string, derivedContext?: string[]) => Promise<void>;
-  shotWorkflow?: LightboxShotWorkflowProps;
   features?: LightboxFeatureFlags;
   env: ImageLightboxEnvironment;
-  sharedModel: ImageLightboxSharedModel;
   editModel: ImageLightboxEditModel;
   showPanel: boolean;
   panelVariant: 'desktop' | 'mobile';
@@ -26,12 +20,8 @@ interface ImageLightboxControlsPanelProps {
 
 export const ImageLightboxControlsPanel = React.memo(function ImageLightboxControlsPanel({
   media,
-  shotId,
-  onOpenExternalGeneration,
-  shotWorkflow,
   features,
   env,
-  sharedModel,
   editModel,
   showPanel,
   panelVariant,
@@ -41,11 +31,8 @@ export const ImageLightboxControlsPanel = React.memo(function ImageLightboxContr
     return null;
   }
 
-  const selectedShotId = shotWorkflow?.selectedShotId;
   const showImageEditTools = features?.showImageEditTools ?? true;
-  const { sharedState } = sharedModel;
   const { editOrchestrator, adjustedTaskDetailsData } = editModel;
-  const primaryVariantId = sharedState.variants.primaryVariant?.id;
 
   if (editOrchestrator.isSpecialEditMode) {
     return (
@@ -88,20 +75,8 @@ export const ImageLightboxControlsPanel = React.memo(function ImageLightboxContr
       showImageEditTools={showImageEditTools}
       taskPanel={{
         taskDetailsData: adjustedTaskDetailsData,
-        derivedItems: sharedState.lineage.derivedItems,
-        derivedGenerations: sharedState.lineage.derivedGenerations,
-        paginatedDerived: sharedState.lineage.paginatedDerived,
-        derivedPage: sharedState.lineage.derivedPage,
-        derivedTotalPages: sharedState.lineage.derivedTotalPages,
-        onSetDerivedPage: sharedState.lineage.setDerivedPage,
-        onNavigateToGeneration: onOpenExternalGeneration,
-        currentMediaId: media.id,
-        currentShotId: selectedShotId || shotId,
         replaceImages: env.replaceImages,
         onReplaceImagesChange: env.setReplaceImages,
-        onSwitchToPrimary: primaryVariantId
-          ? () => sharedState.variants.setActiveVariantId(primaryVariantId)
-          : undefined,
       }}
       taskId={panelTaskId}
     />

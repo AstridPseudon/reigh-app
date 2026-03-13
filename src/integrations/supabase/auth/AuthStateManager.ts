@@ -88,11 +88,25 @@ export class AuthStateManager {
 }
 
 let authStateManager: AuthStateManager | null = null;
+let authStateManagerClient: SupabaseClient | null = null;
+let authStateManagerReconnectScheduler: ReconnectRequester | null = null;
 
 export function initAuthStateManager(
   supabase: SupabaseClient,
   reconnectScheduler: ReconnectRequester = initializeReconnectScheduler(),
 ): AuthStateManager {
+  if (authStateManager) {
+    if (authStateManagerClient !== supabase || authStateManagerReconnectScheduler !== reconnectScheduler) {
+      throw new Error(
+        'AuthStateManager is already initialized with different runtime dependencies.',
+      );
+    }
+    return authStateManager;
+  }
+
+  authStateManagerClient = supabase;
+  authStateManagerReconnectScheduler = reconnectScheduler;
+
   if (!authStateManager) {
     authStateManager = new AuthStateManager(supabase, reconnectScheduler);
     authStateManager.init();
@@ -106,4 +120,6 @@ export function getAuthStateManager(): AuthStateManager | null {
 
 export function resetAuthStateManagerForTests(): void {
   authStateManager = null;
+  authStateManagerClient = null;
+  authStateManagerReconnectScheduler = null;
 }

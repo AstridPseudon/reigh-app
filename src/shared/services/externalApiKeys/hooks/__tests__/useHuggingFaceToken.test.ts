@@ -12,18 +12,20 @@ const mockQueryBuilder = {
 
 const mockSupabase = {
   auth: {
-    getUser: vi.fn(),
+    getSession: vi.fn(),
   },
   from: vi.fn(() => mockQueryBuilder),
   rpc: vi.fn(),
 };
+
+const mockNormalizeAndPresentError = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: vi.fn(() => mockSupabase),
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  reportRuntimeError: vi.fn(),
+  normalizeAndPresentError: (...args: unknown[]) => mockNormalizeAndPresentError(...args),
 }));
 
 import { useHuggingFaceToken } from '@/shared/services/externalApiKeys/hooks/useHuggingFaceToken';
@@ -40,8 +42,8 @@ describe('useHuggingFaceToken', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockSupabase.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'test-user-id' } },
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: 'test-user-id' } } },
       error: null,
     });
 
@@ -139,5 +141,42 @@ describe('useHuggingFaceToken', () => {
     const verification = await result.current.verifyToken('hf_token');
     expect(verification.valid).toBe(false);
     expect(verification.error).toBe('Failed to connect to HuggingFace');
+  });
+
+  it('saveToken returns a verification failure result without saving', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+    }));
+
+    const { result } = renderHook(() => useHuggingFaceToken(), { wrapper: createWrapper() });
+
+    await expect(result.current.saveToken('hf_bad_token')).resolves.toEqual({
+      success: false,
+      error: 'Invalid token',
+    });
+    expect(mockSupabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it('saveToken rejects when repository save fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ name: 'verified-user' }),
+    }));
+    mockSupabase.rpc.mockResolvedValueOnce({ error: { message: 'save failed' } });
+
+    const { result } = renderHook(() => useHuggingFaceToken(), { wrapper: createWrapper() });
+
+    await expect(result.current.saveToken('hf_valid_token')).rejects.toMatchObject({
+      message: 'save failed',
+    });
+    await waitFor(() => {
+      expect(mockNormalizeAndPresentError).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          context: 'useExternalApiKeys',
+        }),
+      );
+    });
   });
 });

@@ -115,4 +115,53 @@ describe('supabaseRuntime', () => {
       expect(result.error).toBe(thrown);
     }
   });
+
+  it('retries client creation after a previous safe-accessor bootstrap failure', async () => {
+    const recoveredClient = { id: 'recovered-client' };
+    const createImpl = vi
+      .fn<() => unknown>()
+      .mockImplementationOnce(() => {
+        throw new Error('first create failed');
+      })
+      .mockImplementationOnce(() => recoveredClient);
+    const { module, createSupabaseClient, initializeSupabaseRuntime } = await loadRuntimeModule({
+      createImpl,
+    });
+
+    const first = module.getOrInitializeSupabaseRuntimeClientResult();
+    const second = module.getOrInitializeSupabaseRuntimeClientResult();
+
+    expect(first.ok).toBe(false);
+    expect(second).toEqual({ ok: true, client: recoveredClient });
+    expect(createSupabaseClient).toHaveBeenCalledTimes(2);
+    expect(initializeSupabaseRuntime).toHaveBeenCalledTimes(1);
+    expect(module.getSupabaseRuntimeClientResult()).toEqual({ ok: true, client: recoveredClient });
+  });
+
+  it('retries runtime wiring after a previous initialization failure', async () => {
+    const recoveredClient = { id: 'recovered-after-wiring' };
+    const thrown = new Error('runtime wiring failed');
+    const initializeImpl = vi
+      .fn<(client: unknown) => void>()
+      .mockImplementationOnce(() => {
+        throw thrown;
+      })
+      .mockImplementationOnce(() => {});
+    const { module, createSupabaseClient, initializeSupabaseRuntime } = await loadRuntimeModule({
+      createImpl: () => recoveredClient,
+      initializeImpl,
+    });
+
+    const first = module.getOrInitializeSupabaseRuntimeClientResult();
+    const second = module.getOrInitializeSupabaseRuntimeClientResult();
+
+    expect(first.ok).toBe(false);
+    if (!first.ok) {
+      expect(first.error).toBe(thrown);
+    }
+    expect(second).toEqual({ ok: true, client: recoveredClient });
+    expect(createSupabaseClient).toHaveBeenCalledTimes(2);
+    expect(initializeSupabaseRuntime).toHaveBeenCalledTimes(2);
+    expect(module.getSupabaseRuntimeClientResult()).toEqual({ ok: true, client: recoveredClient });
+  });
 });

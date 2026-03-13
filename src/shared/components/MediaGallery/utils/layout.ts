@@ -4,7 +4,7 @@ import {
   ROW_LIMITS,
   SKELETON_COLUMNS,
   TARGET_IMAGE_WIDTH,
-} from './mediaGallery-constants';
+} from './constants';
 
 function parseAspectRatio(aspectRatioStr: string | undefined | null): number {
   if (!aspectRatioStr) {

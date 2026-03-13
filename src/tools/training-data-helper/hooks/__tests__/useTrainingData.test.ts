@@ -13,6 +13,7 @@ const mockOrder = vi.fn();
 const mockStorageFrom = vi.fn();
 const mockStorageRemove = vi.fn();
 const mockCreateSignedUrl = vi.fn();
+const mockHandleError = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
@@ -21,6 +22,10 @@ vi.mock('@/integrations/supabase/client', () => ({
       from: (...args: unknown[]) => mockStorageFrom(...args),
     },
   }),
+}));
+
+vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
+  normalizeAndPresentError: (...args: unknown[]) => mockHandleError(...args),
 }));
 
 // Stable mock references to avoid infinite re-render loops
@@ -266,5 +271,20 @@ describe('useTrainingData', () => {
 
     expect(typeof result.current.getVideoUrl).toBe('function');
     expect(typeof result.current.markVideoAsInvalid).toBe('function');
+  });
+
+  it('rethrows segment update failures after presenting the error', async () => {
+    const updateSingle = vi.fn().mockResolvedValue({ data: null, error: new Error('update failed') });
+    const updateSelect = vi.fn().mockReturnValue({ single: updateSingle });
+    const updateEq = vi.fn().mockReturnValue({ select: updateSelect });
+    mockUpdate.mockReturnValue({ eq: updateEq });
+
+    const { result } = renderHook(() => useTrainingData());
+
+    await expect(result.current.updateSegment('seg-1', { description: 'Updated' })).rejects.toThrow('update failed');
+    expect(mockHandleError).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ context: 'useTrainingData.updateSegment' }),
+    );
   });
 });

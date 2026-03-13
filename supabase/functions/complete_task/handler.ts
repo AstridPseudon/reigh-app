@@ -17,6 +17,7 @@ import { createGenerationFromTask } from './generation.ts';
 import { checkOrchestratorCompletion } from './orchestrator.ts';
 import { validateAndCleanupShotId } from './shotValidation.ts';
 import { triggerCostCalculationIfNotSubTask } from './billing.ts';
+import { CompletionError } from './errors.ts';
 import {
   completeTaskErrorResponse,
   fetchTaskContext,
@@ -236,11 +237,29 @@ export async function completeTaskHandler(req: Request): Promise<Response> {
           });
         }
       } catch (genErr: unknown) {
+        const normalizedError = genErr instanceof CompletionError ? genErr : null;
         const msg = toErrorMessage(genErr);
-        logger.error("Generation creation failed", { error: msg });
-        await markTaskFailed(supabaseAdmin, taskIdString, `Generation creation failed: ${msg}`);
+        logger.error("Generation creation failed", {
+          error: msg,
+          error_code: normalizedError?.code ?? 'generation_completion_failed',
+          recoverable: normalizedError?.recoverable ?? true,
+          error_context: normalizedError?.context,
+          error_metadata: normalizedError?.metadata,
+        });
+        await markTaskFailed(
+          supabaseAdmin,
+          taskIdString,
+          normalizedError
+            ? `Generation creation failed [${normalizedError.code}]: ${normalizedError.message}`
+            : `Generation creation failed: ${msg}`,
+        );
         await logger.flush();
-        return completeTaskErrorResponse("Internal server error", 500);
+        return completeTaskErrorResponse(
+          normalizedError?.message ?? "Internal server error",
+          500,
+          normalizedError?.code ?? 'internal_server_error',
+          normalizedError ? { recoverable: normalizedError.recoverable } : undefined,
+        );
       }
     }
 

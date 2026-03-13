@@ -1,8 +1,10 @@
 import type { GenerationRow } from '@/domains/generation/types';
 import type { Database } from '@/integrations/supabase/databasePublicTypes';
+import { coerceGenerationRowDto, mapGenerationRowDtoToRow } from '@/domains/generation/mappers/generationRowMapper';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import {
   createRepositoryQueryError,
+  createInvalidRowShapeError,
   isRepositoryNoRowsError,
 } from './repositoryErrors';
 
@@ -25,7 +27,12 @@ export async function fetchGenerationById(generationId: string): Promise<Generat
     return null;
   }
 
-  return data as GenerationRow;
+  const row = coerceGenerationRowDto(data);
+  if (!row) {
+    throw createInvalidRowShapeError('generation', { generationId });
+  }
+
+  return mapGenerationRowDtoToRow(row);
 }
 
 export async function fetchGenerationRecordById(generationId: string): Promise<GenerationRecord | null> {

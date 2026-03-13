@@ -3,8 +3,8 @@ import {
   DEFAULT_ITEMS_PER_PAGE,
   GRID_COLUMN_CLASSES,
   SKELETON_COLUMNS,
-} from '../mediaGallery-constants';
-import { calculateGalleryLayout } from '../mediaGallery-layout';
+} from '../constants';
+import { calculateGalleryLayout } from '../layout';
 
 describe('constants', () => {
   it('DEFAULT_ITEMS_PER_PAGE has mobile and desktop values', () => {

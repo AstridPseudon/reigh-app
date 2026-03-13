@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   getVideoGalleryItemsPerPage: vi.fn(),
 }));
 
-vi.mock('@/features/gallery/components/MediaGallery', () => ({
+vi.mock('@/shared/components/MediaGallery', () => ({
   MediaGallery: (props: unknown) => {
     mocks.MediaGallery(props);
     return <div data-testid="media-gallery" />;

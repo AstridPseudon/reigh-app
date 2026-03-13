@@ -330,4 +330,20 @@ describe('useTrainingDataBatches', () => {
       }),
     );
   });
+
+  it('deleteBatch rethrows database failures after presenting the error', async () => {
+    mockEq.mockReturnValue(Promise.resolve({ error: new Error('delete failed') }));
+
+    const { result } = renderHook(() =>
+      useTrainingDataBatches({ videos: [] }),
+    );
+
+    await expect(result.current.deleteBatch('b1')).rejects.toThrow('delete failed');
+    expect(mockHandleError).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        context: 'useTrainingData.deleteBatch',
+      }),
+    );
+  });
 });
