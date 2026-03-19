@@ -19,6 +19,7 @@ import {
   extractOrchestratorTaskIdParam,
   extractRunIdParam,
 } from './taskParamContract';
+import { resolveSelectedModelFromModelName, getModelSpec } from '@/tools/travel-between-images/modelCapabilities';
 import { composeOptionalFields, resolveByPrecedence } from './core/taskFieldPolicy';
 import type {
   IndividualTravelSegmentParams,
@@ -69,6 +70,9 @@ function buildOrchestratorDetails(
     amount_of_motion: state.amountOfMotion,
     parent_generation_id: params.parent_generation_id,
     fps_helpers: state.fpsHelpers,
+    ...(params.model_type ? { model_type: params.model_type } : {}),
+    independent_segments: !state.continuationConfig,
+    chain_segments: Boolean(state.continuationConfig),
     ...composeOptionalFields([
       {
         key: 'segment_frames_expanded',
@@ -81,8 +85,13 @@ function buildOrchestratorDetails(
         include: (value) => Boolean(value),
       },
       {
-        key: 'structure_guidance',
-        value: state.structureGuidance,
+        key: 'continuation_config',
+        value: state.continuationConfig,
+        include: (value) => Boolean(value),
+      },
+      {
+        key: 'travel_guidance',
+        value: state.travelGuidance,
         include: (value) => Boolean(value),
       },
     ]),
@@ -95,7 +104,12 @@ function buildOrchestratorDetails(
   stripLegacyStructureParams(orchestratorDetails);
   stripDuplicateStructureDetailParams(orchestratorDetails);
 
-  orchestratorDetails.phase_config = state.phaseConfig;
+  const modelSupportsPhaseConfig = getModelSpec(
+    resolveSelectedModelFromModelName(state.modelName)
+  ).supportsPhaseConfig;
+  if (modelSupportsPhaseConfig) {
+    orchestratorDetails.phase_config = state.phaseConfig;
+  }
   Object.assign(
     orchestratorDetails,
     composeOptionalFields([
@@ -172,6 +186,9 @@ function buildTaskParamsPayload(
     num_inference_steps: state.numInferenceSteps,
     parsed_resolution_wh: finalResolution,
     num_frames: state.numFrames,
+    ...(params.frame_overlap_from_previous !== undefined
+      ? { frame_overlap_from_previous: params.frame_overlap_from_previous }
+      : {}),
     amount_of_motion: state.amountOfMotion,
     orchestrator_details: orchestratorDetails,
     parent_generation_id: params.parent_generation_id,
@@ -191,14 +208,14 @@ function buildTaskParamsPayload(
         include: (value) => typeof value === 'string' && value.length > 0,
       },
       {
-        key: 'structure_guidance',
-        value: state.structureGuidance,
+        key: 'continuation_config',
+        value: state.continuationConfig,
         include: (value) => Boolean(value),
       },
       {
-        key: 'structure_videos',
-        value: state.structureVideos,
-        include: (value) => Array.isArray(value) && value.length > 0,
+        key: 'travel_guidance',
+        value: state.travelGuidance,
+        include: (value) => Boolean(value),
       },
       {
         key: 'start_image_generation_id',
@@ -244,15 +261,25 @@ function buildIndividualSegmentParamsPayload(
     amount_of_motion: state.amountOfMotion,
     motion_mode: segmentPostProcess.motionMode,
     advanced_mode: state.advancedMode,
+    ...(params.frame_overlap_from_previous !== undefined
+      ? { frame_overlap_from_previous: params.frame_overlap_from_previous }
+      : {}),
     additional_loras: state.additionalLoras,
     after_first_post_generation_saturation: segmentPostProcess.afterFirstPostGenerationSaturation,
     after_first_post_generation_brightness: segmentPostProcess.afterFirstPostGenerationBrightness,
-    phase_config: state.phaseConfig,
+    ...(getModelSpec(resolveSelectedModelFromModelName(state.modelName)).supportsPhaseConfig
+      ? { phase_config: state.phaseConfig }
+      : {}),
   };
 
   Object.assign(
     individualSegmentParams,
     composeOptionalFields([
+      {
+        key: 'continuation_config',
+        value: state.continuationConfig,
+        include: (value) => Boolean(value),
+      },
       {
         key: 'end_image_url',
         value: params.end_image_url,
