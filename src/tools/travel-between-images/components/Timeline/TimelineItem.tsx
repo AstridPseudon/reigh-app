@@ -7,6 +7,7 @@ import { useMarkVariantViewed } from '@/shared/hooks/variants/useMarkVariantView
 import { useIsTouchDevice } from '@/shared/hooks/mobile';
 import { INTERACTION_TIMING } from '@/shared/lib/interactions/timing';
 import { framesToSeconds } from '@/shared/lib/media/videoUtils';
+import { useTimelineMedia } from './TimelineMediaContext';
 import { getTimelineItemAspectRatioStyle, getTimelineItemPosition } from './TimelineItem.helpers';
 import { TimelineItemActionButtons } from './TimelineItemActionButtons';
 import type { TimelineItemProps } from './TimelineItem.types';
@@ -22,6 +23,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   selection,
   presentation,
 }) => {
+  const { timelineFps } = useTimelineMedia();
   const { timelineWidth, fullMinFrames, fullRange } = layout;
   const {
     isDragging,
@@ -249,7 +251,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           <img
             ref={progressiveRef}
             src={shouldLoad ? displayImageUrl : '/placeholder.svg'}
-            alt={`Time ${framesToSeconds(displayFrame)}`}
+            alt={`Time ${framesToSeconds(displayFrame, timelineFps)}`}
             className={cn(
               'w-full h-full object-cover',
               progressiveEnabled && isThumbShowing && 'opacity-95',
@@ -278,7 +280,7 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
           />
 
           <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] leading-none text-center py-0.5 pointer-events-none whitespace-nowrap overflow-hidden">
-            <span className="inline-block">{framesToSeconds(displayFrame)}</span>
+            <span className="inline-block">{framesToSeconds(displayFrame, timelineFps)}</span>
           </div>
         </div>
       </div>

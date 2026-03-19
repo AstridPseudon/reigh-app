@@ -10,6 +10,7 @@ import type { UseStructureVideoReturn } from './hooks/video/useStructureVideo';
 import type { UseAudioReturn } from './hooks/video/useAudio';
 import type { LoraManagerState } from '@/domains/lora/types/loraManager';
 import type { JoinSegmentsSettings } from '@/tools/travel-between-images/hooks/settings/useJoinSegmentsSettings';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 import type {
   ImageDeleteHandler,
   BatchImageDeleteHandler,
@@ -96,14 +97,14 @@ export interface GenerationHandlers {
 
 export interface StructureVideoHandlers {
   handleStructureVideoMotionStrengthChange: (strength: number) => void;
-  handleStructureTypeChangeFromMotionControl: (type: 'uni3c' | 'flow' | 'canny' | 'depth') => void;
+  handleStructureTypeChangeFromMotionControl: (type: TravelGuidanceMode) => void;
   handleUni3cEndPercentChange: (value: number) => void;
   handleStructureVideoInputChange: (
     videoPath: string | null,
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
+    structureType: TravelGuidanceMode,
     resourceId?: string
   ) => void;
 }

@@ -3,6 +3,11 @@ import { buildMotionTaskFields } from '@/shared/components/SegmentSettingsForm/s
 import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '../../state/types';
 import type { BuildTravelRequestBodyParams, ImagePayload } from './types';
 import type { TravelBetweenImagesRequestPayload } from '@/shared/lib/tasks/travelBetweenImages';
+import {
+  getModelSpec,
+  resolveGenerationPolicy,
+  resolveSelectedModelFromModelName,
+} from '@/tools/travel-between-images/settings';
 
 function assertMappedIdCardinality(
   imagePayload: ImagePayload,
@@ -39,6 +44,8 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     pairConfig,
     parentGenerationId,
     actualModelName,
+    selectedModel,
+    policy,
     generationTypeMode,
     motionParams,
     generationParams,
@@ -50,6 +57,8 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     useAdvancedMode,
     effectivePhaseConfig,
     selectedPhasePresetId,
+    numInferenceSteps,
+    guidanceScale,
   } = motionParams;
   const {
     generationMode,
@@ -68,16 +77,33 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
   const imageCount = imagePayload.absoluteImageUrls.length;
   const expectedPairCount = Math.max(0, imageCount - 1);
   assertMappedIdCardinality(imagePayload, imageCount);
-
-  const motionFields = buildMotionTaskFields({
-    amountOfMotion,
-    motionMode,
-    phaseConfig: effectivePhaseConfig,
-    selectedPhasePresetId,
-    omitBasicPhaseConfig: true,
+  const spec = getModelSpec(selectedModel ?? resolveSelectedModelFromModelName(actualModelName));
+  const effectivePolicy = policy ?? resolveGenerationPolicy(spec, {
+    smoothContinuations: false,
+    requestedExecutionMode: generationTypeMode ?? 'i2v',
   });
 
+  const motionFields = spec.supportsMotionFields
+    ? buildMotionTaskFields({
+      amountOfMotion,
+      motionMode,
+      phaseConfig: effectivePhaseConfig,
+      selectedPhasePresetId,
+      omitBasicPhaseConfig: true,
+    })
+    : {};
+
   const hasValidEnhancedPrompts = pairConfig.enhancedPromptsArray.some(prompt => prompt && prompt.trim().length > 0);
+  const pairPhaseConfigsArray = spec.supportsPhaseConfig
+    ? pairConfig.pairPhaseConfigsArray
+    : pairConfig.pairPhaseConfigsArray.map(() => null);
+
+  const continuationConfig = effectivePolicy.continuation.enabled && effectivePolicy.continuation.strategy
+    ? {
+      strategy: effectivePolicy.continuation.strategy,
+      overlap_frames: effectivePolicy.continuation.overlapFrames,
+    }
+    : undefined;
 
   return {
     project_id: projectId,
@@ -97,13 +123,14 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     base_prompt: batchVideoPrompt,
     segment_frames: pairConfig.segmentFrames,
     frame_overlap: pairConfig.frameOverlap,
+    ...(continuationConfig ? { continuation_config: continuationConfig } : {}),
     negative_prompts: pairConfig.negativePrompts,
     ...(hasValidEnhancedPrompts ? { enhanced_prompts: pairConfig.enhancedPromptsArray } : {}),
-    ...(pairConfig.pairPhaseConfigsArray.some(config => config !== null) ? { pair_phase_configs: pairConfig.pairPhaseConfigsArray } : {}),
+    ...(pairPhaseConfigsArray.some(config => config !== null) ? { pair_phase_configs: pairPhaseConfigsArray } : {}),
     ...(pairConfig.pairLorasArray.some(loras => loras !== null) ? { pair_loras: pairConfig.pairLorasArray } : {}),
     ...(pairConfig.pairMotionSettingsArray.some(settings => settings !== null) ? { pair_motion_settings: pairConfig.pairMotionSettingsArray } : {}),
     model_name: actualModelName,
-    model_type: generationTypeMode,
+    model_type: effectivePolicy.travelMode,
     seed,
     debug: debug ?? DEFAULT_STEERABLE_MOTION_SETTINGS.debug,
     show_input_images: DEFAULT_STEERABLE_MOTION_SETTINGS.show_input_images,
@@ -111,13 +138,15 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     generation_mode: generationMode,
     random_seed: randomSeed,
     turbo_mode: turboMode,
+    ...(spec.ui.inferenceSteps && numInferenceSteps !== undefined ? { num_inference_steps: numInferenceSteps } : {}),
+    ...(spec.ui.guidanceScale && guidanceScale !== undefined ? { guidance_scale: guidanceScale } : {}),
     ...motionFields,
-    advanced_mode: useAdvancedMode,
+    ...(spec.supportsPhaseConfig ? { advanced_mode: useAdvancedMode } : {}),
     regenerate_anchors: false,
     generation_name: variantNameParam.trim() || undefined,
     ...(textBeforePrompts ? { text_before_prompts: textBeforePrompts } : {}),
     ...(textAfterPrompts ? { text_after_prompts: textAfterPrompts } : {}),
-    independent_segments: true,
-    chain_segments: false,
+    independent_segments: !effectivePolicy.continuation.enabled,
+    chain_segments: effectivePolicy.continuation.enabled,
   };
 }

@@ -37,7 +37,12 @@ describe('useGenerationControllerInputModel', () => {
       },
       frameSettings: {
         batchVideoFrames: 61,
+        batchVideoSteps: 8,
         setSteps: vi.fn(),
+      },
+      modelSettings: {
+        selectedModel: 'ltx-2.3' as const,
+        guidanceScale: 3,
       },
       phaseConfigSettings: {
         phaseConfig: { num_phases: 2 } as never,
@@ -93,6 +98,9 @@ describe('useGenerationControllerInputModel', () => {
       amountOfMotion: 42,
       motionMode: 'advanced',
       advancedMode: true,
+      selectedModel: 'ltx-2.3',
+      guidanceScale: 3,
+      batchVideoSteps: 8,
       generationTypeMode: 'vace',
       randomSeed: false,
       smoothContinuations: true,

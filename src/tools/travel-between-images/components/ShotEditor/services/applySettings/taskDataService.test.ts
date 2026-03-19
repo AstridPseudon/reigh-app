@@ -80,8 +80,9 @@ describe('extractSettings', () => {
   it('returns grouped canonical restore settings', () => {
     const settings = extractSettings({
       params: {
-        model_name: 'wan',
+        model_name: 'ltx2_22B_distilled',
         input_images: ['"/image-a.png"'],
+        guidance_scale: 3,
         structure_videos: [
           {
             path: '/guide.mp4',
@@ -109,6 +110,7 @@ describe('extractSettings', () => {
         base_prompt: 'hello',
         negative_prompts_expanded: ['no'],
         segment_frames_expanded: [70],
+        num_inference_steps: 8,
         model_type: 'i2v',
       },
     });
@@ -121,7 +123,10 @@ describe('extractSettings', () => {
     });
     expect(settings.generation).toEqual(expect.objectContaining({
       frames: 70,
-      model: 'wan',
+      model: 'ltx2_22B_distilled',
+      steps: 8,
+      guidanceScale: 3,
+      selectedModel: 'ltx-2.3-fast',
     }));
     expect(settings.images.inputImages).toEqual(['/image-a.png']);
     expect(settings.modes).toEqual(expect.objectContaining({

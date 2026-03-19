@@ -4,6 +4,7 @@ export {
   usePromptSettings,
   useMotionSettings,
   useFrameSettings,
+  useModelSettings,
   usePhaseConfigSettings,
   useSteerableMotionSettings,
   useLoraSettings,

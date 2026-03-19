@@ -3,9 +3,6 @@ import { TIMELINE_PADDING_OFFSET } from './constants';
 import { Button } from '@/shared/components/ui/button';
 import { Play, Pause, Trash2, Volume2 } from 'lucide-react';
 
-// Frame rate for timeline (matches shared videoUtils FPS constant)
-const FRAME_RATE = 16;
-
 interface AudioMetadata {
   duration: number;
   name?: string;
@@ -24,6 +21,8 @@ interface AudioStripProps {
   readOnly?: boolean;
   // When true, reduces top margin (used when structure video is above)
   compact?: boolean;
+  /** Model-specific FPS for frame↔seconds conversions. */
+  timelineFps: number;
 }
 
 export const AudioStrip: React.FC<AudioStripProps> = ({
@@ -35,6 +34,7 @@ export const AudioStrip: React.FC<AudioStripProps> = ({
   zoomLevel,
   readOnly = false,
   compact = false,
+  timelineFps,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +47,7 @@ export const AudioStrip: React.FC<AudioStripProps> = ({
 
   // Calculate timeline duration in seconds from frames
   // This is the actual video duration that the timeline represents
-  const timelineDuration = fullRange / FRAME_RATE;
+  const timelineDuration = fullRange / timelineFps;
 
   // Load audio metadata if not provided
   useEffect(() => {

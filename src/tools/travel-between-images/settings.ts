@@ -23,6 +23,37 @@ import {
 } from '@/shared/types/steerableMotion';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { asRecord } from '@/shared/lib/typeCoercion';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
+import {
+  MODEL_IDS,
+  MODEL_SPEC_REGISTRY,
+  coerceSelectedModel,
+  clampFrameCountToPolicy,
+  getInferenceStepRange,
+  getModelSpec,
+  isSelectedModel,
+  resolveSelectedModelFromModelName,
+  type SelectedModel,
+} from './modelCapabilities';
+
+export {
+  MODEL_IDS,
+  MODEL_SPEC_REGISTRY,
+  clampFrameCountToPolicy,
+  coerceSelectedModel,
+  getInferenceStepRange,
+  getModelSpec,
+  isSelectedModel,
+  resolveGenerationPolicy,
+  resolveContinuationPolicy,
+  resolveSelectedModelFromModelName,
+  type ContinuationStrategy,
+  type ExecutionMode,
+  type ModelSpec,
+  type ResolvedGenerationPolicy,
+  type ResolvedContinuationPolicy,
+  type SelectedModel,
+} from './modelCapabilities';
 
 // =============================================================================
 // TOOL-SPECIFIC TYPES
@@ -50,7 +81,8 @@ export interface VideoTravelSettings {
   steerableMotionSettings: SteerableMotionSettings;  // Still used for seed, debug, model_name
   enhancePrompt: boolean;
   generationMode: 'batch' | 'by-pair' | 'timeline';
-  selectedModel?: 'wan-2.1' | 'wan-2.2';
+  selectedModel?: SelectedModel;
+  guidanceScale?: number;
   turboMode: boolean;
   amountOfMotion: number; // 0-100 range for UI (kept for backward compatibility)
   motionMode?: 'basic' | 'advanced'; // Motion control mode (Presets tab merged into Basic)
@@ -86,10 +118,42 @@ export interface VideoTravelSettings {
     };
     treatment: 'adjust' | 'clip';
     motionStrength: number;
-    structureType?: 'uni3c' | 'flow' | 'canny' | 'depth';
+    structureType?: TravelGuidanceMode;
   };
+  ltxHdResolution?: boolean; // Scale up resolution for LTX models (default: true)
+  modelSettingsByModel?: Partial<Record<SelectedModel, ModelSpecificSettings>>;
   [key: string]: unknown;
 }
+
+export interface ModelSpecificSettings {
+  batchVideoFrames: number;
+  batchVideoSteps: number;
+  guidanceScale?: number;
+}
+
+export const MODEL_DEFAULTS = Object.fromEntries(
+  MODEL_IDS.map((modelId) => {
+    const spec = MODEL_SPEC_REGISTRY[modelId];
+    return [modelId, {
+      steps: spec.defaultSteps,
+      frames: spec.defaultFrames,
+      frameStep: spec.frameStep,
+      fps: spec.fps,
+      guidanceScale: spec.defaultGuidanceScale,
+      modelName: spec.defaultWorkerModelName,
+    }];
+  }),
+) as Record<SelectedModel, {
+  steps: number;
+  frames: number;
+  frameStep: number;
+  fps: number;
+  guidanceScale?: number;
+  modelName: string;
+}>;
+
+/** @deprecated Prefer `getModelSpec(model).modelFamily === 'ltx'`. */
+export const isLtxModel = (model?: SelectedModel | null): boolean => getModelSpec(model).modelFamily === 'ltx';
 
 export const videoTravelSettings = {
   id: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
@@ -113,7 +177,8 @@ export const videoTravelSettings = {
     dimensionSource: 'firstImage' as const,
     generationMode: 'timeline' as const,
     enhancePrompt: false,
-    selectedModel: 'wan-2.1' as const,
+    selectedModel: 'wan-2.2' as const,
+    guidanceScale: undefined,
     turboMode: false,
     amountOfMotion: 50,
     motionMode: 'basic' as const,
@@ -123,6 +188,7 @@ export const videoTravelSettings = {
     customHeight: undefined,
     generationTypeMode: 'i2v' as const, // Default to I2V (image-to-video) mode
     smoothContinuations: false, // SVI disabled for now
+    ltxHdResolution: true, // LTX needs higher res for quality (720p+ vs 508p base)
     loras: [] as ShotLora[],
   },
 };
@@ -159,6 +225,22 @@ function cloneVideoTravelDefaults(): VideoTravelSettings {
     ...(videoTravelSettings.defaults.structureVideo
       ? { structureVideo: { ...videoTravelSettings.defaults.structureVideo } }
       : {}),
+    modelSettingsByModel: {
+      'wan-2.2': {
+        batchVideoFrames: MODEL_DEFAULTS['wan-2.2'].frames,
+        batchVideoSteps: MODEL_DEFAULTS['wan-2.2'].steps,
+      },
+      'ltx-2.3': {
+        batchVideoFrames: MODEL_DEFAULTS['ltx-2.3'].frames,
+        batchVideoSteps: MODEL_DEFAULTS['ltx-2.3'].steps,
+        guidanceScale: MODEL_DEFAULTS['ltx-2.3'].guidanceScale,
+      },
+      'ltx-2.3-fast': {
+        batchVideoFrames: MODEL_DEFAULTS['ltx-2.3-fast'].frames,
+        batchVideoSteps: MODEL_DEFAULTS['ltx-2.3-fast'].steps,
+        guidanceScale: MODEL_DEFAULTS['ltx-2.3-fast'].guidanceScale,
+      },
+    },
   };
 }
 
@@ -220,6 +302,7 @@ function normalizeShotImageIds(value: unknown): string[] {
 }
 
 function normalizeStructureVideo(value: unknown): VideoTravelSettings['structureVideo'] {
+  const structureTypeOptions = ['uni3c', 'flow', 'canny', 'depth', 'raw', 'pose', 'video'] as const;
   const record = asRecord(value);
   if (record) {
     const path = asString(record.path);
@@ -229,8 +312,8 @@ function normalizeStructureVideo(value: unknown): VideoTravelSettings['structure
         metadata: asRecord(record.metadata) as VideoTravelSettings['structureVideo']['metadata'],
         treatment: asEnum(record.treatment, ['adjust', 'clip']) ?? DEFAULT_STRUCTURE_VIDEO.treatment,
         motionStrength: asFiniteNumber(record.motionStrength) ?? DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.motionStrength,
-        ...(asEnum(record.structureType, ['uni3c', 'flow', 'canny', 'depth'])
-          ? { structureType: asEnum(record.structureType, ['uni3c', 'flow', 'canny', 'depth']) }
+        ...(asEnum(record.structureType, structureTypeOptions)
+          ? { structureType: asEnum(record.structureType, structureTypeOptions) }
           : {}),
       };
     }
@@ -256,6 +339,32 @@ function normalizeStructureVideo(value: unknown): VideoTravelSettings['structure
   };
 }
 
+function normalizeModelSettingsByModel(value: unknown): VideoTravelSettings['modelSettingsByModel'] {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const models = Object.keys(MODEL_DEFAULTS) as SelectedModel[];
+  const normalizedEntries = models.flatMap((model) => {
+    const substate = asRecord(record[model]);
+    if (!substate) {
+      return [];
+    }
+
+    return [[
+      model,
+      {
+        batchVideoFrames: asFiniteNumber(substate.batchVideoFrames) ?? MODEL_DEFAULTS[model].frames,
+        batchVideoSteps: asFiniteNumber(substate.batchVideoSteps) ?? MODEL_DEFAULTS[model].steps,
+        guidanceScale: asFiniteNumber(substate.guidanceScale) ?? MODEL_DEFAULTS[model].guidanceScale,
+      },
+    ] as const];
+  });
+
+  return Object.fromEntries(normalizedEntries);
+}
+
 export function normalizeVideoTravelSettings(value: unknown): VideoTravelSettings {
   const defaults = cloneVideoTravelDefaults();
   const record = asRecord(value);
@@ -278,7 +387,8 @@ export function normalizeVideoTravelSettings(value: unknown): VideoTravelSetting
     },
     enhancePrompt: asBoolean(record.enhancePrompt) ?? defaults.enhancePrompt,
     generationMode: asEnum(record.generationMode, ['batch', 'by-pair', 'timeline']) ?? defaults.generationMode,
-    selectedModel: asEnum(record.selectedModel, ['wan-2.1', 'wan-2.2']) ?? defaults.selectedModel,
+    selectedModel: asEnum(record.selectedModel, Object.keys(MODEL_DEFAULTS) as SelectedModel[]) ?? defaults.selectedModel,
+    guidanceScale: asFiniteNumber(record.guidanceScale) ?? defaults.guidanceScale,
     turboMode: asBoolean(record.turboMode) ?? defaults.turboMode,
     amountOfMotion: asFiniteNumber(record.amountOfMotion) ?? defaults.amountOfMotion,
     motionMode: asEnum(record.motionMode, ['basic', 'advanced']) ?? defaults.motionMode,
@@ -295,6 +405,7 @@ export function normalizeVideoTravelSettings(value: unknown): VideoTravelSetting
     shotImageIds: normalizeShotImageIds(record.shotImageIds),
     loras: normalizeShotLoras(record.loras),
     structureVideo: normalizeStructureVideo(record.structureVideo ?? record),
+    modelSettingsByModel: normalizeModelSettingsByModel(record.modelSettingsByModel) ?? defaults.modelSettingsByModel,
   };
 }
 

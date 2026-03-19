@@ -9,7 +9,8 @@ import {
   DEFAULT_STRUCTURE_VIDEO,
 } from '@/shared/lib/tasks/travelBetweenImages';
 import { normalizeStructureGuidance } from '@/shared/lib/tasks/structureGuidance';
-import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
+import { normalizeTravelGuidance } from '@/shared/lib/tasks/travelGuidance';
+import { ASPECT_RATIO_TO_RESOLUTION, LTX_ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
 import { DEFAULT_RESOLUTION } from '../utils/dimension-utils';
 import { stripModeFromPhaseConfig } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
 import type { Shot } from '@/domains/generation/types';
@@ -19,9 +20,15 @@ import {
 } from '@/shared/lib/operationResult';
 import {
   buildBasicModeGenerationRequest,
+  resolveLtxModelSelection,
   resolveModelPhaseSelection,
   validatePhaseConfigConsistency,
 } from './generateVideo/modelPhase';
+import {
+  clampFrameCountToPolicy,
+  getModelSpec,
+  resolveGenerationPolicy,
+} from '@/tools/travel-between-images/settings';
 import {
   buildImagePayload,
   buildTimelinePairConfig,
@@ -47,8 +54,8 @@ import type {
 export type { StitchConfig };
 
 /**
- * Build unified structure_guidance object for the API request.
- * Delegates to the canonical task-layer adapter so UI and task builders share one mapping contract.
+ * Build legacy structure-guidance data when older internal consumers still need it.
+ * New task writes should go through canonical `travel_guidance`.
  */
 function buildStructureGuidance(
   structureGuidanceOrVideos: Record<string, unknown> | StructureVideoConfigWithMetadata[] | undefined,
@@ -101,16 +108,21 @@ function failureResult(error: unknown, options: RuntimeErrorOptions): GenerateVi
   });
 }
 
-function resolveGenerationResolution(selectedShot: Shot, effectiveAspectRatio: string | null): string {
+function resolveGenerationResolution(
+  selectedShot: Shot,
+  effectiveAspectRatio: string | null,
+  useLtxHd: boolean = false,
+): string {
+  const resolutionMap = useLtxHd ? LTX_ASPECT_RATIO_TO_RESOLUTION : ASPECT_RATIO_TO_RESOLUTION;
   if (selectedShot?.aspect_ratio) {
-    const shotResolution = ASPECT_RATIO_TO_RESOLUTION[selectedShot.aspect_ratio];
+    const shotResolution = resolutionMap[selectedShot.aspect_ratio];
     if (shotResolution) return shotResolution;
   }
   if (effectiveAspectRatio) {
-    const projectResolution = ASPECT_RATIO_TO_RESOLUTION[effectiveAspectRatio];
+    const projectResolution = resolutionMap[effectiveAspectRatio];
     if (projectResolution) return projectResolution;
   }
-  return DEFAULT_RESOLUTION;
+  return useLtxHd ? '1280x720' : DEFAULT_RESOLUTION;
 }
 
 async function waitForPendingMutations(queryClient: QueryClient, timeoutMs = 5000): Promise<void> {
@@ -142,12 +154,25 @@ export {
   buildTimelinePairConfig,
   buildBatchPairConfig,
   buildByPairConfig,
+  resolveLtxModelSelection,
   resolveModelPhaseSelection,
   validatePhaseConfigConsistency,
   buildBasicModeGenerationRequest as buildBasicModePhaseConfig,
 };
 export { resolveGenerationResolution, buildStructureGuidance };
 export type { ShotGenRow, ImagePayload, PairConfigPayload, ModelPhaseSelection };
+
+function resolveGuidanceKind(travelGuidance?: TravelGuidance): string | undefined {
+  if (!travelGuidance || travelGuidance.kind === 'none') {
+    return undefined;
+  }
+
+  if (travelGuidance.kind === 'uni3c') {
+    return 'uni3c';
+  }
+
+  return travelGuidance.mode;
+}
 
 /**
  * Prepare and submit a video generation task.
@@ -171,6 +196,7 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     clearAllEnhancedPrompts,
     parentGenerationId,
     stitchConfig,
+    travelGuidance,
     structureGuidance,
     structureVideos,
   } = params;
@@ -183,8 +209,22 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
   }
 
   await waitForPendingMutations(queryClient);
-  const resolution = resolveGenerationResolution(selectedShot, effectiveAspectRatio);
+  const spec = getModelSpec(modelConfig.selectedModel);
+  const policy = resolveGenerationPolicy(spec, {
+    smoothContinuations: modelConfig.smoothContinuations ?? false,
+    requestedExecutionMode: modelConfig.generation_type_mode ?? 'i2v',
+    guidanceKind: resolveGuidanceKind(travelGuidance),
+    hasStructureVideo: structureVideos.length > 0,
+  });
+  const useLtxHd = spec.modelFamily === 'ltx' && modelConfig.ltxHdResolution !== false;
+  const resolution = resolveGenerationResolution(selectedShot, effectiveAspectRatio, useLtxHd);
   const amountOfMotion = motionConfig.amount_of_motion ?? 50;
+  const effectiveBatchVideoFrames = clampFrameCountToPolicy(batchVideoFrames, spec, {
+    smoothContinuations: modelConfig.smoothContinuations ?? false,
+    requestedExecutionMode: modelConfig.generation_type_mode ?? 'i2v',
+    guidanceKind: resolveGuidanceKind(travelGuidance),
+    hasStructureVideo: structureVideos.length > 0,
+  });
 
   let allShotGenerations: ShotGenRow[];
   try {
@@ -200,30 +240,34 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
   const pairConfig = (() => {
     switch (generationMode) {
       case 'timeline':
-        return buildTimelinePairConfig(allShotGenerations, batchVideoFrames, promptConfig.default_negative_prompt);
+        return buildTimelinePairConfig(allShotGenerations, effectiveBatchVideoFrames, promptConfig.default_negative_prompt, policy.frameOverlap);
       case 'by-pair':
-        return buildByPairConfig(allShotGenerations, batchVideoFrames, promptConfig.default_negative_prompt);
+        return buildByPairConfig(allShotGenerations, effectiveBatchVideoFrames, promptConfig.default_negative_prompt, policy.frameOverlap);
       case 'batch':
       default:
-        return buildBatchPairConfig(imagePayload.absoluteImageUrls, batchVideoFrames, promptConfig.default_negative_prompt);
+        return buildBatchPairConfig(imagePayload.absoluteImageUrls, effectiveBatchVideoFrames, promptConfig.default_negative_prompt, policy.frameOverlap);
     }
   })();
 
-  const modelPhaseSelection = resolveModelPhaseSelection(
-    amountOfMotion,
-    motionConfig.advanced_mode,
-    motionConfig.phase_config,
-    motionConfig.motion_mode,
-    selectedLoras,
-  );
+  const modelPhaseSelection = spec.modelFamily === 'ltx'
+    ? resolveLtxModelSelection(modelConfig.selectedModel)
+    : resolveModelPhaseSelection(
+      amountOfMotion,
+      motionConfig.advanced_mode,
+      motionConfig.phase_config,
+      motionConfig.motion_mode,
+      selectedLoras,
+    );
 
-  try {
-    validatePhaseConfigConsistency(modelPhaseSelection.effectivePhaseConfig);
-  } catch (error) {
-    return failureResult(error, {
-      context: 'generateVideoService',
-      toastTitle: 'Invalid phase configuration',
-    });
+  if (modelPhaseSelection.effectivePhaseConfig) {
+    try {
+      validatePhaseConfigConsistency(modelPhaseSelection.effectivePhaseConfig);
+    } catch (error) {
+      return failureResult(error, {
+        context: 'generateVideoService',
+        toastTitle: 'Invalid phase configuration',
+      });
+    }
   }
 
   const requestBody = buildTravelRequestBodyV2({
@@ -233,6 +277,8 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
     pairConfig,
     parentGenerationId,
     actualModelName: modelPhaseSelection.actualModelName,
+    selectedModel: modelConfig.selectedModel,
+    policy,
     generationTypeMode: modelConfig.generation_type_mode,
     motionParams: {
       amountOfMotion,
@@ -240,6 +286,8 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
       useAdvancedMode: modelPhaseSelection.useAdvancedMode,
       effectivePhaseConfig: modelPhaseSelection.effectivePhaseConfig,
       selectedPhasePresetId: motionConfig.selected_phase_preset_id,
+      numInferenceSteps: modelConfig.num_inference_steps,
+      guidanceScale: modelConfig.guidance_scale,
     },
     generationParams: {
       generationMode,
@@ -267,11 +315,18 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
   requestBody.resolution = resolution;
   if (stitchConfig) requestBody.stitch_config = stitchConfig;
 
-  const normalizedStructureGuidance = buildStructureGuidance(
-    structureGuidance as Record<string, unknown> | undefined,
+  const normalizedTravelGuidance = normalizeTravelGuidance({
+    modelName: modelPhaseSelection.actualModelName,
+    travelGuidance,
+    structureGuidance: buildStructureGuidance(
+      structureGuidance as Record<string, unknown> | undefined,
+      structureVideos,
+    ) ?? undefined,
     structureVideos,
-  );
-  if (normalizedStructureGuidance) requestBody.structure_guidance = normalizedStructureGuidance;
+    defaultVideoTreatment: DEFAULT_STRUCTURE_VIDEO.treatment,
+    defaultUni3cEndPercent: DEFAULT_STRUCTURE_GUIDANCE_CONTROLS.uni3cEndPercent,
+  });
+  if (normalizedTravelGuidance) requestBody.travel_guidance = normalizedTravelGuidance;
 
   try {
     validateTravelBetweenImagesParams(requestBody);

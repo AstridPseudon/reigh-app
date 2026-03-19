@@ -11,6 +11,7 @@ import {
   VideoGenerationModalLoadingContent,
 } from './VideoGenerationModalSections';
 import { useVideoGenerationModalController } from './hooks/useVideoGenerationModalController';
+import { getModelSpec } from '../settings';
 
 export interface VideoGenerationModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
     justQueued,
     isDisabled,
     hasStructureVideo,
+    guidanceKind,
     accelerated,
     setAccelerated,
     randomSeed,
@@ -95,6 +97,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
                 onRandomSeedChange={setRandomSeed}
                 imageCount={positionedImages.length}
                 hasStructureVideo={hasStructureVideo}
+                guidanceKind={guidanceKind}
                 validPresetId={validPresetId}
                 status={status}
                 onOpenLoraModal={openLoraModal}
@@ -135,7 +138,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
         onRemoveLora={handleRemoveLora}
         onUpdateLoraStrength={handleLoraStrengthChange}
         selectedLoras={selectedLorasForModal}
-        loraType="Wan 2.1 14b"
+        loraType={getModelSpec(settings.selectedModel).loraFamily}
       />
     </>
   );

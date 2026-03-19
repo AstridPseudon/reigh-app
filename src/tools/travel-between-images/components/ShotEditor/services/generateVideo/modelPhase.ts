@@ -2,6 +2,7 @@ import { ValidationError } from '@/shared/lib/errorHandling/errors';
 import { type PhaseConfig, buildBasicModePhaseConfig as buildPhaseConfigCore } from '@/shared/types/phaseConfig';
 import type { GenerateVideoParams, ModelPhaseSelection } from './types';
 import type { MotionConfig } from '@/shared/lib/tasks/travelBetweenImages';
+import { MODEL_DEFAULTS, type SelectedModel } from '@/tools/travel-between-images/settings';
 
 /**
  * Build phase config for basic mode based on motion amount and user LoRAs.
@@ -57,4 +58,12 @@ export function validatePhaseConfigConsistency(config: PhaseConfig): void {
       `Invalid phase configuration: num_phases (${config.num_phases}) does not match arrays (phases: ${phasesLength}, steps: ${stepsLength}).`,
     );
   }
+}
+
+export function resolveLtxModelSelection(selectedModel: SelectedModel): ModelPhaseSelection {
+  return {
+    actualModelName: (MODEL_DEFAULTS[selectedModel] ?? MODEL_DEFAULTS['wan-2.2']).modelName,
+    effectivePhaseConfig: undefined,
+    useAdvancedMode: false,
+  };
 }

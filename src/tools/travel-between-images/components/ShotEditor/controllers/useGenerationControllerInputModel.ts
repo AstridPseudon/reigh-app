@@ -31,7 +31,14 @@ interface MotionSettingsSlice {
 
 interface FrameSettingsSlice {
   batchVideoFrames: MotionSettings['batchVideoFrames'];
+  batchVideoSteps: MotionSettings['batchVideoSteps'];
   setSteps: RuntimeSettings['setSteps'];
+}
+
+interface ModelSettingsSlice {
+  selectedModel: MotionSettings['selectedModel'];
+  guidanceScale: MotionSettings['guidanceScale'];
+  ltxHdResolution: MotionSettings['ltxHdResolution'];
 }
 
 interface PhaseConfigSettingsSlice {
@@ -71,13 +78,14 @@ interface UseGenerationControllerInputModelParams {
   promptSettings: PromptSettingsSlice;
   motionSettings: MotionSettingsSlice;
   frameSettings: FrameSettingsSlice;
+  modelSettings: ModelSettingsSlice;
   phaseConfigSettings: PhaseConfigSettingsSlice;
   generationModeSettings: GenerationModeSettingsSlice;
   steerableMotionSettings: SteerableMotionSettingsSlice;
   loraManager: {
     selectedLoras: MotionSettings['selectedLoras'];
   };
-  mediaEditing: Pick<MediaEditing, 'structureGuidance' | 'structureVideos'>;
+  mediaEditing: Pick<MediaEditing, 'travelGuidance' | 'structureGuidance' | 'structureVideos'>;
   selectedOutputId: MotionSettings['selectedOutputId'];
   joinWorkflow: JoinSettings | JoinWorkflow;
   runtime: RuntimeSettingsSlice;
@@ -88,6 +96,7 @@ export function useGenerationControllerInputModel({
   promptSettings,
   motionSettings,
   frameSettings,
+  modelSettings,
   phaseConfigSettings,
   generationModeSettings,
   steerableMotionSettings,
@@ -122,13 +131,18 @@ export function useGenerationControllerInputModel({
       advancedMode: motionSettings.motionMode === 'advanced',
       phaseConfig: phaseConfigSettings.phaseConfig,
       selectedPhasePresetId: phaseConfigSettings.selectedPhasePresetId,
+      selectedModel: modelSettings.selectedModel,
+      guidanceScale: modelSettings.guidanceScale,
+      ltxHdResolution: modelSettings.ltxHdResolution,
       steerableMotionSettings: steerableMotionSettings.steerableMotionSettings,
       randomSeed: runtime.randomSeed,
       turboMode: motionSettings.turboMode,
       generationTypeMode: phaseConfigSettings.generationTypeMode,
       smoothContinuations: motionSettings.smoothContinuations,
       batchVideoFrames: frameSettings.batchVideoFrames,
+      batchVideoSteps: frameSettings.batchVideoSteps,
       selectedLoras: loraManager.selectedLoras,
+      travelGuidance: mediaEditing.travelGuidance,
       structureGuidance: mediaEditing.structureGuidance,
       structureVideos: mediaEditing.structureVideos,
       selectedOutputId,
@@ -162,14 +176,18 @@ export function useGenerationControllerInputModel({
     motionSettings.motionMode,
     motionSettings.turboMode,
     motionSettings.smoothContinuations,
+    modelSettings.selectedModel,
+    modelSettings.guidanceScale,
     phaseConfigSettings.phaseConfig,
     phaseConfigSettings.selectedPhasePresetId,
     phaseConfigSettings.generationTypeMode,
     steerableMotionSettings.steerableMotionSettings,
     steerableMotionSettings.setSteerableMotionSettings,
     frameSettings.batchVideoFrames,
+    frameSettings.batchVideoSteps,
     frameSettings.setSteps,
     loraManager.selectedLoras,
+    mediaEditing.travelGuidance,
     mediaEditing.structureGuidance,
     mediaEditing.structureVideos,
     selectedOutputId,

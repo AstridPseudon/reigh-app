@@ -1,9 +1,9 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLoraManager } from '@/domains/lora/hooks/useLoraManager';
 import type { LoraManagerState } from '@/domains/lora/types/loraManager';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import type { ActiveLora, LoraModel } from '@/domains/lora/types/lora';
-import { ShotLora } from '@/tools/travel-between-images/settings';
+import { ShotLora, type SelectedModel } from '@/tools/travel-between-images/settings';
 
 interface UseLoRASyncProps {
   // LoRAs from unified shot settings
@@ -19,6 +19,7 @@ interface UseLoRASyncProps {
   // Prompt integration
   batchVideoPrompt: string;
   onBatchVideoPromptChange: (prompt: string) => void;
+  selectedModel: SelectedModel;
 }
 
 export type LoraManagerReturn = LoraManagerState;
@@ -52,6 +53,7 @@ export const useLoraSync = ({
   availableLoras,
   batchVideoPrompt,
   onBatchVideoPromptChange,
+  selectedModel,
 }: UseLoRASyncProps): { loraManager: LoraManagerReturn } => {
   const selectedLoras = useMemo(
     () => selectedLorasFromProps.map(toActiveLora),
@@ -73,6 +75,21 @@ export const useLoraSync = ({
     selectedLoras,
     onSelectedLorasChange: handleSelectedLorasChange,
   });
+
+  const previousModelRef = useRef<SelectedModel | null>(null);
+
+  useEffect(() => {
+    if (previousModelRef.current === null) {
+      previousModelRef.current = selectedModel;
+      return;
+    }
+
+    if (previousModelRef.current !== selectedModel && selectedLorasFromProps.length > 0) {
+      onSelectedLorasChange([]);
+    }
+
+    previousModelRef.current = selectedModel;
+  }, [onSelectedLorasChange, selectedLorasFromProps.length, selectedModel]);
 
   return { loraManager };
 };

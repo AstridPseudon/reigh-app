@@ -1,5 +1,6 @@
 import type React from 'react';
 import type { Shot } from '@/domains/generation/types';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
 import { useAudio } from '../hooks/video/useAudio';
 import { useJoinSegmentsHandler } from '../hooks/actions/useJoinSegmentsHandler';
 import { useJoinSegmentsSetup } from '../hooks/actions/useJoinSegmentsSetup';
@@ -28,6 +29,7 @@ interface EditingControllerNameState {
 interface EditingControllerGenerationType {
   generationTypeMode: 'i2v' | 'vace';
   setGenerationTypeMode: (mode: 'i2v' | 'vace') => void;
+  selectedModel: SelectedModel;
 }
 
 interface EditingControllerJoinInputs {
@@ -50,6 +52,8 @@ export function useEditingController({
 }: UseEditingControllerParams) {
   // Structure video management
   const {
+    travelGuidance,
+    travelGuidanceByModel,
     structureGuidance,
     structureVideoPath,
     structureVideoMetadata,
@@ -58,6 +62,7 @@ export function useEditingController({
     structureVideoType,
     structureVideoResourceId,
     structureVideoUni3cEndPercent,
+    structureVideoDefaultsByModel,
     isLoading: isStructureVideoSettingsLoading,
     structureVideos,
     addStructureVideo,
@@ -69,6 +74,7 @@ export function useEditingController({
   } = useStructureVideo({
     projectId: core.projectId,
     shotId: core.selectedShot?.id,
+    selectedModel: generationType.selectedModel,
   });
 
   const {
@@ -148,6 +154,8 @@ export function useEditingController({
 
   const mediaEditing = {
     // Structure video + handlers
+    travelGuidance,
+    travelGuidanceByModel,
     structureGuidance,
     structureVideoPath,
     structureVideoMetadata,
@@ -156,6 +164,7 @@ export function useEditingController({
     structureVideoType,
     structureVideoResourceId,
     structureVideoUni3cEndPercent,
+    structureVideoDefaultsByModel,
     isStructureVideoSettingsLoading,
     structureVideos,
     addStructureVideo,

@@ -1,7 +1,8 @@
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 
-export type StructureVideoType = 'uni3c' | 'flow' | 'canny' | 'depth';
+export type StructureVideoType = TravelGuidanceMode;
 
 export interface PrimaryStructureVideoInput {
   videoPath: string | null;

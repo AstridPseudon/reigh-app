@@ -76,9 +76,11 @@ function buildPairMotionSettings(
   overrides: SegmentOverrides,
 ): Record<string, unknown> | null {
   const hasMotionOverrides = overrides.motionMode !== undefined || overrides.amountOfMotion !== undefined;
-  const hasStructureOverrides = overrides.structureMotionStrength !== undefined ||
-    overrides.structureTreatment !== undefined ||
-    overrides.structureUni3cEndPercent !== undefined;
+  const hasStructureOverrides = overrides.guidanceStrength !== undefined ||
+    overrides.guidanceTreatment !== undefined ||
+    overrides.guidanceUni3cEndPercent !== undefined ||
+    overrides.guidanceCannyIntensity !== undefined ||
+    overrides.guidanceDepthContrast !== undefined;
 
   if (!hasMotionOverrides && !hasStructureOverrides) {
     return null;
@@ -87,9 +89,11 @@ function buildPairMotionSettings(
   return {
     ...(overrides.amountOfMotion !== undefined && { amount_of_motion: overrides.amountOfMotion / 100 }),
     ...(overrides.motionMode !== undefined && { motion_mode: overrides.motionMode }),
-    ...(overrides.structureMotionStrength !== undefined && { structure_motion_strength: overrides.structureMotionStrength }),
-    ...(overrides.structureTreatment !== undefined && { structure_treatment: overrides.structureTreatment }),
-    ...(overrides.structureUni3cEndPercent !== undefined && { uni3c_end_percent: overrides.structureUni3cEndPercent }),
+    ...(overrides.guidanceStrength !== undefined && { structure_motion_strength: overrides.guidanceStrength }),
+    ...(overrides.guidanceTreatment !== undefined && { structure_treatment: overrides.guidanceTreatment }),
+    ...(overrides.guidanceUni3cEndPercent !== undefined && { uni3c_end_percent: overrides.guidanceUni3cEndPercent }),
+    ...(overrides.guidanceCannyIntensity !== undefined && { structure_canny_intensity: overrides.guidanceCannyIntensity }),
+    ...(overrides.guidanceDepthContrast !== undefined && { structure_depth_contrast: overrides.guidanceDepthContrast }),
   };
 }
 
@@ -97,6 +101,7 @@ export function buildTimelinePairConfig(
   allShotGenerations: ShotGenRow[],
   batchVideoFrames: number,
   defaultNegativePrompt: string,
+  frameOverlapValue: number = 10,
 ): PairConfigPayload {
   const pairPrompts: Record<number, { prompt: string; negativePrompt: string }> = {};
   const enhancedPrompts: Record<number, string> = {};
@@ -161,7 +166,7 @@ export function buildTimelinePairConfig(
     segmentFrames: frameGaps.length > 0
       ? frameGaps.map((gap, index) => pairNumFramesOverrides[index] ?? gap)
       : [batchVideoFrames],
-    frameOverlap: frameGaps.length > 0 ? frameGaps.map(() => 10) : [10],
+    frameOverlap: frameGaps.length > 0 ? frameGaps.map(() => frameOverlapValue) : [frameOverlapValue],
     negativePrompts: frameGaps.length > 0
       ? frameGaps.map((_, index) => pairPrompts[index]?.negativePrompt?.trim() || defaultNegativePrompt)
       : [defaultNegativePrompt],
@@ -184,13 +189,14 @@ export function buildBatchPairConfig(
   absoluteImageUrls: string[],
   batchVideoFrames: number,
   defaultNegativePrompt: string,
+  frameOverlapValue: number = 10,
 ): PairConfigPayload {
   const numPairs = Math.max(0, absoluteImageUrls.length - 1);
   return {
     basePrompts: numPairs > 0 ? Array(numPairs).fill('') : [''],
     negativePrompts: numPairs > 0 ? Array(numPairs).fill(defaultNegativePrompt) : [defaultNegativePrompt],
     segmentFrames: numPairs > 0 ? Array(numPairs).fill(batchVideoFrames) : [batchVideoFrames],
-    frameOverlap: numPairs > 0 ? Array(numPairs).fill(10) : [10],
+    frameOverlap: numPairs > 0 ? Array(numPairs).fill(frameOverlapValue) : [frameOverlapValue],
     pairPhaseConfigsArray: numPairs > 0 ? Array(numPairs).fill(null) : [],
     pairLorasArray: numPairs > 0 ? Array(numPairs).fill(null) : [],
     pairMotionSettingsArray: numPairs > 0 ? Array(numPairs).fill(null) : [],
@@ -202,6 +208,7 @@ export function buildByPairConfig(
   allShotGenerations: ShotGenRow[],
   batchVideoFrames: number,
   defaultNegativePrompt: string,
+  frameOverlapValue: number = 10,
 ): PairConfigPayload {
   const filteredShotGenerations = filterImageShotGenerations(allShotGenerations)
     .sort((a, b) => (a.timeline_frame ?? 0) - (b.timeline_frame ?? 0));
@@ -211,7 +218,7 @@ export function buildByPairConfig(
     return {
       basePrompts: [''],
       segmentFrames: [batchVideoFrames],
-      frameOverlap: [10],
+      frameOverlap: [frameOverlapValue],
       negativePrompts: [defaultNegativePrompt],
       enhancedPromptsArray: [],
       pairPhaseConfigsArray: [],
@@ -235,7 +242,7 @@ export function buildByPairConfig(
 
     basePrompts.push(overrides.prompt?.trim() || '');
     segmentFrames.push(overrides.numFrames ?? batchVideoFrames);
-    frameOverlap.push(10);
+    frameOverlap.push(frameOverlapValue);
     negativePrompts.push(overrides.negativePrompt?.trim() || defaultNegativePrompt);
     enhancedPromptsArray.push(enhancedPrompt || '');
 

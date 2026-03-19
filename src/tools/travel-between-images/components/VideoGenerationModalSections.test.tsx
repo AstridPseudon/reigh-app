@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     }: {
       mode: {
         onMotionModeChange: (mode: 'basic' | 'advanced') => void;
+        guidanceKind?: string;
       };
     }) => (
       <button data-testid="motion-control" onClick={() => mode.onMotionModeChange('advanced')}>
@@ -132,6 +133,7 @@ describe('VideoGenerationModalSections', () => {
         onRandomSeedChange={vi.fn()}
         imageCount={2}
         hasStructureVideo={false}
+        guidanceKind="flow"
         validPresetId={undefined}
         status="ready"
         onOpenLoraModal={vi.fn()}
@@ -150,5 +152,12 @@ describe('VideoGenerationModalSections', () => {
     expect(updateField).toHaveBeenCalledWith('prompt', 'updated prompt');
     expect(updateField).toHaveBeenCalledWith('motionMode', 'advanced');
     expect(updateField).toHaveBeenCalledWith('advancedMode', true);
+    expect(mocks.motionControl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: expect.objectContaining({
+          guidanceKind: 'flow',
+        }),
+      }),
+    );
   });
 });

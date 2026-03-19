@@ -5,6 +5,8 @@ import type { Shot } from '@/domains/generation/types';
 import { useGenerateBatch } from '../hooks/actions/useGenerateBatch';
 import { useSteerableMotionHandlers } from '../hooks/actions/useSteerableMotionHandlers';
 import type { BatchGenerationRequest, StitchAfterGenerateConfig } from '../hooks/actions/useGenerateBatch';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
+import type { TravelGuidance } from '@/shared/lib/tasks/travelBetweenImages';
 
 interface GenerationControllerCore {
   projectId: string | null;
@@ -32,13 +34,18 @@ interface GenerationControllerMotionSettings {
   advancedMode: boolean;
   phaseConfig: ReturnType<typeof import('../hooks').useJoinSegmentsSetup>['joinPhaseConfig'];
   selectedPhasePresetId: string | null;
-  steerableMotionSettings: { model_name: string; num_inference_steps: number; seed?: number };
+  selectedModel: SelectedModel;
+  guidanceScale?: number;
+  ltxHdResolution?: boolean;
+  steerableMotionSettings: { model_name: string; seed?: number };
   randomSeed: boolean;
   turboMode: boolean;
   generationTypeMode: 'i2v' | 'vace';
   smoothContinuations: boolean;
   batchVideoFrames: number;
+  batchVideoSteps: number;
   selectedLoras: Array<{ id: string; path: string; strength: number }>;
+  travelGuidance: TravelGuidance | undefined;
   structureGuidance: ReturnType<typeof import('../hooks/video/useStructureVideo').useStructureVideo>['structureGuidance'];
   structureVideos: ReturnType<typeof import('../hooks').useStructureVideo>['structureVideos'];
   selectedOutputId: string | null;
@@ -74,7 +81,7 @@ interface GenerationControllerRuntime {
   isShotUISettingsLoading: boolean;
   settingsLoadingFromContext: boolean;
   updateShotUISettings: (scope: 'project' | 'shot', values: Record<string, unknown>) => void;
-  setSteerableMotionSettings: (settings: { seed?: number }) => void;
+  setSteerableMotionSettings: (settings: { model_name?: string; seed?: number; negative_prompt?: string; debug?: boolean }) => void;
   setSteps: (steps: number) => void;
   setShowStepsNotification: (show: boolean) => void;
 }
@@ -141,13 +148,18 @@ function buildBatchGenerationRequest(
     },
     model: {
       steerableMotionSettings: motion.steerableMotionSettings,
+      selectedModel: motion.selectedModel,
+      numInferenceSteps: motion.batchVideoSteps,
+      guidanceScale: motion.guidanceScale,
       randomSeed: motion.randomSeed,
       turboMode: motion.turboMode,
       generationTypeMode: motion.generationTypeMode,
       smoothContinuations: motion.smoothContinuations,
+      ltxHdResolution: motion.ltxHdResolution,
     },
     batchVideoFrames: motion.batchVideoFrames,
     selectedLoras: motion.selectedLoras,
+    travelGuidance: motion.travelGuidance,
     structureGuidance: motion.structureGuidance,
     structureVideos: motion.structureVideos,
     selectedOutputId: motion.selectedOutputId,
@@ -182,6 +194,7 @@ export function useGenerationController({
     accelerated: runtime.accelerated,
     randomSeed: motion.randomSeed,
     turboMode: motion.turboMode,
+    selectedModel: motion.selectedModel,
     steerableMotionSettings: motion.steerableMotionSettings,
     isShotUISettingsLoading: runtime.isShotUISettingsLoading,
     settingsLoadingFromContext: runtime.settingsLoadingFromContext,

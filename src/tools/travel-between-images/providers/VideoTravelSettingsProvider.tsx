@@ -24,14 +24,25 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef
 } from 'react';
 import { Shot } from '@/domains/generation/types';
 import { useShotSettings, UseShotSettingsReturn } from '../hooks/settings/useShotSettings';
 import { useVideoTravelSettingsHandlers, VideoTravelSettingsHandlers } from '../hooks/settings/useVideoTravelSettingsHandlers';
-import { VideoTravelSettings, PhaseConfig } from '../settings';
+import {
+  VideoTravelSettings,
+  PhaseConfig,
+  MODEL_DEFAULTS,
+  clampFrameCountToPolicy,
+  coerceSelectedModel,
+  getModelSpec,
+  resolveGenerationPolicy,
+  type SelectedModel,
+} from '../settings';
 import type { LoraModel } from '@/domains/lora/types/lora';
 
 // =============================================================================
@@ -104,6 +115,140 @@ export const VideoTravelSettingsProvider: React.FC<VideoTravelSettingsProviderPr
     updateShotMode,
   });
 
+  const setSelectedModel = useCallback((nextModel: SelectedModel) => {
+    const currentSettings = shotSettingsRef.current.settings;
+    const currentModel = coerceSelectedModel(currentSettings.selectedModel);
+
+    if (currentModel === nextModel) {
+      return;
+    }
+
+    const currentDefaults = MODEL_DEFAULTS[currentModel];
+    const nextDefaults = MODEL_DEFAULTS[nextModel];
+    const nextSpec = getModelSpec(nextModel);
+    const currentFrames = clampFrameCountToPolicy(
+      currentSettings.batchVideoFrames ?? currentDefaults.frames,
+      getModelSpec(currentModel),
+      {
+        smoothContinuations: currentSettings.smoothContinuations ?? false,
+        requestedExecutionMode: currentSettings.generationTypeMode ?? 'i2v',
+      },
+    );
+    const modelSettingsByModel = {
+      ...(currentSettings.modelSettingsByModel ?? {}),
+      [currentModel]: {
+        batchVideoFrames: currentFrames,
+        batchVideoSteps: currentSettings.batchVideoSteps ?? currentDefaults.steps,
+        guidanceScale: currentSettings.guidanceScale ?? currentDefaults.guidanceScale,
+      },
+    };
+    const nextSubstate = modelSettingsByModel[nextModel];
+    const nextFrames = clampFrameCountToPolicy(
+      nextSubstate?.batchVideoFrames ?? nextDefaults.frames,
+      nextSpec,
+      {
+        smoothContinuations: currentSettings.smoothContinuations ?? false,
+        requestedExecutionMode: currentSettings.generationTypeMode ?? 'i2v',
+      },
+    );
+
+    shotSettingsRef.current.updateFields({
+      selectedModel: nextModel,
+      batchVideoFrames: nextFrames,
+      batchVideoSteps: nextSubstate?.batchVideoSteps ?? nextDefaults.steps,
+      guidanceScale: nextSubstate?.guidanceScale ?? nextDefaults.guidanceScale,
+      modelSettingsByModel: {
+        ...modelSettingsByModel,
+        [nextModel]: {
+          batchVideoFrames: nextFrames,
+          batchVideoSteps: nextSubstate?.batchVideoSteps ?? nextDefaults.steps,
+          guidanceScale: nextSubstate?.guidanceScale ?? nextDefaults.guidanceScale,
+        },
+      },
+      ...(!nextSpec.ui.turboMode
+        ? {
+          turboMode: false,
+          motionMode: 'basic',
+          advancedMode: false,
+        }
+        : {}),
+    });
+  }, []);
+
+  useEffect(() => {
+    const currentSettings = shotSettings.settings;
+    const currentModel = coerceSelectedModel(currentSettings.selectedModel);
+    const spec = getModelSpec(currentModel);
+    const requestedExecutionMode = currentSettings.generationTypeMode ?? 'i2v';
+    const nextSmoothContinuations = currentSettings.smoothContinuations
+      && resolveGenerationPolicy(spec, {
+        smoothContinuations: true,
+        requestedExecutionMode,
+      }).continuation.enabled;
+    const normalizedFrames = clampFrameCountToPolicy(
+      currentSettings.batchVideoFrames ?? MODEL_DEFAULTS[currentModel].frames,
+      spec,
+      {
+        smoothContinuations: nextSmoothContinuations,
+        requestedExecutionMode,
+      },
+    );
+    const currentSubstate = currentSettings.modelSettingsByModel?.[currentModel];
+    const needsSmoothReset = (currentSettings.smoothContinuations ?? false) !== nextSmoothContinuations;
+    const needsFrameReset = currentSettings.batchVideoFrames !== normalizedFrames
+      || currentSubstate?.batchVideoFrames !== normalizedFrames;
+
+    if (!needsSmoothReset && !needsFrameReset) {
+      return;
+    }
+
+    shotSettings.updateFields({
+      ...(needsSmoothReset ? { smoothContinuations: nextSmoothContinuations } : {}),
+      ...(needsFrameReset
+        ? {
+          batchVideoFrames: normalizedFrames,
+          modelSettingsByModel: {
+            ...(currentSettings.modelSettingsByModel ?? {}),
+            [currentModel]: {
+              ...currentSubstate,
+              batchVideoFrames: normalizedFrames,
+            },
+          },
+        }
+        : {}),
+    });
+  }, [
+    shotSettings.settings.batchVideoFrames,
+    shotSettings.settings.selectedModel,
+    shotSettings.settings.generationTypeMode,
+    shotSettings.settings.smoothContinuations,
+    shotSettings.settings.modelSettingsByModel,
+    shotSettings.updateFields,
+  ]);
+
+  const setGuidanceScale = useCallback((guidanceScale: number) => {
+    const currentSettings = shotSettingsRef.current.settings;
+    const currentModel = coerceSelectedModel(currentSettings.selectedModel);
+
+    shotSettingsRef.current.updateFields({
+      guidanceScale,
+      modelSettingsByModel: {
+        ...(currentSettings.modelSettingsByModel ?? {}),
+        [currentModel]: {
+          batchVideoFrames: currentSettings.batchVideoFrames ?? MODEL_DEFAULTS[currentModel].frames,
+          batchVideoSteps: currentSettings.batchVideoSteps ?? MODEL_DEFAULTS[currentModel].steps,
+          guidanceScale,
+        },
+      },
+    });
+  }, []);
+
+  const providerHandlers = useMemo<VideoTravelSettingsHandlers>(() => ({
+    ...handlers,
+    handleSelectedModelChange: setSelectedModel,
+    handleGuidanceScaleChange: setGuidanceScale,
+  }), [handlers, setGuidanceScale, setSelectedModel]);
+
   // Memoize context value
   const contextValue = useMemo<VideoTravelSettingsContextValue>(() => ({
     settings: shotSettings.settings,
@@ -112,7 +257,7 @@ export const VideoTravelSettingsProvider: React.FC<VideoTravelSettingsProviderPr
     isLoading: shotSettings.status === 'loading' || shotSettings.status === 'idle',
     shotId: shotSettings.shotId,
     projectId: projectId || null,
-    handlers,
+    handlers: providerHandlers,
     updateField: shotSettings.updateField,
     updateFields: shotSettings.updateFields,
     save: shotSettings.save,
@@ -128,7 +273,7 @@ export const VideoTravelSettingsProvider: React.FC<VideoTravelSettingsProviderPr
     shotSettings.save,
     shotSettings.saveImmediate,
     projectId,
-    handlers,
+    providerHandlers,
     availableLoras,
   ]);
 
@@ -203,6 +348,18 @@ export function useFrameSettings() {
     setFrames: handlers.handleBatchVideoFramesChange,
     setSteps: handlers.handleBatchVideoStepsChange,
   }), [settings.batchVideoFrames, settings.batchVideoSteps, handlers]);
+}
+
+export function useModelSettings() {
+  const { settings, handlers } = useVideoTravelSettings();
+  return useMemo(() => ({
+    selectedModel: coerceSelectedModel(settings.selectedModel),
+    guidanceScale: settings.guidanceScale,
+    ltxHdResolution: settings.ltxHdResolution ?? true,
+    setSelectedModel: handlers.handleSelectedModelChange,
+    setGuidanceScale: handlers.handleGuidanceScaleChange,
+    setLtxHdResolution: (value: boolean) => handlers.updateField('ltxHdResolution', value),
+  }), [settings.selectedModel, settings.guidanceScale, settings.ltxHdResolution, handlers]);
 }
 
 /**

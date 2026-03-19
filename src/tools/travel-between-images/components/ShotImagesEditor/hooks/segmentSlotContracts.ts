@@ -5,6 +5,9 @@ import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { SegmentSlotModeData } from '@/domains/media-lightbox/types';
 import type { StructureGuidanceConfig } from '@/shared/lib/tasks/travelBetweenImages';
 import type { StructureVideoCollectionHandlers } from '@/tools/travel-between-images/types/mediaHandlers';
+import type { TravelGuidance } from '@/shared/lib/tasks/travelBetweenImages';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 
 export type SegmentSlotGenerationMode = 'batch' | 'timeline' | 'by-pair';
 
@@ -20,7 +23,16 @@ export interface UseSegmentSlotModeResolvedProps {
   defaultNegativePrompt: string;
   resolvedProjectResolution?: string;
   structureGuidance?: StructureGuidanceConfig;
+  travelGuidanceByModel?: Partial<Record<SelectedModel, TravelGuidance | null>>;
   structureVideos?: StructureVideoCollectionHandlers['structureVideos'];
+  structureVideoDefaultsByModel?: Partial<Record<SelectedModel, {
+    mode?: TravelGuidanceMode;
+    motionStrength: number;
+    treatment: 'adjust' | 'clip';
+    uni3cEndPercent: number;
+    cannyIntensity?: number;
+    depthContrast?: number;
+  }>>;
   onAddStructureVideo?: StructureVideoCollectionHandlers['onAddStructureVideo'];
   onUpdateStructureVideo?: StructureVideoCollectionHandlers['onUpdateStructureVideo'];
   onRemoveStructureVideo?: StructureVideoCollectionHandlers['onRemoveStructureVideo'];

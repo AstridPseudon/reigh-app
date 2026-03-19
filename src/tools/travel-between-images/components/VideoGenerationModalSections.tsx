@@ -5,8 +5,9 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { BatchSettingsForm } from '@/tools/travel-between-images/components/BatchSettingsForm';
 import { MotionControl } from '@/tools/travel-between-images/components/MotionControl';
 import { PanelSectionHeader } from '@/tools/travel-between-images/components/shared/PanelSectionHeader';
-import { DEFAULT_PHASE_CONFIG, type VideoTravelSettings } from '@/tools/travel-between-images/settings';
+import { DEFAULT_PHASE_CONFIG, coerceSelectedModel, type VideoTravelSettings } from '@/tools/travel-between-images/settings';
 import type { ActiveLora, LoraModel } from '@/domains/lora/types/lora';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 import type { Project } from '@/types/project';
 
 interface PositionedImagePreview {
@@ -126,6 +127,7 @@ interface VideoGenerationModalFormContentProps {
   onRandomSeedChange: (value: boolean) => void;
   imageCount: number;
   hasStructureVideo: boolean;
+  guidanceKind?: TravelGuidanceMode;
   validPresetId: string | undefined;
   status: 'idle' | 'loading' | 'ready' | 'saving' | 'error';
   onOpenLoraModal: () => void;
@@ -147,6 +149,7 @@ export function VideoGenerationModalFormContent({
   onRandomSeedChange,
   imageCount,
   hasStructureVideo,
+  guidanceKind,
   validPresetId,
   status,
   onOpenLoraModal,
@@ -154,18 +157,23 @@ export function VideoGenerationModalFormContent({
   onLoraStrengthChange,
   onAddTriggerWord,
 }: VideoGenerationModalFormContentProps): React.ReactElement {
+  const selectedModel = coerceSelectedModel(settings.selectedModel);
+
   return (
     <div className="space-y-6 pb-4">
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="lg:w-1/2">
           <PanelSectionHeader title="Settings" theme="orange" />
           <BatchSettingsForm
+            selectedModel={selectedModel}
             batchVideoPrompt={settings.prompt || ''}
             onBatchVideoPromptChange={(v) => updateField('prompt', v)}
             batchVideoFrames={settings.batchVideoFrames || 61}
             onBatchVideoFramesChange={(v) => updateField('batchVideoFrames', v)}
             batchVideoSteps={settings.batchVideoSteps || 6}
             onBatchVideoStepsChange={(v) => updateField('batchVideoSteps', v)}
+            guidanceScale={settings.guidanceScale}
+            onGuidanceScaleChange={(v) => updateField('guidanceScale', v)}
             dimensionSource={settings.dimensionSource || 'firstImage'}
             onDimensionSourceChange={(v) => updateField('dimensionSource', v)}
             customWidth={settings.customWidth}
@@ -185,12 +193,14 @@ export function VideoGenerationModalFormContent({
             onRandomSeedChange={onRandomSeedChange}
             turboMode={settings.turboMode || false}
             onTurboModeChange={(v) => updateField('turboMode', v)}
+            smoothContinuations={settings.smoothContinuations || false}
             amountOfMotion={settings.amountOfMotion || 50}
             onAmountOfMotionChange={(v) => updateField('amountOfMotion', v)}
             imageCount={imageCount}
             enhancePrompt={settings.enhancePrompt}
             onEnhancePromptChange={(v) => updateField('enhancePrompt', v)}
             advancedMode={(settings.motionMode || 'basic') === 'advanced'}
+            generationTypeMode={settings.generationTypeMode || 'i2v'}
             phaseConfig={settings.phaseConfig || DEFAULT_PHASE_CONFIG}
             onPhaseConfigChange={(v) => updateField('phaseConfig', v)}
             selectedPhasePresetId={validPresetId}
@@ -216,9 +226,11 @@ export function VideoGenerationModalFormContent({
                 updateField('motionMode', v);
                 updateField('advancedMode', v === 'advanced');
               },
+              selectedModel,
               generationTypeMode: settings.generationTypeMode || 'i2v',
               onGenerationTypeModeChange: (v) => updateField('generationTypeMode', v),
               hasStructureVideo,
+              guidanceKind,
             }}
             lora={{
               selectedLoras,

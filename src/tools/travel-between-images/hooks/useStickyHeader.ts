@@ -33,9 +33,7 @@ export const useStickyHeader = ({
   const [headerBounds, setHeaderBounds] = useState({ left: 0, width: 0 });
   const [stableBounds, setStableBounds] = useState({ left: 0, width: 0 });
 
-  useEffect(() => {
-    isStickyRef.current = isSticky;
-  }, [isSticky]);
+  // No ref-sync effect needed: attachRafStickyObserver manages isStickyRef.current directly
 
   const updateHeaderBounds = useCallback(() => {
     const containerEl = headerRef.current;

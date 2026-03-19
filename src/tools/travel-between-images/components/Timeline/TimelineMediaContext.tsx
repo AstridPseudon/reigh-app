@@ -17,6 +17,8 @@ export interface TimelineMediaContextValue extends StructureVideoCollectionHandl
   audioUrl?: string | null;
   audioMetadata?: { duration: number; name?: string } | null;
   onAudioChange?: OnAudioChange;
+  /** Model-specific FPS for frame↔seconds conversions on the timeline. */
+  timelineFps: number;
 }
 
 const TimelineMediaContext = createContext<TimelineMediaContextValue | null>(null);

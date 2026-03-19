@@ -3,18 +3,20 @@ import { ArrowLeftRight, Settings, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Switch } from '@/shared/components/ui/switch';
-import { Slider } from '@/shared/components/ui/slider';
 
 import {
   usePromptSettings,
   useMotionSettings,
   useFrameSettings,
+  useModelSettings,
   usePhaseConfigSettings,
   useGenerationModeSettings,
   useLoraSettings,
   useSettingsSave,
   useVideoTravelSettings,
 } from '@/tools/travel-between-images/providers';
+import { getModelSpec, type SelectedModel } from '@/tools/travel-between-images/settings';
+import { TravelGuidanceEditor } from '@/shared/components/travel/TravelGuidanceEditor';
 
 import { useShotSettingsContext } from '../../ShotSettingsContext';
 
@@ -63,6 +65,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
   const promptSettings = usePromptSettings();
   const motionSettings = useMotionSettings();
   const frameSettings = useFrameSettings();
+  const modelSettings = useModelSettings();
   const phaseConfigSettings = usePhaseConfigSettings();
   const generationModeSettings = useGenerationModeSettings();
   const loraSettingsFromContext = useLoraSettings();
@@ -72,6 +75,20 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
   const advancedMode = motionSettings.motionMode === 'advanced';
   const stitchAfterGenerate = joinState.joinSettings.settings.stitchAfterGenerate ?? false;
   const effectiveGenerationMode = generationModeSettings.generationMode;
+  const modelSpec = getModelSpec(modelSettings.selectedModel);
+  const ltxSelected = modelSpec.modelFamily === 'ltx';
+  const fullLtxSelected = modelSpec.id === 'ltx-2.3';
+  const handlePrimaryModelChange = (family: 'wan' | 'ltx') => {
+    if (family === 'wan') {
+      modelSettings.setSelectedModel('wan-2.2');
+      return;
+    }
+
+    const nextLtxModel: SelectedModel = ltxSelected
+      ? modelSettings.selectedModel
+      : 'ltx-2.3-fast';
+    modelSettings.setSelectedModel(nextLtxModel);
+  };
   const joinStitchFormProps = buildJoinClipsFormProps({
     joinState,
     availableLoras,
@@ -85,13 +102,56 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
         {/* Left Column: Main Settings */}
         <div className="lg:w-1/2 order-2 lg:order-1">
           <PanelSectionHeader title="Settings" theme="orange" />
+          <div className="mb-4">
+            <TravelGuidanceEditor
+              selectedModel={modelSettings.selectedModel}
+              onSelectedModelChange={(nextModel) => {
+                if (nextModel === 'wan-2.2') {
+                  handlePrimaryModelChange('wan');
+                  return;
+                }
+                if (getModelSpec(nextModel).modelFamily !== 'ltx') {
+                  return;
+                }
+                if (!ltxSelected) {
+                  handlePrimaryModelChange('ltx');
+                  return;
+                }
+                modelSettings.setSelectedModel(nextModel);
+              }}
+              hasStructureVideo={!!structureVideo.structureVideoPath}
+              showGuidanceControls={false}
+              guidanceScale={modelSettings.guidanceScale}
+              onGuidanceScaleChange={modelSettings.setGuidanceScale}
+            />
+          </div>
+
+          {ltxSelected && (
+            <div className="flex items-center justify-between mb-4 px-1">
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor="ltx-hd-toggle" className="text-sm font-medium">HD resolution</Label>
+                <span className="text-xs text-muted-foreground">
+                  LTX generates at 720p+ instead of ~500p for better quality
+                </span>
+              </div>
+              <Switch
+                id="ltx-hd-toggle"
+                checked={modelSettings.ltxHdResolution}
+                onCheckedChange={modelSettings.setLtxHdResolution}
+              />
+            </div>
+          )}
+
           <BatchSettingsForm
+            selectedModel={modelSettings.selectedModel}
             batchVideoPrompt={promptSettings.prompt}
             onBatchVideoPromptChange={generationHandlers.handleBatchVideoPromptChangeWithClear}
             batchVideoFrames={frameSettings.batchVideoFrames}
             onBatchVideoFramesChange={frameSettings.setFrames}
             batchVideoSteps={frameSettings.batchVideoSteps}
             onBatchVideoStepsChange={generationHandlers.handleStepsChange}
+            guidanceScale={modelSettings.guidanceScale}
+            onGuidanceScaleChange={modelSettings.setGuidanceScale}
             dimensionSource={dimensions.dimensionSource ?? 'project'}
             onDimensionSourceChange={dimensions.onDimensionSourceChange ?? (() => {})}
             customWidth={dimensions.customWidth}
@@ -113,6 +173,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             turboMode={motionSettings.turboMode}
             onTurboModeChange={motionSettings.setTurboMode}
             smoothContinuations={motionSettings.smoothContinuations}
+            generationTypeMode={phaseConfigSettings.generationTypeMode}
             amountOfMotion={motionSettings.amountOfMotion}
             onAmountOfMotionChange={motionSettings.setAmountOfMotion}
             imageCount={simpleFilteredImages.length}
@@ -138,73 +199,34 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
         <div className="lg:w-1/2 order-1 lg:order-2">
           <PanelSectionHeader title="Motion" theme="purple" />
 
-          {/* Camera Guidance - shown only when structure video is present */}
           {structureVideo.structureVideoPath && (
             <div className="mb-6">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">Camera Guidance:</h4>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm">Strength:</Label>
-                      <span className="text-sm font-medium">{structureVideo.structureVideoMotionStrength.toFixed(1)}x</span>
-                    </div>
-                    <Slider
-                      value={structureVideo.structureVideoMotionStrength}
-                      onValueChange={(value) => {
-                        const nextValue = Array.isArray(value) ? value[0] ?? structureVideo.structureVideoMotionStrength : value;
-                        structureVideoHandlers.handleStructureVideoMotionStrengthChange(nextValue);
-                      }}
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>0x</span>
-                      <span>1x</span>
-                      <span>2x</span>
-                    </div>
-                  </div>
-                  {structureVideo.structureVideoType === 'uni3c' && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">End:</Label>
-                        <span className="text-sm font-medium">{(structureVideo.structureVideoUni3cEndPercent * 100).toFixed(0)}%</span>
-                      </div>
-                      <Slider
-                        value={structureVideo.structureVideoUni3cEndPercent}
-                        onValueChange={(value) => {
-                          const nextValue = Array.isArray(value) ? value[0] ?? structureVideo.structureVideoUni3cEndPercent : value;
-                          structureVideoHandlers.handleUni3cEndPercentChange(nextValue);
-                        }}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0%</span>
-                        <span>50%</span>
-                        <span>100%</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Camera Guidance</h4>
+              <TravelGuidanceEditor
+                selectedModel={modelSettings.selectedModel}
+                hasStructureVideo={!!structureVideo.structureVideoPath}
+                guidanceMode={structureVideo.structureVideoType}
+                onGuidanceModeChange={structureVideoHandlers.handleStructureTypeChangeFromMotionControl}
+                guidanceStrength={structureVideo.structureVideoMotionStrength}
+                onGuidanceStrengthChange={structureVideoHandlers.handleStructureVideoMotionStrengthChange}
+                guidanceUni3cEndPercent={structureVideo.structureVideoUni3cEndPercent}
+                onGuidanceUni3cEndPercentChange={structureVideoHandlers.handleUni3cEndPercentChange}
+              />
             </div>
           )}
 
-          {structureVideo.structureVideoPath && (
+          {structureVideo.structureVideoPath && !fullLtxSelected && (
             <h4 className="text-sm font-medium text-muted-foreground mb-3">Model Guidance:</h4>
           )}
           <MotionControl
             mode={{
               motionMode: motionSettings.motionMode || 'basic',
               onMotionModeChange: motionSettings.setMotionMode,
+              selectedModel: modelSettings.selectedModel,
               generationTypeMode: phaseConfigSettings.generationTypeMode,
               onGenerationTypeModeChange: phaseConfigSettings.setGenerationTypeMode,
               hasStructureVideo: !!structureVideo.structureVideoPath,
+              guidanceKind: structureVideo.structureVideoType || undefined,
             }}
             lora={{
               selectedLoras: loraManager.selectedLoras,

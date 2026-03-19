@@ -5,6 +5,8 @@ import type {
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 
 export interface TaskData {
   params: Record<string, unknown>;
@@ -28,6 +30,8 @@ export interface ExtractedGenerationSettings {
   segmentFramesExpanded?: number[];
   context?: number;
   model?: string;
+  guidanceScale?: number;
+  selectedModel?: SelectedModel;
 }
 
 export interface ExtractedImageSettings {
@@ -37,6 +41,7 @@ export interface ExtractedImageSettings {
 export interface ExtractedModeSettings {
   generationMode?: 'batch' | 'timeline' | 'by-pair';
   generationTypeMode?: 'i2v' | 'vace';
+  smoothContinuations?: boolean;
   advancedMode?: boolean;
   motionMode?: 'basic' | 'presets' | 'advanced';
 }
@@ -89,6 +94,7 @@ export interface ApplyResult {
 export interface ApplyModelContext {
   steerableMotionSettings: { model_name: string };
   onSteerableMotionSettingsChange: (settings: { model_name?: string; negative_prompt?: string }) => void;
+  onSelectedModelChange?: (model: SelectedModel) => void;
 }
 
 export interface ApplyPromptContext {
@@ -100,6 +106,7 @@ export interface ApplyPromptContext {
 export interface ApplyGenerationContext {
   onBatchVideoFramesChange: (frames: number) => void;
   onBatchVideoStepsChange: (steps: number) => void;
+  onGuidanceScaleChange?: (guidanceScale: number) => void;
 }
 
 export interface ApplyModeContext {
@@ -107,6 +114,7 @@ export interface ApplyModeContext {
   onAdvancedModeChange: (advanced: boolean) => void;
   onMotionModeChange?: (mode: 'basic' | 'advanced') => void;
   onGenerationTypeModeChange?: (mode: 'i2v' | 'vace') => void;
+  onSmoothContinuationsChange?: (enabled: boolean) => void;
 }
 
 export interface ApplyAdvancedContext {
@@ -132,7 +140,7 @@ export interface ApplyStructureVideoContext {
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
+    structureType: TravelGuidanceMode,
     resourceId?: string,
   ) => void;
 }

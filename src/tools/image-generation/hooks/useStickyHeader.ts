@@ -19,9 +19,7 @@ export function useStickyHeader({ containerRef, isMobile, isFormExpanded }: UseS
   const [isSticky, setIsSticky] = useState(false);
   const isStickyRef = useRef(isSticky);
 
-  useEffect(() => {
-    isStickyRef.current = isSticky;
-  }, [isSticky]);
+  // No ref-sync effect needed: attachRafStickyObserver manages isStickyRef.current directly
 
   useEffect(() => {
     const containerEl = containerRef.current;

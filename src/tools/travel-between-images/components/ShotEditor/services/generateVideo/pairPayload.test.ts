@@ -96,7 +96,7 @@ describe('pairPayload', () => {
             amountOfMotion: 80,
             motionMode: 'advanced',
             phaseConfig: advancedPhaseConfig,
-            loras: [{ path: '/lora-1', strength: 0.6 }],
+            loras: [{ id: 'lora-1', name: 'LoRA 1', path: '/lora-1', strength: 0.6 }],
           },
         },
       }),
@@ -144,6 +144,45 @@ describe('pairPayload', () => {
         motion_mode: 'advanced',
       },
       null,
+    ]);
+  });
+
+  it('serializes guidance overrides from canonical segment override fields', () => {
+    const rows = [
+      makeShotGenRow({
+        metadata: {
+          segmentOverrides: {
+            guidanceStrength: 0.7,
+            guidanceTreatment: 'clip',
+            guidanceUni3cEndPercent: 0.8,
+            guidanceCannyIntensity: 1.1,
+            guidanceDepthContrast: 0.9,
+          },
+        },
+      }),
+      makeShotGenRow({
+        id: 'sg-2',
+        generation_id: 'gen-2',
+        timeline_frame: 61,
+        generation: {
+          id: 'gen-2',
+          location: 'https://example.com/img-2.png',
+          type: 'image',
+          primary_variant_id: 'variant-2',
+        },
+      }),
+    ];
+
+    const result = buildTimelinePairConfig(rows, 61, 'neg');
+
+    expect(result.pairMotionSettingsArray).toEqual([
+      {
+        structure_motion_strength: 0.7,
+        structure_treatment: 'clip',
+        uni3c_end_percent: 0.8,
+        structure_canny_intensity: 1.1,
+        structure_depth_contrast: 0.9,
+      },
     ]);
   });
 

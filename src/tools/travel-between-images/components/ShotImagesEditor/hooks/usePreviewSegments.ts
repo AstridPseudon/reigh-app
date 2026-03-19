@@ -28,6 +28,8 @@ interface UsePreviewSegmentsProps {
   shotGenerations: GenerationRow[];
   /** Segment slots with video data */
   segmentSlots: SegmentSlot[];
+  /** Model-specific FPS for frame↔seconds conversions. */
+  timelineFps: number;
 }
 
 export function usePreviewSegments({
@@ -35,6 +37,7 @@ export function usePreviewSegments({
   batchVideoFrames,
   shotGenerations,
   segmentSlots,
+  timelineFps,
 }: UsePreviewSegmentsProps): UsePreviewSegmentsReturn {
   const [isPreviewTogetherOpen, setIsPreviewTogetherOpen] = useState(false);
 
@@ -55,8 +58,6 @@ export function usePreviewSegments({
     // Number of pairs = number of images - 1 (each pair is consecutive images)
     const numPairs = Math.max(0, sortedImages.length - 1);
 
-    // FPS for calculating duration from frames
-    const FPS = 16;
     const isBatchMode = generationMode !== 'timeline';
 
     // Build segments from ALL image pairs, enriching with video data from slots if available
@@ -72,8 +73,8 @@ export function usePreviewSegments({
 
       // Calculate duration - in batch mode use uniform batchVideoFrames, otherwise from timeline positions
       const durationFromFrames = isBatchMode
-        ? batchVideoFrames / FPS  // Batch mode: uniform duration for all pairs
-        : (endFrame - startFrame) / FPS;  // Timeline mode: from actual frame positions
+        ? batchVideoFrames / timelineFps  // Batch mode: uniform duration for all pairs
+        : (endFrame - startFrame) / timelineFps;  // Timeline mode: from actual frame positions
 
       // Check if there's a slot with video for this pair
       const slot = slotsByIndex.get(pairIndex);
@@ -105,7 +106,7 @@ export function usePreviewSegments({
     }
 
     return segments;
-  }, [segmentSlots, shotGenerations, generationMode, batchVideoFrames]);
+  }, [segmentSlots, shotGenerations, generationMode, batchVideoFrames, timelineFps]);
 
   // Filter to just segments we can actually preview (have video OR have both images)
   const previewableSegments = useMemo(() => {

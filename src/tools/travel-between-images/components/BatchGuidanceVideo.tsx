@@ -7,6 +7,7 @@ import { Video, X, Images } from 'lucide-react';
 import { ResourceBrowserModalBase } from '@/features/resources/components/ResourceBrowserModalBase';
 import { useBatchGuidanceVideoController } from './hooks/useBatchGuidanceVideoController';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 
 interface BatchGuidanceVideoProps {
   shotId: string;
@@ -15,11 +16,11 @@ interface BatchGuidanceVideoProps {
   videoMetadata: VideoMetadata | null;
   treatment: 'adjust' | 'clip';
   motionStrength: number;
-  structureType?: 'uni3c' | 'flow' | 'canny' | 'depth';
+  structureType?: TravelGuidanceMode;
   onVideoUploaded: (videoUrl: string | null, metadata: VideoMetadata | null, resourceId?: string) => void;
   onTreatmentChange: (treatment: 'adjust' | 'clip') => void;
   onMotionStrengthChange: (strength: number) => void;
-  onStructureTypeChange?: (type: 'uni3c' | 'flow' | 'canny' | 'depth') => void;
+  onStructureTypeChange?: (type: TravelGuidanceMode) => void;
   uni3cEndPercent?: number;
   onUni3cEndPercentChange?: (value: number) => void;
   imageCount?: number;

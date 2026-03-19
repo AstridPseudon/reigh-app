@@ -36,10 +36,12 @@ export function useVideoMetadata(
   // Extract metadata from URL if not provided
   useEffect(() => {
     if (!providedMetadata && !isExtracting && !extractedMetadata) {
+      let cancelled = false;
       setIsExtracting(true);
 
       extractVideoMetadataFromUrl(videoUrl)
         .then((meta) => {
+          if (cancelled) return;
           setExtractedMetadata(meta);
 
           if (onExtracted) {
@@ -47,11 +49,14 @@ export function useVideoMetadata(
           }
         })
         .catch((error) => {
+          if (cancelled) return;
           normalizeAndPresentError(error, { context: 'useVideoMetadata', showToast: false });
         })
         .finally(() => {
-          setIsExtracting(false);
+          if (!cancelled) setIsExtracting(false);
         });
+
+      return () => { cancelled = true; };
     }
   }, [videoUrl, providedMetadata, isExtracting, extractedMetadata, onExtracted]);
 

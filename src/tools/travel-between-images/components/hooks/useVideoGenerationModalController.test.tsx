@@ -157,6 +157,7 @@ describe('useVideoGenerationModalController', () => {
     mocks.isVideoGeneration.mockImplementation((generation: { type?: string | null }) => generation.type === 'video');
     mocks.findClosestAspectRatio.mockReturnValue('16:9');
     mocks.resolveTravelStructureState.mockReturnValue({
+      travelGuidance: { kind: 'none' },
       structureGuidance: { mode: 'none' },
       structureVideos: [],
     });
@@ -188,6 +189,7 @@ describe('useVideoGenerationModalController', () => {
     expect(result.current.status).toBe('ready');
     expect(result.current.isDisabled).toBe(false);
     expect(result.current.hasStructureVideo).toBe(false);
+    expect(result.current.guidanceKind).toBeUndefined();
     expect(result.current.accelerated).toBe(false);
     expect(result.current.randomSeed).toBe(true);
     expect(result.current.validPresetId).toBe(BUILTIN_DEFAULT_I2V_ID);
@@ -222,6 +224,27 @@ describe('useVideoGenerationModalController', () => {
       expect.objectContaining({ id: 'shot-1' }),
     );
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('derives guidanceKind from canonical travel guidance state', () => {
+    mocks.resolveTravelStructureState.mockReturnValueOnce({
+      travelGuidance: {
+        kind: 'vace',
+        mode: 'depth',
+        videos: [{ path: '/guide.mp4' }],
+      },
+      structureGuidance: { mode: 'none' },
+      structureVideos: [{ path: '/guide.mp4' }],
+    });
+
+    const { result } = renderHook(() => useVideoGenerationModalController({
+      isOpen: true,
+      onClose: vi.fn(),
+      shot: { id: 'shot-1' } as never,
+    }));
+
+    expect(result.current.hasStructureVideo).toBe(true);
+    expect(result.current.guidanceKind).toBe('depth');
   });
 
   it('queues generation successfully and closes after the success timeout', async () => {

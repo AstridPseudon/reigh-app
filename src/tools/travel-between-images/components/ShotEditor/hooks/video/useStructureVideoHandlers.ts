@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import type { StructureVideoConfigWithMetadata } from '@/shared/lib/tasks/travelBetweenImages';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 import type { UseStructureVideoReturn } from './useStructureVideo';
 
 interface UseStructureVideoHandlersOptions {
@@ -24,13 +25,13 @@ interface UseStructureVideoHandlersOptions {
 interface UseStructureVideoHandlersReturn {
   handleUni3cEndPercentChange: (value: number) => void;
   handleStructureVideoMotionStrengthChange: (strength: number) => void;
-  handleStructureTypeChangeFromMotionControl: (type: 'uni3c' | 'flow' | 'canny' | 'depth') => void;
+  handleStructureTypeChangeFromMotionControl: (type: TravelGuidanceMode) => void;
   handleStructureVideoInputChange: (
     videoPath: string | null,
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
+    structureType: TravelGuidanceMode,
     resourceId?: string
   ) => void;
 }
@@ -45,8 +46,10 @@ export function useStructureVideoHandlers({
   generationTypeMode,
   setGenerationTypeMode,
 }: UseStructureVideoHandlersOptions): UseStructureVideoHandlersReturn {
-  const switchModeForStructureType = useCallback((type: 'uni3c' | 'flow' | 'canny' | 'depth') => {
-    const targetMode = type === 'uni3c' ? 'i2v' : 'vace';
+  const switchModeForStructureType = useCallback((type: TravelGuidanceMode) => {
+    const targetMode = type === 'flow' || type === 'canny' || type === 'depth' || type === 'raw'
+      ? 'vace'
+      : 'i2v';
     if (generationTypeMode !== targetMode) {
       setGenerationTypeMode(targetMode);
     }
@@ -59,12 +62,12 @@ export function useStructureVideoHandlers({
 
   const handleStructureVideoMotionStrengthChange = useCallback((strength: number) => {
     if (structureVideos.length === 0) return;
-    updateStructureGuidanceControls({ motionStrength: strength });
+    updateStructureGuidanceControls({ strength });
   }, [structureVideos.length, updateStructureGuidanceControls]);
 
-  const handleStructureTypeChangeFromMotionControl = useCallback((type: 'uni3c' | 'flow' | 'canny' | 'depth') => {
+  const handleStructureTypeChangeFromMotionControl = useCallback((type: TravelGuidanceMode) => {
     if (structureVideos.length > 0) {
-      updateStructureGuidanceControls({ structureType: type });
+      updateStructureGuidanceControls({ mode: type });
     }
     switchModeForStructureType(type);
   }, [structureVideos.length, switchModeForStructureType, updateStructureGuidanceControls]);
@@ -74,7 +77,7 @@ export function useStructureVideoHandlers({
     metadata: VideoMetadata | null,
     treatment: 'adjust' | 'clip',
     motionStrength: number,
-    structureType: 'uni3c' | 'flow' | 'canny' | 'depth',
+    structureType: TravelGuidanceMode,
     resourceId?: string
   ) => {
     if (!videoPath) {
@@ -102,8 +105,8 @@ export function useStructureVideoHandlers({
     }
 
     updateStructureGuidanceControls({
-      motionStrength,
-      structureType,
+      strength: motionStrength,
+      mode: structureType,
       ...(structureType === 'uni3c' ? { uni3cEndPercent: structureVideoUni3cEndPercent } : {}),
     });
     switchModeForStructureType(structureType);

@@ -3,6 +3,8 @@ import { ShotImagesEditor } from '../../ShotImagesEditor';
 import { ImageManagerSkeleton } from '../ui/Skeleton';
 import { useShotSettingsContext } from '../ShotSettingsContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
+import { useModelSettings } from '@/tools/travel-between-images/providers';
+import { MODEL_DEFAULTS } from '@/tools/travel-between-images/settings';
 
 interface TimelineSectionProps {
   timelineSectionRef?: (node: HTMLDivElement | null) => void;
@@ -68,6 +70,8 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
     shotManagement,
   } = useShotSettingsContext();
   const { isGenerationsPaneLocked } = usePanes();
+  const { selectedModel } = useModelSettings();
+  const timelineFps = MODEL_DEFAULTS[selectedModel]?.fps ?? 16;
 
   return (
     <div ref={timelineSectionRef} className="flex flex-col w-full gap-4">
@@ -113,10 +117,13 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
           defaultNegativePrompt,
           onDefaultNegativePromptChange,
           structureGuidance: structureVideo.structureGuidance,
+          travelGuidanceByModel: structureVideo.travelGuidanceByModel,
           structureVideos: structureVideo.structureVideos,
+          structureVideoDefaultsByModel: structureVideo.structureVideoDefaultsByModel,
           isStructureVideoLoading: structureVideo.isLoading,
           audioUrl: audio.audioUrl,
           audioMetadata: audio.audioMetadata,
+          timelineFps,
         }}
         editActions={{
           onImageReorder: imageHandlers.onReorder,

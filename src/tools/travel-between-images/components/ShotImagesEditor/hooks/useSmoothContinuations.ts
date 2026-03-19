@@ -29,12 +29,17 @@ export function useSmoothContinuations({
 }: UseSmoothContinuationsProps): void {
   // Track previous smoothContinuations value to detect when it's enabled
   const prevSmoothContinuationsRef = useRef(smoothContinuations);
+  const prevMaxFrameLimitRef = useRef(maxFrameLimit);
 
   useEffect(() => {
     const wasEnabled = !prevSmoothContinuationsRef.current && smoothContinuations;
-    prevSmoothContinuationsRef.current = smoothContinuations;
+    const maxFrameLimitChangedWhileEnabled =
+      smoothContinuations && prevMaxFrameLimitRef.current !== maxFrameLimit;
 
-    if (!wasEnabled || readOnly) return;
+    prevSmoothContinuationsRef.current = smoothContinuations;
+    prevMaxFrameLimitRef.current = maxFrameLimit;
+
+    if ((!wasEnabled && !maxFrameLimitChangedWhileEnabled) || readOnly) return;
 
     // Get positioned images sorted by frame
     const positionedImages = images

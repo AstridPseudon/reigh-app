@@ -244,10 +244,12 @@ export function useSegmentSlotPresentationAdapter({
       projectResolution: props.resolvedProjectResolution,
       structureVideoType: coveringVideo ? primaryStructureVideo.structureType : null,
       structureVideoDefaults: coveringVideo ? {
+        mode: primaryStructureVideo.structureType,
         motionStrength: primaryStructureVideo.motionStrength,
         treatment: coveringVideo.treatment ?? primaryStructureVideo.treatment,
         uni3cEndPercent: primaryStructureVideo.uni3cEndPercent,
       } : undefined,
+      structureVideoDefaultsByModel: props.structureVideoDefaultsByModel,
       structureVideoUrl: coveringVideo?.path,
       structureVideoFrameRange: (props.effectiveGenerationMode === 'timeline' || coveringVideo) ? {
         segmentStart: pairStartFrame,

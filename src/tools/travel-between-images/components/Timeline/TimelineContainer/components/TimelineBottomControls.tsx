@@ -4,6 +4,7 @@ import { Label } from '@/shared/components/ui/primitives/label';
 import { Slider } from '@/shared/components/ui/slider';
 import { Plus } from 'lucide-react';
 import { framesToSeconds } from '@/shared/lib/media/videoUtils';
+import { useTimelineMedia } from '../../TimelineMediaContext';
 
 export interface TimelineBottomControlsProps {
   resetGap: number;
@@ -37,6 +38,7 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
   pushMode,
   showDragHint = false,
 }) => {
+  const { timelineFps } = useTimelineMedia();
   return (
     <div
       className="absolute bottom-4 left-0 z-30 flex items-center justify-between pointer-events-none px-8"
@@ -52,7 +54,7 @@ export const TimelineBottomControls: React.FC<TimelineBottomControlsProps> = ({
       >
         {/* Gap to reset */}
         <div className="flex items-center gap-1.5">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">Gap: {framesToSeconds(resetGap)}</Label>
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Gap: {framesToSeconds(resetGap, timelineFps)}</Label>
           <Slider
             value={resetGap}
             onValueChange={readOnly ? undefined : (value) => setResetGap(value)}

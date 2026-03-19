@@ -5,9 +5,12 @@
 import type { GenerationRow, Shot } from '@/domains/generation/types';
 import type {
   StructureGuidanceConfig,
+  TravelGuidance,
   StructureVideoConfigWithMetadata,
 } from '@/shared/lib/tasks/travelBetweenImages';
 import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 
 // =============================================================================
 // Main Component Props
@@ -50,10 +53,21 @@ interface ShotImagesEditorImageState {
 
   // Canonical structure video contract
   structureGuidance?: StructureGuidanceConfig;
+  travelGuidanceByModel?: Partial<Record<SelectedModel, TravelGuidance | null>>;
   structureVideos?: StructureVideoConfigWithMetadata[];
+  structureVideoDefaultsByModel?: Partial<Record<SelectedModel, {
+    mode?: TravelGuidanceMode;
+    motionStrength: number;
+    treatment: 'adjust' | 'clip';
+    uni3cEndPercent: number;
+    cannyIntensity?: number;
+    depthContrast?: number;
+  }>>;
   isStructureVideoLoading?: boolean;
   audioUrl?: string | null;
   audioMetadata?: { duration: number; name?: string } | null;
+  /** Model-specific FPS for frame↔seconds conversions on the timeline. */
+  timelineFps?: number;
 }
 
 interface ShotImagesEditorEditActions {

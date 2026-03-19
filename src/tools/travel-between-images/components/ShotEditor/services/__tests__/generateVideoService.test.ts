@@ -1409,6 +1409,7 @@ describe('generateVideoService', () => {
         pairMotionSettingsArray: [null],
       } as PairConfigPayload,
       actualModelName: 'wan_2_2_i2v_lightning_baseline_2_2_2',
+      selectedModel: 'wan-2.2' as const,
       generationTypeMode: 'i2v' as const,
       motionParams: {
         amountOfMotion: 50,
@@ -1444,6 +1445,34 @@ describe('generateVideoService', () => {
       expect(result.base_prompts).toEqual(['']);
       expect(result.segment_frames).toEqual([61]);
       expect(result.frame_overlap).toEqual([10]);
+    });
+
+    it('serializes ltx requests without wan motion fields', () => {
+      const result = _buildTravelRequestBodyV2({
+        ...baseParams,
+        actualModelName: 'ltx2_22B',
+        selectedModel: 'ltx-2.3',
+        generationTypeMode: 'vace',
+        pairConfig: {
+          ...baseParams.pairConfig,
+          pairPhaseConfigsArray: [makePhaseConfig()],
+        },
+        motionParams: {
+          ...baseParams.motionParams,
+          effectivePhaseConfig: undefined,
+          numInferenceSteps: 30,
+          guidanceScale: 3,
+        },
+      });
+
+      expect(result.model_type).toBe('i2v');
+      expect(result.num_inference_steps).toBe(30);
+      expect(result.guidance_scale).toBe(3);
+      expect(result.amount_of_motion).toBeUndefined();
+      expect(result.motion_mode).toBeUndefined();
+      expect(result.phase_config).toBeUndefined();
+      expect(result.advanced_mode).toBeUndefined();
+      expect(result.pair_phase_configs).toBeUndefined();
     });
 
     it('normalizes amountOfMotion to 0-1 scale', () => {

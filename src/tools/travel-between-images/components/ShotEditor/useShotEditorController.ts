@@ -23,6 +23,7 @@ import {
   usePromptSettings,
   useMotionSettings,
   useFrameSettings,
+  useModelSettings,
   usePhaseConfigSettings,
   useGenerationModeSettings,
   useSteerableMotionSettings,
@@ -57,6 +58,7 @@ interface ShotEditorBootstrapResult {
   promptSettings: ReturnType<typeof usePromptSettings>;
   motionSettings: ReturnType<typeof useMotionSettings>;
   frameSettings: ReturnType<typeof useFrameSettings>;
+  modelSettings: ReturnType<typeof useModelSettings>;
   phaseConfigSettings: ReturnType<typeof usePhaseConfigSettings>;
   generationModeSettings: ReturnType<typeof useGenerationModeSettings>;
   steerableMotionSettings: ReturnType<typeof useSteerableMotionSettings>;
@@ -105,6 +107,7 @@ function useShotEditorBootstrap({
   const promptSettings = usePromptSettings();
   const motionSettings = useMotionSettings();
   const frameSettings = useFrameSettings();
+  const modelSettings = useModelSettings();
   const phaseConfigSettings = usePhaseConfigSettings();
   const generationModeSettings = useGenerationModeSettings();
   const steerableMotionSettings = useSteerableMotionSettings();
@@ -144,6 +147,7 @@ function useShotEditorBootstrap({
     promptSettings,
     motionSettings,
     frameSettings,
+    modelSettings,
     phaseConfigSettings,
     generationModeSettings,
     steerableMotionSettings,
@@ -284,6 +288,7 @@ export function useShotEditorController({
     motionSettings,
     frameSettings,
     phaseConfigSettings,
+    modelSettings,
     generationModeSettings,
     steerableMotionSettings,
     loraSettings,
@@ -353,6 +358,7 @@ export function useShotEditorController({
     availableLoras: loraSettings.availableLoras,
     batchVideoPrompt: promptSettings.prompt,
     onBatchVideoPromptChange: promptSettings.setPrompt,
+    selectedModel: modelSettings.selectedModel,
   });
   const isShotLoraSettingsLoading = false;
 
@@ -369,6 +375,7 @@ export function useShotEditorController({
     actions,
     generationTypeMode: phaseConfigSettings.generationTypeMode,
     setGenerationTypeMode: phaseConfigSettings.setGenerationTypeMode,
+    selectedModel: modelSettings.selectedModel,
   });
   const { mediaEditing, joinWorkflow } = editing;
   const selectedOutputId = output.selectedOutputId;
@@ -437,6 +444,7 @@ export function useShotEditorController({
     promptSettings,
     motionSettings,
     frameSettings,
+    modelSettings,
     phaseConfigSettings,
     generationModeSettings,
     steerableMotionSettings,
@@ -478,6 +486,7 @@ export function useShotEditorController({
       model: {
         steerableMotionSettings: steerableMotionSettings.steerableMotionSettings,
         onSteerableMotionSettingsChange: steerableMotionSettings.setSteerableMotionSettings,
+        onSelectedModelChange: modelSettings.setSelectedModel,
       },
       prompts: {
         onBatchVideoPromptChange: promptSettings.setPrompt,
@@ -487,12 +496,14 @@ export function useShotEditorController({
       generation: {
         onBatchVideoFramesChange: frameSettings.setFrames,
         onBatchVideoStepsChange: frameSettings.setSteps,
+        onGuidanceScaleChange: modelSettings.setGuidanceScale,
       },
       modes: {
         onGenerationModeChange: generationModeSettings.setGenerationMode,
         onAdvancedModeChange: (advanced: boolean) => motionSettings.setMotionMode(advanced ? 'advanced' : 'basic'),
         onMotionModeChange: motionSettings.setMotionMode,
         onGenerationTypeModeChange: phaseConfigSettings.setGenerationTypeMode,
+        onSmoothContinuationsChange: motionSettings.setSmoothContinuations,
       },
       advanced: {
         onPhaseConfigChange: phaseConfigSettings.setPhaseConfig,
@@ -619,6 +630,8 @@ export function useShotEditorController({
       promptSettings,
       motionSettings,
       frameSettings,
+      modelSettings,
+      phaseConfigSettings,
       generationModeSettings,
       isPhone,
       aspectAdjustedColumns,

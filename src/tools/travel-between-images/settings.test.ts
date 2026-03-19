@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '@/shared/types/steerableMotion';
 import {
+  clampFrameCountToPolicy,
+  coerceSelectedModel,
+  getModelSpec,
   normalizeVideoTravelSettings,
+  resolveSelectedModelFromModelName,
   videoTravelSettings,
 } from './settings';
 
@@ -74,5 +78,47 @@ describe('videoTravelSettings', () => {
       shotImageIds: [],
       loras: [],
     }));
+  });
+
+  it('coerces invalid runtime model values to wan-2.2', () => {
+    expect(coerceSelectedModel('ltx-2.3')).toBe('ltx-2.3');
+    expect(coerceSelectedModel('wan-2.1')).toBe('wan-2.2');
+    expect(coerceSelectedModel({ model: 'ltx-2.3' })).toBe('wan-2.2');
+  });
+
+  it('maps worker model names back to the UI model selector ids', () => {
+    expect(resolveSelectedModelFromModelName('wan_2_2_i2v_lightning_baseline_2_2_2')).toBe('wan-2.2');
+    expect(resolveSelectedModelFromModelName('ltx2_22B')).toBe('ltx-2.3');
+    expect(resolveSelectedModelFromModelName('ltx2_22B_distilled')).toBe('ltx-2.3-fast');
+    expect(resolveSelectedModelFromModelName('unknown-model')).toBe('wan-2.2');
+  });
+
+  it('clamps frame counts to per-model continuation limits', () => {
+    expect(clampFrameCountToPolicy(97, getModelSpec('ltx-2.3'), {
+      smoothContinuations: true,
+      requestedExecutionMode: 'i2v',
+    })).toBe(97);
+
+    // Values above the SC limit get clamped
+    expect(clampFrameCountToPolicy(241, getModelSpec('ltx-2.3'), {
+      smoothContinuations: true,
+      requestedExecutionMode: 'i2v',
+    })).toBe(217);
+
+    expect(clampFrameCountToPolicy(81, getModelSpec('wan-2.2'), {
+      smoothContinuations: true,
+      requestedExecutionMode: 'vace',
+    })).toBe(77);
+
+    // WAN i2v (SVI) continuation clamps to 77
+    expect(clampFrameCountToPolicy(81, getModelSpec('wan-2.2'), {
+      smoothContinuations: true,
+      requestedExecutionMode: 'i2v',
+    })).toBe(77);
+
+    expect(clampFrameCountToPolicy(97, getModelSpec('ltx-2.3'), {
+      smoothContinuations: false,
+      requestedExecutionMode: 'i2v',
+    })).toBe(97);
   });
 });

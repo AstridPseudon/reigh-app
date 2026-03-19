@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MotionControlBasicTab } from './MotionControlBasicTab';
+import * as settingsModule from '../settings';
 
 vi.mock('@/shared/components/ui/button', () => ({
   Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
@@ -123,6 +124,8 @@ describe('MotionControlBasicTab', () => {
   ) {
     return {
       generationTypeMode: 'vace',
+      guidanceKind: undefined,
+      hasStructureVideo: false,
       smoothContinuations: true,
       onSmoothContinuationsChange: vi.fn(),
       isSelectedPresetKnown: true,
@@ -212,6 +215,29 @@ describe('MotionControlBasicTab', () => {
     expect(onSmoothContinuationsChange).toHaveBeenCalledWith(false);
   });
 
+  it('forwards guidanceKind and structure-video state into policy resolution', () => {
+    const resolveGenerationPolicySpy = vi.spyOn(settingsModule, 'resolveGenerationPolicy');
+
+    render(
+      <MotionControlBasicTab
+        {...buildProps({
+          guidanceKind: 'flow',
+          hasStructureVideo: true,
+        })}
+      />,
+    );
+
+    expect(resolveGenerationPolicySpy).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        smoothContinuations: true,
+        requestedExecutionMode: 'vace',
+        guidanceKind: 'flow',
+        hasStructureVideo: true,
+      }),
+    );
+  });
+
   it('renders the fallback selected-preset card when the preset is no longer known', () => {
     const onSwitchToAdvanced = vi.fn();
     const onOpenPresetModal = vi.fn();
@@ -231,7 +257,7 @@ describe('MotionControlBasicTab', () => {
     );
 
     expect(screen.getByTestId('selected-preset-card')).toHaveTextContent('missing-preset');
-    expect(screen.queryByLabelText('Smooth Continuations')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Smooth Continuations')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'switch-to-advanced' }));
     fireEvent.click(screen.getByRole('button', { name: 'change-preset' }));

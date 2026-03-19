@@ -10,7 +10,7 @@ import { useShotSettings } from '../../hooks/settings/useShotSettings';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '@/shared/types/steerableMotion';
-import { DEFAULT_PHASE_CONFIG } from '@/tools/travel-between-images/settings';
+import { DEFAULT_PHASE_CONFIG, coerceSelectedModel } from '@/tools/travel-between-images/settings';
 import { usePublicLoras } from '@/features/resources/hooks/useResources';
 import { useShotImages } from '@/shared/hooks/shots/useShotImages';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
@@ -21,6 +21,8 @@ import {
   DEFAULT_STRUCTURE_VIDEO,
   resolveTravelStructureState,
 } from '@/shared/lib/tasks/travelBetweenImages';
+import type { TravelGuidance } from '@/shared/lib/tasks/travelBetweenImages/taskTypes';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { buildBasicModeGenerationRequest as buildBasicModePhaseConfig } from '../ShotEditor/services/generateVideo/modelPhase';
 import { generateVideo } from '../ShotEditor/services/generateVideoService';
@@ -37,6 +39,18 @@ const knownPresetIds = [
 ];
 
 const clearAllEnhancedPrompts = async () => {};
+
+function resolveGuidanceKind(travelGuidance?: TravelGuidance): TravelGuidanceMode | undefined {
+  if (!travelGuidance || travelGuidance.kind === 'none') {
+    return undefined;
+  }
+
+  if (travelGuidance.kind === 'uni3c') {
+    return 'uni3c';
+  }
+
+  return travelGuidance.mode;
+}
 
 function resolveEffectiveAspectRatio(
   projectAspectRatio: string,
@@ -263,6 +277,10 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
     [settings],
   );
   const hasStructureVideo = structureState.structureVideos.length > 0;
+  const guidanceKind = useMemo(
+    () => resolveGuidanceKind(structureState.travelGuidance),
+    [structureState.travelGuidance],
+  );
 
   const validPresetId = useMemo(() => {
     const presetId = settings.selectedPhasePresetId;
@@ -339,7 +357,7 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
           enhance_prompt: settings.enhancePrompt,
           text_before_prompts: settings.textBeforePrompts,
           text_after_prompts: settings.textAfterPrompts,
-          default_negative_prompt: mergedSteerableSettings.negative_prompt,
+          default_negative_prompt: settings.negativePrompt || mergedSteerableSettings.negative_prompt,
         },
         motionConfig: {
           amount_of_motion: settings.amountOfMotion || 50,
@@ -349,12 +367,17 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
           selected_phase_preset_id: settings.selectedPhasePresetId ?? undefined,
         },
         modelConfig: {
+          selectedModel: coerceSelectedModel(settings.selectedModel),
+          num_inference_steps: settings.batchVideoSteps || 6,
+          guidance_scale: settings.guidanceScale,
           seed: mergedSteerableSettings.seed,
           random_seed: uiSettings.randomSeed,
           turbo_mode: settings.turboMode || false,
           debug: mergedSteerableSettings.debug || false,
           generation_type_mode: settings.generationTypeMode || 'i2v',
+          ltxHdResolution: settings.ltxHdResolution ?? true,
         },
+        travelGuidance: structureState.travelGuidance,
         structureGuidance: structureState.structureGuidance,
         structureVideos: structureState.structureVideos,
         batchVideoFrames: settings.batchVideoFrames || 61,
@@ -424,6 +447,7 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
     justQueued,
     isDisabled: isGenerating || isLoading || positionedImages.length < 1,
     hasStructureVideo,
+    guidanceKind,
     ...uiSettings,
     validPresetId,
     selectedLoras,

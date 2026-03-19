@@ -14,6 +14,7 @@ const toggleGenerateModePreserveScrollMock = vi.fn();
 const joinUpdateFieldMock = vi.fn();
 const handleStructureVideoMotionStrengthChangeMock = vi.fn();
 const handleUni3cEndPercentChangeMock = vi.fn();
+const handleStructureTypeChangeFromMotionControlMock = vi.fn();
 
 let simpleFilteredImagesMock: Array<{ id: string }> = [];
 let structureVideoPathMock: string | null = null;
@@ -21,6 +22,8 @@ let structureVideoTypeMock: string = 'flow';
 let structureVideoMotionStrengthMock = 1;
 let structureVideoUni3cEndPercentMock = 0.5;
 let stitchAfterGenerateMock = false;
+let selectedModelMock: 'wan-2.2' | 'ltx-2.3' | 'ltx-2.3-fast' = 'wan-2.2';
+const setSelectedModelMock = vi.fn();
 
 vi.mock('@/shared/components/ui/collapsible', () => ({
   Collapsible: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -133,7 +136,7 @@ vi.mock('../../ShotSettingsContext', () => ({
     structureVideoHandlers: {
       handleStructureVideoMotionStrengthChange: handleStructureVideoMotionStrengthChangeMock,
       handleUni3cEndPercentChange: handleUni3cEndPercentChangeMock,
-      handleStructureTypeChangeFromMotionControl: vi.fn(),
+      handleStructureTypeChangeFromMotionControl: handleStructureTypeChangeFromMotionControlMock,
     },
     state: { showStepsNotification: false },
     generationMode: {
@@ -218,6 +221,12 @@ vi.mock('@/tools/travel-between-images/providers', () => ({
     setFrames: vi.fn(),
     batchVideoSteps: 6,
   }),
+  useModelSettings: () => ({
+    selectedModel: selectedModelMock,
+    guidanceScale: undefined,
+    setSelectedModel: setSelectedModelMock,
+    setGuidanceScale: vi.fn(),
+  }),
   usePhaseConfigSettings: () => ({
     generationTypeMode: 'i2v',
     setGenerationTypeMode: vi.fn(),
@@ -267,6 +276,8 @@ describe('BatchModeContent', () => {
     joinUpdateFieldMock.mockClear();
     handleStructureVideoMotionStrengthChangeMock.mockClear();
     handleUni3cEndPercentChangeMock.mockClear();
+    handleStructureTypeChangeFromMotionControlMock.mockClear();
+    setSelectedModelMock.mockClear();
 
     simpleFilteredImagesMock = [{ id: 'img-1' }, { id: 'img-2' }, { id: 'img-3' }];
     structureVideoPathMock = null;
@@ -274,6 +285,7 @@ describe('BatchModeContent', () => {
     structureVideoMotionStrengthMock = 1;
     structureVideoUni3cEndPercentMock = 0.5;
     stitchAfterGenerateMock = false;
+    selectedModelMock = 'wan-2.2';
   });
 
   it('passes derived values to child sections and generate CTA', () => {
@@ -311,7 +323,7 @@ describe('BatchModeContent', () => {
 
     renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} />);
 
-    expect(screen.getByText('Camera Guidance:')).toBeInTheDocument();
+    expect(screen.getByText('Camera Guidance')).toBeInTheDocument();
     const sliders = screen.getAllByTestId('slider');
     expect(sliders).toHaveLength(2);
 
@@ -320,5 +332,43 @@ describe('BatchModeContent', () => {
 
     expect(handleStructureVideoMotionStrengthChangeMock).toHaveBeenCalledWith(1.2);
     expect(handleUni3cEndPercentChangeMock).toHaveBeenCalledWith(0.4);
+  });
+
+  it('uses main model pills with LTX variant suboptions', () => {
+    const { rerender } = renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} />);
+
+    expect(screen.getByRole('button', { name: 'WAN / VACE' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'LTX 2.3' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Full' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Distilled' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'LTX 2.3' }));
+    expect(setSelectedModelMock).toHaveBeenCalledWith('ltx-2.3');
+
+    selectedModelMock = 'ltx-2.3-fast';
+    rerender(<BatchModeContent swapButtonRef={{ current: null }} />);
+
+    expect(screen.getByRole('button', { name: 'Full' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Distilled' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Full' }));
+    expect(setSelectedModelMock).toHaveBeenCalledWith('ltx-2.3');
+  });
+
+  it('renders distilled LTX guidance modes and routes guidance mode changes', () => {
+    structureVideoPathMock = '/tmp/structure.mp4';
+    structureVideoTypeMock = 'video';
+    selectedModelMock = 'ltx-2.3-fast';
+
+    renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} />);
+
+    expect(screen.getByRole('button', { name: 'Video' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pose' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Depth' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Canny' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Uni3C' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pose' }));
+    expect(handleStructureTypeChangeFromMotionControlMock).toHaveBeenCalledWith('pose');
   });
 });

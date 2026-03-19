@@ -16,7 +16,17 @@
 
 import { useCallback, useMemo, useRef, MutableRefObject } from 'react';
 import { Shot } from '@/domains/generation/types';
-import { VideoTravelSettings, PhaseConfig, DEFAULT_PHASE_CONFIG, DEFAULT_VACE_PHASE_CONFIG } from '../../settings';
+import {
+  VideoTravelSettings,
+  PhaseConfig,
+  DEFAULT_PHASE_CONFIG,
+  DEFAULT_VACE_PHASE_CONFIG,
+  MODEL_DEFAULTS,
+  clampFrameCountToPolicy,
+  coerceSelectedModel,
+  getModelSpec,
+  type SelectedModel,
+} from '../../settings';
 import { BUILTIN_DEFAULT_I2V_ID, BUILTIN_DEFAULT_VACE_ID } from '../../components/MotionControl.constants';
 import { SteerableMotionSettings, DEFAULT_STEERABLE_MOTION_SETTINGS } from '../../components/ShotEditor/state/types';
 import { buildBasicModeGenerationRequest as buildBasicModePhaseConfig } from '../../components/ShotEditor/services/generateVideo/modelPhase';
@@ -47,6 +57,7 @@ export interface VideoTravelSettingsHandlers {
   handleNegativePromptChange: (prompt: string) => void;
   handleBatchVideoFramesChange: (frames: number) => void;
   handleBatchVideoStepsChange: (steps: number) => void;
+  handleGuidanceScaleChange: (guidanceScale: number) => void;
 
   // Text prompts
   handleTextBeforePromptsChange: (text: string) => void;
@@ -65,6 +76,7 @@ export interface VideoTravelSettingsHandlers {
   handleMotionModeChange: (mode: 'basic' | 'advanced') => void;
   handleGenerationTypeModeChange: (mode: 'i2v' | 'vace') => void;
   handleSteerableMotionSettingsChange: (settings: Partial<SteerableMotionSettings>) => void;
+  handleSelectedModelChange: (model: SelectedModel) => void;
   
   // Phase config
   handlePhaseConfigChange: (config: PhaseConfig) => void;
@@ -134,11 +146,37 @@ export const useVideoTravelSettingsHandlers = ({
   }, [shotSettingsRef]);
 
   const handleBatchVideoFramesChange = useCallback((frames: number) => {
-    shotSettingsRef.current.updateField('batchVideoFrames', frames);
+    const current = shotSettingsRef.current.settings;
+    const model = coerceSelectedModel(current.selectedModel);
+    const existing = current.modelSettingsByModel?.[model];
+    const clampedFrames = clampFrameCountToPolicy(frames, getModelSpec(model), {
+      smoothContinuations: current.smoothContinuations ?? false,
+      requestedExecutionMode: current.generationTypeMode ?? 'i2v',
+    });
+    shotSettingsRef.current.updateFields({
+      batchVideoFrames: clampedFrames,
+      modelSettingsByModel: {
+        ...(current.modelSettingsByModel ?? {}),
+        [model]: { ...existing, batchVideoFrames: clampedFrames },
+      },
+    });
   }, [shotSettingsRef]);
 
   const handleBatchVideoStepsChange = useCallback((steps: number) => {
-    shotSettingsRef.current.updateField('batchVideoSteps', steps);
+    const current = shotSettingsRef.current.settings;
+    const model = coerceSelectedModel(current.selectedModel);
+    const existing = current.modelSettingsByModel?.[model];
+    shotSettingsRef.current.updateFields({
+      batchVideoSteps: steps,
+      modelSettingsByModel: {
+        ...(current.modelSettingsByModel ?? {}),
+        [model]: { ...existing, batchVideoSteps: steps },
+      },
+    });
+  }, [shotSettingsRef]);
+
+  const handleGuidanceScaleChange = useCallback((guidanceScale: number) => {
+    shotSettingsRef.current.updateField('guidanceScale', guidanceScale);
   }, [shotSettingsRef]);
 
   // =============================================================================
@@ -180,15 +218,26 @@ export const useVideoTravelSettingsHandlers = ({
   }, [shotSettingsRef]);
 
   const handleSmoothContinuationsChange = useCallback((smooth: boolean) => {
-    shotSettingsRef.current.updateField('smoothContinuations', smooth);
+    const current = shotSettingsRef.current.settings;
+    const model = coerceSelectedModel(current.selectedModel);
+    const existing = current.modelSettingsByModel?.[model];
+    const clampedFrames = clampFrameCountToPolicy(
+      current.batchVideoFrames ?? existing?.batchVideoFrames ?? MODEL_DEFAULTS[model].frames,
+      getModelSpec(model),
+      {
+        smoothContinuations: smooth,
+        requestedExecutionMode: current.generationTypeMode ?? 'i2v',
+      },
+    );
 
-    // When enabling smooth continuations, clamp batchVideoFrames to 77 if it exceeds the new limit
-    if (smooth) {
-      const currentFrames = shotSettingsRef.current.settings?.batchVideoFrames;
-      if (currentFrames && currentFrames > 77) {
-        shotSettingsRef.current.updateField('batchVideoFrames', 77);
-      }
-    }
+    shotSettingsRef.current.updateFields({
+      smoothContinuations: smooth,
+      batchVideoFrames: clampedFrames,
+      modelSettingsByModel: {
+        ...(current.modelSettingsByModel ?? {}),
+        [model]: { ...existing, batchVideoFrames: clampedFrames },
+      },
+    });
   }, [shotSettingsRef]);
 
   // =============================================================================
@@ -288,10 +337,20 @@ export const useVideoTravelSettingsHandlers = ({
   }, [currentShotId, shotSettingsRef]);
 
   const handleGenerationTypeModeChange = useCallback((mode: 'i2v' | 'vace') => {
-    
+    const currentSettings = shotSettingsRef.current.settings;
+    const model = coerceSelectedModel(currentSettings.selectedModel);
+    const existing = currentSettings.modelSettingsByModel?.[model];
+    const clampedFrames = clampFrameCountToPolicy(
+      currentSettings.batchVideoFrames ?? existing?.batchVideoFrames ?? getModelSpec(model).defaultFrames,
+      getModelSpec(model),
+      {
+        smoothContinuations: currentSettings.smoothContinuations ?? false,
+        requestedExecutionMode: mode,
+      },
+    );
+
     // Update generation type mode AND the preset ID to match
     // This keeps things consistent (preset ID should match the mode's default)
-    const currentSettings = shotSettingsRef.current.settings;
     const isBasicMode = currentSettings?.motionMode === 'basic' || !currentSettings?.motionMode;
     
     if (isBasicMode) {
@@ -299,11 +358,23 @@ export const useVideoTravelSettingsHandlers = ({
       const defaultPresetId = mode === 'vace' ? BUILTIN_DEFAULT_VACE_ID : BUILTIN_DEFAULT_I2V_ID;
       shotSettingsRef.current.updateFields({
         generationTypeMode: mode,
-        selectedPhasePresetId: defaultPresetId
+        selectedPhasePresetId: defaultPresetId,
+        batchVideoFrames: clampedFrames,
+        modelSettingsByModel: {
+          ...(currentSettings.modelSettingsByModel ?? {}),
+          [model]: { ...existing, batchVideoFrames: clampedFrames },
+        },
       });
     } else {
       // In advanced mode: just update the mode (user has custom config)
-      shotSettingsRef.current.updateField('generationTypeMode', mode);
+      shotSettingsRef.current.updateFields({
+        generationTypeMode: mode,
+        batchVideoFrames: clampedFrames,
+        modelSettingsByModel: {
+          ...(currentSettings.modelSettingsByModel ?? {}),
+          [model]: { ...existing, batchVideoFrames: clampedFrames },
+        },
+      });
     }
     
     // Always rebuild phase config when mode changes (force: true bypasses Basic mode check)
@@ -325,6 +396,11 @@ export const useVideoTravelSettingsHandlers = ({
       }
     });
   }, [shotSettingsRef]);
+
+  const handleSelectedModelChange = useCallback((_model: SelectedModel) => {
+    // Implemented in the provider because switching models needs coordinated
+    // updates across fields plus per-model substate persistence.
+  }, []);
 
   // =============================================================================
   // PHASE CONFIG
@@ -424,6 +500,7 @@ export const useVideoTravelSettingsHandlers = ({
     handleNegativePromptChange,
     handleBatchVideoFramesChange,
     handleBatchVideoStepsChange,
+    handleGuidanceScaleChange,
     handleTextBeforePromptsChange,
     handleTextAfterPromptsChange,
     handleBlurSave,
@@ -434,6 +511,7 @@ export const useVideoTravelSettingsHandlers = ({
     handleMotionModeChange,
     handleGenerationTypeModeChange,
     handleSteerableMotionSettingsChange,
+    handleSelectedModelChange,
     handlePhaseConfigChange,
     handlePhasePresetSelect,
     handlePhasePresetRemove,
@@ -448,6 +526,7 @@ export const useVideoTravelSettingsHandlers = ({
     handleNegativePromptChange,
     handleBatchVideoFramesChange,
     handleBatchVideoStepsChange,
+    handleGuidanceScaleChange,
     handleTextBeforePromptsChange,
     handleTextAfterPromptsChange,
     handleBlurSave,
@@ -458,6 +537,7 @@ export const useVideoTravelSettingsHandlers = ({
     handleMotionModeChange,
     handleGenerationTypeModeChange,
     handleSteerableMotionSettingsChange,
+    handleSelectedModelChange,
     handlePhaseConfigChange,
     handlePhasePresetSelect,
     handlePhasePresetRemove,

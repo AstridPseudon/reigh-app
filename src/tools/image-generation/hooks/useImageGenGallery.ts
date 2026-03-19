@@ -48,10 +48,14 @@ export function useImageGenGallery({
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [lastKnownTotal, setLastKnownTotal] = useState<number>(0);
+  // Refs vs state split:
+  // - lastKnownTotalRef, isFilterChangeRef: refs because they never trigger re-renders — only
+  //   read during renders already caused by generationsResponse/isLoadingGenerations changes.
+  // - isPageChange, isPageChangeFromBottom: state because they drive the scroll restoration effect.
+  const lastKnownTotalRef = useRef<number>(0);
   const [isPageChange, setIsPageChange] = useState(false);
   const [isPageChangeFromBottom, setIsPageChangeFromBottom] = useState(false);
-  const [isFilterChange, setIsFilterChange] = useState(false);
+  const isFilterChangeRef = useRef(false);
   const scrollPosRef = useRef<number>(0);
 
   const pagePrefs = useAutoSaveSettings<ImageGenPagePrefs>({
@@ -113,23 +117,15 @@ export function useImageGenGallery({
     return [...(generationsResponse?.items || [])];
   }, [generationsResponse]);
 
-  // Reset to page 1 on any filter change
-  useEffect(() => {
-    setIsFilterChange(true);
-    setCurrentPage(1);
-  }, [galleryFilters]);
+  // Track lastKnownTotal during render (no effect needed)
+  if (generationsResponse?.total !== undefined) {
+    lastKnownTotalRef.current = generationsResponse.total;
+  }
 
-  useEffect(() => {
-    if (generationsResponse?.total !== undefined) {
-      setLastKnownTotal(generationsResponse.total);
-    }
-  }, [generationsResponse?.total]);
-
-  useEffect(() => {
-    if (generationsResponse && isFilterChange) {
-      setIsFilterChange(false);
-    }
-  }, [generationsResponse, isFilterChange]);
+  // Clear filter change flag when new data arrives
+  if (generationsResponse && isFilterChangeRef.current) {
+    isFilterChangeRef.current = false;
+  }
 
   // Restore saved gallery filter when switching shots
   const lastAppliedPagePrefsForShotRef = useRef<string | null>(null);
@@ -139,6 +135,8 @@ export function useImageGenGallery({
     lastAppliedPagePrefsForShotRef.current = formAssociatedShotId;
 
     const override = pagePrefs.settings.galleryFilterOverride;
+    isFilterChangeRef.current = true;
+    setCurrentPage(1);
     if (override !== undefined) {
       setGalleryFilters(prev => ({ ...prev, shotFilter: override }));
     } else {
@@ -199,7 +197,7 @@ export function useImageGenGallery({
     setCurrentPage(page);
   }, []);
 
-  const totalCount = generationsResponse?.total ?? lastKnownTotal;
+  const totalCount = generationsResponse?.total ?? lastKnownTotalRef.current;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   // Arrow-key page navigation. Skips when an input is focused or a dialog is open.
   useEffect(() => {
@@ -234,10 +232,14 @@ export function useImageGenGallery({
         pagePrefs.updateField('galleryFilterOverride', valueToSave);
       }
     }
+    isFilterChangeRef.current = true;
+    setCurrentPage(1);
     setGalleryFilters(newFilters);
   }, [galleryFilters.shotFilter, formAssociatedShotId, pagePrefs]);
 
   const handleSwitchToAssociatedShot = useCallback((shotId: string) => {
+    isFilterChangeRef.current = true;
+    setCurrentPage(1);
     setGalleryFilters(prev => ({ ...prev, shotFilter: shotId }));
     if (formAssociatedShotId && pagePrefs.status === 'ready') {
       const shouldSaveOverride = shotId !== formAssociatedShotId;
@@ -251,8 +253,8 @@ export function useImageGenGallery({
     setGalleryFilters,
     currentPage,
     itemsPerPage,
-    lastKnownTotal,
-    isFilterChange,
+    lastKnownTotal: lastKnownTotalRef.current,
+    isFilterChange: isFilterChangeRef.current,
     generationsResponse,
     generationsFilters,
     isLoadingGenerations,

@@ -318,7 +318,7 @@ export function useTabletEndpointSelection(
     } else if (isTablet && !isStripActive) {
       // Single tap - delegate to parent for frame preview
       e.preventDefault();
-      onSingleTap(touch as unknown as Touch);
+      onSingleTap(e.changedTouches[0]);
     }
   }, [enabled, selectedEndpoint, handleStripTapToPlace, isTablet, isStripActive, onDoubleTap, onSingleTap]);
 

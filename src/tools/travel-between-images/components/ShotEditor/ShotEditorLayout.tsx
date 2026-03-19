@@ -9,6 +9,11 @@ import { ModalsSection } from './sections/ModalsSection';
 import { GenerationSection } from './sections/GenerationSection';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { ModalSelectedLora } from './types/modalLora';
+import {
+  getModelSpec,
+  resolveGenerationPolicy,
+  type SelectedModel,
+} from '@/tools/travel-between-images/settings';
 
 export interface ShotEditorLayoutProps {
   contextValue: ShotSettingsContextValue;
@@ -50,6 +55,8 @@ export interface ShotEditorLayoutProps {
     onPromptChange: (prompt: string) => void;
     negativePrompt: string;
     onNegativePromptChange: (prompt: string) => void;
+    selectedModel: SelectedModel;
+    generationTypeMode: 'i2v' | 'vace';
     smoothContinuations?: boolean;
     onDragStateChange?: (isDragging: boolean) => void;
     getHasStructureVideo?: (shotId: string | null) => boolean | null;
@@ -72,6 +79,7 @@ export interface ShotEditorLayoutProps {
     onRemoveLora: (loraId: string) => void;
     onUpdateLoraStrength: (loraId: string, strength: number) => void;
     selectedLoras: ModalSelectedLora[];
+    selectedModel: SelectedModel;
     isSettingsModalOpen: boolean;
     onSettingsModalOpenChange: (open: boolean) => void;
   };
@@ -85,6 +93,11 @@ export const ShotEditorLayout: React.FC<ShotEditorLayoutProps> = ({
   generation,
   modals,
 }) => {
+  const timelinePolicy = resolveGenerationPolicy(getModelSpec(timeline.selectedModel), {
+    smoothContinuations: timeline.smoothContinuations ?? false,
+    requestedExecutionMode: timeline.generationTypeMode,
+  });
+
   return (
     <ShotSettingsProvider value={contextValue}>
       <div className="flex flex-col gap-y-4 pb-4">
@@ -144,7 +157,9 @@ export const ShotEditorLayout: React.FC<ShotEditorLayoutProps> = ({
             onDefaultPromptChange={timeline.onPromptChange}
             defaultNegativePrompt={timeline.negativePrompt}
             onDefaultNegativePromptChange={timeline.onNegativePromptChange}
-            maxFrameLimit={81}
+            maxFrameLimit={timelinePolicy.continuation.enabled
+              ? timelinePolicy.continuation.maxOutputFrames
+              : getModelSpec(timeline.selectedModel).maxFrames}
             smoothContinuations={timeline.smoothContinuations}
             selectedOutputId={finalVideo.selectedOutputId}
             onSelectedOutputChange={finalVideo.onSelectedOutputChange}
@@ -175,6 +190,7 @@ export const ShotEditorLayout: React.FC<ShotEditorLayoutProps> = ({
           onRemoveLora={modals.onRemoveLora}
           onUpdateLoraStrength={modals.onUpdateLoraStrength}
           selectedLoras={modals.selectedLoras}
+          selectedModel={modals.selectedModel}
           isSettingsModalOpen={modals.isSettingsModalOpen}
           onSettingsModalOpenChange={modals.onSettingsModalOpenChange}
         />

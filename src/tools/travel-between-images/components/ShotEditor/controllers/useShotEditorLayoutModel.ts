@@ -6,6 +6,7 @@ import type { ShotSettingsContextValue } from '../ShotSettingsContext';
 import type { ShotEditorLayoutProps } from '../ShotEditorLayout';
 import type { ShotEditorProps, ShotEditorState } from '../state/types';
 import type { ShotEditorActions } from '../state/useShotEditorState';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
 import {
   type UseShotSettingsValueProps,
 } from '../hooks/editor-state/useShotSettingsValue';
@@ -35,9 +36,17 @@ interface FrameSettingsSlice {
   setFrames: (frames: number) => void;
 }
 
+interface ModelSettingsSlice {
+  selectedModel: SelectedModel;
+}
+
 interface GenerationModeSettingsSlice {
   generationMode: 'batch' | 'timeline' | 'by-pair';
   setGenerationMode: (mode: 'batch' | 'timeline' | 'by-pair') => void;
+}
+
+interface PhaseConfigSettingsSlice {
+  generationTypeMode: 'i2v' | 'vace';
 }
 
 interface UseShotEditorLayoutModelParams {
@@ -95,6 +104,8 @@ interface UseShotEditorLayoutModelParams {
     promptSettings: PromptSettingsSlice;
     motionSettings: MotionSettingsSlice;
     frameSettings: FrameSettingsSlice;
+    modelSettings: ModelSettingsSlice;
+    phaseConfigSettings: PhaseConfigSettingsSlice;
     generationModeSettings: GenerationModeSettingsSlice;
     isPhone: boolean;
     aspectAdjustedColumns: number;
@@ -191,6 +202,7 @@ export function buildShotEditorContextInput({
     videoOutputs: images.videoOutputs,
     simpleFilteredImages: images.simpleFilteredImages,
     structureVideo: {
+      travelGuidanceByModel: controllers.mediaEditing.travelGuidanceByModel,
       structureGuidance: controllers.mediaEditing.structureGuidance,
       structureVideoPath: controllers.mediaEditing.structureVideoPath,
       structureVideoMetadata: controllers.mediaEditing.structureVideoMetadata,
@@ -199,6 +211,7 @@ export function buildShotEditorContextInput({
       structureVideoType: controllers.mediaEditing.structureVideoType,
       structureVideoResourceId: controllers.mediaEditing.structureVideoResourceId,
       structureVideoUni3cEndPercent: controllers.mediaEditing.structureVideoUni3cEndPercent,
+      structureVideoDefaultsByModel: controllers.mediaEditing.structureVideoDefaultsByModel,
       isLoading: controllers.mediaEditing.isStructureVideoSettingsLoading,
       structureVideos: controllers.mediaEditing.structureVideos,
       addStructureVideo: controllers.mediaEditing.addStructureVideo,
@@ -363,6 +376,8 @@ function buildShotEditorLayoutSections({
       onPromptChange: settings.promptSettings.setPrompt,
       negativePrompt: settings.promptSettings.negativePrompt,
       onNegativePromptChange: settings.promptSettings.setNegativePrompt,
+      selectedModel: settings.modelSettings.selectedModel,
+      generationTypeMode: settings.phaseConfigSettings.generationTypeMode,
       smoothContinuations: settings.motionSettings.smoothContinuations,
       onDragStateChange: sections.onDragStateChange,
       getHasStructureVideo: sections.getHasStructureVideo,
@@ -385,6 +400,7 @@ function buildShotEditorLayoutSections({
       onUpdateLoraStrength:
         controllers.loraManager.handleLoraStrengthChange,
       selectedLoras: controllers.loraManager.selectedLoras,
+      selectedModel: settings.modelSettings.selectedModel,
       isSettingsModalOpen: core.state.isSettingsModalOpen,
       onSettingsModalOpenChange: core.actions.setSettingsModalOpen,
     },

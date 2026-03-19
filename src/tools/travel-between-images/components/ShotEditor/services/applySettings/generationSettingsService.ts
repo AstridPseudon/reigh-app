@@ -16,6 +16,10 @@ export const applyModelSettings = (
   settings: ExtractedGenerationSettings,
   context: ApplyModelContext,
 ): ApplyResult => {
+  if (settings.selectedModel && context.onSelectedModelChange) {
+    context.onSelectedModelChange(settings.selectedModel);
+  }
+
   if (!settings.model || settings.model === context.steerableMotionSettings.model_name) {
     return { success: true, settingName: 'model', details: 'skipped - no change' };
   }
@@ -78,11 +82,13 @@ export const applyGenerationSettings = (
     context.onBatchVideoFramesChange(settings.frames);
   }
 
-  // Context frames removed - now fixed at 10 frames
-
   // Apply steps
   if (typeof settings.steps === 'number' && !Number.isNaN(settings.steps)) {
     context.onBatchVideoStepsChange(settings.steps);
+  }
+
+  if (typeof settings.guidanceScale === 'number' && !Number.isNaN(settings.guidanceScale)) {
+    context.onGuidanceScaleChange?.(settings.guidanceScale);
   }
 
   return { success: true, settingName: 'generation' };
@@ -114,6 +120,10 @@ export const applyModeSettings = (
   // Apply generation type mode (I2V vs VACE)
   if (settings.generationTypeMode !== undefined && context.onGenerationTypeModeChange) {
     context.onGenerationTypeModeChange(settings.generationTypeMode);
+  }
+
+  if (settings.smoothContinuations !== undefined && context.onSmoothContinuationsChange) {
+    context.onSmoothContinuationsChange(settings.smoothContinuations);
   }
 
   return { success: true, settingName: 'modes' };

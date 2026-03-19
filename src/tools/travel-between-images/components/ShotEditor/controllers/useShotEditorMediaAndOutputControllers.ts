@@ -3,6 +3,7 @@ import { useOutputController } from './useOutputController';
 import type { ShotEditorState } from '../state/types';
 import type { ShotEditorActions } from '../state/useShotEditorState';
 import type { GenerationRow, Shot } from '@/domains/generation/types';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
 
 interface UseShotEditorMediaAndOutputControllersParams {
   selectedProjectId: string;
@@ -17,6 +18,7 @@ interface UseShotEditorMediaAndOutputControllersParams {
   actions: ShotEditorActions;
   generationTypeMode: 'i2v' | 'vace';
   setGenerationTypeMode: (mode: 'i2v' | 'vace') => void;
+  selectedModel: SelectedModel;
 }
 
 export function useShotEditorMediaAndOutputControllers({
@@ -32,6 +34,7 @@ export function useShotEditorMediaAndOutputControllers({
   actions,
   generationTypeMode,
   setGenerationTypeMode,
+  selectedModel,
 }: UseShotEditorMediaAndOutputControllersParams) {
   const output = useOutputController({
     selectedProjectId,
@@ -58,6 +61,7 @@ export function useShotEditorMediaAndOutputControllers({
     generationType: {
       generationTypeMode,
       setGenerationTypeMode,
+      selectedModel,
     },
     joinInputs: {
       joinSegmentSlots: output.joinSegmentSlots,

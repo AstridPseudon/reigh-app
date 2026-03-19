@@ -1,6 +1,7 @@
 import React from "react";
 import { TIMELINE_PADDING_OFFSET } from "./constants";
 import { framesToSeconds } from '@/shared/lib/media/videoUtils';
+import { useTimelineMedia } from './TimelineMediaContext';
 
 interface TimelineRulerProps {
   fullMin: number;
@@ -19,6 +20,7 @@ const TimelineRuler: React.FC<TimelineRulerProps> = ({
   containerWidth,
   hasNoImages = false,
 }) => {
+  const { timelineFps } = useTimelineMedia();
   // Match TimelineItem's exact positioning logic
   // Items use: effectiveWidth = timelineWidth - (TIMELINE_PADDING_OFFSET * 2)
   // And position at: TIMELINE_PADDING_OFFSET + ((frame - fullMin) / fullRange) * effectiveWidth
@@ -84,7 +86,7 @@ const TimelineRuler: React.FC<TimelineRulerProps> = ({
               style={{ left: `${leftPercent}%`, transform: 'translateX(-50%)' }}
             >
               <div className="w-px h-4 bg-border"></div>
-              <span className="text-xs text-muted-foreground mt-1 whitespace-nowrap">{framesToSeconds(frame)}</span>
+              <span className="text-xs text-muted-foreground mt-1 whitespace-nowrap">{framesToSeconds(frame, timelineFps)}</span>
             </div>
           );
         })}

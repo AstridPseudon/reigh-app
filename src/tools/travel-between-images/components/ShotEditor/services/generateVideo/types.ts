@@ -2,15 +2,25 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type {
   MotionConfig,
-  ModelConfig,
+  ModelConfig as TaskModelConfig,
   PromptConfig,
   StructureGuidanceConfig,
   StitchConfig,
   StructureVideoConfigWithMetadata,
+  TravelGuidance,
 } from '@/shared/lib/tasks/travelBetweenImages';
 import type { SegmentOverrides } from '@/shared/lib/settingsMigration';
 import type { Shot } from '@/domains/generation/types';
 import type { OperationResult } from '@/shared/lib/operationResult';
+import type { ResolvedGenerationPolicy, SelectedModel } from '@/tools/travel-between-images/settings';
+
+export interface ModelConfig extends TaskModelConfig {
+  selectedModel: SelectedModel;
+  num_inference_steps?: number;
+  guidance_scale?: number;
+  smoothContinuations?: boolean;
+  ltxHdResolution?: boolean;
+}
 
 export interface GenerateVideoParams {
   projectId: string;
@@ -22,6 +32,7 @@ export interface GenerateVideoParams {
   promptConfig: PromptConfig;
   motionConfig: MotionConfig;
   modelConfig: ModelConfig;
+  travelGuidance?: TravelGuidance;
   structureGuidance?: StructureGuidanceConfig;
   structureVideos?: StructureVideoConfigWithMetadata[];
   batchVideoFrames: number;
@@ -71,7 +82,7 @@ export interface PairConfigPayload {
 
 export interface ModelPhaseSelection {
   actualModelName: string;
-  effectivePhaseConfig: PhaseConfig;
+  effectivePhaseConfig?: PhaseConfig;
   useAdvancedMode: boolean;
 }
 
@@ -84,8 +95,10 @@ interface MotionParams {
   amountOfMotion: number;
   motionMode: MotionConfig['motion_mode'];
   useAdvancedMode: boolean;
-  effectivePhaseConfig: PhaseConfig;
+  effectivePhaseConfig?: PhaseConfig;
   selectedPhasePresetId: string | null | undefined;
+  numInferenceSteps?: number;
+  guidanceScale?: number;
 }
 
 export interface GenerationParams {
@@ -111,6 +124,8 @@ export interface BuildTravelRequestBodyParams {
   pairConfig: PairConfigPayload;
   parentGenerationId?: string;
   actualModelName: string;
+  selectedModel?: SelectedModel;
+  policy?: ResolvedGenerationPolicy;
   generationTypeMode: ModelConfig['generation_type_mode'];
   motionParams: MotionParams;
   generationParams: GenerationParams;

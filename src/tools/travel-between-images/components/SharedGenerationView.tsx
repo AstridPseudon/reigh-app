@@ -10,7 +10,7 @@ import { MotionControl } from './MotionControl';
 import { SectionHeader } from '@/shared/components/ImageGenerationForm/components/SectionHeader';
 import { useIsMobile, useDeviceInfo } from '@/shared/hooks/mobile';
 import { ShotImagesEditor } from './ShotImagesEditor';
-import { VideoTravelSettings } from '../settings';
+import { VideoTravelSettings, coerceSelectedModel } from '../settings';
 import { GenerationRow } from '@/domains/generation/types';
 import { FinalVideoSection } from './FinalVideoSection';
 import {
@@ -88,6 +88,7 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
   const textBeforePrompts = settings?.textBeforePrompts || '';
   const textAfterPrompts = settings?.textAfterPrompts || '';
   const structureState = useMemo(() => extractStructureState(settings), [settings]);
+  const selectedModel = coerceSelectedModel(settings?.selectedModel);
   const structureVideos = structureState.structureVideos;
   const primaryStructureVideo = resolvePrimaryStructureVideo(
     structureVideos,
@@ -185,12 +186,15 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                 </div>
                 <div className="opacity-75">
                   <BatchSettingsForm
+                    selectedModel={selectedModel}
                     batchVideoPrompt={prompt}
                     onBatchVideoPromptChange={() => {}}
                     batchVideoFrames={batchVideoFrames}
                     onBatchVideoFramesChange={() => {}}
                     batchVideoSteps={batchVideoSteps}
                     onBatchVideoStepsChange={() => {}}
+                    guidanceScale={settings?.guidanceScale}
+                    onGuidanceScaleChange={() => {}}
                     dimensionSource="custom"
                     onDimensionSourceChange={() => {}}
                     customWidth={512}
@@ -205,9 +209,11 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                     onEnhancePromptChange={() => {}}
                     turboMode={turboMode}
                     onTurboModeChange={() => {}}
+                    smoothContinuations={settings?.smoothContinuations ?? false}
                     amountOfMotion={amountOfMotion}
                     onAmountOfMotionChange={() => {}}
                     advancedMode={advancedMode}
+                    generationTypeMode={settings?.generationTypeMode ?? 'i2v'}
                     phaseConfig={phaseConfig}
                     onPhaseConfigChange={() => {}}
                     selectedPhasePresetId={null}
@@ -294,7 +300,9 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                     mode={{
                       motionMode: advancedMode ? 'advanced' : (motionMode as 'basic' | 'advanced'),
                       onMotionModeChange: () => {},
+                      selectedModel,
                       hasStructureVideo: !!primaryStructureVideo.path,
+                      guidanceKind: primaryStructureVideo.structureType || undefined,
                     }}
                     lora={{
                       selectedLoras: loras,

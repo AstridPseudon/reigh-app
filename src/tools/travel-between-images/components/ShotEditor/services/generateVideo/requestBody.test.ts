@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ValidationError } from '@/shared/lib/errorHandling/errors';
 import { buildTravelRequestBodyV2 } from './requestBody';
+import { getModelSpec, resolveGenerationPolicy } from '@/tools/travel-between-images/settings';
 import type { PhaseConfig } from '@/shared/types/phaseConfig';
 import type { BuildTravelRequestBodyParams } from './types';
 
@@ -103,6 +104,8 @@ describe('requestBody', () => {
     expect(result.advanced_mode).toBe(true);
     expect(result.debug).toBe(true);
     expect(result.turbo_mode).toBe(true);
+    expect(result.num_inference_steps).toBeUndefined();
+    expect(result.guidance_scale).toBeUndefined();
   });
 
   it('omits optional payload fields when the source arrays are empty or blank', () => {
@@ -169,5 +172,26 @@ describe('requestBody', () => {
         },
       }),
     ).toThrow('pair_shot_generation_ids');
+  });
+
+  it('includes SVI latent chaining continuation config when policy is resolved for WAN i2v', () => {
+    const spec = getModelSpec('wan-2.2');
+    const policy = resolveGenerationPolicy(spec, {
+      smoothContinuations: true,
+      requestedExecutionMode: 'i2v',
+    });
+    const result = buildTravelRequestBodyV2({
+      ...buildParams(),
+      selectedModel: 'wan-2.2',
+      policy,
+      generationTypeMode: 'i2v',
+    });
+
+    expect(result.continuation_config).toEqual({
+      strategy: 'svi_latent_chaining',
+      overlap_frames: 4,
+    });
+    expect(result.chain_segments).toBe(true);
+    expect(result.independent_segments).toBe(false);
   });
 });

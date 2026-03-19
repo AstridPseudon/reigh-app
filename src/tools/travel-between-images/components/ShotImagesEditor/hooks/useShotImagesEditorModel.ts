@@ -150,7 +150,9 @@ function useModeOrchestration(
     batchVideoFrames,
     defaultPrompt = '',
     defaultNegativePrompt = '',
+    travelGuidanceByModel,
     structureVideos,
+    structureVideoDefaultsByModel,
     onAddStructureVideo,
     onUpdateStructureVideo,
     onRemoveStructureVideo,
@@ -196,7 +198,9 @@ function useModeOrchestration(
     selectedParentId,
     defaultPrompt,
     defaultNegativePrompt,
+    travelGuidanceByModel,
     structureVideos,
+    structureVideoDefaultsByModel,
     onAddStructureVideo,
     onUpdateStructureVideo,
     onRemoveStructureVideo,
@@ -213,6 +217,7 @@ function useModeOrchestration(
     batchVideoFrames,
     shotGenerations,
     segmentSlots,
+    timelineFps: props.timelineFps ?? DEFAULT_TIMELINE_FPS,
   });
 
   openPreviewRef.current = (startAtPairIndex: number) => {
@@ -251,6 +256,8 @@ function useModeOrchestration(
   };
 }
 
+const DEFAULT_TIMELINE_FPS = 16;
+
 function useTimelineMediaValue(props: ShotImagesEditorResolvedProps) {
   const {
     onPrimaryStructureVideoInputChange,
@@ -263,6 +270,7 @@ function useTimelineMediaValue(props: ShotImagesEditorResolvedProps) {
     audioUrl,
     audioMetadata,
     onAudioChange,
+    timelineFps = DEFAULT_TIMELINE_FPS,
   } = props;
 
   const primaryStructureVideo = useMemo(
@@ -282,6 +290,7 @@ function useTimelineMediaValue(props: ShotImagesEditorResolvedProps) {
     audioUrl,
     audioMetadata,
     onAudioChange,
+    timelineFps,
   }), [
     primaryStructureVideo,
     onPrimaryStructureVideoInputChange,
@@ -294,6 +303,7 @@ function useTimelineMediaValue(props: ShotImagesEditorResolvedProps) {
     audioUrl,
     audioMetadata,
     onAudioChange,
+    timelineFps,
   ]);
 }
 

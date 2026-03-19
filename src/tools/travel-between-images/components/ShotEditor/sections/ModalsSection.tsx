@@ -11,6 +11,7 @@ import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLo
 import { SettingsModal } from '@/shared/components/SettingsModal/SettingsModal';
 import { useShotSettingsContext } from '../ShotSettingsContext';
 import type { ModalSelectedLora } from '../types/modalLora';
+import { getModelSpec, type SelectedModel } from '@/tools/travel-between-images/settings';
 
 interface ModalsSectionProps {
   // LoRA modal
@@ -20,6 +21,7 @@ interface ModalsSectionProps {
   onRemoveLora: (loraId: string) => void;
   onUpdateLoraStrength: (loraId: string, strength: number) => void;
   selectedLoras: ModalSelectedLora[];
+  selectedModel: SelectedModel;
 
   // Settings modal
   isSettingsModalOpen: boolean;
@@ -33,6 +35,7 @@ export const ModalsSection: React.FC<ModalsSectionProps> = ({
   onRemoveLora,
   onUpdateLoraStrength,
   selectedLoras,
+  selectedModel,
   isSettingsModalOpen,
   onSettingsModalOpenChange,
 }) => {
@@ -48,7 +51,7 @@ export const ModalsSection: React.FC<ModalsSectionProps> = ({
         onRemoveLora={onRemoveLora}
         onUpdateLoraStrength={onUpdateLoraStrength}
         selectedLoras={mapSelectedLorasForModal(selectedLoras, availableLoras)}
-        loraType="Wan 2.1 14b"
+        loraType={getModelSpec(selectedModel).loraFamily}
       />
 
       <SettingsModal

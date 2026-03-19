@@ -81,6 +81,17 @@ export const extractSettings = (taskData: TaskData): ExtractedSettings => {
   const params = taskData.params as Record<string, unknown>;
   const orchestrator = taskData.orchestrator as Record<string, unknown>;
   const structure = extractStructureSettings(taskData);
+  const continuationConfig = (orchestrator.continuation_config ?? params.continuation_config) as Record<string, unknown> | undefined;
+  const legacyFrameOverlap = (
+    (orchestrator.frame_overlap_expanded as number[] | undefined)?.[0]
+    ?? (params.frame_overlap_expanded as number | undefined)
+  );
+  const inferredSmoothContinuations = continuationConfig !== undefined
+    || (
+      (orchestrator.chain_segments ?? params.chain_segments) === true
+      && typeof legacyFrameOverlap === 'number'
+      && legacyFrameOverlap > 0
+    );
 
   // Extract all settings with fallbacks
   return {
@@ -96,7 +107,7 @@ export const extractSettings = (taskData: TaskData): ExtractedSettings => {
       negativePrompts: orchestrator.negative_prompts_expanded as string[] | undefined,
     },
     generation: {
-      steps: (orchestrator.steps ?? params.num_inference_steps) as number | undefined,
+      steps: (orchestrator.num_inference_steps ?? orchestrator.steps ?? params.num_inference_steps) as number | undefined,
       frames: (
         (orchestrator.segment_frames_expanded as number[] | undefined)?.[0] ??
         (params.segment_frames_expanded as number | undefined)
@@ -107,6 +118,14 @@ export const extractSettings = (taskData: TaskData): ExtractedSettings => {
         (params.frame_overlap_expanded as number | undefined)
       ),
       model: (params.model_name ?? orchestrator.model_name) as string | undefined,
+      guidanceScale: (orchestrator.guidance_scale ?? params.guidance_scale) as number | undefined,
+      selectedModel: (() => {
+        const modelName = (params.model_name ?? orchestrator.model_name) as string | undefined;
+        if (!modelName?.includes('ltx2')) {
+          return 'wan-2.2';
+        }
+        return modelName.includes('distilled') ? 'ltx-2.3-fast' : 'ltx-2.3';
+      })(),
     },
     images: {
       inputImages: (() => {
@@ -130,6 +149,7 @@ export const extractSettings = (taskData: TaskData): ExtractedSettings => {
     modes: {
       generationMode: (orchestrator.generation_mode ?? params.generation_mode) as 'batch' | 'timeline' | 'by-pair' | undefined,
       generationTypeMode: (orchestrator.model_type ?? params.model_type) as 'i2v' | 'vace' | undefined,
+      smoothContinuations: inferredSmoothContinuations,
       advancedMode: (orchestrator.advanced_mode ?? params.advanced_mode) as boolean | undefined,
       motionMode: (orchestrator.motion_mode ?? params.motion_mode) as 'basic' | 'presets' | 'advanced' | undefined,
     },

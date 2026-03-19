@@ -13,8 +13,17 @@ import { useIsMobile } from '@/shared/hooks/mobile';
 import { Project } from '@/types/project';
 import type { ActiveLora } from '@/domains/lora/types/lora';
 import type { LoraModel } from '@/domains/lora/types/lora';
-import { PhaseConfig, DEFAULT_PHASE_CONFIG } from '../settings';
-import { framesToSeconds, quantizeFrameCount } from '@/shared/lib/media/videoUtils';
+import {
+  PhaseConfig,
+  DEFAULT_PHASE_CONFIG,
+  MODEL_DEFAULTS,
+  clampFrameCountToPolicy,
+  getModelSpec,
+  resolveGenerationPolicy,
+  type SelectedModel,
+  type ExecutionMode,
+} from '../settings';
+import { framesToSeconds } from '@/shared/lib/media/videoUtils';
 
 interface BatchPromptControls {
   batchVideoPrompt: string;
@@ -34,6 +43,8 @@ interface BatchTimingControls {
   onBatchVideoFramesChange: (value: number) => void;
   batchVideoSteps: number;
   onBatchVideoStepsChange: (value: number) => void;
+  guidanceScale?: number;
+  onGuidanceScaleChange?: (value: number) => void;
   amountOfMotion: number;
   onAmountOfMotionChange: (value: number) => void;
 }
@@ -66,6 +77,7 @@ interface BatchModeControls {
   onTurboModeChange: (value: boolean) => void;
   smoothContinuations?: boolean;
   advancedMode: boolean;
+  generationTypeMode?: ExecutionMode;
 }
 
 interface BatchPhaseControls {
@@ -81,6 +93,7 @@ interface BatchBehaviorControls {
   onClearEnhancedPrompts?: () => Promise<void>;
   videoControlMode?: 'individual' | 'batch';
   readOnly?: boolean;
+  selectedModel: SelectedModel;
 }
 
 type BatchSettingsFormProps =
@@ -97,14 +110,20 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
   onBatchVideoPromptChange,
   batchVideoFrames,
   onBatchVideoFramesChange,
+  batchVideoSteps,
+  onBatchVideoStepsChange,
+  guidanceScale,
+  onGuidanceScaleChange,
   negativePrompt,
   onNegativePromptChange,
   isTimelineMode,
   turboMode,
+  smoothContinuations = false,
   imageCount = 0,
   enhancePrompt,
   onEnhancePromptChange,
   advancedMode,
+  generationTypeMode = 'i2v',
   phaseConfig = DEFAULT_PHASE_CONFIG,
   onBlurSave,
   onClearEnhancedPrompts,
@@ -112,10 +131,23 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
   onTextBeforePromptsChange,
   textAfterPrompts = '',
   onTextAfterPromptsChange,
+  selectedModel = 'wan-2.2',
   readOnly = false,
 }) => {
     // Mobile detection for touch-friendly tooltips
     const isMobile = useIsMobile();
+    const spec = getModelSpec(selectedModel);
+    const modelDefaults = MODEL_DEFAULTS[spec.id];
+    const generationIntent = {
+      smoothContinuations,
+      requestedExecutionMode: generationTypeMode,
+    };
+    const policy = resolveGenerationPolicy(spec, generationIntent);
+    const frameStep = modelDefaults.frameStep;
+    const maxFrames = policy.continuation.enabled ? policy.continuation.maxOutputFrames : spec.maxFrames;
+    const resolvedFrameCount = clampFrameCountToPolicy(batchVideoFrames, spec, generationIntent);
+    const guidanceValue = guidanceScale ?? modelDefaults.guidanceScale ?? 3.0;
+    const [stepMin, stepMax] = spec.stepRange;
 
     // State for clear enhanced prompts success feedback
     const [clearSuccess, setClearSuccess] = React.useState(false);
@@ -363,10 +395,9 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
             */}
             
             {/* Frames per pair - shown in both Timeline and Batch modes */}
-            {/* Note: Frame counts must be in 4N+1 format (9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81) */}
             <div className="relative">
               <Label htmlFor="batchVideoFrames" className="text-sm font-light block mb-1">
-                {isTimelineMode ? 'Duration per pair' : (imageCount === 1 ? 'Duration to generate' : 'Duration per pair')}: {framesToSeconds(batchVideoFrames)} ({batchVideoFrames} frames)
+                {isTimelineMode ? 'Duration per pair' : (imageCount === 1 ? 'Duration to generate' : 'Duration per pair')}: {framesToSeconds(resolvedFrameCount, modelDefaults.fps)} ({resolvedFrameCount} frames)
               </Label>
               <ResponsiveInfoTip
                 isMobile={isMobile}
@@ -381,14 +412,50 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
               <Slider
                 id="batchVideoFrames"
                 min={9}
-                max={81}
-                step={4}
-                value={quantizeFrameCount(batchVideoFrames, 9)}
-                onValueChange={(value) => onBatchVideoFramesChange(quantizeFrameCount(value, 9))}
+                max={maxFrames}
+                step={frameStep}
+                value={resolvedFrameCount}
+                onValueChange={(value) => onBatchVideoFramesChange(clampFrameCountToPolicy(value, spec, generationIntent))}
                 disabled={turboMode || isTimelineMode}
                 className={(turboMode || isTimelineMode) ? 'opacity-50' : ''}
               />
             </div>
+
+            {spec.ui.inferenceSteps && (
+              <div className="relative">
+                <Label htmlFor="batchVideoSteps" className="text-sm font-light block mb-1">
+                  Inference steps: {batchVideoSteps}
+                </Label>
+                <Slider
+                  id="batchVideoSteps"
+                  min={stepMin}
+                  max={stepMax}
+                  step={1}
+                  value={batchVideoSteps}
+                  onValueChange={onBatchVideoStepsChange}
+                  disabled={readOnly}
+                  className={readOnly ? 'opacity-50' : ''}
+                />
+              </div>
+            )}
+
+            {spec.ui.guidanceScale && (
+              <div className="relative">
+                <Label htmlFor="guidanceScale" className="text-sm font-light block mb-1">
+                  Guidance scale: {guidanceValue.toFixed(1)}
+                </Label>
+                <Slider
+                  id="guidanceScale"
+                  min={1}
+                  max={10}
+                  step={0.1}
+                  value={guidanceValue}
+                  onValueChange={(value) => onGuidanceScaleChange?.(Number(value.toFixed(1)))}
+                  disabled={readOnly}
+                  className={readOnly ? 'opacity-50' : ''}
+                />
+              </div>
+            )}
 
         </div>
     );

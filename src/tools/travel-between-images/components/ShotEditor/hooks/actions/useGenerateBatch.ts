@@ -16,7 +16,9 @@ import type { Shot, GenerationRow } from '@/domains/generation/types';
 import type {
   StructureGuidanceConfig,
   StructureVideoConfigWithMetadata,
+  TravelGuidance,
 } from '@/shared/lib/tasks/travelBetweenImages';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
 
 export interface SelectedLora {
   id: string;
@@ -77,13 +79,18 @@ export interface BatchGenerationRequest {
   };
   model: {
     steerableMotionSettings?: { seed?: number; debug?: boolean };
+    selectedModel: SelectedModel;
+    numInferenceSteps: number;
+    guidanceScale?: number;
     randomSeed: boolean;
     turboMode: boolean;
     generationTypeMode?: 'i2v' | 'vace';
     smoothContinuations?: boolean;
+    ltxHdResolution?: boolean;
   };
   batchVideoFrames: number;
   selectedLoras: SelectedLora[];
+  travelGuidance?: TravelGuidance;
   structureGuidance?: StructureGuidanceConfig;
   structureVideos: StructureVideoConfigWithMetadata[];
   selectedOutputId?: string | null;
@@ -124,6 +131,7 @@ export function useGenerateBatch({
     model,
     batchVideoFrames,
     selectedLoras,
+    travelGuidance,
     structureGuidance,
     structureVideos,
     selectedOutputId,
@@ -132,7 +140,7 @@ export function useGenerateBatch({
   const { addIncomingTask, removeIncomingTask } = useIncomingTasks();
 
   // Local state
-  const [isSteerableMotionEnqueuing] = useState(false);
+  const [isSteerableMotionEnqueuing, setIsSteerableMotionEnqueuing] = useState(false);
   const [steerableMotionJustQueued, setSteerableMotionJustQueued] = useState(false);
 
   // Track pending parent ID for main generations within the same shot
@@ -155,6 +163,7 @@ export function useGenerateBatch({
     setTimeout(() => setSteerableMotionJustQueued(false), 1500);
 
     // Fire-and-forget: run task creation in background
+    setIsSteerableMotionEnqueuing(true);
     (async () => {
       try {
         if (!projectId || !selectedShotId || !selectedShot) {
@@ -198,12 +207,18 @@ export function useGenerateBatch({
             selected_phase_preset_id: motion.selectedPhasePresetId ?? undefined,
           },
           modelConfig: {
+            selectedModel: model.selectedModel,
+            num_inference_steps: model.numInferenceSteps,
+            guidance_scale: model.guidanceScale,
             seed: model.steerableMotionSettings?.seed ?? 789,
             random_seed: model.randomSeed,
             turbo_mode: model.turboMode,
             debug: model.steerableMotionSettings?.debug || false,
             generation_type_mode: model.generationTypeMode ?? 'i2v',
+            smoothContinuations: model.smoothContinuations,
+            ltxHdResolution: model.ltxHdResolution,
           },
+          travelGuidance,
           structureGuidance,
           structureVideos,
           batchVideoFrames,
@@ -262,6 +277,7 @@ export function useGenerateBatch({
         await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
         await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
         removeIncomingTask(incomingTaskId);
+        setIsSteerableMotionEnqueuing(false);
       }
     })();
   }, [

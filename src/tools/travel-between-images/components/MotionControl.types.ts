@@ -2,16 +2,20 @@ import type { LoraModel } from '@/domains/lora/types/lora';
 import type { PresetMetadata, PresetSampleGeneration } from '@/shared/types/presetMetadata';
 import type { ActiveLora } from '@/domains/lora/types/lora';
 import type { CurrentSettings } from '@/shared/components/PhaseConfigSelectorModal/types';
+import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 import type { PhaseConfig } from '../settings';
+import type { SelectedModel } from '../settings';
 
 export type GenerationTypeMode = 'i2v' | 'vace';
 
 interface MotionControlModeProps {
   motionMode: 'basic' | 'advanced';
   onMotionModeChange: (mode: 'basic' | 'advanced') => void;
+  selectedModel: SelectedModel;
   generationTypeMode?: GenerationTypeMode;
   onGenerationTypeModeChange?: (mode: GenerationTypeMode) => void;
   hasStructureVideo?: boolean;
+  guidanceKind?: TravelGuidanceMode;
 }
 
 interface MotionControlLoraProps {
