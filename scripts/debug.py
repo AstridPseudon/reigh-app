@@ -47,7 +47,7 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from debug.client import DebugClient
-from debug.commands import task, tasks, logs, sql, query, pipeline, workers, queue
+from debug.commands import task, tasks, logs, sql, query, pipeline, workers, queue, pod
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -106,6 +106,13 @@ def create_parser() -> argparse.ArgumentParser:
     queue_parser = subparsers.add_parser('queue', help='Show current queue depth, stuck tasks, worker capacity')
     queue_parser.add_argument('--json', action='store_true', help='Output as JSON')
     queue_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
+
+    # Pod command
+    pod_parser = subparsers.add_parser('pod', help='RunPod pod management (list, ssh, worker setup)')
+    pod_parser.add_argument('subcommand', choices=['list', 'ssh', 'worker'], help='list=show pods, ssh=get SSH command, worker=print setup/start commands')
+    pod_parser.add_argument('pod_id', nargs='?', help='Pod ID (required for ssh/worker)')
+    pod_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    pod_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
 
     # Logs command
     logs_parser = subparsers.add_parser('logs', help='View system logs')
@@ -184,6 +191,9 @@ def main():
             task.run(client, args.task_id, options)
         elif args.command == 'tasks':
             tasks.run(client, options)
+        elif args.command == 'pod':
+            options['pod_id'] = args.pod_id
+            pod.run(args.subcommand, options)
         elif args.command == 'pipeline':
             pipeline.run(client, args.task_id, options)
         elif args.command == 'workers':

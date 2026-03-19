@@ -60,12 +60,27 @@ Requires `.env` at project root with `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY
 
 ## 2. GPU Worker Debugging (SSH)
 
-Workers run on RunPod pods. SSH details come from the RunPod dashboard.
+Workers run on RunPod pods.
+
+### Finding pods and SSH details
+
+```bash
+# List all RunPod pods with SSH commands
+debug.py pod list
+
+# Get SSH command for a specific pod
+debug.py pod ssh <pod_id>
+
+# Print full worker setup + start instructions for a pod
+debug.py pod worker <pod_id>
+```
+
+The `pod` command reads the RunPod API key from `~/Documents/Arnold/.env` automatically.
 
 ### Starting / restarting a test worker
 
 ```bash
-# SSH to pod (get host/port from RunPod dashboard)
+# SSH to pod (get host/port from debug.py pod list)
 ssh root@<HOST> -p <PORT>
 
 # Kill existing workers
@@ -109,6 +124,23 @@ ssh root@<HOST> -p <PORT> "grep -E 'UPLOAD_INTERMEDIATE|complete_task|generate_v
 | Disk space | `df -h /workspace` |
 | Git state | `git -C /workspace/Reigh-Worker log --oneline -3` |
 | Guardian heartbeat | `tail -20 /tmp/guardian_*.log` |
+
+### First-time worker setup on a new pod
+
+If `/workspace/Reigh-Worker` doesn't exist on the pod:
+
+```bash
+cd /workspace
+git clone https://github.com/banodoco/Reigh-Worker.git
+cd Reigh-Worker
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Or use `debug.py pod worker <pod_id>` to print the full setup commands.
+
+Pods are managed by **Arnold** (`~/Documents/Arnold`), which uses the RunPod API to create/terminate pods with the right GPU, network volumes, and SSH keys. The **Headless WGP Orchestrator** (`~/Documents/Headless_WGP_Orchestrator`) handles automatic scaling in production.
 
 ### Worker auth modes
 
