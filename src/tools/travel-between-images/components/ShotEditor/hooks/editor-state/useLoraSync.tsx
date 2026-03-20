@@ -64,6 +64,9 @@ export const useLoraSync = ({
     onSelectedLorasChange(loras.map(toShotLora));
   }, [onSelectedLorasChange]);
 
+  // Disable auto-load: shot settings are the source of truth for selected LoRAs.
+  // Without this, the project persistence auto-load fights with intentional removal
+  // by re-adding project LoRAs whenever the selection becomes empty.
   const loraManager = useLoraManager(availableLoras, {
     projectId,
     persistenceScope: 'project',
@@ -74,9 +77,12 @@ export const useLoraSync = ({
     currentPrompt: batchVideoPrompt,
     selectedLoras,
     onSelectedLorasChange: handleSelectedLorasChange,
+    disableAutoLoad: true,
   });
 
   const previousModelRef = useRef<SelectedModel | null>(null);
+  // Cache LoRAs per model so switching back restores the previous selection
+  const lorasByModelRef = useRef<Partial<Record<SelectedModel, ShotLora[]>>>({});
 
   useEffect(() => {
     if (previousModelRef.current === null) {
@@ -84,12 +90,24 @@ export const useLoraSync = ({
       return;
     }
 
-    if (previousModelRef.current !== selectedModel && selectedLorasFromProps.length > 0) {
-      onSelectedLorasChange([]);
+    if (previousModelRef.current !== selectedModel) {
+      const previousModel = previousModelRef.current;
+
+      // Save current LoRAs for the previous model
+      if (selectedLorasFromProps.length > 0) {
+        lorasByModelRef.current = {
+          ...lorasByModelRef.current,
+          [previousModel]: selectedLorasFromProps,
+        };
+      }
+
+      // Load cached LoRAs for the new model (or clear)
+      const cachedLoras = lorasByModelRef.current[selectedModel] ?? [];
+      onSelectedLorasChange(cachedLoras);
     }
 
     previousModelRef.current = selectedModel;
-  }, [onSelectedLorasChange, selectedLorasFromProps.length, selectedModel]);
+  }, [onSelectedLorasChange, selectedLorasFromProps, selectedModel]);
 
   return { loraManager };
 };
