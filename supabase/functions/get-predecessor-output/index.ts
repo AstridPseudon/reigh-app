@@ -152,21 +152,21 @@ serve((req) => {
     // Find the generation at the predecessor child_order under the same parent
     const { data: predGenData } = await supabaseAdmin
       .from("generations")
-      .select("id, output_location, child_order")
-      .eq("parent_id", parentGenerationId)
+      .select("id, location, child_order")
+      .eq("parent_generation_id", parentGenerationId)
       .eq("child_order", predecessorOrder)
       .order("created_at", { ascending: false })
       .limit(1);
 
     const predGen = predGenData?.[0];
-    if (predGen && predGen.output_location) {
+    if (predGen && predGen.location) {
       logger.info("Found predecessor via generation sibling", {
         predecessor_generation_id: predGen.id,
         predecessor_order: predecessorOrder,
       });
       return jsonResponse({
         predecessor_id: predGen.id,
-        output_location: predGen.output_location,
+        output_location: predGen.location,
         status: "Complete",
         predecessors: [{
           predecessor_id: predGen.id,
