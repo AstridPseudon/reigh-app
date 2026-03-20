@@ -43,8 +43,6 @@ interface BatchTimingControls {
   onBatchVideoFramesChange: (value: number) => void;
   batchVideoSteps: number;
   onBatchVideoStepsChange: (value: number) => void;
-  guidanceScale?: number;
-  onGuidanceScaleChange?: (value: number) => void;
   amountOfMotion: number;
   onAmountOfMotionChange: (value: number) => void;
 }
@@ -76,8 +74,13 @@ interface BatchModeControls {
   turboMode: boolean;
   onTurboModeChange: (value: boolean) => void;
   smoothContinuations?: boolean;
+  onSmoothContinuationsChange?: (value: boolean) => void;
   advancedMode: boolean;
   generationTypeMode?: ExecutionMode;
+  guidanceScale?: number;
+  onGuidanceScaleChange?: (value: number) => void;
+  ltxHdResolution?: boolean;
+  onLtxHdResolutionChange?: (value: boolean) => void;
 }
 
 interface BatchPhaseControls {
@@ -112,13 +115,16 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
   onBatchVideoFramesChange,
   batchVideoSteps,
   onBatchVideoStepsChange,
-  guidanceScale,
-  onGuidanceScaleChange,
   negativePrompt,
   onNegativePromptChange,
   isTimelineMode,
   turboMode,
   smoothContinuations = false,
+  onSmoothContinuationsChange,
+  guidanceScale,
+  onGuidanceScaleChange,
+  ltxHdResolution,
+  onLtxHdResolutionChange,
   imageCount = 0,
   enhancePrompt,
   onEnhancePromptChange,
@@ -146,8 +152,8 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
     const frameStep = modelDefaults.frameStep;
     const maxFrames = policy.continuation.enabled ? policy.continuation.maxOutputFrames : spec.maxFrames;
     const resolvedFrameCount = clampFrameCountToPolicy(batchVideoFrames, spec, generationIntent);
-    const guidanceValue = guidanceScale ?? modelDefaults.guidanceScale ?? 3.0;
     const [stepMin, stepMax] = spec.stepRange;
+    const canShowSmoothContinuations = Boolean(spec.continuationByExecutionMode[policy.travelMode]);
 
     // State for clear enhanced prompts success feedback
     const [clearSuccess, setClearSuccess] = React.useState(false);
@@ -274,46 +280,110 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
                 </div>
             </div>
             
-            {/* Enhance Prompt Toggle - show when turbo mode is disabled */}
-            {!turboMode && (
-              <div className="flex items-center gap-x-2 p-3 bg-muted/30 rounded-lg border">
-                <Switch
-                  id="enhance-prompt"
-                  checked={enhancePrompt}
-                  onCheckedChange={onEnhancePromptChange}
+            {/* Toggle row: Enhance + HD + Smooth Continuations */}
+            <div className="flex flex-wrap gap-2">
+              {!turboMode && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="group relative flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1 min-w-[110px]">
+                      <Switch
+                        id="enhance-prompt"
+                        checked={enhancePrompt}
+                        onCheckedChange={onEnhancePromptChange}
+                      />
+                      <Label htmlFor="enhance-prompt" className="text-xs cursor-pointer">
+                        Enhance Prompts
+                      </Label>
+                      {onClearEnhancedPrompts && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`absolute right-1 h-6 w-6 p-0 ${clearSuccess
+                            ? "text-green-500 hover:text-green-500"
+                            : "text-muted-foreground hover:text-foreground"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setClearSuccess(true);
+                            setTimeout(() => setClearSuccess(false), 2000);
+                            onClearEnhancedPrompts();
+                          }}
+                        >
+                          {clearSuccess ? (
+                            <Check className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eraser className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>AI generates individual prompts for each pair based on the images</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {spec.resolutionTier === 'hd' && onLtxHdResolutionChange && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1 min-w-[110px]">
+                      <Switch
+                        id="ltx-hd-toggle"
+                        checked={ltxHdResolution || false}
+                        onCheckedChange={onLtxHdResolutionChange}
+                      />
+                      <Label htmlFor="ltx-hd-toggle" className="text-xs cursor-pointer">
+                        HD Resolution
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Generate at 720p+ instead of ~500p for better quality</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {canShowSmoothContinuations && onSmoothContinuationsChange && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1 min-w-[110px]">
+                      <Switch
+                        id="batch-smooth-continuations"
+                        checked={smoothContinuations}
+                        onCheckedChange={onSmoothContinuationsChange}
+                      />
+                      <Label htmlFor="batch-smooth-continuations" className="text-xs cursor-pointer">
+                        Smooth Continuations
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Smoother transitions between segments (max {policy.continuation.maxOutputFrames} frames)</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+
+            {/* Guidance Scale - below toggles */}
+            {spec.ui.guidanceScale && guidanceScale !== undefined && onGuidanceScaleChange && (
+              <div className="relative">
+                <Label htmlFor="guidanceScale" className="text-sm font-light block mb-1">
+                  Guidance scale: {guidanceScale.toFixed(1)}
+                </Label>
+                <Slider
+                  id="guidanceScale"
+                  min={1}
+                  max={10}
+                  step={0.1}
+                  value={guidanceScale}
+                  onValueChange={(value) => {
+                    const v = Array.isArray(value) ? (value[0] ?? guidanceScale) : value;
+                    onGuidanceScaleChange(Number(Number(v).toFixed(1)));
+                  }}
+                  disabled={readOnly}
+                  className={readOnly ? 'opacity-50' : ''}
                 />
-                <div className="flex-1">
-                  <Label htmlFor="enhance-prompt" className="font-medium">
-                    Enhance/Create Prompts
-                  </Label>
-                </div>
-                {onClearEnhancedPrompts && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setClearSuccess(true);
-                      setTimeout(() => setClearSuccess(false), 2000);
-                      onClearEnhancedPrompts();
-                    }}
-                    className={clearSuccess 
-                      ? "text-green-500 hover:text-green-500" 
-                      : "text-muted-foreground hover:text-foreground"
-                    }
-                  >
-                    {clearSuccess ? (
-                      <>
-                        <Check className="h-4 w-4 mr-1" />
-                        Cleared!
-                      </>
-                    ) : (
-                      <>
-                        <Eraser className="h-4 w-4 mr-1" />
-                        Clear enhanced
-                      </>
-                    )}
-                  </Button>
-                )}
               </div>
             )}
             
@@ -394,32 +464,34 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
             )}
             */}
             
-            {/* Frames per pair - shown in both Timeline and Batch modes */}
-            <div className="relative">
-              <Label htmlFor="batchVideoFrames" className="text-sm font-light block mb-1">
-                {isTimelineMode ? 'Duration per pair' : (imageCount === 1 ? 'Duration to generate' : 'Duration per pair')}: {framesToSeconds(resolvedFrameCount, modelDefaults.fps)} ({resolvedFrameCount} frames)
-              </Label>
-              <ResponsiveInfoTip
-                isMobile={isMobile}
-                content={(
-                  <p>
-                    Determines the duration of the video segment{imageCount === 1 ? '' : ' for each image'}.
-                    <br />
-                    More frames result in a longer segment.
-                  </p>
-                )}
-              />
-              <Slider
-                id="batchVideoFrames"
-                min={9}
-                max={maxFrames}
-                step={frameStep}
-                value={resolvedFrameCount}
-                onValueChange={(value) => onBatchVideoFramesChange(clampFrameCountToPolicy(value, spec, generationIntent))}
-                disabled={turboMode || isTimelineMode}
-                className={(turboMode || isTimelineMode) ? 'opacity-50' : ''}
-              />
-            </div>
+            {/* Frames per pair - hidden in Timeline mode since users set duration individually */}
+            {!isTimelineMode && (
+              <div className="relative">
+                <Label htmlFor="batchVideoFrames" className="text-sm font-light block mb-1">
+                  {imageCount === 1 ? 'Duration to generate' : 'Duration per pair'}: {framesToSeconds(resolvedFrameCount, modelDefaults.fps)} ({resolvedFrameCount} frames)
+                </Label>
+                <ResponsiveInfoTip
+                  isMobile={isMobile}
+                  content={(
+                    <p>
+                      Determines the duration of the video segment{imageCount === 1 ? '' : ' for each image'}.
+                      <br />
+                      More frames result in a longer segment.
+                    </p>
+                  )}
+                />
+                <Slider
+                  id="batchVideoFrames"
+                  min={9}
+                  max={maxFrames}
+                  step={frameStep}
+                  value={resolvedFrameCount}
+                  onValueChange={(value) => onBatchVideoFramesChange(clampFrameCountToPolicy(value, spec, generationIntent))}
+                  disabled={turboMode}
+                  className={turboMode ? 'opacity-50' : ''}
+                />
+              </div>
+            )}
 
             {spec.ui.inferenceSteps && (
               <div className="relative">
@@ -439,23 +511,6 @@ export const BatchSettingsForm: React.FC<BatchSettingsFormProps> = ({
               </div>
             )}
 
-            {spec.ui.guidanceScale && (
-              <div className="relative">
-                <Label htmlFor="guidanceScale" className="text-sm font-light block mb-1">
-                  Guidance scale: {guidanceValue.toFixed(1)}
-                </Label>
-                <Slider
-                  id="guidanceScale"
-                  min={1}
-                  max={10}
-                  step={0.1}
-                  value={guidanceValue}
-                  onValueChange={(value) => onGuidanceScaleChange?.(Number(value.toFixed(1)))}
-                  disabled={readOnly}
-                  className={readOnly ? 'opacity-50' : ''}
-                />
-              </div>
-            )}
 
         </div>
     );

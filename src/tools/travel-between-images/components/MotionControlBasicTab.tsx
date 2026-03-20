@@ -173,7 +173,7 @@ export const MotionControlBasicTab: React.FC<MotionControlBasicTabProps> = ({
         </div>
       )}
 
-      {canShowSmoothContinuations && (
+      {canShowSmoothContinuations && onSmoothContinuationsChange && (
         <div className="flex items-center gap-x-2 p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
           <Switch
             id="smooth-continuations"

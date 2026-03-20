@@ -5,7 +5,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { TASK_TYPES, VARIANT_TYPE_DEFAULT } from './constants.ts';
 import { extractShotAndPosition, buildGenerationParams, resolveBasedOn } from './params.ts';
-import { insertGeneration, createVariant } from './generation-core.ts';
+import { insertGeneration, createVariant, derivePredecessorVariantId } from './generation-core.ts';
 import { createVariantOnParent, getChildVariantViewedAt } from './generation-parent.ts';
 import { normalizeSegmentTaskParams } from './taskParamNormalizer.ts';
 import { buildSegmentMasterStateSnapshot } from './generation-child-diagnostics.ts';
@@ -90,6 +90,12 @@ export async function handleChildGeneration(ctx: HandlerContext): Promise<unknow
       });
 
       const variantTypeForExisting = normalized.taskData.variant_type || VARIANT_TYPE_DEFAULT;
+      const predecessorVariantId = await derivePredecessorVariantId(
+        supabase,
+        normalized.params,
+        parentGenerationId,
+        finalChildOrder,
+      );
 
       const variantResult = await createVariantOnParent(
         supabase, existingGenId, publicUrl, thumbnailUrl, normalized.taskData, taskId,
@@ -98,7 +104,10 @@ export async function handleChildGeneration(ctx: HandlerContext): Promise<unknow
           tool_type: normalized.taskData.tool_type,
           created_from: 'segment_variant_at_position',
           segment_index: finalChildOrder,
-          pair_shot_generation_id: pairShotGenId
+          pair_shot_generation_id: pairShotGenId,
+          ...(predecessorVariantId
+            ? { continuation_predecessor_variant_id: predecessorVariantId }
+            : {}),
         },
         null,
         false,
@@ -213,6 +222,19 @@ export async function createChildGenerationRecord(
 
   if (pairShotGenerationId && !generationParams.pair_shot_generation_id) {
     generationParams = { ...generationParams, pair_shot_generation_id: pairShotGenerationId };
+  }
+
+  const predecessorVariantId = await derivePredecessorVariantId(
+    supabase,
+    generationParams,
+    parentGenerationId,
+    childOrder,
+  );
+  if (predecessorVariantId) {
+    generationParams = {
+      ...generationParams,
+      continuation_predecessor_variant_id: predecessorVariantId,
+    };
   }
 
   const newGenerationId = crypto.randomUUID();

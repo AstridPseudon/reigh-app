@@ -179,11 +179,7 @@ export const TravelGuidanceEditor: React.FC<TravelGuidanceEditorProps> = ({
         </div>
       ) : null}
 
-      {!showGuidanceControls || !hasStructureVideo ? null : fullLtxSelected ? (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
-          Full LTX currently supports unguided travel only. Use WAN 2.2 for flow, depth, canny, or raw guidance, or use LTX 2.3 Distilled for pose, depth, canny, or video guidance.
-        </div>
-      ) : (
+      {!showGuidanceControls || !hasStructureVideo || fullLtxSelected ? null : (
         <div className="space-y-4">
           {effectiveGuidanceMode && onGuidanceModeChange ? (
             <div className="space-y-2">
@@ -207,15 +203,6 @@ export const TravelGuidanceEditor: React.FC<TravelGuidanceEditorProps> = ({
                     </button>
                   );
                 })}
-                {effectiveGuidanceMode && (
-                  <span className="text-xs text-muted-foreground ml-1">
-                    {effectiveGuidanceMode === 'uni3c'
-                      ? `using Uni3C for ${ltxSelected ? 'LTX 2.3' : 'WAN 2.2'}`
-                      : ltxSelected
-                        ? 'using IC-LoRA control'
-                        : 'using VACE'}
-                  </span>
-                )}
               </div>
             </div>
           ) : null}
@@ -260,7 +247,7 @@ export const TravelGuidanceEditor: React.FC<TravelGuidanceEditorProps> = ({
           {effectiveGuidanceMode === 'uni3c' && onGuidanceUni3cEndPercentChange ? (
             <div className="space-y-2">
               {renderFieldHeader(
-                'End',
+                'Guidance End',
                 fieldControls?.guidanceUni3cEndPercent,
                 `${(guidanceUni3cEndPercent * 100).toFixed(0)}%`,
               )}

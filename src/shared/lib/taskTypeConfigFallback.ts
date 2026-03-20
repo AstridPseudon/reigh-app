@@ -29,7 +29,7 @@ const TASK_TYPE_CONFIG_FALLBACK: Record<string, TaskTypeConfigFallbackEntry> = {
   qwen_image_edit: { isVisible: true, displayName: 'Qwen Image Edit', category: 'generation' },
   video_enhance: { isVisible: true, displayName: 'Video Enhance', category: 'processing' },
   travel_segment: { isVisible: false, category: 'processing', family: 'travel' },
-  travel_stitch: { isVisible: false, category: 'processing' },
+  travel_stitch: { isVisible: true, displayName: 'Crossfade Join', category: 'processing' },
   single_image: { isVisible: false, category: 'generation' },
   edit_travel_kontext: { isVisible: false, category: 'generation' },
   edit_travel_flux: { isVisible: false, category: 'generation' },

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTimelineCore } from '@/shared/hooks/timeline/useTimelineCore';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import type { Shot } from '@/domains/generation/types';
@@ -74,6 +74,9 @@ interface GenerationControllerJoinSettings {
   joinUseInputVideoFps: boolean;
   joinNoisedInputVideo: number;
   joinLoopFirstClip: boolean;
+  joinSettings?: {
+    updateField: (field: string, value: unknown) => void;
+  };
 }
 
 interface GenerationControllerRuntime {
@@ -176,6 +179,15 @@ export function useGenerationController({
 }: UseGenerationControllerParams) {
   const { clearAllEnhancedPrompts, updatePairPromptsByIndex, refetch: loadPositions } = useTimelineCore(core.selectedShotId);
   const { onPromptChange } = prompt;
+  const previousSmoothContinuationsRef = useRef(motion.smoothContinuations);
+
+  useEffect(() => {
+    const wasSmoothContinuationsEnabled = previousSmoothContinuationsRef.current;
+    if (!wasSmoothContinuationsEnabled && motion.smoothContinuations) {
+      join.joinSettings?.updateField('stitchAfterGenerate', true);
+    }
+    previousSmoothContinuationsRef.current = motion.smoothContinuations;
+  }, [join.joinSettings, motion.smoothContinuations]);
 
   const handleBatchVideoPromptChangeWithClear = useCallback(async (newPrompt: string) => {
     onPromptChange(newPrompt);

@@ -27,6 +27,16 @@ export class ExistingGenerationLookupError extends Error {
 
 // ===== HELPERS =====
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
 /**
  * Helper to safely extract value from array by index
  */
@@ -146,6 +156,36 @@ export async function insertGeneration(supabase: SupabaseClient, record: unknown
   }
 
   return data;
+}
+
+export async function derivePredecessorVariantId(
+  supabase: SupabaseClient,
+  params: Record<string, unknown> | null | undefined,
+  parentGenerationId: string | null,
+  childOrder: number | null,
+): Promise<string | null> {
+  const continuationConfig = asRecord(params?.continuation_config);
+  const overlapFrames = asNumber(continuationConfig?.overlap_frames)
+    ?? asNumber(params?.frame_overlap_from_previous);
+
+  if (!overlapFrames || overlapFrames <= 0 || !parentGenerationId || childOrder === null || childOrder <= 0) {
+    return null;
+  }
+
+  const { data: predecessor, error } = await supabase
+    .from('generations')
+    .select('primary_variant_id')
+    .eq('parent_generation_id', parentGenerationId)
+    .eq('child_order', childOrder - 1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to derive predecessor variant: ${error.message}`);
+  }
+
+  return typeof predecessor?.primary_variant_id === 'string'
+    ? predecessor.primary_variant_id
+    : null;
 }
 
 /**

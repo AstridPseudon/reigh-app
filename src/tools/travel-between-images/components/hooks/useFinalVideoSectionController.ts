@@ -205,7 +205,7 @@ export function useFinalVideoSectionController({
       const { data, error } = await supabase()
         .from('tasks')
         .select('id, status, params')
-        .eq('task_type', 'join_clips_orchestrator')
+        .in('task_type', ['join_clips_orchestrator', 'travel_stitch'])
         .eq('project_id', projectId)
         .in('status', ['Queued', 'In Progress'])
         .order('created_at', { ascending: false });

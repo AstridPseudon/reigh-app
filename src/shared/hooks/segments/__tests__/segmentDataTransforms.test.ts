@@ -69,6 +69,7 @@ describe('segmentDataTransforms', () => {
         child_order: 2,
         starred: true,
         pair_shot_generation_id: 'pair-1',
+        primary_variant_id: 'variant-1',
       }),
     ).toEqual(
       expect.objectContaining({
@@ -83,6 +84,7 @@ describe('segmentDataTransforms', () => {
         child_order: 2,
         starred: true,
         pair_shot_generation_id: 'pair-1',
+        primary_variant_id: 'variant-1',
       }),
     );
   });

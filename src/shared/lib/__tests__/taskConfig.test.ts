@@ -35,6 +35,7 @@ describe('taskConfig', () => {
       expect(getTaskDisplayName('travel_orchestrator')).toBe('Travel Between Images');
       expect(getTaskDisplayName('join_clips_orchestrator')).toBe('Join Clips');
       expect(getTaskDisplayName('edit_video_orchestrator')).toBe('Edit Video');
+      expect(getTaskDisplayName('travel_stitch')).toBe('Crossfade Join');
       expect(getTaskDisplayName('animate_character')).toBe('Animate Character');
     });
 
@@ -114,6 +115,7 @@ describe('taskConfig', () => {
       expect(visible).toContain('join_clips_orchestrator');
       expect(visible).toContain('edit_video_orchestrator');
       expect(visible).toContain('animate_character');
+      expect(visible).toContain('travel_stitch');
       expect(visible).toContain('video_enhance');
     });
 
@@ -131,7 +133,6 @@ describe('taskConfig', () => {
       const hidden = getHiddenTaskTypes();
 
       expect(hidden).toContain('travel_segment');
-      expect(hidden).toContain('travel_stitch');
       expect(hidden).toContain('single_image');
       expect(hidden).toContain('extract_frame');
       expect(hidden).toContain('wgp');
@@ -142,6 +143,7 @@ describe('taskConfig', () => {
 
       expect(hidden).not.toContain('travel_orchestrator');
       expect(hidden).not.toContain('animate_character');
+      expect(hidden).not.toContain('travel_stitch');
     });
   });
 

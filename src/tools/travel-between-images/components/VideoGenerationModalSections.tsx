@@ -172,8 +172,6 @@ export function VideoGenerationModalFormContent({
             onBatchVideoFramesChange={(v) => updateField('batchVideoFrames', v)}
             batchVideoSteps={settings.batchVideoSteps || 6}
             onBatchVideoStepsChange={(v) => updateField('batchVideoSteps', v)}
-            guidanceScale={settings.guidanceScale}
-            onGuidanceScaleChange={(v) => updateField('guidanceScale', v)}
             dimensionSource={settings.dimensionSource || 'firstImage'}
             onDimensionSourceChange={(v) => updateField('dimensionSource', v)}
             customWidth={settings.customWidth}

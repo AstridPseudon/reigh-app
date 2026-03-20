@@ -6,6 +6,7 @@ import {
   insertGeneration,
   createVariant,
   linkGenerationToShot,
+  derivePredecessorVariantId,
 } from './generation-core.ts';
 
 function createQueryBuilder(result: {
@@ -165,5 +166,43 @@ describe('complete_task/generation-core', () => {
       p_generation_id: 'gen-1',
       p_with_position: true,
     });
+  });
+
+  it('derives the predecessor primary variant for overlapping child segments', async () => {
+    const generationsQuery = createQueryBuilder({
+      maybeSingle: {
+        data: { primary_variant_id: 'variant-prev' },
+        error: null,
+      },
+    });
+    const supabase = {
+      from: vi.fn().mockReturnValue(generationsQuery),
+    } as unknown as Parameters<typeof derivePredecessorVariantId>[0];
+
+    await expect(derivePredecessorVariantId(
+      supabase,
+      {
+        continuation_config: { overlap_frames: 24 },
+      },
+      'parent-1',
+      2,
+    )).resolves.toBe('variant-prev');
+  });
+
+  it('skips predecessor lookup when no overlap is configured', async () => {
+    const supabase = {
+      from: vi.fn(),
+    } as unknown as Parameters<typeof derivePredecessorVariantId>[0];
+
+    await expect(derivePredecessorVariantId(
+      supabase,
+      {
+        continuation_config: { overlap_frames: 0 },
+      },
+      'parent-1',
+      2,
+    )).resolves.toBeNull();
+
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });

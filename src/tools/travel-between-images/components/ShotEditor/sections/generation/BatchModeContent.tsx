@@ -121,26 +121,8 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
               }}
               hasStructureVideo={!!structureVideo.structureVideoPath}
               showGuidanceControls={false}
-              guidanceScale={modelSettings.guidanceScale}
-              onGuidanceScaleChange={modelSettings.setGuidanceScale}
             />
           </div>
-
-          {ltxSelected && (
-            <div className="flex items-center justify-between mb-4 px-1">
-              <div className="flex flex-col gap-0.5">
-                <Label htmlFor="ltx-hd-toggle" className="text-sm font-medium">HD resolution</Label>
-                <span className="text-xs text-muted-foreground">
-                  LTX generates at 720p+ instead of ~500p for better quality
-                </span>
-              </div>
-              <Switch
-                id="ltx-hd-toggle"
-                checked={modelSettings.ltxHdResolution}
-                onCheckedChange={modelSettings.setLtxHdResolution}
-              />
-            </div>
-          )}
 
           <BatchSettingsForm
             selectedModel={modelSettings.selectedModel}
@@ -150,8 +132,6 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             onBatchVideoFramesChange={frameSettings.setFrames}
             batchVideoSteps={frameSettings.batchVideoSteps}
             onBatchVideoStepsChange={generationHandlers.handleStepsChange}
-            guidanceScale={modelSettings.guidanceScale}
-            onGuidanceScaleChange={modelSettings.setGuidanceScale}
             dimensionSource={dimensions.dimensionSource ?? 'project'}
             onDimensionSourceChange={dimensions.onDimensionSourceChange ?? (() => {})}
             customWidth={dimensions.customWidth}
@@ -173,6 +153,11 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             turboMode={motionSettings.turboMode}
             onTurboModeChange={motionSettings.setTurboMode}
             smoothContinuations={motionSettings.smoothContinuations}
+            onSmoothContinuationsChange={motionSettings.setSmoothContinuations}
+            guidanceScale={modelSettings.guidanceScale}
+            onGuidanceScaleChange={modelSettings.setGuidanceScale}
+            ltxHdResolution={modelSettings.ltxHdResolution}
+            onLtxHdResolutionChange={modelSettings.setLtxHdResolution}
             generationTypeMode={phaseConfigSettings.generationTypeMode}
             amountOfMotion={motionSettings.amountOfMotion}
             onAmountOfMotionChange={motionSettings.setAmountOfMotion}
@@ -254,8 +239,6 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
             stateOverrides={{
               turboMode: motionSettings.turboMode,
               settingsLoading: settingsLoadingFromContext,
-              smoothContinuations: motionSettings.smoothContinuations,
-              onSmoothContinuationsChange: motionSettings.setSmoothContinuations,
             }}
           />
         </div>

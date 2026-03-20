@@ -14,6 +14,7 @@ import {
 import {
   insertGeneration,
   createVariant,
+  derivePredecessorVariantId,
   linkGenerationToShot,
 } from './generation-core.ts';
 
@@ -142,11 +143,15 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<unknow
                      taskData.params?.orchestrator_task_id ||
                      taskData.params?.full_orchestrator_payload?.orchestrator_task_id;
 
-  if (!orchTaskId) {
-    return null;
-  }
+  const directParentGenerationId = typeof taskData.params?.parent_generation_id === 'string'
+    ? taskData.params.parent_generation_id
+    : null;
 
-  const parentGen = await getOrCreateParentGeneration(supabase, orchTaskId, taskData.project_id, taskData.params);
+  const parentGen = orchTaskId
+    ? await getOrCreateParentGeneration(supabase, orchTaskId, taskData.project_id, taskData.params)
+    : directParentGenerationId
+      ? { id: directParentGenerationId }
+      : null;
 
   if (!parentGen?.id) {
     throw new CompletionError({
@@ -156,7 +161,8 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<unknow
       message: `No parent generation could be resolved for task ${taskId}`,
       metadata: {
         task_id: taskId,
-        orchestrator_task_id: String(orchTaskId),
+        ...(orchTaskId ? { orchestrator_task_id: String(orchTaskId) } : {}),
+        ...(directParentGenerationId ? { parent_generation_id: directParentGenerationId } : {}),
       },
     });
   }
@@ -164,7 +170,7 @@ export async function handleVariantOnParent(ctx: HandlerContext): Promise<unknow
   logger?.info(`${taskData.task_type}: creating variant on parent`, {
     task_id: taskId,
     parent_generation_id: parentGen.id,
-    orchestrator_task_id: orchTaskId,
+    orchestrator_task_id: orchTaskId ?? null,
     action: "create_variant_on_parent"
   });
 
@@ -292,6 +298,15 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<unknown
     created_from: 'individual_segment_regeneration',
     ...(pairShotGenerationId && { pair_shot_generation_id: pairShotGenerationId }),
   };
+  const predecessorVariantId = await derivePredecessorVariantId(
+    supabase,
+    variantParams,
+    childGen.parent_generation_id,
+    typeof childGen.child_order === 'number' ? childGen.child_order : null,
+  );
+  if (predecessorVariantId) {
+    variantParams.continuation_predecessor_variant_id = predecessorVariantId;
+  }
 
   // Respect make_primary_variant flag from UI (defaults to true for backward compatibility)
   const makePrimary = taskData.params?.make_primary_variant ?? true;

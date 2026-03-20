@@ -10,6 +10,7 @@ import { toast } from '@/shared/components/ui/runtime/sonner';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 import { createCanonicalJoinClipsTask } from '@/shared/lib/tasks/families/joinClips';
+import { createCrossfadeJoinTask } from '@/shared/lib/tasks/createCrossfadeJoinTask';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
@@ -20,6 +21,7 @@ import { DEFAULT_VACE_PHASE_CONFIG, BUILTIN_VACE_DEFAULT_ID } from '@/shared/lib
 import { useTaskPlaceholder } from '@/shared/hooks/tasks/useTaskPlaceholder';
 import type { SegmentSlot } from '@/shared/hooks/segments/useSegmentOutputsForShot';
 import type { JoinLoraManagerForTask, JoinSettingsForTask } from './joinSegments.types';
+import { checkBoundaryFreshness } from './joinSegmentFreshness';
 
 interface UseJoinSegmentsHandlerProps {
   projectId?: string;
@@ -47,6 +49,18 @@ interface UseJoinSegmentsHandlerReturn {
   // Handlers
   handleJoinSegments: () => Promise<void>;
   handleRestoreJoinDefaults: () => void;
+}
+
+interface FreshGenerationRow {
+  id: string;
+  location: string | null;
+  primary_variant_id: string | null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
 }
 
 export function useJoinSegmentsHandler({
@@ -119,37 +133,71 @@ export function useJoinSegmentsHandler({
     setIsJoiningClips(true);
 
     try {
+      const orderedSegments = joinSegmentSlots
+        .filter((slot): slot is { type: 'child'; child: GenerationRow; index: number } =>
+          slot.type === 'child' && Boolean(slot.child?.location)
+        )
+        .map(slot => slot.child);
+
+      const videoIds = orderedSegments.map(v => v.id).filter(Boolean);
+      const { data: freshVideos, error: fetchError } = await supabase().from('generations')
+        .select('id, location, primary_variant_id')
+        .in('id', videoIds);
+
+      if (fetchError) {
+        normalizeAndPresentError(fetchError, { context: 'JoinSegments', showToast: false });
+        throw new Error('Failed to fetch video URLs');
+      }
+
+      const freshGenMap = new Map(
+        (freshVideos as FreshGenerationRow[] | null | undefined)?.map(video => [video.id, video]) ?? [],
+      );
+      const freshUrlMap = new Map(
+        (freshVideos as FreshGenerationRow[] | null | undefined)?.map(video => [video.id, video.location]) ?? [],
+      );
+
+      const variantIds = (freshVideos as FreshGenerationRow[] | null | undefined)
+        ?.map(video => video.primary_variant_id)
+        .filter((variantId): variantId is string => Boolean(variantId)) ?? [];
+
+      const { data: variants, error: variantsError } = variantIds.length === 0
+        ? { data: [], error: null }
+        : await supabase()
+            .from('generation_variants')
+            .select('id, params')
+            .in('id', variantIds);
+
+      if (variantsError) {
+        normalizeAndPresentError(variantsError, { context: 'JoinSegments', showToast: false });
+        throw new Error('Failed to fetch variant metadata');
+      }
+
+      const variantParamsMap = new Map(
+        (variants ?? []).map((variant) => [variant.id, asRecord(variant.params)]),
+      );
+
+      const clips = orderedSegments.map((video, index) => ({
+        url: freshUrlMap.get(video.id) || video.location || '',
+        name: `Segment ${index + 1}`,
+      })).filter((clip) => clip.url);
+
+      const boundaries = orderedSegments.slice(0, -1).map((segment, index) => {
+        const freshA = freshGenMap.get(segment.id);
+        const freshB = freshGenMap.get(orderedSegments[index + 1].id);
+        const successorParams = freshB?.primary_variant_id
+          ? variantParamsMap.get(freshB.primary_variant_id) ?? null
+          : null;
+        return checkBoundaryFreshness(freshA?.primary_variant_id, successorParams);
+      });
+      const allCrossfade = boundaries.length > 0 && boundaries.every((boundary) => boundary.canCrossfade);
+      const placeholderTaskType = allCrossfade ? 'travel_stitch' : 'join_clips_orchestrator';
+
       await runPlaceholder({
-        taskType: 'join_clips_orchestrator',
+        taskType: placeholderTaskType,
         label: taskLabel,
         context: 'JoinSegments',
         toastTitle: 'Failed to create join task',
         create: async () => {
-          // Get ordered segments from segmentSlots (already sorted by pair position)
-          const orderedSegments = joinSegmentSlots
-            .filter((slot): slot is { type: 'child'; child: GenerationRow; index: number } =>
-              slot.type === 'child' && Boolean(slot.child?.location)
-            )
-            .map(slot => slot.child);
-
-          // Fetch fresh URLs from database
-          const videoIds = orderedSegments.map(v => v.id).filter(Boolean);
-          const { data: freshVideos, error: fetchError } = await supabase().from('generations')
-            .select('id, location')
-            .in('id', videoIds);
-
-          if (fetchError) {
-            normalizeAndPresentError(fetchError, { context: 'JoinSegments', showToast: false });
-            throw new Error('Failed to fetch video URLs');
-          }
-
-          const freshUrlMap = new Map(freshVideos?.map(v => [v.id, v.location]) || []);
-
-          const clips = orderedSegments.map((video, index) => ({
-            url: freshUrlMap.get(video.id) || video.location || '',
-            name: `Segment ${index + 1}`,
-          })).filter(c => c.url);
-
           // Convert selected LoRAs
           const lorasForTask = joinLoraManager.selectedLoras.map(lora => ({
             path: lora.path,
@@ -164,6 +212,18 @@ export function useJoinSegmentsHandler({
             if (w && h) {
               resolutionTuple = [w, h];
             }
+          }
+
+          if (allCrossfade) {
+            return createCrossfadeJoinTask({
+              project_id: projectId,
+              shot_id: selectedShotId,
+              parent_generation_id: joinSelectedParent?.id,
+              clip_urls: clips.map((clip) => clip.url),
+              frame_overlap_settings_expanded: boundaries.map((boundary) => boundary.overlapFrames),
+              ...(audioUrl && { audio_url: audioUrl }),
+              tool_type: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
+            });
           }
 
           return createCanonicalJoinClipsTask({

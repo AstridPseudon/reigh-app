@@ -107,5 +107,6 @@ export function transformToGenerationRow(gen: RawGenerationDbRow): GenerationRow
     child_order: gen.child_order,
     starred: gen.starred,
     pair_shot_generation_id: gen.pair_shot_generation_id,
+    primary_variant_id: gen.primary_variant_id,
   };
 }

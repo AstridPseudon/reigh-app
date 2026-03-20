@@ -96,4 +96,41 @@ describe('complete_task/generation-handlers exports', () => {
       logger,
     } as never)).rejects.toBeInstanceOf(CompletionError);
   });
+
+  it('creates a stitched parent variant when parent_generation_id is provided directly', async () => {
+    mocks.createVariantOnParent.mockResolvedValue({ id: 'parent-1' });
+    const logger = { info: vi.fn() };
+
+    const result = await handleVariantOnParent({
+      supabase: {} as never,
+      taskId: 'task-2',
+      taskData: {
+        task_type: 'travel_stitch',
+        project_id: 'project-1',
+        params: {
+          parent_generation_id: 'parent-1',
+        },
+      },
+      publicUrl: 'https://example.com/out.mp4',
+      thumbnailUrl: null,
+      logger,
+    } as never);
+
+    expect(result).toEqual({ id: 'parent-1' });
+    expect(mocks.getOrCreateParentGeneration).not.toHaveBeenCalled();
+    expect(mocks.createVariantOnParent).toHaveBeenCalledWith(
+      expect.anything(),
+      'parent-1',
+      'https://example.com/out.mp4',
+      null,
+      expect.objectContaining({
+        task_type: 'travel_stitch',
+      }),
+      'task-2',
+      expect.any(String),
+      expect.objectContaining({
+        created_from: 'travel_stitch_completion',
+      }),
+    );
+  });
 });

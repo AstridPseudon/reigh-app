@@ -113,6 +113,9 @@ describe('useGenerationController', () => {
         joinUseInputVideoFps: true,
         joinNoisedInputVideo: 0.35,
         joinLoopFirstClip: true,
+        joinSettings: {
+          updateField: vi.fn(),
+        },
       },
       runtime: {
         accelerated: false,
@@ -209,5 +212,37 @@ describe('useGenerationController', () => {
       expect.any(Error),
       { context: 'PromptClearLog', showToast: false },
     );
+  });
+
+  it('auto-enables stitch-after-generate when smooth continuations is toggled on', () => {
+    const args = buildArgs();
+    args.motion.smoothContinuations = false;
+
+    const { rerender } = renderHook(
+      (currentArgs) => useGenerationController(currentArgs),
+      { initialProps: args },
+    );
+
+    expect(args.join.joinSettings.updateField).not.toHaveBeenCalled();
+
+    rerender({
+      ...args,
+      motion: {
+        ...args.motion,
+        smoothContinuations: true,
+      },
+    });
+
+    expect(args.join.joinSettings.updateField).toHaveBeenCalledWith('stitchAfterGenerate', true);
+
+    rerender({
+      ...args,
+      motion: {
+        ...args.motion,
+        smoothContinuations: true,
+      },
+    });
+
+    expect(args.join.joinSettings.updateField).toHaveBeenCalledTimes(1);
   });
 });

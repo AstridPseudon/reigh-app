@@ -193,8 +193,6 @@ export const SharedGenerationView: React.FC<SharedGenerationViewProps> = ({
                     onBatchVideoFramesChange={() => {}}
                     batchVideoSteps={batchVideoSteps}
                     onBatchVideoStepsChange={() => {}}
-                    guidanceScale={settings?.guidanceScale}
-                    onGuidanceScaleChange={() => {}}
                     dimensionSource="custom"
                     onDimensionSourceChange={() => {}}
                     customWidth={512}
