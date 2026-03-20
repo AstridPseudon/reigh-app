@@ -18,6 +18,7 @@ export const JoinModeContent: React.FC<JoinModeContentProps> = ({
 }) => {
   const { projectId, availableLoras, generationMode, joinState } = useShotSettingsContext();
 
+  console.log('[JoinModeContent] joinState.joinSegmentSlots:', joinState.joinSegmentSlots?.length, joinState.joinSegmentSlots);
   const boundarySummary = useBoundarySummary((joinState.joinSegmentSlots ?? []) as import('@/shared/hooks/segments/useSegmentOutputsForShot').SegmentSlot[]);
 
   const joinFormProps = buildJoinClipsFormProps({

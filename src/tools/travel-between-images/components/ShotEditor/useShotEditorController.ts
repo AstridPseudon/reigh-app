@@ -597,6 +597,7 @@ export function useShotEditorController({
         parentGenerations: output.parentGenerations,
         segmentProgress: output.segmentProgress,
         isSegmentOutputsLoading: output.isSegmentOutputsLoading,
+        joinSegmentSlots: output.joinSegmentSlots,
       },
       generationActions,
       shotActions,

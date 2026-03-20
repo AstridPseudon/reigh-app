@@ -27,6 +27,9 @@ export function useBoundarySummary(joinSegmentSlots: SegmentSlot[]): BoundaryFre
     [joinSegmentSlots],
   );
 
+  console.log('[BoundarySummary] slots:', joinSegmentSlots.length, 'ready:', readySlots.length,
+    'types:', joinSegmentSlots.map(s => s.type));
+
   // Collect variant IDs we need to fetch params for
   const variantIds = useMemo(() => {
     const ids: string[] = [];
@@ -37,8 +40,10 @@ export function useBoundarySummary(joinSegmentSlots: SegmentSlot[]): BoundaryFre
     return ids;
   }, [readySlots]);
 
+  console.log('[BoundarySummary] variantIds:', variantIds);
+
   // Fetch variant params for all primary variants
-  const { data: variantParamsMap } = useQuery({
+  const { data: variantParamsMap, isLoading, error } = useQuery({
     queryKey: ['boundary-summary-variants', ...variantIds],
     queryFn: async () => {
       if (variantIds.length === 0) return new Map<string, Record<string, unknown>>();
@@ -46,6 +51,7 @@ export function useBoundarySummary(joinSegmentSlots: SegmentSlot[]): BoundaryFre
         .from('generation_variants')
         .select('id, params')
         .in('id', variantIds);
+      console.log('[BoundarySummary] fetched variants:', data?.length, 'ids:', data?.map(v => v.id));
       return new Map(
         (data ?? []).map((v) => [v.id, asRecord(v.params) ?? {}]),
       );
@@ -54,16 +60,24 @@ export function useBoundarySummary(joinSegmentSlots: SegmentSlot[]): BoundaryFre
     staleTime: 30_000,
   });
 
+  console.log('[BoundarySummary] query state: loading=', isLoading, 'hasMap=', !!variantParamsMap, 'error=', error?.message);
+
   return useMemo(() => {
-    if (!variantParamsMap || readySlots.length < 2) return undefined;
+    if (!variantParamsMap || readySlots.length < 2) {
+      console.log('[BoundarySummary] returning undefined: mapReady=', !!variantParamsMap, 'readySlots=', readySlots.length);
+      return undefined;
+    }
 
     const boundaries: BoundaryFreshness[] = [];
     for (let i = 0; i < readySlots.length - 1; i++) {
       const predecessorPvid = readySlots[i].child?.primary_variant_id ?? null;
       const successorPvid = readySlots[i + 1].child?.primary_variant_id ?? null;
       const successorParams = successorPvid ? variantParamsMap.get(successorPvid) ?? null : null;
-      boundaries.push(checkBoundaryFreshness(predecessorPvid, successorParams));
+      const result = checkBoundaryFreshness(predecessorPvid, successorParams);
+      console.log(`[BoundarySummary] boundary ${i}: predPvid=${predecessorPvid?.slice(0,8)}, succPvid=${successorPvid?.slice(0,8)}, canCrossfade=${result.canCrossfade}, overlap=${result.overlapFrames}`);
+      boundaries.push(result);
     }
+    console.log('[BoundarySummary] result:', boundaries);
     return boundaries;
   }, [variantParamsMap, readySlots]);
 }

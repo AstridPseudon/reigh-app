@@ -73,7 +73,8 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
   const { onBlurSave: blurSaveHandler } = useSettingsSave();
 
   const advancedMode = motionSettings.motionMode === 'advanced';
-  const stitchAfterGenerate = joinState.joinSettings.settings.stitchAfterGenerate ?? false;
+  const smoothContinuations = motionSettings.smoothContinuations ?? false;
+  const stitchAfterGenerate = smoothContinuations || (joinState.joinSettings.settings.stitchAfterGenerate ?? false);
   const effectiveGenerationMode = generationModeSettings.generationMode;
   const modelSpec = getModelSpec(modelSettings.selectedModel);
   const ltxSelected = modelSpec.modelFamily === 'ltx';
@@ -257,7 +258,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
           videoCount={Math.max(0, simpleFilteredImages.length - 1)}
           stitchEnabled={stitchAfterGenerate}
           middleContent={
-            simpleFilteredImages.length > 2 ? (
+            simpleFilteredImages.length > 2 && !smoothContinuations ? (
               stitchAfterGenerate ? (
                 <Collapsible className="mb-6 w-full">
                   <div className="flex items-center justify-center gap-4">
