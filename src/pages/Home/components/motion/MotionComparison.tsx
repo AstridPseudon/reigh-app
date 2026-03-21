@@ -4,11 +4,23 @@ import { getThumbPath } from './VideoWithPoster';
 import { useMotionComparisonController } from '../motionComparison/useMotionComparisonController';
 import { MotionComparisonOverlays } from '../motionComparison/MotionComparisonOverlays';
 
+interface MotionComparisonProps {
+  inputSrc?: string;
+  outputSrc?: string;
+  inputPoster?: string;
+  outputPoster?: string;
+}
+
 /**
  * Side-by-side comparison slider for motion reference vs result videos.
  * Playback logic and overlays are extracted to keep this component focused on layout.
  */
-export const MotionComparison: React.FC = () => {
+export const MotionComparison: React.FC<MotionComparisonProps> = ({
+  inputSrc = '/motion-input.mp4',
+  outputSrc = '/motion-output.mp4',
+  inputPoster = '/motion-input-poster.jpg',
+  outputPoster = '/motion-output-poster.jpg',
+}) => {
   const {
     sliderPos,
     isPlaying,
@@ -39,7 +51,7 @@ export const MotionComparison: React.FC = () => {
     >
       <video
         ref={videoOutputRef}
-        src="/motion-output.mp4"
+        src={outputSrc}
         className="absolute inset-0 w-full h-full object-cover"
         loop
         muted={isMuted}
@@ -50,7 +62,7 @@ export const MotionComparison: React.FC = () => {
       />
 
       <img
-        src={getThumbPath('/motion-output-poster.jpg')}
+        src={getThumbPath(outputPoster)}
         alt=""
         className={cn('absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-300', isPlaying && 'opacity-0')}
       />
@@ -61,7 +73,7 @@ export const MotionComparison: React.FC = () => {
       >
         <video
           ref={videoInputRef}
-          src="/motion-input.mp4"
+          src={inputSrc}
           className="absolute inset-0 w-full h-full object-cover"
           loop
           muted={isMuted}
@@ -71,7 +83,7 @@ export const MotionComparison: React.FC = () => {
         />
 
         <img
-          src={getThumbPath('/motion-input-poster.jpg')}
+          src={getThumbPath(inputPoster)}
           alt=""
           className={cn('absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-300', isPlaying && 'opacity-0')}
         />

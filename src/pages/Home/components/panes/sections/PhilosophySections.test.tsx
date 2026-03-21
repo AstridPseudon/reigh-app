@@ -9,7 +9,6 @@ import {
 
 const mocks = vi.hoisted(() => ({
   travelSelector: vi.fn(() => <div data-testid="travel-selector" />),
-  motionComparison: vi.fn(() => <div data-testid="motion-comparison" />),
 }));
 
 vi.mock('../../motion/VideoWithPoster', () => ({
@@ -18,10 +17,6 @@ vi.mock('../../motion/VideoWithPoster', () => ({
 
 vi.mock('../../motion/TravelSelector', () => ({
   TravelSelector: (props: unknown) => mocks.travelSelector(props),
-}));
-
-vi.mock('../../motion/MotionComparison', () => ({
-  MotionComparison: (props: unknown) => mocks.motionComparison(props),
 }));
 
 describe('PhilosophySections', () => {
@@ -78,7 +73,7 @@ describe('PhilosophySections', () => {
     expect(playTravelVideo).toHaveBeenCalledWith(0);
   });
 
-  it('renders motion reference grid and embedded comparison component', () => {
+  it('renders motion reference grid with 8 intro images and video', () => {
     render(
       <MotionReferenceSection
         loadedImages={new Set()}
@@ -87,8 +82,7 @@ describe('PhilosophySections', () => {
       />,
     );
 
-    expect(screen.getByTestId('motion-comparison')).toBeInTheDocument();
-    expect(screen.getAllByAltText(/Input \d+/)).toHaveLength(16);
+    expect(screen.getAllByAltText(/Input \d+/)).toHaveLength(8);
   });
 
   it('renders lora section controls and invokes replay toggle', () => {
