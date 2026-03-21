@@ -19,6 +19,7 @@ export function MotionReferenceSection({
 }: MotionReferenceSectionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -31,6 +32,14 @@ export function MotionReferenceSection({
       setIsPlaying(true);
     }
   }, [isPlaying]);
+
+  const toggleMute = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+  }, []);
 
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
@@ -65,11 +74,15 @@ export function MotionReferenceSection({
           ))}
         </div>
 
-        <div className="w-full relative">
+        <div
+          className="w-full relative cursor-pointer"
+          onClick={togglePlay}
+        >
           <div className="aspect-video bg-muted/30 rounded-lg border border-muted/50 overflow-hidden relative">
             <video
               ref={videoRef}
               src="/intro-output.mp4"
+              muted={isMuted}
               playsInline
               preload="metadata"
               onEnded={handleEnded}
@@ -86,15 +99,31 @@ export function MotionReferenceSection({
             />
 
             {!isPlaying && (
-              <button
-                onClick={togglePlay}
-                className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 rounded-lg transition-all duration-300 z-20 group"
-              >
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 rounded-lg transition-all duration-300 z-20 group">
                 <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm border border-white/50 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>
+              </div>
+            )}
+
+            {isPlaying && (
+              <button
+                onClick={toggleMute}
+                className="absolute bottom-2 right-2 z-20 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center transition-all duration-200"
+              >
+                {isMuted ? (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9" />
+                  </svg>
+                )}
               </button>
             )}
           </div>
