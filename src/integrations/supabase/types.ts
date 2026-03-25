@@ -162,6 +162,45 @@ export type Database = {
         }
         Relationships: []
       }
+      effects: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generation_variants: {
         Row: {
           created_at: string
@@ -1231,6 +1270,47 @@ export type Database = {
           },
         ]
       }
+      timelines: {
+        Row: {
+          asset_registry: Json
+          config: Json
+          created_at: string
+          id: string
+          name: string
+          project_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_registry?: Json
+          config: Json
+          created_at?: string
+          id?: string
+          name: string
+          project_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_registry?: Json
+          config?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timelines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_api_tokens: {
         Row: {
           created_at: string
@@ -1814,6 +1894,7 @@ export type Database = {
         | {
             Args: {
               p_include_active?: boolean
+              p_max_task_wait_minutes?: number
               p_run_type?: string
               p_same_model_only?: boolean
               p_worker_id: string

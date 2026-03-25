@@ -6,6 +6,7 @@ import { usePanes } from '@/shared/contexts/PanesContext';
 import { useHeaderState } from '@/shared/contexts/ToolPageHeaderContext';
 import { useViewportResponsive } from '@/shared/hooks/responsive/useViewportResponsive';
 import { cn } from '@/shared/components/ui/contracts/cn';
+import { useVideoEditorRouteState } from '@/app/hooks/useVideoEditorRouteState';
 
 interface LayoutMainContentProps {
   isMobileSplitView: boolean;
@@ -14,6 +15,7 @@ interface LayoutMainContentProps {
 
 export function LayoutMainContent(props: LayoutMainContentProps) {
   const { isMobileSplitView, onOpenSettings } = props;
+  const { isVideoEditorShellActive } = useVideoEditorRouteState();
   const {
     isTasksPaneLocked,
     tasksPaneWidth,
@@ -21,7 +23,7 @@ export function LayoutMainContent(props: LayoutMainContentProps) {
     shotsPaneWidth,
     isGenerationsPaneLocked,
     isGenerationsPaneOpen,
-    generationsPaneHeight,
+    effectiveGenerationsPaneHeight,
   } = usePanes();
   const { header } = useHeaderState();
   const { isSm, isMd, isLg, isXl, is2Xl, contentWidth, contentHeight } = useViewportResponsive();
@@ -30,9 +32,10 @@ export function LayoutMainContent(props: LayoutMainContentProps) {
   const containerSpacing = 'py-1';
 
   const contentStyle = {
-    marginRight: isTasksPaneLocked ? `${tasksPaneWidth}px` : '0px',
-    marginLeft: isShotsPaneLocked ? `${shotsPaneWidth}px` : '0px',
-    paddingBottom: isMobileSplitView ? '0px' : ((isGenerationsPaneLocked || isGenerationsPaneOpen) ? `${generationsPaneHeight}px` : '0px'),
+    marginRight: isVideoEditorShellActive ? '0px' : (isTasksPaneLocked ? `${tasksPaneWidth}px` : '0px'),
+    marginLeft: isVideoEditorShellActive ? '0px' : (isShotsPaneLocked ? `${shotsPaneWidth}px` : '0px'),
+    paddingTop: '0px',
+    paddingBottom: isMobileSplitView ? '0px' : ((isGenerationsPaneLocked || isGenerationsPaneOpen) ? `${effectiveGenerationsPaneHeight}px` : '0px'),
     '--content-width': `${contentWidth}px`,
     '--content-height': `${contentHeight}px`,
     '--content-sm': isSm ? '1' : '0',
@@ -45,20 +48,33 @@ export function LayoutMainContent(props: LayoutMainContentProps) {
 
   return (
     <>
-      <GlobalHeader
-        contentOffsetRight={isTasksPaneLocked ? tasksPaneWidth + 16 : 16}
-        contentOffsetLeft={isShotsPaneLocked ? shotsPaneWidth : 0}
-        onOpenSettings={onOpenSettings}
-      />
+      {!isVideoEditorShellActive && (
+        <GlobalHeader
+          contentOffsetRight={isTasksPaneLocked ? tasksPaneWidth + 16 : 16}
+          contentOffsetLeft={isShotsPaneLocked ? shotsPaneWidth : 0}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
 
       <div
-        className="relative z-10 transition-[margin,padding] duration-300 ease-smooth content-container"
+        className={cn(
+          'relative z-10 content-container',
+          isVideoEditorShellActive
+            ? 'h-screen w-screen overflow-hidden transition-[padding] duration-300 ease-smooth'
+            : 'transition-[margin,padding] duration-300 ease-smooth',
+        )}
         style={contentStyle}
       >
-        <GlobalProcessingWarning onOpenSettings={onOpenSettings} />
+        {!isVideoEditorShellActive && <GlobalProcessingWarning onOpenSettings={onOpenSettings} />}
 
-        <main className={cn('container mx-auto', containerPadding, containerSpacing)}>
-          {header}
+        <main
+          className={cn(
+            isVideoEditorShellActive
+              ? 'h-full w-full overflow-hidden'
+              : cn('container mx-auto', containerPadding, containerSpacing),
+          )}
+        >
+          {!isVideoEditorShellActive && header}
           <Outlet />
         </main>
       </div>

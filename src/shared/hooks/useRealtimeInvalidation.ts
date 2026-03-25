@@ -24,6 +24,7 @@ import type {
   ShotGenerationsChangedEvent,
   VariantsChangedEvent,
   VariantsDeletedEvent,
+  TimelinesUpdatedEvent,
 } from '@/shared/realtime/types';
 
 /**
@@ -58,6 +59,9 @@ export function useRealtimeInvalidation(): void {
         break;
       case 'variants-deleted':
         handleVariantsDeleted(queryClient, event);
+        break;
+      case 'timelines-updated':
+        handleTimelinesUpdated(queryClient, event);
         break;
     }
   }, [queryClient]);
@@ -332,6 +336,19 @@ function invalidateVariantCaches(
     affectedQueries.push(queryKeys.generations.variants(generationId));
   });
   dataFreshnessManager.onRealtimeEvent(eventName, affectedQueries);
+}
+
+function handleTimelinesUpdated(queryClient: QueryClient, event: TimelinesUpdatedEvent): void {
+  const affectedQueries: Array<readonly unknown[]> = [];
+
+  event.timelines.forEach((timeline) => {
+    queryClient.invalidateQueries({ queryKey: ['timeline', timeline.id] });
+    queryClient.invalidateQueries({ queryKey: ['asset-registry', timeline.id] });
+    queryClient.invalidateQueries({ queryKey: ['timelines', timeline.projectId] });
+    affectedQueries.push(['timeline', timeline.id], ['timelines', timeline.projectId]);
+  });
+
+  dataFreshnessManager.onRealtimeEvent('timelines-updated', affectedQueries);
 }
 
 function handleVariantsChanged(queryClient: QueryClient, event: VariantsChangedEvent): void {

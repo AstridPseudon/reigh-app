@@ -1,0 +1,144 @@
+import type { RefObject } from 'react';
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Pause, Play, SkipBack } from 'lucide-react';
+import { Player, type PlayerRef } from '@remotion/player';
+import { Button } from '@/shared/components/ui/button';
+import { TimelineRenderer } from '@/tools/video-editor/compositions/TimelineRenderer';
+import { getClipDurationInFrames, parseResolution, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
+import type { ResolvedTimelineConfig } from '@/tools/video-editor/types';
+
+export interface PreviewHandle {
+  seek: (time: number) => void;
+  play: () => void;
+  pause: () => void;
+  togglePlayPause: () => void;
+  readonly isPlaying: boolean;
+}
+
+interface RemotionPreviewProps {
+  config: ResolvedTimelineConfig;
+  onTimeUpdate: (time: number) => void;
+  playerContainerRef: RefObject<HTMLDivElement | null>;
+  compact?: boolean;
+}
+
+const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>(function RemotionPreview(
+  { config, onTimeUpdate, playerContainerRef, compact = false },
+  ref,
+) {
+  const playerRef = useRef<PlayerRef>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const inputProps = useMemo(() => ({ config }), [config]);
+  const metadata = useMemo(() => {
+    const fps = config.output.fps;
+    const { width, height } = parseResolution(config.output.resolution);
+
+    // This assumes useTimelineData keeps config.clips referentially stable when
+    // the config signature has not changed, so Remotion does not remount on poll churn.
+    return {
+      fps,
+      durationInFrames: Math.max(
+        1,
+        ...config.clips.map((clip) => secondsToFrames(clip.at, fps) + getClipDurationInFrames(clip, fps)),
+      ),
+      compositionWidth: Math.max(1, width),
+      compositionHeight: Math.max(1, height),
+    };
+  }, [config.clips, config.output.fps, config.output.resolution]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) {
+      return;
+    }
+
+    const onFrameUpdate = (event: { detail: { frame: number } }) => {
+      onTimeUpdate(event.detail.frame / metadata.fps);
+    };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+
+    player.addEventListener('frameupdate', onFrameUpdate);
+    player.addEventListener('play', onPlay);
+    player.addEventListener('pause', onPause);
+
+    return () => {
+      player.removeEventListener('frameupdate', onFrameUpdate);
+      player.removeEventListener('play', onPlay);
+      player.removeEventListener('pause', onPause);
+    };
+  }, [metadata.fps, onTimeUpdate]);
+
+  useImperativeHandle(ref, () => ({
+    seek(time: number) {
+      playerRef.current?.seekTo(Math.max(0, Math.round(time * metadata.fps)));
+    },
+    play() {
+      playerRef.current?.play();
+    },
+    pause() {
+      playerRef.current?.pause();
+    },
+    togglePlayPause() {
+      playerRef.current?.toggle();
+    },
+    get isPlaying() {
+      return playerRef.current?.isPlaying() ?? isPlaying;
+    },
+  }), [isPlaying, metadata.fps]);
+
+  return (
+    <div
+      ref={playerContainerRef}
+      className="relative flex h-full min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl bg-background"
+    >
+      <Player
+        ref={playerRef}
+        component={TimelineRenderer}
+        inputProps={inputProps}
+        durationInFrames={metadata.durationInFrames}
+        fps={metadata.fps}
+        compositionWidth={metadata.compositionWidth}
+        compositionHeight={metadata.compositionHeight}
+        controls={false}
+        clickToPlay={false}
+        doubleClickToFullscreen={false}
+        spaceKeyToPlayOrPause={false}
+        showVolumeControls={false}
+        acknowledgeRemotionLicense
+        style={{ width: '100%', height: '100%' }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-2 bg-gradient-to-t from-black/60 to-transparent px-3 py-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="pointer-events-auto h-8 w-8 rounded-full border-white/20 bg-black/40 text-white hover:bg-black/60"
+          onClick={() => playerRef.current?.seekTo(0)}
+          title="Jump to beginning"
+        >
+          <SkipBack className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="pointer-events-auto h-10 w-10 rounded-full border-white/20 bg-black/40 text-white hover:bg-black/60"
+          onClick={() => playerRef.current?.toggle()}
+          title={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+        </Button>
+        {!compact && (
+          <div className="pointer-events-none rounded-full bg-background/70 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {config.output.resolution}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+RemotionPreviewComponent.displayName = 'RemotionPreview';
+
+export const RemotionPreview = memo(RemotionPreviewComponent);

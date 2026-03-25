@@ -42,18 +42,16 @@ export function buildSegmentSlots({
 
   const slots: SegmentSlot[] = [];
   const childrenBySlot = new Map<number, GenerationRow>();
-  const usedSlots = new Set<number>();
-  const childrenWithoutValidSlot: GenerationRow[] = [];
+  // Segments whose start image is at the last position — no valid gap exists
+  // after them, but they should still be discoverable by pairShotGenerationId.
+  const orphanedAtEnd: GenerationRow[] = [];
 
   segments.forEach((child) => {
     const childParams = child.params as Record<string, unknown> | null;
     const { pairShotGenId } = getPairIdentifiers(child, childParams);
     const childOrder = child.child_order;
-    const individualParams = (childParams?.individual_segment_params || {}) as Record<string, unknown>;
-    const endGenId = (individualParams.end_image_generation_id || childParams?.end_image_generation_id) as string | undefined;
-
     let derivedSlot: number | undefined;
-    let slotSource = 'NONE';
+    let isAtEnd = false;
     let pairShotGenPosition: number | undefined;
 
     if (pairShotGenId && positionMap.has(pairShotGenId)) {
@@ -62,24 +60,8 @@ export function buildSegmentSlots({
 
       if (pairShotGenPosition < slotCount || isTrailingSegment) {
         derivedSlot = pairShotGenPosition;
-        slotSource = isTrailingSegment
-          ? 'TRAILING_SEGMENT'
-          : (useLocalPositions ? 'LOCAL_POSITION' : 'PAIR_SHOT_GEN_ID_LIVE');
       } else {
-        slotSource = 'PAIR_AT_END_NO_SLOT';
-      }
-
-      if (!useLocalPositions && derivedSlot !== undefined && endGenId && effectiveTimelineData) {
-        const endImageInTimeline = effectiveTimelineData[derivedSlot + 1];
-        if (endImageInTimeline && endImageInTimeline.generation_id !== endGenId) {
-          const endImageNewSlot = effectiveTimelineData.findIndex(
-            (item) => item.generation_id === endGenId,
-          );
-          if (endImageNewSlot === -1 || endImageNewSlot > derivedSlot) {
-            derivedSlot = undefined;
-            slotSource = 'STALE_END_IMAGE';
-          }
-        }
+        isAtEnd = true;
       }
     }
 
@@ -91,26 +73,20 @@ export function buildSegmentSlots({
       && childOrder < slotCount
     ) {
       derivedSlot = childOrder;
-      slotSource = 'CHILD_ORDER';
     }
 
-    if (slotSource === 'PAIR_AT_END_NO_SLOT') {
+    if (isAtEnd) {
+      orphanedAtEnd.push(child);
       return;
     }
 
-    if (derivedSlot !== undefined && !usedSlots.has(derivedSlot)) {
+    if (derivedSlot !== undefined && !childrenBySlot.has(derivedSlot)) {
       childrenBySlot.set(derivedSlot, child);
-      usedSlots.add(derivedSlot);
-    } else if (derivedSlot !== undefined && usedSlots.has(derivedSlot)) {
+    } else if (derivedSlot !== undefined && childrenBySlot.has(derivedSlot)) {
       const existing = childrenBySlot.get(derivedSlot)!;
       if (!existing.location && child.location) {
         childrenBySlot.set(derivedSlot, child);
-        childrenWithoutValidSlot.push(existing);
-      } else {
-        childrenWithoutValidSlot.push(child);
       }
-    } else {
-      childrenWithoutValidSlot.push(child);
     }
   });
 
@@ -140,6 +116,24 @@ export function buildSegmentSlots({
         startImage: liveStartImage?.generation_id || expectedSegmentData?.inputImages[i],
         endImage: liveEndImage?.generation_id || expectedSegmentData?.inputImages[i + 1],
         pairShotGenerationId,
+      });
+    }
+  }
+
+  // Append segments whose start image is at the last position. They have no
+  // valid gap to render in, but must be in the output so ImageGrid can find
+  // them via pairShotGenerationId (image-based lookup).
+  for (const child of orphanedAtEnd) {
+    const childPsgId = getPairIdentifiers(
+      child,
+      child.params as Record<string, unknown> | null,
+    ).pairShotGenId;
+    if (childPsgId) {
+      slots.push({
+        type: 'child',
+        child,
+        index: -1,
+        pairShotGenerationId: childPsgId,
       });
     }
   }

@@ -12,6 +12,7 @@ export type {
   GenerationsUpdatedEvent,
   ShotGenerationsChangedEvent,
   VariantsChangedEvent,
+  TimelinesUpdatedEvent,
   RawDatabaseEvent,
   DatabaseTable,
   DatabaseEventType,

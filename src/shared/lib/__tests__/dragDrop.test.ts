@@ -44,8 +44,11 @@ describe('getDragType', () => {
     expect(getDragType(event)).toBe('file');
   });
 
-  it('returns "none" for unknown types', () => {
-    const event = createMockDragEvent({ types: ['text/plain'] });
+  it('returns "none" for plain text without generation payload', () => {
+    const event = createMockDragEvent({
+      types: ['text/plain'],
+      data: { 'text/plain': 'hello world' },
+    });
     expect(getDragType(event)).toBe('none');
   });
 
@@ -87,6 +90,7 @@ describe('setGenerationDragData / getGenerationDropData round-trip', () => {
 
     // Verify data was stored
     expect(storedData['application/x-generation']).toBeTruthy();
+    expect(storedData['text/plain']).toContain('__reigh_generation__:');
 
     const getEvent = createMockDragEvent({
       types: ['application/x-generation'],
@@ -123,10 +127,22 @@ describe('setGenerationDragData / getGenerationDropData round-trip', () => {
     };
 
     const event = createMockDragEvent({
-      data: { 'text/plain': JSON.stringify(data) },
+      data: { 'text/plain': `__reigh_generation__:${JSON.stringify(data)}` },
     });
     const result = getGenerationDropData(event);
     expect(result).toEqual(data);
+  });
+
+  it('detects generation drags from prefixed text/plain payloads', () => {
+    const event = createMockDragEvent({
+      types: ['text/plain'],
+      data: {
+        'text/plain': '__reigh_generation__:{"generationId":"gen-789","imageUrl":"https://example.com/video.mp4"}',
+      },
+    });
+
+    expect(getDragType(event)).toBe('generation');
+    expect(isValidDropTarget(event)).toBe(true);
   });
 });
 
@@ -142,7 +158,10 @@ describe('isValidDropTarget', () => {
   });
 
   it('returns false for other drag types', () => {
-    const event = createMockDragEvent({ types: ['text/plain'] });
+    const event = createMockDragEvent({
+      types: ['text/plain'],
+      data: { 'text/plain': 'hello world' },
+    });
     expect(isValidDropTarget(event)).toBe(false);
   });
 });

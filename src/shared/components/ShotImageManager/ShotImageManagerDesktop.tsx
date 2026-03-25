@@ -214,7 +214,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
             onDragEnd={dragAndDrop.handleDragEnd}
           >
             <SortableContext
-              items={lightbox.currentImages.map((image: GenerationRow) => image.shotImageEntryId ?? image.id)}
+              items={lightbox.currentImages.map((image: GenerationRow) => image.id)}
               strategy={rectSortingStrategy}
             >
               <ImageGrid

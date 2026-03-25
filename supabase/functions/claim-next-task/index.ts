@@ -24,6 +24,7 @@ import { withEdgeRequest } from "../_shared/edgeHandler.ts";
  *   worker_id?: string,        // Optional worker ID for service role
  *   run_type?: 'gpu' | 'api',  // Optional: filter tasks by execution environment
  *   same_model_only?: boolean, // Optional: only claim tasks matching worker's current_model
+ *   max_task_wait_minutes?: number, // Optional: max age in minutes for claimable tasks (default 5, must be positive finite number)
  *   debug?: boolean            // Optional: enable verbose logging/analysis on 204 responses
  * }
  *
@@ -55,6 +56,10 @@ serve((req) => {
     ? requestBody.run_type
     : null;
   const sameModelOnly = requestBody.same_model_only === true;
+  const rawMaxWait = requestBody.max_task_wait_minutes;
+  const maxTaskWaitMinutes = typeof rawMaxWait === "number" && rawMaxWait > 0 && isFinite(rawMaxWait)
+    ? rawMaxWait
+    : 5;
   const debug = requestBody.debug === true;
 
   const isServiceRole = auth!.isServiceRole;
@@ -74,7 +79,8 @@ serve((req) => {
     logger.info(`Claiming task (service-role, ${pathType} path)`, {
       worker_id: workerId,
       run_type: runType,
-      same_model_only: sameModelOnly
+      same_model_only: sameModelOnly,
+      max_task_wait_minutes: maxTaskWaitMinutes,
     });
 
     let claimResult, claimError;
@@ -84,7 +90,8 @@ serve((req) => {
           p_worker_id: workerId,
           p_include_active: false,
           p_run_type: runType,
-          p_same_model_only: sameModelOnly
+          p_same_model_only: sameModelOnly,
+          p_max_task_wait_minutes: maxTaskWaitMinutes,
         });
 
       claimResult = rpcResponse.data;
@@ -109,7 +116,8 @@ serve((req) => {
         logger.info("No eligible tasks available", {
           worker_id: workerId,
           run_type: runType,
-          same_model_only: sameModelOnly
+          same_model_only: sameModelOnly,
+          max_task_wait_minutes: maxTaskWaitMinutes,
         });
 
         // Detailed debugging analysis (only when debug=true)

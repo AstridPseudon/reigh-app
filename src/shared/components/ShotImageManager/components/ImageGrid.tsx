@@ -164,6 +164,20 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
   // Check for recent source image changes (shows warning for 5 minutes after change)
   const { hasRecentMismatch } = useSourceImageChanges(segmentSourceInfo, !readOnly);
 
+  // Build a map from pairShotGenerationId → segmentSlot for direct image-based lookup.
+  // This ties segments to their start image rather than relying on position indices,
+  // which can diverge when currentImages contains items filtered from the position map.
+  const segmentSlotByImageId = useMemo(() => {
+    if (!segmentSlots) return undefined;
+    const map = new Map<string, typeof segmentSlots[number]>();
+    for (const slot of segmentSlots) {
+      if (slot.pairShotGenerationId && !map.has(slot.pairShotGenerationId)) {
+        map.set(slot.pairShotGenerationId, slot);
+      }
+    }
+    return map;
+  }, [segmentSlots]);
+
   const handleMouseEnter = useCallback((generationId: string | null | undefined) => {
     if (!isMobile && generationId) {
       prefetchTaskData(generationId);
@@ -196,14 +210,16 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
         const enhancedPrompt = enhancedPrompts?.[index];
         const startImage = images[index];
         
-        // Get segment slot for this pair (if available)
-        const segmentSlot = segmentSlots?.find(s => s.index === index);
-        // Get previous pair's segment slot (for cross-row display)
-        const prevSegmentSlot = index > 0 ? segmentSlots?.find(s => s.index === index - 1) : undefined;
+        // Get segment slot for this pair — tied to the image's ID, not array position
+        const segmentSlot = segmentSlotByImageId?.get(imageKey);
+        // Get previous image's segment slot (for cross-row display)
+        const prevImageKey = index > 0 ? (images[index - 1].id as string) : undefined;
+        const prevSegmentSlot = prevImageKey ? segmentSlotByImageId?.get(prevImageKey) : undefined;
 
         // Row boundary detection
         const isAtEndOfRow = (index + 1) % columns === 0;
         const isAtStartOfRow = index > 0 && index % columns === 0;
+
 
         // Previous pair data (for cross-row indicator on left)
         const prevPairPrompt = index > 0 ? pairPrompts?.[index - 1] : undefined;
@@ -217,6 +233,7 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
 
         // Only hide if specifically affected by drag/drop
         const shouldHideIndicator = isDraggingThisItem || isDropTargetGap;
+
         
         // Get the actual generation ID for prefetching (shot_generations stores generation_id)
         const generationId = getGenerationId(image);

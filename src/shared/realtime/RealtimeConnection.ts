@@ -293,6 +293,19 @@ export class RealtimeConnection {
         { event: 'DELETE', schema: 'public', table: 'generation_variants' },
         (payload) => this.emitEvent('generation_variants', 'DELETE', payload.old, null)
       );
+    channel
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'timelines', filter: `project_id=eq.${projectId}` },
+        (payload) => this.emitEvent('timelines', 'INSERT', payload.new, null)
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'timelines', filter: `project_id=eq.${projectId}` },
+        (payload) => this.emitEvent('timelines', 'UPDATE', payload.new, payload.old)
+      )
+      .on('postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'timelines', filter: `project_id=eq.${projectId}` },
+        (payload) => this.emitEvent('timelines', 'DELETE', payload.old, null)
+      );
   }
   private emitEvent(
     table: DatabaseTable,

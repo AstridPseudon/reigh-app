@@ -5,8 +5,20 @@ import { LayoutMainContent } from './LayoutMainContent';
 const usePanesMock = vi.fn();
 const useHeaderStateMock = vi.fn();
 const useViewportResponsiveMock = vi.fn();
+const useVideoEditorRouteStateMock = vi.fn();
 const globalHeaderMock = vi.fn();
 const globalProcessingWarningMock = vi.fn();
+
+const defaultPanesState = {
+  isTasksPaneLocked: true,
+  tasksPaneWidth: 320,
+  isShotsPaneLocked: true,
+  shotsPaneWidth: 260,
+  isGenerationsPaneLocked: true,
+  isGenerationsPaneOpen: false,
+  effectiveGenerationsPaneHeight: 180,
+  editorPaneHeight: 540,
+};
 
 vi.mock('react-router-dom', () => ({
   Outlet: () => <div data-testid="layout-outlet" />,
@@ -38,18 +50,14 @@ vi.mock('@/shared/hooks/responsive/useViewportResponsive', () => ({
   useViewportResponsive: () => useViewportResponsiveMock(),
 }));
 
+vi.mock('@/app/hooks/useVideoEditorRouteState', () => ({
+  useVideoEditorRouteState: () => useVideoEditorRouteStateMock(),
+}));
+
 describe('LayoutMainContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    usePanesMock.mockReturnValue({
-      isTasksPaneLocked: true,
-      tasksPaneWidth: 320,
-      isShotsPaneLocked: true,
-      shotsPaneWidth: 260,
-      isGenerationsPaneLocked: true,
-      isGenerationsPaneOpen: false,
-      generationsPaneHeight: 180,
-    });
+    usePanesMock.mockReturnValue(defaultPanesState);
     useHeaderStateMock.mockReturnValue({
       header: <div data-testid="tool-header">Header</div>,
     });
@@ -61,6 +69,10 @@ describe('LayoutMainContent', () => {
       is2Xl: false,
       contentWidth: 1280,
       contentHeight: 720,
+    });
+    useVideoEditorRouteStateMock.mockReturnValue({
+      isEditorRoute: false,
+      isVideoEditorShellActive: false,
     });
   });
 
@@ -92,8 +104,93 @@ describe('LayoutMainContent', () => {
     expect(contentContainer).toHaveStyle({
       marginRight: '320px',
       marginLeft: '260px',
+      paddingTop: '0px',
       paddingBottom: '180px',
       willChange: 'margin, padding',
+    });
+  });
+
+  it('does not apply top padding when the editor pane is hidden', () => {
+    usePanesMock.mockReturnValue({
+      ...defaultPanesState,
+      isEditorPaneLocked: false,
+      isEditorPaneOpen: false,
+      effectiveEditorPaneHeight: 360,
+    });
+
+    const { container } = render(
+      <LayoutMainContent isMobileSplitView={false} onOpenSettings={vi.fn()} />
+    );
+
+    const contentContainer = container.querySelector('.content-container');
+    expect(contentContainer).not.toBeNull();
+    expect(contentContainer).toHaveStyle({
+      paddingTop: '0px',
+    });
+  });
+
+  it('keeps content in place while the editor pane is only hovering open', () => {
+    usePanesMock.mockReturnValue({
+      ...defaultPanesState,
+      isEditorPaneLocked: false,
+      isEditorPaneOpen: true,
+      effectiveEditorPaneHeight: 360,
+    });
+
+    const { container } = render(
+      <LayoutMainContent isMobileSplitView={false} onOpenSettings={vi.fn()} />
+    );
+
+    const contentContainer = container.querySelector('.content-container');
+    expect(contentContainer).not.toBeNull();
+    expect(contentContainer).toHaveStyle({
+      paddingTop: '0px',
+    });
+  });
+
+  it('applies bottom padding in the video editor shell when the generations pane is locked', () => {
+    useVideoEditorRouteStateMock.mockReturnValue({
+      isEditorRoute: true,
+      isVideoEditorShellActive: true,
+    });
+    usePanesMock.mockReturnValue({
+      ...defaultPanesState,
+      isGenerationsPaneLocked: true,
+      isGenerationsPaneOpen: false,
+      effectiveGenerationsPaneHeight: 180,
+    });
+
+    const { container } = render(
+      <LayoutMainContent isMobileSplitView={false} onOpenSettings={vi.fn()} />
+    );
+
+    const contentContainer = container.querySelector('.content-container');
+    expect(contentContainer).not.toBeNull();
+    expect(contentContainer).toHaveStyle({
+      paddingBottom: '180px',
+    });
+  });
+
+  it('keeps bottom padding at zero in the video editor shell when the generations pane is closed', () => {
+    useVideoEditorRouteStateMock.mockReturnValue({
+      isEditorRoute: true,
+      isVideoEditorShellActive: true,
+    });
+    usePanesMock.mockReturnValue({
+      ...defaultPanesState,
+      isGenerationsPaneLocked: false,
+      isGenerationsPaneOpen: false,
+      effectiveGenerationsPaneHeight: 180,
+    });
+
+    const { container } = render(
+      <LayoutMainContent isMobileSplitView={false} onOpenSettings={vi.fn()} />
+    );
+
+    const contentContainer = container.querySelector('.content-container');
+    expect(contentContainer).not.toBeNull();
+    expect(contentContainer).toHaveStyle({
+      paddingBottom: '0px',
     });
   });
 });

@@ -289,6 +289,11 @@ async function fetchGenerationsForProject(
       id,
       location,
       thumbnail_url,
+      primary_variant_id,
+      primary_variant:generation_variants!generations_primary_variant_id_fkey (
+        location,
+        thumbnail_url
+      ),
       type,
       created_at,
       updated_at,

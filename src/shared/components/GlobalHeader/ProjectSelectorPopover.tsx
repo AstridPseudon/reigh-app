@@ -39,12 +39,12 @@ export const ProjectSelectorPopover: React.FC<ProjectSelectorPopoverProps> = ({
     "dark:hover:translate-x-[-0.5px] dark:hover:translate-y-[0.5px]",
     "focus:outline-none focus:ring-2 focus:ring-[#6a8a8a]/30 focus:ring-offset-0",
     "disabled:cursor-not-allowed disabled:opacity-50",
-    isDesktop ? "w-[280px] h-12 px-3 py-2" : "w-full h-10 px-2 py-2 text-sm"
+    isDesktop ? "w-[240px] h-12 px-3 py-2" : "w-full h-10 px-2 py-2 text-sm"
   );
 
   const popoverContentClassName = cn(
     "p-0 z-[9999] rounded-sm border-2 border-[#6a8a8a] dark:border-[#6a7a7a] shadow-[-3px_3px_0_0_hsl(var(--shadow-retro)_/_0.15)] dark:shadow-[-3px_3px_0_0_hsl(var(--shadow-retro-deep)_/_0.4)]",
-    isDesktop ? "w-[280px]" : "w-[calc(100vw-2rem)] max-w-[400px]"
+    isDesktop ? "w-[240px]" : "w-[calc(100vw-2rem)] max-w-[400px]"
   );
 
   const handleProjectSearchKeyDown = (e: React.KeyboardEvent) => {

@@ -12,6 +12,7 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 
 // MIME type for generation drag data
 const GENERATION_MIME_TYPE = 'application/x-generation';
+const GENERATION_TEXT_PREFIX = '__reigh_generation__:';
 
 // Droppable ID for creating a new shot from a dropped generation
 export const NEW_GROUP_DROPPABLE_ID = 'new-shot-group-dropzone';
@@ -82,6 +83,8 @@ function hasDataTransferType(dataTransfer: DataTransfer, type: string): boolean 
  */
 export interface GenerationDropData {
   generationId: string;
+  variantId?: string;
+  variantType?: string;
   imageUrl: string;
   thumbUrl?: string;
   metadata?: Record<string, unknown>;
@@ -97,7 +100,16 @@ export type DragType = 'generation' | 'file' | 'none';
  * @internal Used by getDragType.
  */
 function isGenerationDrag(e: React.DragEvent): boolean {
-  return hasDataTransferType(e.dataTransfer, GENERATION_MIME_TYPE);
+  if (hasDataTransferType(e.dataTransfer, GENERATION_MIME_TYPE)) {
+    return true;
+  }
+
+  if (!hasDataTransferType(e.dataTransfer, 'text/plain')) {
+    return false;
+  }
+
+  const textPayload = e.dataTransfer.getData('text/plain');
+  return parseGenerationDropData(textPayload) !== null;
 }
 
 /**
@@ -121,14 +133,37 @@ export function getDragType(e: React.DragEvent): DragType {
  * Call this in onDragStart
  */
 export function setGenerationDragData(e: React.DragEvent, data: GenerationDropData): void {
+  const serialized = JSON.stringify(data);
   e.dataTransfer.effectAllowed = 'copy';
-  e.dataTransfer.setData(GENERATION_MIME_TYPE, JSON.stringify(data));
+  e.dataTransfer.setData(GENERATION_MIME_TYPE, serialized);
   // Fallback: some browsers/targets are inconsistent about exposing custom MIME types during dragover.
   try {
-    e.dataTransfer.setData('text/plain', JSON.stringify(data));
+    e.dataTransfer.setData('text/plain', `${GENERATION_TEXT_PREFIX}${serialized}`);
   } catch {
     // ignore
   }
+}
+
+function parseGenerationDropData(dataString: string): GenerationDropData | null {
+  if (!dataString) {
+    return null;
+  }
+
+  let data: GenerationDropData;
+  try {
+    const normalized = dataString.startsWith(GENERATION_TEXT_PREFIX)
+      ? dataString.slice(GENERATION_TEXT_PREFIX.length)
+      : dataString;
+    data = JSON.parse(normalized) as GenerationDropData;
+  } catch {
+    return null;
+  }
+
+  if (!data.generationId || !data.imageUrl) {
+    return null;
+  }
+
+  return data;
 }
 
 /**
@@ -141,16 +176,7 @@ export function getGenerationDropData(e: React.DragEvent): GenerationDropData | 
     const dataString =
       e.dataTransfer.getData(GENERATION_MIME_TYPE) ||
       e.dataTransfer.getData('text/plain');
-    if (!dataString) return null;
-    
-    const data = JSON.parse(dataString) as GenerationDropData;
-    
-    // Validate required fields
-    if (!data.generationId || !data.imageUrl) {
-      return null;
-    }
-    
-    return data;
+    return parseGenerationDropData(dataString);
   } catch (error) {
     normalizeAndPresentError(error, { context: 'DragDrop', showToast: false });
     return null;
@@ -211,4 +237,3 @@ export function createDragPreview(
     }
   };
 }
-

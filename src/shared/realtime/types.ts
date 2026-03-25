@@ -47,7 +47,8 @@ export type DatabaseTable =
   | 'tasks'
   | 'generations'
   | 'shot_generations'
-  | 'generation_variants';
+  | 'generation_variants'
+  | 'timelines';
 
 /** Raw event from Supabase postgres_changes */
 interface RawDatabaseEventBase {
@@ -128,6 +129,17 @@ export interface VariantRecord {
   viewed_at?: string | null;
 }
 
+export interface TimelineRecord {
+  id: string;
+  project_id: string;
+  user_id: string;
+  name: string;
+  config?: Record<string, unknown>;
+  asset_registry?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 // =============================================================================
 // Processed Events (after batching, ready for invalidation)
 // =============================================================================
@@ -140,7 +152,8 @@ type ProcessedEventType =
   | 'generations-deleted'
   | 'shot-generations-changed'
   | 'variants-changed'
-  | 'variants-deleted';
+  | 'variants-deleted'
+  | 'timelines-updated';
 
 interface BaseProcessedEvent {
   type: ProcessedEventType;
@@ -241,6 +254,15 @@ export interface VariantsDeletedEvent extends BaseProcessedEvent {
   affectedGenerationIds: string[];
 }
 
+export interface TimelinesUpdatedEvent extends BaseProcessedEvent {
+  type: 'timelines-updated';
+  timelines: Array<{
+    id: string;
+    projectId: string;
+    eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  }>;
+}
+
 export type ProcessedEvent =
   | TasksUpdatedEvent
   | TasksCreatedEvent
@@ -249,7 +271,8 @@ export type ProcessedEvent =
   | GenerationsDeletedEvent
   | ShotGenerationsChangedEvent
   | VariantsChangedEvent
-  | VariantsDeletedEvent;
+  | VariantsDeletedEvent
+  | TimelinesUpdatedEvent;
 
 // =============================================================================
 // Event Callbacks

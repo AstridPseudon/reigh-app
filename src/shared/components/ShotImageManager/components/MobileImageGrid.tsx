@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowDown, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
@@ -72,6 +72,18 @@ export function MobileImageGrid({
   pairing,
   upload,
 }: MobileImageGridProps): React.ReactElement {
+  // Build map from pairShotGenerationId → segmentSlot for direct image-based lookup
+  const segmentSlotByImageId = useMemo(() => {
+    if (!pairing.segmentSlots) return undefined;
+    const map = new Map<string, typeof pairing.segmentSlots[number]>();
+    for (const slot of pairing.segmentSlots) {
+      if (slot.pairShotGenerationId && !map.has(slot.pairShotGenerationId)) {
+        map.set(slot.pairShotGenerationId, slot);
+      }
+    }
+    return map;
+  }, [pairing.segmentSlots]);
+
   return (
     <div className={cn('grid gap-3 pt-6 overflow-visible', layout.mobileGridColsClass)}>
       {images.map((image, index) => {
@@ -99,8 +111,9 @@ export function MobileImageGrid({
         const prevEnhancedPrompt = index > 0 ? pairing.enhancedPrompts?.[index - 1] : undefined;
         const prevStartImage = index > 0 ? images[index - 1] : undefined;
 
-        const segmentSlot = pairing.segmentSlots?.find((s) => s.index === index);
-        const prevSegmentSlot = index > 0 ? pairing.segmentSlots?.find((s) => s.index === index - 1) : undefined;
+        const segmentSlot = segmentSlotByImageId?.get(imageKey);
+        const prevImageKey = index > 0 ? images[index - 1].id : undefined;
+        const prevSegmentSlot = prevImageKey ? segmentSlotByImageId?.get(prevImageKey) : undefined;
 
         return (
           <React.Fragment key={imageKey}>

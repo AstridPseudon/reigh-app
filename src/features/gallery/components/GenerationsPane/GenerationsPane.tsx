@@ -7,6 +7,7 @@ import { PaneControlTab } from '@/shared/components/PaneControlTab';
 import { GenerationsPaneControls } from './components/GenerationsPaneControls';
 import { GenerationsPaneGallery } from './components/GenerationsPaneGallery';
 import { useGenerationsPaneController } from './hooks/useGenerationsPaneController';
+import { usePanes } from '@/shared/contexts/PanesContext';
 import { UI_Z_LAYERS } from '@/shared/lib/uiLayers';
 
 type GenerationsPaneController = ReturnType<typeof useGenerationsPaneController>;
@@ -39,6 +40,7 @@ function GenerationsPaneBackdrop({ controller }: { controller: GenerationsPaneCo
 
 function GenerationsPaneTab({ controller }: { controller: GenerationsPaneController }) {
   const { pane, navigation, modal } = controller;
+  const { effectiveGenerationsPaneHeight } = usePanes();
 
   if (pane.isOnImageGenerationPage) {
     return null;
@@ -48,7 +50,7 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
     <PaneControlTab
       position={{
         side: "bottom",
-        paneDimension: pane.generationsPaneHeight,
+        paneDimension: effectiveGenerationsPaneHeight,
         horizontalOffset:
           (pane.isShotsPaneLocked ? pane.shotsPaneWidth : 0) -
           (pane.isTasksPaneLocked ? pane.tasksPaneWidth : 0),
@@ -89,13 +91,14 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
 
 function GenerationsPaneSurface({ controller }: { controller: GenerationsPaneController }) {
   const { pane, filters, gallery, layout } = controller;
+  const { effectiveGenerationsPaneHeight } = usePanes();
 
   return (
     <div
       {...pane.paneProps}
       data-testid="generations-pane"
       style={{
-        height: `${pane.generationsPaneHeight}px`,
+        height: `${effectiveGenerationsPaneHeight}px`,
         left: pane.isShotsPaneLocked ? `${pane.shotsPaneWidth}px` : 0,
         right: pane.isTasksPaneLocked ? `${pane.tasksPaneWidth}px` : 0,
         zIndex: UI_Z_LAYERS.GENERATIONS_PANE,
@@ -107,7 +110,7 @@ function GenerationsPaneSurface({ controller }: { controller: GenerationsPaneCon
     >
       <div
         className={cn(
-          'flex flex-col h-full',
+          'flex flex-col h-full min-h-0',
           pane.isPointerEventsEnabled ? 'pointer-events-auto' : 'pointer-events-none',
         )}
       >

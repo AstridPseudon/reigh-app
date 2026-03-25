@@ -263,9 +263,15 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       e.preventDefault();
       return;
     }
+    const variantId = image.primary_variant_id
+      ?? (typeof image.metadata?.variant_id === 'string' ? image.metadata.variant_id : undefined)
+      ?? (image.generation_id ? image.id : undefined);
+    const variantType = image.type?.includes('video') || image.isVideo ? 'video' : 'image';
     setIsDragging(true);
     setGenerationDragData(e, {
-      generationId: image.id,
+      generationId: actualGenerationId ?? image.id,
+      variantId,
+      variantType,
       imageUrl: image.url,
       thumbUrl: image.thumbUrl,
       metadata: image.metadata
@@ -274,7 +280,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     if (cleanup) {
       setTimeout(cleanup, 0);
     }
-  }, [image, isMobile, setIsDragging]);
+  }, [actualGenerationId, image, isMobile, setIsDragging]);
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
   }, [setIsDragging]);

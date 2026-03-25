@@ -8,7 +8,15 @@ interface PanesContextType {
   isGenerationsPaneOpen: boolean;
   setIsGenerationsPaneOpen: (isOpen: boolean) => void;
   generationsPaneHeight: number;
+  effectiveGenerationsPaneHeight: number;
   setGenerationsPaneHeight: (height: number) => void;
+
+  isEditorPaneLocked: boolean;
+  setIsEditorPaneLocked: (isLocked: boolean) => void;
+  isEditorPaneOpen: boolean;
+  setIsEditorPaneOpen: (isOpen: boolean) => void;
+  editorPaneHeight: number;
+  effectiveEditorPaneHeight: number;
 
   isShotsPaneLocked: boolean;
   setIsShotsPaneLocked: (isLocked: boolean) => void;
@@ -38,6 +46,10 @@ type PaneLockPolicyContextType = Pick<
   | 'setIsGenerationsPaneLocked'
   | 'isGenerationsPaneOpen'
   | 'setIsGenerationsPaneOpen'
+  | 'isEditorPaneLocked'
+  | 'setIsEditorPaneLocked'
+  | 'isEditorPaneOpen'
+  | 'setIsEditorPaneOpen'
   | 'isShotsPaneLocked'
   | 'setIsShotsPaneLocked'
   | 'isTasksPaneLocked'
@@ -50,7 +62,10 @@ type PaneLockPolicyContextType = Pick<
 type PaneLayoutContextType = Pick<
   PanesContextType,
   | 'generationsPaneHeight'
+  | 'effectiveGenerationsPaneHeight'
   | 'setGenerationsPaneHeight'
+  | 'editorPaneHeight'
+  | 'effectiveEditorPaneHeight'
   | 'shotsPaneWidth'
   | 'setShotsPaneWidth'
   | 'tasksPaneWidth'
@@ -67,18 +82,66 @@ const PaneLockPolicyContext = createContext<PaneLockPolicyContextType | undefine
 const PaneLayoutContext = createContext<PaneLayoutContextType | undefined>(undefined);
 const PaneSelectionContext = createContext<PaneSelectionContextType | undefined>(undefined);
 
+const MIN_EDITOR_HEIGHT = 200;
+
+function getEffectivePaneHeights(params: {
+  viewportHeight: number;
+  idealEditorPaneHeight: number;
+  generationsPaneHeight: number;
+}) {
+  const {
+    viewportHeight,
+    idealEditorPaneHeight,
+    generationsPaneHeight,
+  } = params;
+
+  if (idealEditorPaneHeight + generationsPaneHeight <= viewportHeight) {
+    return {
+      effectiveEditorPaneHeight: idealEditorPaneHeight,
+      effectiveGenerationsPaneHeight: generationsPaneHeight,
+    };
+  }
+
+  if (viewportHeight >= generationsPaneHeight + MIN_EDITOR_HEIGHT) {
+    return {
+      effectiveEditorPaneHeight: viewportHeight - generationsPaneHeight,
+      effectiveGenerationsPaneHeight: generationsPaneHeight,
+    };
+  }
+
+  // Below the combined minimum, compress both panes while biasing toward editor space.
+  // The denominator was derived from the degraded-tier test contract and keeps totals stable.
+  const denom = 2 * (idealEditorPaneHeight + generationsPaneHeight) - viewportHeight;
+  const effectiveGenerationsPaneHeight = Math.round((viewportHeight * generationsPaneHeight) / denom);
+
+  return {
+    effectiveEditorPaneHeight: Math.max(viewportHeight - effectiveGenerationsPaneHeight, 0),
+    effectiveGenerationsPaneHeight,
+  };
+}
+
 export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const {
     locks,
     isGenerationsPaneOpenState,
+    isEditorPaneOpenState,
     isTasksPaneOpenState,
     setIsGenerationsPaneLocked,
+    setIsEditorPaneLocked,
     setIsShotsPaneLocked,
     setIsTasksPaneLocked,
     setIsGenerationsPaneOpen,
+    setIsEditorPaneOpen,
     setIsTasksPaneOpen,
     resetAllPaneLocks,
   } = usePaneLockPolicyState();
+
+  const viewportHeight = window.innerHeight;
+  const editorVisible = locks.editor || isEditorPaneOpenState;
+  const generationsVisible = locks.gens || isGenerationsPaneOpenState;
+  const editorFraction = locks.gens ? 0.7 : 0.9;
+  const editorPaneHeight = Math.round(viewportHeight * editorFraction);
+  const bothVisible = editorVisible && generationsVisible;
 
   // Pane dimensions (not persisted)
   const [generationsPaneHeight, setGenerationsPaneHeightState] = useState<number>(PANE_CONFIG.dimensions.DEFAULT_HEIGHT);
@@ -101,12 +164,27 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setTasksPaneWidthState(width);
   }, []);
 
+  const { effectiveEditorPaneHeight, effectiveGenerationsPaneHeight } = bothVisible
+    ? getEffectivePaneHeights({
+      viewportHeight,
+      idealEditorPaneHeight: editorPaneHeight,
+      generationsPaneHeight,
+    })
+    : {
+      effectiveEditorPaneHeight: editorPaneHeight,
+      effectiveGenerationsPaneHeight: generationsPaneHeight,
+    };
+
   const lockPolicyValue = useMemo(
     (): PaneLockPolicyContextType => ({
       isGenerationsPaneLocked: locks.gens,
       setIsGenerationsPaneLocked,
       isGenerationsPaneOpen: isGenerationsPaneOpenState,
       setIsGenerationsPaneOpen,
+      isEditorPaneLocked: locks.editor,
+      setIsEditorPaneLocked,
+      isEditorPaneOpen: isEditorPaneOpenState,
+      setIsEditorPaneOpen,
       isShotsPaneLocked: locks.shots,
       setIsShotsPaneLocked,
       isTasksPaneLocked: locks.tasks,
@@ -117,11 +195,15 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }),
     [
       locks.gens,
+      locks.editor,
       locks.shots,
       locks.tasks,
       setIsGenerationsPaneLocked,
       isGenerationsPaneOpenState,
       setIsGenerationsPaneOpen,
+      setIsEditorPaneLocked,
+      isEditorPaneOpenState,
+      setIsEditorPaneOpen,
       setIsShotsPaneLocked,
       setIsTasksPaneLocked,
       isTasksPaneOpenState,
@@ -133,7 +215,10 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const layoutValue = useMemo(
     (): PaneLayoutContextType => ({
       generationsPaneHeight,
+      effectiveGenerationsPaneHeight,
       setGenerationsPaneHeight,
+      editorPaneHeight,
+      effectiveEditorPaneHeight,
       shotsPaneWidth,
       setShotsPaneWidth,
       tasksPaneWidth,
@@ -141,7 +226,10 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }),
     [
       generationsPaneHeight,
+      effectiveGenerationsPaneHeight,
       setGenerationsPaneHeight,
+      editorPaneHeight,
+      effectiveEditorPaneHeight,
       shotsPaneWidth,
       setShotsPaneWidth,
       tasksPaneWidth,

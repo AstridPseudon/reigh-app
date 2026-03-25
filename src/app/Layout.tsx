@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation, Navigate } from 'react-router-dom';
 import { TasksPane } from '@/features/tasks/components/TasksPane/TasksPane';
 import { GenerationsPane } from '@/features/gallery/components/GenerationsPane/GenerationsPane';
+import { EditorPane } from '@/features/editor/components/EditorPaneTab';
 import { ToolsPane } from '@/shared/components/ToolsPane/ToolsPane';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { ReighLoading } from '@/shared/components/ReighLoading';
@@ -18,6 +19,8 @@ const LazyProductTour = React.lazy(() =>
 );
 import { AIInputModeProvider } from '@/shared/contexts/AIInputModeContext';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/mobile';
+import { cn } from '@/shared/components/ui/contracts/cn';
+import { useVideoEditorRouteState } from '@/app/hooks/useVideoEditorRouteState';
 import { SocialIcons } from './components/SocialIcons';
 
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -41,6 +44,7 @@ function ScrollToTop() {
 }
 
 export const Layout: React.FC = () => {
+  const { isVideoEditorShellActive } = useVideoEditorRouteState();
   const {
     isTasksPaneLocked,
     tasksPaneWidth,
@@ -56,7 +60,7 @@ export const Layout: React.FC = () => {
   const isSmallMobile = isMobile && !isTablet;
 
   // On small mobile with locked generations pane, create split-view scroll behavior
-  const isMobileSplitView = isSmallMobile && isGenerationsPaneLocked;
+  const isMobileSplitView = isSmallMobile && isGenerationsPaneLocked && !isVideoEditorShellActive;
 
   // Extracted hooks
   const { splitViewWrapperRef } = useSplitViewScroll(isMobileSplitView);
@@ -105,7 +109,7 @@ export const Layout: React.FC = () => {
 
   return (
     <AIInputModeProvider>
-      <div className="flex flex-col">
+      <div className={cn('flex flex-col', isVideoEditorShellActive && 'h-screen overflow-hidden')}>
         <ScrollToTop />
         {/* Theme-adaptive background gradient - subtle in dark mode */}
         <div className="fixed inset-0 bg-gradient-to-br from-background via-secondary/10 to-accent/5 opacity-40 dark:opacity-0 pointer-events-none"></div>
@@ -119,17 +123,20 @@ export const Layout: React.FC = () => {
           mainContent
         )}
 
+        <EditorPane />
         <TasksPane onOpenSettings={handleOpenSettings} />
         <ToolsPane />
         <GenerationsPane />
 
         {/* Social Icons Footer */}
-        <div
-          className="relative transition-[margin] duration-300 ease-smooth"
-          style={footerStyle}
-        >
-          <SocialIcons />
-        </div>
+        {!isVideoEditorShellActive && (
+          <div
+            className="relative transition-[margin] duration-300 ease-smooth"
+            style={footerStyle}
+          >
+            <SocialIcons />
+          </div>
+        )}
 
         <SettingsModal
           isOpen={isSettingsModalOpen}

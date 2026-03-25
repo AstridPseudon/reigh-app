@@ -40,7 +40,7 @@ describe('useUserUIState', () => {
       data: {
         settings: {
           ui: {
-            paneLocks: { shots: false, tasks: false, gens: false },
+            paneLocks: { shots: false, tasks: false, gens: false, editor: false },
             theme: { darkMode: true },
           },
         },

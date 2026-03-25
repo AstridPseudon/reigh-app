@@ -2,18 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/mobile';
 
-type PaneLockKey = 'shots' | 'tasks' | 'gens';
+type PaneLockKey = 'shots' | 'tasks' | 'gens' | 'editor';
 
 interface PaneLocksState {
   shots: boolean;
   tasks: boolean;
   gens: boolean;
+  editor: boolean;
 }
 
 const UNLOCKED_PANES: PaneLocksState = {
   shots: false,
   tasks: false,
   gens: false,
+  editor: false,
 };
 
 export function usePaneLockPolicyState() {
@@ -25,6 +27,7 @@ export function usePaneLockPolicyState() {
   const [locks, setLocks] = useState(paneLocks);
 
   const [isGenerationsPaneOpenState, setIsGenerationsPaneOpenState] = useState(false);
+  const [isEditorPaneOpenState, setIsEditorPaneOpenState] = useState(false);
   const [isTasksPaneOpenState, setIsTasksPaneOpenState] = useState(false);
 
   useEffect(() => {
@@ -43,13 +46,12 @@ export function usePaneLockPolicyState() {
             shots: firstLocked === 'shots',
             tasks: firstLocked === 'tasks',
             gens: firstLocked === 'gens',
+            editor: firstLocked === 'editor',
           };
         }
       }
       setLocks(newLocks);
-      if (newLocks.tasks) {
-        setIsTasksPaneOpenState(true);
-      }
+      setIsTasksPaneOpenState(newLocks.tasks);
     }
   }, [isLoading, paneLocks, isSmallMobile, isTablet]);
 
@@ -75,19 +77,26 @@ export function usePaneLockPolicyState() {
         );
       }
 
-      if (lockKey === 'tasks' && isLocked) {
-        setIsTasksPaneOpenState(true);
+      if (lockKey === 'tasks') {
+        setIsTasksPaneOpenState(isLocked);
+      } else if ((isMobile || isTablet) && isLocked) {
+        setIsTasksPaneOpenState(false);
       }
     },
     [isMobile, isTablet, isSmallMobile, savePaneLocks],
   );
 
   const setIsGenerationsPaneLocked = useMemo(() => createPaneLockSetter('gens'), [createPaneLockSetter]);
+  const setIsEditorPaneLocked = useMemo(() => createPaneLockSetter('editor'), [createPaneLockSetter]);
   const setIsShotsPaneLocked = useMemo(() => createPaneLockSetter('shots'), [createPaneLockSetter]);
   const setIsTasksPaneLocked = useMemo(() => createPaneLockSetter('tasks'), [createPaneLockSetter]);
 
   const setIsGenerationsPaneOpen = useCallback((isOpen: boolean) => {
     setIsGenerationsPaneOpenState(isOpen);
+  }, []);
+
+  const setIsEditorPaneOpen = useCallback((isOpen: boolean) => {
+    setIsEditorPaneOpenState(isOpen);
   }, []);
 
   const setIsTasksPaneOpen = useCallback((isOpen: boolean) => {
@@ -98,17 +107,21 @@ export function usePaneLockPolicyState() {
 
   const resetAllPaneLocks = useCallback(() => {
     setLocks(UNLOCKED_PANES);
+    setIsTasksPaneOpenState(false);
     savePaneLocks(UNLOCKED_PANES);
   }, [savePaneLocks]);
 
   return {
     locks,
     isGenerationsPaneOpenState,
+    isEditorPaneOpenState,
     isTasksPaneOpenState,
     setIsGenerationsPaneLocked,
+    setIsEditorPaneLocked,
     setIsShotsPaneLocked,
     setIsTasksPaneLocked,
     setIsGenerationsPaneOpen,
+    setIsEditorPaneOpen,
     setIsTasksPaneOpen,
     resetAllPaneLocks,
   };

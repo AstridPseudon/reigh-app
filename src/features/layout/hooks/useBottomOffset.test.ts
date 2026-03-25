@@ -14,28 +14,30 @@ vi.mock('@/shared/state/lightboxOpenState', () => ({
 }));
 
 describe('useBottomOffset', () => {
-  it('returns generationsPaneHeight when pane is locked', () => {
+  it('returns effectiveGenerationsPaneHeight when pane is locked', () => {
     mockUsePanes.mockReturnValue({
       isGenerationsPaneLocked: true,
       isGenerationsPaneOpen: false,
       generationsPaneHeight: 250,
+      effectiveGenerationsPaneHeight: 180,
     });
     mockUseLightboxOpen.mockReturnValue(false);
 
     const { result } = renderHook(() => useBottomOffset());
-    expect(result.current).toBe(250);
+    expect(result.current).toBe(180);
   });
 
-  it('returns generationsPaneHeight when pane is open', () => {
+  it('returns effectiveGenerationsPaneHeight when pane is open', () => {
     mockUsePanes.mockReturnValue({
       isGenerationsPaneLocked: false,
       isGenerationsPaneOpen: true,
       generationsPaneHeight: 300,
+      effectiveGenerationsPaneHeight: 220,
     });
     mockUseLightboxOpen.mockReturnValue(false);
 
     const { result } = renderHook(() => useBottomOffset());
-    expect(result.current).toBe(300);
+    expect(result.current).toBe(220);
   });
 
   it('returns 0 when pane is neither locked nor open', () => {
@@ -43,6 +45,7 @@ describe('useBottomOffset', () => {
       isGenerationsPaneLocked: false,
       isGenerationsPaneOpen: false,
       generationsPaneHeight: 300,
+      effectiveGenerationsPaneHeight: 220,
     });
     mockUseLightboxOpen.mockReturnValue(false);
 
@@ -55,6 +58,7 @@ describe('useBottomOffset', () => {
       isGenerationsPaneLocked: true,
       isGenerationsPaneOpen: true,
       generationsPaneHeight: 400,
+      effectiveGenerationsPaneHeight: 150,
     });
     mockUseLightboxOpen.mockReturnValue(true);
 

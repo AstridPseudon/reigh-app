@@ -4,6 +4,7 @@ export const TOOL_IDS = {
   IMAGE_GENERATION: 'image-generation',
   JOIN_CLIPS: 'join-clips',
   EDIT_VIDEO: 'edit-video',
+  VIDEO_EDITOR: 'video-editor',
   EDIT_IMAGES: 'edit-images',
   CHARACTER_ANIMATE: 'character-animate',
   TRAINING_DATA_HELPER: 'training-data-helper',

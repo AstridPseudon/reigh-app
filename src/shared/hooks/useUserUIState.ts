@@ -44,6 +44,7 @@ interface UISettings {
     shots: boolean;
     tasks: boolean;
     gens: boolean;
+    editor: boolean;
   };
   settingsModal: {
     activeTab: string;
@@ -98,6 +99,7 @@ function decodePaneLocks(
     shots: readBoolean(record?.shots, fallback.shots),
     tasks: readBoolean(record?.tasks, fallback.tasks),
     gens: readBoolean(record?.gens, fallback.gens),
+    editor: readBoolean(record?.editor, fallback.editor),
   };
 }
 

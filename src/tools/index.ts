@@ -7,6 +7,7 @@ import { joinClipsSettings } from '@/shared/lib/joinClips/defaults';
 import { editImagesSettings } from './edit-images/settings';
 import { editVideoSettings } from './edit-video/settings/editVideoDefaults';
 import { trainingDataHelperSettings } from './training-data-helper/settings';
+import { videoEditorSettings } from './video-editor/settings/videoEditorDefaults';
 import { userPreferencesSettings } from '../shared/settings/userPreferences';
 export {
   toolRuntimeManifest,
@@ -21,6 +22,7 @@ export const toolsManifest = [
   joinClipsSettings,
   editImagesSettings,
   editVideoSettings,
+  videoEditorSettings,
   trainingDataHelperSettings,
   userPreferencesSettings,
 ] as const;

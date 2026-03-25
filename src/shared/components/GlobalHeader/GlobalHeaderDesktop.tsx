@@ -52,10 +52,10 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
           {isLoadingProjects && projects.length === 0 ? (
             <div className="flex items-center gap-x-3">
               {/* Project Selector Skeleton */}
-              <div className="w-[280px] h-12 bg-muted animate-pulse rounded-sm border-2 border-[#6a8a8a]/25 dark:border-[#6a7a7a]"></div>
+              <div className="w-[240px] h-12 bg-muted animate-pulse rounded-sm border-2 border-[#6a8a8a]/25 dark:border-[#6a7a7a]"></div>
             </div>
           ) : projects.length === 0 && !isLoadingProjects ? (
-            <div className="w-[280px] text-center">
+            <div className="w-[240px] text-center">
               <div className="wes-vintage-card p-3">
                 <p className="font-cocogoose text-sm text-muted-foreground">No projects found</p>
               </div>
@@ -73,14 +73,16 @@ export const GlobalHeaderDesktop: React.FC<GlobalHeaderDesktopProps> = ({
             </div>
           )}
 
-          <GlobalHeaderProjectButtons
-            density="desktop"
-            darkMode={darkMode}
-            isLoadingProjects={isLoadingProjects}
-            hasSelectedProject={Boolean(selectedProject)}
-            onOpenProjectSettings={onOpenProjectSettings}
-            onOpenCreateProject={onOpenCreateProject}
-          />
+          <div className="flex flex-col gap-y-1">
+            <GlobalHeaderProjectButtons
+              density="desktop-compact"
+              darkMode={darkMode}
+              isLoadingProjects={isLoadingProjects}
+              hasSelectedProject={Boolean(selectedProject)}
+              onOpenProjectSettings={onOpenProjectSettings}
+              onOpenCreateProject={onOpenCreateProject}
+            />
+          </div>
         </div>
       </div>
 

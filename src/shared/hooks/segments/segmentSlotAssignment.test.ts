@@ -46,6 +46,59 @@ describe('buildSegmentSlots', () => {
     });
   });
 
+  it('includes segment as orphan when start image is at last position (local positions)', () => {
+    // Simulate: images [A, B, C] reordered to [B, C, A]
+    // Segment for A (pairShotGenId = sg-A) — A is now at position 2 (last)
+    const localPositions = new Map([
+      ['sg-B', 0],
+      ['sg-C', 1],
+      ['sg-A', 2],
+    ]);
+
+    const slots = buildSegmentSlots({
+      segments: [
+        {
+          id: 'seg-AB',
+          location: 'video.mp4',
+          pair_shot_generation_id: 'sg-A',
+          params: {},
+        } as never,
+        {
+          id: 'seg-BC',
+          location: 'video2.mp4',
+          pair_shot_generation_id: 'sg-B',
+          params: {},
+        } as never,
+      ],
+      expectedSegmentData: null,
+      effectiveTimelineData: undefined,
+      liveShotGenIdToPosition: new Map(),
+      localShotGenPositions: localPositions,
+    });
+
+    // slotCount = 2 (3 images - 1). seg-BC gets slot 0. seg-AB is orphaned
+    // (A at last position) but still included with index -1 for ID-based lookup.
+    expect(slots).toHaveLength(3); // 1 child slot + 1 placeholder + 1 orphan
+    expect(slots[0]).toEqual(
+      expect.objectContaining({
+        type: 'child',
+        index: 0,
+        child: expect.objectContaining({ id: 'seg-BC' }),
+      }),
+    );
+    // Orphaned segment is appended with index -1, discoverable by pairShotGenerationId
+    const orphan = slots.find(s => s.type === 'child' && s.pairShotGenerationId === 'sg-A');
+    expect(orphan).toBeDefined();
+    expect(orphan).toEqual(
+      expect.objectContaining({
+        type: 'child',
+        index: -1,
+        child: expect.objectContaining({ id: 'seg-AB' }),
+        pairShotGenerationId: 'sg-A',
+      }),
+    );
+  });
+
   it('prefers the child with a real location when multiple children collide on the same slot', () => {
     const slots = buildSegmentSlots({
       segments: [

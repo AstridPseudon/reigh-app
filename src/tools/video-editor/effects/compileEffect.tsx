@@ -1,0 +1,96 @@
+import React, { type FC } from 'react';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import type { EffectComponentProps } from '@/tools/video-editor/effects/entrances';
+
+let transformSync: typeof import('sucrase').transform | null = null;
+
+async function getTransform() {
+  if (!transformSync) {
+    const sucrase = await import('sucrase');
+    transformSync = sucrase.transform;
+  }
+
+  return transformSync;
+}
+
+const CompileErrorEffect: FC<EffectComponentProps & { error: string }> = ({ children, error }) => {
+  return (
+    <AbsoluteFill style={{ width: '100%', height: '100%' }}>
+      {children}
+      <AbsoluteFill
+        style={{
+          background: 'rgba(120, 0, 0, 0.85)',
+          color: '#fff',
+          fontFamily: 'monospace',
+          fontSize: 20,
+          padding: 24,
+          whiteSpace: 'pre-wrap',
+          overflow: 'hidden',
+        }}
+      >
+        {error}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+function compileWithTransform(
+  code: string,
+  transform: typeof import('sucrase').transform,
+): FC<EffectComponentProps> {
+  try {
+    const result = transform(code, {
+      transforms: ['jsx', 'typescript'],
+      jsxRuntime: 'classic',
+      production: true,
+    });
+
+    const wrappedCode = `
+      var exports = {};
+      var module = { exports: exports };
+      ${result.code}
+      return exports.default || module.exports.default || module.exports;
+    `;
+
+    const factory = new Function(
+      'React',
+      'useCurrentFrame',
+      'useVideoConfig',
+      'interpolate',
+      'spring',
+      'AbsoluteFill',
+      wrappedCode,
+    ) as (...args: unknown[]) => unknown;
+
+    const component = factory(React, useCurrentFrame, useVideoConfig, interpolate, spring, AbsoluteFill);
+
+    if (typeof component !== 'function') {
+      throw new Error('Effect code did not produce a valid component (expected a function as default export)');
+    }
+
+    return component as FC<EffectComponentProps>;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return function FailedEffect(props: EffectComponentProps) {
+      return <CompileErrorEffect {...props} error={`Custom effect compilation failed:\n${message}`} />;
+    };
+  }
+}
+
+export async function preloadSucrase(): Promise<void> {
+  await getTransform();
+}
+
+export function compileEffect(code: string): FC<EffectComponentProps> {
+  if (!transformSync) {
+    return function UnloadedEffect(props: EffectComponentProps) {
+      return <CompileErrorEffect {...props} error="Custom effect compilation failed:\nSucrase is not loaded yet." />;
+    };
+  }
+
+  return compileWithTransform(code, transformSync);
+}
+
+export async function compileEffectAsync(code: string): Promise<FC<EffectComponentProps>> {
+  return compileWithTransform(code, await getTransform());
+}

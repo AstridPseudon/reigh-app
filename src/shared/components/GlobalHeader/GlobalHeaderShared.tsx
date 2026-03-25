@@ -17,7 +17,7 @@ export interface GlobalHeaderSharedActionsProps {
   onOpenReferralModal: () => void;
 }
 
-type HeaderDensity = 'desktop' | 'mobile';
+type HeaderDensity = 'desktop' | 'desktop-compact' | 'mobile';
 
 interface GlobalHeaderBrandProps {
   density: HeaderDensity;
@@ -128,10 +128,13 @@ export const GlobalHeaderProjectButtons: React.FC<GlobalHeaderProjectButtonsProp
   onOpenCreateProject,
 }) => {
   const isMobile = density === 'mobile';
-  const buttonSizeClass = isMobile ? 'h-10 w-10' : 'h-12 w-12';
-  const wrenchIconClass = isMobile ? 'h-4 w-4' : 'h-5 w-5';
-  const plusIconClass = isMobile ? 'h-4 w-4' : 'h-5 w-5';
-  const shadowClass = isMobile
+  const isCompact = density === 'desktop-compact';
+  const buttonSizeClass = isCompact ? 'h-[22px] w-[38px]' : isMobile ? 'h-10 w-10' : 'h-12 w-12';
+  const wrenchIconClass = isCompact ? 'h-3 w-3' : isMobile ? 'h-4 w-4' : 'h-5 w-5';
+  const plusIconClass = isCompact ? 'h-3 w-3' : isMobile ? 'h-4 w-4' : 'h-5 w-5';
+  const shadowClass = isCompact
+    ? 'shadow-[-1px_1px_0_0_hsl(var(--shadow-header)_/_0.15)] dark:shadow-[-1px_1px_0_0_hsl(var(--shadow-header-dark)_/_0.4)] hover:shadow-none hover:translate-x-[0.5px] hover:translate-y-[0.5px]'
+    : isMobile
     ? 'shadow-[-2px_2px_0_0_hsl(var(--shadow-header)_/_0.15)] dark:shadow-[-2px_2px_0_0_hsl(var(--shadow-header-dark)_/_0.4)] hover:shadow-[-1px_1px_0_0_hsl(var(--shadow-header)_/_0.15)] dark:hover:shadow-[-1px_1px_0_0_hsl(var(--shadow-header-hover)_/_0.4)] hover:translate-x-[0.5px] hover:translate-y-[0.5px]'
     : 'shadow-[-3px_3px_0_0_hsl(var(--shadow-header)_/_0.15)] dark:shadow-[-3px_3px_0_0_hsl(var(--shadow-header-dark)_/_0.4)] hover:shadow-[-1px_1px_0_0_hsl(var(--shadow-header)_/_0.15)] dark:hover:shadow-[-1px_1px_0_0_hsl(var(--shadow-header-hover)_/_0.4)] hover:translate-x-[1px] hover:translate-y-[1px]';
 

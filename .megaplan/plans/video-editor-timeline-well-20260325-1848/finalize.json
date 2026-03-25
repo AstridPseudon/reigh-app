@@ -1,0 +1,317 @@
+{
+  "tasks": [
+    {
+      "id": "T1",
+      "description": "Set `movable: false` on all actions passed to the `<Timeline>` library component. In `TimelineEditor.tsx`, add a `useMemo` that maps `data.rows` to clone each row's actions with `movable: false`, then pass the transformed rows as `editorData` to `<Timeline>` (currently line ~187). This disables interact.js drag at the source while preserving resize (`flexible` defaults to `true`). Verify: pointer-drag via `useClipDrag` still works (its capture-phase `pointerdown` at line ~426 is unaffected); resize still works; the library no longer initiates its own drag.",
+      "depends_on": [],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/components/TimelineEditor/TimelineEditor.tsx"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T2",
+      "description": "Remove dead `onActionMove*` callbacks. Since `movable: false` prevents the library from ever firing drag callbacks: (1) Remove `onActionMoveStart`, `onActionMoving`, `onActionMoveEnd` from `useTimelineEditing.ts` (lines ~245-282). (2) Remove these three props from `<Timeline>` in `TimelineEditor.tsx` (lines ~202-204). (3) Remove from `TimelineEditorContextValue` in `useTimelineState.ts` (lines ~36-38) and its `useMemo` dependency array. (4) Remove from `UseTimelineEditingResult` interface in `useTimelineEditing.ts` (lines ~59-61). (5) In `onChange` (lines ~353-360), remove the `crossTrackActive` guard \u2014 it now only fires for resize. Update the comment to clarify it's resize-only sync.",
+      "depends_on": [
+        "T1"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useTimelineEditing.ts",
+        "src/tools/video-editor/components/TimelineEditor/TimelineEditor.tsx",
+        "src/tools/video-editor/hooks/useTimelineState.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T3",
+      "description": "Internalize `actionDragStateRef` into `useClipDrag`. (1) Move `ActionDragState` interface from `useTimelineData.ts` into `useClipDrag.ts`. Simplify from `Record<string, ActionDragState>` to `ActionDragState | null` (only one clip drags at a time). Create the ref locally in `useClipDrag`. (2) Remove `actionDragStateRef` from: `useTimelineData` return value and `UseTimelineDataResult`, `UseTimelineEditingArgs`, `useTimelineState` threading/composition, `TimelineEditorContextValue`, and `TimelineEditor.tsx` destructuring. (3) Remove `clearActionDragState` from context \u2014 it's now internal cleanup. (4) Update `useClipDrag` to use local ref directly. (5) Also remove `crossTrackActive` ref from context if no external consumer remains. Verify: `grep -r actionDragStateRef` hits only `useClipDrag.ts`.",
+      "depends_on": [
+        "T2"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useClipDrag.ts",
+        "src/tools/video-editor/hooks/useTimelineData.ts",
+        "src/tools/video-editor/hooks/useTimelineEditing.ts",
+        "src/tools/video-editor/hooks/useTimelineState.ts",
+        "src/tools/video-editor/components/TimelineEditor/TimelineEditor.tsx"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T4",
+      "description": "Create `<DropIndicator>` portal component with imperative handle. Create `src/tools/video-editor/components/TimelineEditor/DropIndicator.tsx`. Architecture: `forwardRef` + `useImperativeHandle` exposing `{ show(position: DropIndicatorPosition): void; hide(): void }`. `DropIndicatorPosition` type includes: `rowTop, rowHeight, rowLeft, rowWidth, lineLeft, ghostLeft, ghostTop, ghostWidth, ghostHeight, ghostLabel, label, isNewTrack, reject`. Renders via `createPortal(content, document.body)` \u2014 the same 5 elements (row highlight, position line, ghost outline, ghost label, track label) using existing CSS classes from `timeline-overrides.css`. When `isNewTrack` is true, hide line/ghost/label. Receives `editAreaRef` prop and toggles `drop-target-new-track` class via `useLayoutEffect`. When hidden, returns null or display:none. Keep under 150 LOC.",
+      "depends_on": [],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/components/TimelineEditor/DropIndicator.tsx"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T5",
+      "description": "Wire `<DropIndicator>` into the component tree. CRITICAL: Due to the context inversion flag (timeline-indicator-ref-context-inversion), create `indicatorRef` in `useTimelineState.ts` (which runs in VideoEditorProvider, ABOVE TimelineEditor), NOT in TimelineEditor.tsx. (1) In `useTimelineState.ts`, create `const indicatorRef = useRef<DropIndicatorHandle>(null)` and include it in the returned context value. (2) In `TimelineEditor.tsx`, consume `indicatorRef` from context, capture the `.timeline-editor-edit-area` DOM element via callback ref or useEffect into an `editAreaRef`, and render `<DropIndicator ref={indicatorRef} editAreaRef={editAreaRef} />` alongside (not inside) `<Timeline>`. (3) Pass `indicatorRef` into `useClipDrag` options. This ensures both `useClipDrag` (called in TimelineEditor) and `useExternalDrop` (called in useTimelineState) can access the same ref.",
+      "depends_on": [
+        "T4"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useTimelineState.ts",
+        "src/tools/video-editor/components/TimelineEditor/TimelineEditor.tsx"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T6",
+      "description": "Migrate `useClipDrag` to declarative indicators. (1) Add `indicatorRef: React.RefObject<DropIndicatorHandle | null>` to `UseCrossTrackDragOptions`. (2) Replace `ensureIndicator()` / `clearDropIndicators()` / `updateDropTarget()` (lines ~93-281) with calls to `indicatorRef.current?.show(position)` and `indicatorRef.current?.hide()`. Keep the position computation logic (row index, screen coordinates, reject state) \u2014 only the DOM manipulation moves out. (3) Remove `editAreaEl.classList.add/remove('drop-target-new-track')` (lines ~225, 231, 129) \u2014 `<DropIndicator>` now owns this. (4) Remove `DropIndicatorEls` interface and indicator element references from `DragSession`. (5) Keep the floating ghost clone (`createFloatingGhost`) \u2014 it's the dragged-clip visual, distinct from drop indicators, stays imperative (SETTLED-004). Verify: no `document.createElement` for indicators in `useClipDrag`.",
+      "depends_on": [
+        "T5",
+        "T3"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useClipDrag.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T7",
+      "description": "Migrate external HTML5 drag to declarative indicators. (1) In `useTimelineEditing.ts`, replace `ensureDropIndicator()` / `clearDropIndicator()` and the RAF-throttled indicator update (lines ~156-205, 598-648) with calls to `indicatorRef.current?.show(position)` and `indicatorRef.current?.hide()`. (2) Keep the RAF throttle pattern \u2014 compute `DropIndicatorPosition` in the RAF callback, then call show(). (3) Remove `dropIndicatorRef`, `dragPreviewFrameRef`, `latestDragPreviewRef` refs. (4) Remove `editArea.classList.add/remove('drop-target-new-track')` from `onTimelineDragOver` (line ~588-592) and `onTimelineDragLeave` (line ~654). (5) Add `indicatorRef` to `UseTimelineEditingArgs`. Verify: drag files/generations onto timeline \u2014 indicators appear/disappear correctly.",
+      "depends_on": [
+        "T5",
+        "T2"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useTimelineEditing.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T8",
+      "description": "Extract `useAssetManagement` from `useTimelineEditing`. Create `src/tools/video-editor/hooks/useAssetManagement.ts` containing: `registerGenerationAsset` (lines ~371-406), `uploadImageGeneration` (lines ~408-453), `handleAssetDrop` (lines ~455-536). This is pure data logic \u2014 no DOM, no drag state. Args: `{ dataRef, applyTimelineEdit, patchRegistry, registerAsset, uploadAsset, invalidateAssetRegistry, resolveAssetUrl, selectedTrackId }`. Return: `{ registerGenerationAsset, uploadImageGeneration, handleAssetDrop }`. NOTE: Extract this BEFORE useExternalDrop (T9) since useExternalDrop depends on these exports.",
+      "depends_on": [
+        "T7"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useAssetManagement.ts",
+        "src/tools/video-editor/hooks/useTimelineEditing.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T9",
+      "description": "Extract `useExternalDrop` from `useTimelineEditing`. Create `src/tools/video-editor/hooks/useExternalDrop.ts` containing: `inferDragKind` (lines ~538-556), `getDropPosition` (lines ~207-233), `onTimelineDragOver` (now using indicatorRef), `onTimelineDragLeave`, `onTimelineDrop`. Also extract `getTimelineDomNodes` (lines ~139-154) to `src/tools/video-editor/lib/timeline-dom.ts` as a shared utility (needed by both useClipDrag and useExternalDrop). Args: `{ dataRef, scale, scaleWidth, selectedTrackId, applyTimelineEdit, patchRegistry, registerAsset, uploadAsset, invalidateAssetRegistry, resolveAssetUrl, indicatorRef, registerGenerationAsset, handleAssetDrop }`. Return: `{ onTimelineDragOver, onTimelineDragLeave, onTimelineDrop }`.",
+      "depends_on": [
+        "T8"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useExternalDrop.ts",
+        "src/tools/video-editor/lib/timeline-dom.ts",
+        "src/tools/video-editor/hooks/useTimelineEditing.ts",
+        "src/tools/video-editor/hooks/useClipDrag.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T10",
+      "description": "Extract `useClipResize` from `useTimelineEditing`. Create `src/tools/video-editor/hooks/useClipResize.ts` containing: `onActionResizeStart` (lines ~284-295), `onActionResizeEnd` (lines ~297-351), and the `resizeStartRef` (move from `useTimelineData`). Clean boundary \u2014 resize is independent of drag and external drop. Return: `{ onActionResizeStart, onActionResizeEnd }`.",
+      "depends_on": [
+        "T9"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useClipResize.ts",
+        "src/tools/video-editor/hooks/useTimelineEditing.ts",
+        "src/tools/video-editor/hooks/useTimelineData.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T11",
+      "description": "Rename remaining `useTimelineEditing.ts` to `useClipEditing.ts`. What remains should be: `onChange` (resize-only sync), `onOverlayChange`, `handleDeleteClip`, `handleSelectedClipChange`, `handleResetClipPosition`, `handleSplitSelectedClip`, `handleSplitClipAtTime`, `handleToggleMute`, `handleAddText`. Target ~250 LOC \u2014 a focused hook for clip CRUD and library sync. Delete the old file, update all imports.",
+      "depends_on": [
+        "T10"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useClipEditing.ts",
+        "src/tools/video-editor/hooks/useTimelineEditing.ts"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T12",
+      "description": "Update `useTimelineState` composition to wire new hooks. (1) Replace `useTimelineEditing` call with: `useClipEditing`, `useExternalDrop`, `useAssetManagement`, `useClipResize`. (2) Wire return values into `editor` and `chrome` context objects. (3) Remove `actionDragStateRef` and `crossTrackActive` from `TimelineEditorContextValue` (now internal to `useClipDrag`). (4) Remove `onActionMoveStart/Moving/MoveEnd` from context (already removed in T2). (5) `indicatorRef` should already be in context from T5. (6) Update `TimelineEditorContextValue` type to reflect the new shape. Verify: `useTimelineEditing.ts` no longer exists; all hooks under 300 LOC; TypeScript compiles.",
+      "depends_on": [
+        "T11",
+        "T6"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [
+        "src/tools/video-editor/hooks/useTimelineState.ts",
+        "src/tools/video-editor/components/TimelineEditor/TimelineEditor.tsx"
+      ],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T13",
+      "description": "Final validation pass. (1) `npx tsc --noEmit` \u2014 zero errors. (2) `grep -r 'document.createElement' src/tools/video-editor/` \u2014 no hits for indicator creation (floating ghost clone is OK). (3) `grep -r actionDragStateRef` \u2014 only in useClipDrag.ts. (4) `grep -r useTimelineEditing` \u2014 zero hits (file deleted, all imports updated). (5) `wc -l` on all new files \u2014 none exceed 300 LOC. (6) Verify all 10 success criteria from the plan. Run the dev server and manually test: clip drag (horizontal + cross-track), clip resize, external file/generation drop, split, delete, mute, text add.",
+      "depends_on": [
+        "T12"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "files_changed": [],
+      "commands_run": [],
+      "evidence_files": [],
+      "reviewer_verdict": ""
+    }
+  ],
+  "watch_items": [
+    "CONTEXT INVERSION (flag timeline-indicator-ref-context-inversion): indicatorRef MUST be created in useTimelineState (runs in VideoEditorProvider, above TimelineEditor), NOT in TimelineEditor.tsx. TimelineEditor is a context consumer \u2014 it cannot thread a ref upward. The DropIndicator component renders in TimelineEditor but receives the ref from context.",
+    "EXTRACTION ORDER: Extract useAssetManagement (T8) BEFORE useExternalDrop (T9) \u2014 useExternalDrop calls registerGenerationAsset and handleAssetDrop which are exported by useAssetManagement.",
+    "LIBRARY DRAG DISABLE: movable: false on all actions disables interact.js drag but preserves resize (flexible is independent, defaults to true). Verify resize still works after T1.",
+    "FLOATING GHOST CLONE: The createFloatingGhost in useClipDrag is NOT a drop indicator \u2014 it's the dragged-clip visual that clones arbitrary DOM. It stays imperative (SETTLED-004). Do not accidentally remove it when cleaning up indicator code.",
+    "onChange CALLBACK: With movable: false, onChange only fires for resize (via handleResizeEnd \u2192 setEditorData). The crossTrackActive guard should be removed in T2 since library drag no longer exists.",
+    "PERFORMANCE: DropIndicator uses forwardRef + useImperativeHandle so drag updates only re-render the portal's 5 elements, never the Timeline subtree. Do NOT add useState for indicator position in TimelineEditor or useTimelineState.",
+    "RAF THROTTLE: Keep requestAnimationFrame coalescing in the external drag path (onTimelineDragOver) even though indicatorRef.current.show() is cheap \u2014 60fps dragover events should still be coalesced.",
+    "drop-target-new-track CLASS: After T6 and T7, this CSS class should ONLY be toggled by DropIndicator via useLayoutEffect. grep for classList.*drop-target-new-track should only hit DropIndicator.tsx.",
+    "getTimelineDomNodes SHARED UTILITY: Extract to lib/timeline-dom.ts in T9 since both useClipDrag and useExternalDrop need it. Update useClipDrag's import in T9.",
+    "useMemo STABILITY for immovableRows: The memo depends on data.rows. If rows update frequently (autosave), verify interact.js doesn't flicker or lose resize state on re-render."
+  ],
+  "sense_checks": [
+    {
+      "id": "SC1",
+      "task_id": "T1",
+      "question": "After setting movable: false, does useClipDrag's pointer-based drag still initiate correctly? Does clip resize (grab handles) still work? Does the library no longer show its own drag visual?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC2",
+      "task_id": "T2",
+      "question": "After removing onActionMove* callbacks, does TypeScript compile with no errors? Is onChange still wired and does it correctly sync resize-only changes?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC3",
+      "task_id": "T3",
+      "question": "Does `grep -r actionDragStateRef` return hits only in useClipDrag.ts? Does `grep -r crossTrackActive` show no external consumers (or only useClipDrag internals)?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC4",
+      "task_id": "T4",
+      "question": "Does DropIndicator render the same 5-element structure (row, line, ghost, ghostLabel, label) with the same CSS classes as the current imperative code? Is it under 150 LOC?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC5",
+      "task_id": "T5",
+      "question": "Is indicatorRef created in useTimelineState (above TimelineEditor), NOT inside TimelineEditor? Can both useClipDrag and the future useExternalDrop access it through context?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC6",
+      "task_id": "T6",
+      "question": "Does `grep -r 'document.createElement' src/tools/video-editor/hooks/useClipDrag.ts` return zero hits for indicator elements? (createFloatingGhost hits are OK.) Do cross-track drag indicators appear correctly?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC7",
+      "task_id": "T7",
+      "question": "Does dragging a file or generation from outside onto the timeline show indicators and complete the drop correctly? Does `grep -r 'document.createElement' src/tools/video-editor/hooks/useTimelineEditing.ts` return zero indicator hits?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC8",
+      "task_id": "T8",
+      "question": "Is useAssetManagement purely data logic with no DOM manipulation? Are registerGenerationAsset, uploadImageGeneration, and handleAssetDrop correctly extracted with all dependencies passed as args?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC9",
+      "task_id": "T9",
+      "question": "Is getTimelineDomNodes in lib/timeline-dom.ts importable by both useClipDrag and useExternalDrop? Does useExternalDrop correctly consume indicatorRef and the useAssetManagement exports?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC10",
+      "task_id": "T10",
+      "question": "Does useClipResize correctly own resizeStartRef (moved from useTimelineData)? Are onActionResizeStart/End callbacks independent of any drag state?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC11",
+      "task_id": "T11",
+      "question": "Is the renamed useClipEditing.ts around ~250 LOC? Does it contain only clip CRUD operations (delete, split, mute, text add) plus onChange/onOverlayChange for library sync?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC12",
+      "task_id": "T12",
+      "question": "Does useTimelineState correctly compose all 4 new hooks? Are all context consumers (TimelineEditor, other components) updated to the new shape? TypeScript compiles?",
+      "executor_note": "",
+      "verdict": ""
+    },
+    {
+      "id": "SC13",
+      "task_id": "T13",
+      "question": "Do all 10 success criteria pass? Specifically: no document.createElement for indicators, no useTimelineEditing.ts file, all new files under 300 LOC, all user interactions work (drag, resize, external drop, split, delete, mute, text add)?",
+      "executor_note": "",
+      "verdict": ""
+    }
+  ],
+  "meta_commentary": "## Execution Guidance\n\n### Critical Architecture Decision\nThe single most important thing to get right: **indicatorRef lives in useTimelineState, not TimelineEditor**. The gate flagged this (timeline-indicator-ref-context-inversion) and it's the only unresolved significant flag. VideoEditorProvider calls useTimelineState() and feeds its output into context providers. TimelineEditor is a leaf consumer. So: create `indicatorRef = useRef<DropIndicatorHandle>(null)` in useTimelineState, expose it in `TimelineEditorContextValue`, and have TimelineEditor pass it as the `ref` prop to `<DropIndicator>`. Both useClipDrag (called inside TimelineEditor) and useExternalDrop (called inside useTimelineState) then access the same ref.\n\n### Phase Dependencies\n- **T1-T3 (Phase 1)** are strictly sequential \u2014 each removes code the next depends on.\n- **T4 (DropIndicator component)** is independent of Phase 1 and can be built in parallel.\n- **T5** merges both streams \u2014 needs T4 (component exists) to render, and benefits from T3 (clean context) to wire.\n- **T6 and T7** are independent of each other (different drag systems) but both need T5.\n- **T8-T11 (Phase 3)** are strictly sequential extractions from the shrinking god hook.\n- **T12** wires everything together and depends on both T6 (useClipDrag done) and T11 (god hook fully split).\n\n### Extraction Strategy for Phase 3\nExtract in dependency order: useAssetManagement first (pure data, no DOM), then useExternalDrop (depends on asset management exports), then useClipResize (clean independent boundary), then rename what's left to useClipEditing. Each step should leave the codebase compiling \u2014 don't batch extractions.\n\n### The Library Relationship After This Work\nAfter T1, the library (`@xzdarcy/react-timeline-editor`) serves exactly 4 purposes: (1) time-scale rendering, (2) virtualized grid layout, (3) cursor/playhead, (4) action resize (via interact.js + flexible:true). It no longer owns drag. This is a clean, well-defined boundary. The `onChange` callback becomes resize-only sync. The `onActionResize*` callbacks remain wired through useClipResize.\n\n### What NOT to Touch\n- The floating ghost clone in useClipDrag (imperative DOM clone, SETTLED-004)\n- Library resize functionality (flexible:true preserved, onActionResize* stay wired)\n- The RAF throttle in external drag (still needed for 60fps dragover coalescing)\n- Any code outside src/tools/video-editor/ (this refactor is entirely self-contained)"
+}

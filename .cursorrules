@@ -2,12 +2,12 @@
 
 ## Docs (consult before editing cross-cutting code)
 - **Cross-cutting** = spans multiple tools, or touches core tables/storage/auth/billing.
-- Start at `structure.md` (links to sub-docs). Deep dives live in `docs/structure_detail/`.
-- **Read the relevant sub-doc before editing** (all in `docs/structure_detail/` unless noted):
+- Start at `../structure.md` (collection-level, links to sub-docs). Deep dives live in `../docs/structure_detail/`.
+- **Read the relevant sub-doc before editing** (all in `../docs/structure_detail/` unless noted):
   - *Data & persistence:* Settings → `settings_system.md` · Per-pair data → `per_pair_data_persistence.md` · Data fetching → `data_fetching.md` · DB/RPCs/storage → `db_and_storage.md` · Storage/uploads → `storage_uploads.md`
   - *Infrastructure:* Task creation → `unified_task_creation.md` · Workers → `task_worker_lifecycle.md` · Edge Functions → `edge_functions.md` · Realtime → `realtime_system.md` · Payments → `auto_topup_system.md`
   - *Frontend:* Architecture → `frontend_architecture.md` · Shared utilities → `shared_utilities.md` · Design/motion → `design_motion_guidelines.md` · Auth → `auth_system.md` · Routing → `routing_and_navigation.md` · Performance → `performance_system.md` · Image loading → `image_loading_system.md`
-  - *Operations:* Debugging → `debugging.md` · Error handling → `error_handling.md` · Deployment → `deployment_and_migration_guide.md` · Refactoring → `refactoring_patterns.md` · Video travel tool → `tool_video_travel.md` · Code quality → `docs/code_quality_audit.md`
+  - *Operations:* Debugging → `../debugging.md` (collection-level, cross-repo) · Error handling → `error_handling.md` · Deployment → `deployment_and_migration_guide.md` · Refactoring → `refactoring_patterns.md` · Video travel tool → `tool_video_travel.md` · Code quality → `docs/code_quality_audit.md`
 - **Multiple docs apply?** Start with most specific (e.g., `image_loading` before `performance`).
 - **New feature?** Check `adding_new_tool.md` for tool pattern; `structure.md` for where things live.
 - **Debugging a flow?** Trace: UI → hook → task creation (`unified_task_creation.md`) → worker (`task_worker_lifecycle.md`) → `complete_task` edge function.
@@ -46,7 +46,7 @@
 - **When the user asks for a complete job, do a complete job.** Don't propose half-measures or shortcuts unless the user explicitly says they want speed over thoroughness.
 
 ## Debugging
-- See `debugging.md` for CLI commands, frontend logging, SQL queries, and the decision table.
+- See `../debugging.md` (collection-level) for cross-repo debugging router, CLI commands, and decision table.
 - **Use consistent tags**: `console.log('[MyTag] message', data)` — filter with `debug.py logs --latest --tag MyTag`.
 - Debug logs are dev-only (stripped in prod), so temporary instrumentation is OK.
 

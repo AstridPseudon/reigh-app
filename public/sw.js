@@ -46,10 +46,18 @@ self.addEventListener('fetch', event => {
       .then(response => {
         // If successful, optionally cache static assets for future offline use
         if (response.status === 200 && event.request.url.includes(self.location.origin)) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
-          });
+          // Only cache small static assets, not media/blobs
+          const contentType = response.headers.get('content-type') || '';
+          const isLargeMedia = contentType.startsWith('video/') || contentType.startsWith('audio/');
+          const isBlob = event.request.url.includes('/storage/') || event.request.url.includes('/object/');
+          if (!isLargeMedia && !isBlob) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseClone).catch(() => {
+                // Storage quota exceeded or cache error — ignore gracefully
+              });
+            });
+          }
         }
         return response;
       })

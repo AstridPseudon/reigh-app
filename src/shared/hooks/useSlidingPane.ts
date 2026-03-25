@@ -5,7 +5,7 @@ import { PANE_CONFIG } from '@/shared/config/panes';
 import { dispatchAppEvent, useAppEventListener } from '@/shared/lib/typedEvents';
 
 interface UseSlidingPaneOptions {
-  side: 'left' | 'right' | 'bottom';
+  side: 'left' | 'right' | 'bottom' | 'top';
   isLocked: boolean;
   onToggleLock: () => void;
   additionalRefs?: React.RefObject<HTMLElement>[];
@@ -211,6 +211,12 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
   };
 
   const toggleLock = (force?: boolean) => {
+    // Clear any pending leave timeout so it can't race with the lock state change
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = null;
+    }
+
     // Allow locking on all devices including mobile
     if (force !== undefined) {
       // Force to specific state - used by UI buttons
@@ -243,6 +249,8 @@ export const useSlidingPane = ({ side, isLocked, onToggleLock, additionalRefs, p
           return isVisible ? 'translate-x-0' : 'translate-x-full';
         case 'bottom':
           return isVisible ? 'translate-y-0' : 'translate-y-full';
+        case 'top':
+          return isVisible ? 'translate-y-0' : '-translate-y-full';
         default:
           return '';
       }

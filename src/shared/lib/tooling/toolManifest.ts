@@ -1,4 +1,4 @@
-import { Paintbrush, Video, Edit, Users, Link2, Film, type LucideIcon } from 'lucide-react';
+import { Paintbrush, Video, Edit, Users, Link2, Film, Clapperboard, type LucideIcon } from 'lucide-react';
 
 import { AppEnv, type AppEnvValue } from '@/types/env';
 import { characterAnimateSettings } from '@/tools/character-animate/settings';
@@ -6,6 +6,7 @@ import { editImagesSettings } from '@/tools/edit-images/settings';
 import { editVideoSettings } from '@/tools/edit-video/settings/editVideoDefaults';
 import { imageGenerationSettings } from '@/tools/image-generation/settings';
 import { trainingDataHelperSettings } from '@/tools/training-data-helper/settings';
+import { videoEditorSettings } from '@/tools/video-editor/settings/videoEditorDefaults';
 import { videoTravelSettings } from '@/tools/travel-between-images/settings';
 
 import { joinClipsSettings } from '@/shared/lib/joinClips/defaults';
@@ -86,6 +87,21 @@ export const toolRuntimeManifest: ToolUIDefinition[] = [
     paneSection: 'assistant',
     visibleInToolsPane: true,
     darkIconColor: '#4a7099',
+  },
+  {
+    id: videoEditorSettings.id,
+    name: 'Video Editor',
+    path: '/tools/video-editor',
+    description: 'Assemble multi-track Remotion timelines with clip effects, assets, and collaborative saving.',
+    environments: [AppEnv.LOCAL, AppEnv.WEB],
+    icon: Clapperboard,
+    gradient: 'from-emerald-400 via-cyan-400 to-sky-500',
+    accent: 'wes-mint',
+    ornament: '▣',
+    badge: 'New',
+    paneSection: 'assistant',
+    visibleInToolsPane: true,
+    darkIconColor: '#4fd1c5',
   },
   {
     id: editImagesSettings.id,

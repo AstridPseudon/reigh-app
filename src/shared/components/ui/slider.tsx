@@ -8,6 +8,14 @@ interface SliderProps extends Omit<React.ComponentPropsWithoutRef<typeof SliderP
   className?: string;
 }
 
+const toScalarValue = (value: number | number[]): number => {
+  if (Array.isArray(value)) {
+    return value[0] ?? 0;
+  }
+
+  return value;
+};
+
 const Slider = React.forwardRef<
   HTMLDivElement,
   SliderProps
@@ -28,7 +36,7 @@ const Slider = React.forwardRef<
         className
       )}
       {...props}
-      onValueChange={onValueChange ? (value) => onValueChange(value) : undefined}
+      onValueChange={onValueChange ? (value) => onValueChange(toScalarValue(value)) : undefined}
     >
       <SliderPrimitive.Control className="flex w-full items-center">
         <SliderPrimitive.Track className={cn(

@@ -134,12 +134,55 @@ describe('claim-next-task edge entrypoint', () => {
       p_include_active: false,
       p_run_type: 'api',
       p_same_model_only: true,
+      p_max_task_wait_minutes: 5,
     });
     await expect(response.json()).resolves.toEqual({
       task_id: 'task-service',
       params: {},
       task_type: 'video_generation',
       project_id: 'project-service',
+    });
+  });
+
+  it('passes through max_task_wait_minutes for service-role claims', async () => {
+    mocks.withEdgeRequest.mockImplementation(
+      async (_req: Request, _opts: unknown, handler: (ctx: unknown) => Promise<Response>) => {
+        return handler(createContext({
+          run_type: 'gpu',
+          same_model_only: true,
+          max_task_wait_minutes: 3,
+        }, { userId: null, isServiceRole: true }));
+      },
+    );
+
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          task_id: 'task-service-2',
+          params: {},
+          task_type: 'video_generation',
+          project_id: 'project-service-2',
+        },
+      ],
+      error: null,
+    });
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/claim-next-task', { method: 'POST' }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.rpc).toHaveBeenCalledWith('claim_next_task_service_role', {
+      p_worker_id: expect.any(String),
+      p_include_active: false,
+      p_run_type: 'gpu',
+      p_same_model_only: true,
+      p_max_task_wait_minutes: 3,
+    });
+    await expect(response.json()).resolves.toEqual({
+      task_id: 'task-service-2',
+      params: {},
+      task_type: 'video_generation',
+      project_id: 'project-service-2',
     });
   });
 });

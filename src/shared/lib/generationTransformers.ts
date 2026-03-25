@@ -147,6 +147,11 @@ export interface RawGeneration {
   id: string;
   location: string;
   thumbnail_url?: string | null;
+  primary_variant_id?: string | null;
+  primary_variant?: {
+    location?: string | null;
+    thumbnail_url?: string | null;
+  } | null;
   type?: string | null;
   created_at: string;
   updated_at?: string | null;
@@ -221,7 +226,7 @@ function extractPrompt(params: Record<string, unknown> | null | undefined): stri
  */
 function extractThumbnailUrl(item: RawGeneration, mainUrl: string): string {
   // Start with database thumbnail_url field
-  let thumbnailUrl = item.thumbnail_url;
+  let thumbnailUrl = item.primary_variant?.thumbnail_url || item.thumbnail_url;
   const toolType = item.params?.tool_type;
   
   // If no thumbnail in database, check params for travel-between-images videos
@@ -264,7 +269,7 @@ export function transformGeneration(
   item: RawGeneration,
   options: TransformOptions = {}
 ): GeneratedImageWithMetadata {
-  const mainUrl = item.location;
+  const mainUrl = item.primary_variant?.location || item.location;
   const thumbnailUrl = extractThumbnailUrl(item, mainUrl);
   const taskIdParse = parseGenerationTaskId(item.tasks);
   const taskId = taskIdParse.taskId;
@@ -292,6 +297,7 @@ export function transformGeneration(
   const baseItem: GeneratedImageWithMetadata = {
     id: item.id,
     url: mainUrl,
+    location: mainUrl,
     thumbUrl: thumbnailUrl,
     urlIdentity,
     thumbUrlIdentity,
@@ -301,11 +307,13 @@ export function transformGeneration(
       taskId, // Include task ID in metadata for MediaGalleryItem
       taskIdStatus: taskIdParse.status, // Surface parse health to avoid silent shape drift
       based_on: item.based_on, // Include based_on for lineage tracking
+      variant_id: item.primary_variant_id ?? undefined,
       ...(options.metadata || {}), // Merge any additional metadata
     },
     createdAt: item.created_at,
     updatedAt: item.updated_at,
     isVideo,
+    type: item.type ?? (isVideo ? 'video' : 'image'),
     contentType, // For proper download file extensions
     starred: item.starred || false,
     based_on: item.based_on, // Top level for easy access
@@ -315,6 +323,7 @@ export function transformGeneration(
     derivedCount: item.derivedCount || 0, // Number of generations/variants based on this one
     hasUnviewedVariants: item.hasUnviewedVariants || false, // For NEW badge display
     unviewedVariantCount: item.unviewedVariantCount || 0, // Count for tooltip
+    primary_variant_id: item.primary_variant_id ?? null,
     // Parent/child relationship fields
     is_child: item.is_child ?? undefined,
     parent_generation_id: item.parent_generation_id ?? undefined,
@@ -452,15 +461,20 @@ export function transformVariant(
 
   return {
     id: variant.id,
+    generation_id: variant.generation_id,
     url: variant.location,
+    location: variant.location,
     thumbUrl: variant.thumbnail_url || variant.location,
     isVideo,
+    type: isVideo ? 'video' : 'image',
     contentType,
     createdAt: variant.created_at,
+    primary_variant_id: variant.id,
     starred: false, // Variants don't have starred flag
     metadata: {
       prompt: asString(variantParams.prompt) ?? undefined,
       variant_type: variant.variant_type,
+      variant_id: variant.id,
       name: variant.name,
       generation_id: variant.generation_id,
       tool_type: asString(variantParams.tool_type) ?? options?.toolType,

@@ -50,6 +50,7 @@ export interface GeneratedImageWithMetadata {
   position?: number | null;
   timeline_frame?: number | null;
   name?: string; // Variant name for the generation
+  primary_variant_id?: string | null;
   all_shot_associations?: Array<{ shot_id: string; position: number | null; timeline_frame?: number | null }>;
   based_on?: string | null; // ID of source generation for lineage tracking (magic edits, variations)
   derivedCount?: number; // Number of generations based on this one

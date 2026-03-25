@@ -5,6 +5,7 @@ import { joinClipsSettings, type JoinClipsSettings } from '@/shared/lib/joinClip
 import { editImagesSettings } from '@/tools/edit-images/settings';
 import { editVideoSettings, type EditVideoSettings } from '@/shared/settings/config/editVideoDefaults';
 import { trainingDataHelperSettings } from '@/tools/training-data-helper/settings';
+import { videoEditorSettings, type VideoEditorSettings } from '@/tools/video-editor/settings/videoEditorDefaults';
 import { userPreferencesSettings, type UserPreferences } from '@/shared/settings/userPreferences';
 
 type ImageGenerationSettings = typeof imageGenerationSettings.defaults;
@@ -18,6 +19,7 @@ export interface ToolDefaultsById {
   [joinClipsSettings.id]: JoinClipsSettings;
   [editImagesSettings.id]: EditImagesSettings;
   [editVideoSettings.id]: EditVideoSettings;
+  [videoEditorSettings.id]: VideoEditorSettings;
   [trainingDataHelperSettings.id]: TrainingDataHelperSettings;
   [userPreferencesSettings.id]: UserPreferences;
 }
@@ -31,6 +33,7 @@ export const toolDefaultsRegistry: ToolDefaultsById = {
   [joinClipsSettings.id]: joinClipsSettings.defaults,
   [editImagesSettings.id]: editImagesSettings.defaults,
   [editVideoSettings.id]: editVideoSettings.defaults,
+  [videoEditorSettings.id]: videoEditorSettings.defaults,
   [trainingDataHelperSettings.id]: trainingDataHelperSettings.defaults,
   [userPreferencesSettings.id]: userPreferencesSettings.defaults,
 };

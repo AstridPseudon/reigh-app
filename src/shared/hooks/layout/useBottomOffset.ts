@@ -8,13 +8,13 @@ export const useBottomOffset = (): number => {
   const {
     isGenerationsPaneLocked,
     isGenerationsPaneOpen,
-    generationsPaneHeight,
+    effectiveGenerationsPaneHeight,
   } = usePanes();
   const isLightboxOpen = useLightboxOpenState();
 
   if (isLightboxOpen) return 0;
 
   return (isGenerationsPaneLocked || isGenerationsPaneOpen)
-    ? generationsPaneHeight
+    ? effectiveGenerationsPaneHeight
     : 0;
 };

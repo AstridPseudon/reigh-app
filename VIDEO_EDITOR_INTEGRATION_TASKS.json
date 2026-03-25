@@ -1,0 +1,244 @@
+{
+  "tasks": [
+    {
+      "id": "T1",
+      "description": "Install dependencies: remotion, @remotion/player, @xzdarcy/react-timeline-editor, sucrase. Create throwaway smoke page (src/tools/video-editor/__smoke__/SmokeTest.tsx) rendering a Remotion <Player> with trivial composition + a basic <Timeline> with one mock track. Add temp route /tools/video-editor-smoke. Verify dev server starts, page renders, npm run build succeeds. Remove smoke page and route after validation.",
+      "depends_on": [],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T2",
+      "description": "Create single Supabase migration for timelines table (id uuid PK, project_id FK\u2192projects, user_id FK\u2192auth.users, name text, config jsonb, asset_registry jsonb, created_at, updated_at) with RLS (users CRUD own), indexes on project_id and user_id. Create effects table (id uuid PK, user_id FK, name, slug, code text, category text CHECK IN ('entrance','exit','continuous'), description, is_public boolean DEFAULT false, created_at, updated_at, UNIQUE(user_id,slug)) with RLS owner-only (NO public read policy for V1). Add timelines to supabase_realtime publication. Push with npx supabase db push --linked. Regenerate types.ts.",
+      "depends_on": [],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T3",
+      "description": "Create storage bucket timeline-assets (private) via migration. RLS policies: INSERT/SELECT/DELETE scoped by auth.uid()::text = (storage.foldername(name))[1]. Storage path pattern: {user_id}/{timeline_id}/{filename}. Push migration.",
+      "depends_on": [],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T4",
+      "description": "Port types, config utils, and serialization from announcement-video/shared/ into src/tools/video-editor/. Create types/index.ts with EXACT source types from announcement-video/shared/types.ts \u2014 read the actual source file, do NOT copy the plan's inline snippets verbatim (see watch_items W1 about customEffects and background_scale mismatches). Create lib/config-utils.ts porting parseResolution, getClipSourceDuration, getClipTimelineDuration, getClipDurationInFrames, getTimelineDurationInFrames, secondsToFrames, resolveTimelineConfig, getConfigSignature from shared/config-utils.ts. Create lib/serialize.ts porting serializeForDisk with TIMELINE_CLIP_FIELDS and TRACK_DEFINITION_FIELDS whitelists, and validateSerializedConfig from shared/serialize.ts. Create extended DataProvider interface adding timelineId params to loadTimeline/saveTimeline/loadAssetRegistry, making resolveAssetUrl async (Promise<string>), uploadAsset returning {assetId, entry}, plus optional stubs loadWaveform/loadAssetProfile.",
+      "depends_on": [
+        "T1"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T5",
+      "description": "Port Remotion compositions from announcement-video/shared/compositions/ into src/tools/video-editor/compositions/: TimelineRenderer.tsx (root composition, uses parseResolution for output.resolution string, renders tracks/clips by at field), VisualClip.tsx (media/hold clips, resolves asset URLs, positions via x/y/width/height, applies effects via wrapWithClipEffects), TextClip.tsx (text overlays from clip.text), AudioTrack.tsx (audio with volume), DebugTrack.tsx (debug overlay). Port wrapWithClipEffects with exact nesting: continuous(outer)\u2192entrance\u2192exit(inner)\u2192children. Adapt any React 19 APIs (use()\u2192useContext, React.cache\u2192memoization).",
+      "depends_on": [
+        "T4"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T6",
+      "description": "Port effects system into src/tools/video-editor/effects/. Create builtinEffects.ts with all 22 effects (11 entrance: slide-up/down/left/right, zoom-in, zoom-spin, pulse, fade, flip, bounce, meteorite; 6 exit: slide-down, zoom-out, flip, fade-out, shrink, dissolve; 5 continuous: ken-burns, float, glitch, slow-zoom, drift) plus 4 CSS transitions (crossfade, wipe, slide-push, zoom-through). All conform to EffectComponentProps. Create DynamicEffectRegistry.ts porting from shared/effects/dynamic-registry.ts with register/registerAsync/get/getCode/listAll/isDynamic/getAllDynamicCode/unregister; built-in priority. Create compileEffect.ts using sucrase.transform + new Function with 6 globals (React, useCurrentFrame, useVideoConfig, interpolate, spring, AbsoluteFill); error\u2192red overlay. Create effectStore.ts porting draft localStorage pattern (key: video-editor:draft-effects); adapt promoteDraftToTimeline to save to effects DB table. Create effectPromptTemplate.ts porting getEffectPromptTemplate. Security: only compile own-user effects in V1.",
+      "depends_on": [
+        "T4"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T7",
+      "description": "Port 3 React contexts into src/tools/video-editor/contexts/. TimelineEditorContext: selected clip, clipboard, undo/redo, current TimelineConfig, actions (selectClip, deselectAll, cut/copy/paste/delete/move/resize/addClip, splitClipAtPlayhead, moveClipToTrack). TimelineChromeContext: save status (saved/unsaved/saving/error), render status, UI mode, actions (markDirty, markSaved, triggerRender). TimelinePlaybackContext: currentFrame, isPlaying, playerRef, actions (play, pause, seekTo, setPlayerRef). Create VideoEditorProvider.tsx composing all 3 + DataProvider injection, accepting dataProvider and timelineId props.",
+      "depends_on": [
+        "T4"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T8",
+      "description": "Port all editor UI components into src/tools/video-editor/components/. PreviewPanel: Remotion Player with parseResolution for dimensions, playback controls, TimelinePlaybackContext sync, responsive sizing. OverlayEditor: visual in-canvas editing, bounding boxes for clips (x/y/width/height), drag-to-move, corner-resize, double-click text clips for inline editing, mutations via TimelineEditorContext. AssetPanel: drag-drop upload via DataProvider.uploadAsset, browse/filter assets, drag-to-timeline creates media clip. ClipPanel: tabbed (Effects/Timing/Position/Audio/Text) property editor for selected clip using shadcn components. TimelinePanel: @xzdarcy/react-timeline-editor with custom ClipAction renderer (thumbnails/labels/effect indicators), custom TrackLabel (name/kind icon/lock/hide), timeline CSS overrides in styles/timeline-overrides.css, maps TimelineConfig tracks/clips to timeline-editor format, syncs playhead with TimelinePlaybackContext. Create hooks/useCrossTrackDrag.ts for cross-track drag with kind validation. Create CustomEffectEditor: code textarea, live preview via small Player, Save/Discard/Test buttons. Create VideoEditorShell: mode-agnostic wrapper, full mode=3-panel resizable, compact mode=CompactPreview only.",
+      "depends_on": [
+        "T5",
+        "T6",
+        "T7"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T9",
+      "description": "Port keyboard shortcuts and data hooks into src/tools/video-editor/hooks/. useKeyboardShortcuts: Space (play/pause), Arrow L/R (navigate), S (split at playhead), M (mute/unmute), Delete/Backspace (delete clip), Arrow Up/Down (move to adjacent track), Escape (deselect); only active when editor focused, not in inputs. useTimelineData: accept timelineId param, query keys ['timeline', timelineId] and ['asset-registry', timelineId] (NOT source singletons), port existing 500ms debounce save (don't reimplement), getConfigSignature change detection, connects to TimelineChromeContext. useEffects: React Query for own-user effects only (no is_public query), query key ['effects', userId], CRUD mutations. useEffectRegistry: instantiate DynamicEffectRegistry with built-ins, merge own custom effects + localStorage drafts, compile via compileEffect.",
+      "depends_on": [
+        "T7"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T10",
+      "description": "Implement SupabaseDataProvider in src/tools/video-editor/data/SupabaseDataProvider.ts. loadTimeline(timelineId): select config from timelines, validateSerializedConfig. saveTimeline(timelineId, config): serializeForDisk then update config+updated_at. loadAssetRegistry(timelineId): select asset_registry. resolveAssetUrl(path): createSignedUrl from timeline-assets bucket (1hr expiry). uploadAsset(file, path): upload to timeline-assets, return {assetId, entry} with inferred type. Stub loadWaveform/loadAssetProfile returning null. Create useTimeline.ts React Query wrapper with optimistic updates. Create useTimelinesList.ts for project timeline listing with query key ['timelines', projectId]. Asset registry update after upload: merge entry into asset_registry JSONB.",
+      "depends_on": [
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T11",
+      "description": "Register video-editor tool and wire standalone route. Add VIDEO_EDITOR to TOOL_IDS in toolIds.ts. Create settings/videoEditorDefaults.ts with id, scope:['project'], defaults:{lastTimelineId}. Add to toolRuntimeManifest in toolManifest.ts (icon: Clapperboard, path: /tools/video-editor, badge: 'New'). Add to toolsManifest in src/tools/index.ts. Add to toolDefaultsRegistry in src/tooling/toolDefaultsRegistry.ts. Add to TOOL_SETTINGS_IDS in src/shared/lib/settingsIds.ts. Create VideoEditorPage.tsx reading ?timeline= query param, showing timeline list if no param, rendering VideoEditorShell mode=full. Add route in routes.tsx. Suppress EditorPane on /tools/video-editor: in EditorPaneTab.tsx check useLocation().pathname and return null when on editor page.",
+      "depends_on": [
+        "T8"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T12",
+      "description": "Wire compact EditorPane mode. Create CompactPreview.tsx: small Remotion Player (aspect ratio from parseResolution), play/pause + scrub bar, 'Open in editor' button navigating to /tools/video-editor?timeline={id}, 'No active timeline' empty state with Create CTA. Wraps in VideoEditorProvider mode=compact. Update EditorPaneTab.tsx: replace empty surface with <CompactPreview timelineId={activeTimelineId}/>. Determine activeTimelineId from videoEditorSettings.lastTimelineId or most recent project timeline. Wire 'Go to editor' button (line 72) with navigate(). Shared React Query cache via same ['timeline', timelineId] keys.",
+      "depends_on": [
+        "T8",
+        "T10"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T13",
+      "description": "Add realtime subscriptions for timelines. Extend DatabaseTable type in realtime/types.ts to include 'timelines'. Add TimelinesUpdatedEvent processed event type. Add INSERT/UPDATE/DELETE subscriptions in RealtimeConnection.ts for timelines table filtered by project_id. Add processing in RealtimeEventProcessor.ts to batch and emit timelines-updated events. Add invalidation in useRealtimeInvalidation for ['timeline', timelineId] and ['timelines', projectId] query keys. Create useTimelineRealtime.ts: on remote change compare getConfigSignature, show merge/discard toast if local has unsaved changes, else silently refetch.",
+      "depends_on": [
+        "T10"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    },
+    {
+      "id": "T14",
+      "description": "End-to-end validation: Timeline CRUD (create/rename/list/delete). Asset management (upload video+image, verify {assetId,entry} return, signed URL renders in Player, drag-to-timeline creates clip). Clip editing (add media/text clips, drag/resize, split with S, delete, move track with arrows, cross-track drag). Effects (apply built-in entrance/continuous, verify wrapWithClipEffects nesting, create/save/apply custom effect via custom:slug, verify owner-only). Dual-mode (EditorPane visible on other routes, suppressed on /tools/video-editor, 'Open in editor' navigates, shared cache). Realtime (cross-tab sync). Keyboard shortcuts (all bindings, no-fire in inputs). Persistence (save/reload round-trip with correct source field names in JSONB, serializeForDisk strips extra fields). Security (effects query returns only own-user, RLS blocks cross-user access).",
+      "depends_on": [
+        "T11",
+        "T12",
+        "T13"
+      ],
+      "status": "pending",
+      "executor_notes": "",
+      "reviewer_verdict": ""
+    }
+  ],
+  "watch_items": [
+    "W1: SCHEMA MISMATCH IN PLAN SNIPPETS \u2014 The plan's Step 4 inline code shows customEffects as CustomEffectDefinition[] but source uses Record<string, CustomEffectEntry>. Also shows background_scale as string but source uses number|null. MUST read the actual source file announcement-video/shared/types.ts and use those types, not the plan snippets. Affects serialization whitelists, effect registry loading, and config round-tripping.",
+    "W2: TOOL REGISTRATION COMPLETENESS \u2014 Plan Step 11 originally missed toolDefaultsRegistry (src/tooling/toolDefaultsRegistry.ts) and TOOL_SETTINGS_IDS (src/shared/lib/settingsIds.ts). T11 now includes these. Executor must also check if toolRoutes.ts auto-derives from toolRuntimeManifest or needs manual update.",
+    "W3: REACT 18 COMPATIBILITY \u2014 Source is React 19. Watch for use() hook (replace with useContext/useSuspenseQuery), React.cache (replace with memoization), and any async component patterns. Remotion 4.0.434 itself is compatible (peer dep >=16.8).",
+    "W4: CUSTOM EFFECTS SECURITY \u2014 V1 is owner-only. Never query effects with is_public=true. Never compile another user's effect code. RLS enforces at DB level, app must also enforce. Public sharing is V2 requiring iframe/Web Worker sandboxing.",
+    "W5: DATAPROVIDER SINGLETON\u2192MULTI-TIMELINE REFACTOR \u2014 Source DataProvider has no timelineId params and uses singleton query keys. Every hook/component that touches DataProvider must be adapted: add timelineId params, update query keys from ['timeline-data'] to ['timeline', timelineId], make resolveAssetUrl async.",
+    "W6: EXISTING edit-video TOOL \u2014 New video-editor coexists with existing edit-video tool at /tools/edit-video (TOOL_IDS.EDIT_VIDEO). Different purposes. Don't accidentally overwrite or conflict.",
+    "W7: EDITOR PANE SUPPRESSION \u2014 Layout.tsx always renders <EditorPane/>. Must suppress on /tools/video-editor route via pathname check in EditorPaneTab.tsx returning null. Test that control tab also disappears, not just content.",
+    "W8: DEBOUNCE SAVE \u2014 Port the existing 500ms debounce from source useTimelineData.ts. Don't reimplement. It uses getConfigSignature for change detection. External change detection (remote vs local signature comparison) is needed for realtime merge UX.",
+    "W9: EFFECT NESTING ORDER \u2014 wrapWithClipEffects must be continuous(outer)\u2192entrance\u2192exit(inner)\u2192children. Reversing this breaks all effect animations. Verify with a clip that has all three effect types.",
+    "W10: REALTIME CHANNEL LIMITS \u2014 Adding timelines to the existing channel's postgres_changes subscriptions. Supabase has a limit of ~10 filters per channel. Current count is 4 tables. Adding 3 more events (INSERT/UPDATE/DELETE for timelines) brings it to ~10. Monitor for channel subscription failures."
+  ],
+  "sense_checks": [
+    {
+      "id": "SC1",
+      "task_id": "T1",
+      "question": "Does the dev server start and render both Remotion Player and @xzdarcy/react-timeline-editor without console errors? Does npm run build succeed without >200KB gzipped increase?",
+      "verdict": ""
+    },
+    {
+      "id": "SC2",
+      "task_id": "T2",
+      "question": "Do regenerated types.ts include timelines and effects tables with correct column types? Is the effects category CHECK constraint ('entrance','exit','continuous') and is there NO public-read RLS policy on effects?",
+      "verdict": ""
+    },
+    {
+      "id": "SC3",
+      "task_id": "T3",
+      "question": "Can a test upload/download to timeline-assets succeed with the user_id path prefix? Does RLS block access to other users' paths?",
+      "verdict": ""
+    },
+    {
+      "id": "SC4",
+      "task_id": "T4",
+      "question": "Do the ported types match the ACTUAL source types.ts (not plan snippets)? Specifically: is customEffects a Record (not array)? Is background_scale number|null (not string)? Does getConfigSignature produce consistent hashes? Does serializeForDisk strip non-whitelisted fields?",
+      "verdict": ""
+    },
+    {
+      "id": "SC5",
+      "task_id": "T5",
+      "question": "Does TimelineRenderer correctly render clips positioned by clip.at in a Remotion Player? Does wrapWithClipEffects apply effects in continuous\u2192entrance\u2192exit\u2192children order? Are any React 19 APIs properly adapted?",
+      "verdict": ""
+    },
+    {
+      "id": "SC6",
+      "task_id": "T6",
+      "question": "Does DynamicEffectRegistry.get('fade') return built-in even when a custom 'fade' exists? Does get('custom:test') resolve a registered custom effect? Does compileEffect handle errors gracefully (red overlay, not crash)?",
+      "verdict": ""
+    },
+    {
+      "id": "SC7",
+      "task_id": "T7",
+      "question": "Does VideoEditorProvider compose all 3 contexts correctly? Can a test component access TimelineEditorContext, TimelineChromeContext, and TimelinePlaybackContext state via useContext?",
+      "verdict": ""
+    },
+    {
+      "id": "SC8",
+      "task_id": "T8",
+      "question": "Do all source UI components have counterparts: AssetPanel (upload+browse), ClipPanel (5 tabs), ClipAction (timeline renderer), TrackLabel, OverlayEditor (drag/resize/inline-edit), useCrossTrackDrag? Does VideoEditorShell render correctly in both full and compact modes?",
+      "verdict": ""
+    },
+    {
+      "id": "SC9",
+      "task_id": "T9",
+      "question": "Are query keys ['timeline', timelineId] (not ['timeline-data'])? Does the debounce save fire once after 500ms of inactivity, not per-change? Do keyboard shortcuts work in editor but not fire when typing in inputs?",
+      "verdict": ""
+    },
+    {
+      "id": "SC10",
+      "task_id": "T10",
+      "question": "Does SupabaseDataProvider round-trip a TimelineConfig through save\u2192load with correct field names in JSONB? Does resolveAssetUrl return a working signed URL? Does uploadAsset return {assetId, entry} and update asset_registry?",
+      "verdict": ""
+    },
+    {
+      "id": "SC11",
+      "task_id": "T11",
+      "question": "Is the tool registered in ALL 6 locations: toolIds.ts, toolManifest.ts, tools/index.ts, toolDefaultsRegistry.ts, settingsIds.ts, routes.tsx? Does EditorPane (and its control tab) disappear on /tools/video-editor and reappear on other routes?",
+      "verdict": ""
+    },
+    {
+      "id": "SC12",
+      "task_id": "T12",
+      "question": "Does CompactPreview show video with playback controls in the EditorPane? Does 'Open in editor' navigate to /tools/video-editor?timeline={id}? Does the compact pane use the same query cache as full mode (no re-fetch on mode switch)?",
+      "verdict": ""
+    },
+    {
+      "id": "SC13",
+      "task_id": "T13",
+      "question": "Does editing a clip in one browser tab cause the change to appear in another tab within ~2 seconds? When local has unsaved changes and remote changes arrive, does a merge/discard prompt appear (not silent overwrite)?",
+      "verdict": ""
+    },
+    {
+      "id": "SC14",
+      "task_id": "T14",
+      "question": "Does the full E2E flow work: create timeline \u2192 upload asset \u2192 add clip \u2192 apply effect \u2192 save \u2192 reload \u2192 verify persisted correctly with source field names \u2192 open in compact mode \u2192 verify same data?",
+      "verdict": ""
+    }
+  ],
+  "meta_commentary": "EXECUTION GUIDANCE:\n\n**Parallelization:** T1, T2, T3 are fully independent \u2014 run in parallel. T4 needs T1 (Remotion types) but non-Remotion types can start immediately. T5, T6, T7 all depend on T4 but are independent of each other \u2014 parallelize. T10 depends on T2+T3+T4 and can run in parallel with T5/T6/T7. T8 is the critical path bottleneck (depends on T5+T6+T7). T9 can parallel with T8.\n\n**CRITICAL: Source types mismatch (W1).** The plan's inline TypeScript snippets in Step 4 have two known inaccuracies vs the actual source: customEffects should be Record<string, CustomEffectEntry> not an array, and background_scale should be number|null not string. The executor MUST read announcement-video/shared/types.ts directly and use those types. This cascades into serialization whitelists, effect loading, and resolveTimelineConfig. If the executor copies the plan snippets verbatim, it will cause runtime bugs in effect registry population and config round-tripping.\n\n**Tool registration (T11) has 6 touch points**, not the 4 in the original plan. The full list: toolIds.ts, toolManifest.ts, tools/index.ts, toolDefaultsRegistry.ts, settingsIds.ts, routes.tsx. Missing any causes runtime settings errors or route validation failures. Read src/docs/structure_detail/adding_new_tool.md and follow an existing tool's pattern (e.g., look at how edit-video is registered across all files).\n\n**EditorPane suppression (T11):** The return-null approach in EditorPaneTab works but verify it suppresses both the pane content AND the control tab (PaneControlTab). If they're rendered separately, both need the pathname check. Look at how Layout.tsx renders EditorPane to understand the component hierarchy.\n\n**resolveAssetUrl is async in reigh-app but sync in source.** Every call site in compositions (VisualClip, AudioTrack) that uses resolveAssetUrl must be adapted. In Remotion compositions, you can't use async directly \u2014 use React Query or state to pre-resolve URLs before render. The source likely passes resolved URLs as props; verify this pattern.\n\n**Order of porting compositions (T5):** Port TimelineRenderer first as it's the root. Then VisualClip (most complex with effects), then TextClip, AudioTrack, DebugTrack. Test each in isolation with a Player before composing.\n\n**Custom effects security boundary:** The RLS policy on effects table is the primary enforcement. App-level queries should use .eq('user_id', userId) as belt-and-suspenders. Never add a policy for is_public=true reads in V1. The is_public column exists for V2 schema forward-compatibility only."
+}

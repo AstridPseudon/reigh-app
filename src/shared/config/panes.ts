@@ -21,7 +21,7 @@ export const PANE_CONFIG = {
   }
 } as const;
 
-export type PaneSide = 'left' | 'right' | 'bottom';
+export type PaneSide = 'left' | 'right' | 'bottom' | 'top';
 
 interface PaneOffsets {
   bottom?: number;

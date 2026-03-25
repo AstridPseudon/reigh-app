@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { LockIcon, UnlockIcon, ChevronLeft, ChevronRight, ChevronUp, Square, LayoutGrid, Images, ListTodo } from 'lucide-react';
+import { LockIcon, UnlockIcon, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Square, LayoutGrid, Images, ListTodo } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/mobile';
 import { PANE_CONFIG, PaneSide, PanePosition } from '@/shared/config/panes';
@@ -104,9 +104,9 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
   const handleOpen = customOpenAction ?? openPane;
   const useDesktopBehavior = !isMobile || isTablet;
   const [selectionActive, setSelectionActive] = React.useState(false);
-  const isBottom = side === 'bottom';
+  const isBottom = side === 'bottom' || side === 'top';
   const showTooltips = !isMobile;
-  const tooltipSide = side === 'left' ? 'right' : side === 'right' ? 'left' : 'top';
+  const tooltipSide = side === 'left' ? 'right' : side === 'right' ? 'left' : side === 'top' ? 'bottom' : 'top';
 
   // Event handlers
   const handleButtonClick = React.useCallback((callback: () => void) => {
@@ -155,6 +155,7 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
       case 'left': return <ChevronRight className={iconSize} />;
       case 'right': return <ChevronLeft className={iconSize} />;
       case 'bottom': return <ChevronUp className={iconSize} />;
+      case 'top': return <ChevronDown className={iconSize} />;
       default: return null;
     }
   };
@@ -324,6 +325,7 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
       case 'left': return 'left-0 flex-col';
       case 'right': return 'right-0 flex-col';
       case 'bottom': return 'left-1/2 -translate-x-1/2 bottom-0 flex-row';
+      case 'top': return 'left-1/2 -translate-x-1/2 top-0 flex-row';
       default: return '';
     }
   })();

@@ -21,10 +21,12 @@ import {
   ShotGenerationsChangedEvent,
   VariantsChangedEvent,
   VariantsDeletedEvent,
+  TimelinesUpdatedEvent,
   TaskRecord,
   GenerationRecord,
   ShotGenerationRecord,
   VariantRecord,
+  TimelineRecord,
   RealtimeConfig,
   DEFAULT_REALTIME_CONFIG,
 } from './types';
@@ -156,6 +158,9 @@ export class RealtimeEventProcessor {
         } else {
           return this.processVariantChanges(events, processedAt);
         }
+
+      case 'timelines':
+        return this.processTimelineUpdates(events, processedAt);
 
       default:
         return null;
@@ -439,6 +444,27 @@ export class RealtimeEventProcessor {
       processedAt,
       variants,
       affectedGenerationIds: Array.from(affectedGenerationIds),
+    };
+  }
+
+  private processTimelineUpdates(
+    events: RawDatabaseEvent[],
+    processedAt: number,
+  ): TimelinesUpdatedEvent {
+    const timelines = events.map((event) => {
+      const record = (event.old || event.new) as Partial<TimelineRecord>;
+      return {
+        id: record.id ?? '',
+        projectId: record.project_id ?? '',
+        eventType: event.eventType,
+      };
+    }).filter((timeline) => timeline.id && timeline.projectId);
+
+    return {
+      type: 'timelines-updated',
+      batchSize: events.length,
+      processedAt,
+      timelines,
     };
   }
 
