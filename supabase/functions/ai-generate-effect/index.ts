@@ -106,6 +106,7 @@ serve(async (req) => {
   }
 
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+  const effectName = typeof body.name === "string" ? body.name.trim() : "";
   const category = body.category;
   const existingCode = typeof body.existingCode === "string" && body.existingCode.trim()
     ? body.existingCode
@@ -123,6 +124,7 @@ serve(async (req) => {
     const groq = getGroqClient();
     const { systemMsg, userMsg } = buildGenerateEffectMessages({
       prompt,
+      name: effectName || undefined,
       category,
       existingCode,
     });

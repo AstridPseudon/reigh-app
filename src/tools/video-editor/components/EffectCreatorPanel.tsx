@@ -116,7 +116,7 @@ export function EffectCreatorPanel({
   const [category, setCategory] = useState<EffectCategory>(editingEffect?.category ?? 'entrance');
   const [prompt, setPrompt] = useState(editingEffect?.description ?? '');
   const [code, setCode] = useState(editingEffect?.code ?? '');
-  const [isPublic, setIsPublic] = useState(editingEffect?.is_public ?? false);
+  const [isPublic, setIsPublic] = useState(editingEffect?.is_public ?? true);
 
   // Generation / compile state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -139,7 +139,7 @@ export function EffectCreatorPanel({
     setCategory(effect?.category ?? 'entrance');
     setPrompt(effect?.description ?? '');
     setCode(effect?.code ?? '');
-    setIsPublic(effect?.is_public ?? false);
+    setIsPublic(effect?.is_public ?? true);
     setCompileStatus(effect?.code ? 'success' : 'idle');
     setCompileError(null);
     setPreviewComponent(null);
@@ -188,6 +188,10 @@ export function EffectCreatorPanel({
 
   // Generate effect via edge function
   const handleGenerate = useCallback(async () => {
+    if (!name.trim()) {
+      toast({ title: 'Name required', description: 'Give your effect a name before generating.', variant: 'destructive' });
+      return;
+    }
     if (!prompt.trim()) {
       toast({ title: 'Prompt required', description: 'Describe the effect you want to create.', variant: 'destructive' });
       return;
@@ -207,6 +211,7 @@ export function EffectCreatorPanel({
         {
           body: {
             prompt: prompt.trim(),
+            name: name.trim(),
             category,
             existingCode: code || undefined,
           },
@@ -231,7 +236,7 @@ export function EffectCreatorPanel({
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, category, code, compileCode]);
+  }, [name, prompt, category, code, compileCode]);
 
   // Save effect as a resource
   const handleSave = useCallback(async () => {
@@ -325,6 +330,10 @@ export function EffectCreatorPanel({
               placeholder="Describe the visual effect... e.g. 'A glowing neon border that pulses in and out'"
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
+              voiceInput
+              onVoiceResult={(result) => setPrompt(result.transcription)}
+              voiceContext="The user is describing a visual animation effect for a video editor. They are specifying how a clip should animate (entrance, exit, or continuous effect). Transcribe their description accurately."
+              voiceTask="transcribe_only"
             />
           </div>
 
@@ -333,7 +342,7 @@ export function EffectCreatorPanel({
             <Button
               type="button"
               onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={isGenerating || !prompt.trim() || !name.trim()}
               className="gap-1.5"
             >
               {isGenerating ? (

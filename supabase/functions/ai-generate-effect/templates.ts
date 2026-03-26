@@ -2,6 +2,7 @@ export type EffectCategory = 'entrance' | 'exit' | 'continuous';
 
 export interface BuildGenerateEffectMessagesInput {
   prompt: string;
+  name?: string;
   category: EffectCategory;
   existingCode?: string;
 }
@@ -59,7 +60,7 @@ export function buildGenerateEffectMessages(input: BuildGenerateEffectMessagesIn
   systemMsg: string;
   userMsg: string;
 } {
-  const { prompt, category, existingCode } = input;
+  const { prompt, name, category, existingCode } = input;
   const modeInstructions = existingCode?.trim()
     ? `Edit mode:
 - You are revising an existing effect
@@ -84,7 +85,7 @@ ${OUTPUT_RULES}
 
 ${VALIDATION_RULES}`;
 
-  const userMsg = `Build a ${category} Remotion effect for this request:
+  const userMsg = `Build a ${category} Remotion effect${name ? ` called "${name}"` : ''} for this request:
 "${prompt}"
 
 ${CATEGORY_GUIDANCE[category]}

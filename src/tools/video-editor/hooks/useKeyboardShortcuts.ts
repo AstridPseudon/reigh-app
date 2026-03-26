@@ -6,6 +6,8 @@ interface UseKeyboardShortcutsOptions {
   canMoveSelectedClipToTrack: boolean;
   selectedClipIds: ReadonlySet<string>;
   moveSelectedClipsToTrack: (direction: 'up' | 'down', selectedClipIds: ReadonlySet<string>) => void;
+  undo: () => void;
+  redo: () => void;
   selectAllClips: () => void;
   togglePlayPause: () => void;
   seekRelative: (deltaSeconds: number) => void;
@@ -20,6 +22,8 @@ export function useKeyboardShortcuts({
   canMoveSelectedClipToTrack,
   selectedClipIds,
   moveSelectedClipsToTrack,
+  undo,
+  redo,
   selectAllClips,
   togglePlayPause,
   seekRelative,
@@ -31,6 +35,21 @@ export function useKeyboardShortcuts({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      const isModifierPressed = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+
+      if (isModifierPressed && key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if ((isModifierPressed && key === 'z' && event.shiftKey) || (event.ctrlKey && key === 'y')) {
+        event.preventDefault();
+        redo();
         return;
       }
 
@@ -62,7 +81,7 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+      if (isModifierPressed && key === 'a') {
         event.preventDefault();
         selectAllClips();
         return;
@@ -74,13 +93,13 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      if (event.key.toLowerCase() === 'm' && hasSelectedClip) {
+      if (key === 'm' && hasSelectedClip) {
         event.preventDefault();
         toggleMute();
         return;
       }
 
-      if (event.key.toLowerCase() === 's' && hasSelectedClip) {
+      if (key === 's' && hasSelectedClip) {
         event.preventDefault();
         splitSelectedClip();
         return;
@@ -100,5 +119,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canMoveSelectedClipToTrack, clearSelection, deleteSelectedClip, hasSelectedClip, moveSelectedClipsToTrack, seekRelative, selectAllClips, selectedClipIds, splitSelectedClip, toggleMute, togglePlayPause]);
+  }, [canMoveSelectedClipToTrack, clearSelection, deleteSelectedClip, hasSelectedClip, moveSelectedClipsToTrack, redo, seekRelative, selectAllClips, selectedClipIds, splitSelectedClip, toggleMute, togglePlayPause, undo]);
 }

@@ -14,6 +14,10 @@ vi.mock('@/tools/video-editor/hooks/useEffectRegistry', () => ({
   useEffectRegistry: vi.fn(),
 }));
 
+vi.mock('@/tools/video-editor/hooks/useEffectResources', () => ({
+  useEffectResources: () => ({ effects: [] }),
+}));
+
 vi.mock('@/tools/video-editor/hooks/useTimelineState', () => ({
   useTimelineState: () => ({
     editor: { selectedClipId: 'clip-1' },

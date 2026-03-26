@@ -1,9 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
-import { Download, Eye, GripHorizontal, Maximize2, Minimize2, Settings, SlidersHorizontal, Video, Volume2, ZoomIn, ZoomOut } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Download, Eye, GripHorizontal, History, Maximize2, Minimize2, Redo2, Settings, SlidersHorizontal, Undo2, Video, Volume2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/shared/components/ui/alert-dialog';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { Slider } from '@/shared/components/ui/slider';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { AgentChat } from '@/tools/video-editor/components/AgentChat';
@@ -27,6 +29,18 @@ const STATUS_VARIANT = {
   saving: 'secondary',
   dirty: 'outline',
   error: 'destructive',
+} as const;
+const CHECKPOINT_TRIGGER_LABELS = {
+  session_boundary: 'Session boundary',
+  edit_distance: 'Edit cap',
+  semantic: 'Destructive edit',
+  manual: 'Manual',
+} as const;
+const CHECKPOINT_TRIGGER_BADGE_VARIANT = {
+  session_boundary: 'secondary',
+  edit_distance: 'outline',
+  semantic: 'destructive',
+  manual: 'default',
 } as const;
 
 interface VideoEditorShellProps {
@@ -60,6 +74,8 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     canMoveSelectedClipToTrack: editor.selectedClipIds.size >= 1,
     selectedClipIds: editor.selectedClipIds,
     moveSelectedClipsToTrack: editor.moveSelectedClipsToTrack,
+    undo: chrome.undo,
+    redo: chrome.redo,
     selectAllClips: () => editor.selectClips(Object.keys(editor.data?.meta ?? {})),
     togglePlayPause: () => playback.previewRef.current?.togglePlayPause(),
     seekRelative: (deltaSeconds) => playback.previewRef.current?.seek(Math.max(0, playback.currentTime + deltaSeconds)),
@@ -142,6 +158,75 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
       {chrome.saveStatus}
     </Badge>
   );
+  const historyControls = (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6"
+        onClick={chrome.undo}
+        disabled={!chrome.canUndo}
+        title="Undo"
+      >
+        <Undo2 className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6"
+        onClick={chrome.redo}
+        disabled={!chrome.canRedo}
+        title="Redo"
+      >
+        <Redo2 className="h-3.5 w-3.5" />
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" title="History">
+            <History className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-80">
+          <DropdownMenuLabel className="pb-1 text-xs font-semibold text-muted-foreground">
+            History
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {chrome.checkpoints.length === 0 ? (
+            <div className="px-2 py-3 text-xs text-muted-foreground">
+              No checkpoints yet. Save one manually or keep editing to build history.
+            </div>
+          ) : (
+            chrome.checkpoints.map((checkpoint) => (
+              <DropdownMenuItem
+                key={checkpoint.id}
+                className="flex flex-col items-start gap-1 py-2"
+                onClick={() => chrome.jumpToCheckpoint(checkpoint.id)}
+              >
+                <div className="flex w-full items-start justify-between gap-2">
+                  <span className="truncate text-sm text-foreground">{checkpoint.label}</span>
+                  <Badge
+                    variant={CHECKPOINT_TRIGGER_BADGE_VARIANT[checkpoint.triggerType]}
+                    className="shrink-0 px-1.5 py-0 text-[9px] uppercase tracking-[0.12em]"
+                  >
+                    {CHECKPOINT_TRIGGER_LABELS[checkpoint.triggerType]}
+                  </Badge>
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  {formatDistanceToNow(new Date(checkpoint.createdAt), { addSuffix: true })}
+                </span>
+              </DropdownMenuItem>
+            ))
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => void chrome.createManualCheckpoint()}>
+            Save checkpoint
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
 
   // ── Toolbar (shared between both layouts) ──────────────────────────
 
@@ -158,6 +243,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
           </button>
         )}
         {saveBadge}
+        {historyControls}
       </div>
       {!condensed && (
         <div
