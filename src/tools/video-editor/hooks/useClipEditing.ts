@@ -44,6 +44,7 @@ export interface UseClipEditingResult {
   handleToggleMuteClips: (clipIds: string[]) => void;
   handleToggleMute: () => void;
   handleAddText: () => void;
+  handleAddTextAt: (trackId: string, time: number) => void;
 }
 
 export function useClipEditing({
@@ -407,6 +408,60 @@ export function useClipEditing({
     setSelectedTrackId(visualTrack.id);
   }, [applyTimelineEdit, dataRef, selectedTrack, setSelectedClipId, setSelectedTrackId]);
 
+  const handleAddTextAt = useCallback((trackId: string, time: number) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    // Ensure the target track is visual; fall back to first visual track
+    const targetTrack = current.tracks.find((t) => t.id === trackId);
+    const visualTrack = targetTrack?.kind === 'visual'
+      ? targetTrack
+      : getVisualTracks(current.resolvedConfig)[0];
+    if (!visualTrack) {
+      return;
+    }
+
+    const clipId = getNextClipId(current.meta);
+    const textDuration = 5;
+    const action: TimelineAction = {
+      id: clipId,
+      start: Math.max(0, time),
+      end: Math.max(0, time) + textDuration,
+      effectId: `effect-${clipId}`,
+    };
+    const rowsWithClip = current.rows.map((row) => (
+      row.id === visualTrack.id
+        ? { ...row, actions: [...row.actions, action] }
+        : row
+    ));
+    const { rows: nextRows, metaPatches } = resolveOverlaps(
+      rowsWithClip, visualTrack.id, clipId, current.meta,
+    );
+    const nextClipOrder = updateClipOrder(current.clipOrder, visualTrack.id, (ids) => [...ids, clipId]);
+    applyTimelineEdit(nextRows, {
+      ...metaPatches,
+      [clipId]: {
+        track: visualTrack.id,
+        clipType: 'text',
+        text: {
+          content: 'Double-click to edit',
+          fontSize: 64,
+          color: '#ffffff',
+          align: 'center',
+        },
+        x: 120,
+        y: 120,
+        width: 640,
+        height: 180,
+        opacity: 1,
+      },
+    }, undefined, nextClipOrder);
+    setSelectedClipId(clipId);
+    setSelectedTrackId(visualTrack.id);
+  }, [applyTimelineEdit, dataRef, setSelectedClipId, setSelectedTrackId]);
+
   return {
     onOverlayChange,
     handleUpdateClips,
@@ -422,5 +477,6 @@ export function useClipEditing({
     handleToggleMuteClips,
     handleToggleMute,
     handleAddText,
+    handleAddTextAt,
   };
 }

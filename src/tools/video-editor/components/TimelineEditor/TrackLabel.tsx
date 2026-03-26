@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DraggableAttributes } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { Check, GripVertical, Settings, Trash2, Video, Volume2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
@@ -19,13 +21,24 @@ interface TrackLabelProps {
   onRemove: (trackId: string) => void;
 }
 
-const FIT_OPTIONS: { value: TrackFit; label: string }[] = [
+interface TrackLabelContentProps {
+  track: TrackDefinition;
+  isSelected: boolean;
+  hasClips: boolean;
+  onSelect: (trackId: string) => void;
+  onChange: (trackId: string, patch: Partial<TrackDefinition>) => void;
+  onRemove: (trackId: string) => void;
+  dragListeners?: SyntheticListenerMap;
+  dragAttributes?: DraggableAttributes;
+}
+
+export const FIT_OPTIONS: { value: TrackFit; label: string }[] = [
   { value: 'cover', label: 'Cover' },
   { value: 'contain', label: 'Contain' },
   { value: 'manual', label: 'Manual' },
 ];
 
-const BLEND_OPTIONS: { value: TrackBlendMode; label: string }[] = [
+export const BLEND_OPTIONS: { value: TrackBlendMode; label: string }[] = [
   { value: 'normal', label: 'Normal' },
   { value: 'multiply', label: 'Multiply' },
   { value: 'screen', label: 'Screen' },
@@ -38,35 +51,22 @@ const BLEND_OPTIONS: { value: TrackBlendMode; label: string }[] = [
   { value: 'hard-light', label: 'Hard Light' },
 ];
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+export function FieldLabel({ children }: { children: React.ReactNode }) {
   return <div className="text-[11px] font-medium text-muted-foreground">{children}</div>;
 }
 
-export function TrackLabel({
-  id,
+export function TrackLabelContent({
   track,
   isSelected,
   hasClips,
   onSelect,
   onChange,
   onRemove,
-}: TrackLabelProps) {
+  dragListeners,
+  dragAttributes,
+}: TrackLabelContentProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
 
   useEffect(() => {
     if (!confirmingDelete) return;
@@ -90,8 +90,6 @@ export function TrackLabel({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
       className={cn(
         'group relative flex h-9 items-center gap-1 border-b border-border px-2 text-xs text-foreground',
         isSelected ? 'bg-accent/70' : 'bg-card/60 hover:bg-accent/50',
@@ -125,8 +123,8 @@ export function TrackLabel({
             title="Reorder track"
             aria-label="Reorder track"
             onClick={(event) => event.stopPropagation()}
-            {...attributes}
-            {...listeners}
+            {...dragAttributes}
+            {...dragListeners}
           >
             <GripVertical className="h-3.5 w-3.5" />
           </Button>
@@ -230,6 +228,46 @@ export function TrackLabel({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function TrackLabel({
+  id,
+  track,
+  isSelected,
+  hasClips,
+  onSelect,
+  onChange,
+  onRemove,
+}: TrackLabelProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <TrackLabelContent
+        track={track}
+        isSelected={isSelected}
+        hasClips={hasClips}
+        onSelect={onSelect}
+        onChange={onChange}
+        onRemove={onRemove}
+        dragListeners={listeners}
+        dragAttributes={attributes}
+      />
     </div>
   );
 }

@@ -70,10 +70,6 @@ export function moveTrackWithinKind(
     return tracks;
   }
 
-  if (tracks[activeIndex]?.kind !== tracks[overIndex]?.kind) {
-    return tracks;
-  }
-
   return arrayMove(tracks, activeIndex, overIndex);
 }
 

@@ -34,10 +34,11 @@ export interface DropIndicatorHandle {
 
 interface DropIndicatorProps {
   editAreaRef: MutableRefObject<HTMLElement | null>;
+  onNewTrackLabel?: (label: string | null) => void;
 }
 
 export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>(function DropIndicator(
-  { editAreaRef },
+  { editAreaRef, onNewTrackLabel },
   ref,
 ) {
   const [position, setPosition] = useState<DropIndicatorPosition | null>(null);
@@ -67,17 +68,16 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
     const showNewTrack = position?.isNewTrack === true && position?.trackId === undefined;
     editArea.classList.toggle('drop-target-new-track', showNewTrack);
 
-    if (showNewTrack && position?.newTrackKind) {
-      editArea.dataset.newTrackLabel = `Drop to create new ${position.newTrackKind} track`;
-    } else if (showNewTrack) {
-      editArea.dataset.newTrackLabel = 'Drop to create new track';
-    }
+    const label = showNewTrack
+      ? (position?.newTrackKind ? `Drop to create new ${position.newTrackKind} track` : 'Drop to create new track')
+      : null;
+    onNewTrackLabel?.(label);
 
     return () => {
       editArea.classList.remove('drop-target-new-track');
-      delete editArea.dataset.newTrackLabel;
+      onNewTrackLabel?.(null);
     };
-  }, [editAreaRef, position?.isNewTrack, position?.newTrackKind, position?.trackId]);
+  }, [editAreaRef, onNewTrackLabel, position?.isNewTrack, position?.newTrackKind, position?.trackId]);
 
   if (!position || typeof document === 'undefined') {
     return null;

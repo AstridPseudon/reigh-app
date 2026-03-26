@@ -3,7 +3,8 @@ import type { ClipMeta, ClipOrderMap } from '@/tools/video-editor/lib/timeline-d
 
 export const ROW_HEIGHT = 36;
 export const SCALE_SECONDS = 5;
-export const TIMELINE_START_LEFT = 20;
+export const LABEL_WIDTH = 144;
+export const TIMELINE_START_LEFT = LABEL_WIDTH;
 
 export const isEditableTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) {

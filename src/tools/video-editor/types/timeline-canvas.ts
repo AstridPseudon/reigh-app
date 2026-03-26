@@ -58,5 +58,4 @@ export interface TimelineCanvasHandle {
   }) => boolean;
   pause: () => void;
   setScrollLeft: (value: number) => void;
-  setScrollTop: (value: number) => void;
 }

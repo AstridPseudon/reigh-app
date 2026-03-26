@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
-import { Download, Eye, GripHorizontal, Maximize2, Minimize2, Settings, SlidersHorizontal, Type, Video, Volume2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Download, Eye, GripHorizontal, Maximize2, Minimize2, Settings, SlidersHorizontal, Video, Volume2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/shared/components/ui/alert-dialog';
 import { Badge } from '@/shared/components/ui/badge';
@@ -133,11 +133,6 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     <div className="flex h-7 items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/80 px-2 text-muted-foreground">
       <div className="flex items-center gap-1">
         {saveBadge}
-        {chrome.unusedTrackCount > 0 && (
-          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={chrome.handleClearUnusedTracks}>
-            Clear {chrome.unusedTrackCount} unused
-          </Button>
-        )}
       </div>
       {!condensed && (
         <div

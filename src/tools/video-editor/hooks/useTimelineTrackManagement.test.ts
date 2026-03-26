@@ -95,7 +95,7 @@ describe('moveTrackWithinKind', () => {
     expect(getTrackOrder(moveTrackWithinKind(tracks, 'V1', 'V3'))).toEqual(['V2', 'V3', 'V1', 'A1', 'A2']);
   });
 
-  it('rejects drag moves between different kinds', () => {
+  it('allows drag moves between different kinds', () => {
     const tracks = [
       makeTrack('V1', 'visual'),
       makeTrack('V2', 'visual'),
@@ -103,7 +103,7 @@ describe('moveTrackWithinKind', () => {
       makeTrack('A2', 'audio'),
     ];
 
-    expect(getTrackOrder(moveTrackWithinKind(tracks, 'V2', 'A1'))).toEqual(['V1', 'V2', 'A1', 'A2']);
+    expect(getTrackOrder(moveTrackWithinKind(tracks, 'V2', 'A1'))).toEqual(['V1', 'A1', 'V2', 'A2']);
   });
 
   it('preserves within-kind order across serialize and buildTimelineData round-trips', async () => {

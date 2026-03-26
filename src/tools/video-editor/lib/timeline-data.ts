@@ -330,7 +330,8 @@ export const buildTimelineData = async (
   configVersion = 1,
 ): Promise<TimelineData> => {
   const migratedConfig = migrateToFlatTracks(config);
-  migratedConfig.tracks = sortTracksByKind(migratedConfig.tracks ?? []);
+  // Preserve user's track order — no longer forcing visual-before-audio.
+  migratedConfig.tracks = migratedConfig.tracks ?? [];
   const resolvedConfig = await resolveTimelineConfig(migratedConfig, registry, urlResolver);
   const rowData = configToRows(migratedConfig);
 

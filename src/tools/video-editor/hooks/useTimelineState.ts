@@ -161,23 +161,6 @@ export function useTimelineState(): UseTimelineStateResult {
     resolveAssetUrl: runtime.provider.resolveAssetUrl.bind(runtime.provider),
   });
 
-  const externalDrop = useExternalDrop({
-    dataRef: dataHook.dataRef,
-    scale: dataHook.scale,
-    scaleWidth: dataHook.scaleWidth,
-    selectedTrackId: dataHook.selectedTrackId,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
-    patchRegistry: dataHook.patchRegistry,
-    registerAsset: dataHook.registerAsset,
-    uploadAsset: dataHook.uploadAsset,
-    invalidateAssetRegistry: dataHook.invalidateAssetRegistry,
-    resolveAssetUrl: runtime.provider.resolveAssetUrl.bind(runtime.provider),
-    coordinator: dragCoordinator.coordinator,
-    registerGenerationAsset: assetManagement.registerGenerationAsset,
-    uploadImageGeneration: assetManagement.uploadImageGeneration,
-    handleAssetDrop: assetManagement.handleAssetDrop,
-  });
-
   const clipResize = useClipResize({
     dataRef: dataHook.dataRef,
     applyTimelineEdit: dataHook.applyTimelineEdit,
@@ -193,6 +176,24 @@ export function useTimelineState(): UseTimelineStateResult {
     setSelectedTrackId: dataHook.setSelectedTrackId,
     applyTimelineEdit: dataHook.applyTimelineEdit,
     applyResolvedConfigEdit: dataHook.applyResolvedConfigEdit,
+  });
+
+  const externalDrop = useExternalDrop({
+    dataRef: dataHook.dataRef,
+    scale: dataHook.scale,
+    scaleWidth: dataHook.scaleWidth,
+    selectedTrackId: dataHook.selectedTrackId,
+    applyTimelineEdit: dataHook.applyTimelineEdit,
+    patchRegistry: dataHook.patchRegistry,
+    registerAsset: dataHook.registerAsset,
+    uploadAsset: dataHook.uploadAsset,
+    invalidateAssetRegistry: dataHook.invalidateAssetRegistry,
+    resolveAssetUrl: runtime.provider.resolveAssetUrl.bind(runtime.provider),
+    coordinator: dragCoordinator.coordinator,
+    registerGenerationAsset: assetManagement.registerGenerationAsset,
+    uploadImageGeneration: assetManagement.uploadImageGeneration,
+    handleAssetDrop: assetManagement.handleAssetDrop,
+    handleAddTextAt: clipEditing.handleAddTextAt,
   });
 
   const trackManagement = useTimelineTrackManagement({
@@ -345,6 +346,7 @@ export function useTimelineState(): UseTimelineStateResult {
     handleClearUnusedTracks: trackManagement.handleClearUnusedTracks,
     unusedTrackCount: trackManagement.unusedTrackCount,
     handleAddText: clipEditing.handleAddText,
+    handleAddTextAt: clipEditing.handleAddTextAt,
     reloadFromServer: dataHook.reloadFromServer,
     startRender: dataHook.startRender,
   }), [
@@ -360,6 +362,7 @@ export function useTimelineState(): UseTimelineStateResult {
     dataHook.setScaleWidth,
     dataHook.startRender,
     clipEditing.handleAddText,
+    clipEditing.handleAddTextAt,
     trackManagement.handleAddTrack,
     trackManagement.handleClearUnusedTracks,
     trackManagement.unusedTrackCount,

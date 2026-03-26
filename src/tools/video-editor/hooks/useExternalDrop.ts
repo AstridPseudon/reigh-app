@@ -24,6 +24,7 @@ export interface UseExternalDropArgs {
   registerGenerationAsset: UseAssetManagementResult['registerGenerationAsset'];
   uploadImageGeneration: UseAssetManagementResult['uploadImageGeneration'];
   handleAssetDrop: UseAssetManagementResult['handleAssetDrop'];
+  handleAddTextAt?: (trackId: string, time: number) => void;
 }
 
 export interface UseExternalDropResult {
@@ -44,6 +45,7 @@ export function useExternalDrop({
   registerGenerationAsset,
   uploadImageGeneration,
   handleAssetDrop,
+  handleAddTextAt,
 }: UseExternalDropArgs): UseExternalDropResult {
   const externalDragFrameRef = useRef<number | null>(null);
   const latestExternalDragRef = useRef<{
@@ -72,7 +74,7 @@ export function useExternalDrop({
   const onTimelineDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     const dragType = getDragType(event);
     const types = Array.from(event.dataTransfer.types);
-    if (!types.includes('asset-key') && dragType !== 'file' && dragType !== 'generation') {
+    if (!types.includes('asset-key') && !types.includes('text-tool') && dragType !== 'file' && dragType !== 'generation') {
       return;
     }
     event.preventDefault();
@@ -136,6 +138,22 @@ export function useExternalDrop({
     latestExternalPositionRef.current = null;
     coordinator.end();
 
+    // Handle text-tool drop
+    const isTextTool = event.dataTransfer.types.includes('text-tool');
+    if (isTextTool && handleAddTextAt && dataRef.current) {
+      let targetTrackId = dropPosition.isNewTrack ? undefined : dropPosition.trackId;
+      if (!targetTrackId) {
+        // Create a new visual track
+        const current = dataRef.current;
+        const existingCount = current.tracks.filter((t) => t.kind === 'visual').length;
+        targetTrackId = `V${existingCount + 1}`;
+        current.tracks.push({ id: targetTrackId, kind: 'visual', label: `Visual ${existingCount + 1}` });
+        current.rows.push({ id: targetTrackId, actions: [] });
+      }
+      handleAddTextAt(targetTrackId, dropPosition.time);
+      return;
+    }
+
     const files = Array.from(event.dataTransfer.files);
     if (files.length > 0 && dataRef.current) {
       const { time, trackId: dropTrackId } = dropPosition;
@@ -148,8 +166,10 @@ export function useExternalDrop({
         const kind: TrackKind = ['.mp3', '.wav', '.aac', '.m4a'].includes(ext) ? 'audio' : 'visual';
         const isImageFile = file.type.startsWith('image/')
           || ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.avif'].includes(ext);
-        let compatibleTrackId = getCompatibleTrackId(dataRef.current.tracks, dropTrackId, kind, selectedTrackId);
-        // Create a new track if none is compatible
+        let compatibleTrackId = dropPosition.isNewTrack
+          ? null
+          : getCompatibleTrackId(dataRef.current.tracks, dropTrackId, kind, selectedTrackId);
+        // Create a new track if none is compatible or if dropping in the "new track" zone
         if (!compatibleTrackId) {
           const existingCount = dataRef.current.tracks.filter((t) => t.kind === kind).length;
           compatibleTrackId = `${kind === 'audio' ? 'A' : 'V'}${existingCount + 1}`;
