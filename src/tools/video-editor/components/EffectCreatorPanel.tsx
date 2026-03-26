@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from '@/shared/components/ui/dialog';
 import { Input } from '@/shared/components/ui/input';
+import { Slider } from '@/shared/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { toast } from '@/shared/components/ui/toast';
 import { invokeSupabaseEdgeFunction } from '@/integrations/supabase/functions/invokeSupabaseEdgeFunction';
+import { ParameterControls, getDefaultValues } from '@/tools/video-editor/components/ParameterControls';
 import { tryCompileEffectAsync, type CompileResult } from '@/tools/video-editor/effects/compileEffect';
 import type { EffectComponentProps } from '@/tools/video-editor/effects/entrances';
 import {
@@ -30,6 +32,7 @@ import {
   type EffectCategory,
   type EffectResource,
 } from '@/tools/video-editor/hooks/useEffectResources';
+import type { ParameterSchema } from '@/tools/video-editor/types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,18 +44,36 @@ interface EffectCreatorPanelProps {
   /** When editing an existing resource-based effect */
   editingEffect?: EffectResource | null;
   /** Called after a successful save with the resource id */
-  onSaved?: (resourceId: string, category: EffectCategory) => void;
+  onSaved?: (resourceId: string, category: EffectCategory, defaultParams: Record<string, unknown>) => void;
 }
 
 type CompileStatus = 'idle' | 'compiling' | 'success' | 'error';
+
+interface GenerateEffectResponse {
+  code: string;
+  description: string;
+  parameterSchema?: ParameterSchema;
+  model: string;
+}
 
 // ---------------------------------------------------------------------------
 // Preview composition — colored rectangle wrapped by the effect component
 // ---------------------------------------------------------------------------
 
 const PREVIEW_FPS = 30;
-const PREVIEW_DURATION_FRAMES = 90; // 3 seconds
 const PREVIEW_SIZE = 320;
+
+interface PreviewParams {
+  durationSeconds: number;
+  effectSeconds: number;
+  intensity: number;
+}
+
+const DEFAULT_PREVIEW_PARAMS: PreviewParams = {
+  durationSeconds: 3,
+  effectSeconds: 0.7,
+  intensity: 0.5,
+};
 
 function PreviewRect() {
   return (
@@ -86,13 +107,24 @@ function PreviewRect() {
   );
 }
 
-function makePreviewComposition(EffectComponent: FC<EffectComponentProps> | null) {
+function makePreviewComposition(
+  EffectComponent: FC<EffectComponentProps> | null,
+  params: PreviewParams,
+  effectParams: Record<string, unknown>,
+) {
+  const durationInFrames = Math.max(1, Math.round(params.durationSeconds * PREVIEW_FPS));
+  const effectFrames = Math.max(1, Math.round(params.effectSeconds * PREVIEW_FPS));
   return function EffectPreviewComposition() {
     if (!EffectComponent) {
       return <PreviewRect />;
     }
     return (
-      <EffectComponent durationInFrames={PREVIEW_DURATION_FRAMES} effectFrames={20} intensity={0.5}>
+      <EffectComponent
+        durationInFrames={durationInFrames}
+        effectFrames={effectFrames}
+        intensity={params.intensity}
+        params={effectParams}
+      >
         <PreviewRect />
       </EffectComponent>
     );
@@ -114,9 +146,14 @@ export function EffectCreatorPanel({
   // Form state
   const [name, setName] = useState(editingEffect?.name ?? '');
   const [category, setCategory] = useState<EffectCategory>(editingEffect?.category ?? 'entrance');
-  const [prompt, setPrompt] = useState(editingEffect?.description ?? '');
+  const [prompt, setPrompt] = useState('');
   const [code, setCode] = useState(editingEffect?.code ?? '');
   const [isPublic, setIsPublic] = useState(editingEffect?.is_public ?? true);
+  const [parameterSchema, setParameterSchema] = useState<ParameterSchema>(editingEffect?.parameterSchema ?? []);
+  const [previewParamValues, setPreviewParamValues] = useState<Record<string, unknown>>(
+    () => getDefaultValues(editingEffect?.parameterSchema ?? []),
+  );
+  const [generatedDescription, setGeneratedDescription] = useState(editingEffect?.description ?? '');
 
   // Generation / compile state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -124,6 +161,7 @@ export function EffectCreatorPanel({
   const [compileError, setCompileError] = useState<string | null>(null);
   const [previewComponent, setPreviewComponent] = useState<FC<EffectComponentProps> | null>(null);
   const [showCode, setShowCode] = useState(false);
+  const [previewParams, setPreviewParams] = useState<PreviewParams>(DEFAULT_PREVIEW_PARAMS);
 
   // Mutations
   const createEffect = useCreateEffectResource();
@@ -135,15 +173,20 @@ export function EffectCreatorPanel({
 
   // Reset state when dialog opens with a new/different effect
   const resetForm = useCallback((effect?: EffectResource | null) => {
+    const nextSchema = effect?.parameterSchema ?? [];
     setName(effect?.name ?? '');
     setCategory(effect?.category ?? 'entrance');
-    setPrompt(effect?.description ?? '');
+    setPrompt('');
     setCode(effect?.code ?? '');
     setIsPublic(effect?.is_public ?? true);
+    setParameterSchema(nextSchema);
+    setPreviewParamValues(getDefaultValues(nextSchema));
+    setGeneratedDescription(effect?.description ?? '');
     setCompileStatus(effect?.code ? 'success' : 'idle');
     setCompileError(null);
     setPreviewComponent(null);
     setShowCode(false);
+    setPreviewParams(DEFAULT_PREVIEW_PARAMS);
     setIsGenerating(false);
   }, []);
 
@@ -206,7 +249,7 @@ export function EffectCreatorPanel({
     setCompileError(null);
 
     try {
-      const response = await invokeSupabaseEdgeFunction<{ code: string; model: string }>(
+      const response = await invokeSupabaseEdgeFunction<GenerateEffectResponse>(
         'ai-generate-effect',
         {
           body: {
@@ -222,8 +265,11 @@ export function EffectCreatorPanel({
 
       if (controller.signal.aborted) return;
 
+      const nextSchema = response.parameterSchema ?? [];
       setCode(response.code);
-      setPrompt('');
+      setParameterSchema(nextSchema);
+      setPreviewParamValues(getDefaultValues(nextSchema));
+      setGeneratedDescription(response.description.trim() || prompt.trim());
 
       // Auto-compile
       await compileCode(response.code);
@@ -263,28 +309,35 @@ export function EffectCreatorPanel({
       slug,
       code,
       category,
-      description: prompt.trim(),
+      description: generatedDescription.trim() || prompt.trim(),
+      parameterSchema: parameterSchema.length > 0 ? parameterSchema : undefined,
       created_by: { is_you: true },
       is_public: isPublic,
     };
 
+    const defaultParams = getDefaultValues(parameterSchema);
+
     try {
       if (isEditing && editingEffect) {
         await updateEffect.mutateAsync({ id: editingEffect.id, metadata });
-        onSaved?.(editingEffect.id, category);
+        onSaved?.(editingEffect.id, category, defaultParams);
       } else {
         const resource = await createEffect.mutateAsync({ metadata });
-        onSaved?.(resource.id, category);
+        onSaved?.(resource.id, category, defaultParams);
       }
       onOpenChange(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Save failed';
       toast({ title: 'Save failed', description: message, variant: 'destructive' });
     }
-  }, [name, code, category, prompt, isPublic, compileStatus, compileCode, isEditing, editingEffect, createEffect, updateEffect, onSaved, onOpenChange]);
+  }, [name, code, category, generatedDescription, parameterSchema, prompt, isPublic, compileStatus, compileCode, isEditing, editingEffect, createEffect, updateEffect, onSaved, onOpenChange]);
 
   // Preview composition memoized on the component ref
-  const PreviewComposition = useMemo(() => makePreviewComposition(previewComponent), [previewComponent]);
+  const previewDurationFrames = Math.max(1, Math.round(previewParams.durationSeconds * PREVIEW_FPS));
+  const PreviewComposition = useMemo(
+    () => makePreviewComposition(previewComponent, previewParams, previewParamValues),
+    [previewComponent, previewParams, previewParamValues],
+  );
 
   const hasGeneratedCode = Boolean(code.trim());
 
@@ -334,18 +387,75 @@ export function EffectCreatorPanel({
 
           {/* Preview — shown above prompt when code exists */}
           {hasGeneratedCode && (compileStatus === 'success' || previewComponent) && (
-            <div className="overflow-hidden rounded-lg border border-border bg-black">
-              <Player
-                component={PreviewComposition}
-                compositionWidth={PREVIEW_SIZE}
-                compositionHeight={PREVIEW_SIZE}
-                durationInFrames={PREVIEW_DURATION_FRAMES}
-                fps={PREVIEW_FPS}
-                style={{ width: '100%', aspectRatio: '1' }}
-                loop
-                autoPlay
-                controls
-              />
+            <div className="space-y-2">
+              {generatedDescription.trim() && (
+                <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    Effect Description
+                  </div>
+                  <div className="mt-1 text-sm text-foreground">{generatedDescription.trim()}</div>
+                </div>
+              )}
+              <div className="overflow-hidden rounded-lg border border-border bg-black">
+                <Player
+                  component={PreviewComposition}
+                  compositionWidth={PREVIEW_SIZE}
+                  compositionHeight={PREVIEW_SIZE}
+                  durationInFrames={previewDurationFrames}
+                  fps={PREVIEW_FPS}
+                  style={{ width: '100%', aspectRatio: '1' }}
+                  loop
+                  autoPlay
+                  controls
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Duration: {previewParams.durationSeconds.toFixed(1)}s</label>
+                  <Slider
+                    value={[previewParams.durationSeconds]}
+                    min={0.5}
+                    max={10}
+                    step={0.5}
+                    onValueChange={([v]) => setPreviewParams((p) => ({ ...p, durationSeconds: v }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Effect length: {previewParams.effectSeconds.toFixed(1)}s</label>
+                  <Slider
+                    value={[previewParams.effectSeconds]}
+                    min={0.1}
+                    max={Math.min(5, previewParams.durationSeconds)}
+                    step={0.1}
+                    onValueChange={([v]) => setPreviewParams((p) => ({ ...p, effectSeconds: v }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-muted-foreground">Intensity: {(previewParams.intensity * 100).toFixed(0)}%</label>
+                  <Slider
+                    value={[previewParams.intensity]}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onValueChange={([v]) => setPreviewParams((p) => ({ ...p, intensity: v }))}
+                  />
+                </div>
+              </div>
+              {parameterSchema.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Preview Parameters</label>
+                  <ParameterControls
+                    schema={parameterSchema}
+                    values={previewParamValues}
+                    onChange={(paramName, value) => {
+                      setPreviewParamValues((current) => ({
+                        ...current,
+                        [paramName]: value,
+                      }));
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -440,23 +550,6 @@ export function EffectCreatorPanel({
                 }}
                 rows={10}
                 className="font-mono text-xs"
-              />
-            </div>
-          )}
-
-          {/* Preview — shown below prompt for first-time generation */}
-          {!hasGeneratedCode && (compileStatus === 'success' || previewComponent) && (
-            <div className="overflow-hidden rounded-lg border border-border bg-black">
-              <Player
-                component={PreviewComposition}
-                compositionWidth={PREVIEW_SIZE}
-                compositionHeight={PREVIEW_SIZE}
-                durationInFrames={PREVIEW_DURATION_FRAMES}
-                fps={PREVIEW_FPS}
-                style={{ width: '100%', aspectRatio: '1' }}
-                loop
-                autoPlay
-                controls
               />
             </div>
           )}

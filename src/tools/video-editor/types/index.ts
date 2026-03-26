@@ -3,6 +3,27 @@ export type TimelineEffect = {
   fade_out?: number;
 };
 
+export type ParameterType = 'number' | 'select' | 'boolean' | 'color';
+
+export type ParameterOption = {
+  label: string;
+  value: string;
+};
+
+export type ParameterDefinition = {
+  name: string;
+  label: string;
+  description: string;
+  type: ParameterType;
+  default?: number | string | boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: ParameterOption[];
+};
+
+export type ParameterSchema = ParameterDefinition[];
+
 export type TrackKind = 'visual' | 'audio';
 export type TrackFit = 'cover' | 'contain' | 'manual';
 export type TrackBlendMode =
@@ -29,16 +50,19 @@ export type TrackDefinition = {
 export type ClipEntrance = {
   type: string;
   duration: number;
+  params?: Record<string, unknown>;
 };
 
 export type ClipExit = {
   type: string;
   duration: number;
+  params?: Record<string, unknown>;
 };
 
 export type ClipContinuous = {
   type: string;
   intensity?: number;
+  params?: Record<string, unknown>;
 };
 
 export type ClipTransition = {

@@ -6,6 +6,7 @@ export type EffectComponentProps = {
   durationInFrames: number;
   effectFrames?: number;
   intensity?: number;
+  params?: Record<string, unknown>;
 };
 
 const getNormalizedProgress = (frame: number, durationInFrames: number): number => {

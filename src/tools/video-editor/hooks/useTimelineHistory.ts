@@ -65,9 +65,13 @@ function isCheckpointFresh(checkpoint: Checkpoint, now: number): boolean {
 }
 
 function trimCheckpoints(checkpoints: Checkpoint[], now = Date.now()): Checkpoint[] {
-  return checkpoints
-    .filter((checkpoint) => isCheckpointFresh(checkpoint, now))
+  const manual = checkpoints.filter((c) => c.triggerType === 'manual');
+  const auto = checkpoints
+    .filter((c) => c.triggerType !== 'manual' && isCheckpointFresh(c, now))
     .slice(0, CHECKPOINT_LIMIT);
+  return [...manual, ...auto].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 }
 
 function defaultCheckpointLabel(triggerType: CheckpointTriggerType): string {

@@ -117,9 +117,10 @@ export class SupabaseDataProvider implements DataProvider {
 
     const { data: checkpointRows, error: checkpointRowsError } = await supabase
       .from('timeline_checkpoints')
-      .select('id')
+      .select('id, trigger_type')
       .eq('timeline_id', timelineId)
       .eq('user_id', this.options.userId)
+      .neq('trigger_type', 'manual')
       .order('created_at', { ascending: false });
 
     if (checkpointRowsError) {
@@ -154,6 +155,7 @@ export class SupabaseDataProvider implements DataProvider {
       .delete()
       .eq('timeline_id', timelineId)
       .eq('user_id', this.options.userId)
+      .neq('trigger_type', 'manual')
       .lt('created_at', retentionCutoff);
 
     if (cleanupError) {

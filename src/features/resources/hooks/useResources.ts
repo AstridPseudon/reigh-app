@@ -10,6 +10,7 @@ import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import type { VideoMetadata } from '@/shared/lib/media/videoUploader';
 import { QUERY_PRESETS } from '@/shared/lib/query/queryDefaults';
 import { resourceQueryKeys } from '@/shared/lib/queryKeys/resources';
+import type { ParameterSchema } from '@/tools/video-editor/types';
 
 export interface PhaseConfigMetadata {
     name: string;
@@ -81,6 +82,7 @@ export interface EffectMetadata {
     code: string;
     category: 'entrance' | 'exit' | 'continuous';
     description: string;
+    parameterSchema?: ParameterSchema;
     created_by: {
         is_you: boolean;
         username?: string;

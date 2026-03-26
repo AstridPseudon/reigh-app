@@ -121,6 +121,7 @@ export const wrapWithClipEffects = (
       <Continuous
         durationInFrames={durationInFrames}
         intensity={clip.continuous?.intensity ?? 0.5}
+        params={clip.continuous?.params}
       >
         {wrapped}
       </Continuous>
@@ -134,6 +135,7 @@ export const wrapWithClipEffects = (
       <Entrance
         durationInFrames={durationInFrames}
         effectFrames={secondsToFrames(clip.entrance?.duration ?? 0.4, fps)}
+        params={clip.entrance?.params}
       >
         {wrapped}
       </Entrance>
@@ -147,6 +149,7 @@ export const wrapWithClipEffects = (
       <Exit
         durationInFrames={durationInFrames}
         effectFrames={secondsToFrames(clip.exit?.duration ?? 0.4, fps)}
+        params={clip.exit?.params}
       >
         {wrapped}
       </Exit>

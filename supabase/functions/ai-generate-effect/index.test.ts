@@ -90,7 +90,7 @@ describe('ai-generate-effect edge entrypoint', () => {
       model: 'moonshotai/kimi-k2-instruct-0905',
       choices: [{
         message: {
-          content: '```ts\nfunction Example(props){ return React.createElement(AbsoluteFill, null, props.children); }\nexports.default = Example;\n```',
+          content: '```ts\n// DESCRIPTION: Slides the clip in from the left with a soft easing finish.\n// PARAMS: [{"name":"direction","label":"Direction","description":"Controls which side the clip enters from.","type":"select","default":"left","options":[{"label":"Left","value":"left"},{"label":"Right","value":"right"}]}]\nfunction Example(props){ return React.createElement(AbsoluteFill, null, props.children); }\nexports.default = Example;\n```',
         },
       }],
     });
@@ -159,13 +159,27 @@ describe('ai-generate-effect edge entrypoint', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Rate limit service unavailable' });
   });
 
-  it('generates an effect and returns cleaned code without markdown fences', async () => {
+  it('generates an effect and returns code plus extracted metadata', async () => {
     const handler = await loadHandler();
     const response = await handler(new Request('https://edge.test/ai-generate-effect', { method: 'POST' }));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       code: 'function Example(props){ return React.createElement(AbsoluteFill, null, props.children); }\nexports.default = Example;',
+      description: 'Slides the clip in from the left with a soft easing finish.',
+      parameterSchema: [
+        {
+          name: 'direction',
+          label: 'Direction',
+          description: 'Controls which side the clip enters from.',
+          type: 'select',
+          default: 'left',
+          options: [
+            { label: 'Left', value: 'left' },
+            { label: 'Right', value: 'right' },
+          ],
+        },
+      ],
       model: 'moonshotai/kimi-k2-instruct-0905',
     });
     expect(mocks.groqChatCreate).toHaveBeenCalledWith(

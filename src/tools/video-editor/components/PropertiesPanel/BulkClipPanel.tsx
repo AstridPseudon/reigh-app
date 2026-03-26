@@ -6,6 +6,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Slider } from '@/shared/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { getDefaultValues } from '@/tools/video-editor/components/ParameterControls';
 import {
   FieldLabel,
   NO_EFFECT,
@@ -69,6 +70,19 @@ const buildDrafts = (props: BulkClipPanelProps): BulkDrafts => ({
   fontSize: toDraft(props.sharedFontSize ?? props.sharedText?.fontSize ?? null),
   color: toDraft(props.sharedTextColor ?? props.sharedText?.color ?? null),
 });
+
+function getDefaultEffectParams(
+  type: string,
+  effects: ReturnType<typeof useEffectResources>['effects'],
+): Record<string, unknown> | undefined {
+  if (!type.startsWith('custom:')) {
+    return undefined;
+  }
+
+  const resourceId = type.slice(7);
+  const effect = effects.find((entry) => entry.id === resourceId);
+  return effect?.parameterSchema ? getDefaultValues(effect.parameterSchema) : undefined;
+}
 
 export function BulkClipPanel(props: BulkClipPanelProps) {
   const {
@@ -253,7 +267,11 @@ export function BulkClipPanel(props: BulkClipPanelProps) {
                   onValueChange={(value) => onChangeDeep((meta) => ({
                     entrance: value === NO_EFFECT
                       ? undefined
-                      : { type: value, duration: meta.entrance?.duration ?? 0.4 },
+                      : {
+                          type: value,
+                          duration: meta.entrance?.duration ?? 0.4,
+                          params: getDefaultEffectParams(value, effectResources.effects),
+                        },
                   }))}
                 >
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
@@ -281,7 +299,11 @@ export function BulkClipPanel(props: BulkClipPanelProps) {
                   onValueChange={(value) => onChangeDeep((meta) => ({
                     exit: value === NO_EFFECT
                       ? undefined
-                      : { type: value, duration: meta.exit?.duration ?? 0.4 },
+                      : {
+                          type: value,
+                          duration: meta.exit?.duration ?? 0.4,
+                          params: getDefaultEffectParams(value, effectResources.effects),
+                        },
                   }))}
                 >
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
@@ -309,7 +331,11 @@ export function BulkClipPanel(props: BulkClipPanelProps) {
                   onValueChange={(value) => onChangeDeep((meta) => ({
                     continuous: value === NO_EFFECT
                       ? undefined
-                      : { type: value, intensity: meta.continuous?.intensity ?? 0.5 },
+                      : {
+                          type: value,
+                          intensity: meta.continuous?.intensity ?? 0.5,
+                          params: getDefaultEffectParams(value, effectResources.effects),
+                        },
                   }))}
                 >
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>

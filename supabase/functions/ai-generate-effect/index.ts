@@ -10,7 +10,7 @@ import { jsonResponse } from "../_shared/http.ts";
 import { toErrorMessage } from "../_shared/errorMessage.ts";
 import {
   buildGenerateEffectMessages,
-  extractEffectCode,
+  extractEffectCodeAndMeta,
   type EffectCategory,
 } from "./templates.ts";
 
@@ -144,10 +144,12 @@ serve(async (req) => {
     logger.info(`[AI-GENERATE-EFFECT] Groq call completed in ${Date.now() - startedAt}ms, model=${response.model}`);
 
     const outputText = response.choices[0]?.message?.content?.trim() || "";
-    const code = extractEffectCode(outputText);
+    const { code, description, parameterSchema } = extractEffectCodeAndMeta(outputText);
 
     return jsonResponse({
       code,
+      description,
+      parameterSchema,
       model: response.model || GROQ_MODEL,
     });
   } catch (err: unknown) {

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/shared/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Textarea } from '@/shared/components/ui/textarea';
+import { ParameterControls, getDefaultValues } from '@/tools/video-editor/components/ParameterControls';
 import { continuousEffectTypes, entranceEffectTypes, exitEffectTypes } from '@/tools/video-editor/effects';
 import { EffectCreatorPanel } from '@/tools/video-editor/components/EffectCreatorPanel';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
@@ -65,6 +66,28 @@ function findEffectResourceByType(
   return effects.find((e) => e.id === id);
 }
 
+function getDefaultEffectParams(
+  type: string | undefined,
+  effects: EffectResource[],
+): Record<string, unknown> | undefined {
+  const effect = findEffectResourceByType(type, effects);
+  return effect?.parameterSchema ? getDefaultValues(effect.parameterSchema) : undefined;
+}
+
+function getMergedEffectParams(
+  effect: EffectResource | undefined,
+  storedParams: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  return {
+    ...getDefaultValues(effect?.parameterSchema ?? []),
+    ...(storedParams ?? {}),
+  };
+}
+
+function hasParameterSchema(effect: EffectResource | undefined): effect is EffectResource & { parameterSchema: NonNullable<EffectResource['parameterSchema']> } {
+  return Boolean(effect?.parameterSchema?.length);
+}
+
 export function ClipPanel({
   clip,
   track,
@@ -84,6 +107,9 @@ export function ClipPanel({
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [editingEffect, setEditingEffect] = useState<EffectResource | null>(null);
   const visibleTabs = useMemo(() => getVisibleClipTabs(clip, track), [clip, track]);
+  const entranceEffect = findEffectResourceByType(clip?.entrance?.type, effectResources.effects);
+  const exitEffect = findEffectResourceByType(clip?.exit?.type, effectResources.effects);
+  const continuousEffect = findEffectResourceByType(clip?.continuous?.type, effectResources.effects);
 
   if (!clip) {
     return (
@@ -132,7 +158,15 @@ export function ClipPanel({
                 <FieldLabel>Entrance</FieldLabel>
                 <Select
                   value={clip.entrance?.type ?? NO_EFFECT}
-                  onValueChange={(value) => onChange({ entrance: value === NO_EFFECT ? undefined : { type: value, duration: clip.entrance?.duration ?? 0.4 } })}
+                  onValueChange={(value) => onChange({
+                    entrance: value === NO_EFFECT
+                      ? undefined
+                      : {
+                          type: value,
+                          duration: clip.entrance?.duration ?? 0.4,
+                          params: getDefaultEffectParams(value, effectResources.effects),
+                        },
+                  })}
                 >
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
@@ -150,26 +184,50 @@ export function ClipPanel({
                     )}
                   </SelectContent>
                 </Select>
-                {findEffectResourceByType(clip.entrance?.type, effectResources.effects) && (
+                {entranceEffect && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-6 gap-1 text-xs"
                     onClick={() => {
-                      setEditingEffect(findEffectResourceByType(clip.entrance?.type, effectResources.effects) ?? null);
+                      setEditingEffect(entranceEffect);
                       setCreatorOpen(true);
                     }}
                   >
                     <Pencil className="h-3 w-3" /> Edit
                   </Button>
                 )}
+                {hasParameterSchema(entranceEffect) && (
+                  <ParameterControls
+                    schema={entranceEffect.parameterSchema}
+                    values={getMergedEffectParams(entranceEffect, clip.entrance?.params)}
+                    onChange={(paramName, value) => onChange({
+                      entrance: {
+                        type: clip.entrance?.type ?? `custom:${entranceEffect.id}`,
+                        duration: clip.entrance?.duration ?? 0.4,
+                        params: {
+                          ...(clip.entrance?.params ?? {}),
+                          [paramName]: value,
+                        },
+                      },
+                    })}
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <FieldLabel>Exit</FieldLabel>
                 <Select
                   value={clip.exit?.type ?? NO_EFFECT}
-                  onValueChange={(value) => onChange({ exit: value === NO_EFFECT ? undefined : { type: value, duration: clip.exit?.duration ?? 0.4 } })}
+                  onValueChange={(value) => onChange({
+                    exit: value === NO_EFFECT
+                      ? undefined
+                      : {
+                          type: value,
+                          duration: clip.exit?.duration ?? 0.4,
+                          params: getDefaultEffectParams(value, effectResources.effects),
+                        },
+                  })}
                 >
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
@@ -187,26 +245,50 @@ export function ClipPanel({
                     )}
                   </SelectContent>
                 </Select>
-                {findEffectResourceByType(clip.exit?.type, effectResources.effects) && (
+                {exitEffect && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-6 gap-1 text-xs"
                     onClick={() => {
-                      setEditingEffect(findEffectResourceByType(clip.exit?.type, effectResources.effects) ?? null);
+                      setEditingEffect(exitEffect);
                       setCreatorOpen(true);
                     }}
                   >
                     <Pencil className="h-3 w-3" /> Edit
                   </Button>
                 )}
+                {hasParameterSchema(exitEffect) && (
+                  <ParameterControls
+                    schema={exitEffect.parameterSchema}
+                    values={getMergedEffectParams(exitEffect, clip.exit?.params)}
+                    onChange={(paramName, value) => onChange({
+                      exit: {
+                        type: clip.exit?.type ?? `custom:${exitEffect.id}`,
+                        duration: clip.exit?.duration ?? 0.4,
+                        params: {
+                          ...(clip.exit?.params ?? {}),
+                          [paramName]: value,
+                        },
+                      },
+                    })}
+                  />
+                )}
               </div>
               <div className="space-y-2 md:col-span-2">
                 <FieldLabel>Continuous</FieldLabel>
                 <Select
                   value={clip.continuous?.type ?? NO_EFFECT}
-                  onValueChange={(value) => onChange({ continuous: value === NO_EFFECT ? undefined : { type: value, intensity: clip.continuous?.intensity ?? 0.5 } })}
+                  onValueChange={(value) => onChange({
+                    continuous: value === NO_EFFECT
+                      ? undefined
+                      : {
+                          type: value,
+                          intensity: clip.continuous?.intensity ?? 0.5,
+                          params: getDefaultEffectParams(value, effectResources.effects),
+                        },
+                  })}
                 >
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
@@ -224,19 +306,35 @@ export function ClipPanel({
                     )}
                   </SelectContent>
                 </Select>
-                {findEffectResourceByType(clip.continuous?.type, effectResources.effects) && (
+                {continuousEffect && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-6 gap-1 text-xs"
                     onClick={() => {
-                      setEditingEffect(findEffectResourceByType(clip.continuous?.type, effectResources.effects) ?? null);
+                      setEditingEffect(continuousEffect);
                       setCreatorOpen(true);
                     }}
                   >
                     <Pencil className="h-3 w-3" /> Edit
                   </Button>
+                )}
+                {hasParameterSchema(continuousEffect) && (
+                  <ParameterControls
+                    schema={continuousEffect.parameterSchema}
+                    values={getMergedEffectParams(continuousEffect, clip.continuous?.params)}
+                    onChange={(paramName, value) => onChange({
+                      continuous: {
+                        type: clip.continuous?.type ?? `custom:${continuousEffect.id}`,
+                        intensity: clip.continuous?.intensity ?? 0.5,
+                        params: {
+                          ...(clip.continuous?.params ?? {}),
+                          [paramName]: value,
+                        },
+                      },
+                    })}
+                  />
                 )}
               </div>
             </div>
@@ -257,14 +355,15 @@ export function ClipPanel({
               open={creatorOpen}
               onOpenChange={setCreatorOpen}
               editingEffect={editingEffect}
-              onSaved={(resourceId, savedCategory) => {
+              onSaved={(resourceId, savedCategory, defaultParams) => {
                 const effectType = `custom:${resourceId}`;
+                const params = Object.keys(defaultParams).length > 0 ? defaultParams : undefined;
                 if (savedCategory === 'entrance') {
-                  onChange({ entrance: { type: effectType, duration: clip.entrance?.duration ?? 0.4 } });
+                  onChange({ entrance: { type: effectType, duration: clip.entrance?.duration ?? 0.4, params } });
                 } else if (savedCategory === 'exit') {
-                  onChange({ exit: { type: effectType, duration: clip.exit?.duration ?? 0.4 } });
+                  onChange({ exit: { type: effectType, duration: clip.exit?.duration ?? 0.4, params } });
                 } else {
-                  onChange({ continuous: { type: effectType, intensity: clip.continuous?.intensity ?? 0.5 } });
+                  onChange({ continuous: { type: effectType, intensity: clip.continuous?.intensity ?? 0.5, params } });
                 }
               }}
             />

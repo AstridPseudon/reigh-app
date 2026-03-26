@@ -1,5 +1,35 @@
 export type EffectCategory = 'entrance' | 'exit' | 'continuous';
 
+type ParameterType = 'number' | 'select' | 'boolean' | 'color';
+
+interface ParameterOption {
+  label: string;
+  value: string;
+}
+
+interface ParameterDefinition {
+  name: string;
+  label: string;
+  description: string;
+  type: ParameterType;
+  default?: number | string | boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: ParameterOption[];
+}
+
+interface ExtractedEffectMeta {
+  code: string;
+  description: string;
+  parameterSchema: ParameterDefinition[];
+}
+
+interface TextRange {
+  start: number;
+  end: number;
+}
+
 export interface BuildGenerateEffectMessagesInput {
   prompt: string;
   name?: string;
@@ -13,6 +43,7 @@ type EffectComponentProps = {
   durationInFrames: number;
   effectFrames?: number;
   intensity?: number;
+  params?: Record<string, unknown>;
 };`;
 
 const AVAILABLE_GLOBALS = `Available globals at runtime:
@@ -28,6 +59,12 @@ const OUTPUT_RULES = `Output requirements:
 - Do not wrap the answer in markdown fences
 - Do not include import statements
 - Do not include export statements
+- Begin with a single metadata line: // DESCRIPTION: <one concise effect description>
+- Follow with a metadata line: // PARAMS: <JSON array of parameter definitions>
+- Use [] for // PARAMS when the effect does not need user-adjustable controls
+- Each parameter definition must include name, label, description, type, and default
+- Number params may include min, max, and step
+- Select params must include options as [{ "label": string, "value": string }]
 - Use React.createElement(...) instead of JSX
 - Set the component using exports.default = ComponentName
 - The default export must be a function component compatible with EffectComponentProps
@@ -99,19 +136,175 @@ Implementation guidance:
 - Use effectFrames fallback values when needed so the effect works if the prop is undefined
 - Avoid browser APIs or unsupported globals
 
-Return only the final code.`;
+Return only the final code plus the required metadata lines.`;
 
   return { systemMsg, userMsg };
 }
 
-export function extractEffectCode(responseText: string): string {
-  const trimmed = responseText.trim();
-  const fencedMatch = trimmed.match(/^```(?:tsx?|jsx?|javascript|typescript)?\s*([\s\S]*?)\s*```$/i);
-  const code = fencedMatch ? fencedMatch[1].trim() : trimmed;
+const DESCRIPTION_PATTERN = /^\s*\/\/\s*DESCRIPTION\s*:\s*(.*)$/im;
+const PARAMS_PATTERN = /^\s*\/\/\s*PARAMS\s*:\s*/im;
+
+function stripMarkdownFences(text: string): string {
+  return text
+    .trim()
+    .replace(/^\s*```(?:tsx?|jsx?|javascript|typescript)?\s*$/gim, '')
+    .replace(/^\s*```\s*$/gim, '')
+    .trim();
+}
+
+function getLineEnd(text: string, start: number): number {
+  const newlineIndex = text.indexOf('\n', start);
+  return newlineIndex === -1 ? text.length : newlineIndex + 1;
+}
+
+function extractDescription(text: string): { description: string; range: TextRange | null } {
+  const match = DESCRIPTION_PATTERN.exec(text);
+  if (!match || match.index === undefined) {
+    return { description: '', range: null };
+  }
+
+  return {
+    description: match[1]?.trim() ?? '',
+    range: {
+      start: match.index,
+      end: getLineEnd(text, match.index),
+    },
+  };
+}
+
+function findBalancedJsonArray(text: string, startIndex: number): { raw: string; end: number } | null {
+  let index = startIndex;
+  while (index < text.length && /\s/.test(text[index] ?? '')) {
+    index += 1;
+  }
+
+  if (text[index] !== '[') {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let isEscaped = false;
+
+  for (let cursor = index; cursor < text.length; cursor += 1) {
+    const char = text[cursor];
+
+    if (inString) {
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        isEscaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '[') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === ']') {
+      depth -= 1;
+      if (depth === 0) {
+        return {
+          raw: text.slice(index, cursor + 1),
+          end: cursor + 1,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+function sanitizeParameterSchema(value: unknown): ParameterDefinition[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((entry): entry is ParameterDefinition => {
+    return typeof entry === 'object' && entry !== null && typeof (entry as { name?: unknown }).name === 'string';
+  });
+}
+
+function extractParameterSchema(text: string): { parameterSchema: ParameterDefinition[]; range: TextRange | null } {
+  const match = PARAMS_PATTERN.exec(text);
+  if (!match || match.index === undefined) {
+    return { parameterSchema: [], range: null };
+  }
+
+  const markerStart = match.index;
+  const markerEnd = match.index + match[0].length;
+  const jsonArray = findBalancedJsonArray(text, markerEnd);
+
+  if (!jsonArray) {
+    return {
+      parameterSchema: [],
+      range: {
+        start: markerStart,
+        end: getLineEnd(text, markerStart),
+      },
+    };
+  }
+
+  try {
+    return {
+      parameterSchema: sanitizeParameterSchema(JSON.parse(jsonArray.raw)),
+      range: {
+        start: markerStart,
+        end: jsonArray.end,
+      },
+    };
+  } catch {
+    return {
+      parameterSchema: [],
+      range: {
+        start: markerStart,
+        end: jsonArray.end,
+      },
+    };
+  }
+}
+
+function stripRanges(text: string, ranges: Array<TextRange | null>): string {
+  return ranges
+    .filter((range): range is TextRange => range !== null)
+    .sort((left, right) => right.start - left.start)
+    .reduce((result, range) => result.slice(0, range.start) + result.slice(range.end), text)
+    .trim();
+}
+
+export function extractEffectCodeAndMeta(responseText: string): ExtractedEffectMeta {
+  const normalized = stripMarkdownFences(responseText);
+  const { description, range: descriptionRange } = extractDescription(normalized);
+  const { parameterSchema, range: parameterSchemaRange } = extractParameterSchema(normalized);
+  const code = stripRanges(normalized, [descriptionRange, parameterSchemaRange]);
 
   validateExtractedEffectCode(code);
 
-  return code;
+  return {
+    code,
+    description,
+    parameterSchema,
+  };
+}
+
+export function extractEffectCode(responseText: string): string {
+  return extractEffectCodeAndMeta(responseText).code;
 }
 
 export function validateExtractedEffectCode(code: string): void {
