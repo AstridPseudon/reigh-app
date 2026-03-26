@@ -16,9 +16,28 @@ export interface UploadAssetOptions {
   filename?: string;
 }
 
+export interface LoadedTimeline {
+  config: TimelineConfig;
+  configVersion: number;
+}
+
+export class TimelineVersionConflictError extends Error {
+  code = 'timeline_version_conflict' as const;
+
+  constructor(message = 'Timeline version conflict') {
+    super(message);
+    this.name = 'TimelineVersionConflictError';
+  }
+}
+
+export function isTimelineVersionConflictError(error: unknown): error is TimelineVersionConflictError {
+  return error instanceof TimelineVersionConflictError
+    || (error instanceof Error && error.name === 'TimelineVersionConflictError');
+}
+
 export interface DataProvider {
-  loadTimeline(timelineId: string): Promise<TimelineConfig>;
-  saveTimeline(timelineId: string, config: TimelineConfig): Promise<void>;
+  loadTimeline(timelineId: string): Promise<LoadedTimeline>;
+  saveTimeline(timelineId: string, config: TimelineConfig, expectedVersion: number): Promise<number>;
   loadAssetRegistry(timelineId: string): Promise<AssetRegistry>;
   resolveAssetUrl(file: string): Promise<string>;
   registerAsset?(timelineId: string, assetId: string, entry: AssetRegistryEntry): Promise<void>;

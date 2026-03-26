@@ -1,10 +1,24 @@
 import { useEffect, useRef } from 'react';
-import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from 'react';
+import type { MutableRefObject, RefObject } from 'react';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
+import type { SelectClipOptions } from '@/tools/video-editor/hooks/useMultiSelect';
+import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
 import type { TrackKind } from '@/tools/video-editor/types';
-import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import type { ClipMeta, ClipOrderMap, TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
+import {
+  type ClipOffset,
+  planMultiDragMoves,
+  applyMultiDragMoves,
+  computeSecondaryGhosts,
+} from '@/tools/video-editor/lib/multi-drag-utils';
+import { snapDrag } from '@/tools/video-editor/lib/snap-edges';
 
 const DRAG_THRESHOLD_PX = 4;
+/** Snap threshold in pixels — converted to seconds based on current zoom. */
+const SNAP_THRESHOLD_PX = 8;
+/** Vertical pixel threshold before activating cross-track mode. */
+const CROSS_TRACK_THRESHOLD_PX = 10;
 
 export interface ActionDragState {
   rowId: string;
@@ -19,8 +33,16 @@ interface UseCrossTrackDragOptions {
   dataRef: MutableRefObject<TimelineData | null>;
   moveClipToRow: (clipId: string, targetRowId: string, newStartTime?: number) => void;
   createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number) => void;
-  setSelectedClipId: Dispatch<SetStateAction<string | null>>;
-  setSelectedTrackId: Dispatch<SetStateAction<string | null>>;
+  selectClip: (clipId: string, opts?: SelectClipOptions) => void;
+  selectClips: (clipIds: Iterable<string>) => void;
+  selectedClipIdsRef: MutableRefObject<Set<string>>;
+  applyTimelineEdit: (
+    nextRows: TimelineRow[],
+    metaUpdates?: Record<string, Partial<ClipMeta>>,
+    metaDeletes?: string[],
+    clipOrderOverride?: ClipOrderMap,
+    options?: { save?: boolean },
+  ) => void;
   coordinator: DragCoordinator;
   rowHeight: number;
   scale: number;
@@ -28,11 +50,16 @@ interface UseCrossTrackDragOptions {
   startLeft: number;
 }
 
-interface DragSession {
+export interface DragSession {
   pointerId: number;
   clipId: string;
   sourceRowId: string;
   sourceKind: TrackKind;
+  draggedClipIds: string[];
+  clipOffsets: ClipOffset[];
+  ctrlKey: boolean;
+  metaKey: boolean;
+  wasSelectedOnPointerDown: boolean;
   startClientX: number;
   startClientY: number;
   pointerOffsetX: number;
@@ -45,7 +72,12 @@ interface DragSession {
   cancelListener: (event: PointerEvent) => void;
   /** Floating clone shown during cross-track drag. */
   floatingGhostEl: HTMLElement | null;
+  countBadgeEl: HTMLSpanElement | null;
   hasMoved: boolean;
+}
+
+export interface UseClipDragResult {
+  dragSessionRef: MutableRefObject<DragSession | null>;
 }
 
 export const useClipDrag = ({
@@ -53,26 +85,44 @@ export const useClipDrag = ({
   dataRef,
   moveClipToRow,
   createTrackAndMoveClip,
-  setSelectedClipId,
-  setSelectedTrackId,
+  selectClip,
+  selectClips,
+  selectedClipIdsRef,
+  applyTimelineEdit,
   coordinator,
-  rowHeight,
+  rowHeight: _rowHeight,
   scale,
   scaleWidth,
-  startLeft,
-}: UseCrossTrackDragOptions): void => {
+  startLeft: _startLeft,
+}: UseCrossTrackDragOptions): UseClipDragResult => {
   const dragSessionRef = useRef<DragSession | null>(null);
   const actionDragStateRef = useRef<ActionDragState | null>(null);
   const crossTrackActiveRef = useRef(false);
 
-  useEffect(() => {
-    const wrapper = timelineWrapperRef.current;
-    if (!wrapper) {
-      return undefined;
-    }
+  // Keep volatile values in refs so the effect doesn't re-run mid-drag
+  // when zoom/scale changes.
+  const coordinatorRef = useRef(coordinator);
+  coordinatorRef.current = coordinator;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const scaleWidthRef = useRef(scaleWidth);
+  scaleWidthRef.current = scaleWidth;
+  const moveClipToRowRef = useRef(moveClipToRow);
+  moveClipToRowRef.current = moveClipToRow;
+  const createTrackAndMoveClipRef = useRef(createTrackAndMoveClip);
+  createTrackAndMoveClipRef.current = createTrackAndMoveClip;
+  const selectClipRef = useRef(selectClip);
+  selectClipRef.current = selectClip;
+  const selectClipsRef = useRef(selectClips);
+  selectClipsRef.current = selectClips;
+  const selectedClipIdsRefRef = useRef(selectedClipIdsRef);
+  selectedClipIdsRefRef.current = selectedClipIdsRef;
+  const applyTimelineEditRef = useRef<UseTimelineDataResult['applyTimelineEdit']>(applyTimelineEdit);
+  applyTimelineEditRef.current = applyTimelineEdit;
 
+  useEffect(() => {
     const clearSession = (session: DragSession | null, deferDeactivate = false) => {
-      coordinator.end();
+      coordinatorRef.current.end();
       if (!session) {
         actionDragStateRef.current = null;
         if (!deferDeactivate) {
@@ -82,6 +132,7 @@ export const useClipDrag = ({
       }
 
       session.floatingGhostEl?.remove();
+      session.countBadgeEl?.remove();
       window.removeEventListener('pointermove', session.moveListener);
       window.removeEventListener('pointerup', session.upListener);
       window.removeEventListener('pointercancel', session.cancelListener);
@@ -124,10 +175,31 @@ export const useClipDrag = ({
       return el;
     };
 
+    const ensureCountBadge = (session: DragSession) => {
+      if (session.draggedClipIds.length <= 1 || session.countBadgeEl) {
+        return;
+      }
+
+      const badge = document.createElement('span');
+      badge.className = 'pointer-events-none absolute right-1 top-1 rounded-full bg-sky-400 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-sky-950 shadow-sm';
+      badge.textContent = `${session.draggedClipIds.length} clips`;
+      session.clipEl.appendChild(badge);
+      session.countBadgeEl = badge;
+    };
+
+    const getAnchorTimeDelta = (session: DragSession, snappedStart: number): number => {
+      const anchorClip = session.clipOffsets.find((c) => c.clipId === session.clipId);
+      return anchorClip ? snappedStart - anchorClip.initialStart : 0;
+    };
+
     // ── Pointer handlers ─────────────────────────────────────────────
 
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
+
+      // Check that the event originated inside our wrapper
+      const wrapper = timelineWrapperRef.current;
+      if (!wrapper || !wrapper.contains(event.target as Node)) return;
 
       const clipTarget = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('.clip-action') : null;
       if (!clipTarget || (event.target instanceof HTMLElement && event.target.closest("[data-delete-clip='true']"))) return;
@@ -147,6 +219,27 @@ export const useClipDrag = ({
       const clipRect = clipTarget.getBoundingClientRect();
       const initialStart = sourceAction.start;
       const clipDuration = sourceAction.end - sourceAction.start;
+      const selectedClipIds = selectedClipIdsRefRef.current.current;
+      const draggedClipIds = selectedClipIds.has(clipId)
+        ? [clipId, ...[...selectedClipIds].filter((selectedClipId) => selectedClipId !== clipId)]
+        : [clipId];
+      const clipOffsets: ClipOffset[] = draggedClipIds.flatMap((draggedClipId) => {
+        for (const row of current.rows) {
+          const action = row.actions.find((candidate) => candidate.id === draggedClipId);
+          if (action) {
+            return [{
+              clipId: draggedClipId,
+              rowId: row.id,
+              deltaTime: action.start - initialStart,
+              initialStart: action.start,
+              initialEnd: action.end,
+            }];
+          }
+        }
+
+        return [];
+      });
+      const validDraggedClipIds = clipOffsets.map(({ clipId: draggedClipId }) => draggedClipId);
       actionDragStateRef.current = {
         rowId,
         initialStart,
@@ -171,12 +264,13 @@ export const useClipDrag = ({
         if (!session.hasMoved) {
           session.hasMoved = true;
           try { session.clipEl.setPointerCapture(session.pointerId); } catch { /* ok */ }
+          ensureCountBadge(session);
         }
 
         // Prevent default on all moves once dragging to stop the library's handler
         moveEvent.preventDefault();
 
-        const nextPosition = coordinator.update({
+        const nextPosition = coordinatorRef.current.update({
           clientX: moveEvent.clientX,
           clientY: moveEvent.clientY,
           sourceKind: session.sourceKind,
@@ -184,16 +278,31 @@ export const useClipDrag = ({
           clipOffsetX: session.pointerOffsetX,
         });
 
-        session.latestStart = nextPosition.time;
+        // Snap to sibling clip edges on the target row
+        const pixelsPerSecond = scaleWidthRef.current / scaleRef.current;
+        const snapThresholdS = SNAP_THRESHOLD_PX / pixelsPerSecond;
+        const targetRowId = nextPosition.trackId ?? session.sourceRowId;
+        const targetRow = dataRef.current?.rows.find((r) => r.id === targetRowId);
+        const siblings = targetRow?.actions ?? [];
+        const { start: snappedStart } = snapDrag(
+          nextPosition.time,
+          session.clipDuration,
+          siblings,
+          session.clipId,
+          snapThresholdS,
+          session.draggedClipIds,
+        );
+
+        session.latestStart = snappedStart;
         const dragState = actionDragStateRef.current;
         if (dragState) {
           const dur = dragState.initialEnd - dragState.initialStart;
-          dragState.latestStart = nextPosition.time;
-          dragState.latestEnd = nextPosition.time + dur;
+          dragState.latestStart = snappedStart;
+          dragState.latestEnd = snappedStart + dur;
         }
 
         // Activate cross-track mode (floating ghost) on vertical threshold
-        if (!crossTrackActiveRef.current && Math.abs(dy) >= 10) {
+        if (!crossTrackActiveRef.current && Math.abs(dy) >= CROSS_TRACK_THRESHOLD_PX) {
           crossTrackActiveRef.current = true;
           session.floatingGhostEl = createFloatingGhost(session.clipEl);
           updateFloatingGhostPosition(session, moveEvent);
@@ -206,36 +315,90 @@ export const useClipDrag = ({
         if (session.floatingGhostEl) {
           session.floatingGhostEl.style.cursor = nextPosition.isReject ? 'not-allowed' : '';
         }
+
+        // Show ghost indicators for all secondary clips
+        if (session.draggedClipIds.length > 1) {
+          const current = dataRef.current;
+          if (current) {
+            const anchorTargetRowId = nextPosition.trackId ?? session.sourceRowId;
+            const ghosts = computeSecondaryGhosts(
+              session.clipOffsets,
+              session.clipId,
+              session.sourceRowId,
+              anchorTargetRowId,
+              nextPosition.screenCoords.clipLeft,
+              nextPosition.screenCoords.rowTop,
+              nextPosition.screenCoords.rowHeight,
+              pixelsPerSecond,
+              current.rows.map((r) => r.id),
+            );
+            coordinatorRef.current.showSecondaryGhosts(ghosts);
+          }
+        }
       };
 
       const handlePointerUp = (upEvent: PointerEvent) => {
         const session = dragSessionRef.current;
         if (!session || upEvent.pointerId !== session.pointerId) return;
 
-        const dropPosition = coordinator.lastPosition;
-        const nextStart = dropPosition?.time ?? actionDragStateRef.current?.latestStart ?? session.latestStart;
-        if (crossTrackActiveRef.current) {
+        const dropPosition = coordinatorRef.current.lastPosition;
+        // Use snapped time from drag state (computed during pointermove) rather than
+        // the raw coordinator time, which doesn't account for edge snapping.
+        const nextStart = actionDragStateRef.current?.latestStart ?? session.latestStart;
+
+        // Cross-track single-clip drag: use existing moveClipToRow / createTrackAndMoveClip
+        if (crossTrackActiveRef.current && session.draggedClipIds.length === 1) {
           upEvent.preventDefault();
           if (dropPosition?.isNewTrack) {
-            createTrackAndMoveClip(session.clipId, session.sourceKind, nextStart);
+            createTrackAndMoveClipRef.current(session.clipId, session.sourceKind, nextStart);
           } else if (dropPosition?.trackId && !dropPosition.isReject) {
-            moveClipToRow(session.clipId, dropPosition.trackId, nextStart);
-            setSelectedTrackId(dropPosition.trackId);
+            moveClipToRowRef.current(session.clipId, dropPosition.trackId, nextStart);
           } else {
-            moveClipToRow(session.clipId, session.sourceRowId, nextStart);
-            setSelectedTrackId(session.sourceRowId);
+            moveClipToRowRef.current(session.clipId, session.sourceRowId, nextStart);
           }
-          setSelectedClipId(session.clipId);
+          selectClipRef.current(session.clipId);
           clearSession(session, true);
           return;
         }
 
-        // Same-row move — apply the horizontal position change
-        if (session.hasMoved) {
-          moveClipToRow(session.clipId, session.sourceRowId, nextStart);
+        // Multi-clip drag (same-track or cross-track) — unified path
+        if (session.hasMoved && session.draggedClipIds.length > 1) {
+          const current = dataRef.current;
+          if (current) {
+            const anchorTargetRowId = crossTrackActiveRef.current
+              ? (dropPosition?.trackId && !dropPosition.isReject && !dropPosition.isNewTrack
+                  ? dropPosition.trackId
+                  : session.sourceRowId)
+              : session.sourceRowId;
+            const timeDelta = getAnchorTimeDelta(session, nextStart);
+            const { canMove, moves } = planMultiDragMoves(
+              current,
+              session.clipOffsets,
+              session.clipId,
+              anchorTargetRowId,
+              session.sourceRowId,
+              timeDelta,
+            );
+
+            if (canMove && moves.length > 0) {
+              const { nextRows, metaUpdates, nextClipOrder } = applyMultiDragMoves(current, moves);
+              applyTimelineEditRef.current(nextRows, metaUpdates, undefined, nextClipOrder);
+            }
+          }
+          selectClipsRef.current(session.draggedClipIds);
+          clearSession(session, crossTrackActiveRef.current);
+          return;
         }
-        setSelectedClipId(session.clipId);
-        setSelectedTrackId(session.sourceRowId);
+
+        // Single-clip same-track drag
+        if (session.hasMoved) {
+          moveClipToRowRef.current(session.clipId, session.sourceRowId, nextStart);
+          selectClipRef.current(session.clipId);
+        } else if (session.metaKey || session.ctrlKey) {
+          selectClipRef.current(session.clipId, { toggle: true });
+        } else {
+          selectClipRef.current(session.clipId);
+        }
         clearSession(session);
       };
 
@@ -250,6 +413,11 @@ export const useClipDrag = ({
         clipId,
         sourceRowId: rowId,
         sourceKind: sourceTrack.kind,
+        draggedClipIds: validDraggedClipIds,
+        clipOffsets,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        wasSelectedOnPointerDown: selectedClipIdsRefRef.current.current.has(clipId),
         startClientX: event.clientX,
         startClientY: event.clientY,
         pointerOffsetX: event.clientX - clipRect.left,
@@ -261,6 +429,7 @@ export const useClipDrag = ({
         upListener: handlePointerUp,
         cancelListener: handlePointerCancel,
         floatingGhostEl: null,
+        countBadgeEl: null,
         hasMoved: false,
       };
 
@@ -273,25 +442,22 @@ export const useClipDrag = ({
       clearSession(dragSessionRef.current);
     };
 
-    // Use capture phase so this fires BEFORE ClipAction's stopPropagation
-    wrapper.addEventListener('pointerdown', handlePointerDown, true);
+    // Use capture phase on document so this fires BEFORE ClipAction's stopPropagation.
+    // We listen on document (not the wrapper) because the wrapper may not be mounted
+    // yet when this effect first runs; the containment check inside handlePointerDown
+    // scopes events to the correct wrapper.
+    document.addEventListener('pointerdown', handlePointerDown, true);
     window.addEventListener('blur', handleBlur);
     return () => {
-      wrapper.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
       window.removeEventListener('blur', handleBlur);
       clearSession(dragSessionRef.current);
     };
-  }, [
-    coordinator,
-    createTrackAndMoveClip,
-    dataRef,
-    moveClipToRow,
-    rowHeight,
-    scale,
-    scaleWidth,
-    setSelectedClipId,
-    setSelectedTrackId,
-    startLeft,
-    timelineWrapperRef,
-  ]);
+  // Stable refs only — volatile values (scale, coordinator, etc.) are read via refs
+  // so the effect never re-runs mid-drag.
+  }, [dataRef, timelineWrapperRef]);
+
+  return {
+    dragSessionRef,
+  };
 };

@@ -19,6 +19,12 @@ export function useTimelineRealtime({
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    if (saveStatus === 'error') {
+      setIsOpen(true);
+    }
+  }, [saveStatus]);
+
+  useEffect(() => {
     return realtimeEventProcessor.onEvent((event) => {
       if (event.type !== 'timelines-updated') {
         return;

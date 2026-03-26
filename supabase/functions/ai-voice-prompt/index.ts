@@ -1,23 +1,9 @@
 /* eslint-disable */
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import Groq from "npm:groq-sdk@0.26.0";
 import { bootstrapEdgeHandler, NO_SESSION_RUNTIME_OPTIONS } from "../_shared/edgeHandler.ts";
 import { jsonResponse } from "../_shared/http.ts";
-
-let groqClient: Groq | null = null;
-
-function getGroqClient(): Groq {
-  if (groqClient) {
-    return groqClient;
-  }
-  const apiKey = Deno.env.get("GROQ_API_KEY");
-  if (!apiKey) {
-    throw new Error("[ai-voice-prompt] Missing Groq provider configuration");
-  }
-  groqClient = new Groq({ apiKey });
-  return groqClient;
-}
+import { getGroqClient, transcribeAudio } from "../_shared/transcription.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return jsonResponse({ ok: true });
@@ -93,14 +79,7 @@ serve(async (req) => {
       transcribedText = textInstructions;
     } else if (audioFile) {
       // Step 1: Transcribe audio using Whisper
-      const transcription = await groq.audio.transcriptions.create({
-        file: audioFile,
-        model: "whisper-large-v3-turbo",
-        temperature: 0,
-        response_format: "verbose_json",
-      });
-
-      transcribedText = transcription.text?.trim() || "";
+      transcribedText = await transcribeAudio(groq, audioFile);
       logger.info('Transcription complete', { preview: transcribedText.substring(0, 100) });
 
       if (!transcribedText) {

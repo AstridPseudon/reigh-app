@@ -1,0 +1,469 @@
+import type {
+  AssetRegistry,
+  TimelineClip,
+  TimelineConfig,
+  TrackDefinition,
+} from "../../../../src/tools/video-editor/types/index.ts";
+import type { ToolHandler, ToolResult } from "../types.ts";
+
+export type TimelineToolResult = ToolResult;
+
+type ClipProperty = "volume" | "speed" | "opacity" | "x" | "y" | "width" | "height";
+
+const MUTABLE_CLIP_PROPERTIES: ClipProperty[] = [
+  "volume",
+  "speed",
+  "opacity",
+  "x",
+  "y",
+  "width",
+  "height",
+];
+
+function roundSeconds(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
+function cloneConfig(config: TimelineConfig): TimelineConfig {
+  return structuredClone(config);
+}
+
+function getAssetDuration(registry: AssetRegistry, assetId?: string): number | null {
+  if (!assetId) {
+    return null;
+  }
+
+  const duration = registry.assets?.[assetId]?.duration;
+  return typeof duration === "number" ? duration : null;
+}
+
+function getClipSourceDuration(clip: TimelineClip, registry: AssetRegistry): number {
+  if (typeof clip.hold === "number") {
+    return clip.hold;
+  }
+
+  if (typeof clip.from === "number" && typeof clip.to === "number") {
+    return clip.to - clip.from;
+  }
+
+  return getAssetDuration(registry, clip.asset) ?? 0;
+}
+
+function getClipTimelineDuration(clip: TimelineClip, registry: AssetRegistry): number {
+  const speed = clip.speed ?? 1;
+  return getClipSourceDuration(clip, registry) / speed;
+}
+
+function formatClipLine(clip: TimelineClip, registry: AssetRegistry): string {
+  const duration = roundSeconds(getClipTimelineDuration(clip, registry));
+  return [
+    `id=${clip.id}`,
+    `track=${clip.track}`,
+    `at=${roundSeconds(clip.at)}s`,
+    `duration=${duration}s`,
+    `type=${clip.clipType ?? "media"}`,
+    `asset=${clip.asset ?? "none"}`,
+  ].join(" | ");
+}
+
+function getTrackDefinitions(config: TimelineConfig): TrackDefinition[] {
+  if (config.tracks?.length) {
+    return config.tracks;
+  }
+
+  const inferredTrackIds = Array.from(new Set(config.clips.map((clip) => clip.track)));
+  return inferredTrackIds.map((trackId) => ({
+    id: trackId,
+    label: trackId,
+    kind: "visual",
+  }));
+}
+
+function getClipIndex(config: TimelineConfig, clipId: string): number {
+  return config.clips.findIndex((clip) => clip.id === clipId);
+}
+
+function describeTimeline(config: TimelineConfig, registry: AssetRegistry): string {
+  const tracks = getTrackDefinitions(config);
+  const totalDuration = config.clips.reduce((maxDuration, clip) => {
+    return Math.max(maxDuration, clip.at + getClipTimelineDuration(clip, registry));
+  }, 0);
+
+  const lines = [
+    `Timeline summary: ${tracks.length} track(s), ${config.clips.length} clip(s), total duration ${roundSeconds(totalDuration)}s.`,
+    "Tracks:",
+    ...tracks.map((track) => `- ${track.id} (${track.kind}): ${track.label}`),
+    "Clips:",
+    ...config.clips.map((clip) => `- ${formatClipLine(clip, registry)}`),
+  ];
+
+  return lines.join("\n");
+}
+
+export function viewTimeline(config: TimelineConfig, registry: AssetRegistry): TimelineToolResult {
+  return {
+    result: describeTimeline(config, registry),
+  };
+}
+
+export function moveClip(
+  config: TimelineConfig,
+  _registry: AssetRegistry,
+  args: { clipId?: string; at?: number },
+): TimelineToolResult {
+  if (typeof args.clipId !== "string" || typeof args.at !== "number") {
+    return { result: "move_clip requires clipId and at." };
+  }
+
+  const nextConfig = cloneConfig(config);
+  const clipIndex = getClipIndex(nextConfig, args.clipId);
+  if (clipIndex < 0) {
+    return { result: `Clip ${args.clipId} was not found.` };
+  }
+
+  const previousAt = nextConfig.clips[clipIndex].at;
+  nextConfig.clips[clipIndex].at = roundSeconds(args.at);
+
+  return {
+    config: nextConfig,
+    result: `Moved clip ${args.clipId} from ${roundSeconds(previousAt)}s to ${roundSeconds(args.at)}s.`,
+  };
+}
+
+export function trimClip(
+  config: TimelineConfig,
+  registry: AssetRegistry,
+  args: { clipId?: string; from?: number; to?: number; duration?: number },
+): TimelineToolResult {
+  if (typeof args.clipId !== "string") {
+    return { result: "trim_clip requires clipId." };
+  }
+
+  const nextConfig = cloneConfig(config);
+  const clipIndex = getClipIndex(nextConfig, args.clipId);
+  if (clipIndex < 0) {
+    return { result: `Clip ${args.clipId} was not found.` };
+  }
+
+  const clip = nextConfig.clips[clipIndex];
+  const assetDuration = getAssetDuration(registry, clip.asset);
+  const currentFrom = typeof clip.from === "number" ? clip.from : 0;
+  const currentTo = typeof clip.to === "number"
+    ? clip.to
+    : typeof clip.hold === "number"
+      ? clip.hold
+      : assetDuration ?? 0;
+
+  let nextFrom = typeof args.from === "number" ? args.from : currentFrom;
+  let nextTo = typeof args.to === "number" ? args.to : currentTo;
+
+  if (typeof args.duration === "number") {
+    if (args.duration <= 0) {
+      return { result: "trim_clip duration must be greater than 0." };
+    }
+
+    if (typeof args.from === "number") {
+      nextTo = args.from + args.duration;
+    } else if (typeof args.to === "number") {
+      nextFrom = args.to - args.duration;
+    } else if (typeof clip.hold === "number" && !clip.asset) {
+      clip.hold = roundSeconds(args.duration);
+      return {
+        config: nextConfig,
+        result: `Updated hold duration for clip ${clip.id} to ${roundSeconds(args.duration)}s.`,
+      };
+    } else {
+      nextTo = nextFrom + args.duration;
+    }
+  }
+
+  if (nextFrom < 0 || nextTo <= nextFrom) {
+    return { result: `Invalid trim range for clip ${clip.id}.` };
+  }
+
+  if (assetDuration !== null && nextTo > assetDuration + 0.0001) {
+    return {
+      result: `Trim range for clip ${clip.id} exceeds asset duration ${roundSeconds(assetDuration)}s.`,
+    };
+  }
+
+  clip.from = roundSeconds(nextFrom);
+  clip.to = roundSeconds(nextTo);
+  delete clip.hold;
+
+  return {
+    config: nextConfig,
+    result: `Trimmed clip ${clip.id} to source range ${roundSeconds(nextFrom)}s-${roundSeconds(nextTo)}s.`,
+  };
+}
+
+export function setClipProperty(
+  config: TimelineConfig,
+  _registry: AssetRegistry,
+  args: { clipId?: string; property?: string; value?: unknown },
+): TimelineToolResult {
+  if (
+    typeof args.clipId !== "string"
+    || typeof args.property !== "string"
+    || typeof args.value !== "number"
+  ) {
+    return { result: "set_clip_property requires clipId, property, and numeric value." };
+  }
+
+  if (!MUTABLE_CLIP_PROPERTIES.includes(args.property as ClipProperty)) {
+    return {
+      result: `Property ${args.property} is not allowed. Use one of ${MUTABLE_CLIP_PROPERTIES.join(", ")}.`,
+    };
+  }
+
+  const nextConfig = cloneConfig(config);
+  const clipIndex = getClipIndex(nextConfig, args.clipId);
+  if (clipIndex < 0) {
+    return { result: `Clip ${args.clipId} was not found.` };
+  }
+
+  const clip = nextConfig.clips[clipIndex] as TimelineClip & Record<ClipProperty, number | undefined>;
+  const previousValue = clip[args.property as ClipProperty];
+  clip[args.property as ClipProperty] = args.value;
+
+  return {
+    config: nextConfig,
+    result: `Set ${args.property} on clip ${clip.id} from ${previousValue ?? "unset"} to ${args.value}.`,
+  };
+}
+
+export function deleteClip(
+  config: TimelineConfig,
+  _registry: AssetRegistry,
+  args: { clipId?: string },
+): TimelineToolResult {
+  if (typeof args.clipId !== "string") {
+    return { result: "delete_clip requires clipId." };
+  }
+
+  const clip = config.clips.find((item) => item.id === args.clipId);
+  if (!clip) {
+    return { result: `Clip ${args.clipId} was not found.` };
+  }
+
+  const nextConfig = cloneConfig(config);
+  nextConfig.clips = nextConfig.clips.filter((item) => item.id !== args.clipId);
+
+  return {
+    config: nextConfig,
+    result: `Deleted clip ${clip.id} on track ${clip.track}.`,
+  };
+}
+
+export function addTextClip(
+  config: TimelineConfig,
+  _registry: AssetRegistry,
+  args: { track?: string; at?: number; duration?: number; text?: string },
+): TimelineToolResult {
+  if (
+    typeof args.track !== "string"
+    || typeof args.at !== "number"
+    || typeof args.duration !== "number"
+    || typeof args.text !== "string"
+  ) {
+    return { result: "add_text_clip requires track, at, duration, and text." };
+  }
+
+  if (args.duration <= 0) {
+    return { result: "add_text_clip duration must be greater than 0." };
+  }
+
+  const tracks = getTrackDefinitions(config);
+  if (tracks.length > 0 && !tracks.some((track) => track.id === args.track)) {
+    return { result: `Track ${args.track} does not exist.` };
+  }
+
+  const nextConfig = cloneConfig(config);
+  const clipId = `clip-${crypto.randomUUID().slice(0, 6)}`;
+  nextConfig.clips.push({
+    id: clipId,
+    at: roundSeconds(args.at),
+    track: args.track,
+    clipType: "text",
+    hold: roundSeconds(args.duration),
+    text: {
+      content: args.text,
+    },
+  });
+
+  return {
+    config: nextConfig,
+    result: `Added text clip ${clipId} on track ${args.track} at ${roundSeconds(args.at)}s for ${roundSeconds(args.duration)}s.`,
+  };
+}
+
+export function findIssues(config: TimelineConfig, registry: AssetRegistry): TimelineToolResult {
+  const issues: string[] = [];
+  const clipsByTrack = new Map<string, TimelineClip[]>();
+
+  for (const clip of config.clips) {
+    const currentTrackClips = clipsByTrack.get(clip.track) ?? [];
+    currentTrackClips.push(clip);
+    clipsByTrack.set(clip.track, currentTrackClips);
+
+    const assetDuration = getAssetDuration(registry, clip.asset);
+    const clipSourceEnd = typeof clip.to === "number"
+      ? clip.to
+      : typeof clip.hold === "number"
+        ? clip.hold
+        : assetDuration ?? null;
+
+    if (assetDuration !== null && typeof clipSourceEnd === "number" && clipSourceEnd > assetDuration + 0.0001) {
+      issues.push(
+        `Clip ${clip.id} exceeds asset duration (${roundSeconds(clipSourceEnd)}s > ${roundSeconds(assetDuration)}s).`,
+      );
+    }
+  }
+
+  for (const [trackId, trackClips] of clipsByTrack.entries()) {
+    const sortedClips = [...trackClips].sort((left, right) => left.at - right.at);
+
+    for (let index = 1; index < sortedClips.length; index += 1) {
+      const previousClip = sortedClips[index - 1];
+      const currentClip = sortedClips[index];
+      const previousEnd = previousClip.at + getClipTimelineDuration(previousClip, registry);
+
+      if (currentClip.at - previousEnd > 0.01) {
+        issues.push(
+          `Gap on track ${trackId} between ${previousClip.id} and ${currentClip.id}: ${roundSeconds(currentClip.at - previousEnd)}s.`,
+        );
+      }
+
+      if (previousEnd - currentClip.at > 0.01) {
+        issues.push(
+          `Overlap on track ${trackId} between ${previousClip.id} and ${currentClip.id}: ${roundSeconds(previousEnd - currentClip.at)}s.`,
+        );
+      }
+    }
+  }
+
+  // Mid-sentence cut detection depends on transcript data that the current timeline provider does not expose.
+  return {
+    result: issues.length > 0 ? issues.join("\n") : "No timeline issues found.",
+  };
+}
+
+export function setTextContent(
+  config: TimelineConfig,
+  _registry: AssetRegistry,
+  args: { clipId?: string; text?: string },
+): TimelineToolResult {
+  if (typeof args.clipId !== "string" || typeof args.text !== "string") {
+    return { result: "set_text requires clipId and text." };
+  }
+
+  const idx = getClipIndex(config, args.clipId);
+  if (idx === -1) return { result: `Clip ${args.clipId} was not found.` };
+  const clip = config.clips[idx];
+  if (clip.clipType !== "text") return { result: `Clip ${args.clipId} is not a text clip.` };
+
+  const nextConfig = cloneConfig(config);
+  nextConfig.clips[idx] = {
+    ...nextConfig.clips[idx],
+    text: { ...nextConfig.clips[idx].text, content: args.text },
+  };
+
+  return { config: nextConfig, result: `Updated text on ${args.clipId} to "${args.text}".` };
+}
+
+export function duplicateClip(
+  config: TimelineConfig,
+  registry: AssetRegistry,
+  args: { clipId?: string; count?: number },
+): TimelineToolResult {
+  if (typeof args.clipId !== "string") return { result: "duplicate requires clipId." };
+
+  const sourceClip = config.clips.find((c) => c.id === args.clipId);
+  if (!sourceClip) return { result: `Clip ${args.clipId} was not found.` };
+
+  const count = typeof args.count === "number" ? Math.max(1, Math.round(args.count)) : 1;
+  const duration = getClipTimelineDuration(sourceClip, registry);
+
+  const nextConfig = cloneConfig(config);
+  const newIds: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const id = `clip-${crypto.randomUUID().slice(0, 6)}`;
+    newIds.push(id);
+    nextConfig.clips.push({
+      ...sourceClip,
+      id,
+      at: roundSeconds(sourceClip.at + duration * (i + 1)),
+    });
+  }
+
+  return {
+    config: nextConfig,
+    result: `Duplicated ${args.clipId} ${count}x. New clips: ${newIds.join(", ")}.`,
+  };
+}
+
+export function batchAddText(
+  config: TimelineConfig,
+  _registry: AssetRegistry,
+  args: { track?: string; startAt?: number; interval?: number; duration?: number; count?: number; text?: string },
+): TimelineToolResult {
+  const track = args.track;
+  const startAt = typeof args.startAt === "number" ? args.startAt : 0;
+  const interval = typeof args.interval === "number" ? args.interval : 0.1;
+  const duration = typeof args.duration === "number" ? args.duration : 0.1;
+  const count = typeof args.count === "number" ? args.count : 10;
+  const text = typeof args.text === "string" ? args.text : "TEXT";
+
+  if (!track) return { result: "batch_add_text requires track." };
+  if (count <= 0 || count > 200) return { result: "count must be 1-200." };
+  if (duration <= 0) return { result: "duration must be > 0." };
+
+  const tracks = getTrackDefinitions(config);
+  if (tracks.length > 0 && !tracks.some((t) => t.id === track)) {
+    return { result: `Track ${track} does not exist.` };
+  }
+
+  const nextConfig = cloneConfig(config);
+  const ids: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const id = `clip-${crypto.randomUUID().slice(0, 6)}`;
+    ids.push(id);
+    nextConfig.clips.push({
+      id,
+      at: roundSeconds(startAt + interval * i),
+      track,
+      clipType: "text",
+      hold: roundSeconds(duration),
+      text: { content: text },
+    });
+  }
+
+  return {
+    config: nextConfig,
+    result: `Added ${count} text clips on ${track} from ${startAt}s, ${interval}s apart, ${duration}s each.`,
+  };
+}
+
+export const timelineTools = {
+  add_text_clip: addTextClip,
+  delete_clip: deleteClip,
+  duplicate_clip: duplicateClip,
+  find_issues: findIssues,
+  move_clip: moveClip,
+  set_clip_property: setClipProperty,
+  set_text_content: setTextContent,
+  trim_clip: trimClip,
+  view_timeline: viewTimeline,
+};
+
+export const handlers: Record<string, ToolHandler> = {
+  add_text_clip: (args, ctx) => addTextClip(ctx.config, ctx.registry, args),
+  delete_clip: (args, ctx) => deleteClip(ctx.config, ctx.registry, args),
+  duplicate_clip: (args, ctx) => duplicateClip(ctx.config, ctx.registry, args),
+  find_issues: (_args, ctx) => findIssues(ctx.config, ctx.registry),
+  move_clip: (args, ctx) => moveClip(ctx.config, ctx.registry, args),
+  set_clip_property: (args, ctx) => setClipProperty(ctx.config, ctx.registry, args),
+  set_text_content: (args, ctx) => setTextContent(ctx.config, ctx.registry, args),
+  trim_clip: (args, ctx) => trimClip(ctx.config, ctx.registry, args),
+  view_timeline: (_args, ctx) => viewTimeline(ctx.config, ctx.registry),
+};

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { TimelineAction } from '@xzdarcy/timeline-engine';
 import { ImageIcon, Music2, Scissors, Trash2, Type } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
+import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 
 interface ContextMenuState {
   x: number;
@@ -15,22 +15,32 @@ interface ClipActionProps {
   action: TimelineAction;
   clipMeta: ClipMeta;
   isSelected: boolean;
+  isPrimary?: boolean;
+  selectedClipIds?: string[];
   thumbnailSrc?: string;
   onSelect: (clipId: string, trackId: string) => void;
   onDoubleClickAsset?: (assetKey: string) => void;
   onSplitHere?: (clipId: string, clientX: number) => void;
+  onSplitClipsAtPlayhead?: (clipIds: string[]) => void;
   onDeleteClip?: (clipId: string) => void;
+  onDeleteClips?: (clipIds: string[]) => void;
+  onToggleMuteClips?: (clipIds: string[]) => void;
 }
 
 export function ClipAction({
   action,
   clipMeta,
   isSelected,
+  isPrimary = false,
+  selectedClipIds = [],
   thumbnailSrc,
   onSelect,
   onDoubleClickAsset,
   onSplitHere,
+  onSplitClipsAtPlayhead,
   onDeleteClip,
+  onDeleteClips,
+  onToggleMuteClips,
 }: ClipActionProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -58,15 +68,17 @@ export function ClipAction({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Select the clip on right-click so split operates on this clip
-    onSelect(action.id, clipMeta.track);
+    if (!isSelected) {
+      onSelect(action.id, clipMeta.track);
+    }
     setContextMenu({ x: e.clientX, y: e.clientY, clientX: e.clientX });
-  }, [action.id, clipMeta.track, onSelect]);
+  }, [action.id, clipMeta.track, isSelected, onSelect]);
   const icon = clipMeta.clipType === 'text'
     ? <Type className="h-3 w-3" />
     : clipMeta.track.startsWith('A')
       ? <Music2 className="h-3 w-3" />
       : <ImageIcon className="h-3 w-3" />;
+  const hasBatchSelection = isSelected && selectedClipIds.length > 1;
   const effectBadges = [
     clipMeta.entrance?.type ? `In:${clipMeta.entrance.type}` : null,
     clipMeta.continuous?.type ? `Loop:${clipMeta.continuous.type}` : null,
@@ -86,10 +98,6 @@ export function ClipAction({
         data-clip-id={action.id}
         data-row-id={clipMeta.track}
         onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSelect(action.id, clipMeta.track);
-        }}
         onDoubleClick={(event) => {
           event.stopPropagation();
           if (clipMeta.clipType !== 'text' && clipMeta.asset) {
@@ -132,7 +140,7 @@ export function ClipAction({
           className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
-          {onSplitHere && (
+          {!hasBatchSelection && onSplitHere && (
             <button
               type="button"
               className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
@@ -145,7 +153,46 @@ export function ClipAction({
               Split Here
             </button>
           )}
-          {onDeleteClip && (
+          {hasBatchSelection && onToggleMuteClips && (
+            <button
+              type="button"
+              className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+              onClick={() => {
+                onToggleMuteClips(selectedClipIds);
+                closeMenu();
+              }}
+            >
+              <Music2 className="h-4 w-4" />
+              Mute/Unmute {selectedClipIds.length} clips
+            </button>
+          )}
+          {hasBatchSelection && onSplitClipsAtPlayhead && (
+            <button
+              type="button"
+              className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+              onClick={() => {
+                onSplitClipsAtPlayhead(selectedClipIds);
+                closeMenu();
+              }}
+            >
+              <Scissors className="h-4 w-4" />
+              Split {selectedClipIds.length} clips at playhead
+            </button>
+          )}
+          {hasBatchSelection && onDeleteClips ? (
+            <button
+              type="button"
+              className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground"
+              onClick={() => {
+                onDeleteClips(selectedClipIds);
+                closeMenu();
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete {selectedClipIds.length} clips
+              <span className="ml-auto text-xs tracking-widest opacity-60">Del</span>
+            </button>
+          ) : onDeleteClip && (
             <button
               type="button"
               className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-destructive hover:text-destructive-foreground"

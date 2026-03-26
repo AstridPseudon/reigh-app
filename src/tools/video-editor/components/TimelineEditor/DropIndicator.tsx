@@ -6,6 +6,7 @@ import {
   type MutableRefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
+import type { GhostRect } from '@/tools/video-editor/lib/multi-drag-utils';
 
 export interface DropIndicatorPosition {
   rowTop: number;
@@ -20,11 +21,14 @@ export interface DropIndicatorPosition {
   ghostLabel: string;
   label: string;
   isNewTrack: boolean;
+  /** When non-null, describes the kind of track that will be created. */
+  newTrackKind: string | null;
   reject: boolean;
 }
 
 export interface DropIndicatorHandle {
   show(position: DropIndicatorPosition): void;
+  showSecondaryGhosts(ghosts: GhostRect[]): void;
   hide(): void;
 }
 
@@ -37,13 +41,18 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
   ref,
 ) {
   const [position, setPosition] = useState<DropIndicatorPosition | null>(null);
+  const [secondaryGhosts, setSecondaryGhosts] = useState<GhostRect[]>([]);
 
   useImperativeHandle(ref, () => ({
     show(nextPosition) {
       setPosition(nextPosition);
     },
+    showSecondaryGhosts(ghosts) {
+      setSecondaryGhosts(ghosts);
+    },
     hide() {
       setPosition(null);
+      setSecondaryGhosts([]);
     },
   }), []);
 
@@ -53,11 +62,22 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
       return undefined;
     }
 
-    editArea.classList.toggle('drop-target-new-track', position?.isNewTrack === true);
+    // Only show the "create new track" affordance when dragging below all rows
+    // (not for kind-mismatch redirects — those resolve silently to a compatible track)
+    const showNewTrack = position?.isNewTrack === true && position?.trackId === undefined;
+    editArea.classList.toggle('drop-target-new-track', showNewTrack);
+
+    if (showNewTrack && position?.newTrackKind) {
+      editArea.dataset.newTrackLabel = `Drop to create new ${position.newTrackKind} track`;
+    } else if (showNewTrack) {
+      editArea.dataset.newTrackLabel = 'Drop to create new track';
+    }
+
     return () => {
       editArea.classList.remove('drop-target-new-track');
+      delete editArea.dataset.newTrackLabel;
     };
-  }, [editAreaRef, position?.isNewTrack]);
+  }, [editAreaRef, position?.isNewTrack, position?.newTrackKind, position?.trackId]);
 
   if (!position || typeof document === 'undefined') {
     return null;
@@ -104,6 +124,20 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
           </div>
         </>
       )}
+      {secondaryGhosts.map((ghost, i) => (
+        <div
+          key={i}
+          className="drop-indicator-ghost"
+          style={{
+            left: ghost.left,
+            top: ghost.top,
+            width: ghost.width,
+            height: ghost.height,
+            zIndex: 99997,
+            opacity: 0.6,
+          }}
+        />
+      ))}
     </>,
     document.body,
   );

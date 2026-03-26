@@ -6,6 +6,7 @@ import type { useDragCoordinator } from '@/tools/video-editor/hooks/useDragCoord
 import type { useExternalDrop } from '@/tools/video-editor/hooks/useExternalDrop';
 import type { useTimelinePlayback } from '@/tools/video-editor/hooks/useTimelinePlayback';
 import type { useTimelineTrackManagement } from '@/tools/video-editor/hooks/useTimelineTrackManagement';
+import type { UseMultiSelectResult } from '@/tools/video-editor/hooks/useMultiSelect';
 
 type TimelineDataHook = ReturnType<typeof useTimelineData>;
 type DragCoordinatorHook = ReturnType<typeof useDragCoordinator>;
@@ -20,7 +21,10 @@ export interface TimelineEditorContextValue {
   data: TimelineDataHook['data'];
   resolvedConfig: TimelineDataHook['resolvedConfig'];
   selectedClipId: TimelineDataHook['selectedClipId'];
+  selectedClipIds: UseMultiSelectResult['selectedClipIds'];
+  selectedClipIdsRef: UseMultiSelectResult['selectedClipIdsRef'];
   selectedTrackId: TimelineDataHook['selectedTrackId'];
+  primaryClipId: UseMultiSelectResult['primaryClipId'];
   selectedClip: TimelineDataHook['selectedClip'];
   selectedTrack: TimelineDataHook['selectedTrack'];
   selectedClipHasPredecessor: boolean;
@@ -37,6 +41,11 @@ export interface TimelineEditorContextValue {
   timelineRef: TimelinePlaybackHook['timelineRef'];
   timelineWrapperRef: TimelinePlaybackHook['timelineWrapperRef'];
   setSelectedClipId: TimelineDataHook['setSelectedClipId'];
+  isClipSelected: UseMultiSelectResult['isClipSelected'];
+  selectClip: UseMultiSelectResult['selectClip'];
+  selectClips: UseMultiSelectResult['selectClips'];
+  addToSelection: UseMultiSelectResult['addToSelection'];
+  clearSelection: UseMultiSelectResult['clearSelection'];
   setSelectedTrackId: TimelineDataHook['setSelectedTrackId'];
   setActiveClipTab: TimelineDataHook['setActiveClipTab'];
   setAssetPanelState: TimelineDataHook['setAssetPanelState'];
@@ -45,25 +54,32 @@ export interface TimelineEditorContextValue {
   onClickTimeArea: TimelinePlaybackHook['onClickTimeArea'];
   onActionResizeStart: ClipResizeHook['onActionResizeStart'];
   onActionResizeEnd: ClipResizeHook['onActionResizeEnd'];
-  onChange: ClipEditingHook['onChange'];
   onOverlayChange: ClipEditingHook['onOverlayChange'];
   onTimelineDragOver: ExternalDropHook['onTimelineDragOver'];
   onTimelineDragLeave: ExternalDropHook['onTimelineDragLeave'];
   onTimelineDrop: ExternalDropHook['onTimelineDrop'];
   handleAssetDrop: AssetManagementHook['handleAssetDrop'];
+  handleUpdateClips: ClipEditingHook['handleUpdateClips'];
+  handleUpdateClipsDeep: ClipEditingHook['handleUpdateClipsDeep'];
+  handleDeleteClips: ClipEditingHook['handleDeleteClips'];
   handleDeleteClip: ClipEditingHook['handleDeleteClip'];
   handleSelectedClipChange: ClipEditingHook['handleSelectedClipChange'];
   handleResetClipPosition: ClipEditingHook['handleResetClipPosition'];
+  handleResetClipsPosition: ClipEditingHook['handleResetClipsPosition'];
   handleSplitSelectedClip: ClipEditingHook['handleSplitSelectedClip'];
   handleSplitClipAtTime: ClipEditingHook['handleSplitClipAtTime'];
+  handleSplitClipsAtPlayhead: ClipEditingHook['handleSplitClipsAtPlayhead'];
+  handleToggleMuteClips: ClipEditingHook['handleToggleMuteClips'];
   handleToggleMute: ClipEditingHook['handleToggleMute'];
   handleTrackPopoverChange: TimelineTrackManagementHook['handleTrackPopoverChange'];
   handleReorderTrack: TimelineTrackManagementHook['handleReorderTrack'];
   handleRemoveTrack: TimelineTrackManagementHook['handleRemoveTrack'];
   moveSelectedClipToTrack: TimelineTrackManagementHook['moveSelectedClipToTrack'];
+  moveSelectedClipsToTrack: TimelineTrackManagementHook['moveSelectedClipsToTrack'];
   moveClipToRow: TimelineTrackManagementHook['moveClipToRow'];
   createTrackAndMoveClip: TimelineTrackManagementHook['createTrackAndMoveClip'];
   uploadFiles: TimelineDataHook['uploadFiles'];
+  applyTimelineEdit: TimelineDataHook['applyTimelineEdit'];
   onDoubleClickAsset?: (assetKey: string) => void;
   registerLightboxHandler?: (handler: ((assetKey: string) => void) | null) => void;
 }

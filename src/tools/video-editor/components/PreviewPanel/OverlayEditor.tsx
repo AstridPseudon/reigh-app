@@ -1,8 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, RefObject } from 'react';
-import { ImageIcon, Type } from 'lucide-react';
-import type { TimelineRow } from '@xzdarcy/timeline-engine';
+import { Maximize2, RotateCcw } from 'lucide-react';
+import {
+  hasRenderableBounds,
+} from '@/tools/video-editor/lib/render-bounds';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
+import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { ResolvedTimelineConfig } from '@/tools/video-editor/types';
 
 interface OverlayEditorProps {
@@ -99,10 +102,22 @@ const getFullBoundsFromVisibleBounds = (visibleBounds: OverlayBounds, cropValues
   };
 };
 
+const toOverlayStyle = (
+  bounds: OverlayBounds,
+  layout: OverlayLayout,
+  compositionWidth: number,
+  compositionHeight: number,
+): CSSProperties => ({
+  left: (bounds.x / compositionWidth) * layout.width,
+  top: (bounds.y / compositionHeight) * layout.height,
+  width: (bounds.width / compositionWidth) * layout.width,
+  height: (bounds.height / compositionHeight) * layout.height,
+});
+
 function OverlayEditorComponent({
   rows,
   meta,
-  registry,
+  registry: _registry,
   currentTime,
   playerContainerRef,
   trackScaleMap,
@@ -519,6 +534,29 @@ function OverlayEditorComponent({
       className="pointer-events-none absolute"
       style={{ left: layout.left, top: layout.top, width: layout.width, height: layout.height }}
     >
+      {/* Dim entire composition during crop drag, with a hole for the visible crop area */}
+      {isCropDrag && (() => {
+        const cropOverlay = effectiveOverlays.find((o) => o.actionId === draggingId);
+        if (!cropOverlay) return null;
+        // The visible (kept) bounds in screen space as percentages of the layout
+        const vl = ((cropOverlay.bounds.x) / compositionWidth) * 100;
+        const vt = ((cropOverlay.bounds.y) / compositionHeight) * 100;
+        const vr = ((cropOverlay.bounds.x + cropOverlay.bounds.width) / compositionWidth) * 100;
+        const vb = ((cropOverlay.bounds.y + cropOverlay.bounds.height) / compositionHeight) * 100;
+        // Clamp to composition edges (0-100%)
+        const cl = Math.max(0, Math.min(100, vl));
+        const ct = Math.max(0, Math.min(100, vt));
+        const cr = Math.max(0, Math.min(100, vr));
+        const cb = Math.max(0, Math.min(100, vb));
+        return (
+          <div
+            className="absolute inset-0 bg-black/50"
+            style={{
+              clipPath: `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% ${ct}%, ${cl}% ${ct}%, ${cl}% ${cb}%, ${cr}% ${cb}%, ${cr}% ${ct}%, 0% ${ct}%)`,
+            }}
+          />
+        );
+      })()}
       {effectiveOverlays.map((overlay) => {
         const clipMeta = meta[overlay.actionId];
         const isSelected = selectedClipId === overlay.actionId;
@@ -527,12 +565,12 @@ function OverlayEditorComponent({
 
         // During crop drag, show overlay at FULL bounds so the image stays in place;
         // crop is visualised as a mask over the cropped-out regions.
+        // Do NOT clamp overlay bounds to composition — the overlay should extend
+        // beyond the composition edge so users can see and drag their clip back.
+        // Only Remotion's render layer (VisualClip) clamps to the viewport.
         const displayBounds = isDraggingCrop ? overlay.fullBounds : overlay.bounds;
-        const left = (displayBounds.x / compositionWidth) * layout.width;
-        const top = (displayBounds.y / compositionHeight) * layout.height;
-        const width = (displayBounds.width / compositionWidth) * layout.width;
-        const height = (displayBounds.height / compositionHeight) * layout.height;
-        const style: CSSProperties = { left, top, width, height };
+        const style = toOverlayStyle(displayBounds, layout, compositionWidth, compositionHeight);
+        const renderFullBounds = overlay.fullBounds;
 
         const hasCrop = (
           overlay.cropValues.cropTop > 0
@@ -543,43 +581,16 @@ function OverlayEditorComponent({
 
         // Show full-bounds ghost when a cropped clip is selected (not during crop drag —
         // during crop drag the overlay is already at full bounds).
-        const ghostStyle: CSSProperties | null = isSelected && hasCrop && !isDraggingCrop
+        const ghostStyle: CSSProperties | null = isSelected && hasCrop && !isDraggingCrop && hasRenderableBounds(renderFullBounds)
           ? {
-              left: ((overlay.fullBounds.x - overlay.bounds.x) / compositionWidth) * layout.width,
-              top: ((overlay.fullBounds.y - overlay.bounds.y) / compositionHeight) * layout.height,
-              width: (overlay.fullBounds.width / compositionWidth) * layout.width,
-              height: (overlay.fullBounds.height / compositionHeight) * layout.height,
+              left: ((renderFullBounds.x - displayBounds.x) / compositionWidth) * layout.width,
+              top: ((renderFullBounds.y - displayBounds.y) / compositionHeight) * layout.height,
+              width: (renderFullBounds.width / compositionWidth) * layout.width,
+              height: (renderFullBounds.height / compositionHeight) * layout.height,
             }
           : null;
 
         const scaledFontSize = Math.max(12, (clipMeta?.text?.fontSize ?? 64) * fontScale);
-        // During crop drag: dim the regions being cropped out. Remotion renders
-        // the actual image live (via onOverlayChange in mousemove), so we only
-        // need the mask overlay — no fake image preview.
-        const cropMask = isDraggingCrop && hasCrop ? (
-          <div className="pointer-events-none absolute inset-0">
-            {overlay.cropValues.cropTop > 0 && (
-              <div className="absolute left-0 right-0 top-0 bg-black/60" style={{ height: `${overlay.cropValues.cropTop * 100}%` }} />
-            )}
-            {overlay.cropValues.cropBottom > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/60" style={{ height: `${overlay.cropValues.cropBottom * 100}%` }} />
-            )}
-            {overlay.cropValues.cropLeft > 0 && (
-              <div className="absolute bottom-0 left-0 top-0 bg-black/60" style={{
-                width: `${overlay.cropValues.cropLeft * 100}%`,
-                top: `${overlay.cropValues.cropTop * 100}%`,
-                bottom: `${overlay.cropValues.cropBottom * 100}%`,
-              }} />
-            )}
-            {overlay.cropValues.cropRight > 0 && (
-              <div className="absolute bottom-0 right-0 top-0 bg-black/60" style={{
-                width: `${overlay.cropValues.cropRight * 100}%`,
-                top: `${overlay.cropValues.cropTop * 100}%`,
-                bottom: `${overlay.cropValues.cropBottom * 100}%`,
-              }} />
-            )}
-          </div>
-        ) : null;
 
         // During move/resize drag, render the image at full bounds with clip-path
         // (exactly how Remotion renders it). This is a separate layer behind the
@@ -620,7 +631,7 @@ function OverlayEditorComponent({
             ) : (
               <button
                 type="button"
-                className={`group relative h-full w-full rounded border text-left transition ${isSelected ? 'border-sky-400 bg-sky-400/10 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'border-white/30 bg-black/10 hover:border-white/60'}`}
+                className={`group relative h-full w-full rounded text-left transition ${isSelected ? 'border border-sky-400 bg-sky-400/10 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'border border-transparent hover:border-white/40'}`}
                 onMouseDown={(event) => startDrag(event, overlay, 'move')}
                 onDoubleClick={() => {
                   if (clipMeta?.clipType === 'text') {
@@ -634,8 +645,7 @@ function OverlayEditorComponent({
                   onSelectClip(overlay.actionId);
                 }}
               >
-                {cropMask}
-                {(['resize-nw', 'resize-ne', 'resize-sw', 'resize-se'] as const).map((mode) => {
+                {isSelected && (['resize-nw', 'resize-ne', 'resize-sw', 'resize-se'] as const).map((mode) => {
                   const pos = {
                     'resize-nw': 'left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize',
                     'resize-ne': 'right-0 top-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize',
@@ -650,7 +660,7 @@ function OverlayEditorComponent({
                     />
                   );
                 })}
-                {!overlay.isText && ([
+                {isSelected && !overlay.isText && ([
                   {
                     mode: 'crop-n',
                     hitClassName: 'left-1.5 right-1.5 top-0 h-3 -translate-y-1/2 cursor-ns-resize',
@@ -682,6 +692,59 @@ function OverlayEditorComponent({
                     />
                   </span>
                 ))}
+                {isSelected && (
+                  <div
+                    className="absolute right-1 top-1 flex gap-1"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    {/* Only show reset if the clip has been moved/resized/cropped */}
+                    {(clipMeta?.x !== undefined || clipMeta?.y !== undefined
+                      || clipMeta?.width !== undefined || clipMeta?.height !== undefined
+                      || clipMeta?.cropTop !== undefined || clipMeta?.cropBottom !== undefined
+                      || clipMeta?.cropLeft !== undefined || clipMeta?.cropRight !== undefined) && (
+                      <span
+                        role="button"
+                        title="Reset to original size"
+                        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded bg-black/70 text-white/80 transition hover:bg-black/90 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Keep current position (x/y), reset size to composition
+                          // dimensions and clear crop
+                          onOverlayChange(overlay.actionId, {
+                            width: compositionWidth,
+                            height: compositionHeight,
+                            cropTop: undefined,
+                            cropBottom: undefined,
+                            cropLeft: undefined,
+                            cropRight: undefined,
+                          } as Partial<ClipMeta>);
+                        }}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <span
+                      role="button"
+                      title="Fill composition"
+                      className="flex h-6 w-6 cursor-pointer items-center justify-center rounded bg-black/70 text-white/80 transition hover:bg-black/90 hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOverlayChange(overlay.actionId, {
+                          x: 0,
+                          y: 0,
+                          width: compositionWidth,
+                          height: compositionHeight,
+                          cropTop: undefined,
+                          cropBottom: undefined,
+                          cropLeft: undefined,
+                          cropRight: undefined,
+                        } as Partial<ClipMeta>);
+                      }}
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                )}
               </button>
             )}
           </div>

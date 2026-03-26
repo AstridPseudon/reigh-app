@@ -14,8 +14,8 @@ import {
   type TimelineData,
 } from '@/tools/video-editor/lib/timeline-data';
 import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 import type { AssetRegistryEntry, ClipType } from '@/tools/video-editor/types';
-import type { TimelineAction } from '@xzdarcy/timeline-engine';
 
 export interface UseAssetManagementArgs {
   dataRef: MutableRefObject<TimelineData | null>;
@@ -148,9 +148,19 @@ export function useAssetManagement({
 
     const assetEntry = current.registry.assets[assetKey];
     const assetKind = inferTrackType(assetEntry?.file ?? assetKey);
-    const resolvedTrackId = getCompatibleTrackId(current.tracks, trackId, assetKind, selectedTrackId);
+    let resolvedTrackId = getCompatibleTrackId(current.tracks, trackId, assetKind, selectedTrackId);
+
+    // If no compatible track exists, create one
     if (!resolvedTrackId) {
-      return;
+      const existingCount = current.tracks.filter((t) => t.kind === assetKind).length;
+      resolvedTrackId = `${assetKind === 'audio' ? 'A' : 'V'}${existingCount + 1}`;
+      const newTrack = {
+        id: resolvedTrackId,
+        kind: assetKind,
+        label: `${assetKind === 'audio' ? 'Audio' : 'Visual'} ${existingCount + 1}`,
+      };
+      current.tracks.push(newTrack);
+      current.rows.push({ id: resolvedTrackId, actions: [] });
     }
 
     const track = current.tracks.find((candidate) => candidate.id === resolvedTrackId);
@@ -160,9 +170,15 @@ export function useAssetManagement({
 
     const clipId = getNextClipId(current.meta);
     const isImage = assetEntry?.type?.startsWith('image');
+    const isVideo = assetEntry?.type?.startsWith('video') || (!isImage && assetKind === 'visual' && assetEntry?.duration);
     const isManual = track.fit === 'manual';
     const clipType: ClipType = isImage ? 'hold' : 'media';
-    const baseDuration = Math.max(1, Math.min(assetEntry?.duration ?? 5, assetKind === 'audio' ? assetEntry?.duration ?? 10 : 5));
+    // Use actual asset duration for videos/audio instead of capping at 5s
+    const baseDuration = isVideo
+      ? (assetEntry?.duration ?? 5)
+      : isImage
+        ? 5
+        : Math.max(1, assetEntry?.duration ?? 5);
 
     let clipMeta: ClipMeta;
     let duration: number;

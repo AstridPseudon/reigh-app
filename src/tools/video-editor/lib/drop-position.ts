@@ -28,6 +28,8 @@ export interface DropPosition {
   trackName: string;
   isNewTrack: boolean;
   isReject: boolean;
+  /** When non-null, dropping here will create a new track of this kind. */
+  newTrackKind: TrackKind | null;
   screenCoords: DropScreenCoords;
 }
 
@@ -46,20 +48,23 @@ export interface ComputeDropPositionParams {
 }
 
 const timelineDomNodeCache = new WeakMap<HTMLDivElement, Omit<TimelineDomNodes, 'wrapper'>>();
+const isValidNode = (wrapper: HTMLDivElement, node: HTMLElement | null): boolean => {
+  return node === null || (node.isConnected && wrapper.contains(node));
+};
 
 export const getTimelineDomNodes = (wrapper: HTMLDivElement): TimelineDomNodes => {
   const cached = timelineDomNodeCache.get(wrapper);
   if (
     cached
-    && (cached.editArea === null || cached.editArea.isConnected)
-    && (cached.grid === null || cached.grid.isConnected)
+    && isValidNode(wrapper, cached.editArea)
+    && isValidNode(wrapper, cached.grid)
   ) {
     return { wrapper, ...cached };
   }
 
-  const editArea = wrapper.querySelector<HTMLElement>('.timeline-editor-edit-area');
-  const grid = editArea?.querySelector<HTMLElement>('.ReactVirtualized__Grid')
-    ?? wrapper.querySelector<HTMLElement>('.ReactVirtualized__Grid');
+  const editArea = wrapper.querySelector<HTMLElement>('.timeline-canvas-edit-area');
+  // In TimelineCanvas the edit area IS the scroll container (grid).
+  const grid = editArea;
   const nextNodes = { editArea, grid };
   timelineDomNodeCache.set(wrapper, nextNodes);
   return { wrapper, ...nextNodes };
@@ -106,17 +111,71 @@ export const computeDropPosition = ({
   const clipLeft = editRect.left + startLeft + time * pixelsPerSecond - scrollLeft;
   const clipWidth = Math.max(0, Math.min(clipDuration * pixelsPerSecond, editRect.right - clipLeft));
   const ghostCenter = clipLeft + clipWidth / 2;
-  const trackKind = isNewTrack ? sourceKind : targetTrack?.kind ?? null;
-  const isReject = !isNewTrack && sourceKind !== null && targetTrack?.kind !== undefined && sourceKind !== targetTrack.kind;
+  const kindMismatch = !isNewTrack && sourceKind !== null && targetTrack?.kind !== undefined && sourceKind !== targetTrack.kind;
+
+  // When kind doesn't match, silently resolve to the first compatible track.
+  // Only create a new track if no compatible one exists at all.
+  let resolvedTrackId = targetRow?.id;
+  let resolvedTrackName = targetTrack?.label ?? targetTrack?.id ?? '';
+  let resolvedTrackKind = targetTrack?.kind ?? null;
+  let needsNewTrack = isNewTrack;
+  let newTrackKind: TrackKind | null = isNewTrack ? sourceKind : null;
+
+  if (kindMismatch && current && sourceKind) {
+    // Find the nearest compatible track to the hovered row
+    const compatibleTracks = current.tracks
+      .map((t, i) => ({ track: t, index: i }))
+      .filter(({ track }) => track.kind === sourceKind);
+    const nearest = compatibleTracks.length > 0
+      ? compatibleTracks.reduce((best, candidate) =>
+          Math.abs(candidate.index - rowIndex) < Math.abs(best.index - rowIndex) ? candidate : best)
+      : null;
+    if (nearest) {
+      const compatible = nearest.track;
+      resolvedTrackId = compatible.id;
+      resolvedTrackName = compatible.label ?? compatible.id;
+      resolvedTrackKind = compatible.kind;
+      const compatibleIndex = nearest.index;
+      const compatibleRowTop = compatibleIndex >= 0
+        ? editRect.top + compatibleIndex * rowHeight - scrollTop
+        : rowTop;
+      return {
+        time,
+        rowIndex: compatibleIndex,
+        trackId: resolvedTrackId,
+        trackKind: resolvedTrackKind,
+        trackName: resolvedTrackName,
+        isNewTrack: false,
+        isReject: false,
+        newTrackKind: null,
+        screenCoords: {
+          rowTop: compatibleRowTop,
+          rowLeft: wrapperRect.left,
+          rowWidth: wrapperRect.width,
+          rowHeight,
+          clipLeft,
+          clipWidth,
+          ghostCenter,
+        },
+      };
+    }
+    // No compatible track exists — will create one silently on drop
+    needsNewTrack = true;
+    newTrackKind = sourceKind;
+    resolvedTrackId = undefined;
+    resolvedTrackKind = sourceKind;
+    resolvedTrackName = '';
+  }
 
   return {
     time,
     rowIndex,
-    trackId: isNewTrack ? undefined : targetRow?.id,
-    trackKind,
-    trackName: targetTrack?.label ?? targetTrack?.id ?? '',
-    isNewTrack,
-    isReject,
+    trackId: needsNewTrack ? undefined : resolvedTrackId,
+    trackKind: needsNewTrack ? sourceKind : resolvedTrackKind,
+    trackName: resolvedTrackName,
+    isNewTrack: needsNewTrack,
+    isReject: false,
+    newTrackKind,
     screenCoords: {
       rowTop,
       rowLeft: wrapperRect.left,

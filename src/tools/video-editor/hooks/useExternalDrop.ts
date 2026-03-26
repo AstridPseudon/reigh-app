@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { TimelineAction } from '@xzdarcy/timeline-engine';
 import { getGenerationDropData, getDragType } from '@/shared/lib/dnd/dragDrop';
 import { inferDragKind } from '@/tools/video-editor/lib/drop-position';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import type { UseAssetManagementResult } from '@/tools/video-editor/hooks/useAssetManagement';
 import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 import type { TrackKind } from '@/tools/video-editor/types';
 import { getCompatibleTrackId } from '@/tools/video-editor/lib/coordinate-utils';
 
@@ -148,9 +148,17 @@ export function useExternalDrop({
         const kind: TrackKind = ['.mp3', '.wav', '.aac', '.m4a'].includes(ext) ? 'audio' : 'visual';
         const isImageFile = file.type.startsWith('image/')
           || ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.avif'].includes(ext);
-        const compatibleTrackId = getCompatibleTrackId(dataRef.current.tracks, dropTrackId, kind, selectedTrackId);
+        let compatibleTrackId = getCompatibleTrackId(dataRef.current.tracks, dropTrackId, kind, selectedTrackId);
+        // Create a new track if none is compatible
         if (!compatibleTrackId) {
-          continue;
+          const existingCount = dataRef.current.tracks.filter((t) => t.kind === kind).length;
+          compatibleTrackId = `${kind === 'audio' ? 'A' : 'V'}${existingCount + 1}`;
+          dataRef.current.tracks.push({
+            id: compatibleTrackId,
+            kind,
+            label: `${kind === 'audio' ? 'Audio' : 'Visual'} ${existingCount + 1}`,
+          });
+          dataRef.current.rows.push({ id: compatibleTrackId, actions: [] });
         }
 
         const clipTime = time + timeOffset;

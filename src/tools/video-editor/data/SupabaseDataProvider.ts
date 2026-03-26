@@ -3,7 +3,12 @@ import { generateUUID } from '@/shared/lib/taskCreation/ids';
 import { validateSerializedConfig } from '@/tools/video-editor/lib/serialize';
 import { createDefaultTimelineConfig } from '@/tools/video-editor/lib/defaults';
 import { extractAssetRegistryEntry } from '@/tools/video-editor/lib/mediaMetadata';
-import type { DataProvider, UploadAssetOptions } from '@/tools/video-editor/data/DataProvider';
+import {
+  TimelineVersionConflictError,
+  type DataProvider,
+  type LoadedTimeline,
+  type UploadAssetOptions,
+} from '@/tools/video-editor/data/DataProvider';
 import type { AssetRegistry, AssetRegistryEntry, TimelineConfig } from '@/tools/video-editor/types';
 
 const TIMELINE_ASSETS_BUCKET = 'timeline-assets';
@@ -16,10 +21,10 @@ export class SupabaseDataProvider implements DataProvider {
     },
   ) {}
 
-  async loadTimeline(timelineId: string): Promise<TimelineConfig> {
+  async loadTimeline(timelineId: string): Promise<LoadedTimeline> {
     const { data, error } = await getSupabaseClient()
       .from('timelines')
-      .select('config')
+      .select('config, config_version')
       .eq('id', timelineId)
       .eq('project_id', this.options.projectId)
       .eq('user_id', this.options.userId)
@@ -31,25 +36,36 @@ export class SupabaseDataProvider implements DataProvider {
 
     const config = (data?.config ?? createDefaultTimelineConfig()) as TimelineConfig;
     validateSerializedConfig(config);
-    return config;
+
+    return {
+      config,
+      configVersion: typeof (data as { config_version?: unknown } | null)?.config_version === 'number'
+        ? (data as { config_version: number }).config_version
+        : 1,
+    };
   }
 
-  async saveTimeline(timelineId: string, config: TimelineConfig): Promise<void> {
+  async saveTimeline(timelineId: string, config: TimelineConfig, expectedVersion: number): Promise<number> {
     validateSerializedConfig(config);
 
-    const { error } = await getSupabaseClient()
-      .from('timelines')
-      .update({
-        config,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', timelineId)
-      .eq('project_id', this.options.projectId)
-      .eq('user_id', this.options.userId);
+    const { data, error } = await getSupabaseClient()
+      .rpc('update_timeline_config_versioned' as never, {
+        p_timeline_id: timelineId,
+        p_expected_version: expectedVersion,
+        p_config: config,
+      } as never)
+      .maybeSingle();
 
     if (error) {
       throw error;
     }
+
+    const nextVersion = (data as { config_version?: unknown } | null)?.config_version;
+    if (typeof nextVersion !== 'number') {
+      throw new TimelineVersionConflictError();
+    }
+
+    return nextVersion;
   }
 
   async loadAssetRegistry(timelineId: string): Promise<AssetRegistry> {

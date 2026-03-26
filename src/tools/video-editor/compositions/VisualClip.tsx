@@ -1,9 +1,10 @@
 import type { CSSProperties, FC, ReactNode } from 'react';
 import { AbsoluteFill, Img, Sequence, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Video } from '@remotion/media';
-import { getClipDurationInFrames, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
+import { getClipDurationInFrames, parseResolution, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
 import { wrapWithClipEffects } from '@/tools/video-editor/effects';
 import { transitions } from '@/tools/video-editor/effects/transitions';
+import { computeViewportMediaLayout } from '@/tools/video-editor/lib/render-bounds';
 import type { ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 
 type VisualClipProps = {
@@ -58,33 +59,140 @@ const getClipBoxStyle = (
   return style;
 };
 
+const getIntrinsicMediaSize = (
+  clip: ResolvedTimelineClip,
+  compositionWidth: number,
+  compositionHeight: number,
+): { width: number; height: number } => {
+  const resolution = clip.assetEntry?.resolution;
+  if (resolution) {
+    const parsed = parseResolution(resolution);
+    if (Number.isFinite(parsed.width) && Number.isFinite(parsed.height) && parsed.width > 0 && parsed.height > 0) {
+      return parsed;
+    }
+  }
+
+  return {
+    width: clip.width ?? compositionWidth,
+    height: clip.height ?? compositionHeight,
+  };
+};
+
 const VisualAsset: FC<VisualClipProps> = ({ clip, track, fps }) => {
+  const { width: compositionWidth, height: compositionHeight } = useVideoConfig();
+
   if (!clip.assetEntry) {
     return null;
   }
 
-  const { width: compositionWidth, height: compositionHeight } = useVideoConfig();
-  const style = getClipBoxStyle(clip, track, compositionWidth, compositionHeight);
-  const sharedStyle: CSSProperties = {
-    ...style,
-    mixBlendMode: track.blendMode && track.blendMode !== 'normal' ? track.blendMode : undefined,
-  };
   const clipVolume = clip.volume ?? 1;
   const isImage = clip.assetEntry.type?.startsWith('image');
+  const hasPositionOverride = (
+    clip.x !== undefined
+    || clip.y !== undefined
+    || clip.width !== undefined
+    || clip.height !== undefined
+    || clip.cropTop !== undefined
+    || clip.cropBottom !== undefined
+    || clip.cropLeft !== undefined
+    || clip.cropRight !== undefined
+  );
+  const fit = track.fit ?? 'contain';
+  const useViewportLayout = fit === 'manual' || hasPositionOverride;
+
+  if (!useViewportLayout) {
+    const style = getClipBoxStyle(clip, track, compositionWidth, compositionHeight);
+    const sharedStyle: CSSProperties = {
+      ...style,
+      mixBlendMode: track.blendMode && track.blendMode !== 'normal' ? track.blendMode : undefined,
+    };
+
+    if (isImage) {
+      return <Img src={clip.assetEntry.src} style={sharedStyle} crossOrigin="anonymous" />;
+    }
+
+    return (
+      <Video
+        src={clip.assetEntry.src}
+        startFrom={secondsToFrames(clip.from ?? 0, fps)}
+        playbackRate={clip.speed ?? 1}
+        volume={clipVolume}
+        muted={clipVolume <= 0}
+        style={sharedStyle}
+        crossOrigin="anonymous"
+      />
+    );
+  }
+
+  const fullBounds = {
+    x: clip.x ?? 0,
+    y: clip.y ?? 0,
+    width: clip.width ?? compositionWidth,
+    height: clip.height ?? compositionHeight,
+  };
+  const intrinsicSize = getIntrinsicMediaSize(clip, compositionWidth, compositionHeight);
+  const viewportLayout = computeViewportMediaLayout({
+    fullBounds,
+    cropValues: {
+      cropTop: clip.cropTop,
+      cropBottom: clip.cropBottom,
+      cropLeft: clip.cropLeft,
+      cropRight: clip.cropRight,
+    },
+    compositionWidth,
+    compositionHeight,
+    intrinsicWidth: intrinsicSize.width,
+    intrinsicHeight: intrinsicSize.height,
+  });
+
+  if (!viewportLayout) {
+    return null;
+  }
+
+  const viewportStyle: CSSProperties = {
+    position: 'absolute',
+    left: viewportLayout.renderBounds.x,
+    top: viewportLayout.renderBounds.y,
+    width: viewportLayout.renderBounds.width,
+    height: viewportLayout.renderBounds.height,
+    overflow: 'hidden',
+    opacity: clip.opacity ?? 1,
+  };
+  const mediaStyle: CSSProperties = {
+    position: 'absolute',
+    left: viewportLayout.mediaBounds.x,
+    top: viewportLayout.mediaBounds.y,
+    width: viewportLayout.mediaBounds.width,
+    height: viewportLayout.mediaBounds.height,
+    // Override Tailwind preflight's `img { max-width: 100%; height: auto; }`
+    // which would squash the media to fit the viewport container. The media
+    // must overflow the container (clipped by overflow:hidden) for the
+    // manual cover layout to work correctly.
+    maxWidth: 'none',
+    maxHeight: 'none',
+    mixBlendMode: track.blendMode && track.blendMode !== 'normal' ? track.blendMode : undefined,
+  };
+
   if (isImage) {
-    return <Img src={clip.assetEntry.src} style={sharedStyle} crossOrigin="anonymous" />;
+    return (
+      <div style={viewportStyle}>
+        <Img src={clip.assetEntry.src} style={mediaStyle} crossOrigin="anonymous" />
+      </div>
+    );
   }
 
   return (
-    <Video
-      src={clip.assetEntry.src}
-      startFrom={secondsToFrames(clip.from ?? 0, fps)}
-      playbackRate={clip.speed ?? 1}
-      volume={clipVolume}
-      muted={clipVolume <= 0}
-      style={sharedStyle}
-      crossOrigin="anonymous"
-    />
+    <div style={viewportStyle}>
+      <Video
+        src={clip.assetEntry.src}
+        startFrom={secondsToFrames(clip.from ?? 0, fps)}
+        playbackRate={clip.speed ?? 1}
+        volume={clipVolume}
+        muted={clipVolume <= 0}
+        style={mediaStyle}
+        crossOrigin="anonymous"
+      />
+    </div>
   );
 };
 

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DataProvider } from '@/tools/video-editor/data/DataProvider';
+import { useRef } from 'react';
+import type { DataProvider, LoadedTimeline } from '@/tools/video-editor/data/DataProvider';
 import type { TimelineConfig } from '@/tools/video-editor/types';
 
 export const timelineQueryKey = (timelineId: string | null | undefined) => ['timeline', timelineId] as const;
@@ -7,27 +8,41 @@ export const assetRegistryQueryKey = (timelineId: string | null | undefined) => 
 
 export function useTimeline(provider: DataProvider | null, timelineId: string | null | undefined) {
   const queryClient = useQueryClient();
+  const configVersionRef = useRef(1);
 
   const timelineQuery = useQuery({
     queryKey: timelineQueryKey(timelineId),
     enabled: Boolean(provider && timelineId),
-    queryFn: () => provider!.loadTimeline(timelineId!),
+    queryFn: async () => {
+      const timeline = await provider!.loadTimeline(timelineId!);
+      configVersionRef.current = timeline.configVersion;
+      return timeline;
+    },
   });
 
   const saveTimeline = useMutation({
     mutationFn: async (config: TimelineConfig) => {
-      await provider!.saveTimeline(timelineId!, config);
-      return config;
+      const nextVersion = await provider!.saveTimeline(
+        timelineId!,
+        config,
+        configVersionRef.current,
+      );
+      configVersionRef.current = nextVersion;
+      return { config, configVersion: nextVersion };
     },
     onMutate: async (config) => {
       await queryClient.cancelQueries({ queryKey: timelineQueryKey(timelineId) });
-      const previous = queryClient.getQueryData<TimelineConfig>(timelineQueryKey(timelineId));
-      queryClient.setQueryData(timelineQueryKey(timelineId), config);
+      const previous = queryClient.getQueryData<LoadedTimeline>(timelineQueryKey(timelineId));
+      queryClient.setQueryData<LoadedTimeline>(timelineQueryKey(timelineId), {
+        config,
+        configVersion: configVersionRef.current,
+      });
       return { previous };
     },
     onError: (_error, _config, context) => {
       if (context?.previous) {
         queryClient.setQueryData(timelineQueryKey(timelineId), context.previous);
+        configVersionRef.current = context.previous.configVersion;
       }
     },
     onSettled: () => {
@@ -38,6 +53,8 @@ export function useTimeline(provider: DataProvider | null, timelineId: string | 
 
   return {
     ...timelineQuery,
+    data: timelineQuery.data?.config,
+    configVersion: timelineQuery.data?.configVersion ?? configVersionRef.current,
     saveTimeline,
   };
 }

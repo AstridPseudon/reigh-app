@@ -28,8 +28,8 @@ interface ClipPanelProps {
   setActiveTab: (tab: ClipTab) => void;
 }
 
-const NO_EFFECT = '__none__';
-const TAB_COLUMNS_CLASS = {
+export const NO_EFFECT = '__none__';
+export const TAB_COLUMNS_CLASS = {
   3: 'grid-cols-3',
   4: 'grid-cols-4',
 } as const;
@@ -49,7 +49,7 @@ export function getVisibleClipTabs(
   return ['effects', 'timing', 'position', 'audio'];
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+export function FieldLabel({ children }: { children: React.ReactNode }) {
   return <div className="text-xs font-medium text-muted-foreground">{children}</div>;
 }
 

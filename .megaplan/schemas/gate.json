@@ -42,6 +42,31 @@
         ],
         "additionalProperties": false
       }
+    },
+    "accepted_tradeoffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "flag_id": {
+            "type": "string"
+          },
+          "concern": {
+            "type": "string"
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "flag_id",
+          "concern"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [

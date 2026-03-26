@@ -1,14 +1,14 @@
-import { memo, useCallback, useLayoutEffect, useMemo } from 'react';
-import { Timeline } from '@xzdarcy/react-timeline-editor';
-import type { TimelineAction } from '@xzdarcy/timeline-engine';
-import '@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import '@/tools/video-editor/components/TimelineEditor/timeline-overrides.css';
 import { ClipAction } from '@/tools/video-editor/components/TimelineEditor/ClipAction';
 import { DropIndicator } from '@/tools/video-editor/components/TimelineEditor/DropIndicator';
+import { TimelineCanvas } from '@/tools/video-editor/components/TimelineEditor/TimelineCanvas';
 import { TrackLabel } from '@/tools/video-editor/components/TimelineEditor/TrackLabel';
 import { ROW_HEIGHT, TIMELINE_START_LEFT } from '@/tools/video-editor/lib/coordinate-utils';
 import { useTimelineEditorContext } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { useClipDrag } from '@/tools/video-editor/hooks/useClipDrag';
+import { useMarqueeSelect } from '@/tools/video-editor/hooks/useMarqueeSelect';
+import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 
 function TimelineEditorComponent() {
   const {
@@ -17,23 +17,32 @@ function TimelineEditorComponent() {
     timelineRef,
     timelineWrapperRef,
     dataRef,
+    applyTimelineEdit,
     moveClipToRow,
     createTrackAndMoveClip,
-    setSelectedClipId,
+    selectClip,
+    selectClips,
+    addToSelection,
+    clearSelection,
+    isClipSelected,
+    primaryClipId,
+    selectedClipIds,
+    selectedClipIdsRef,
     setSelectedTrackId,
     scale,
     scaleWidth,
     coordinator,
     indicatorRef,
     editAreaRef,
-    selectedClipId,
     selectedTrackId,
     handleTrackPopoverChange,
     handleReorderTrack,
     handleRemoveTrack,
     handleSplitClipAtTime,
+    handleSplitClipsAtPlayhead,
+    handleDeleteClips,
     handleDeleteClip,
-    onChange,
+    handleToggleMuteClips,
     onCursorDrag,
     onClickTimeArea,
     onActionResizeStart,
@@ -43,17 +52,20 @@ function TimelineEditorComponent() {
     onTimelineDrop,
     onDoubleClickAsset,
   } = useTimelineEditorContext();
+  const trackListRef = useRef<HTMLDivElement>(null);
 
   // useClipDrag handles all internal clip drag interactions (horizontal moves,
   // cross-track moves, and new-track creation) using the same fixed-position
   // drop indicators as external HTML5 drag-drop.
-  useClipDrag({
+  const { dragSessionRef } = useClipDrag({
     timelineWrapperRef,
     dataRef,
     moveClipToRow,
     createTrackAndMoveClip,
-    setSelectedClipId,
-    setSelectedTrackId,
+    applyTimelineEdit,
+    selectClip,
+    selectClips,
+    selectedClipIdsRef,
     coordinator,
     rowHeight: ROW_HEIGHT,
     scale,
@@ -61,9 +73,17 @@ function TimelineEditorComponent() {
     startLeft: TIMELINE_START_LEFT,
   });
 
+  const { marqueeRect, onPointerDown: onMarqueePointerDown } = useMarqueeSelect({
+    editAreaRef,
+    dragSessionRef,
+    selectClips,
+    addToSelection,
+    clearSelection,
+  });
+
   useLayoutEffect(() => {
     const wrapper = timelineWrapperRef.current;
-    const nextEditArea = wrapper?.querySelector<HTMLElement>('.timeline-editor-edit-area') ?? null;
+    const nextEditArea = wrapper?.querySelector<HTMLElement>('.timeline-canvas-edit-area') ?? null;
     editAreaRef.current = nextEditArea;
 
     return () => {
@@ -104,18 +124,17 @@ function TimelineEditorComponent() {
   }, [resolvedConfig]);
 
   const handleClipSelect = useCallback((clipId: string, trackId: string) => {
-    setSelectedClipId(clipId);
+    selectClip(clipId);
     setSelectedTrackId(trackId);
-  }, [setSelectedClipId, setSelectedTrackId]);
+  }, [selectClip, setSelectedTrackId]);
 
   const pixelsPerSecond = scaleWidth / scale;
 
   const clientXToTime = useCallback((clientX: number): number => {
     const wrapper = timelineWrapperRef.current;
     if (!wrapper) return 0;
-    const editArea = wrapper.querySelector<HTMLElement>('.timeline-editor-edit-area');
-    const grid = editArea?.querySelector<HTMLElement>('.ReactVirtualized__Grid')
-      ?? wrapper.querySelector<HTMLElement>('.ReactVirtualized__Grid');
+    const editArea = wrapper.querySelector<HTMLElement>('.timeline-canvas-edit-area');
+    const grid = editArea;
     const rect = (editArea ?? wrapper).getBoundingClientRect();
     const scrollLeft = grid?.scrollLeft ?? 0;
     return Math.max(0, (clientX - rect.left + scrollLeft - TIMELINE_START_LEFT) / pixelsPerSecond);
@@ -139,15 +158,34 @@ function TimelineEditorComponent() {
       <ClipAction
         action={action}
         clipMeta={clipMeta}
-        isSelected={selectedClipId === action.id}
+        isSelected={isClipSelected(action.id)}
+        isPrimary={primaryClipId === action.id}
+        selectedClipIds={[...selectedClipIds]}
         thumbnailSrc={thumbnailSrc}
         onSelect={handleClipSelect}
         onDoubleClickAsset={onDoubleClickAsset}
         onSplitHere={handleSplitClipHere}
+        onSplitClipsAtPlayhead={handleSplitClipsAtPlayhead}
+        onDeleteClips={handleDeleteClips}
         onDeleteClip={handleDeleteClip}
+        onToggleMuteClips={handleToggleMuteClips}
       />
     );
-  }, [data, handleClipSelect, handleDeleteClip, handleSplitClipHere, onDoubleClickAsset, pixelsPerSecond, selectedClipId, thumbnailMap]);
+  }, [
+    data,
+    handleClipSelect,
+    handleDeleteClip,
+    handleDeleteClips,
+    handleSplitClipHere,
+    handleSplitClipsAtPlayhead,
+    handleToggleMuteClips,
+    isClipSelected,
+    onDoubleClickAsset,
+    pixelsPerSecond,
+    primaryClipId,
+    selectedClipIds,
+    thumbnailMap,
+  ]);
 
   const kindCountMap = useMemo(() => {
     if (!data) {
@@ -160,37 +198,37 @@ function TimelineEditorComponent() {
     }, {});
   }, [data]);
 
-  const immovableRows = useMemo(() => {
-    return data?.rows.map((row) => ({
-      ...row,
-      actions: row.actions.map((action) => ({
-        ...action,
-        movable: false,
-      })),
-    })) ?? [];
-  }, [data?.rows]);
-
   if (!data) {
     return null;
   }
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl border border-border bg-card/80">
-      <div className="flex w-36 shrink-0 flex-col overflow-y-auto border-r border-border pt-[30px]">
-        {data.tracks.map((track, index) => (
-          <TrackLabel
-            key={track.id}
-            track={track}
-            isSelected={selectedTrackId === track.id}
-            trackCount={data.tracks.length}
-            trackIndex={index}
-            sameKindCount={kindCountMap[track.kind] ?? 0}
-            onSelect={setSelectedTrackId}
-            onChange={handleTrackPopoverChange}
-            onReorder={handleReorderTrack}
-            onRemove={handleRemoveTrack}
-          />
-        ))}
+      <div
+        ref={trackListRef}
+        className="flex w-36 shrink-0 flex-col overflow-y-auto border-r border-border pt-[30px]"
+        onScroll={(event) => {
+          timelineRef.current?.setScrollTop(event.currentTarget.scrollTop);
+        }}
+      >
+        {data.tracks.map((track, index) => {
+          const row = data.rows[index];
+          return (
+            <TrackLabel
+              key={track.id}
+              track={track}
+              isSelected={selectedTrackId === track.id}
+              trackCount={data.tracks.length}
+              trackIndex={index}
+              sameKindCount={kindCountMap[track.kind] ?? 0}
+              hasClips={Boolean(row && row.actions.length > 0)}
+              onSelect={setSelectedTrackId}
+              onChange={handleTrackPopoverChange}
+              onReorder={handleReorderTrack}
+              onRemove={handleRemoveTrack}
+            />
+          );
+        })}
       </div>
       <div
         ref={timelineWrapperRef}
@@ -199,26 +237,24 @@ function TimelineEditorComponent() {
         onDragLeave={onTimelineDragLeave}
         onDrop={onTimelineDrop}
       >
-        <Timeline
+        <TimelineCanvas
           ref={timelineRef}
-          style={{ width: '100%', height: '100%' }}
-          editorData={immovableRows}
-          effects={data.effects}
-          onChange={onChange}
+          rows={data.rows}
           scale={scale}
           scaleWidth={scaleWidth}
-          minScaleCount={scaleCount}
-          maxScaleCount={scaleCount}
           scaleSplitCount={5}
           startLeft={TIMELINE_START_LEFT}
           rowHeight={ROW_HEIGHT}
-          autoScroll
-          dragLine
+          minScaleCount={scaleCount}
+          maxScaleCount={scaleCount}
           getActionRender={getActionRender}
           onCursorDrag={onCursorDrag}
           onClickTimeArea={onClickTimeArea}
           onActionResizeStart={onActionResizeStart}
           onActionResizeEnd={onActionResizeEnd}
+          marqueeRect={marqueeRect}
+          onEditAreaPointerDown={onMarqueePointerDown}
+          trackLabelRef={trackListRef}
         />
         <DropIndicator ref={indicatorRef} editAreaRef={editAreaRef} />
       </div>

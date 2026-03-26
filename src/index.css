@@ -2226,17 +2226,17 @@
 }
 
 .timeline-scroll::-webkit-scrollbar-track {
-  background: hsla(var(--muted) / 0.4);
+  background: hsl(var(--muted));
 }
 
 .timeline-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary));
-  border-radius: 4px;
+  background: hsl(var(--muted-foreground) / 0.5);
+  border-radius: 5px;
+  border: 2px solid hsl(var(--muted));
 }
 
-/* Ensure thumb stands out in dark mode */
-.dark .timeline-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary-foreground));
+.timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.7);
 }
 
 /* Elegant background animations */

@@ -1,0 +1,208 @@
+{
+  "entries": [
+    {
+      "id": "DEBT-001",
+      "subsystem": "task-deduplication",
+      "concern": "server-generated idempotency keys would break retry deduplication because retried requests get fresh keys.",
+      "flag_ids": [
+        "batch-idempotency-design-gap"
+      ],
+      "plan_ids": [
+        "migrate-all-task-creation-20260325-2354"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-25T23:16:14Z",
+      "updated_at": "2026-03-25T23:16:14Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-002",
+      "subsystem": "optimistic-locking",
+      "concern": "plan only specifies version checking at the db write layer; the ui load/state/save path doesn't carry config_version yet.",
+      "flag_ids": [
+        "timeline-version-propagation"
+      ],
+      "plan_ids": [
+        "build-a-turn-based-timeline-20260326-0005"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-25T23:16:27Z",
+      "updated_at": "2026-03-25T23:16:27Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-003",
+      "subsystem": "realtime-subscriptions",
+      "concern": "the shared realtime system doesn't know about timeline_agent_sessions; step 7 hooks need their own channel subscription.",
+      "flag_ids": [
+        "session-realtime-plumbing"
+      ],
+      "plan_ids": [
+        "build-a-turn-based-timeline-20260326-0005"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-25T23:16:27Z",
+      "updated_at": "2026-03-25T23:16:27Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-004",
+      "subsystem": "conflict-resolution",
+      "concern": "silently reloading agent-originated timeline updates would discard dirty local edits.",
+      "flag_ids": [
+        "remote-reload-data-loss"
+      ],
+      "plan_ids": [
+        "build-a-turn-based-timeline-20260326-0005"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-25T23:16:27Z",
+      "updated_at": "2026-03-25T23:16:27Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-005",
+      "subsystem": "task-system-integration",
+      "concern": "create_generation_task is underspecified against the actual task family system.",
+      "flag_ids": [
+        "task-creation-contract"
+      ],
+      "plan_ids": [
+        "build-a-turn-based-timeline-20260326-0005"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-25T23:16:27Z",
+      "updated_at": "2026-03-25T23:16:27Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-006",
+      "subsystem": "issue-detection",
+      "concern": "mid-sentence-cut detection is not implementable without transcript/profile data that the current provider doesn't expose.",
+      "flag_ids": [
+        "find-issues-transcript-gap"
+      ],
+      "plan_ids": [
+        "build-a-turn-based-timeline-20260326-0005"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-25T23:16:27Z",
+      "updated_at": "2026-03-25T23:16:27Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-007",
+      "subsystem": "agent-chat-rendering",
+      "concern": "removing the duplicate assistant turn may hide message_user text if the frontend only renders assistant-role turns as chat bubbles.",
+      "flag_ids": [
+        "flag-agent-chat-message-user-hidden"
+      ],
+      "plan_ids": [
+        "refactor-ai-timeline-agent-20260326-0157"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T01:04:17Z",
+      "updated_at": "2026-03-26T01:04:17Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-008",
+      "subsystem": "tool-error-propagation",
+      "concern": "a blanket catch in executetool would silently downgrade db/persistence failures into ordinary tool results, changing the session error/http 500 behavior.",
+      "flag_ids": [
+        "flag-tool-error-handling-regression"
+      ],
+      "plan_ids": [
+        "refactor-ai-timeline-agent-20260326-0157"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T01:04:17Z",
+      "updated_at": "2026-03-26T01:04:17Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-009",
+      "subsystem": "selection-save-bridge",
+      "concern": "the plan specifies passing pruneselection into usetimelinesave but doesn't detail the hook-layer bridge needed because usetimelinesave is instantiated inside usetimelinedata before usetimelinestate runs.",
+      "flag_ids": [
+        "multi-select-selection-sync"
+      ],
+      "plan_ids": [
+        "multi-select-timeline-clips-20260326-0415"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T03:26:54Z",
+      "updated_at": "2026-03-26T03:26:54Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-010",
+      "subsystem": "bulk-panel-tabs",
+      "concern": "text clip multi-selections would miss the position tab under the plan's stated rule.",
+      "flag_ids": [
+        "bulk-panel-tab-logic"
+      ],
+      "plan_ids": [
+        "multi-select-feature-parity-20260326-0548"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T05:00:25Z",
+      "updated_at": "2026-03-26T05:00:25Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-011",
+      "subsystem": "properties-panel-scope",
+      "concern": "crop and transition controls are not included in the bulk panel, narrowing the original idea's scope.",
+      "flag_ids": [
+        "properties-parity-crop-transition"
+      ],
+      "plan_ids": [
+        "multi-select-feature-parity-20260326-0548"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T05:00:25Z",
+      "updated_at": "2026-03-26T05:00:25Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-012",
+      "subsystem": "context-menu-scope",
+      "concern": "multi-clip copy is not included despite being mentioned in the original idea.",
+      "flag_ids": [
+        "context-menu-copy-omitted"
+      ],
+      "plan_ids": [
+        "multi-select-feature-parity-20260326-0548"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T05:00:25Z",
+      "updated_at": "2026-03-26T05:00:25Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    }
+  ]
+}

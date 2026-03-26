@@ -1,9 +1,9 @@
 import { useCallback, useRef } from 'react';
-import type { TimelineState } from '@xzdarcy/react-timeline-editor';
 import type { PreviewHandle } from '@/tools/video-editor/components/PreviewPanel/RemotionPreview';
+import type { TimelineCanvasHandle } from '@/tools/video-editor/types/timeline-canvas';
 
 interface UseTimelineSyncOptions {
-  timelineRef: React.RefObject<TimelineState | null>;
+  timelineRef: React.RefObject<TimelineCanvasHandle | null>;
   previewRef: React.RefObject<PreviewHandle | null>;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
   isSyncingFromPreview: React.MutableRefObject<boolean>;

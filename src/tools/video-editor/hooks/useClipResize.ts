@@ -1,8 +1,9 @@
 import { useCallback, useRef } from 'react';
-import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
 import { buildRowTrackPatches } from '@/tools/video-editor/lib/coordinate-utils';
 import { getSourceTime, type ClipMeta, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
 export interface UseClipResizeArgs {
   dataRef: React.MutableRefObject<TimelineData | null>;
@@ -70,7 +71,7 @@ export function useClipResize({
       };
     }
 
-    const nextRows = current.rows.map((entry) => {
+    let nextRows = current.rows.map((entry) => {
       if (entry.id !== row.id) {
         return entry;
       }
@@ -85,7 +86,12 @@ export function useClipResize({
       };
     });
 
-    applyTimelineEdit(nextRows, metaUpdates);
+    // Trim the resized clip if it overlaps existing siblings
+    const { rows: resolvedRows, metaPatches: overlapPatches } = resolveOverlaps(
+      nextRows, row.id, action.id, current.meta,
+    );
+
+    applyTimelineEdit(resolvedRows, { ...metaUpdates, ...overlapPatches });
     delete resizeStartRef.current[action.id];
   }, [applyTimelineEdit, dataRef]);
 

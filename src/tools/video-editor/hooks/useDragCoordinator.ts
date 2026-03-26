@@ -8,6 +8,7 @@ import {
   computeDropPosition,
   type DropPosition,
 } from '@/tools/video-editor/lib/drop-position';
+import type { GhostRect } from '@/tools/video-editor/lib/multi-drag-utils';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackKind } from '@/tools/video-editor/types';
 
@@ -19,6 +20,8 @@ export interface DragCoordinator {
     clipDuration?: number;
     clipOffsetX?: number;
   }): DropPosition;
+  /** Show ghost outlines for secondary clips (non-anchor) during multi-drag. */
+  showSecondaryGhosts(ghosts: GhostRect[]): void;
   end(): void;
   lastPosition: DropPosition | null;
 }
@@ -45,6 +48,7 @@ const buildFallbackPosition = (rowHeight: number, sourceKind: TrackKind | null):
   trackName: '',
   isNewTrack: false,
   isReject: false,
+  newTrackKind: null,
   screenCoords: {
     rowTop: 0,
     rowLeft: 0,
@@ -71,6 +75,7 @@ const toIndicatorPosition = (position: DropPosition): DropIndicatorPosition => {
     ghostLabel: timeLabel,
     label: position.trackName ? `${position.trackName} · ${timeLabel}` : timeLabel,
     isNewTrack: position.isNewTrack,
+    newTrackKind: position.newTrackKind,
     reject: position.isReject,
   };
 };
@@ -147,6 +152,10 @@ export function useDragCoordinator({
     return nextPosition;
   }, [dataRef, flushIndicator, rowHeight, scale, scaleWidth, startLeft]);
 
+  const showSecondaryGhosts = useCallback((ghosts: GhostRect[]) => {
+    indicatorRef.current?.showSecondaryGhosts(ghosts);
+  }, []);
+
   useEffect(() => {
     return () => {
       end();
@@ -155,11 +164,12 @@ export function useDragCoordinator({
 
   const coordinator = useMemo<DragCoordinator>(() => ({
     update,
+    showSecondaryGhosts,
     end,
     get lastPosition() {
       return lastPositionRef.current;
     },
-  }), [end, update]);
+  }), [end, showSecondaryGhosts, update]);
 
   return {
     coordinator,

@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
+import { useCallback, useLayoutEffect, useMemo } from 'react';
 import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
 import { ROW_HEIGHT, TIMELINE_START_LEFT } from '@/tools/video-editor/lib/coordinate-utils';
 import { useAssetManagement } from '@/tools/video-editor/hooks/useAssetManagement';
 import { useClipEditing } from '@/tools/video-editor/hooks/useClipEditing';
 import { useClipResize } from '@/tools/video-editor/hooks/useClipResize';
+import { useDerivedTimeline } from '@/tools/video-editor/hooks/useDerivedTimeline';
 import { useTimelineData } from '@/tools/video-editor/hooks/useTimelineData';
 import { useDragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import { useExternalDrop } from '@/tools/video-editor/hooks/useExternalDrop';
+import { useMultiSelect, type SelectClipOptions } from '@/tools/video-editor/hooks/useMultiSelect';
 import { useTimelinePlayback } from '@/tools/video-editor/hooks/useTimelinePlayback';
 import type {
   TimelineChromeContextValue,
@@ -19,11 +21,123 @@ import { useTimelineTrackManagement } from '@/tools/video-editor/hooks/useTimeli
 
 export type { SaveStatus, RenderStatus, EditorPreferences } from '@/tools/video-editor/hooks/useTimelineData';
 
+const getFirstSelectedClipId = (clipIds: ReadonlySet<string>): string | null => {
+  for (const clipId of clipIds) {
+    return clipId;
+  }
+
+  return null;
+};
+
+const getPrimaryClipId = (
+  clipIds: ReadonlySet<string>,
+  preferredClipId: string | null,
+): string | null => {
+  if (preferredClipId && clipIds.has(preferredClipId)) {
+    return preferredClipId;
+  }
+
+  return getFirstSelectedClipId(clipIds);
+};
+
 export function useTimelineState(): UseTimelineStateResult {
   const runtime = useVideoEditorRuntime();
   const playback = useTimelinePlayback();
   const dataHook = useTimelineData();
+  const multiSelect = useMultiSelect();
+  const {
+    addToSelection: addToSelectionState,
+    clearSelection: clearSelectionState,
+    isClipSelected,
+    primaryClipId,
+    pruneSelection,
+    selectClip: selectClipState,
+    selectClips: selectClipsState,
+    selectedClipIds,
+    selectedClipIdsRef,
+  } = multiSelect;
+  const selectionDerived = useDerivedTimeline(
+    dataHook.data,
+    primaryClipId,
+    dataHook.selectedTrackId,
+  );
   const { selectedProjectId } = useProjectSelectionContext();
+
+  const selectClip = useCallback((clipId: string, opts?: SelectClipOptions) => {
+    let nextPrimaryClipId = clipId;
+
+    if (opts?.toggle) {
+      const nextSelection = new Set(selectedClipIdsRef.current);
+      if (nextSelection.has(clipId)) {
+        nextSelection.delete(clipId);
+        nextPrimaryClipId = getPrimaryClipId(
+          nextSelection,
+          primaryClipId === clipId ? null : primaryClipId,
+        );
+      }
+    }
+
+    selectClipState(clipId, opts);
+    dataHook.setSelectedClipId(nextPrimaryClipId);
+  }, [dataHook, primaryClipId, selectClipState, selectedClipIdsRef]);
+
+  const selectClips = useCallback((clipIds: Iterable<string>) => {
+    const nextSelection = new Set<string>();
+    for (const clipId of clipIds) {
+      nextSelection.add(clipId);
+    }
+
+    selectClipsState(nextSelection);
+    dataHook.setSelectedClipId(getPrimaryClipId(nextSelection, null));
+  }, [dataHook, selectClipsState]);
+
+  const addToSelection = useCallback((clipIds: Iterable<string>) => {
+    const nextSelection = new Set(selectedClipIdsRef.current);
+    const nextClipIds = new Set<string>();
+    for (const clipId of clipIds) {
+      nextSelection.add(clipId);
+      nextClipIds.add(clipId);
+    }
+
+    addToSelectionState(nextClipIds);
+    dataHook.setSelectedClipId(getPrimaryClipId(nextSelection, primaryClipId));
+  }, [addToSelectionState, dataHook, primaryClipId, selectedClipIdsRef]);
+
+  const clearSelection = useCallback(() => {
+    clearSelectionState();
+    dataHook.setSelectedClipId(null);
+  }, [clearSelectionState, dataHook]);
+
+  const setSelectedClipId = useCallback<React.Dispatch<React.SetStateAction<string | null>>>((updater) => {
+    const nextClipId = typeof updater === 'function'
+      ? updater(primaryClipId)
+      : updater;
+
+    if (nextClipId === null) {
+      clearSelection();
+      return;
+    }
+
+    selectClip(nextClipId);
+  }, [clearSelection, primaryClipId, selectClip]);
+
+  useLayoutEffect(() => {
+    dataHook.pruneSelectionRef.current = pruneSelection;
+
+    return () => {
+      if (dataHook.pruneSelectionRef.current === pruneSelection) {
+        dataHook.pruneSelectionRef.current = null;
+      }
+    };
+  }, [dataHook.pruneSelectionRef, pruneSelection]);
+
+  useLayoutEffect(() => {
+    if (!dataHook.selectedClipId || dataHook.selectedClipId === primaryClipId) {
+      return;
+    }
+
+    selectClipState(dataHook.selectedClipId);
+  }, [dataHook.selectedClipId, primaryClipId, selectClipState]);
 
   const dragCoordinator = useDragCoordinator({
     dataRef: dataHook.dataRef,
@@ -37,7 +151,7 @@ export function useTimelineState(): UseTimelineStateResult {
     dataRef: dataHook.dataRef,
     selectedTrackId: dataHook.selectedTrackId,
     selectedProjectId,
-    setSelectedClipId: dataHook.setSelectedClipId,
+    setSelectedClipId,
     setSelectedTrackId: dataHook.setSelectedTrackId,
     applyTimelineEdit: dataHook.applyTimelineEdit,
     patchRegistry: dataHook.patchRegistry,
@@ -71,11 +185,11 @@ export function useTimelineState(): UseTimelineStateResult {
 
   const clipEditing = useClipEditing({
     dataRef: dataHook.dataRef,
-    resolvedConfig: dataHook.resolvedConfig,
-    selectedClipId: dataHook.selectedClipId,
-    selectedTrack: dataHook.selectedTrack,
+    resolvedConfig: selectionDerived.resolvedConfig,
+    selectedClipId: primaryClipId,
+    selectedTrack: selectionDerived.selectedTrack,
     currentTime: playback.currentTime,
-    setSelectedClipId: dataHook.setSelectedClipId,
+    setSelectedClipId,
     setSelectedTrackId: dataHook.setSelectedTrackId,
     applyTimelineEdit: dataHook.applyTimelineEdit,
     applyResolvedConfigEdit: dataHook.applyResolvedConfigEdit,
@@ -83,8 +197,8 @@ export function useTimelineState(): UseTimelineStateResult {
 
   const trackManagement = useTimelineTrackManagement({
     dataRef: dataHook.dataRef,
-    resolvedConfig: dataHook.resolvedConfig,
-    selectedClipId: dataHook.selectedClipId,
+    resolvedConfig: selectionDerived.resolvedConfig,
+    selectedClipId: primaryClipId,
     setSelectedTrackId: dataHook.setSelectedTrackId,
     applyTimelineEdit: dataHook.applyTimelineEdit,
     applyResolvedConfigEdit: dataHook.applyResolvedConfigEdit,
@@ -92,12 +206,15 @@ export function useTimelineState(): UseTimelineStateResult {
 
   const editor = useMemo<TimelineEditorContextValue>(() => ({
     data: dataHook.data,
-    resolvedConfig: dataHook.resolvedConfig,
-    selectedClipId: dataHook.selectedClipId,
+    resolvedConfig: selectionDerived.resolvedConfig,
+    selectedClipId: primaryClipId,
+    selectedClipIds,
+    selectedClipIdsRef,
     selectedTrackId: dataHook.selectedTrackId,
-    selectedClip: dataHook.selectedClip,
-    selectedTrack: dataHook.selectedTrack,
-    selectedClipHasPredecessor: dataHook.selectedClipHasPredecessor,
+    primaryClipId,
+    selectedClip: selectionDerived.selectedClip,
+    selectedTrack: selectionDerived.selectedTrack,
+    selectedClipHasPredecessor: selectionDerived.selectedClipHasPredecessor,
     compositionSize: dataHook.compositionSize,
     trackScaleMap: dataHook.trackScaleMap,
     scale: dataHook.scale,
@@ -110,7 +227,12 @@ export function useTimelineState(): UseTimelineStateResult {
     preferences: dataHook.preferences,
     timelineRef: playback.timelineRef,
     timelineWrapperRef: playback.timelineWrapperRef,
-    setSelectedClipId: dataHook.setSelectedClipId,
+    setSelectedClipId,
+    isClipSelected,
+    selectClip,
+    selectClips,
+    addToSelection,
+    clearSelection,
     setSelectedTrackId: dataHook.setSelectedTrackId,
     setActiveClipTab: dataHook.setActiveClipTab,
     setAssetPanelState: dataHook.setAssetPanelState,
@@ -119,54 +241,63 @@ export function useTimelineState(): UseTimelineStateResult {
     onClickTimeArea: playback.onClickTimeArea,
     onActionResizeStart: clipResize.onActionResizeStart,
     onActionResizeEnd: clipResize.onActionResizeEnd,
-    onChange: clipEditing.onChange,
     onOverlayChange: clipEditing.onOverlayChange,
     onTimelineDragOver: externalDrop.onTimelineDragOver,
     onTimelineDragLeave: externalDrop.onTimelineDragLeave,
     onTimelineDrop: externalDrop.onTimelineDrop,
     handleAssetDrop: assetManagement.handleAssetDrop,
+    handleUpdateClips: clipEditing.handleUpdateClips,
+    handleUpdateClipsDeep: clipEditing.handleUpdateClipsDeep,
+    handleDeleteClips: clipEditing.handleDeleteClips,
     handleDeleteClip: clipEditing.handleDeleteClip,
     handleSelectedClipChange: clipEditing.handleSelectedClipChange,
     handleResetClipPosition: clipEditing.handleResetClipPosition,
+    handleResetClipsPosition: clipEditing.handleResetClipsPosition,
     handleSplitSelectedClip: clipEditing.handleSplitSelectedClip,
     handleSplitClipAtTime: clipEditing.handleSplitClipAtTime,
+    handleSplitClipsAtPlayhead: clipEditing.handleSplitClipsAtPlayhead,
+    handleToggleMuteClips: clipEditing.handleToggleMuteClips,
     handleToggleMute: clipEditing.handleToggleMute,
     handleTrackPopoverChange: trackManagement.handleTrackPopoverChange,
     handleReorderTrack: trackManagement.handleReorderTrack,
     handleRemoveTrack: trackManagement.handleRemoveTrack,
     moveSelectedClipToTrack: trackManagement.moveSelectedClipToTrack,
+    moveSelectedClipsToTrack: trackManagement.moveSelectedClipsToTrack,
     moveClipToRow: trackManagement.moveClipToRow,
     createTrackAndMoveClip: trackManagement.createTrackAndMoveClip,
     uploadFiles: dataHook.uploadFiles,
+    applyTimelineEdit: dataHook.applyTimelineEdit,
   }), [
     dataHook.compositionSize,
     dataHook.data,
     dataHook.dataRef,
     dataHook.isLoading,
     dataHook.preferences,
-    dataHook.resolvedConfig,
     dataHook.scale,
     dataHook.scaleWidth,
-    dataHook.selectedClip,
-    dataHook.selectedClipHasPredecessor,
-    dataHook.selectedClipId,
-    dataHook.selectedTrack,
     dataHook.selectedTrackId,
     dataHook.setActiveClipTab,
     dataHook.setAssetPanelState,
-    dataHook.setSelectedClipId,
     dataHook.setSelectedTrackId,
     dataHook.trackScaleMap,
     dataHook.uploadFiles,
+    dataHook.applyTimelineEdit,
+    addToSelection,
     assetManagement.handleAssetDrop,
     assetManagement.registerGenerationAsset,
+    clearSelection,
     clipEditing.handleDeleteClip,
+    clipEditing.handleDeleteClips,
     clipEditing.handleResetClipPosition,
+    clipEditing.handleResetClipsPosition,
     clipEditing.handleSelectedClipChange,
     clipEditing.handleSplitSelectedClip,
     clipEditing.handleSplitClipAtTime,
+    clipEditing.handleSplitClipsAtPlayhead,
+    clipEditing.handleToggleMuteClips,
     clipEditing.handleToggleMute,
-    clipEditing.onChange,
+    clipEditing.handleUpdateClips,
+    clipEditing.handleUpdateClipsDeep,
     clipEditing.onOverlayChange,
     clipResize.onActionResizeEnd,
     clipResize.onActionResizeStart,
@@ -176,16 +307,28 @@ export function useTimelineState(): UseTimelineStateResult {
     externalDrop.onTimelineDragLeave,
     externalDrop.onTimelineDragOver,
     externalDrop.onTimelineDrop,
+    isClipSelected,
     playback.onClickTimeArea,
     playback.onCursorDrag,
     playback.timelineRef,
     playback.timelineWrapperRef,
+    primaryClipId,
+    selectClip,
+    selectClips,
+    selectedClipIds,
+    selectedClipIdsRef,
+    selectionDerived.resolvedConfig,
+    selectionDerived.selectedClip,
+    selectionDerived.selectedClipHasPredecessor,
+    selectionDerived.selectedTrack,
+    setSelectedClipId,
     trackManagement.createTrackAndMoveClip,
     trackManagement.handleRemoveTrack,
     trackManagement.handleReorderTrack,
     trackManagement.handleTrackPopoverChange,
     trackManagement.moveClipToRow,
     trackManagement.moveSelectedClipToTrack,
+    trackManagement.moveSelectedClipsToTrack,
   ]);
 
   const chrome = useMemo<TimelineChromeContextValue>(() => ({

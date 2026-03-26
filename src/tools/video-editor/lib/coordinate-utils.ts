@@ -74,7 +74,8 @@ export const getCompatibleTrackId = (
 
   if (desiredTrackId) {
     const exact = compatibleTracks.find((track) => track.id === desiredTrackId);
-    return exact?.id ?? null;
+    if (exact) return exact.id;
+    // Desired track is incompatible — fall through to find another compatible one
   }
 
   if (selectedTrackId) {

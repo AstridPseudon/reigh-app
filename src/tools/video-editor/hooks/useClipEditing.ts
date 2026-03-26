@@ -1,14 +1,11 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
 import {
   getVisualTracks,
   splitClipAtPlayhead,
-  toggleClipMute,
   updateClipInConfig,
 } from '@/tools/video-editor/lib/editor-utils';
 import {
-  buildRowTrackPatches,
   updateClipOrder,
 } from '@/tools/video-editor/lib/coordinate-utils';
 import {
@@ -17,6 +14,7 @@ import {
   type TimelineData,
 } from '@/tools/video-editor/lib/timeline-data';
 import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 
 export interface UseClipEditingArgs {
   dataRef: MutableRefObject<TimelineData | null>;
@@ -31,13 +29,18 @@ export interface UseClipEditingArgs {
 }
 
 export interface UseClipEditingResult {
-  onChange: (nextRows: TimelineRow[]) => boolean | undefined;
   onOverlayChange: (actionId: string, patch: Partial<ClipMeta>) => void;
+  handleUpdateClips: (clipIds: string[], patch: Partial<ClipMeta>) => void;
+  handleUpdateClipsDeep: (clipIds: string[], patchFn: (existing: ClipMeta) => Partial<ClipMeta>) => void;
+  handleDeleteClips: (clipIds: string[]) => void;
   handleDeleteClip: (clipId: string) => void;
   handleSelectedClipChange: (patch: Partial<ClipMeta> & { at?: number }) => void;
   handleResetClipPosition: () => void;
+  handleResetClipsPosition: (clipIds: string[]) => void;
   handleSplitSelectedClip: () => void;
   handleSplitClipAtTime: (clipId: string, timeSeconds: number) => void;
+  handleSplitClipsAtPlayhead: (clipIds: string[]) => void;
+  handleToggleMuteClips: (clipIds: string[]) => void;
   handleToggleMute: () => void;
   handleAddText: () => void;
 }
@@ -59,12 +62,6 @@ export function useClipEditing({
     currentTimeRef.current = currentTime;
   }, [currentTime]);
 
-  const onChange = useCallback((nextRows: TimelineRow[]) => {
-    // With `movable: false`, the timeline library only reports resize-driven row updates here.
-    applyTimelineEdit(nextRows, buildRowTrackPatches(nextRows));
-    return undefined;
-  }, [applyTimelineEdit]);
-
   const onOverlayChange = useCallback((actionId: string, patch: Partial<ClipMeta>) => {
     const current = dataRef.current;
     if (!current) {
@@ -74,25 +71,95 @@ export function useClipEditing({
     applyTimelineEdit(current.rows, { [actionId]: patch });
   }, [applyTimelineEdit, dataRef]);
 
-  const handleDeleteClip = useCallback((clipId: string) => {
-    if (clipId.startsWith('uploading-')) {
-      return;
+  const getValidClipIds = useCallback((clipIds: string[]) => {
+    const current = dataRef.current;
+    if (!current) {
+      return [];
     }
 
+    const uniqueClipIds = new Set<string>();
+    for (const clipId of clipIds) {
+      if (clipId.startsWith('uploading-') || !current.meta[clipId]) {
+        continue;
+      }
+
+      uniqueClipIds.add(clipId);
+    }
+
+    return [...uniqueClipIds];
+  }, [dataRef]);
+
+  const handleUpdateClips = useCallback((clipIds: string[], patch: Partial<ClipMeta>) => {
     const current = dataRef.current;
     if (!current) {
       return;
     }
 
+    const validClipIds = getValidClipIds(clipIds);
+    if (validClipIds.length === 0) {
+      return;
+    }
+
+    const metaUpdates = Object.fromEntries(
+      validClipIds.map((clipId) => [clipId, patch]),
+    ) as Record<string, Partial<ClipMeta>>;
+
+    applyTimelineEdit(current.rows, metaUpdates);
+  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+
+  const handleUpdateClipsDeep = useCallback((
+    clipIds: string[],
+    patchFn: (existing: ClipMeta) => Partial<ClipMeta>,
+  ) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const validClipIds = getValidClipIds(clipIds);
+    if (validClipIds.length === 0) {
+      return;
+    }
+
+    const metaUpdates: Record<string, Partial<ClipMeta>> = {};
+
+    for (const clipId of validClipIds) {
+      const existing = current.meta[clipId];
+      if (!existing) {
+        continue;
+      }
+
+      metaUpdates[clipId] = patchFn(existing);
+    }
+
+    if (Object.keys(metaUpdates).length === 0) {
+      return;
+    }
+
+    applyTimelineEdit(current.rows, metaUpdates);
+  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+
+  const handleDeleteClips = useCallback((clipIds: string[]) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const clipIdSet = new Set(getValidClipIds(clipIds));
+    if (clipIdSet.size === 0) {
+      return;
+    }
+
     const nextRows = current.rows.map((row) => ({
       ...row,
-      actions: row.actions.filter((action) => action.id !== clipId),
+      actions: row.actions.filter((action) => !clipIdSet.has(action.id)),
     }));
-    applyTimelineEdit(nextRows, undefined, [clipId]);
-    if (selectedClipId === clipId) {
-      setSelectedClipId(null);
-    }
-  }, [applyTimelineEdit, dataRef, selectedClipId, setSelectedClipId]);
+    applyTimelineEdit(nextRows, undefined, [...clipIdSet]);
+  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+
+  const handleDeleteClip = useCallback((clipId: string) => {
+    handleDeleteClips([clipId]);
+  }, [handleDeleteClips]);
 
   const handleSelectedClipChange = useCallback((patch: Partial<ClipMeta> & { at?: number }) => {
     const current = dataRef.current;
@@ -150,6 +217,33 @@ export function useClipEditing({
     applyResolvedConfigEdit(nextConfig, { selectedClipId });
   }, [applyResolvedConfigEdit, resolvedConfig, selectedClipId]);
 
+  const handleResetClipsPosition = useCallback((clipIds: string[]) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const validClipIds = getValidClipIds(clipIds);
+    if (validClipIds.length === 0) {
+      return;
+    }
+
+    const metaUpdates = Object.fromEntries(
+      validClipIds.map((clipId) => [clipId, {
+        x: undefined,
+        y: undefined,
+        width: undefined,
+        height: undefined,
+        cropTop: undefined,
+        cropBottom: undefined,
+        cropLeft: undefined,
+        cropRight: undefined,
+      }]),
+    ) as Record<string, Partial<ClipMeta>>;
+
+    applyTimelineEdit(current.rows, metaUpdates);
+  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+
   const handleSplitSelectedClip = useCallback(() => {
     if (!selectedClipId || !resolvedConfig) {
       return;
@@ -176,14 +270,88 @@ export function useClipEditing({
     applyResolvedConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
   }, [applyResolvedConfigEdit, resolvedConfig]);
 
+  const handleSplitClipsAtPlayhead = useCallback((clipIds: string[]) => {
+    const current = dataRef.current;
+    if (!current || !resolvedConfig) {
+      return;
+    }
+
+    const validClipIds = getValidClipIds(clipIds);
+    if (validClipIds.length === 0) {
+      return;
+    }
+
+    const currentTime = currentTimeRef.current;
+    const intersectingClipIds = new Set<string>();
+
+    for (const row of current.rows) {
+      for (const action of row.actions) {
+        if (
+          validClipIds.includes(action.id)
+          && action.start <= currentTime
+          && currentTime < action.end
+        ) {
+          intersectingClipIds.add(action.id);
+        }
+      }
+    }
+
+    if (intersectingClipIds.size === 0) {
+      return;
+    }
+
+    let nextResolvedConfig = resolvedConfig;
+    let didSplit = false;
+
+    for (const clipId of validClipIds) {
+      if (!intersectingClipIds.has(clipId)) {
+        continue;
+      }
+
+      const splitResult = splitClipAtPlayhead(nextResolvedConfig, clipId, currentTime);
+      if (!splitResult.nextSelectedClipId) {
+        continue;
+      }
+
+      nextResolvedConfig = splitResult.config;
+      didSplit = true;
+    }
+
+    if (!didSplit) {
+      return;
+    }
+
+    applyResolvedConfigEdit(nextResolvedConfig);
+  }, [applyResolvedConfigEdit, dataRef, getValidClipIds, resolvedConfig]);
+
+  const handleToggleMuteClips = useCallback((clipIds: string[]) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const validClipIds = getValidClipIds(clipIds);
+    if (validClipIds.length === 0) {
+      return;
+    }
+
+    const metaUpdates = Object.fromEntries(
+      validClipIds.map((clipId) => {
+        const volume = current.meta[clipId]?.volume ?? 1;
+        return [clipId, { volume: volume <= 0 ? 1 : 0 }];
+      }),
+    ) as Record<string, Partial<ClipMeta>>;
+
+    applyTimelineEdit(current.rows, metaUpdates);
+  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+
   const handleToggleMute = useCallback(() => {
     if (!selectedClipId || !resolvedConfig) {
       return;
     }
 
-    const nextConfig = toggleClipMute(resolvedConfig, selectedClipId);
-    applyResolvedConfigEdit(nextConfig, { selectedClipId });
-  }, [applyResolvedConfigEdit, resolvedConfig, selectedClipId]);
+    handleToggleMuteClips([selectedClipId]);
+  }, [handleToggleMuteClips, resolvedConfig, selectedClipId]);
 
   const handleAddText = useCallback(() => {
     const current = dataRef.current;
@@ -233,13 +401,18 @@ export function useClipEditing({
   }, [applyTimelineEdit, dataRef, selectedTrack, setSelectedClipId, setSelectedTrackId]);
 
   return {
-    onChange,
     onOverlayChange,
+    handleUpdateClips,
+    handleUpdateClipsDeep,
+    handleDeleteClips,
     handleDeleteClip,
     handleSelectedClipChange,
     handleResetClipPosition,
+    handleResetClipsPosition,
     handleSplitSelectedClip,
     handleSplitClipAtTime,
+    handleSplitClipsAtPlayhead,
+    handleToggleMuteClips,
     handleToggleMute,
     handleAddText,
   };

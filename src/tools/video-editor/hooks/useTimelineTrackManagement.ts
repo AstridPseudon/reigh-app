@@ -4,6 +4,7 @@ import { DEFAULT_VIDEO_TRACKS } from '@/tools/video-editor/lib/defaults';
 import type { TrackDefinition, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
 
 export interface UseTimelineTrackManagementArgs {
@@ -25,6 +26,7 @@ export interface UseTimelineTrackManagementResult {
   moveClipToRow: (clipId: string, targetRowId: string, newStartTime?: number) => void;
   createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number) => void;
   moveSelectedClipToTrack: (direction: 'up' | 'down') => void;
+  moveSelectedClipsToTrack: (direction: 'up' | 'down', selectedClipIds: ReadonlySet<string>) => void;
 }
 
 export function useTimelineTrackManagement({
@@ -57,7 +59,7 @@ export function useTimelineTrackManagement({
     const duration = action.end - action.start;
     const nextStart = typeof newStartTime === 'number' ? Math.max(0, newStartTime) : action.start;
     const nextAction = { ...action, start: nextStart, end: nextStart + duration };
-    const nextRows = current.rows.map((row) => {
+    let placedRows = current.rows.map((row) => {
       if (sourceRow.id === targetRow.id && row.id === sourceRow.id) {
         return {
           ...row,
@@ -76,8 +78,18 @@ export function useTimelineTrackManagement({
       return row;
     });
 
+    // Trim the moved clip if it overlaps existing siblings
+    const { rows: resolvedRows, metaPatches } = resolveOverlaps(
+      placedRows, targetRow.id, clipId, current.meta,
+    );
+
     const nextClipOrder = moveClipBetweenTracks(current.clipOrder, clipId, sourceRow.id, targetRow.id);
-    applyTimelineEdit(nextRows, { [clipId]: { track: targetRow.id } }, undefined, nextClipOrder);
+    applyTimelineEdit(
+      resolvedRows,
+      { [clipId]: { track: targetRow.id }, ...metaPatches },
+      undefined,
+      nextClipOrder,
+    );
   }, [applyTimelineEdit, dataRef]);
 
   const createTrackAndMoveClip = useCallback((clipId: string, kind: TrackKind, newStartTime?: number) => {
@@ -150,6 +162,102 @@ export function useTimelineTrackManagement({
         setSelectedTrackId(targetTrack.id);
         return;
       }
+    }
+  }, [dataRef, moveClipToRow, selectedClipId, setSelectedTrackId]);
+
+  const moveSelectedClipsToTrack = useCallback((
+    direction: 'up' | 'down',
+    selectedClipIds: ReadonlySet<string>,
+  ) => {
+    const current = dataRef.current;
+    if (!current || selectedClipIds.size === 0) {
+      return;
+    }
+
+    const trackById = new Map(current.tracks.map((track) => [track.id, track]));
+    const groupsByRow = new Map<string, { clipIds: string[]; rowIndex: number; kind: TrackKind }>();
+
+    current.rows.forEach((row, rowIndex) => {
+      const sourceTrack = trackById.get(row.id);
+      if (!sourceTrack) {
+        return;
+      }
+
+      const rowClipIds = row.actions
+        .map((action) => action.id)
+        .filter((clipId) => selectedClipIds.has(clipId));
+      if (rowClipIds.length === 0) {
+        return;
+      }
+
+      groupsByRow.set(row.id, {
+        clipIds: rowClipIds,
+        rowIndex,
+        kind: sourceTrack.kind,
+      });
+    });
+
+    if (groupsByRow.size === 0) {
+      return;
+    }
+
+    const plannedMoves: Array<{ clipId: string; targetRowId: string }> = [];
+
+    for (const kind of ['visual', 'audio'] as const) {
+      const kindGroups = [...groupsByRow.values()].filter((group) => group.kind === kind);
+      if (kindGroups.length === 0) {
+        continue;
+      }
+
+      const kindMoves: Array<{ clipId: string; targetRowId: string }> = [];
+      let isBlocked = false;
+
+      for (const group of kindGroups) {
+        let targetRowIndex = group.rowIndex;
+        let targetRowId: string | null = null;
+
+        while (true) {
+          targetRowIndex += direction === 'up' ? -1 : 1;
+          if (targetRowIndex < 0 || targetRowIndex >= current.rows.length) {
+            isBlocked = true;
+            break;
+          }
+
+          const targetTrack = trackById.get(current.rows[targetRowIndex]?.id ?? '');
+          if (targetTrack?.kind === kind) {
+            targetRowId = targetTrack.id;
+            break;
+          }
+        }
+
+        if (isBlocked || !targetRowId) {
+          isBlocked = true;
+          break;
+        }
+
+        for (const clipId of group.clipIds) {
+          kindMoves.push({ clipId, targetRowId });
+        }
+      }
+
+      if (!isBlocked) {
+        plannedMoves.push(...kindMoves);
+      }
+    }
+
+    if (plannedMoves.length === 0) {
+      return;
+    }
+
+    for (const move of plannedMoves) {
+      moveClipToRow(move.clipId, move.targetRowId);
+    }
+
+    const primaryMove = selectedClipId
+      ? plannedMoves.find((move) => move.clipId === selectedClipId)
+      : plannedMoves[0];
+    if (primaryMove) {
+      setSelectedTrackId(primaryMove.targetRowId);
     }
   }, [dataRef, moveClipToRow, selectedClipId, setSelectedTrackId]);
 
@@ -229,7 +337,38 @@ export function useTimelineTrackManagement({
 
     const tracksWithClips = new Set(resolvedConfig.clips.map((clip) => clip.track));
     const defaultTrackIds = new Set(DEFAULT_VIDEO_TRACKS.map((track) => track.id));
-    return resolvedConfig.tracks.filter((track) => !tracksWithClips.has(track.id) && !defaultTrackIds.has(track.id)).length;
+
+    // Count how many tracks would actually be removed (matching handleClearUnusedTracks logic).
+    // We always keep at least one track per kind, even if it's empty.
+    let keptEmptyVisual = false;
+    let keptEmptyAudio = false;
+    let removable = 0;
+
+    for (const track of resolvedConfig.tracks) {
+      if (defaultTrackIds.has(track.id) || tracksWithClips.has(track.id)) {
+        continue;
+      }
+
+      if (track.kind === 'visual' && !keptEmptyVisual) {
+        const hasVisualWithClips = resolvedConfig.tracks.some((t) => t.kind === 'visual' && tracksWithClips.has(t.id));
+        if (!hasVisualWithClips) {
+          keptEmptyVisual = true;
+          continue;
+        }
+      }
+
+      if (track.kind === 'audio' && !keptEmptyAudio) {
+        const hasAudioWithClips = resolvedConfig.tracks.some((t) => t.kind === 'audio' && tracksWithClips.has(t.id));
+        if (!hasAudioWithClips) {
+          keptEmptyAudio = true;
+          continue;
+        }
+      }
+
+      removable++;
+    }
+
+    return removable;
   }, [resolvedConfig]);
 
   const handleClearUnusedTracks = useCallback(() => {
@@ -277,5 +416,6 @@ export function useTimelineTrackManagement({
     moveClipToRow,
     createTrackAndMoveClip,
     moveSelectedClipToTrack,
+    moveSelectedClipsToTrack,
   };
 }

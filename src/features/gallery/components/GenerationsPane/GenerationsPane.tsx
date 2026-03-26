@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ExternalLink } from 'lucide-react';
+import { Sparkles, Images } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { ImageGenerationModal } from '@/shared/components/modals/ImageGenerationModal';
 import { DeleteGenerationConfirmDialog } from '@/shared/components/dialogs/DeleteGenerationConfirmDialog';
@@ -73,7 +73,7 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
           onClick: navigation.handleNavigateToImageGeneration,
           ariaLabel: 'Go to Image Generation tool',
           tooltip: 'Go to Image Generation tool',
-          content: <ExternalLink className="h-4 w-4" />,
+          content: <Images className="h-4 w-4" />,
         },
         fourthButton: {
           onClick: () => modal.setIsGenerationModalOpen(true),

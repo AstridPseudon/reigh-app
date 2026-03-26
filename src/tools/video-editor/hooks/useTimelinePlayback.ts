@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import type { TimelineState } from '@xzdarcy/react-timeline-editor';
 import type { PreviewHandle } from '@/tools/video-editor/components/PreviewPanel/RemotionPreview';
 import { useTimelineSync } from '@/tools/video-editor/hooks/useTimelineSync';
+import type { TimelineCanvasHandle } from '@/tools/video-editor/types/timeline-canvas';
 
 export interface UseTimelinePlaybackResult {
   currentTime: number;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
-  timelineRef: React.RefObject<TimelineState | null>;
+  timelineRef: React.RefObject<TimelineCanvasHandle | null>;
   previewRef: React.RefObject<PreviewHandle | null>;
   playerContainerRef: React.RefObject<HTMLDivElement | null>;
   timelineWrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -17,7 +17,7 @@ export interface UseTimelinePlaybackResult {
 }
 
 export function useTimelinePlayback(): UseTimelinePlaybackResult {
-  const timelineRef = useRef<TimelineState>(null);
+  const timelineRef = useRef<TimelineCanvasHandle>(null);
   const previewRef = useRef<PreviewHandle>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const timelineWrapperRef = useRef<HTMLDivElement | null>(null);

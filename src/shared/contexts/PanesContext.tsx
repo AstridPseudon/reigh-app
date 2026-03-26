@@ -139,7 +139,7 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const viewportHeight = window.innerHeight;
   const editorVisible = locks.editor || isEditorPaneOpenState;
   const generationsVisible = locks.gens || isGenerationsPaneOpenState;
-  const editorFraction = locks.gens ? 0.7 : 0.9;
+  const editorFraction = (locks.editor || locks.gens) ? 0.5 : 0.9;
   const editorPaneHeight = Math.round(viewportHeight * editorFraction);
   const bothVisible = editorVisible && generationsVisible;
 
@@ -164,12 +164,12 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setTasksPaneWidthState(width);
   }, []);
 
+  // When both panes are visible, split the viewport evenly (50/50).
   const { effectiveEditorPaneHeight, effectiveGenerationsPaneHeight } = bothVisible
-    ? getEffectivePaneHeights({
-      viewportHeight,
-      idealEditorPaneHeight: editorPaneHeight,
-      generationsPaneHeight,
-    })
+    ? {
+      effectiveEditorPaneHeight: Math.round(viewportHeight * 0.5),
+      effectiveGenerationsPaneHeight: Math.round(viewportHeight * 0.5),
+    }
     : {
       effectiveEditorPaneHeight: editorPaneHeight,
       effectiveGenerationsPaneHeight: generationsPaneHeight,

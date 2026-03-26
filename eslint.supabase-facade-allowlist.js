@@ -123,6 +123,8 @@ export const supabaseFacadeAllowlist = [
   'src/tools/character-animate/pages/uploadMedia.ts',
   'src/tools/edit-images/pages/EditImagesPage.tsx',
   'src/tools/edit-video/pages/EditVideoPage.tsx',
+  'src/tools/video-editor/data/SupabaseDataProvider.ts',
+  'src/tools/video-editor/hooks/useAgentSession.ts',
   'src/tools/training-data-helper/hooks/useTrainingData.ts',
   'src/tools/training-data-helper/hooks/useTrainingDataBatches.ts',
   'src/tools/training-data-helper/hooks/useTrainingDataUpload.ts',

@@ -189,6 +189,7 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
       return isBottom ? ['third', 'lock', 'fourth'] : ['third', 'lock'];
     }
     // Closed
+    if (side === 'top') return ['third', 'lock'];
     return isBottom ? ['third', 'lock', 'open'] : ['third', 'lock'];
   };
 

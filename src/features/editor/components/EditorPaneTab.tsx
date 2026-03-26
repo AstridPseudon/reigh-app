@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { PaneControlTab } from '@/shared/components/PaneControlTab';
@@ -124,7 +124,7 @@ const EditorPaneComponent: React.FC = () => {
             },
             ariaLabel: 'Go to editor',
             tooltip: 'Go to editor',
-            content: <ExternalLink className="h-4 w-4" />,
+            content: <Film className="h-4 w-4" />,
           },
         }}
       />

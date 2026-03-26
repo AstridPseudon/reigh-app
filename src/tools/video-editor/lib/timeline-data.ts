@@ -2,7 +2,7 @@ import type {
   TimelineAction,
   TimelineEffect as EditorTimelineEffect,
   TimelineRow,
-} from '@xzdarcy/timeline-engine';
+} from '@/tools/video-editor/types/timeline-canvas';
 import {
   getClipSourceDuration,
   getConfigSignature,
@@ -59,6 +59,7 @@ export type ClipOrderMap = Record<string, string[]>;
 
 export interface TimelineData {
   config: TimelineConfig;
+  configVersion: number;
   registry: AssetRegistry;
   resolvedConfig: ResolvedTimelineConfig;
   rows: TimelineRow[];
@@ -326,6 +327,7 @@ export const buildTimelineData = async (
   config: TimelineConfig,
   registry: AssetRegistry,
   urlResolver?: UrlResolver,
+  configVersion = 1,
 ): Promise<TimelineData> => {
   const migratedConfig = migrateToFlatTracks(config);
   migratedConfig.tracks = sortTracksByKind(migratedConfig.tracks ?? []);
@@ -334,6 +336,7 @@ export const buildTimelineData = async (
 
   return {
     config: migratedConfig,
+    configVersion,
     registry,
     resolvedConfig,
     rows: rowData.rows,
@@ -351,12 +354,17 @@ export const loadTimelineJsonFromProvider = async (
   provider: DataProvider,
   timelineId: string,
 ): Promise<TimelineData> => {
-  const [config, registry] = await Promise.all([
+  const [loadedTimeline, registry] = await Promise.all([
     provider.loadTimeline(timelineId),
     provider.loadAssetRegistry(timelineId),
   ]);
 
-  return buildTimelineData(config, registry, (file) => provider.resolveAssetUrl(file));
+  return buildTimelineData(
+    loadedTimeline.config,
+    registry,
+    (file) => provider.resolveAssetUrl(file),
+    loadedTimeline.configVersion,
+  );
 };
 
 export async function loadTranscript(

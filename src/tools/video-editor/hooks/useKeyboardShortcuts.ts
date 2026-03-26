@@ -3,7 +3,10 @@ import { isEditableTarget } from '@/tools/video-editor/lib/coordinate-utils';
 
 interface UseKeyboardShortcutsOptions {
   hasSelectedClip: boolean;
-  moveSelectedClipToTrack: (direction: 'up' | 'down') => void;
+  canMoveSelectedClipToTrack: boolean;
+  selectedClipIds: ReadonlySet<string>;
+  moveSelectedClipsToTrack: (direction: 'up' | 'down', selectedClipIds: ReadonlySet<string>) => void;
+  selectAllClips: () => void;
   togglePlayPause: () => void;
   seekRelative: (deltaSeconds: number) => void;
   toggleMute: () => void;
@@ -14,7 +17,10 @@ interface UseKeyboardShortcutsOptions {
 
 export function useKeyboardShortcuts({
   hasSelectedClip,
-  moveSelectedClipToTrack,
+  canMoveSelectedClipToTrack,
+  selectedClipIds,
+  moveSelectedClipsToTrack,
+  selectAllClips,
   togglePlayPause,
   seekRelative,
   toggleMute,
@@ -42,13 +48,23 @@ export function useKeyboardShortcuts({
 
       if (event.key === 'ArrowUp' && hasSelectedClip) {
         event.preventDefault();
-        moveSelectedClipToTrack('up');
+        if (canMoveSelectedClipToTrack) {
+          moveSelectedClipsToTrack('up', selectedClipIds);
+        }
         return;
       }
 
       if (event.key === 'ArrowDown' && hasSelectedClip) {
         event.preventDefault();
-        moveSelectedClipToTrack('down');
+        if (canMoveSelectedClipToTrack) {
+          moveSelectedClipsToTrack('down', selectedClipIds);
+        }
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        selectAllClips();
         return;
       }
 
@@ -84,5 +100,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [clearSelection, deleteSelectedClip, hasSelectedClip, moveSelectedClipToTrack, seekRelative, splitSelectedClip, toggleMute, togglePlayPause]);
+  }, [canMoveSelectedClipToTrack, clearSelection, deleteSelectedClip, hasSelectedClip, moveSelectedClipsToTrack, seekRelative, selectAllClips, selectedClipIds, splitSelectedClip, toggleMute, togglePlayPause]);
 }

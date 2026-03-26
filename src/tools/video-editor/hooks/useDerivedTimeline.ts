@@ -1,0 +1,105 @@
+import { useMemo, useRef } from 'react';
+import { getTrackById } from '@/tools/video-editor/lib/editor-utils';
+import { getClipDurationInFrames, parseResolution, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
+import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import type { TrackDefinition } from '@/tools/video-editor/types';
+
+export interface CompositionMetadata {
+  fps: number;
+  durationInFrames: number;
+  compositionWidth: number;
+  compositionHeight: number;
+}
+
+export function useDerivedTimeline(
+  data: TimelineData | null,
+  selectedClipId: string | null,
+  selectedTrackId: string | null,
+) {
+  const configSignatureRef = useRef<string | null>(null);
+  const stableResolvedConfigRef = useRef<TimelineData['resolvedConfig'] | null>(null);
+
+  const resolvedConfig = useMemo(() => {
+    if (!data) {
+      configSignatureRef.current = null;
+      stableResolvedConfigRef.current = null;
+      return null;
+    }
+
+    if (configSignatureRef.current !== data.signature) {
+      configSignatureRef.current = data.signature;
+      stableResolvedConfigRef.current = data.resolvedConfig;
+    }
+
+    return stableResolvedConfigRef.current;
+  }, [data]);
+
+  const selectedClip = useMemo(() => {
+    if (!resolvedConfig || !selectedClipId) {
+      return null;
+    }
+    return resolvedConfig.clips.find((clip) => clip.id === selectedClipId) ?? null;
+  }, [resolvedConfig, selectedClipId]);
+
+  const selectedTrack = useMemo<TrackDefinition | null>(() => {
+    if (!data) {
+      return null;
+    }
+
+    const preferredTrackId = selectedClip?.track ?? selectedTrackId;
+    return preferredTrackId ? getTrackById(data.resolvedConfig, preferredTrackId) : data.tracks[0] ?? null;
+  }, [data, selectedClip, selectedTrackId]);
+
+  const selectedClipHasPredecessor = useMemo(() => {
+    if (!resolvedConfig || !selectedClip) {
+      return false;
+    }
+
+    const siblings = resolvedConfig.clips
+      .filter((clip) => clip.track === selectedClip.track)
+      .sort((left, right) => left.at - right.at);
+    const selectedIndex = siblings.findIndex((clip) => clip.id === selectedClip.id);
+    return selectedIndex > 0;
+  }, [resolvedConfig, selectedClip]);
+
+  const compositionSize = useMemo(() => {
+    return data ? parseResolution(data.output.resolution) : { width: 1280, height: 720 };
+  }, [data]);
+
+  const renderMetadata = useMemo<CompositionMetadata | null>(() => {
+    if (!resolvedConfig) {
+      return null;
+    }
+
+    const fps = resolvedConfig.output.fps;
+    const { width, height } = parseResolution(resolvedConfig.output.resolution);
+
+    return {
+      fps,
+      durationInFrames: Math.max(
+        1,
+        ...resolvedConfig.clips.map((clip) => secondsToFrames(clip.at, fps) + getClipDurationInFrames(clip, fps)),
+      ),
+      compositionWidth: Math.max(1, width),
+      compositionHeight: Math.max(1, height),
+    };
+  }, [resolvedConfig]);
+
+  const trackScaleMap = useMemo(() => {
+    if (!data) {
+      return {};
+    }
+
+    return Object.fromEntries(data.tracks.map((track) => [track.id, track.scale ?? 1]));
+  }, [data]);
+
+  return {
+    resolvedConfig,
+    selectedClip,
+    selectedTrack,
+    selectedClipHasPredecessor,
+    compositionSize,
+    renderMetadata,
+    trackScaleMap,
+  };
+}
