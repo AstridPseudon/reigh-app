@@ -581,9 +581,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
           </div>
           <div className="flex flex-1 items-center px-2" style={{ position: 'sticky', left: LABEL_WIDTH }}>
             {newTrackDropLabel ? (
-              <div className="flex-1 rounded-md border border-dashed border-sky-400/40 bg-sky-950/45 px-3 py-1 text-center text-[11px] uppercase tracking-[0.12em] text-sky-300 pointer-events-none">
-                {newTrackDropLabel}
-              </div>
+              <div className="flex-1 rounded-md border border-dashed border-sky-400/40 bg-sky-950/45 py-3 pointer-events-none" />
             ) : onAddTextAt ? (
               <div
                 draggable
