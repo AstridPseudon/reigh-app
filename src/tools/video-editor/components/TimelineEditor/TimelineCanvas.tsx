@@ -137,6 +137,10 @@ function SortableRow({
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
     opacity: sortable.isDragging ? 0.5 : 1,
+    // Rows must sit above the ::before gutter overlay (z-index 6) so that
+    // track labels remain visible when dnd-kit applies transforms (which
+    // create a new stacking context, trapping the label's local z-index).
+    zIndex: 7,
   };
 
   return (
