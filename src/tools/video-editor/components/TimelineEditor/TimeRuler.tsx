@@ -188,7 +188,7 @@ export function TimeRuler({
   return (
     <div
       ref={containerRef}
-      className="relative h-[30px] overflow-hidden border-b border-border bg-zinc-950/80 select-none"
+      className="relative h-[30px] overflow-hidden border-b border-border bg-muted/80 select-none"
     >
       <div
         className="absolute inset-y-0 left-0"
@@ -198,7 +198,7 @@ export function TimeRuler({
         }}
       >
         <div
-          className="absolute inset-y-0 left-0 border-r border-border/70 bg-zinc-950/95"
+          className="absolute inset-y-0 left-0 border-r border-border/70 bg-muted/95"
           style={{ width: startLeft }}
         />
 
@@ -221,7 +221,7 @@ export function TimeRuler({
               transform: `translateX(${tick.left + 6}px)`,
             }}
           >
-            <span className="rounded-sm bg-zinc-950/85 px-1 py-0.5 font-mono text-[10px] tracking-[0.08em] text-zinc-400">
+            <span className="rounded-sm bg-muted/85 px-1 py-0.5 font-mono text-[10px] tracking-[0.08em] text-muted-foreground">
               {tick.label}
             </span>
           </div>

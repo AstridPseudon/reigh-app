@@ -148,10 +148,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
           className="flex h-full flex-1 cursor-row-resize items-center justify-center"
           onMouseDown={onDividerMouseDown}
         >
-          <div className="flex items-center gap-1 rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <GripHorizontal className="h-3 w-3" />
-            Resize
-          </div>
+          <GripHorizontal className="h-4 w-4 text-border" />
         </div>
       )}
       <div className="flex items-center gap-1">

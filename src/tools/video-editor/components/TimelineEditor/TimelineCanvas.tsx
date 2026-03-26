@@ -69,11 +69,12 @@ const clamp = (value: number, min: number, max: number): number => Math.min(max,
 
 const buildGridBackground = (startLeft: number, scaleWidth: number, scaleSplitCount: number, rowHeight: number): string => {
   const splitWidth = scaleWidth / Math.max(scaleSplitCount, 1);
+  // Use theme-aware colors via hsl(var(--border)) and hsl(var(--background))
   return [
-    `linear-gradient(to right, rgb(9 9 11) 0, rgb(9 9 11) ${startLeft}px, transparent ${startLeft}px)`,
-    `repeating-linear-gradient(to right, rgb(63 63 70 / 0.55) 0, rgb(63 63 70 / 0.55) 1px, transparent 1px, transparent ${scaleWidth}px)`,
-    `repeating-linear-gradient(to right, rgb(39 39 42 / 0.32) 0, rgb(39 39 42 / 0.32) 1px, transparent 1px, transparent ${splitWidth}px)`,
-    `repeating-linear-gradient(to bottom, rgb(63 63 70 / 0.6) 0, rgb(63 63 70 / 0.6) 1px, transparent 1px, transparent ${rowHeight}px)`,
+    `linear-gradient(to right, hsl(var(--background)) 0, hsl(var(--background)) ${startLeft}px, transparent ${startLeft}px)`,
+    `repeating-linear-gradient(to right, hsl(var(--border) / 0.55) 0, hsl(var(--border) / 0.55) 1px, transparent 1px, transparent ${scaleWidth}px)`,
+    `repeating-linear-gradient(to right, hsl(var(--border) / 0.25) 0, hsl(var(--border) / 0.25) 1px, transparent 1px, transparent ${splitWidth}px)`,
+    `repeating-linear-gradient(to bottom, hsl(var(--border) / 0.5) 0, hsl(var(--border) / 0.5) 1px, transparent 1px, transparent ${rowHeight}px)`,
   ].join(',');
 };
 
@@ -337,7 +338,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   }, [updateResize]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-zinc-950/70">
+    <div className="flex h-full min-h-0 flex-col bg-background/70">
       <TimeRuler
         scale={scale}
         scaleWidth={scaleWidth}
