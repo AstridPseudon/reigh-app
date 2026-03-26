@@ -88,11 +88,14 @@ const round = (value: number): number => Math.round(value * 100) / 100;
 const effectIdForClip = (clipId: string): string => `effect-${clipId}`;
 
 const getUniqueClipId = (clipId: string, usedIds: Set<string>): string => {
+  // Strip any previously-appended -dup-N suffixes so they don't cascade
+  // (e.g. clip-7-dup-2-dup-1 → clip-7).
+  const baseId = clipId.replace(/(-dup-\d+)+$/, '');
   let duplicateIndex = 1;
-  let candidate = clipId;
+  let candidate = baseId;
 
   while (usedIds.has(candidate)) {
-    candidate = `${clipId}-dup-${duplicateIndex}`;
+    candidate = `${baseId}-dup-${duplicateIndex}`;
     duplicateIndex += 1;
   }
 
