@@ -162,9 +162,17 @@ const ensureBackgroundClip = (config: TimelineConfig): TimelineClip[] => {
 
 export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
   if (config.tracks?.length) {
+    // Deduplicate tracks by id — earlier mutations could have pushed duplicates
+    // into the shared array, which then got persisted to the server.
+    const seen = new Set<string>();
+    const dedupedTracks = config.tracks.filter((track) => {
+      if (seen.has(track.id)) return false;
+      seen.add(track.id);
+      return true;
+    });
     return {
       output: { ...config.output },
-      tracks: config.tracks.map((track) => ({ ...track })),
+      tracks: dedupedTracks.map((track) => ({ ...track })),
       clips: config.clips.map((clip) => ({
         ...clip,
         clipType: clip.clipType
