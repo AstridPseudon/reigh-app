@@ -1,0 +1,89 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { usePanes } from '@/shared/contexts/PanesContext';
+
+/**
+ * Global keyboard shortcuts for pane management.
+ *
+ * Opt+W — toggle editor pane (top) lock
+ * Opt+S — toggle generations pane (bottom) lock
+ * Opt+A — toggle shots pane (left) lock
+ * Opt+D — toggle tasks pane (right) lock
+ * Opt+Shift+W — navigate to video editor
+ * Opt+Shift+S — navigate to image generation
+ * Opt+Shift+A — toggle shots pane lock (same as Opt+A)
+ * Opt+Shift+D — toggle tasks pane lock (same as Opt+D)
+ */
+export function useGlobalPaneShortcuts() {
+  const {
+    isEditorPaneLocked,
+    setIsEditorPaneLocked,
+    isGenerationsPaneLocked,
+    setIsGenerationsPaneLocked,
+    isShotsPaneLocked,
+    setIsShotsPaneLocked,
+    isTasksPaneLocked,
+    setIsTasksPaneLocked,
+  } = usePanes();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey) return;
+
+      // Skip if focus is in an editable element
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      switch (event.code) {
+        case 'KeyW':
+          event.preventDefault();
+          if (event.shiftKey) {
+            navigate('/tools/video-editor');
+          } else {
+            setIsEditorPaneLocked(!isEditorPaneLocked);
+          }
+          break;
+
+        case 'KeyS':
+          event.preventDefault();
+          if (event.shiftKey) {
+            navigate('/tools/image-generation');
+          } else {
+            setIsGenerationsPaneLocked(!isGenerationsPaneLocked);
+          }
+          break;
+
+        case 'KeyA':
+          event.preventDefault();
+          setIsShotsPaneLocked(!isShotsPaneLocked);
+          break;
+
+        case 'KeyD':
+          event.preventDefault();
+          setIsTasksPaneLocked(!isTasksPaneLocked);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    isEditorPaneLocked,
+    isGenerationsPaneLocked,
+    isShotsPaneLocked,
+    isTasksPaneLocked,
+    navigate,
+    setIsEditorPaneLocked,
+    setIsGenerationsPaneLocked,
+    setIsShotsPaneLocked,
+    setIsTasksPaneLocked,
+  ]);
+}

@@ -290,7 +290,7 @@ const ToolsPaneComponent: React.FC = () => {
         position={{ side: "left", paneDimension: shotsPaneWidth, bottomOffset: useBottomOffset() }}
         state={{ isLocked, isOpen: !!isOpen }}
         handlers={{ toggleLock, openPane, handlePaneEnter, handlePaneLeave }}
-        display={{ paneIcon: "tools", paneTooltip: "See all tools" }}
+        display={{ paneIcon: "tools", paneTooltip: "See all tools", shortcutHint: '⌥A' }}
         actions={{
           thirdButton: currentTool ? {
             onClick: openPane,

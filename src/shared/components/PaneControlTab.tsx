@@ -41,6 +41,8 @@ interface PaneControlDisplay {
   customIcon?: React.ReactNode;
   paneTooltip?: string;
   allowMobileLock?: boolean;
+  /** Keyboard shortcut hint shown in lock/unlock tooltips, e.g. "⌥W" */
+  shortcutHint?: string;
 }
 
 interface PaneControlAction {
@@ -91,7 +93,7 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
   position: { side, paneDimension, bottomOffset = 0, horizontalOffset = 0 },
   state: { isLocked, isOpen },
   handlers: { toggleLock, openPane, handlePaneEnter, handlePaneLeave, customOpenAction },
-  display: { paneIcon = 'chevron', customIcon, paneTooltip, allowMobileLock = false } = {},
+  display: { paneIcon = 'chevron', customIcon, paneTooltip, allowMobileLock = false, shortcutHint } = {},
   actions,
   dataTour,
   dataTourLock,
@@ -237,7 +239,7 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
 
       case 'lock':
         return (
-          <TooltipButton key="lock" tooltip="Lock pane open" showTooltip={showTooltips} side={tooltipSide}>
+          <TooltipButton key="lock" tooltip={shortcutHint ? `Lock pane open (${shortcutHint})` : 'Lock pane open'} showTooltip={showTooltips} side={tooltipSide}>
             <Button
               variant="ghost"
               size="icon"
@@ -254,7 +256,7 @@ const PaneControlTab: React.FC<PaneControlTabProps> = ({
 
       case 'unlock':
         return (
-          <TooltipButton key="unlock" tooltip="Unlock pane" showTooltip={showTooltips} side={tooltipSide}>
+          <TooltipButton key="unlock" tooltip={shortcutHint ? `Unlock pane (${shortcutHint})` : 'Unlock pane'} showTooltip={showTooltips} side={tooltipSide}>
             <Button
               variant="ghost"
               size="icon"

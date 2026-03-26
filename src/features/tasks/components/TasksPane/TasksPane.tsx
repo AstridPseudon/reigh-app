@@ -146,7 +146,7 @@ const TasksPaneComponent: React.FC<TasksPaneProps> = ({ onOpenSettings }) => {
         position={{ side: "right", paneDimension: tasksPaneWidth, bottomOffset: useBottomOffset() }}
         state={{ isLocked, isOpen: !!isOpen }}
         handlers={{ toggleLock, openPane, handlePaneEnter, handlePaneLeave }}
-        display={{ paneIcon: "tasks", paneTooltip: "View all tasks", allowMobileLock: true }}
+        display={{ paneIcon: "tasks", paneTooltip: "View all tasks", allowMobileLock: true, shortcutHint: '⌥D' }}
         actions={{
           thirdButton: {
             onClick: openPane,

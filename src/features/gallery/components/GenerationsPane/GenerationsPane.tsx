@@ -67,12 +67,13 @@ function GenerationsPaneTab({ controller }: { controller: GenerationsPaneControl
         customIcon: <Sparkles className="h-4 w-4" />,
         paneTooltip: "Generate new image",
         allowMobileLock: true,
+        shortcutHint: '⌥S',
       }}
       actions={{
         thirdButton: {
           onClick: navigation.handleNavigateToImageGeneration,
           ariaLabel: 'Go to Image Generation tool',
-          tooltip: 'Go to Image Generation tool',
+          tooltip: 'Go to Image Generation tool (⌥⇧S)',
           content: <Images className="h-4 w-4" />,
         },
         fourthButton: {

@@ -25,6 +25,7 @@ import { SocialIcons } from './components/SocialIcons';
 
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useSplitViewScroll } from './hooks/useSplitViewScroll';
+import { useGlobalPaneShortcuts } from './hooks/useGlobalPaneShortcuts';
 import { useSettingsModal } from './hooks/useSettingsModal';
 import { useOnboardingFlow } from './hooks/useOnboardingFlow';
 import { useResetCurrentShotOnRouteChange } from './hooks/useResetCurrentShotOnRouteChange';
@@ -68,6 +69,7 @@ export const Layout: React.FC = () => {
   const { isSettingsModalOpen, setIsSettingsModalOpen, settingsInitialTab, settingsCreditsTab, handleOpenSettings } = useSettingsModal();
   const { showOnboardingModal, handleOnboardingClose } = useOnboardingFlow();
   useResetCurrentShotOnRouteChange();
+  useGlobalPaneShortcuts();
 
   // Show loading spinner while determining auth state
   // (isLoading is always false here because AuthGate gates on it, but kept for safety)

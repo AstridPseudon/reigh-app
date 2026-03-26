@@ -112,6 +112,7 @@ const EditorPaneComponent: React.FC = () => {
         }}
         display={{
           paneTooltip: 'Open editor',
+          shortcutHint: '⌥W',
         }}
         actions={{
           thirdButton: {
@@ -123,7 +124,7 @@ const EditorPaneComponent: React.FC = () => {
               navigate('/tools/video-editor');
             },
             ariaLabel: 'Go to editor',
-            tooltip: 'Go to editor',
+            tooltip: 'Go to editor (⌥⇧W)',
             content: <Film className="h-4 w-4" />,
           },
         }}
