@@ -8,6 +8,7 @@ import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-d
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 import type { TrackKind } from '@/tools/video-editor/types';
 import { getCompatibleTrackId } from '@/tools/video-editor/lib/coordinate-utils';
+import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 
 export interface UseExternalDropArgs {
   dataRef: React.MutableRefObject<TimelineData | null>;
@@ -48,6 +49,7 @@ export function useExternalDrop({
   handleAddTextAt,
 }: UseExternalDropArgs): UseExternalDropResult {
   const externalDragFrameRef = useRef<number | null>(null);
+  const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
   const latestExternalDragRef = useRef<{
     clientX: number;
     clientY: number;
@@ -60,6 +62,8 @@ export function useExternalDrop({
       window.cancelAnimationFrame(externalDragFrameRef.current);
       externalDragFrameRef.current = null;
     }
+    autoScrollerRef.current?.stop();
+    autoScrollerRef.current = null;
     latestExternalDragRef.current = null;
     latestExternalPositionRef.current = null;
     coordinator.end();
@@ -85,6 +89,21 @@ export function useExternalDrop({
       clientY: event.clientY,
       sourceKind: inferDragKind(event),
     };
+    if (!autoScrollerRef.current && coordinator.editAreaRef.current) {
+      autoScrollerRef.current = createAutoScroller(coordinator.editAreaRef.current, (clientX, clientY) => {
+        const currentDrag = latestExternalDragRef.current;
+        if (!currentDrag) {
+          return;
+        }
+
+        latestExternalPositionRef.current = coordinator.update({
+          clientX,
+          clientY,
+          sourceKind: currentDrag.sourceKind,
+        });
+      });
+    }
+    autoScrollerRef.current?.update(event.clientX, event.clientY);
 
     if (externalDragFrameRef.current !== null) {
       return;
@@ -113,6 +132,8 @@ export function useExternalDrop({
   const onTimelineDrop = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     delete event.currentTarget.dataset.dragOver;
+    autoScrollerRef.current?.stop();
+    autoScrollerRef.current = null;
     if (externalDragFrameRef.current !== null) {
       window.cancelAnimationFrame(externalDragFrameRef.current);
       externalDragFrameRef.current = null;

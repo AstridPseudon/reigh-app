@@ -237,6 +237,23 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-015",
+      "subsystem": "clip-drag-scroll-sync",
+      "concern": "the plan's step 3 ontick callback only shows coordinator.update() but the full clip-drag state path (snap, lateststart, ghost positions) also needs re-running during stationary-pointer scroll.",
+      "flag_ids": [
+        "FLAG-001"
+      ],
+      "plan_ids": [
+        "add-auto-scroll-to-the-20260326-2119"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T20:30:27Z",
+      "updated_at": "2026-03-26T20:30:27Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

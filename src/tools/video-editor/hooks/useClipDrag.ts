@@ -12,6 +12,7 @@ import {
   applyMultiDragMoves,
   computeSecondaryGhosts,
 } from '@/tools/video-editor/lib/multi-drag-utils';
+import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 import { snapDrag } from '@/tools/video-editor/lib/snap-edges';
 
 const DRAG_THRESHOLD_PX = 4;
@@ -98,6 +99,7 @@ export const useClipDrag = ({
   const dragSessionRef = useRef<DragSession | null>(null);
   const actionDragStateRef = useRef<ActionDragState | null>(null);
   const crossTrackActiveRef = useRef(false);
+  const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
 
   // Keep volatile values in refs so the effect doesn't re-run mid-drag
   // when zoom/scale changes.
@@ -122,6 +124,8 @@ export const useClipDrag = ({
 
   useEffect(() => {
     const clearSession = (session: DragSession | null, deferDeactivate = false) => {
+      autoScrollerRef.current?.stop();
+      autoScrollerRef.current = null;
       coordinatorRef.current.end();
       if (!session) {
         actionDragStateRef.current = null;
@@ -159,10 +163,10 @@ export const useClipDrag = ({
 
     // ── Helpers ──────────────────────────────────────────────────────
 
-    const updateFloatingGhostPosition = (session: DragSession, event: PointerEvent) => {
+    const updateFloatingGhostPosition = (session: DragSession, clientX: number, clientY: number) => {
       if (!session.floatingGhostEl) return;
-      session.floatingGhostEl.style.left = `${event.clientX - session.pointerOffsetX}px`;
-      session.floatingGhostEl.style.top = `${event.clientY - session.pointerOffsetY}px`;
+      session.floatingGhostEl.style.left = `${clientX - session.pointerOffsetX}px`;
+      session.floatingGhostEl.style.top = `${clientY - session.pointerOffsetY}px`;
     };
 
     const createFloatingGhost = (clipEl: HTMLElement): HTMLElement => {
@@ -215,6 +219,7 @@ export const useClipDrag = ({
       if (!current || !sourceTrack || !sourceAction) return;
 
       clearSession(dragSessionRef.current);
+      const editArea = wrapper.querySelector<HTMLElement>('.timeline-canvas-edit-area');
 
       const clipRect = clipTarget.getBoundingClientRect();
       const initialStart = sourceAction.start;
@@ -248,6 +253,82 @@ export const useClipDrag = ({
         latestEnd: sourceAction.end,
       };
 
+      const updateDragState = (session: DragSession, clientX: number, clientY: number) => {
+        const nextPosition = coordinatorRef.current.update({
+          clientX,
+          clientY,
+          sourceKind: session.sourceKind,
+          clipDuration: session.clipDuration,
+          clipOffsetX: session.pointerOffsetX,
+        });
+
+        const pixelsPerSecond = scaleWidthRef.current / scaleRef.current;
+        const snapThresholdS = SNAP_THRESHOLD_PX / pixelsPerSecond;
+        const targetRowId = nextPosition.trackId ?? session.sourceRowId;
+        const targetRow = dataRef.current?.rows.find((row) => row.id === targetRowId);
+        const siblings = targetRow?.actions ?? [];
+        const { start: snappedStart } = snapDrag(
+          nextPosition.time,
+          session.clipDuration,
+          siblings,
+          session.clipId,
+          snapThresholdS,
+          session.draggedClipIds,
+        );
+
+        session.latestStart = snappedStart;
+        const dragState = actionDragStateRef.current;
+        if (dragState) {
+          const duration = dragState.initialEnd - dragState.initialStart;
+          dragState.latestStart = snappedStart;
+          dragState.latestEnd = snappedStart + duration;
+        }
+
+        const dy = clientY - session.startClientY;
+        if (!crossTrackActiveRef.current && Math.abs(dy) >= CROSS_TRACK_THRESHOLD_PX) {
+          crossTrackActiveRef.current = true;
+          session.floatingGhostEl = createFloatingGhost(session.clipEl);
+          updateFloatingGhostPosition(session, clientX, clientY);
+        }
+
+        if (crossTrackActiveRef.current) {
+          updateFloatingGhostPosition(session, clientX, clientY);
+        }
+
+        if (session.floatingGhostEl) {
+          session.floatingGhostEl.style.cursor = nextPosition.isReject ? 'not-allowed' : '';
+        }
+
+        if (session.draggedClipIds.length > 1) {
+          const latest = dataRef.current;
+          if (latest) {
+            const anchorTargetRowId = nextPosition.trackId ?? session.sourceRowId;
+            const ghosts = computeSecondaryGhosts(
+              session.clipOffsets,
+              session.clipId,
+              session.sourceRowId,
+              anchorTargetRowId,
+              nextPosition.screenCoords.clipLeft,
+              nextPosition.screenCoords.rowTop,
+              nextPosition.screenCoords.rowHeight,
+              pixelsPerSecond,
+              latest.rows.map((row) => row.id),
+            );
+            coordinatorRef.current.showSecondaryGhosts(ghosts);
+          }
+        }
+      };
+
+      autoScrollerRef.current = editArea
+        ? createAutoScroller(editArea, (clientX, clientY) => {
+            const session = dragSessionRef.current;
+            if (!session) {
+              return;
+            }
+            updateDragState(session, clientX, clientY);
+          })
+        : null;
+
       const handlePointerMove = (moveEvent: PointerEvent) => {
         const session = dragSessionRef.current;
         if (!session || moveEvent.pointerId !== session.pointerId) return;
@@ -269,72 +350,8 @@ export const useClipDrag = ({
 
         // Prevent default on all moves once dragging to stop the library's handler
         moveEvent.preventDefault();
-
-        const nextPosition = coordinatorRef.current.update({
-          clientX: moveEvent.clientX,
-          clientY: moveEvent.clientY,
-          sourceKind: session.sourceKind,
-          clipDuration: session.clipDuration,
-          clipOffsetX: session.pointerOffsetX,
-        });
-
-        // Snap to sibling clip edges on the target row
-        const pixelsPerSecond = scaleWidthRef.current / scaleRef.current;
-        const snapThresholdS = SNAP_THRESHOLD_PX / pixelsPerSecond;
-        const targetRowId = nextPosition.trackId ?? session.sourceRowId;
-        const targetRow = dataRef.current?.rows.find((r) => r.id === targetRowId);
-        const siblings = targetRow?.actions ?? [];
-        const { start: snappedStart } = snapDrag(
-          nextPosition.time,
-          session.clipDuration,
-          siblings,
-          session.clipId,
-          snapThresholdS,
-          session.draggedClipIds,
-        );
-
-        session.latestStart = snappedStart;
-        const dragState = actionDragStateRef.current;
-        if (dragState) {
-          const dur = dragState.initialEnd - dragState.initialStart;
-          dragState.latestStart = snappedStart;
-          dragState.latestEnd = snappedStart + dur;
-        }
-
-        // Activate cross-track mode (floating ghost) on vertical threshold
-        if (!crossTrackActiveRef.current && Math.abs(dy) >= CROSS_TRACK_THRESHOLD_PX) {
-          crossTrackActiveRef.current = true;
-          session.floatingGhostEl = createFloatingGhost(session.clipEl);
-          updateFloatingGhostPosition(session, moveEvent);
-        }
-
-        if (crossTrackActiveRef.current) {
-          updateFloatingGhostPosition(session, moveEvent);
-        }
-
-        if (session.floatingGhostEl) {
-          session.floatingGhostEl.style.cursor = nextPosition.isReject ? 'not-allowed' : '';
-        }
-
-        // Show ghost indicators for all secondary clips
-        if (session.draggedClipIds.length > 1) {
-          const current = dataRef.current;
-          if (current) {
-            const anchorTargetRowId = nextPosition.trackId ?? session.sourceRowId;
-            const ghosts = computeSecondaryGhosts(
-              session.clipOffsets,
-              session.clipId,
-              session.sourceRowId,
-              anchorTargetRowId,
-              nextPosition.screenCoords.clipLeft,
-              nextPosition.screenCoords.rowTop,
-              nextPosition.screenCoords.rowHeight,
-              pixelsPerSecond,
-              current.rows.map((r) => r.id),
-            );
-            coordinatorRef.current.showSecondaryGhosts(ghosts);
-          }
-        }
+        autoScrollerRef.current?.update(moveEvent.clientX, moveEvent.clientY);
+        updateDragState(session, moveEvent.clientX, moveEvent.clientY);
       };
 
       const handlePointerUp = (upEvent: PointerEvent) => {

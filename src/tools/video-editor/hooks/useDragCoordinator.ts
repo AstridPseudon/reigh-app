@@ -24,6 +24,7 @@ export interface DragCoordinator {
   showSecondaryGhosts(ghosts: GhostRect[]): void;
   end(): void;
   lastPosition: DropPosition | null;
+  editAreaRef: MutableRefObject<HTMLElement | null>;
 }
 
 interface UseDragCoordinatorArgs {
@@ -166,10 +167,11 @@ export function useDragCoordinator({
     update,
     showSecondaryGhosts,
     end,
+    editAreaRef,
     get lastPosition() {
       return lastPositionRef.current;
     },
-  }), [end, showSecondaryGhosts, update]);
+  }), [editAreaRef, end, showSecondaryGhosts, update]);
 
   return {
     coordinator,

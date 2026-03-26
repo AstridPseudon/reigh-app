@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type MutableRefObject, type PointerEvent as ReactPointerEvent } from 'react';
+import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 
 const MARQUEE_THRESHOLD_PX = 4;
 
@@ -53,8 +54,11 @@ export function useMarqueeSelect({
   const [marqueeRect, setMarqueeRect] = useState<MarqueeRect | null>(null);
   const sessionRef = useRef<MarqueeSession | null>(null);
   const intersectedClipIdsRef = useRef<string[]>([]);
+  const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
 
   const clearSession = useCallback((session: MarqueeSession | null) => {
+    autoScrollerRef.current?.stop();
+    autoScrollerRef.current = null;
     if (!session) {
       setMarqueeRect(null);
       intersectedClipIdsRef.current = [];
@@ -117,6 +121,9 @@ export function useMarqueeSelect({
         .map((clipElement) => clipElement.dataset.clipId)
         .filter((clipId): clipId is string => Boolean(clipId));
     };
+    autoScrollerRef.current = createAutoScroller(editArea, (clientX, clientY) => {
+      updateSelection(clientX, clientY);
+    });
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       const session = sessionRef.current;
@@ -142,6 +149,7 @@ export function useMarqueeSelect({
         document.body.style.webkitUserSelect = 'none';
       }
       moveEvent.preventDefault();
+      autoScrollerRef.current?.update(moveEvent.clientX, moveEvent.clientY);
       updateSelection(moveEvent.clientX, moveEvent.clientY);
     };
 
