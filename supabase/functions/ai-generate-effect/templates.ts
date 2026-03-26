@@ -21,6 +21,7 @@ interface ParameterDefinition {
 
 interface ExtractedEffectMeta {
   code: string;
+  name: string;
   description: string;
   parameterSchema: ParameterDefinition[];
 }
@@ -59,8 +60,9 @@ const OUTPUT_RULES = `Output requirements:
 - Do not wrap the answer in markdown fences
 - Do not include import statements
 - Do not include export statements
-- Begin with a single metadata line: // DESCRIPTION: <one concise effect description>
-- Follow with a metadata line: // PARAMS: <JSON array of parameter definitions>
+- Begin with a single metadata line: // NAME: <short catchy effect name, 2-4 words>
+- Follow with: // DESCRIPTION: <one concise effect description>
+- Follow with: // PARAMS: <JSON array of parameter definitions>
 - Use [] for // PARAMS when the effect does not need user-adjustable controls
 - Each parameter definition must include name, label, description, type, and default
 - Number params may include min, max, and step
@@ -141,6 +143,7 @@ Return only the final code plus the required metadata lines.`;
   return { systemMsg, userMsg };
 }
 
+const NAME_PATTERN = /^\s*\/\/\s*NAME\s*:\s*(.*)$/im;
 const DESCRIPTION_PATTERN = /^\s*\/\/\s*DESCRIPTION\s*:\s*(.*)$/im;
 const PARAMS_PATTERN = /^\s*\/\/\s*PARAMS\s*:\s*/im;
 
@@ -155,6 +158,21 @@ function stripMarkdownFences(text: string): string {
 function getLineEnd(text: string, start: number): number {
   const newlineIndex = text.indexOf('\n', start);
   return newlineIndex === -1 ? text.length : newlineIndex + 1;
+}
+
+function extractName(text: string): { name: string; range: TextRange | null } {
+  const match = NAME_PATTERN.exec(text);
+  if (!match || match.index === undefined) {
+    return { name: '', range: null };
+  }
+
+  return {
+    name: match[1]?.trim() ?? '',
+    range: {
+      start: match.index,
+      end: getLineEnd(text, match.index),
+    },
+  };
 }
 
 function extractDescription(text: string): { description: string; range: TextRange | null } {
@@ -290,14 +308,16 @@ function stripRanges(text: string, ranges: Array<TextRange | null>): string {
 
 export function extractEffectCodeAndMeta(responseText: string): ExtractedEffectMeta {
   const normalized = stripMarkdownFences(responseText);
+  const { name, range: nameRange } = extractName(normalized);
   const { description, range: descriptionRange } = extractDescription(normalized);
   const { parameterSchema, range: parameterSchemaRange } = extractParameterSchema(normalized);
-  const code = stripRanges(normalized, [descriptionRange, parameterSchemaRange]);
+  const code = stripRanges(normalized, [nameRange, descriptionRange, parameterSchemaRange]);
 
   validateExtractedEffectCode(code);
 
   return {
     code,
+    name,
     description,
     parameterSchema,
   };

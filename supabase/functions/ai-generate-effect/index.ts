@@ -144,10 +144,11 @@ serve(async (req) => {
     logger.info(`[AI-GENERATE-EFFECT] Groq call completed in ${Date.now() - startedAt}ms, model=${response.model}`);
 
     const outputText = response.choices[0]?.message?.content?.trim() || "";
-    const { code, description, parameterSchema } = extractEffectCodeAndMeta(outputText);
+    const { code, name: generatedName, description, parameterSchema } = extractEffectCodeAndMeta(outputText);
 
     return jsonResponse({
       code,
+      name: generatedName,
       description,
       parameterSchema,
       model: response.model || GROQ_MODEL,

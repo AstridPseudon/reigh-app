@@ -8,6 +8,7 @@ import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-d
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 import type { TrackKind } from '@/tools/video-editor/types';
 import { getCompatibleTrackId } from '@/tools/video-editor/lib/coordinate-utils';
+import { getTrackIndex } from '@/tools/video-editor/lib/editor-utils';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 
 export interface UseExternalDropArgs {
@@ -164,12 +165,15 @@ export function useExternalDrop({
     if (isTextTool && handleAddTextAt && dataRef.current) {
       let targetTrackId = dropPosition.isNewTrack ? undefined : dropPosition.trackId;
       if (!targetTrackId) {
-        // Create a new visual track
+        // Create a new visual track immutably
         const current = dataRef.current;
-        const existingCount = current.tracks.filter((t) => t.kind === 'visual').length;
-        targetTrackId = `V${existingCount + 1}`;
-        current.tracks.push({ id: targetTrackId, kind: 'visual', label: `Visual ${existingCount + 1}` });
-        current.rows.push({ id: targetTrackId, actions: [] });
+        const nextNumber = getTrackIndex(current.tracks, 'V') + 1;
+        targetTrackId = `V${nextNumber}`;
+        dataRef.current = {
+          ...current,
+          tracks: [...current.tracks, { id: targetTrackId, kind: 'visual' as const, label: `V${nextNumber}` }],
+          rows: [...current.rows, { id: targetTrackId, actions: [] }],
+        };
       }
       handleAddTextAt(targetTrackId, dropPosition.time);
       return;
@@ -192,14 +196,14 @@ export function useExternalDrop({
           : getCompatibleTrackId(dataRef.current.tracks, dropTrackId, kind, selectedTrackId);
         // Create a new track if none is compatible or if dropping in the "new track" zone
         if (!compatibleTrackId) {
-          const existingCount = dataRef.current.tracks.filter((t) => t.kind === kind).length;
-          compatibleTrackId = `${kind === 'audio' ? 'A' : 'V'}${existingCount + 1}`;
-          dataRef.current.tracks.push({
-            id: compatibleTrackId,
-            kind,
-            label: `${kind === 'audio' ? 'Audio' : 'Visual'} ${existingCount + 1}`,
-          });
-          dataRef.current.rows.push({ id: compatibleTrackId, actions: [] });
+          const prefix = kind === 'audio' ? 'A' : 'V';
+          const nextNumber = getTrackIndex(dataRef.current.tracks, prefix) + 1;
+          compatibleTrackId = `${prefix}${nextNumber}`;
+          dataRef.current = {
+            ...dataRef.current,
+            tracks: [...dataRef.current.tracks, { id: compatibleTrackId, kind, label: `${prefix}${nextNumber}` }],
+            rows: [...dataRef.current.rows, { id: compatibleTrackId, actions: [] }],
+          };
         }
 
         const clipTime = time + timeOffset;

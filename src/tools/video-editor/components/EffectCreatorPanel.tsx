@@ -51,6 +51,7 @@ type CompileStatus = 'idle' | 'compiling' | 'success' | 'error';
 
 interface GenerateEffectResponse {
   code: string;
+  name?: string;
   description: string;
   parameterSchema?: ParameterSchema;
   model: string;
@@ -231,10 +232,6 @@ export function EffectCreatorPanel({
 
   // Generate effect via edge function
   const handleGenerate = useCallback(async () => {
-    if (!name.trim()) {
-      toast({ title: 'Name required', description: 'Give your effect a name before generating.', variant: 'destructive' });
-      return;
-    }
     if (!prompt.trim()) {
       toast({ title: 'Prompt required', description: 'Describe the effect you want to create.', variant: 'destructive' });
       return;
@@ -270,6 +267,9 @@ export function EffectCreatorPanel({
       setParameterSchema(nextSchema);
       setPreviewParamValues(getDefaultValues(nextSchema));
       setGeneratedDescription(response.description.trim() || prompt.trim());
+      if (!name.trim() && response.name?.trim()) {
+        setName(response.name.trim());
+      }
 
       // Auto-compile
       await compileCode(response.code);
@@ -494,7 +494,7 @@ export function EffectCreatorPanel({
             <Button
               type="button"
               onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim() || !name.trim()}
+              disabled={isGenerating || !prompt.trim()}
               className="gap-1.5"
             >
               {isGenerating ? (

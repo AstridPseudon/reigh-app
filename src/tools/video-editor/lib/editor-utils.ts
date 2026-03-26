@@ -17,7 +17,7 @@ export const clampValue = (value: number, min: number, max: number): number => {
   return Math.min(Math.max(value, min), max);
 };
 
-const getTrackIndex = (tracks: TrackDefinition[], prefix: 'V' | 'A'): number => {
+export const getTrackIndex = (tracks: TrackDefinition[], prefix: 'V' | 'A'): number => {
   return tracks.reduce((maxIndex, track) => {
     const match = track.id.match(new RegExp(`^${prefix}(\\d+)$`));
     return match ? Math.max(maxIndex, Number(match[1])) : maxIndex;

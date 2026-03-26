@@ -7,6 +7,7 @@ import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/medi
 import { createExternalUploadGeneration } from '@/integrations/supabase/repositories/generationMutationsRepository';
 import { generateUUID } from '@/shared/lib/taskCreation/ids';
 import { getCompatibleTrackId, updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
+import { getTrackIndex } from '@/tools/video-editor/lib/editor-utils';
 import {
   getNextClipId,
   inferTrackType,
@@ -141,7 +142,7 @@ export function useAssetManagement({
   }, [selectedProjectId]);
 
   const handleAssetDrop = useCallback((assetKey: string, trackId: string | undefined, time: number, forceNewTrack = false) => {
-    const current = dataRef.current;
+    let current = dataRef.current;
     if (!current) {
       return;
     }
@@ -152,17 +153,22 @@ export function useAssetManagement({
       ? null
       : getCompatibleTrackId(current.tracks, trackId, assetKind, selectedTrackId);
 
-    // If no compatible track exists (or forced new track), create one
+    // If no compatible track exists (or forced new track), create one immutably
     if (!resolvedTrackId) {
-      const existingCount = current.tracks.filter((t) => t.kind === assetKind).length;
-      resolvedTrackId = `${assetKind === 'audio' ? 'A' : 'V'}${existingCount + 1}`;
+      const prefix = assetKind === 'audio' ? 'A' : 'V';
+      const nextNumber = getTrackIndex(current.tracks, prefix) + 1;
+      resolvedTrackId = `${prefix}${nextNumber}`;
       const newTrack = {
         id: resolvedTrackId,
         kind: assetKind,
-        label: `${assetKind === 'audio' ? 'Audio' : 'Visual'} ${existingCount + 1}`,
+        label: `${prefix}${nextNumber}`,
       };
-      current.tracks.push(newTrack);
-      current.rows.push({ id: resolvedTrackId, actions: [] });
+      current = {
+        ...current,
+        tracks: [...current.tracks, newTrack],
+        rows: [...current.rows, { id: resolvedTrackId, actions: [] }],
+      };
+      dataRef.current = current;
     }
 
     const track = current.tracks.find((candidate) => candidate.id === resolvedTrackId);
