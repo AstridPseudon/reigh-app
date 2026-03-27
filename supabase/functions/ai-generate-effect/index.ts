@@ -163,14 +163,38 @@ async function callOpenRouter(
     }
 
     const data = await response.json() as {
-      choices: Array<{ message: OpenRouterMessage }>;
+      choices: Array<{
+        message: OpenRouterMessage;
+        finish_reason?: string;
+        error?: { message?: string; code?: string };
+      }>;
       model?: string;
       usage?: Record<string, unknown>;
+      error?: { message?: string; code?: string };
     };
 
-    const msg = data.choices[0]?.message;
+    // Log full response structure for debugging
+    const choice = data.choices?.[0];
+    const msg = choice?.message;
+    const finishReason = choice?.finish_reason ?? 'unknown';
     const content = (msg?.content || msg?.reasoning_content || msg?.reasoning || "").trim();
-    logger.info(`[AI-GENERATE-EFFECT] OpenRouter response in ${Date.now() - startedAt}ms, model=${data.model ?? model}, content=${Boolean(msg?.content)}, reasoning=${Boolean(msg?.reasoning_content)}, length=${content.length}`);
+    const responseError = data.error?.message || choice?.error?.message || null;
+
+    logger.info(`[AI-GENERATE-EFFECT] OpenRouter response in ${Date.now() - startedAt}ms, model=${data.model ?? model}, finish_reason=${finishReason}, content=${Boolean(msg?.content)}, reasoning_content=${Boolean(msg?.reasoning_content)}, content_length=${content.length}, usage=${JSON.stringify(data.usage ?? {})}`);
+
+    if (responseError) {
+      logger.info(`[AI-GENERATE-EFFECT] OpenRouter error in response: ${responseError}`);
+    }
+
+    if (!content && msg) {
+      // Log the full message object to understand why content is empty
+      logger.info(`[AI-GENERATE-EFFECT] empty content — full message keys: ${Object.keys(msg).join(', ')}, full message: ${JSON.stringify(msg).slice(0, 500)}`);
+    }
+
+    if (finishReason === 'length') {
+      logger.info(`[AI-GENERATE-EFFECT] WARNING: output truncated (finish_reason=length) — max_tokens may need increase`);
+    }
+
     return { content, model: data.model || model };
   } finally {
     clearTimeout(timeout);
