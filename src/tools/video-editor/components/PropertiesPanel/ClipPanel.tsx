@@ -84,6 +84,23 @@ function getMergedEffectParams(
   };
 }
 
+/** Returns a display label for a custom effect type, falling back to a short ID if not found */
+function getCustomEffectLabel(type: string | undefined, effects: EffectResource[]): string | null {
+  if (!type?.startsWith('custom:')) return null;
+  const effect = findEffectResourceByType(type, effects);
+  if (effect) return effect.name;
+  // Not loaded yet — show a truncated ID
+  const id = type.slice(7);
+  return `Effect ${id.slice(0, 8)}…`;
+}
+
+/** Check if a custom effect type is already in the resource list */
+function isCustomEffectInList(type: string | undefined, categoryEffects: EffectResource[]): boolean {
+  if (!type?.startsWith('custom:')) return true;
+  const id = type.slice(7);
+  return categoryEffects.some((e) => e.id === id);
+}
+
 function hasParameterSchema(effect: EffectResource | undefined): effect is EffectResource & { parameterSchema: NonNullable<EffectResource['parameterSchema']> } {
   return Boolean(effect?.parameterSchema?.length);
 }
@@ -172,9 +189,14 @@ export function ClipPanel({
                   <SelectContent>
                     <SelectItem value={NO_EFFECT}>None</SelectItem>
                     {entranceEffectTypes.map((effect) => <SelectItem key={effect} value={effect}>{effect}</SelectItem>)}
-                    {effectResources.entrance.length > 0 && (
+                    {(effectResources.entrance.length > 0 || (clip.entrance?.type?.startsWith('custom:') && !isCustomEffectInList(clip.entrance.type, effectResources.entrance))) && (
                       <>
                         <div className="my-1 h-px bg-border" />
+                        {!isCustomEffectInList(clip.entrance?.type, effectResources.entrance) && clip.entrance?.type && (
+                          <SelectItem value={clip.entrance.type}>
+                            {getCustomEffectLabel(clip.entrance.type, effectResources.effects)}
+                          </SelectItem>
+                        )}
                         {effectResources.entrance.map((effect) => (
                           <SelectItem key={`custom:${effect.id}`} value={`custom:${effect.id}`}>
                             {effect.name}
@@ -233,9 +255,14 @@ export function ClipPanel({
                   <SelectContent>
                     <SelectItem value={NO_EFFECT}>None</SelectItem>
                     {exitEffectTypes.map((effect) => <SelectItem key={effect} value={effect}>{effect}</SelectItem>)}
-                    {effectResources.exit.length > 0 && (
+                    {(effectResources.exit.length > 0 || (clip.exit?.type?.startsWith('custom:') && !isCustomEffectInList(clip.exit.type, effectResources.exit))) && (
                       <>
                         <div className="my-1 h-px bg-border" />
+                        {!isCustomEffectInList(clip.exit?.type, effectResources.exit) && clip.exit?.type && (
+                          <SelectItem value={clip.exit.type}>
+                            {getCustomEffectLabel(clip.exit.type, effectResources.effects)}
+                          </SelectItem>
+                        )}
                         {effectResources.exit.map((effect) => (
                           <SelectItem key={`custom:${effect.id}`} value={`custom:${effect.id}`}>
                             {effect.name}
@@ -294,9 +321,14 @@ export function ClipPanel({
                   <SelectContent>
                     <SelectItem value={NO_EFFECT}>None</SelectItem>
                     {continuousEffectTypes.map((effect) => <SelectItem key={effect} value={effect}>{effect}</SelectItem>)}
-                    {effectResources.continuous.length > 0 && (
+                    {(effectResources.continuous.length > 0 || (clip.continuous?.type?.startsWith('custom:') && !isCustomEffectInList(clip.continuous.type, effectResources.continuous))) && (
                       <>
                         <div className="my-1 h-px bg-border" />
+                        {!isCustomEffectInList(clip.continuous?.type, effectResources.continuous) && clip.continuous?.type && (
+                          <SelectItem value={clip.continuous.type}>
+                            {getCustomEffectLabel(clip.continuous.type, effectResources.effects)}
+                          </SelectItem>
+                        )}
                         {effectResources.continuous.map((effect) => (
                           <SelectItem key={`custom:${effect.id}`} value={`custom:${effect.id}`}>
                             {effect.name}
