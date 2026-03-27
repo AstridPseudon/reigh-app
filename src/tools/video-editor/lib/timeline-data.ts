@@ -9,7 +9,7 @@ import {
   resolveTimelineConfig as resolveTimelineConfigShared,
   type UrlResolver,
 } from '@/tools/video-editor/lib/config-utils';
-import { migrateToFlatTracks } from '@/tools/video-editor/lib/migrate';
+import { migrateToFlatTracks, repairConfig } from '@/tools/video-editor/lib/migrate';
 import { TIMELINE_CLIP_FIELDS, validateSerializedConfig } from '@/tools/video-editor/lib/serialize';
 import type { DataProvider } from '@/tools/video-editor/data/DataProvider';
 import type {
@@ -87,20 +87,6 @@ const round = (value: number): number => Math.round(value * 100) / 100;
 
 const effectIdForClip = (clipId: string): string => `effect-${clipId}`;
 
-const getUniqueClipId = (clipId: string, usedIds: Set<string>): string => {
-  // Strip any previously-appended -dup-N suffixes so they don't cascade
-  // (e.g. clip-7-dup-2-dup-1 → clip-7).
-  const baseId = clipId.replace(/(-dup-\d+)+$/, '');
-  let duplicateIndex = 1;
-  let candidate = baseId;
-
-  while (usedIds.has(candidate)) {
-    candidate = `${baseId}-dup-${duplicateIndex}`;
-    duplicateIndex += 1;
-  }
-
-  return candidate;
-};
 
 const getClipDurationSeconds = (clip: TimelineClip): number => {
   return getClipSourceDuration(clip) / (clip.speed ?? 1);
@@ -166,18 +152,13 @@ export const configToRows = (
   const effects: Record<string, EditorTimelineEffect> = {};
   const meta: Record<string, ClipMeta> = {};
   const rowsByTrack = new Map<string, TimelineAction[]>();
-  const usedClipIds = new Set<string>();
 
   for (const track of config.tracks ?? []) {
     rowsByTrack.set(track.id, []);
   }
 
   for (const clip of config.clips) {
-    const clipId = getUniqueClipId(clip.id, usedClipIds);
-    if (clipId !== clip.id) {
-      console.warn(`[timeline] Duplicate clip id "${clip.id}" on track "${clip.track}" detected; using "${clipId}" in editor state.`);
-    }
-    usedClipIds.add(clipId);
+    const clipId = clip.id;
 
     clipOrder[clip.track] ??= [];
     clipOrder[clip.track].push(clipId);
@@ -371,8 +352,10 @@ export const buildTimelineData = async (
   urlResolver?: UrlResolver,
   configVersion = 1,
 ): Promise<TimelineData> => {
-  const migratedConfig = migrateToFlatTracks(config);
-  // Preserve user's track order — no longer forcing visual-before-audio.
+  // Repair first (dedup corrupted data), then migrate (structural transform).
+  // repairConfig is a no-op on clean data. This only runs on load from server.
+  const repairedConfig = repairConfig(config);
+  const migratedConfig = migrateToFlatTracks(repairedConfig);
   migratedConfig.tracks = migratedConfig.tracks ?? [];
   const resolvedConfig = await resolveTimelineConfig(migratedConfig, registry, urlResolver);
 

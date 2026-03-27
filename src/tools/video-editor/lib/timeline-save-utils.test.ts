@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getConfigSignature } from '@/tools/video-editor/lib/config-utils';
-import { migrateToFlatTracks } from '@/tools/video-editor/lib/migrate';
+import { migrateToFlatTracks, repairConfig } from '@/tools/video-editor/lib/migrate';
 import { buildDataFromCurrentRegistry } from '@/tools/video-editor/lib/timeline-save-utils';
 import { assembleTimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type {
@@ -108,12 +108,12 @@ describe('timeline save utils regression coverage', () => {
     expect(data.signature).toBe(getConfigSignature(resolvedConfig));
   });
 
-  it('deduplicates duplicate track ids through migrate then assemble', () => {
-    const migratedConfig = migrateToFlatTracks({
+  it('deduplicates duplicate track ids through repair then assemble', () => {
+    const migratedConfig = migrateToFlatTracks(repairConfig({
       output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
       tracks: [makeTrack('V1'), makeTrack('V3'), makeTrack('V3')],
       clips: [{ id: 'clip-1', at: 0, track: 'V3', clipType: 'hold', asset: 'asset-1', hold: 2 }],
-    });
+    }));
     const registry: AssetRegistry = {
       assets: {
         'asset-1': { file: 'overlay.png' },
@@ -137,15 +137,15 @@ describe('timeline save utils regression coverage', () => {
     expect(data.clipOrder.V3).toEqual(['clip-1']);
   });
 
-  it('cleans cascading duplicate clip ids through migrate then assemble', () => {
-    const migratedConfig = migrateToFlatTracks({
+  it('cleans cascading duplicate clip ids through repair then assemble', () => {
+    const migratedConfig = migrateToFlatTracks(repairConfig({
       output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
       tracks: [makeTrack('V1')],
       clips: [
         { id: 'clip-7-dup-2-dup-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 2 },
         { id: 'clip-7', at: 2, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 1 },
       ],
-    });
+    }));
     const registry: AssetRegistry = {
       assets: {
         'asset-1': { file: 'base.png' },
@@ -163,11 +163,12 @@ describe('timeline save utils regression coverage', () => {
       assetMap: makeAssetMap(registry),
     });
 
-    expect(migratedConfig.clips.map((clip) => clip.id)).toEqual(['clip-7', 'clip-7-dup-1']);
-    expect(data.clipOrder.V1).toEqual(['clip-7', 'clip-7-dup-1']);
-    expect(Object.keys(data.meta)).toEqual(['clip-7', 'clip-7-dup-1']);
-    expect(Object.keys(data.effects)).toEqual(['effect-clip-7', 'effect-clip-7-dup-1']);
-    expect(Object.keys(data.meta).some((clipId) => /-dup-\d+-dup-\d+/.test(clipId))).toBe(false);
+    // repairConfig strips -dup- suffix and drops duplicates of the same base id
+    expect(migratedConfig.clips.map((clip) => clip.id)).toEqual(['clip-7']);
+    expect(data.clipOrder.V1).toEqual(['clip-7']);
+    expect(Object.keys(data.meta)).toEqual(['clip-7']);
+    expect(Object.keys(data.effects)).toEqual(['effect-clip-7']);
+    expect(Object.keys(data.meta).some((clipId) => /-dup-\d+/.test(clipId))).toBe(false);
   });
 
   it('buildDataFromCurrentRegistry preserves registry objects from current data', () => {

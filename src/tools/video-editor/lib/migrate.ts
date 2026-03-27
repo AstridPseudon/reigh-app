@@ -160,43 +160,20 @@ const ensureBackgroundClip = (config: TimelineConfig): TimelineClip[] => {
   ];
 };
 
-/** Strip cascading `-dup-N` suffixes from a clip id back to its base. */
-const stripDupSuffix = (id: string): string => id.replace(/(-dup-\d+)+$/, '');
-
-/** Assign unique ids to clips, stripping stale `-dup-` chains first. */
-const deduplicateClipIds = (clips: TimelineClip[]): TimelineClip[] => {
-  const used = new Set<string>();
-  return clips.map((clip) => {
-    const base = stripDupSuffix(clip.id);
-    let candidate = base;
-    let i = 1;
-    while (used.has(candidate)) {
-      candidate = `${base}-dup-${i}`;
-      i += 1;
-    }
-    used.add(candidate);
-    return candidate === clip.id ? clip : { ...clip, id: candidate };
-  });
-};
-
+/**
+ * Cheap structural migration — runs on every edit.
+ * Ensures tracks exist, clips have clipType. No dedup, no repair.
+ */
 export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
   if (config.tracks?.length) {
-    // Deduplicate tracks by id — earlier mutations could have pushed duplicates
-    // into the shared array, which then got persisted to the server.
-    const seen = new Set<string>();
-    const dedupedTracks = config.tracks.filter((track) => {
-      if (seen.has(track.id)) return false;
-      seen.add(track.id);
-      return true;
-    });
     return {
       output: { ...config.output },
-      tracks: dedupedTracks.map((track) => ({ ...track })),
-      clips: deduplicateClipIds(config.clips.map((clip) => ({
+      tracks: config.tracks.map((track) => ({ ...track })),
+      clips: config.clips.map((clip) => ({
         ...clip,
         clipType: clip.clipType
           ?? (clip.text ? 'text' : typeof clip.hold === 'number' ? 'hold' : 'media'),
-      }))),
+      })),
       customEffects: config.customEffects ? { ...config.customEffects } : undefined,
     };
   }
@@ -207,4 +184,52 @@ export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
     clips: ensureBackgroundClip(config),
     customEffects: config.customEffects ? { ...config.customEffects } : undefined,
   };
+};
+
+/** Strip cascading `-dup-N` suffixes from a clip id back to its base. */
+const stripDupSuffix = (id: string): string => id.replace(/(-dup-\d+)+$/, '');
+
+/**
+ * Repair corrupted server configs — runs once on load, NOT on every edit.
+ * Deduplicates tracks by id, deduplicates clips by base id (stripping
+ * cascading -dup- suffixes), and logs what it fixed.
+ */
+export const repairConfig = (config: TimelineConfig): TimelineConfig => {
+  let repaired = false;
+
+  // Deduplicate tracks by id
+  const seenTracks = new Set<string>();
+  const tracks = (config.tracks ?? []).filter((track) => {
+    if (seenTracks.has(track.id)) {
+      repaired = true;
+      return false;
+    }
+    seenTracks.add(track.id);
+    return true;
+  });
+
+  // Deduplicate clips: strip -dup- suffixes, keep first occurrence of each base id
+  const seenClips = new Set<string>();
+  const clips: TimelineClip[] = [];
+  for (const clip of config.clips) {
+    const baseId = stripDupSuffix(clip.id);
+    if (seenClips.has(baseId)) {
+      repaired = true;
+      continue;
+    }
+    seenClips.add(baseId);
+    clips.push(baseId !== clip.id ? { ...clip, id: baseId } : clip);
+  }
+
+  if (repaired) {
+    console.warn(
+      '[timeline] repairConfig: fixed corrupted data —',
+      'tracks:', config.tracks?.length, '→', tracks.length,
+      'clips:', config.clips.length, '→', clips.length,
+    );
+  }
+
+  return repaired
+    ? { ...config, tracks, clips }
+    : config;
 };
