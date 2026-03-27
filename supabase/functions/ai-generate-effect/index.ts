@@ -153,6 +153,10 @@ async function callOpenRouter(
         temperature: 0.4,
         max_tokens: 65536,
         top_p: 1,
+        provider: {
+          order: ["atlas-cloud/fp8"],
+          allow_fallbacks: true,
+        },
       }),
       signal: controller.signal,
     });
