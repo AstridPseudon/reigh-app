@@ -33,7 +33,7 @@ interface UseCrossTrackDragOptions {
   timelineWrapperRef: RefObject<HTMLDivElement | null>;
   dataRef: MutableRefObject<TimelineData | null>;
   moveClipToRow: (clipId: string, targetRowId: string, newStartTime?: number, transactionId?: string) => void;
-  createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number) => void;
+  createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number, insertAtTop?: boolean) => void;
   selectClip: (clipId: string, opts?: SelectClipOptions) => void;
   selectClips: (clipIds: Iterable<string>) => void;
   selectedClipIdsRef: MutableRefObject<Set<string>>;
@@ -368,7 +368,7 @@ export const useClipDrag = ({
         if (crossTrackActiveRef.current && session.draggedClipIds.length === 1) {
           upEvent.preventDefault();
           if (dropPosition?.isNewTrack) {
-            createTrackAndMoveClipRef.current(session.clipId, session.sourceKind, nextStart);
+            createTrackAndMoveClipRef.current(session.clipId, session.sourceKind, nextStart, dropPosition.isNewTrackTop);
           } else if (dropPosition?.trackId && !dropPosition.isReject) {
             moveClipToRowRef.current(session.clipId, dropPosition.trackId, nextStart, session.transactionId);
           } else {

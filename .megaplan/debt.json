@@ -373,6 +373,40 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-023",
+      "subsystem": "drop-indicator-plumbing",
+      "concern": "dropindicator reads position.trackid without it being declared on the dropindicatorposition interface or forwarded by toindicatorposition().",
+      "flag_ids": [
+        "timeline-indicator-typing-trackid"
+      ],
+      "plan_ids": [
+        "two-ux-improvements-1-drop-to-20260327-0520"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-27T04:36:26Z",
+      "updated_at": "2026-03-27T04:36:26Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-024",
+      "subsystem": "workspace-git-hygiene",
+      "concern": "step 2 discards unstaged edits in 6 files via git checkout head without first confirming the revert was unintentional.",
+      "flag_ids": [
+        "workspace-restore-destructive"
+      ],
+      "plan_ids": [
+        "two-ux-improvements-1-drop-to-20260327-0520"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-27T04:36:26Z",
+      "updated_at": "2026-03-27T04:36:26Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

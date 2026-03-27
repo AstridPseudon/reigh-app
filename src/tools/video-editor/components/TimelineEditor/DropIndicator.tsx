@@ -21,6 +21,8 @@ export interface DropIndicatorPosition {
   ghostLabel: string;
   label: string;
   isNewTrack: boolean;
+  isNewTrackTop?: boolean;
+  trackId?: string;
   /** When non-null, describes the kind of track that will be created. */
   newTrackKind: string | null;
   reject: boolean;
@@ -80,7 +82,7 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
       editArea.classList.remove('drop-target-new-track');
       onNewTrackLabel?.(null);
     };
-  }, [editAreaRef, onNewTrackLabel, position?.isNewTrack, position?.newTrackKind, position?.trackId]);
+  }, [editAreaRef, onNewTrackLabel, position?.isNewTrack, position?.isNewTrackTop, position?.newTrackKind, position?.trackId]);
 
   if (!position || typeof document === 'undefined') {
     return null;

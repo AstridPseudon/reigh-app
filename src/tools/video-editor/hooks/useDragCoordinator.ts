@@ -76,6 +76,8 @@ const toIndicatorPosition = (position: DropPosition): DropIndicatorPosition => {
     ghostLabel: timeLabel,
     label: position.trackName ? `${position.trackName} · ${timeLabel}` : timeLabel,
     isNewTrack: position.isNewTrack,
+    isNewTrackTop: position.isNewTrackTop,
+    trackId: position.trackId,
     newTrackKind: position.newTrackKind,
     reject: position.isReject,
   };

@@ -25,7 +25,7 @@ export interface UseTimelineTrackManagementResult {
   handleClearUnusedTracks: () => void;
   unusedTrackCount: number;
   moveClipToRow: (clipId: string, targetRowId: string, newStartTime?: number, transactionId?: string) => void;
-  createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number) => void;
+  createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number, insertAtTop?: boolean) => void;
   moveSelectedClipToTrack: (direction: 'up' | 'down') => void;
   moveSelectedClipsToTrack: (direction: 'up' | 'down', selectedClipIds: ReadonlySet<string>) => void;
 }
@@ -142,7 +142,7 @@ export function useTimelineTrackManagement({
     );
   }, [applyTimelineEdit, dataRef]);
 
-  const createTrackAndMoveClip = useCallback((clipId: string, kind: TrackKind, newStartTime?: number) => {
+  const createTrackAndMoveClip = useCallback((clipId: string, kind: TrackKind, newStartTime?: number, insertAtTop = false) => {
     const current = dataRef.current;
     if (!current) {
       return;
@@ -154,7 +154,7 @@ export function useTimelineTrackManagement({
       return;
     }
 
-    const nextResolvedConfigBase = addTrack(current.resolvedConfig, kind);
+    const nextResolvedConfigBase = addTrack(current.resolvedConfig, kind, insertAtTop ? 0 : undefined);
     const newTrack = nextResolvedConfigBase.tracks.find((track) => {
       return !current.resolvedConfig.tracks.some((existingTrack) => existingTrack.id === track.id);
     }) ?? nextResolvedConfigBase.tracks[nextResolvedConfigBase.tracks.length - 1];
