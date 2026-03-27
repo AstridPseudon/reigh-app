@@ -322,6 +322,40 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-020",
+      "subsystem": "registry-patch-testing",
+      "concern": "patchregistry() lacks automated regression tests \u2014 the duplicate-id bug's most likely reproduction path is covered only by pure-function tests on the assembler it delegates to, plus manual smoke testing.",
+      "flag_ids": [
+        "timeline-builder-missing-regression-tests"
+      ],
+      "plan_ids": [
+        "light-megaplan-consolidate-20260327-0022"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-26T23:33:07Z",
+      "updated_at": "2026-03-26T23:33:07Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-021",
+      "subsystem": "conflict-resolution",
+      "concern": "if all 3 conflict retries fail, the fallback path risks discarding dirty local edits unless the executor wires it into the existing conflict dialog.",
+      "flag_ids": [
+        "FLAG-001"
+      ],
+      "plan_ids": [
+        "light-megaplan-fix-the-20260327-0056"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-27T00:06:01Z",
+      "updated_at": "2026-03-27T00:06:01Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

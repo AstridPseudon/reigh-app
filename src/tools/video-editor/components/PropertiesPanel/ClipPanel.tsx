@@ -355,6 +355,7 @@ export function ClipPanel({
               open={creatorOpen}
               onOpenChange={setCreatorOpen}
               editingEffect={editingEffect}
+              previewAssetSrc={clip?.assetEntry?.src}
               onSaved={(resourceId, savedCategory, defaultParams) => {
                 const effectType = `custom:${resourceId}`;
                 const params = Object.keys(defaultParams).length > 0 ? defaultParams : undefined;

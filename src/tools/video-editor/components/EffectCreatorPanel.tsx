@@ -45,6 +45,8 @@ interface EffectCreatorPanelProps {
   editingEffect?: EffectResource | null;
   /** Called after a successful save with the resource id */
   onSaved?: (resourceId: string, category: EffectCategory, defaultParams: Record<string, unknown>) => void;
+  /** URL of the clip's image/video to use as preview background */
+  previewAssetSrc?: string | null;
 }
 
 type CompileStatus = 'idle' | 'compiling' | 'success' | 'error';
@@ -76,7 +78,31 @@ const DEFAULT_PREVIEW_PARAMS: PreviewParams = {
   intensity: 0.5,
 };
 
-function PreviewRect() {
+function PreviewRect({ assetSrc }: { assetSrc?: string | null }) {
+  if (assetSrc) {
+    const isVideo = /\.(mp4|mov|webm|m4v)(\?|$)/i.test(assetSrc);
+    return (
+      <AbsoluteFill>
+        {isVideo ? (
+          <video
+            src={assetSrc}
+            muted
+            loop
+            autoPlay
+            playsInline
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <img
+            src={assetSrc}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        )}
+      </AbsoluteFill>
+    );
+  }
+
   return (
     <AbsoluteFill
       style={{
@@ -112,12 +138,13 @@ function makePreviewComposition(
   EffectComponent: FC<EffectComponentProps> | null,
   params: PreviewParams,
   effectParams: Record<string, unknown>,
+  assetSrc?: string | null,
 ) {
   const durationInFrames = Math.max(1, Math.round(params.durationSeconds * PREVIEW_FPS));
   const effectFrames = Math.max(1, Math.round(params.effectSeconds * PREVIEW_FPS));
   return function EffectPreviewComposition() {
     if (!EffectComponent) {
-      return <PreviewRect />;
+      return <PreviewRect assetSrc={assetSrc} />;
     }
     return (
       <EffectComponent
@@ -126,7 +153,7 @@ function makePreviewComposition(
         intensity={params.intensity}
         params={effectParams}
       >
-        <PreviewRect />
+        <PreviewRect assetSrc={assetSrc} />
       </EffectComponent>
     );
   };
@@ -141,6 +168,7 @@ export function EffectCreatorPanel({
   onOpenChange,
   editingEffect,
   onSaved,
+  previewAssetSrc,
 }: EffectCreatorPanelProps) {
   const isEditing = Boolean(editingEffect);
 
@@ -335,8 +363,8 @@ export function EffectCreatorPanel({
   // Preview composition memoized on the component ref
   const previewDurationFrames = Math.max(1, Math.round(previewParams.durationSeconds * PREVIEW_FPS));
   const PreviewComposition = useMemo(
-    () => makePreviewComposition(previewComponent, previewParams, previewParamValues),
-    [previewComponent, previewParams, previewParamValues],
+    () => makePreviewComposition(previewComponent, previewParams, previewParamValues, previewAssetSrc),
+    [previewComponent, previewParams, previewParamValues, previewAssetSrc],
   );
 
   const hasGeneratedCode = Boolean(code.trim());
@@ -417,7 +445,7 @@ export function EffectCreatorPanel({
                     min={0.5}
                     max={10}
                     step={0.5}
-                    onValueChange={([v]) => setPreviewParams((p) => ({ ...p, durationSeconds: v }))}
+                    onValueChange={(v) => setPreviewParams((p) => ({ ...p, durationSeconds: v }))}
                   />
                 </div>
                 <div className="space-y-1">
@@ -427,7 +455,7 @@ export function EffectCreatorPanel({
                     min={0.1}
                     max={Math.min(5, previewParams.durationSeconds)}
                     step={0.1}
-                    onValueChange={([v]) => setPreviewParams((p) => ({ ...p, effectSeconds: v }))}
+                    onValueChange={(v) => setPreviewParams((p) => ({ ...p, effectSeconds: v }))}
                   />
                 </div>
                 <div className="space-y-1">
@@ -437,7 +465,7 @@ export function EffectCreatorPanel({
                     min={0}
                     max={1}
                     step={0.05}
-                    onValueChange={([v]) => setPreviewParams((p) => ({ ...p, intensity: v }))}
+                    onValueChange={(v) => setPreviewParams((p) => ({ ...p, intensity: v }))}
                   />
                 </div>
               </div>
