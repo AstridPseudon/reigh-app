@@ -273,12 +273,16 @@ serve(async (req) => {
 
     let llmResponse: LLMResponse;
 
-    if (isEditMode) {
-      logger.info(`[AI-GENERATE-EFFECT] edit mode → ${EDIT_MODEL}`);
-      await logger.flush();
-      llmResponse = await callOpenRouter(EDIT_MODEL, messages, logger);
-    } else {
-      logger.info(`[AI-GENERATE-EFFECT] create mode → ${GROQ_GENERATE_MODEL} (Groq)`);
+    // All generation (create + edit) goes through Groq K2 for speed (~2s)
+    // OpenRouter/Qwen path commented out — can re-enable if quality needs improvement
+    //
+    // if (isEditMode) {
+    //   logger.info(`[AI-GENERATE-EFFECT] edit mode → ${EDIT_MODEL}`);
+    //   await logger.flush();
+    //   llmResponse = await callOpenRouter(EDIT_MODEL, messages, logger);
+    // } else {
+    {
+      logger.info(`[AI-GENERATE-EFFECT] ${isEditMode ? 'edit' : 'create'} mode → ${GROQ_GENERATE_MODEL} (Groq)`);
       await logger.flush();
       llmResponse = await callGroq(messages, logger);
     }
