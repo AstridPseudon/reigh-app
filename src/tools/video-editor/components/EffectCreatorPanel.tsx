@@ -295,6 +295,7 @@ export function EffectCreatorPanel({
       setParameterSchema(nextSchema);
       setPreviewParamValues(getDefaultValues(nextSchema));
       setGeneratedDescription(response.description.trim() || prompt.trim());
+      setPrompt('');
       if (!name.trim() && response.name?.trim()) {
         setName(response.name.trim());
       }

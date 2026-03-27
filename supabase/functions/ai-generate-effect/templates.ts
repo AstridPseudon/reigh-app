@@ -102,11 +102,14 @@ export function buildGenerateEffectMessages(input: BuildGenerateEffectMessagesIn
   const { prompt, name, category, existingCode } = input;
   const modeInstructions = existingCode?.trim()
     ? `Edit mode:
-- You are revising an existing effect
-- Apply the user's requested changes without rewriting unrelated parts unless necessary
-- Keep the result valid under the same runtime contract
+- You are making a TARGETED EDIT to an existing, working effect
+- CRITICAL: Start from the existing code below and modify ONLY what the user asked for
+- Do NOT rewrite the effect from scratch — preserve the existing structure, variable names, and logic
+- If the user asks to change one aspect (e.g. direction, speed, color), change ONLY that aspect
+- The existing code is already valid and working — your job is to apply a surgical edit
+- Keep the same component name and overall approach
 
-Existing code to modify:
+Existing code (modify this, do not replace it):
 \`\`\`ts
 ${existingCode.trim()}
 \`\`\``
