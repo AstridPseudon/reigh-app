@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type FC } from 'react';
-import { Loader2, Play, Save, Sparkles, Pencil, Globe, Lock } from 'lucide-react';
+import { Loader2, Play, RotateCcw, Save, Sparkles, Pencil, Globe, Lock } from 'lucide-react';
 import { Player } from '@remotion/player';
 import { AbsoluteFill } from 'remotion';
 import { Button } from '@/shared/components/ui/button';
@@ -374,18 +374,42 @@ export function EffectCreatorPanel({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {hasGeneratedCode
-              ? (name.trim() || 'Custom Effect')
-              : isEditing ? 'Edit Custom Effect' : 'Create Custom Effect'}
-          </DialogTitle>
-          <DialogDescription>
-            {hasGeneratedCode
-              ? 'How would you like to edit this animation?'
-              : isEditing
-                ? 'Describe how you want to change this effect.'
-                : 'Describe the effect you want, and AI will generate it for you.'}
-          </DialogDescription>
+          {hasGeneratedCode ? (
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <Input
+                  value={name}
+                  placeholder="Effect name"
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-7 border-none bg-transparent px-0 text-lg font-semibold shadow-none focus-visible:ring-0"
+                />
+                <DialogDescription>
+                  How would you like to edit this animation?
+                </DialogDescription>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-xs text-muted-foreground"
+                onClick={() => resetForm()}
+              >
+                <RotateCcw className="mr-1 h-3 w-3" />
+                Start over
+              </Button>
+            </div>
+          ) : (
+            <>
+              <DialogTitle>
+                {isEditing ? 'Edit Custom Effect' : 'Create Custom Effect'}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing
+                  ? 'Describe how you want to change this effect.'
+                  : 'Describe the effect you want, and AI will generate it for you.'}
+              </DialogDescription>
+            </>
+          )}
         </DialogHeader>
 
         <div className="space-y-4">
