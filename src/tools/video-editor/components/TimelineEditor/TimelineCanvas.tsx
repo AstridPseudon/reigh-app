@@ -520,6 +520,11 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
               }}
             />
           )}
+          {newTrackDropLabel?.includes('at top') && (
+            <div className="flex items-center justify-center border-b border-dashed border-sky-400/40 bg-sky-950/30 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-sky-300 pointer-events-none" style={{ marginLeft: LABEL_WIDTH }}>
+              {newTrackDropLabel}
+            </div>
+          )}
           <DndContext
             sensors={trackSensors}
             collisionDetection={closestCenter}
