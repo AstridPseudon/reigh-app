@@ -604,7 +604,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
       </div>
       {/* Floating tool buttons — bottom-left of timeline viewport */}
       {onAddTextAt && (
-        <div className="pointer-events-none absolute bottom-2 z-30 flex gap-1.5" style={{ left: LABEL_WIDTH + 8 }}>
+        <div className="pointer-events-none absolute bottom-4 z-30 flex gap-1.5" style={{ left: LABEL_WIDTH + 8 }}>
           <div
             draggable
             onDragStart={(event) => {

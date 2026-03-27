@@ -99,7 +99,8 @@ export const computeDropPosition = ({
   const rowCount = current?.rows.length ?? 0;
   const rawRowIndex = rawRowIndexFromY(clientY, editRect.top, scrollTop, rowHeight);
   const isNewTrackBottom = rowCount === 0 || rawRowIndex >= rowCount;
-  const isNewTrackTop = rawRowIndex < 0 && rowCount > 0;
+  // Only show top drop zone when fully scrolled up — otherwise auto-scroll handles it
+  const isNewTrackTop = rawRowIndex < 0 && rowCount > 0 && scrollTop < 2;
   const isNewTrack = isNewTrackBottom || isNewTrackTop;
   const rowIndex = rowCount === 0
     ? 0

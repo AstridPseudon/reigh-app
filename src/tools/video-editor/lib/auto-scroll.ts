@@ -33,11 +33,13 @@ export function createAutoScroller(
     lastClientY = clientY;
     const rect = container.getBoundingClientRect();
 
-    // Vertical
+    // Vertical — extend top zone above the container (e.g. ruler area)
     const distFromTop = clientY - rect.top;
     const distFromBottom = rect.bottom - clientY;
-    if (distFromTop < EDGE_ZONE_PX && distFromTop >= 0) {
-      dy = -Math.round(MAX_SCROLL_SPEED * (1 - distFromTop / EDGE_ZONE_PX));
+    if (distFromTop < EDGE_ZONE_PX) {
+      // When above the container (distFromTop < 0), scroll at max speed
+      const factor = distFromTop < 0 ? 1 : (1 - distFromTop / EDGE_ZONE_PX);
+      dy = -Math.round(MAX_SCROLL_SPEED * factor);
     } else if (distFromBottom < EDGE_ZONE_PX && distFromBottom >= 0) {
       dy = Math.round(MAX_SCROLL_SPEED * (1 - distFromBottom / EDGE_ZONE_PX));
     } else {
