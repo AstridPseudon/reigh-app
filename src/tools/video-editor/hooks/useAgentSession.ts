@@ -163,7 +163,12 @@ export function useAgentSession(sessionId: string | null | undefined) {
           void queryClient.invalidateQueries({ queryKey: ['timeline-agent-sessions'] });
         },
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn(`[useAgentSession] Realtime subscription failed (${status}), removing channel`);
+          void supabase.removeChannel(channel);
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);
