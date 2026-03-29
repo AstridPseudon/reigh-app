@@ -99,6 +99,14 @@ export function useTimelineSave(
     selectedTrackIdRef.current = selectedTrackId;
   }, [data, selectedClipId, selectedTrackId]);
 
+  // Initialize/advance configVersionRef from polled timeline data.
+  // Only accept higher versions to prevent regression from stale polls.
+  useEffect(() => {
+    if (timelineQuery.data && timelineQuery.data.configVersion > configVersionRef.current) {
+      configVersionRef.current = timelineQuery.data.configVersion;
+    }
+  }, [timelineQuery.data]);
+
   const scheduleSaveRef = useRef<(nextData: TimelineData, options?: { preserveStatus?: boolean }) => void>(
     () => undefined,
   );
@@ -178,6 +186,7 @@ export function useTimelineSave(
     mutationFn: ({ config, expectedVersion }: { config: TimelineConfig; expectedVersion: number }) => {
       return provider.saveTimeline(timelineId, config, expectedVersion);
     },
+    retry: false,
   });
 
   const loadConflictRetryVersion = useCallback(async (): Promise<number> => {
