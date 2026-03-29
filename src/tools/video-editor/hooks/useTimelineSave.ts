@@ -102,8 +102,15 @@ export function useTimelineSave(
   // Initialize/advance configVersionRef from polled timeline data.
   // Only accept higher versions to prevent regression from stale polls.
   useEffect(() => {
-    if (timelineQuery.data && timelineQuery.data.configVersion > configVersionRef.current) {
-      configVersionRef.current = timelineQuery.data.configVersion;
+    const polledVersion = timelineQuery.data?.configVersion;
+    console.error('[TimelineSave] configVersion effect', {
+      polledVersion,
+      currentRef: configVersionRef.current,
+      hasData: !!timelineQuery.data,
+    });
+    if (timelineQuery.data && typeof polledVersion === 'number' && polledVersion > configVersionRef.current) {
+      configVersionRef.current = polledVersion;
+      console.error('[TimelineSave] configVersionRef updated to', polledVersion);
     }
   }, [timelineQuery.data]);
 
