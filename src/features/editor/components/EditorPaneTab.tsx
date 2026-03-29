@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Film } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/components/ui/contracts/cn';
@@ -84,9 +84,12 @@ const EditorPaneComponent: React.FC = () => {
     (isShotsPaneLocked ? shotsPaneWidth : 0) -
     (isTasksPaneLocked ? tasksPaneWidth : 0);
   const activeTimelineId = settings?.lastTimelineId ?? timelines.data?.[0]?.id ?? null;
-  const provider = selectedProjectId && userId
-    ? new SupabaseDataProvider({ projectId: selectedProjectId, userId })
-    : null;
+  const provider = useMemo(() => {
+    if (!selectedProjectId || !userId) {
+      return null;
+    }
+    return new SupabaseDataProvider({ projectId: selectedProjectId, userId });
+  }, [selectedProjectId, userId]);
   const activeTimelineName = timelines.data?.find((timeline) => timeline.id === activeTimelineId)?.name ?? null;
   const createTimeline = async () => {
     const created = await timelines.createTimeline.mutateAsync('Main timeline');

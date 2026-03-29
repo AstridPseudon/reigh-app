@@ -42,8 +42,8 @@ function mapCheckpointRow(row: TimelineCheckpointRow): Checkpoint {
 export class SupabaseDataProvider implements DataProvider {
   constructor(
     private readonly options: {
-      projectId: string;
-      userId: string;
+      projectId: string;  // Retained for callers but not used in queries — RLS handles access control.
+      userId: string;     // Used only for checkpoint inserts (DB column value, not query filter).
     },
   ) {}
 
@@ -117,7 +117,6 @@ export class SupabaseDataProvider implements DataProvider {
       .from('timeline_checkpoints')
       .select('id, trigger_type')
       .eq('timeline_id', timelineId)
-      .eq('user_id', this.options.userId)
       .neq('trigger_type', 'manual')
       .order('created_at', { ascending: false });
 
@@ -152,7 +151,6 @@ export class SupabaseDataProvider implements DataProvider {
       .from('timeline_checkpoints')
       .delete()
       .eq('timeline_id', timelineId)
-      .eq('user_id', this.options.userId)
       .neq('trigger_type', 'manual')
       .lt('created_at', retentionCutoff);
 
@@ -164,7 +162,6 @@ export class SupabaseDataProvider implements DataProvider {
       .from('timeline_checkpoints')
       .select('id, timeline_id, config, created_at, trigger_type, label, edits_since_last_checkpoint')
       .eq('timeline_id', timelineId)
-      .eq('user_id', this.options.userId)
       .order('created_at', { ascending: false });
 
     if (error) {

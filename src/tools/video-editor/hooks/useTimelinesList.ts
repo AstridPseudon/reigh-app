@@ -9,13 +9,12 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
 
   const timelinesQuery = useQuery({
     queryKey: timelineListQueryKey(projectId),
-    enabled: Boolean(projectId && userId),
+    enabled: Boolean(projectId),
     queryFn: async () => {
       const { data, error } = await getSupabaseClient()
         .from('timelines')
         .select('*')
         .eq('project_id', projectId!)
-        .eq('user_id', userId!)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -58,9 +57,7 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
       const { error } = await getSupabaseClient()
         .from('timelines')
         .update({ name, updated_at: new Date().toISOString() })
-        .eq('id', timelineId)
-        .eq('project_id', projectId!)
-        .eq('user_id', userId!);
+        .eq('id', timelineId);
 
       if (error) {
         throw error;
@@ -76,9 +73,7 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
       const { error } = await getSupabaseClient()
         .from('timelines')
         .delete()
-        .eq('id', timelineId)
-        .eq('project_id', projectId!)
-        .eq('user_id', userId!);
+        .eq('id', timelineId);
 
       if (error) {
         throw error;
