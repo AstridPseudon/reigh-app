@@ -9,11 +9,12 @@ from debug.client import DebugClient
 # Patterns that indicate state transitions, checked in order.
 # Each tuple: (compiled_regex, state_label, extra_extractor_or_None)
 _TRANSITION_PATTERNS = [
-    (re.compile(r"Creating task|Task queued", re.IGNORECASE), "Queued", "created"),
-    (re.compile(r"Claimed task.*" + r"|" + r"\[CLAIM\]", re.IGNORECASE), "In Progress", None),
-    (re.compile(r"status\s*=\s*Complete|COMPLETE", re.IGNORECASE), "Complete", None),
-    (re.compile(r"status\s*=\s*Failed|FAILED", re.IGNORECASE), "Failed", None),
+    # Order matters: more specific patterns first
     (re.compile(r"requeuing for retry", re.IGNORECASE), "Queued", "retry"),
+    (re.compile(r"Creating task|Task queued", re.IGNORECASE), "Queued", "created"),
+    (re.compile(r"\[CLAIM\] Claimed task", re.IGNORECASE), "In Progress", None),
+    (re.compile(r"status\s*=\s*Complete|COMPLETE with file", re.IGNORECASE), "Complete", None),
+    (re.compile(r"\[TASK_ERROR\]|create-task failed|Failed during travel", re.IGNORECASE), "Failed", None),
     (re.compile(r"update_task_status.*Queued", re.IGNORECASE), "Queued", "reset"),
 ]
 
@@ -255,7 +256,7 @@ def _failure_snippet(msg: str) -> str:
 
 
 def _print_transitions(transitions):
-    """Print transitions with collapse for repeated sequences."""
+    """Print transitions with collapse for repeated same-state sequences."""
     i = 0
     while i < len(transitions):
         t = transitions[i]
@@ -264,41 +265,38 @@ def _print_transitions(transitions):
         state_str = t["state"]
         detail = t.get("detail") or ""
 
-        # Check for repeated identical transitions
-        repeat_count = 0
-        if i + 1 < len(transitions):
-            j = i + 1
-            while j < len(transitions) and transitions[j]["state"] == t["state"] and transitions[j].get("detail") == detail:
-                repeat_count += 1
-                j += 1
+        # Count consecutive transitions with the same state (regardless of detail)
+        j = i + 1
+        while j < len(transitions) and transitions[j]["state"] == t["state"]:
+            j += 1
+        run_length = j - i
 
+        # Print first transition
         if detail:
             print(f"  [{time_str}]  {icon} {state_str:<30s}  {detail}")
         else:
             print(f"  [{time_str}]  {icon} {state_str}")
 
-        # If next 3+ transitions are identical, collapse
-        if repeat_count >= 3:
-            # Print first of the repeats, then "... (repeated N more times) ...", then last
-            next_t = transitions[i + 1]
-            next_time = _format_time(next_t["time"])
-            next_detail = next_t.get("detail") or ""
-            next_icon = _STATE_ICONS.get(next_t["state"], " ")
-            if next_detail:
-                print(f"  [{next_time}]  {next_icon} {next_t['state']:<30s}  {next_detail}")
-            else:
-                print(f"  [{next_time}]  {next_icon} {next_t['state']}")
-            print(f"  ... (repeated {repeat_count - 1} more times) ...")
-            # Print the last one
-            last_t = transitions[i + repeat_count]
+        if run_length >= 3:
+            # Collapse: show "... repeated N more times ..." then the last one
+            last_t = transitions[j - 1]
             last_time = _format_time(last_t["time"])
             last_detail = last_t.get("detail") or ""
-            last_icon = _STATE_ICONS.get(last_t["state"], " ")
+            print(f"           ... {run_length - 1} more {state_str} transitions ...")
             if last_detail:
-                print(f"  [{last_time}]  {last_icon} {last_t['state']:<30s}  {last_detail}")
+                print(f"  [{last_time}]  {icon} {state_str:<30s}  {last_detail}")
             else:
-                print(f"  [{last_time}]  {last_icon} {last_t['state']}")
-            i += repeat_count + 1
+                print(f"  [{last_time}]  {icon} {state_str}")
+            i = j
+        elif run_length == 2:
+            # Just print both
+            t2 = transitions[i + 1]
+            t2_detail = t2.get("detail") or ""
+            if t2_detail:
+                print(f"  [{_format_time(t2['time'])}]  {icon} {state_str:<30s}  {t2_detail}")
+            else:
+                print(f"  [{_format_time(t2['time'])}]  {icon} {state_str}")
+            i = j
         else:
             i += 1
 

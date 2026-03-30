@@ -44,12 +44,20 @@ def run(client: DebugClient, options: dict):
                 spawn_id = spawn_match.group(1)
                 spawns[spawn_id] = ts
 
-            # Worker kills: "MARKING AS ERROR: {reason}"
-            kill_match = re.search(r'MARKING AS ERROR:\s*(.+)', msg)
-            if kill_match and wid:
+            # Worker kills: "WORKER_LIFECYCLE [Worker {id}] MARKING AS ERROR: {reason}"
+            kill_match = re.search(r'\[Worker\s+(gpu-\S+)\]\s*MARKING AS ERROR:\s*(.+)', msg)
+            if kill_match:
+                kill_wid = kill_match.group(1)
+                kills[kill_wid] = {
+                    'timestamp': ts,
+                    'reason': kill_match.group(2).strip(),
+                }
+            elif 'MARKING AS ERROR' in msg and wid:
+                # Fallback: use worker_id field if set
+                reason_match = re.search(r'MARKING AS ERROR:\s*(.+)', msg)
                 kills[wid] = {
                     'timestamp': ts,
-                    'reason': kill_match.group(1).strip(),
+                    'reason': reason_match.group(1).strip() if reason_match else msg,
                 }
 
             # Cycle summaries with promotion/failure counts
@@ -94,7 +102,7 @@ def run(client: DebugClient, options: dict):
 
         # ── 3b. Supplement with workers table (catches workers missed by log parsing) ──
         workers_result = client.supabase.table('workers').select(
-            'id, status, created_at, metadata'
+            'id, status, created_at, last_heartbeat, metadata'
         ).gte('created_at', cutoff).order('created_at').limit(100).execute()
 
         for w in (workers_result.data or []):
@@ -104,8 +112,10 @@ def run(client: DebugClient, options: dict):
             if w.get('status') in ('error', 'terminated'):
                 meta = w.get('metadata') or {}
                 if wid not in kills:
+                    # Use last_heartbeat as approximate kill time (closer to actual death than created_at)
+                    kill_time = w.get('last_heartbeat') or w.get('created_at', '')
                     kills[wid] = {
-                        'timestamp': w.get('created_at', ''),
+                        'timestamp': kill_time,
                         'reason': meta.get('termination_reason', meta.get('error', f"status={w['status']}")),
                     }
 
@@ -133,14 +143,14 @@ def run(client: DebugClient, options: dict):
                 kill_ts = _parse_ts(kill_info['timestamp'])
                 reason = kill_info['reason']
 
-                # Check if worker completed tasks within 5 min of kill
+                # Check if worker completed tasks within 10 min of kill
                 recent_completions = []
                 if kill_ts and completed:
                     for t in completed:
                         t_ts = _parse_ts(t['updated_at'])
                         if t_ts and kill_ts:
                             delta = (kill_ts - t_ts).total_seconds()
-                            if 0 <= delta <= 300:  # within 5 min before kill
+                            if 0 <= delta <= 600:  # within 10 min before kill
                                 recent_completions.append((t_ts, delta))
 
                 if recent_completions:

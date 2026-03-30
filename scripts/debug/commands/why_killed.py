@@ -258,8 +258,21 @@ def run(client: DebugClient, worker_id: str, options: dict):
                     print(f"  Actual idle time: {idle_seconds:.0f}s")
 
         elif not any_claims:
-            print(f"  \u2705 EXPECTED: Worker never became productive.")
-            print(f"     No task claims were found for this worker.")
+            # Check if kill reason says "previously claimed" — meaning the orchestrator
+            # saw claims but we didn't find them in our log window
+            has_fail_events = any(e['type'] == 'fail' for e in activity_events)
+            previously_claimed = 'previously claimed' in (kill_reason or '').lower()
+
+            if previously_claimed or has_fail_events:
+                print(f"  \u26a0\ufe0f  Worker was killed during initialization/processing.")
+                if previously_claimed:
+                    print(f"     Kill reason says 'previously claimed' but no claims found in log window.")
+                if has_fail_events:
+                    print(f"     Worker had errors before being killed (see activity above).")
+                print(f"     The worker tried to work but may have failed during setup.")
+            else:
+                print(f"  \u2705 EXPECTED: Worker never became productive.")
+                print(f"     No task claims or errors found for this worker.")
 
         elif not last_completion:
             # Had claims but no completions

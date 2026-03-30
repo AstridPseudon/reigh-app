@@ -124,7 +124,7 @@ def _print_timeline(worker, orch_logs, worker_logs, tasks):
     prev_label = None
     repeat_count = 0
     for ts, emoji, label, detail in events:
-        if label == prev_label and label in ("INITIALIZING", "SSH available"):
+        if label == prev_label and label in ("INITIALIZING", "SSH available", "SPAWNED"):
             repeat_count += 1
             continue
         if repeat_count > 0:
