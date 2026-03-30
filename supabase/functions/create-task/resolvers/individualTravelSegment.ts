@@ -115,26 +115,35 @@ async function resolveSegmentGenerationRoute(
 ): Promise<{ parentGenerationId: string; childGenerationId?: string }> {
   const parentGenerationId = await ensureShotParentGenerationId(context, input);
 
-  if (input.child_generation_id) {
-    return { parentGenerationId, childGenerationId: input.child_generation_id };
-  }
-
   if (input.pair_shot_generation_id) {
-    const { data, error } = await context.supabaseAdmin
+    // pair_shot_generation_id is the authoritative position identifier.
+    // Always look up by pair first — even when child_generation_id is provided,
+    // the frontend may send a stale child_generation_id from variant params
+    // that no longer corresponds to the current timeline position.
+    const { data: pairMatch, error: pairError } = await context.supabaseAdmin
       .from("generations")
       .select("id")
       .eq("parent_generation_id", parentGenerationId)
       .eq("pair_shot_generation_id", input.pair_shot_generation_id)
       .limit(1)
       .maybeSingle();
-    if (error) {
-      throw new Error(`lookupChildGenerationIdByPair failed: ${error.message}`);
+    if (pairError) {
+      throw new Error(`lookupChildGenerationIdByPair failed: ${pairError.message}`);
     }
-    if (typeof data?.id === "string") {
-      return { parentGenerationId, childGenerationId: data.id };
+    if (typeof pairMatch?.id === "string") {
+      return { parentGenerationId, childGenerationId: pairMatch.id };
     }
+    // No child at this pair position — this is a new segment.
+    // Don't use the frontend's child_generation_id or fall back to child_order,
+    // which may point to a child at a different timeline position.
+    return { parentGenerationId };
   }
 
+  if (input.child_generation_id) {
+    return { parentGenerationId, childGenerationId: input.child_generation_id };
+  }
+
+  // Only fall back to child_order when no pair_shot_generation_id was provided
   const { data, error } = await context.supabaseAdmin
     .from("generations")
     .select("id")

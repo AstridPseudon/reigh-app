@@ -28,7 +28,27 @@ describe('normalizeSegmentTaskParams', () => {
     expect(normalized.params.start_image_generation_id).toBe('img-b');
     expect(normalized.params.end_image_generation_id).toBe('img-c');
     expect(normalized.segmentIndex).toBe(2);
-    expect(normalized.pairShotGenerationId).toBe('pair-1');
+    // pair_shot_generation_id is no longer synthesized from orchestrator array by index.
+    // It must be set directly on the task params to be picked up.
+    expect(normalized.pairShotGenerationId).toBeNull();
+  });
+
+  it('uses direct pair_shot_generation_id param over orchestrator array', () => {
+    const normalized = normalizeSegmentTaskParams({
+      taskData: {
+        params: {
+          segment_index: 1,
+          pair_shot_generation_id: 'direct-pair-id',
+          orchestrator_details: {
+            pair_shot_generation_ids: ['pair-0', 'pair-1', 'pair-2'],
+          },
+        },
+      },
+      childOrder: 1,
+      isSingleItem: false,
+    });
+
+    expect(normalized.pairShotGenerationId).toBe('direct-pair-id');
   });
 
   it('flags single-item cases and falls back to default segment index', () => {

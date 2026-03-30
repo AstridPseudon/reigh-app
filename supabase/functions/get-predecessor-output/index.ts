@@ -134,8 +134,10 @@ serve((req) => {
     }
 
     // --- Path 2: generation-based sibling lookup (individual segment regens) ---
-    // When there's no dependant_on chain, find the previous segment by
-    // parent_generation_id + child_order (the segment before this one).
+    // child_order is only a valid predecessor key inside a single orchestration run:
+    // the orchestrator fan-out assigns it sequentially and that ordering does not drift
+    // until the run finishes. A durable cross-run predecessor lookup would need
+    // pair_shot_generation_id plus current timeline ordering, not child_order alone.
     const parentGenerationId = typeof body.parent_generation_id === "string" ? body.parent_generation_id : null;
     const childOrder = typeof body.child_order === "number" ? body.child_order : null;
     const predecessorOrder = childOrder !== null ? childOrder - 1 : null;

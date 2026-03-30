@@ -65,16 +65,6 @@ export function buildSegmentSlots({
       }
     }
 
-    if (
-      derivedSlot === undefined
-      && !pairShotGenId
-      && typeof childOrder === 'number'
-      && childOrder >= 0
-      && childOrder < slotCount
-    ) {
-      derivedSlot = childOrder;
-    }
-
     if (isAtEnd) {
       orphanedAtEnd.push(child);
       return;

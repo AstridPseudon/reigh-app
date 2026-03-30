@@ -475,13 +475,11 @@ export function useVideoRegenerateMode({
     }
 
     // Extract pair_shot_generation_id
-    const orchPairIds = orchestratorDetails.pair_shot_generation_ids as string[] | undefined;
     const pairShotGenerationId = [
       segmentSlotMode?.pairData?.startImage?.id,
       currentSegmentImages?.startShotGenerationId,
       taskParams.pair_shot_generation_id,
       (taskParams.individual_segment_params as Record<string, unknown>)?.pair_shot_generation_id,
-      Array.isArray(orchPairIds) ? orchPairIds[segmentIndex] : undefined,
     ].find((v): v is string => typeof v === 'string') || undefined;
 
     // Get childGenerationId

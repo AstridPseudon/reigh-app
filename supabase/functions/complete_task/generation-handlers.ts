@@ -285,11 +285,8 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<unknown
   }
 
   // Extract pair_shot_generation_id from nested locations if not at top level
-  const segmentIndex = taskData.params?.segment_index ?? 0;
-  const orchPairIds = taskData.params?.orchestrator_details?.pair_shot_generation_ids;
   const pairShotGenerationId = taskData.params?.pair_shot_generation_id ||
-                                taskData.params?.individual_segment_params?.pair_shot_generation_id ||
-                                (Array.isArray(orchPairIds) && orchPairIds[segmentIndex]);
+                                taskData.params?.individual_segment_params?.pair_shot_generation_id;
 
   const variantParams = {
     ...taskData.params,

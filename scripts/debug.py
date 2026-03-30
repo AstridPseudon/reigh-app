@@ -54,6 +54,7 @@ sys.path.insert(0, str(project_root))
 from debug.client import DebugClient
 from debug.commands import task, tasks, logs, sql, query, pipeline, workers, queue, pod
 from debug.commands import worker_timeline, why_killed, task_journey, scaling_audit
+from debug.commands import context as context_cmd
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -138,6 +139,12 @@ def create_parser() -> argparse.ArgumentParser:
     tj_parser.add_argument('task_id', help='Task ID')
     tj_parser.add_argument('--json', action='store_true', help='Output as JSON')
     tj_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
+
+    # Context command
+    ctx_parser = subparsers.add_parser('context', help='Show full relational graph for a task or generation (parent/children, shot timeline, issues)')
+    ctx_parser.add_argument('entity_id', help='Task ID or generation ID')
+    ctx_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    ctx_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
 
     # Scaling audit command
     sa_parser = subparsers.add_parser('scaling-audit', help='Audit recent orchestrator decisions for issues')
@@ -239,6 +246,8 @@ def main():
             why_killed.run(client, args.worker_id, options)
         elif args.command == 'task-journey':
             task_journey.run(client, args.task_id, options)
+        elif args.command == 'context':
+            context_cmd.run(client, args.entity_id, options)
         elif args.command == 'scaling-audit':
             scaling_audit.run(client, options)
         else:

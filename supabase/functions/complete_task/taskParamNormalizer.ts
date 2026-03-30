@@ -56,11 +56,6 @@ function extractSegmentSpecificParams(
     nextParams.frame_overlap = specificOverlap;
   }
 
-  const pairShotGenId = extractFromArray(orchestratorDetails.pair_shot_generation_ids, segmentIndex);
-  if (pairShotGenId !== undefined) {
-    nextParams.pair_shot_generation_id = pairShotGenId;
-  }
-
   const startImageGenId = extractFromArray(orchestratorDetails.input_image_generation_ids, segmentIndex);
   if (startImageGenId !== undefined) {
     nextParams.start_image_generation_id = startImageGenId;
@@ -98,15 +93,10 @@ export function normalizeSegmentTaskParams({
     ? normalizedParams.segment_index
     : (hasChildOrder ? childOrder as number : 0);
 
-  const orchestratorPairIds = Array.isArray(orchestratorDetails.pair_shot_generation_ids)
-    ? orchestratorDetails.pair_shot_generation_ids
-    : null;
-
   const individualSegmentParams = toRecord(normalizedParams.individual_segment_params);
   const pairShotGenerationId =
     toStringOrNull(normalizedParams.pair_shot_generation_id) ??
-    toStringOrNull(individualSegmentParams.pair_shot_generation_id) ??
-    toStringOrNull(orchestratorPairIds?.[segmentIndex]);
+    toStringOrNull(individualSegmentParams.pair_shot_generation_id);
 
   return {
     taskData: {
