@@ -6,6 +6,7 @@
  */
 
 import { Suspense, forwardRef, lazy, useImperativeHandle } from 'react';
+import { ChunkLoadErrorBoundary } from '@/shared/runtime/ChunkLoadErrorBoundary';
 import { getRectangleCorners } from '../hooks/inpainting/shapeHelpers';
 import { exportStrokeMask } from './strokeOverlay/maskExport';
 import {
@@ -98,6 +99,7 @@ export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>
   }), [strokes, imageWidth, imageHeight, selectedShapeId, onStrokesChange, updateSelection]);
 
   return (
+    <ChunkLoadErrorBoundary>
     <Suspense fallback={null}>
       <LazyStrokeOverlayCanvas
         displayWidth={displayWidth}
@@ -115,6 +117,7 @@ export const StrokeOverlay = forwardRef<StrokeOverlayHandle, StrokeOverlayProps>
         onPointerUp={handlePointerUp}
       />
     </Suspense>
+    </ChunkLoadErrorBoundary>
   );
 });
 
