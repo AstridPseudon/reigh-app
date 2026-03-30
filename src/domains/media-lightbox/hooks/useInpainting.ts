@@ -211,6 +211,7 @@ export const useInpainting = ({
       if (editMode === 'annotate' && annotationMode === null) {
         setAnnotationMode('rectangle');
       } else if (editMode === 'inpaint') {
+        setAnnotationMode(null);
         setIsEraseMode(false);
       }
       prevEditModeRef.current = editMode;
