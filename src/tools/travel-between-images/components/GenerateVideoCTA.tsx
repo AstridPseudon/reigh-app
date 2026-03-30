@@ -18,6 +18,8 @@ interface GenerateVideoCTAProps {
   bottomContent?: React.ReactNode;
   /** Whether stitch mode is enabled (changes button text) */
   stitchEnabled?: boolean;
+  /** Enhancement progress for batch prompt enhancement */
+  enhancementProgress?: { phase: 'enhancing'; completed: number; total: number } | null;
 }
 
 /**
@@ -33,6 +35,7 @@ export const GenerateVideoCTA: React.FC<GenerateVideoCTAProps> = ({
   middleContent,
   bottomContent,
   stitchEnabled = false,
+  enhancementProgress,
 }) => {
   const isPlural = videoCount >= 2;
 
@@ -67,7 +70,7 @@ export const GenerateVideoCTA: React.FC<GenerateVideoCTAProps> = ({
         onClick={onGenerate}
         disabled={disabled}
       >
-        {isGenerating ? (
+        {isGenerating || enhancementProgress ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : justQueued ? (
           <Check className="w-5 h-5" />
@@ -77,9 +80,11 @@ export const GenerateVideoCTA: React.FC<GenerateVideoCTAProps> = ({
         <span className="font-medium text-lg">
           {justQueued
             ? 'Added to queue!'
-            : isGenerating
-              ? 'Creating Tasks...'
-              : getButtonText()}
+            : enhancementProgress
+              ? `Enhancing prompts... (${enhancementProgress.completed}/${enhancementProgress.total})`
+              : isGenerating
+                ? 'Creating Tasks...'
+                : getButtonText()}
         </span>
       </Button>
 

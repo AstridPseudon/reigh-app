@@ -22,6 +22,11 @@ export interface ModelConfig extends TaskModelConfig {
   ltxHdResolution?: boolean;
 }
 
+export type GenerateVideoPromptConfig = PromptConfig & {
+  onEnhancementProgress?: (completed: number, total: number) => void;
+  enhancementAbortSignal?: AbortSignal;
+};
+
 export interface GenerateVideoParams {
   projectId: string;
   selectedShotId: string;
@@ -29,7 +34,7 @@ export interface GenerateVideoParams {
   queryClient: QueryClient;
   effectiveAspectRatio: string | null;
   generationMode: 'timeline' | 'batch' | 'by-pair';
-  promptConfig: PromptConfig;
+  promptConfig: GenerateVideoPromptConfig;
   motionConfig: MotionConfig;
   modelConfig: ModelConfig;
   travelGuidance?: TravelGuidance;

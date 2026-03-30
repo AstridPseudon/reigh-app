@@ -261,6 +261,8 @@ export function buildShotEditorContextInput({
       randomSeed: settings.randomSeed,
       onRandomSeedChange:
         controllers.generationController.handleRandomSeedChange,
+      enhancementProgress:
+        controllers.generationController.enhancementProgress,
     },
     generationHandlers: {
       handleGenerateBatch:

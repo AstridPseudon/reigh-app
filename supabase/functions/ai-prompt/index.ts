@@ -197,22 +197,25 @@ Summary:` }],
         return jsonResponse({ summary, usage: resp.usage });
       }
       case "enhance_segment_prompt": {
-        // Enhance a single segment prompt using OpenAI GPT-5 Mini
-        // Uses motion-focused prompt template for video transitions
-        const prompt = String(body.prompt ?? "");
-        const _temperature = Number(body.temperature ?? 0.7);
+        // Enhance segment prompt(s) using OpenAI GPT-5 Mini
+        // Accepts either a single `prompt` string or an array `prompts` for batch processing.
+        const isBatch = Array.isArray(body.prompts);
+        const prompts: string[] = isBatch
+          ? (body.prompts as string[]).map((p: unknown) => String(p ?? ""))
+          : [String(body.prompt ?? "")];
 
-        if (!prompt.trim()) {
+        if (!isBatch && !prompts[0].trim()) {
           return jsonResponse({ error: "prompt is required" }, 400);
         }
 
         const openaiApiKey = getOpenAIApiKey();
-
         const systemMsg = ENHANCE_SEGMENT_SYSTEM_PROMPT;
-        const userMsg = buildEnhanceSegmentUserPrompt(prompt);
 
-        try {
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        const MAX_RETRIES = 2;
+        const RETRY_DELAY_MS = 2000;
+
+        async function callOpenAI(p: string): Promise<Response> {
+          return fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${openaiApiKey}`,
@@ -222,25 +225,68 @@ Summary:` }],
               model: "gpt-5-mini",
               messages: [
                 { role: "system", content: systemMsg },
-                { role: "user", content: userMsg },
+                { role: "user", content: buildEnhanceSegmentUserPrompt(p) },
               ],
               max_completion_tokens: 16000,
             }),
           });
+        }
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[ai-prompt] OpenAI API error:`, response.status, errorText);
-            return jsonResponse({ error: "OpenAI API error", details: errorText }, response.status);
+        function delay(ms: number): Promise<void> {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function enhanceOne(p: string): Promise<{ enhanced_prompt: string; usage?: unknown }> {
+          if (!p.trim()) return { enhanced_prompt: "" };
+
+          for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+              const response = await callOpenAI(p);
+
+              if (response.status === 429) {
+                console.warn(`[ai-prompt] OpenAI 429, attempt ${attempt + 1}/${MAX_RETRIES + 1}`);
+                if (attempt < MAX_RETRIES) {
+                  await delay(RETRY_DELAY_MS * (attempt + 1));
+                  continue;
+                }
+                return { enhanced_prompt: p };
+              }
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[ai-prompt] OpenAI API error:`, response.status, errorText);
+                return { enhanced_prompt: p };
+              }
+
+              const data = await response.json();
+              return {
+                enhanced_prompt: data.choices?.[0]?.message?.content?.trim() || p,
+                usage: data.usage,
+              };
+            } catch (err) {
+              console.error(`[ai-prompt] OpenAI fetch error attempt ${attempt + 1}:`, toErrorMessage(err));
+              if (attempt < MAX_RETRIES) {
+                await delay(RETRY_DELAY_MS * (attempt + 1));
+                continue;
+              }
+              return { enhanced_prompt: p };
+            }
           }
 
-          const data = await response.json();
+          return { enhanced_prompt: p };
+        }
 
-          const enhancedPrompt = data.choices?.[0]?.message?.content?.trim() || prompt;
+        try {
+          if (!isBatch) {
+            const result = await enhanceOne(prompts[0]);
+            return jsonResponse(result);
+          }
 
+          // Batch: fire all concurrently server-side
+          const results = await Promise.all(prompts.map(enhanceOne));
           return jsonResponse({
-            enhanced_prompt: enhancedPrompt,
-            usage: data.usage,
+            enhanced_prompts: results.map(r => r.enhanced_prompt),
+            usage: results.map(r => r.usage).filter(Boolean),
           });
         } catch (fetchError: unknown) {
           const message = toErrorMessage(fetchError);

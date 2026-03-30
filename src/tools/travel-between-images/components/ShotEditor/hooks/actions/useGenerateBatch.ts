@@ -5,9 +5,10 @@
  * Handles the fire-and-forget video generation flow with parent reuse tracking.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/lib/queryKeys';
+import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { generateVideo } from '../../services/generateVideoService';
 import { useIncomingTasks } from '@/shared/contexts/IncomingTasksContext';
@@ -108,6 +109,7 @@ interface UseGenerateBatchReturn {
   isSteerableMotionEnqueuing: boolean;
   steerableMotionJustQueued: boolean;
   isGenerationDisabled: boolean;
+  enhancementProgress: { phase: 'enhancing'; completed: number; total: number } | null;
 }
 
 export function useGenerateBatch({
@@ -142,14 +144,28 @@ export function useGenerateBatch({
   // Local state
   const [isSteerableMotionEnqueuing, setIsSteerableMotionEnqueuing] = useState(false);
   const [steerableMotionJustQueued, setSteerableMotionJustQueued] = useState(false);
+  const [enhancementProgress, setEnhancementProgress] = useState<{
+    phase: 'enhancing';
+    completed: number;
+    total: number;
+  } | null>(null);
 
   // Track pending parent ID for main generations within the same shot
   const pendingMainParentRef = useRef<{ shotId: string; parentId: string; timestamp: number } | null>(null);
+  const enhancementAbortControllerRef = useRef<AbortController | null>(null);
 
   const isGenerationDisabled = isSteerableMotionEnqueuing;
 
+  useEffect(() => () => {
+    enhancementAbortControllerRef.current?.abort();
+  }, []);
+
   const handleGenerateBatch = useCallback((variantNameParam?: string) => {
     const variantName = variantNameParam ?? '';
+    enhancementAbortControllerRef.current?.abort();
+    const enhancementAbortController = new AbortController();
+    enhancementAbortControllerRef.current = enhancementAbortController;
+    setEnhancementProgress(null);
 
     // Add incoming task immediately for instant TasksPane feedback
     const taskLabel = variantName || selectedShot?.name || 'Travel video';
@@ -198,6 +214,10 @@ export function useGenerateBatch({
             text_before_prompts: prompt.textBeforePrompts,
             text_after_prompts: prompt.textAfterPrompts,
             default_negative_prompt: prompt.negativePrompt,
+            onEnhancementProgress: (completed, total) => {
+              setEnhancementProgress({ phase: 'enhancing', completed, total });
+            },
+            enhancementAbortSignal: enhancementAbortController.signal,
           },
           motionConfig: {
             amount_of_motion: motion.amountOfMotion,
@@ -271,8 +291,17 @@ export function useGenerateBatch({
         }
 
       } catch (error) {
-        normalizeAndPresentError(error, { context: 'handleGenerateBatch', toastTitle: 'Failed to create video task. Please try again.' });
+        normalizeAndPresentError(error, {
+          context: 'handleGenerateBatch',
+          toastTitle: 'Failed to create video task. Please try again.',
+          showToast: !isCancellationError(error),
+        });
       } finally {
+        if (enhancementAbortControllerRef.current === enhancementAbortController) {
+          enhancementAbortControllerRef.current = null;
+        }
+        setEnhancementProgress(null);
+
         // Wait for task queries to refetch, then remove placeholder
         await queryClient.refetchQueries({ queryKey: queryKeys.tasks.paginatedAll });
         await queryClient.refetchQueries({ queryKey: queryKeys.tasks.statusCountsAll });
@@ -305,5 +334,6 @@ export function useGenerateBatch({
     isSteerableMotionEnqueuing,
     steerableMotionJustQueued,
     isGenerationDisabled,
+    enhancementProgress,
   };
 }

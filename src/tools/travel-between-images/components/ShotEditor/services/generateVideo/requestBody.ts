@@ -134,7 +134,7 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     seed,
     debug: debug ?? DEFAULT_STEERABLE_MOTION_SETTINGS.debug,
     show_input_images: DEFAULT_STEERABLE_MOTION_SETTINGS.show_input_images,
-    enhance_prompt: enhancePrompt,
+    ...(!hasValidEnhancedPrompts ? { enhance_prompt: enhancePrompt } : {}),
     generation_mode: generationMode,
     random_seed: randomSeed,
     turbo_mode: turboMode,

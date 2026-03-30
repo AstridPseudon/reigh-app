@@ -1,8 +1,11 @@
 import { QueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
+import { isCancellationError } from '@/shared/lib/errorHandling/errorUtils';
 import { normalizeAndPresentError, type RuntimeErrorOptions } from '@/shared/lib/errorHandling/runtimeError';
 import { ValidationError } from '@/shared/lib/errorHandling/errors';
+import { queryKeys } from '@/shared/lib/queryKeys';
 import { createTask } from '@/shared/lib/taskCreation';
+import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import {
   DEFAULT_STRUCTURE_GUIDANCE_CONTROLS,
   DEFAULT_STRUCTURE_VIDEO,
@@ -12,7 +15,7 @@ import { normalizeTravelGuidance } from '@/shared/lib/tasks/travelGuidance';
 import { ASPECT_RATIO_TO_RESOLUTION, LTX_ASPECT_RATIO_TO_RESOLUTION } from '@/shared/lib/media/aspectRatios';
 import { DEFAULT_RESOLUTION } from '../utils/dimension-utils';
 import { stripModeFromPhaseConfig } from '@/shared/components/SegmentSettingsForm/segmentSettingsUtils';
-import type { Shot } from '@/domains/generation/types';
+import type { GenerationRow, Shot } from '@/domains/generation/types';
 import {
   operationFailure,
   operationSuccess,
@@ -36,6 +39,7 @@ import {
   extractPairOverrides,
   filterImageShotGenerations,
 } from './generateVideo/pairPayload';
+import { enhancePromptsForBatch } from './generateVideo/enhancePromptsForBatch';
 import { buildTravelRequestBodyV2 } from './generateVideo/requestBody';
 import type {
   GenerateVideoParams,
@@ -144,6 +148,68 @@ async function fetchFreshShotGenerations(selectedShotId: string): Promise<ShotGe
   return (data || []) as ShotGenRow[];
 }
 
+async function persistEnhancedPromptsMetadata(
+  shotId: string,
+  queryClient: QueryClient,
+  allShotGenerations: ShotGenRow[],
+  enhancedPrompts: string[],
+): Promise<void> {
+  if (enhancedPrompts.length === 0) {
+    return;
+  }
+
+  const sourceShotGenerations = filterImageShotGenerations(allShotGenerations)
+    .slice(0, enhancedPrompts.length);
+
+  if (sourceShotGenerations.length === 0) {
+    return;
+  }
+
+  const metadataUpdates = sourceShotGenerations.map((shotGeneration, index) => ({
+    shotGenerationId: shotGeneration.id,
+    metadata: {
+      ...((shotGeneration.metadata as Record<string, unknown> | null) || {}),
+      enhanced_prompt: enhancedPrompts[index] ?? '',
+    },
+  }));
+
+  const metadataByShotGenerationId = new Map(
+    metadataUpdates.map((update) => [update.shotGenerationId, update.metadata]),
+  );
+
+  queryClient.setQueryData<GenerationRow[]>(
+    queryKeys.generations.byShot(shotId),
+    (oldData) => oldData?.map((row) => {
+      const updatedMetadata = metadataByShotGenerationId.get(row.id);
+      return updatedMetadata
+        ? { ...row, metadata: updatedMetadata }
+        : row;
+    }),
+  );
+
+  const results = await Promise.all(metadataUpdates.map((update) =>
+    supabase().from('shot_generations')
+      .update({ metadata: toJson(update.metadata) })
+      .eq('id', update.shotGenerationId),
+  ));
+
+  const firstError = results.find((result) => result.error)?.error;
+  if (firstError) {
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) }),
+      queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) }),
+    ]);
+    throw firstError;
+  }
+
+  await Promise.all([
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.byShot(shotId) }),
+    queryClient.refetchQueries({ queryKey: queryKeys.generations.meta(shotId) }),
+    ...metadataUpdates.map((update) =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.segments.pairMetadata(update.shotGenerationId) })),
+  ]);
+}
+
 export {
   stripModeFromPhaseConfig,
   extractPairOverrides,
@@ -247,6 +313,46 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Genera
         return buildBatchPairConfig(imagePayload.absoluteImageUrls, effectiveBatchVideoFrames, promptConfig.default_negative_prompt, policy.frameOverlap);
     }
   })();
+
+  if (promptConfig.enhance_prompt) {
+    try {
+      pairConfig.enhancedPromptsArray = await enhancePromptsForBatch({
+        batchBasePrompt: promptConfig.base_prompt,
+        pairCount: pairConfig.basePrompts.length,
+        pairOverridePrompts: pairConfig.basePrompts,
+        numFrames: pairConfig.segmentFrames[0],
+        onProgress: promptConfig.onEnhancementProgress,
+        signal: promptConfig.enhancementAbortSignal,
+      });
+
+      try {
+        await persistEnhancedPromptsMetadata(
+          selectedShotId,
+          queryClient,
+          allShotGenerations,
+          pairConfig.enhancedPromptsArray.map((prompt) => prompt ?? ''),
+        );
+      } catch (persistError) {
+        normalizeAndPresentError(persistError, {
+          context: 'generateVideoService.persistEnhancedPromptsMetadata',
+          showToast: false,
+        });
+      }
+    } catch (error) {
+      return failureResult(error, {
+        context: 'generateVideoService.enhancePromptsForBatch',
+        toastTitle: 'Failed to enhance prompts',
+        showToast: !isCancellationError(error),
+      });
+    }
+
+    // If all prompts were blank (nothing to enhance), disable the flag
+    // so the worker doesn't fall back to its own VLM enhancement.
+    const hasAnyEnhanced = pairConfig.enhancedPromptsArray.some(p => p && p.trim().length > 0);
+    if (!hasAnyEnhanced) {
+      promptConfig.enhance_prompt = false;
+    }
+  }
 
   const modelPhaseSelection = spec.modelFamily === 'ltx'
     ? resolveLtxModelSelection(modelConfig.selectedModel)

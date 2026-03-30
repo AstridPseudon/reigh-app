@@ -254,6 +254,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
           isGenerating={parentIsGeneratingVideo || generationMode.isSteerableMotionEnqueuing}
           justQueued={parentVideoJustQueued || generationMode.steerableMotionJustQueued}
           disabled={generationMode.isGenerationDisabled}
+          enhancementProgress={generationMode.enhancementProgress}
           inputId="variant-name"
           videoCount={Math.max(0, simpleFilteredImages.length - 1)}
           stitchEnabled={stitchAfterGenerate}

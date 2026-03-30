@@ -101,6 +101,7 @@ describe('requestBody', () => {
     expect(result.generation_name).toBe('Variant Name');
     expect(result.text_before_prompts).toBe('Before');
     expect(result.text_after_prompts).toBe('After');
+    expect(result.enhance_prompt).toBeUndefined();
     expect(result.advanced_mode).toBe(true);
     expect(result.debug).toBe(true);
     expect(result.turbo_mode).toBe(true);
@@ -150,6 +151,7 @@ describe('requestBody', () => {
     expect(result.generation_name).toBeUndefined();
     expect(result.text_before_prompts).toBeUndefined();
     expect(result.text_after_prompts).toBeUndefined();
+    expect(result.enhance_prompt).toBe(true);
   });
 
   it('throws a validation error when mapped id cardinality does not match the image or pair counts', () => {
