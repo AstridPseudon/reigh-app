@@ -3,39 +3,44 @@
 Debug Tool for Headless-Wan2GP
 ==============================
 
-Investigate tasks and system state.
+Investigate tasks, workers, and system state.
 
 Usage:
     debug.py task <task_id>             # Investigate specific task
     debug.py tasks                      # Analyze recent tasks
     debug.py logs                       # View system logs
     debug.py logs --latest              # View logs from most recent browser session
-    debug.py logs --sessions            # List recent browser sessions
+
+    # Cross-cutting diagnostics (cross-reference orchestrator + worker + task data)
+    debug.py worker-timeline <id>       # Full lifecycle timeline for a worker
+    debug.py why-killed <id>            # Diagnose why a worker was terminated
+    debug.py task-journey <id>          # All state transitions for a task
+    debug.py scaling-audit              # Audit recent orchestrator scaling decisions
 
 Options:
     --json                              # Output as JSON
     --hours N                           # Time window in hours
     --limit N                           # Limit results
-    --logs-only                         # Show only logs timeline
     --debug                             # Show debug info on errors
 
 Examples:
-    # Quick table lookup (no extra deps needed)
-    debug.py query shot_tool_settings shot_id=bbdf9068-...
-    debug.py q generations id=some-gen-id --json
-    debug.py q tasks status=Failed --limit 10
+    # Why did this worker get killed?
+    debug.py why-killed gpu-20260330_105556-9de794f6
+
+    # Trace a task through all its state changes across workers
+    debug.py task-journey 0fd1be22-41ae-4214-8db9-71a12bce717f
+
+    # See full worker lifecycle: spawn → init → claim → complete → kill
+    debug.py worker-timeline gpu-20260330_104235-f64bf1a7
+
+    # Find workers killed while productive, wasted spawns, churn rate
+    debug.py scaling-audit --hours 6
 
     # Investigate why a task failed
     debug.py task 41345358-f3b5-418a-9805-b442aed30e18
 
-    # List recent failed tasks
-    debug.py tasks --status Failed --limit 10
-
-    # View most recent browser session logs
-    debug.py logs --latest
-
-    # Raw SQL (requires psycopg2 + DATABASE_URL)
-    debug.py sql "SELECT count(*) FROM tasks WHERE status = 'Failed'"
+    # Quick table lookup
+    debug.py q tasks status=Failed --limit 10
 """
 
 import sys
@@ -48,6 +53,7 @@ sys.path.insert(0, str(project_root))
 
 from debug.client import DebugClient
 from debug.commands import task, tasks, logs, sql, query, pipeline, workers, queue, pod
+from debug.commands import worker_timeline, why_killed, task_journey, scaling_audit
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -113,6 +119,31 @@ def create_parser() -> argparse.ArgumentParser:
     pod_parser.add_argument('pod_id', nargs='?', help='Pod ID (required for ssh/worker)')
     pod_parser.add_argument('--json', action='store_true', help='Output as JSON')
     pod_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
+
+    # Worker timeline command
+    wt_parser = subparsers.add_parser('worker-timeline', help='Show full lifecycle timeline for a worker')
+    wt_parser.add_argument('worker_id', help='Worker ID (e.g. gpu-20260330_105556-9de794f6)')
+    wt_parser.add_argument('--hours', type=int, default=6, help='Time window (default: 6)')
+    wt_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    wt_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
+
+    # Why-killed command
+    wk_parser = subparsers.add_parser('why-killed', help='Diagnose why a worker was terminated')
+    wk_parser.add_argument('worker_id', help='Worker ID')
+    wk_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    wk_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
+
+    # Task journey command
+    tj_parser = subparsers.add_parser('task-journey', help='Show all state transitions for a task')
+    tj_parser.add_argument('task_id', help='Task ID')
+    tj_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    tj_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
+
+    # Scaling audit command
+    sa_parser = subparsers.add_parser('scaling-audit', help='Audit recent orchestrator decisions for issues')
+    sa_parser.add_argument('--hours', type=int, default=3, help='Time window (default: 3)')
+    sa_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    sa_parser.add_argument('--debug', action='store_true', help='Show debug info on errors')
 
     # Logs command
     logs_parser = subparsers.add_parser('logs', help='View system logs')
@@ -202,6 +233,14 @@ def main():
             queue.run(client, options)
         elif args.command == 'logs':
             logs.run(client, options)
+        elif args.command == 'worker-timeline':
+            worker_timeline.run(client, args.worker_id, options)
+        elif args.command == 'why-killed':
+            why_killed.run(client, args.worker_id, options)
+        elif args.command == 'task-journey':
+            task_journey.run(client, args.task_id, options)
+        elif args.command == 'scaling-audit':
+            scaling_audit.run(client, options)
         else:
             parser.print_help()
             sys.exit(1)
