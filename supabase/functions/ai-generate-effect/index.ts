@@ -50,20 +50,21 @@ async function callFireworks(
 
   try {
     const startedAt = Date.now();
-    logger.info(`[AI-GENERATE-EFFECT] Fireworks request: model=${FIREWORKS_MODEL}`);
+    logger.info(`[AI-GENERATE-EFFECT] Fireworks streaming request: model=${FIREWORKS_MODEL}`);
     const response = await fetch(FIREWORKS_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        "Accept": "text/event-stream",
       },
       body: JSON.stringify({
         model: FIREWORKS_MODEL,
         messages,
         temperature: 0.4,
-        max_tokens: 4096,
+        max_tokens: 16384,
         top_p: 1,
+        stream: true,
       }),
       signal: controller.signal,
     });
@@ -73,15 +74,39 @@ async function callFireworks(
       throw new Error(`Fireworks ${response.status}: ${text.slice(0, 500)}`);
     }
 
-    const data = await response.json() as {
-      choices: Array<{ message: { content?: string; role: string } }>;
-      model?: string;
-      usage?: Record<string, unknown>;
-    };
+    // Collect streamed SSE chunks into full content
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let content = "";
+    let buffer = "";
 
-    const content = (data.choices?.[0]?.message?.content ?? "").trim();
-    logger.info(`[AI-GENERATE-EFFECT] Fireworks response in ${Date.now() - startedAt}ms, model=${data.model ?? FIREWORKS_MODEL}, length=${content.length}, usage=${JSON.stringify(data.usage ?? {})}`);
-    return { content, model: data.model || FIREWORKS_MODEL };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") continue;
+        try {
+          const chunk = JSON.parse(data) as {
+            choices?: Array<{ delta?: { content?: string } }>;
+          };
+          const delta = chunk.choices?.[0]?.delta?.content;
+          if (delta) content += delta;
+        } catch {
+          // skip malformed chunks
+        }
+      }
+    }
+
+    content = content.trim();
+    logger.info(`[AI-GENERATE-EFFECT] Fireworks response in ${Date.now() - startedAt}ms, model=${FIREWORKS_MODEL}, length=${content.length}`);
+    return { content, model: FIREWORKS_MODEL };
   } finally {
     clearTimeout(timeout);
   }
