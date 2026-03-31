@@ -100,6 +100,38 @@ def run(client: DebugClient, task_id: str, options: dict):
                 statuses[s] = statuses.get(s, 0) + 1
             print(f"\n  Summary: {statuses}")
 
+        # ── Health Checks ──
+        all_tasks = [root] + children
+        child_ids = {c['id'] for c in children}
+        issues = []
+
+        for t in all_tasks:
+            # Check 1: dependant_on references exist
+            deps = t.get('dependant_on') or []
+            if deps:
+                known_ids = {a['id'] for a in all_tasks}
+                for dep_id in deps:
+                    if dep_id not in known_ids:
+                        # Check if it exists in DB at all
+                        dep_check = client.supabase.table('tasks').select('id').eq('id', dep_id).execute()
+                        if not dep_check.data:
+                            issues.append(f"🔴 BROKEN DEP: {t['id'][:12]}... ({t['task_type']}) depends on {dep_id[:12]}... which DOES NOT EXIST")
+                        else:
+                            issues.append(f"🟡 EXTERNAL DEP: {t['id'][:12]}... ({t['task_type']}) depends on {dep_id[:12]}... (outside this pipeline)")
+
+            # Check 2: params.task_id vs actual row id mismatch
+            params = t.get('params') or {}
+            params_task_id = params.get('task_id')
+            if params_task_id and params_task_id != t['id']:
+                issues.append(f"🔴 ID MISMATCH: {t['task_type']} row id={t['id'][:12]}... but params.task_id={params_task_id[:12]}... — cross-task references will break")
+
+        if issues:
+            print(f"\n  ⚠️  Health Issues ({len(issues)}):")
+            for issue in issues:
+                print(f"      {issue}")
+        else:
+            print(f"\n  ✅ Health: all dependencies valid, no ID mismatches")
+
         print()
 
     except Exception as e:

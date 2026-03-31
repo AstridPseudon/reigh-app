@@ -105,7 +105,33 @@ class Formatter:
             elif task.get('output_location') and 'error' in str(task.get('output_location', '')).lower():
                 lines.append(f"   {task.get('output_location')}")
             else:
-                lines.append("   No error message recorded")
+                # No error_message — search system_logs for the actual error
+                # Prefer worker-side errors (source_type=worker) over edge function errors
+                skip_patterns = ('update_task_status', 'cascading failure', 'Error cascading')
+                error_logs = [
+                    log for log in info.logs
+                    if log.get('log_level') == 'ERROR'
+                    and log.get('message')
+                    and not any(p in log.get('message', '') for p in skip_patterns)
+                ]
+                # Prioritize worker errors with tracebacks
+                traceback_errors = [l for l in error_logs if 'Traceback' in l.get('message', '') or 'TASK_ERROR' in l.get('message', '')]
+                if traceback_errors:
+                    error_logs = traceback_errors
+                if error_logs:
+                    latest_error = error_logs[-1]
+                    msg = latest_error.get('message', '')
+                    lines.append(f"   (from system_logs — no error_message was recorded)")
+                    # Show full traceback if present, otherwise truncate
+                    if 'Traceback' in msg or len(msg) > 300:
+                        for error_line in msg.split('\n')[:15]:
+                            lines.append(f"   {error_line}")
+                        if msg.count('\n') > 15:
+                            lines.append(f"   ... ({msg.count(chr(10)) - 15} more lines)")
+                    else:
+                        lines.append(f"   {msg}")
+                else:
+                    lines.append("   No error message recorded (check worker logs — worker may have crashed)")
         
         # Relationships section
         has_relationships = any([
