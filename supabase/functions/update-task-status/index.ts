@@ -86,16 +86,27 @@ serve(async (req) => {
       return new Response('Task not found or not accessible', { status: 404 });
     }
 
-    const transitionResponse = validateStatusTransition(
-      logger,
-      requestBody.task_id,
-      currentTaskResult.data.status,
-      requestBody.status,
-    );
+    const isTimestampResetOnly =
+      requestBody.reset_generation_started_at === true
+      && currentTaskResult.data.status === 'In Progress'
+      && requestBody.status === 'In Progress'
+      && requestBody.output_location === undefined
+      && requestBody.error_details === undefined
+      && requestBody.clear_worker === undefined
+      && requestBody.attempts === undefined;
 
-    if (transitionResponse) {
-      await logger.flush();
-      return transitionResponse;
+    if (!isTimestampResetOnly) {
+      const transitionResponse = validateStatusTransition(
+        logger,
+        requestBody.task_id,
+        currentTaskResult.data.status,
+        requestBody.status,
+      );
+
+      if (transitionResponse) {
+        await logger.flush();
+        return transitionResponse;
+      }
     }
 
     const updatePayload = buildTaskUpdatePayload(requestBody);

@@ -221,6 +221,105 @@ describe('update-task-status edge entrypoint', () => {
     expect(mocks.updateTaskByRole).not.toHaveBeenCalled();
   });
 
+  it('bypasses transition validation for reset-only in-progress timestamp refreshes', async () => {
+    const logger = createLogger();
+    const supabaseAdmin = { from: vi.fn(), rpc: vi.fn() };
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin,
+        logger,
+        auth: { isServiceRole: true, userId: 'service-role' },
+      },
+    });
+    mocks.parseAndValidateRequest.mockResolvedValue({
+      ok: true,
+      data: {
+        task_id: 'task-1',
+        status: 'In Progress',
+        reset_generation_started_at: true,
+      },
+    });
+    mocks.fetchCurrentTaskStatus.mockResolvedValue({
+      data: { status: 'In Progress' },
+      error: null,
+    });
+    mocks.buildTaskUpdatePayload.mockReturnValue({
+      status: 'In Progress',
+      generation_started_at: '2026-03-31T05:00:00.000Z',
+    });
+    mocks.updateTaskByRole.mockResolvedValue({
+      data: { id: 'task-1', status: 'In Progress' },
+      error: null,
+    });
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/update-task-status', { method: 'POST' }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      task_id: 'task-1',
+      status: 'In Progress',
+      message: "Task status updated to 'In Progress'",
+    });
+    expect(mocks.validateStatusTransition).not.toHaveBeenCalled();
+    expect(mocks.buildTaskUpdatePayload).toHaveBeenCalledWith({
+      task_id: 'task-1',
+      status: 'In Progress',
+      reset_generation_started_at: true,
+    });
+    expect(mocks.updateTaskByRole).toHaveBeenCalledWith(
+      supabaseAdmin,
+      'task-1',
+      {
+        status: 'In Progress',
+        generation_started_at: '2026-03-31T05:00:00.000Z',
+      },
+      true,
+      'service-role',
+    );
+  });
+
+  it('still validates in-progress resets when other mutation fields are present', async () => {
+    const logger = createLogger();
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
+        logger,
+        auth: { isServiceRole: true, userId: 'service-role' },
+      },
+    });
+    mocks.parseAndValidateRequest.mockResolvedValue({
+      ok: true,
+      data: {
+        task_id: 'task-1',
+        status: 'In Progress',
+        reset_generation_started_at: true,
+        clear_worker: true,
+      },
+    });
+    mocks.fetchCurrentTaskStatus.mockResolvedValue({
+      data: { status: 'In Progress' },
+      error: null,
+    });
+    mocks.validateStatusTransition.mockReturnValue(new Response('invalid transition', { status: 409 }));
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/update-task-status', { method: 'POST' }));
+
+    expect(response.status).toBe(409);
+    await expect(response.text()).resolves.toBe('invalid transition');
+    expect(mocks.validateStatusTransition).toHaveBeenCalledWith(
+      logger,
+      'task-1',
+      'In Progress',
+      'In Progress',
+    );
+    expect(mocks.updateTaskByRole).not.toHaveBeenCalled();
+  });
+
   it('handles cancelled status and triggers cascading + billing side effects', async () => {
     const logger = createLogger();
     const supabaseAdmin = { from: vi.fn(), rpc: vi.fn() };
