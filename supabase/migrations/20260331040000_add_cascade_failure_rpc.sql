@@ -15,7 +15,7 @@ set search_path = public
 as $$
   update tasks
   set
-    status = p_failure_status,
+    status = p_failure_status::task_status,
     updated_at = now(),
     error_message = 'Cascaded ' || lower(p_failure_status) || ' from related task ' || p_failed_task_id::text
   where
