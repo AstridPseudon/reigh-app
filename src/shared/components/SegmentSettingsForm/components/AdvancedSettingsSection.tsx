@@ -117,6 +117,7 @@ export const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = (
     handleLoraSelect,
     handleRemoveLora,
     handleLoraStrengthChange,
+    handleModelChange,
   } = useAdvancedSettingsHandlers({
     onChange,
     settings,
@@ -200,6 +201,7 @@ export const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = (
             isTimelineMode={isTimelineMode}
             onAddSegmentStructureVideo={onAddSegmentStructureVideo as ((video: unknown) => void) | undefined}
             onRemoveSegmentStructureVideo={onRemoveSegmentStructureVideo}
+            onModelChange={handleModelChange}
             videoUpload={videoUpload}
             isDraggingVideo={isDraggingVideo}
             onDragOver={onDragOver}

@@ -29,6 +29,7 @@ import type {
 } from '../types';
 import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
 import { coerceSelectedModel } from '@/tools/travel-between-images/settings';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
 
 interface StructureVideoSectionProps
   extends SegmentFieldSectionProps,
@@ -54,6 +55,9 @@ interface StructureVideoSectionProps
     depthContrast?: number;
   };
 
+  // Model change handler (clears model-dependent settings)
+  onModelChange: (model: SelectedModel) => void;
+
   // Video upload hook return
   videoUpload: ReturnType<typeof useStructureVideoUpload>;
 }
@@ -70,6 +74,7 @@ export const StructureVideoSection: React.FC<StructureVideoSectionProps> = ({
   isTimelineMode,
   onAddSegmentStructureVideo,
   onRemoveSegmentStructureVideo,
+  onModelChange,
   videoUpload,
   isDraggingVideo,
   onDragOver,
@@ -427,7 +432,7 @@ export const StructureVideoSection: React.FC<StructureVideoSectionProps> = ({
 
         <TravelGuidanceEditor
           selectedModel={effectiveSelectedModel}
-          onSelectedModelChange={(value) => onChange({ selectedModel: value })}
+          onSelectedModelChange={onModelChange}
           hasStructureVideo={!!structureVideoUrl}
           guidanceMode={settings.guidanceMode ?? structureVideoDefaults?.mode ?? structureVideoType ?? null}
           onGuidanceModeChange={(value) => onChange({ guidanceMode: value })}
