@@ -25,6 +25,7 @@ interface BuildImageEditStateParams {
 
   // Overrides (where orchestrator and inline callers diverge)
   handleExitInpaintMode: () => void;
+  editMode: ImageEditMode;
   setEditMode: (mode: ImageEditMode) => void;
 
   // Settings (sourced from different places per caller)
@@ -48,7 +49,7 @@ export function buildImageEditStateValue(p: BuildImageEditStateParams): ImageEdi
     isInpaintMode: inpainting.isInpaintMode,
     isMagicEditMode: magic.isMagicEditMode,
     isSpecialEditMode: magic.isSpecialEditMode,
-    editMode: inpainting.editMode as ImageEditState['editMode'],
+    editMode: p.editMode,
 
     // Mode setters
     setIsInpaintMode: inpainting.setIsInpaintMode,

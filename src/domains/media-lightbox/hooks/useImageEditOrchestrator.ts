@@ -340,6 +340,7 @@ export function useImageEditOrchestrator({
       img2img: img2imgHook,
       imageContainerRef,
       handleExitInpaintMode,
+      editMode: persistedEditMode as ImageEditState['editMode'],
       setEditMode: setEditMode as ImageEditState['setEditMode'],
       loraMode, setLoraMode,
       customLoraUrl, setCustomLoraUrl,

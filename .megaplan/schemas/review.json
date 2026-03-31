@@ -76,7 +76,8 @@
           "task_id",
           "issue",
           "expected",
-          "actual"
+          "actual",
+          "evidence_file"
         ],
         "additionalProperties": false
       }

@@ -290,7 +290,11 @@ export function useInlineEditState(
     img2img,
     imageContainerRef,
     handleExitInpaintMode: () => inpainting.setIsInpaintMode(false),
-    setEditMode: (mode: ImageEditMode) => inpainting.setEditMode(toInpaintingEditMode(mode)),
+    editMode: (editSettings.editMode ?? 'text') as ImageEditMode,
+    setEditMode: (mode: ImageEditMode) => {
+      editSettings.setEditMode(mode as any);
+      inpainting.setEditMode(toInpaintingEditMode(mode));
+    },
     loraMode: editSettings.loraMode,
     setLoraMode: editSettings.setLoraMode,
     customLoraUrl: editSettings.customLoraUrl,

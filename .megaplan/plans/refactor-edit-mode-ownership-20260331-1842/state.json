@@ -1,0 +1,38 @@
+{
+  "name": "refactor-edit-mode-ownership-20260331-1842",
+  "idea": "Refactor edit mode ownership out of useInpainting\n\n## Problem Statement\nThe edit mode concept has grown to 6+ modes (text, inpaint, annotate, reposition, img2img, upscale, enhance), but useInpainting \u2014 a domain-specific hook for paint/annotate/text \u2014 still acts as the source of truth for editMode. This creates:\n\n1. Three competing type definitions for the same concept:\n   - src/domains/media-lightbox/hooks/inpainting/types.ts: EditMode = text | inpaint | annotate (narrow)\n   - src/domains/media-lightbox/model/editSettingsTypes.ts: EditMode = text | inpaint | annotate | reposition | img2img | enhance (wide)\n   - src/domains/media-lightbox/contexts/ImageEditCanvasContext.tsx: ImageEditMode = inpaint | annotate | reposition | img2img | text | upscale | null (wider still)\n\n2. Lossy round-trip: toInpaintingEditMode() in both useImageEditOrchestrator.ts and useInlineEditState.ts narrows reposition/img2img/enhance to text when passing to the inpainting hook. Then as ImageEditState setEditMode casts to widen on the way back up. We just patched a bug where the read path was losing the mode.\n\n3. Inverted ownership: The orchestrator defers to inpainting.editMode for state it should own directly. Reposition, img2img, and upscale are peers of inpainting \u2014 not children of it.\n\n## Goal\n- Single canonical EditMode type used everywhere\n- Edit mode state owned at the orchestrator/persistence level, not by useInpainting\n- useInpainting receives only what it needs (whether its active, and which sub-mode if active) without owning the broader concept\n- Remove toInpaintingEditMode() bridge functions and type casts\n- No behavioral changes \u2014 all modes should continue to work exactly as they do now\n\n## Key Files\n- src/domains/media-lightbox/hooks/inpainting/types.ts \u2014 narrow EditMode type\n- src/domains/media-lightbox/model/editSettingsTypes.ts \u2014 wide EditMode type (should be canonical)\n- src/domains/media-lightbox/contexts/ImageEditCanvasContext.tsx \u2014 ImageEditMode type\n- src/domains/media-lightbox/contexts/ImageEditContext.tsx \u2014 ImageEditState interface\n- src/domains/media-lightbox/hooks/useInpainting.ts \u2014 currently owns editMode state\n- src/domains/media-lightbox/hooks/useImageEditOrchestrator.ts \u2014 should own editMode, has toInpaintingEditMode\n- src/domains/media-lightbox/model/buildImageEditStateValue.ts \u2014 builds context value, just patched to use explicit editMode param\n- src/tools/edit-images/hooks/useInlineEditState.ts \u2014 inline editor path, also has toInpaintingEditMode\n- src/domains/media-lightbox/hooks/useEditModePanelState.ts \u2014 consumes editMode from context\n- src/domains/media-lightbox/components/EditModePanel.tsx \u2014 UI consumer\n- src/domains/media-lightbox/hooks/persistence/useEditSettingsPersistence.ts \u2014 persists editMode\n- src/domains/media-lightbox/hooks/useGenerationEditSettings.ts \u2014 settings layer with editMode\n- src/domains/media-lightbox/model/buildImageEditStateValue.test.ts \u2014 existing tests",
+  "current_state": "initialized",
+  "iteration": 0,
+  "created_at": "2026-03-31T16:42:10Z",
+  "config": {
+    "project_dir": "/Users/peteromalley/Documents/reigh-workspace/reigh-app",
+    "auto_approve": false,
+    "robustness": "standard",
+    "agent": ""
+  },
+  "sessions": {},
+  "plan_versions": [],
+  "history": [
+    {
+      "step": "init",
+      "timestamp": "2026-03-31T16:42:10Z",
+      "duration_ms": 0,
+      "cost_usd": 0.0,
+      "result": "success",
+      "environment": {
+        "claude": true,
+        "codex": true
+      }
+    }
+  ],
+  "meta": {
+    "significant_counts": [],
+    "weighted_scores": [],
+    "plan_deltas": [],
+    "recurring_critiques": [],
+    "total_cost_usd": 0.0,
+    "overrides": [],
+    "notes": []
+  },
+  "last_gate": {}
+}

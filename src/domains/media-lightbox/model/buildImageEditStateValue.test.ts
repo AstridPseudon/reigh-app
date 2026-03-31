@@ -85,6 +85,7 @@ function buildParams() {
       },
       imageContainerRef: createRef<HTMLDivElement>(),
       handleExitInpaintMode,
+      editMode: 'inpaint',
       setEditMode,
       loraMode: 'preset',
       setLoraMode,
@@ -153,7 +154,7 @@ describe('buildImageEditStateValue', () => {
 
   it('reflects the active editing mode signals from each source hook result', () => {
     const inpaintCase = buildParams();
-    inpaintCase.params.inpainting.editMode = 'inpaint';
+    inpaintCase.params.editMode = 'inpaint';
     inpaintCase.params.inpainting.isInpaintMode = true;
     inpaintCase.params.magic.isMagicEditMode = false;
     inpaintCase.params.magic.isSpecialEditMode = false;
@@ -161,20 +162,20 @@ describe('buildImageEditStateValue', () => {
     inpaintCase.params.reposition.isSavingAsVariant = false;
 
     const magicCase = buildParams();
-    magicCase.params.inpainting.editMode = 'magic-edit';
+    magicCase.params.editMode = 'magic-edit' as any;
     magicCase.params.inpainting.isInpaintMode = false;
     magicCase.params.magic.isMagicEditMode = true;
     magicCase.params.magic.isSpecialEditMode = true;
 
     const repositionCase = buildParams();
-    repositionCase.params.inpainting.editMode = 'reposition';
+    repositionCase.params.editMode = 'reposition';
     repositionCase.params.inpainting.isInpaintMode = false;
     repositionCase.params.magic.isMagicEditMode = false;
     repositionCase.params.reposition.isGeneratingReposition = true;
     repositionCase.params.reposition.isSavingAsVariant = false;
 
     const img2imgCase = buildParams();
-    img2imgCase.params.inpainting.editMode = 'img2img';
+    img2imgCase.params.editMode = 'img2img';
     img2imgCase.params.inpainting.isInpaintMode = false;
     img2imgCase.params.magic.isMagicEditMode = false;
     img2imgCase.params.img2img.isGeneratingImg2Img = true;
