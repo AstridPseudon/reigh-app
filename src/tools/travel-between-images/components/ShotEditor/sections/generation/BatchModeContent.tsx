@@ -103,30 +103,22 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
         {/* Left Column: Main Settings */}
         <div className="lg:w-1/2 order-2 lg:order-1">
           <PanelSectionHeader title="Settings" theme="orange" />
-          <div className="mb-4">
-            <TravelGuidanceEditor
-              selectedModel={modelSettings.selectedModel}
-              onSelectedModelChange={(nextModel) => {
-                if (nextModel === 'wan-2.2') {
-                  handlePrimaryModelChange('wan');
-                  return;
-                }
-                if (getModelSpec(nextModel).modelFamily !== 'ltx') {
-                  return;
-                }
-                if (!ltxSelected) {
-                  handlePrimaryModelChange('ltx');
-                  return;
-                }
-                modelSettings.setSelectedModel(nextModel);
-              }}
-              hasStructureVideo={!!structureVideo.structureVideoPath}
-              showGuidanceControls={false}
-            />
-          </div>
-
           <BatchSettingsForm
             selectedModel={modelSettings.selectedModel}
+            onSelectedModelChange={(nextModel) => {
+              if (nextModel === 'wan-2.2') {
+                handlePrimaryModelChange('wan');
+                return;
+              }
+              if (getModelSpec(nextModel).modelFamily !== 'ltx') {
+                return;
+              }
+              if (!ltxSelected) {
+                handlePrimaryModelChange('ltx');
+                return;
+              }
+              modelSettings.setSelectedModel(nextModel);
+            }}
             batchVideoPrompt={promptSettings.prompt}
             onBatchVideoPromptChange={generationHandlers.handleBatchVideoPromptChangeWithClear}
             batchVideoFrames={frameSettings.batchVideoFrames}

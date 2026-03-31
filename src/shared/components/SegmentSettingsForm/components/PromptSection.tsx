@@ -12,6 +12,7 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Switch } from '@/shared/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
+import { ModelToggle } from '@/shared/components/ui/composed/model-toggle';
 import { FieldDefaultControls } from './FieldDefaultControls';
 import { EnhancedPromptBadge } from './EnhancedPromptBadge';
 import type { usePromptFieldState } from '@/shared/hooks/usePromptFieldState';
@@ -19,10 +20,15 @@ import type {
   SegmentDefaultFieldProps,
   SegmentSettingsChangeProps,
 } from '../types';
+import type { SelectedModel } from '@/tools/travel-between-images/settings';
 
 interface PromptSectionProps extends SegmentDefaultFieldProps, SegmentSettingsChangeProps {
   promptField: ReturnType<typeof usePromptFieldState>;
   isRegeneration: boolean;
+
+  // Model selection
+  selectedModel?: SelectedModel;
+  onSelectedModelChange?: (model: SelectedModel) => void;
 
   // Enhanced prompt
   basePromptForEnhancement?: string;
@@ -45,6 +51,8 @@ export const PromptSection: React.FC<PromptSectionProps> = ({
   basePromptForEnhancement,
   enhancePromptEnabled,
   onEnhancePromptChange,
+  selectedModel,
+  onSelectedModelChange,
   onSaveFieldAsDefault,
   handleSaveFieldAsDefault,
   savingField,
@@ -90,12 +98,35 @@ export const PromptSection: React.FC<PromptSectionProps> = ({
         />
       </div>
 
-      {/* Enhance Prompt Toggle & Make Primary Variant */}
-      <div className="flex gap-2">
+      {/* Toggle Grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {onSelectedModelChange && selectedModel && (
+          <ModelToggle
+            selectedModel={selectedModel}
+            onSelectedModelChange={onSelectedModelChange}
+          />
+        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border">
+              <Switch
+                id="make-primary-segment"
+                checked={settings.makePrimaryVariant}
+                onCheckedChange={(value) => onChange({ makePrimaryVariant: value })}
+              />
+              <Label htmlFor="make-primary-segment" className="text-xs cursor-pointer flex-1">
+                Make Primary
+              </Label>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Make this the primary variant for this segment</p>
+          </TooltipContent>
+        </Tooltip>
         {onEnhancePromptChange && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
+              <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border">
                 <Switch
                   id="enhance-prompt-segment"
                   checked={enhancePromptEnabled ?? false}
@@ -111,27 +142,10 @@ export const PromptSection: React.FC<PromptSectionProps> = ({
             </TooltipContent>
           </Tooltip>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
-              <Switch
-                id="make-primary-segment"
-                checked={settings.makePrimaryVariant}
-                onCheckedChange={(value) => onChange({ makePrimaryVariant: value })}
-              />
-              <Label htmlFor="make-primary-segment" className="text-xs cursor-pointer flex-1">
-                Make Primary
-              </Label>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Make this the primary variant for this segment</p>
-          </TooltipContent>
-        </Tooltip>
         {smoothContinuations && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border flex-1">
+              <div className="flex items-center gap-x-2 p-2 bg-muted/30 rounded-lg border">
                 <Switch
                   id="smooth-continuations-segment"
                   checked={smoothContinuations.enabled}

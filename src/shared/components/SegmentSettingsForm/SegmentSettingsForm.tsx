@@ -45,6 +45,7 @@ import { PromptSection } from './components/PromptSection';
 // Extracted hooks
 import { useSaveFieldAsDefault } from './hooks/useSaveFieldAsDefault';
 import { useStructureVideoUpload } from './hooks/useStructureVideoUpload';
+import { useModelChange } from './hooks/useModelChange';
 
 // Types
 import type { SegmentSettingsFormProps } from './types';
@@ -120,6 +121,9 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   const [isSavingDefaults, setIsSavingDefaults] = useState(false);
   const [saveDefaultsSuccess, setSaveDefaultsSuccess] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
+
+  // Model change handler (shared between PromptSection toggle and AdvancedSettingsSection)
+  const handleModelChange = useModelChange({ onChange, settings, shotDefaults });
 
   // Save-field-as-default (shared with AdvancedSettingsSection)
   const { savingField, handleSaveFieldAsDefault } = useSaveFieldAsDefault({
@@ -235,7 +239,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
       {/* Input Images with Frames Slider */}
       {(startImageUrl || endImageUrl) && (
-        <div className="@container overflow-hidden">
+        <div className="@container">
           <div className="grid grid-cols-2 gap-2 @[280px]:grid-cols-3">
             {/* Start Image */}
             <div className="relative aspect-video">
@@ -327,6 +331,8 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
         isRegeneration={isRegeneration}
         settings={settings}
         onChange={onChange}
+        selectedModel={effectiveSelectedModel}
+        onSelectedModelChange={handleModelChange}
         basePromptForEnhancement={basePromptForEnhancement}
         enhancePromptEnabled={enhancePromptEnabled}
         onEnhancePromptChange={onEnhancePromptChange}
